@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>3. Calibration (Instrument) &mdash; oceanarray v0.0.0 documentation</title>
+  <title>3. Calibration (Instrument-level Corrections) &mdash; oceanarray v0.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=20758594" />
@@ -21,8 +21,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="4. Conversion to OS format (Instrument)" href="conversion.html" />
-    <link rel="prev" title="2. Trimming (Instrument)" href="trimming.html" /> 
+    <link rel="next" title="4. Conversion to OS format" href="conversion.html" />
+    <link rel="prev" title="2. Trimming to Deployed period" href="trimming.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -51,10 +51,10 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Instruments</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="acquisition.html">0. Data Acquisition (Instrument)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="standardisation.html">1. Standardisation (Instrument)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="trimming.html">2. Trimming (Instrument)</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">3. Calibration (Instrument)</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="acquisition.html">Data Acquisition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="standardisation.html">Standardisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="trimming.html">Trim to Deployment</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Apply Calibration</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#overview">1. Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#purpose">2. Purpose</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#input">3. Input</a></li>
@@ -66,13 +66,13 @@
 <li class="toctree-l2"><a class="reference internal" href="#legacy-calibration-script-rapid">Legacy Calibration Script (RAPID)</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="conversion.html">4. Conversion to OS format (Instrument)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conversion.html">Convert to OceanSites</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Moorings</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="filtering.html">Filtering in time</a></li>
-<li class="toctree-l1"><a class="reference internal" href="gridding.html">Vertical Gridding</a></li>
-<li class="toctree-l1"><a class="reference internal" href="stitching.html">Stitching Across Deployments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filtering.html">Filter in Time</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gridding.html">Grid Vertically</a></li>
+<li class="toctree-l1"><a class="reference internal" href="stitching.html">Stitch Deployments</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Array</span></p>
 <ul>
@@ -82,7 +82,6 @@
 <ul>
 <li class="toctree-l1"><a class="reference external" href="http://github.com/eleanorfrajka/oceanarray">GitHub Repo</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../oceanarray.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code></a></li>
-<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ / Troubleshooting</a></li>
 </ul>
 
         </div>
@@ -99,7 +98,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">3. Calibration (Instrument)</li>
+      <li class="breadcrumb-item active">3. Calibration (Instrument-level Corrections)</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/methods/calibration.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -109,8 +108,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="calibration-instrument">
-<h1>3. Calibration (Instrument)<a class="headerlink" href="#calibration-instrument" title="Link to this heading"></a></h1>
+  <section id="calibration-instrument-level-corrections">
+<h1>3. Calibration (Instrument-level Corrections)<a class="headerlink" href="#calibration-instrument-level-corrections" title="Link to this heading"></a></h1>
 <p>This document describes the <strong>calibration</strong> step in the <cite>oceanarray</cite> processing workflow. Calibration refers to applying post-deployment corrections to sensor data based on pre- and post-cruise sensor checks (e.g., comparison with CTD dips), as well as manufacturer or lab calibrations.</p>
 <p>This step typically follows trimming and inspection, and corresponds to post-stage 2 functionality in the RAPID framework. The RAPID <cite>.microcat.txt</cite> files serve as logs of the calibration process.</p>
 <section id="overview">
@@ -196,7 +195,7 @@ Pressure drift removal? n
 <li><p>Provide both pre- and post-correction values</p></li>
 <li><p>Ensure reproducibility by archiving code and calibration metadata</p></li>
 </ul>
-<p>See also: <a class="reference internal" href="trimming.html"><span class="doc">2. Trimming (Instrument)</span></a>, <a class="reference internal" href="filtering.html"><span class="doc">Filtering in time</span></a>, <a class="reference internal" href="standardisation.html"><span class="doc">1. Standardisation (Instrument)</span></a></p>
+<p>See also: <a class="reference internal" href="trimming.html"><span class="doc">2. Trimming to Deployed period</span></a>, <a class="reference internal" href="filtering.html"><span class="doc">Filter &amp; Subsample Time Series</span></a>, <a class="reference internal" href="standardisation.html"><span class="doc">1. Standardisation (Internally-consistent format)</span></a></p>
 </section>
 <section id="legacy-calibration-script-rapid">
 <h2>Legacy Calibration Script (RAPID)<a class="headerlink" href="#legacy-calibration-script-rapid" title="Link to this heading"></a></h2>
@@ -264,8 +263,8 @@ Pressure drift removal? n
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="trimming.html" class="btn btn-neutral float-left" title="2. Trimming (Instrument)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="conversion.html" class="btn btn-neutral float-right" title="4. Conversion to OS format (Instrument)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="trimming.html" class="btn btn-neutral float-left" title="2. Trimming to Deployed period" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="conversion.html" class="btn btn-neutral float-right" title="4. Conversion to OS format" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

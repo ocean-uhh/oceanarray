@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>4. Conversion to OS format (Instrument) &mdash; oceanarray v0.0.0 documentation</title>
+  <title>4. Conversion to OS format &mdash; oceanarray v0.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=20758594" />
@@ -21,8 +21,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Filtering in time" href="filtering.html" />
-    <link rel="prev" title="3. Calibration (Instrument)" href="calibration.html" /> 
+    <link rel="next" title="Filter &amp; Subsample Time Series" href="filtering.html" />
+    <link rel="prev" title="3. Calibration (Instrument-level Corrections)" href="calibration.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -51,11 +51,11 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Instruments</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="acquisition.html">0. Data Acquisition (Instrument)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="standardisation.html">1. Standardisation (Instrument)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="trimming.html">2. Trimming (Instrument)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="calibration.html">3. Calibration (Instrument)</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">4. Conversion to OS format (Instrument)</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="acquisition.html">Data Acquisition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="standardisation.html">Standardisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="trimming.html">Trim to Deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="calibration.html">Apply Calibration</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Convert to OceanSites</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#overview">1. Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#file-format">2. File Format</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#variables">3. Variables</a></li>
@@ -68,9 +68,9 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Moorings</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="filtering.html">Filtering in time</a></li>
-<li class="toctree-l1"><a class="reference internal" href="gridding.html">Vertical Gridding</a></li>
-<li class="toctree-l1"><a class="reference internal" href="stitching.html">Stitching Across Deployments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filtering.html">Filter in Time</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gridding.html">Grid Vertically</a></li>
+<li class="toctree-l1"><a class="reference internal" href="stitching.html">Stitch Deployments</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Array</span></p>
 <ul>
@@ -80,7 +80,6 @@
 <ul>
 <li class="toctree-l1"><a class="reference external" href="http://github.com/eleanorfrajka/oceanarray">GitHub Repo</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../oceanarray.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code></a></li>
-<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ / Troubleshooting</a></li>
 </ul>
 
         </div>
@@ -97,7 +96,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">4. Conversion to OS format (Instrument)</li>
+      <li class="breadcrumb-item active">4. Conversion to OS format</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/methods/conversion.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -107,8 +106,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="conversion-to-os-format-instrument">
-<h1>4. Conversion to OS format (Instrument)<a class="headerlink" href="#conversion-to-os-format-instrument" title="Link to this heading"></a></h1>
+  <section id="conversion-to-os-format">
+<h1>4. Conversion to OS format<a class="headerlink" href="#conversion-to-os-format" title="Link to this heading"></a></h1>
 <p>This document outlines the standardised conversion step from raw or partially processed instrument data to the AC1 format. This format builds on the OceanSITES specification but provides additional structure and vocabulary enforcement to support AMOC array interoperability.</p>
 <nav class="contents local" id="contents">
 <ul class="simple">
@@ -313,8 +312,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="calibration.html" class="btn btn-neutral float-left" title="3. Calibration (Instrument)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="filtering.html" class="btn btn-neutral float-right" title="Filtering in time" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="calibration.html" class="btn btn-neutral float-left" title="3. Calibration (Instrument-level Corrections)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="filtering.html" class="btn btn-neutral float-right" title="Filter &amp; Subsample Time Series" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

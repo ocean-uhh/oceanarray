@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Filtering in time &mdash; oceanarray v0.0.0 documentation</title>
+  <title>Filter &amp; Subsample Time Series &mdash; oceanarray v0.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=20758594" />
@@ -22,7 +22,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Vertical Gridding" href="gridding.html" />
-    <link rel="prev" title="4. Conversion to OS format (Instrument)" href="conversion.html" /> 
+    <link rel="prev" title="4. Conversion to OS format" href="conversion.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -51,15 +51,15 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Instruments</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="acquisition.html">0. Data Acquisition (Instrument)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="standardisation.html">1. Standardisation (Instrument)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="trimming.html">2. Trimming (Instrument)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="calibration.html">3. Calibration (Instrument)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="conversion.html">4. Conversion to OS format (Instrument)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="acquisition.html">Data Acquisition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="standardisation.html">Standardisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="trimming.html">Trim to Deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="calibration.html">Apply Calibration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conversion.html">Convert to OceanSites</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Moorings</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Filtering in time</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Filter in Time</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#overview">1. Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#purpose">2. Purpose</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#input">3. Input</a></li>
@@ -70,8 +70,8 @@
 <li class="toctree-l2"><a class="reference internal" href="#legacy-context-rapid">Legacy Context (RAPID)</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="gridding.html">Vertical Gridding</a></li>
-<li class="toctree-l1"><a class="reference internal" href="stitching.html">Stitching Across Deployments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gridding.html">Grid Vertically</a></li>
+<li class="toctree-l1"><a class="reference internal" href="stitching.html">Stitch Deployments</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Array</span></p>
 <ul>
@@ -81,7 +81,6 @@
 <ul>
 <li class="toctree-l1"><a class="reference external" href="http://github.com/eleanorfrajka/oceanarray">GitHub Repo</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../oceanarray.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code></a></li>
-<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ / Troubleshooting</a></li>
 </ul>
 
         </div>
@@ -98,7 +97,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Filtering in time</li>
+      <li class="breadcrumb-item active">Filter &amp; Subsample Time Series</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/methods/filtering.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -108,9 +107,10 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="filtering-in-time">
-<h1>Filtering in time<a class="headerlink" href="#filtering-in-time" title="Link to this heading"></a></h1>
-<p>This document describes the <strong>filtering</strong> step in the <cite>oceanarray</cite> processing workflow. This step is performed after standardisation and trimming, and prior to vertical interpolation and transport calculation.</p>
+  <section id="filter-subsample-time-series">
+<h1>Filter &amp; Subsample Time Series<a class="headerlink" href="#filter-subsample-time-series" title="Link to this heading"></a></h1>
+<p>Individual records may be sampled at a much higher rate than needed for a specific purpose.  When concatenating multiple records together, it may be useful for some applications to filter out high-frequency variability, such as tidal signals, and subsample the time series to a lower frequency.  This describes <strong>filtering</strong> as used in the RAPID array to remove tides and subsample to half-daily (12-hourly) intervals, which makes the dataset more management after 20 years of records.</p>
+<p>This step is performed after standardisation and trimming, and prior to vertical interpolation and transport calculation.</p>
 <section id="overview">
 <h2>1. Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
 <p>High-frequency variability, such as tidal signals, is removed from the raw time series via low-pass filtering. This step enhances the comparability between instruments and suppresses aliasing due to undersampled high-frequency processes.</p>
@@ -267,7 +267,7 @@ Attributes:
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="conversion.html" class="btn btn-neutral float-left" title="4. Conversion to OS format (Instrument)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="conversion.html" class="btn btn-neutral float-left" title="4. Conversion to OS format" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="gridding.html" class="btn btn-neutral float-right" title="Vertical Gridding" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

@@ -50,17 +50,17 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Instruments</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="methods/acquisition.html">0. Data Acquisition (Instrument)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="methods/standardisation.html">1. Standardisation (Instrument)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="methods/trimming.html">2. Trimming (Instrument)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="methods/calibration.html">3. Calibration (Instrument)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="methods/conversion.html">4. Conversion to OS format (Instrument)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/acquisition.html">Data Acquisition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/standardisation.html">Standardisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/trimming.html">Trim to Deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/calibration.html">Apply Calibration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/conversion.html">Convert to OceanSites</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Moorings</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="methods/filtering.html">Filtering in time</a></li>
-<li class="toctree-l1"><a class="reference internal" href="methods/gridding.html">Vertical Gridding</a></li>
-<li class="toctree-l1"><a class="reference internal" href="methods/stitching.html">Stitching Across Deployments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/filtering.html">Filter in Time</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/gridding.html">Grid Vertically</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/stitching.html">Stitch Deployments</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Array</span></p>
 <ul>
@@ -70,7 +70,6 @@
 <ul>
 <li class="toctree-l1"><a class="reference external" href="http://github.com/eleanorfrajka/oceanarray">GitHub Repo</a></li>
 <li class="toctree-l1"><a class="reference internal" href="oceanarray.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code></a></li>
-<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ / Troubleshooting</a></li>
 </ul>
 
         </div>
@@ -106,13 +105,317 @@
 <li><p>Step 2: Explanation</p></li>
 </ul>
 <p>Note that when you submit a pull request, you should <code class="docutils literal notranslate"><span class="pre">clear</span> <span class="pre">all</span> <span class="pre">outputs</span></code> from your python notebook for a cleaner merge.</p>
-<div class="nbinput docutils container">
+<div class="nbinput nblast docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">template_project</span><span class="w"> </span><span class="kn">import</span> <span class="n">plotters</span><span class="p">,</span> <span class="n">readers</span><span class="p">,</span> <span class="n">tools</span><span class="p">,</span> <span class="n">utilities</span><span class="p">,</span> <span class="n">writers</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray</span><span class="w"> </span><span class="kn">import</span> <span class="n">readers</span>
+<br/><br/></pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_rodb_keys_file</span><span class="p">(</span><span class="n">filepath</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parse a rodb_keys.txt file with MATLAB-style lines into structured dicts.</span>
+
+<span class="sd">    Returns a dictionary with a list of entries under the &#39;RODB_KEYS&#39; key.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">entries</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+        <span class="sa">r</span><span class="s2">&quot;^\s*&#39;(?P&lt;line&gt;[^&#39;]+)&#39;;\s*\.\.\.\s*%?\s*(?P&lt;comment&gt;.*)?&quot;</span>
+    <span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="n">match</span> <span class="o">=</span> <span class="n">pattern</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">match</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="c1"># Extract the line content and optional comment</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">raw_fields</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;line&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">raw_fields</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="k">continue</span>  <span class="c1"># not enough fields</span>
+
+            <span class="n">key</span> <span class="o">=</span> <span class="n">raw_fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">fmt</span> <span class="o">=</span> <span class="n">raw_fields</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">count</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw_fields</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">code</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw_fields</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+            <span class="n">comment</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;comment&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">if</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;comment&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+
+            <span class="n">entry</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;key&quot;</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span>
+                <span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="n">fmt</span><span class="p">,</span>
+                <span class="s2">&quot;count&quot;</span><span class="p">:</span> <span class="n">count</span><span class="p">,</span>
+                <span class="s2">&quot;code&quot;</span><span class="p">:</span> <span class="n">code</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="n">comment</span><span class="p">:</span>
+                <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;comment&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">comment</span>
+
+            <span class="n">entries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;RODB_KEYS&quot;</span><span class="p">:</span> <span class="n">entries</span><span class="p">}</span>
+
+<span class="n">infile</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;../oceanarray/config/rodb_keys.txt&quot;</span><span class="p">)</span>  <span class="c1"># Replace with your actual file path</span>
+<span class="n">rodb_keys_data</span> <span class="o">=</span> <span class="n">parse_rodb_keys_file</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;../oceanarray/config/rodb_keys.yaml&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outfile</span><span class="p">:</span>
+    <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">rodb_keys_data</span><span class="p">,</span> <span class="n">outfile</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Wrote </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">rodb_keys_data</span><span class="p">[</span><span class="s1">&#39;RODB_KEYS&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2"> entries to </span><span class="si">{</span><span class="n">outfile</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<br/><br/><br/><br/></pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+&#39;Filename            %s       0   -1&#39;; ...  % (raw data) file name
+&#39;Shipname            %s       0   -2&#39;; ...  % ship name
+&#39;Cruise              %s       0   -3&#39;; ...  % cruise identifier
+&#39;Mooring             %s       0   -4&#39;; ...  % mooring identifer
+&#39;Model               %s       0   -5&#39;; ...  % model identifer
+&#39;Instrument          %s       0  -10&#39;; ...  % instrument identifier
+&#39;InstrType           %s       0  -10&#39;; ...  % instrument identifier
+&#39;Serial_Number       %d       1  -11&#39;; ...  % serial number
+&#39;SerialNumber        %d       1  -11&#39;; ...  % serial number
+&#39;Station             %s       0  -12&#39;; ...  % station number or name
+&#39;Profile             %s       0  -13&#39;; ...  % profile identifier
+&#39;ArgonautSN          %d       1  -15&#39;; ...  % Argonaut Serial number
+&#39;MicrocatSN          %d       1  -16&#39;; ...  % MicroCat Serial number
+&#39;CTD_File            %s       0  -20&#39;; ...  % CTD file name
+&#39;Meteo_File          %s       0  -21&#39;; ...  % meterological data file name
+&#39;WaterTemp           %g       1  -31&#39;; ...  % water temp (deg C)
+&#39;WaterDepth          %d       1  -32&#39;; ...  % water depth (m)
+&#39;Max_Depth           %d       1  -33&#39;; ...  % maximum profile depth (m)
+&#39;MaxDepth            %d       1  -34&#39;; ...  % maximum profile depth (m)
+&#39;Max_Press           %d       1  -41&#39;; ...  % maximum profile pressure (dbar)
+&#39;MaxPress            %d       1  -41&#39;; ...  % maximum profile pressure (dbar)
+&#39;InstrDepth          %d       1  -35&#39;; ...  % instrument depth (m)
+&#39;Depth               %d       1  -36&#39;; ...  % (instrument) depth (m)
+&#39;SensorSpacing       %d       1  -37&#39;; ...  % sensor spacing (m) (thermistor strings)
+&#39;LayerThickness      %g       1  -38&#39;; ...  %
+&#39;Press_Offset        %g       1  -39&#39;; ...  % pressure offset (dbar)
+&#39;PressOffset         %g       1  -39&#39;; ...  % pressure offset (dbar)
+&#39;Mag_Deviation       %g       1  -40&#39;; ...
+&#39;MagDeviation        %g       1  -40&#39;; ...
+&#39;LatentHeat          %g       1  -50&#39;; ...
+&#39;ThermalExpansion    %g       1  -51&#39;; ...
+&#39;HalineContraction   %g       1  -52&#39;; ...
+&#39;ReferenceTemperature%g       1  -53&#39;; ...
+&#39;ReferenceSalinity   %g       1  -54&#39;; ...
+&#39;ReferenceDensity    %g       1  -55&#39;; ...
+&#39;Temp_Coef           %s       0  -60&#39;; ...
+&#39;Cond_Coef           %s       0  -61&#39;; ...
+&#39;Gravity             %g       1  -70&#39;; ...
+&#39;Start_Date          %d/%d/%d 3  -80&#39;; ...  % start date
+&#39;StartDate           %d/%d/%d 3  -80&#39;; ...  % start date
+&#39;Date                %d/%d/%d 3  -80&#39;; ...  % (start) date
+&#39;Start_Time          %d:%d    2  -81&#39;; ...  % start time
+&#39;StartTime           %d:%d    2  -81&#39;; ...  % start time
+&#39;Time                %d:%d    2  -81&#39;; ...  % (start) time
+&#39;End_Date            %d/%d/%d 3  -82&#39;; ...  % end date
+&#39;EndDate             %d/%d/%d 3  -82&#39;; ...  % end date
+&#39;End_Time            %d:%d    2  -83&#39;; ...  % end time
+&#39;EndTime             %d:%d    2  -83&#39;; ...  % end time
+&#39;Time_Step           %g       1  -84&#39;; ...
+&#39;TimeStep            %g       1  -84&#39;; ...
+&#39;SamplingInterval    %g       1  -84&#39;; ...
+&#39;Start_Lat           pos      1  -90&#39;; ...  % start latitude
+&#39;StartLat            pos      1  -90&#39;; ...  % start latitude
+&#39;Latitude            pos      1  -90&#39;; ...  % (start) latitude
+&#39;Start_Lon           pos      1  -91&#39;; ...  % start longitude
+&#39;StartLon            pos      1  -91&#39;; ...  % start longitude
+&#39;Start_Long          pos      1  -91&#39;; ...  % start longitude
+&#39;StartLong           pos      1  -91&#39;; ...  % start longitude
+&#39;Longitude           pos      1  -91&#39;; ...  % (start) longitude
+&#39;End_Lat             pos      1  -92&#39;; ...  % end latitude
+&#39;EndLat              pos      1  -92&#39;; ...  % end latitude
+&#39;End_Lon             pos      1  -93&#39;; ...  % end longitude
+&#39;EndLon              pos      1  -93&#39;; ...  % end longitude
+&#39;End_Long            pos      1  -93&#39;; ...  % end longitude
+&#39;EndLong             pos      1  -93&#39;; ...  % end longitude
+&#39;deployment          %d       1  -95&#39;; ...  % number of deployment
+&#39;Columns             col      0 -100&#39;; ...  % Columns in data file
+&#39;Columns_cont.       col      0 -101&#39;; ...  % Columns in data file
+&#39;ColumnUnits         %s       0 -102&#39;; ...  % Physical Units of columns
+&#39;P                   dat      0    1&#39;; ...  % pressure (dbar)
+&#39;D                   dat      0    2&#39;; ...  % water depth (m)
+&#39;Z                   dat      0    3&#39;; ...  % depth (m)
+&#39;PARG                dat      0    5&#39;; ...  % press. of sontek argonaut (dbar)
+&#39;PCAT                dat      0    6&#39;; ...  % press. of seabird MicroCAT (dbar)
+&#39;MLD                 dat      0    8&#39;; ...  % mixed layer depth (m)
+&#39;T                   dat      0   20&#39;; ...  % temperature (deg C)
+&#39;WT                  dat      0   19&#39;; ...  % wet bulb temperature (deg C)
+&#39;AT                  dat      0   21&#39;; ...  % air temperature (deg C)
+&#39;SST                 dat      0   25&#39;; ...  % sea surface temperature (deg C)
+&#39;PT                  dat      0   30&#39;; ...  % potential temp (deg C)
+&#39;TARG                dat      0   33&#39;; ...  % temp. of sontek argonaut (deg C)
+&#39;TCAT                dat      0   34&#39;; ...  % temp. of seabird MicroCAT (deg C)
+&#39;S                   dat      0   41&#39;; ...  % salinity
+&#39;C                   dat      0   50&#39;; ...  % conductivity (mS/cm)
+&#39;O                   dat      0   60&#39;; ...  % oxygen (ml/l)
+&#39;BO                  dat      0   61&#39;; ...  % bottle oxygen (ml/l)
+&#39;DO                  dat      0   67&#39;; ...  % oxygen difference (ml/l)
+&#39;ST                  dat      0   70&#39;; ...  % sigma-t (kg/m^3)
+&#39;STH                 dat      0   71&#39;; ...  % sigma-theta (kg/m^3)
+&#39;SV                  dat      0   80&#39;; ...  % sound velocity (m/s)
+&#39;TT                  dat      0   85&#39;; ...  % acoustic travel time (s)
+&#39;TT1                 dat      0   86&#39;; ...  % acoustic travel time 1 (PIES) (s)
+&#39;TT2                 dat      0   87&#39;; ...  % acoustic travel time 2 (PIES) (s)
+&#39;TT3                 dat      0   88&#39;; ...  % acoustic travel time 3 (PIES) (s)
+&#39;TT4                 dat      0   89&#39;; ...  % acoustic travel time 4 (PIES) (s)
+&#39;PFIT                dat      0   90&#39;; ...  % empirical drift estimate for pressure record
+&#39;RCMC1               dat      0   95&#39;; ...  % lower limit of RCM11 conductivity range [mS/cm]
+&#39;RCMC2               dat      0   96&#39;; ...  % upper limit of RCM11 conductivity range [mS/cm]
+&#39;REF                 dat      0   97&#39;; ...  % reference number fo Aanderra instruments
+&#39;MSS                 dat      0   98&#39;; ...  % Mean Signal strength
+&#39;SN                  dat      0  100&#39;; ...  % scan number (or serian number)
+&#39;SCN                 dat      0  100&#39;; ...  % scan number
+&#39;BTL                 dat      0  103&#39;; ...  % niskin bottle number
+&#39;PRF                 dat      0  104&#39;; ...  % profile/cast number
+&#39;STN                 dat      0  105&#39;; ...  % station
+&#39;ID                  dat      0  105&#39;; ...  % identifier
+&#39;OC                  dat      0  110&#39;; ...  % oxygen current (micro A)
+&#39;OT                  dat      0  111&#39;; ...  % oxygen temperature (deg C)
+&#39;DOC                 dat      0  112&#39;; ...  % dOc/Dt (micro A/s)
+&#39;QS                  dat      0  133&#39;; ...  % shortwave radiation (W/m^2)
+&#39;QL                  dat      0  136&#39;; ...  % longwave radiation (W/m^2)
+&#39;QH                  dat      0  137&#39;; ...  % latent heat flux (W/m^2)
+&#39;QB                  dat      0  138&#39;; ...  % sensible heat flux (W/m^2)
+&#39;PR                  dat      0  139&#39;; ...  % precipitation
+&#39;F11                 dat      0  150&#39;; ...  % freon 11 (micro moles/kg)
+&#39;F12                 dat      0  151&#39;; ...  % freon 12 (micro moles/kg)
+&#39;NO3                 dat      0  182&#39;; ...  % nitrate (micro moles/l)
+&#39;NO2                 dat      0  184&#39;; ...  % nitrite (micro moles/l)
+&#39;NN                  dat      0  185&#39;; ...  % nitrate + nitrite (micro moles/l)
+&#39;PO4                 dat      0  186&#39;; ...  % phosphate (micro moles/l)
+&#39;SI                  dat      0  188&#39;; ...  % silicate (micro moles/l)
+&#39;CCL4                dat      0  190&#39;; ...  % ccl4, carbon tetrachloride (pico moles/kg)
+&#39;MTHCF               dat      0  191&#39;; ...  % methylchloroform (pico moles/kg)
+&#39;IC                  dat      0  215&#39;; ...  % ice concentration (percent)
+&#39;CS                  dat      0  300&#39;; ...  % current speed (cm/s)
+&#39;CD                  dat      0  310&#39;; ...  % current direction (deg)
+&#39;U                   dat      0  320&#39;; ...  % zonal current (cm/s)
+&#39;V                   dat      0  321&#39;; ...  % meridional current (cm/s)
+&#39;W                   dat      0  329&#39;; ...  % vertical velocity (cm/s)
+&#39;X                   dat      0  370&#39;; ...  % x position (m)
+&#39;Y                   dat      0  371&#39;; ...  % y position (m)
+&#39;L                   dat      0  375&#39;; ...  % length, length scale (m)
+&#39;WS                  dat      0  401&#39;; ...  % wind speed (m/s)
+&#39;WD                  dat      0  410&#39;; ...  % wind direction (deg) (0-360)
+&#39;WU                  dat      0  422&#39;; ...  % wind speed (m/s) (going E)
+&#39;WV                  dat      0  423&#39;; ...  % wind speed (m/s) (going N)
+&#39;TX                  dat      0  446&#39;; ...  % zonal wind stress (N/m^2)
+&#39;TY                  dat      0  447&#39;; ...  % meridional wind stress (N/m^2)
+&#39;LAT                 dat      0  500&#39;; ...  % latitude (degrees north)
+&#39;LON                 dat      0  501&#39;; ...  % longitude (degrees east)
+&#39;YY                  dat      0  601&#39;; ...  % year
+&#39;YYYY                dat      0  601&#39;; ...  % year
+&#39;MM                  dat      0  602&#39;; ...  % month
+&#39;DD                  dat      0  603&#39;; ...  % day
+&#39;HH                  dat      0  604&#39;; ...  % hour (decimal)
+&#39;MIN                 dat      0  605&#39;; ...  % Minute
+&#39;SEC                 dat      0  606&#39;; ...  % Second
+&#39;TIM                 dat      0  626&#39;; ...  % time since start (s)
+&#39;SD                  dat      0  700&#39;; ...  % standard deviation
+&#39;SK                  dat      0  701&#39;; ...  % skewness
+&#39;PG                  dat      0  721&#39;; ...  % ADCP percent good pings
+&#39;EV                  dat      0  722&#39;; ...  % ADCP error velocity (cm/s)
+&#39;AMP                 dat      0  723&#39;; ...  % ADCP amplitude
+&#39;SH                  dat      0  913&#39;; ...  % Specific humidity (hPa)
+&#39;AGC                 dat      0 1202&#39;; ...  % ADCP Echo intensity (counts)
+&#39;HDG                 dat      0 1215&#39;; ...  % ADCP heading (deg)
+&#39;PIT                 dat      0 1216&#39;; ...  % ADCP pitch (deg)
+&#39;ROL                 dat      0 1217&#39;; ...  % ADCP roll (deg)
+&#39;TLT                 dat      0 1218&#39;; ...  % FSI ACM Tilt (deg)
+&#39;F113                dat      0 1703&#39;; ...  % freon 113 (pico moles/kg)
+&#39;TCO2                dat      0 1751&#39;; ...  % total carbon dioxide (micro moles)
+&#39;DIC                 dat      0 1753&#39;; ...  % Dissolved Inorganic Carbon (micromoles/kg)
+&#39;ALK                 dat      0 1756&#39;; ...  % alkalinity (micro moles/kg)
+&#39;USD                 dat      0 2001&#39;; ...  % stand. dev. zonal current (cm/s)
+&#39;VSD                 dat      0 2002&#39;; ...  % stand. dev. merid current (cm/s)
+&#39;WSD                 dat      0 2003&#39;; ...  % stand. dev. vert velocity (cm/s)
+&#39;USS                 dat      0 2011&#39;; ...  % signal strength zon. cur. (counts)
+&#39;VSS                 dat      0 2012&#39;; ...  % signal strength mer. cur (counts)
+&#39;WSS                 dat      0 2013&#39;; ...  % signal strength ver. cur. (counts)
+&#39;PGP                 dat      0 2021&#39;; ...  % percent good pings (percent)
+&#39;PITSD               dat      0 2022&#39;; ...  % Pitch stand. dev. [deg] for Argonaut
+&#39;ROLSD               dat      0 2023&#39;; ...  % Roll stand. dev. [deg] for Argonaut
+&#39;HDGSD               dat      0 2024&#39;; ...  % Heading stand. dev [deg] for Argonaut
+&#39;PSD                 dat      0 2031&#39;; ...  % Pressure stand. dev.[dbar] for Argonaut
+&#39;IPOW                dat      0 2041&#39;; ...  % input power level  [V] for Argonaut
+&#39;CBEG                dat      0 2042&#39;; ...  % start loc.of sampl. volume [m] for Argonaut
+&#39;CEND                dat      0 2043&#39;; ...  % end loc. of sampl. volume [m] for Argonaut
+&#39;IREL                dat      0 2044&#39;; ...  % release battery current drain [Amperes] for PIES
+&#39;ISYS                dat      0 2045&#39;; ...  % system battery current drain [Amperes] for PIES
+&#39;VREL                dat      0 2046&#39;; ...  % release battery voltage [V] for PIES
+&#39;VSYS                dat      0 2047&#39;; ...  % system battery current drain [V] for PIES
+&#39;T1                  dat      0 9111&#39;; ...  % temp TC sensor 1 (deg C)
+&#39;T2                  dat      0 9112&#39;; ...  % temp TC sensor 2 (deg C)
+&#39;T3                  dat      0 9113&#39;; ...  % temp TC sensor 3 (deg C)
+&#39;T4                  dat      0 9114&#39;; ...  % temp TC sensor 4 (deg C)
+&#39;T5                  dat      0 9115&#39;; ...  % temp TC sensor 5 (deg C)
+&#39;T6                  dat      0 9116&#39;; ...  % temp TC sensor 6 (deg C)
+&#39;T7                  dat      0 9117&#39;; ...  % temp TC sensor 7 (deg C)
+&#39;T8                  dat      0 9118&#39;; ...  % temp TC sensor 8 (deg C)
+&#39;T9                  dat      0 9119&#39;; ...  % temp TC sensor 9 (deg C)
+&#39;T10                 dat      0 9120&#39;; ...  % temp TC sensor 10 (deg C)
+&#39;T11                 dat      0 9121&#39;; ...  % temp TC sensor 11 (deg C)
+&#39;T12                 dat      0 9122&#39;; ...  % temp TC sensor 12 (deg C)
+&#39;PT1                 dat      0 9131&#39;; ...  % pot temp TC sensor 1 (deg C)
+&#39;PT2                 dat      0 9132&#39;; ...  % pot temp TC sensor 2 (deg C)
+&#39;PT3                 dat      0 9133&#39;; ...  % pot temp TC sensor 3 (deg C)
+&#39;PT4                 dat      0 9134&#39;; ...  % pot temp TC sensor 4 (deg C)
+&#39;PT5                 dat      0 9135&#39;; ...  % pot temp TC sensor 5 (deg C)
+&#39;PT6                 dat      0 9136&#39;; ...  % pot temp TC sensor 6 (deg C)
+&#39;PT7                 dat      0 9137&#39;; ...  % pot temp TC sensor 7 (deg C)
+&#39;PT8                 dat      0 9138&#39;; ...  % pot temp TC sensor 8 (deg C)
+&#39;PT9                 dat      0 9139&#39;; ...  % pot temp TC sensor 9 (deg C)
+&#39;PT10                dat      0 9140&#39;; ...  % pot temp TC sensor 10 (deg C)
+&#39;PT11                dat      0 9141&#39;; ...  % pot temp TC sensor 11 (deg C)
+&#39;PT12                dat      0 9142&#39;; ...  % pot temp TC sensor 12 (deg C)
+&#39;DPT                 dat      0 9143&#39;; ...  % Depth calc. with Moordyn (m)
+Wrote 205 entries to &lt;_io.TextIOWrapper name=&#39;../oceanarray/config/rodb_keys.yaml&#39; mode=&#39;w&#39; encoding=&#39;UTF-8&#39;&gt;
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.rodb</span><span class="w"> </span><span class="kn">import</span> <span class="n">rodbload</span><span class="p">,</span> <span class="n">rodbsave</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+
+<span class="c1"># Load a short test input (adjust path if needed)</span>
+<span class="n">infile</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;../data/wb1_12_2015_6123_head10.use&quot;</span><span class="p">)</span>
+<span class="n">ds</span> <span class="o">=</span> <span class="n">rodbload</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span>
+
+<span class="c1"># Save using updated rodbsave</span>
+<span class="k">with</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">NamedTemporaryFile</span><span class="p">(</span><span class="s2">&quot;w+&quot;</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s2">&quot;.use&quot;</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">tmp</span><span class="p">:</span>
+    <span class="n">outpath</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">tmp</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">rodbsave</span><span class="p">(</span><span class="n">outpath</span><span class="p">,</span> <span class="n">ds</span><span class="p">)</span>
+
+<span class="c1"># Print results</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Written file: </span><span class="si">{</span><span class="n">outpath</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">outpath</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">20</span><span class="p">:</span>
+            <span class="k">break</span>
 <br/></pre></div>
 </div>
 </div>
@@ -121,79 +424,38 @@
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">ModuleNotFoundError</span>                       Traceback (most recent call last)
-<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[1]</span><span class="ansi-green-fg">, line 3</span>
-<span class="ansi-green-fg">      1</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">pathlib</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">import</span> Path
-<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">3</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">template_project</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">import</span> plotters, readers, tools, utilities, writers
+Written file: /tmp/tmp8wixlc_f.use
 
-<span class="ansi-red-fg">ModuleNotFoundError</span>: No module named &#39;template_project&#39;
+Mooring                = wb1_12_2015
+SerialNumber           = 6123
+WaterDepth             = 1401
+InstrDepth             = 800
+Start_Date             = 2015/11/30
+Start_Time             = 19:00
+End_Date               = 2017/03/28
+End_Time               = 14:00
+Latitude               = 26 29.920 N
+Longitude              = 076 48.850 W
+Columns                = YY:MM:DD:HH:T:C:P
+2015   11   30   19.00028    7.8594   36.5649   824.0
+2015   11   30   20.00028    7.8540   36.5601   826.1
+2015   11   30   21.00028    7.8465   36.5519   827.3
+2015   11   30   22.00028    7.8213   36.5280   827.9
+2015   11   30   23.00028    7.7556   36.4649   828.9
+2015   12    1    0.00028    7.6805   36.3907   830.4
+2015   12    1    1.00028    7.6567   36.3641   831.3
+2015   12    1    2.00028    7.8435   36.5786   831.3
+2015   12    1    3.00028    7.9788   36.6738   829.9
+2015   12    1    4.00028    8.0262   36.7642   829.2
 </pre></div></div>
 </div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ds</span> <span class="o">=</span> <span class="n">readers</span><span class="o">.</span><span class="n">load_sample_dataset</span><span class="p">()</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
 </pre></div>
 </div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[2]</span><span class="ansi-green-fg">, line 1</span>
-<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">1</span> ds = <span class="ansi-yellow-bg">readers</span>.load_sample_dataset()
-
-<span class="ansi-red-fg">NameError</span>: name &#39;readers&#39; is not defined
-</pre></div></div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plotters</span><span class="o">.</span><span class="n">plot_monthly_transport</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[3]</span><span class="ansi-green-fg">, line 1</span>
-<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">1</span> <span class="ansi-yellow-bg">plotters</span>.plot_monthly_transport(ds)
-
-<span class="ansi-red-fg">NameError</span>: name &#39;plotters&#39; is not defined
-</pre></div></div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;data&quot;</span> <span class="o">/</span> <span class="s2">&quot;temp.nc&quot;</span>
-<span class="n">writers</span><span class="o">.</span><span class="n">save_dataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">output_file</span><span class="o">=</span><span class="n">path</span><span class="p">,</span> <span class="n">prompt_user</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[4]</span><span class="ansi-green-fg">, line 2</span>
-<span class="ansi-green-fg">      1</span> path = Path.cwd().parent / <span class="ansi-yellow-fg">&#34;</span><span class="ansi-yellow-fg">data</span><span class="ansi-yellow-fg">&#34;</span> / <span class="ansi-yellow-fg">&#34;</span><span class="ansi-yellow-fg">temp.nc</span><span class="ansi-yellow-fg">&#34;</span>
-<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">2</span> <span class="ansi-yellow-bg">writers</span>.save_dataset(ds, output_file=path, prompt_user=<span class="ansi-bold" style="color: rgb(0,135,0)">True</span>)
-
-<span class="ansi-red-fg">NameError</span>: name &#39;writers&#39; is not defined
-</pre></div></div>
 </div>
 </section>
 

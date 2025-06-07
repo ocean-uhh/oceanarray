@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>1. Standardisation (Instrument) &mdash; oceanarray v0.0.0 documentation</title>
+  <title>1. Standardisation (Internally-consistent format) &mdash; oceanarray v0.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=20758594" />
@@ -21,8 +21,8 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="2. Trimming (Instrument)" href="trimming.html" />
-    <link rel="prev" title="0. Data Acquisition (Instrument)" href="acquisition.html" /> 
+    <link rel="next" title="2. Trimming to Deployed period" href="trimming.html" />
+    <link rel="prev" title="0. Data Acquisition (Instrument-level processing)" href="acquisition.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -51,8 +51,8 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Instruments</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="acquisition.html">0. Data Acquisition (Instrument)</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">1. Standardisation (Instrument)</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="acquisition.html">Data Acquisition</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Standardisation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#overview">1. Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#purpose">2. Purpose</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#input">3. Input</a></li>
@@ -61,15 +61,15 @@
 <li class="toctree-l2"><a class="reference internal" href="#legacy-script-rapid">Legacy Script (RAPID)</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="trimming.html">2. Trimming (Instrument)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="calibration.html">3. Calibration (Instrument)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="conversion.html">4. Conversion to OS format (Instrument)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="trimming.html">Trim to Deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="calibration.html">Apply Calibration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conversion.html">Convert to OceanSites</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Moorings</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="filtering.html">Filtering in time</a></li>
-<li class="toctree-l1"><a class="reference internal" href="gridding.html">Vertical Gridding</a></li>
-<li class="toctree-l1"><a class="reference internal" href="stitching.html">Stitching Across Deployments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="filtering.html">Filter in Time</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gridding.html">Grid Vertically</a></li>
+<li class="toctree-l1"><a class="reference internal" href="stitching.html">Stitch Deployments</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Array</span></p>
 <ul>
@@ -79,7 +79,6 @@
 <ul>
 <li class="toctree-l1"><a class="reference external" href="http://github.com/eleanorfrajka/oceanarray">GitHub Repo</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../oceanarray.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code></a></li>
-<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ / Troubleshooting</a></li>
 </ul>
 
         </div>
@@ -96,7 +95,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">1. Standardisation (Instrument)</li>
+      <li class="breadcrumb-item active">1. Standardisation (Internally-consistent format)</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/methods/standardisation.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -106,8 +105,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="standardisation-instrument">
-<h1>1. Standardisation (Instrument)<a class="headerlink" href="#standardisation-instrument" title="Link to this heading"></a></h1>
+  <section id="standardisation-internally-consistent-format">
+<h1>1. Standardisation (Internally-consistent format)<a class="headerlink" href="#standardisation-internally-consistent-format" title="Link to this heading"></a></h1>
 <p>This document describes the <strong>standardisation</strong> step in the oceanarray processing workflow. It defines how instrument data—regardless of its original format or naming—are converted to a consistent internal structure using <cite>xarray.Dataset</cite>. This enables all subsequent processing steps (e.g. calibration, filtering, transport calculations) to run on semantically uniform data.</p>
 <p>It corresponds to <strong>Stage 1</strong> from RAPID data processing and management, which uses the RDB format.  An example of RDB format is below:</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Mooring              = wb2_16_2020
@@ -211,7 +210,7 @@ Columns              = YY:MM:DD:HH:T:C:P
 <li><p>Variable names and minimal metadata allow standardised tools to begin working</p></li>
 <li><p>Equivalent in philosophy to the RAPID “RDB” format</p></li>
 </ul>
-<p>See also: <a class="reference internal" href="acquisition.html"><span class="doc">0. Data Acquisition (Instrument)</span></a>, <a class="reference internal" href="conversion.html"><span class="doc">4. Conversion to OS format (Instrument)</span></a></p>
+<p>See also: <a class="reference internal" href="acquisition.html"><span class="doc">0. Data Acquisition (Instrument-level processing)</span></a>, <a class="reference internal" href="conversion.html"><span class="doc">4. Conversion to OS format</span></a></p>
 </section>
 <section id="legacy-script-rapid">
 <h2>Legacy Script (RAPID)<a class="headerlink" href="#legacy-script-rapid" title="Link to this heading"></a></h2>
@@ -271,8 +270,8 @@ Columns              = YY:MM:DD:HH:T:C:P
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="acquisition.html" class="btn btn-neutral float-left" title="0. Data Acquisition (Instrument)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="trimming.html" class="btn btn-neutral float-right" title="2. Trimming (Instrument)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="acquisition.html" class="btn btn-neutral float-left" title="0. Data Acquisition (Instrument-level processing)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="trimming.html" class="btn btn-neutral float-right" title="2. Trimming to Deployed period" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -21,7 +21,6 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="FAQ / Troubleshooting" href="faq.html" />
     <link rel="prev" title="Multi-site Merging" href="methods/multisite_merging.html" /> 
 </head>
 
@@ -51,17 +50,17 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Instruments</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="methods/acquisition.html">0. Data Acquisition (Instrument)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="methods/standardisation.html">1. Standardisation (Instrument)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="methods/trimming.html">2. Trimming (Instrument)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="methods/calibration.html">3. Calibration (Instrument)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="methods/conversion.html">4. Conversion to OS format (Instrument)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/acquisition.html">Data Acquisition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/standardisation.html">Standardisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/trimming.html">Trim to Deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/calibration.html">Apply Calibration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/conversion.html">Convert to OceanSites</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Moorings</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="methods/filtering.html">Filtering in time</a></li>
-<li class="toctree-l1"><a class="reference internal" href="methods/gridding.html">Vertical Gridding</a></li>
-<li class="toctree-l1"><a class="reference internal" href="methods/stitching.html">Stitching Across Deployments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/filtering.html">Filter in Time</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/gridding.html">Grid Vertically</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/stitching.html">Stitch Deployments</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Array</span></p>
 <ul>
@@ -71,20 +70,55 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference external" href="http://github.com/eleanorfrajka/oceanarray">GitHub Repo</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code></a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#oceanarray.plotters.plot_monthly_transport"><code class="docutils literal notranslate"><span class="pre">plot_monthly_transport()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#oceanarray.plotters.show_attributes"><code class="docutils literal notranslate"><span class="pre">show_attributes()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#oceanarray.plotters.show_variables"><code class="docutils literal notranslate"><span class="pre">show_variables()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#oceanarray.writers.save_dataset"><code class="docutils literal notranslate"><span class="pre">save_dataset()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#oceanarray.tools.convert_units_var"><code class="docutils literal notranslate"><span class="pre">convert_units_var()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#oceanarray.tools.reformat_units_var"><code class="docutils literal notranslate"><span class="pre">reformat_units_var()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#oceanarray.utilities.apply_defaults"><code class="docutils literal notranslate"><span class="pre">apply_defaults()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#oceanarray.utilities.download_file"><code class="docutils literal notranslate"><span class="pre">download_file()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#oceanarray.utilities.get_default_data_dir"><code class="docutils literal notranslate"><span class="pre">get_default_data_dir()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#oceanarray.utilities.resolve_file_path"><code class="docutils literal notranslate"><span class="pre">resolve_file_path()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="#oceanarray.utilities.safe_update_attrs"><code class="docutils literal notranslate"><span class="pre">safe_update_attrs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#inputs-and-outputs">Inputs and Outputs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#readers">readers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.readers.rodbload"><code class="docutils literal notranslate"><span class="pre">rodbload()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ / Troubleshooting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#writers">writers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#plotters">plotters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.plotters.plot_monthly_transport"><code class="docutils literal notranslate"><span class="pre">plot_monthly_transport()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.plotters.show_attributes"><code class="docutils literal notranslate"><span class="pre">show_attributes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.plotters.show_variables"><code class="docutils literal notranslate"><span class="pre">show_variables()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#instrument-processing">Instrument Processing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#standardisation">standardisation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#trimming">trimming</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#calibration">calibration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#convertos">convertOS</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#mooring-processing">Mooring Processing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#filtering">filtering</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gridding">gridding</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stitching">stitching</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#array-processing">Array Processing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#transports">transports</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#general-tools-and-utilities">General Tools and Utilities</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#tools">tools</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.convert_units_var"><code class="docutils literal notranslate"><span class="pre">convert_units_var()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.reformat_units_var"><code class="docutils literal notranslate"><span class="pre">reformat_units_var()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#utilities">utilities</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.utilities.apply_defaults"><code class="docutils literal notranslate"><span class="pre">apply_defaults()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.utilities.download_file"><code class="docutils literal notranslate"><span class="pre">download_file()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.utilities.get_default_data_dir"><code class="docutils literal notranslate"><span class="pre">get_default_data_dir()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.utilities.resolve_file_path"><code class="docutils literal notranslate"><span class="pre">resolve_file_path()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.utilities.safe_update_attrs"><code class="docutils literal notranslate"><span class="pre">safe_update_attrs()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 
         </div>
@@ -111,9 +145,45 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-oceanarray.plotters">
-<span id="oceanarray-api"></span><h1><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code><a class="headerlink" href="#module-oceanarray.plotters" title="Link to this heading"></a></h1>
-<dl class="py function">
+  <section id="oceanarray-api">
+<h1><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code><a class="headerlink" href="#oceanarray-api" title="Link to this heading"></a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<p>Load and process moored oceanographic time series data from raw instrument format to array-integrated transport products.</p>
+<section id="inputs-and-outputs">
+<h2>Inputs and Outputs<a class="headerlink" href="#inputs-and-outputs" title="Link to this heading"></a></h2>
+<section id="readers">
+<h3>readers<a class="headerlink" href="#readers" title="Link to this heading"></a></h3>
+<p>Shared utilities and base classes for loading raw instrument data.</p>
+<dl class="py function" id="module-oceanarray.readers">
+<dt class="sig sig-object py" id="oceanarray.readers.rodbload">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.readers.</span></span><span class="sig-name descname"><span class="pre">rodbload</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filepath</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variables</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dataset</span></span></span><a class="reference internal" href="_modules/oceanarray/readers.html#rodbload"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.readers.rodbload" title="Link to this definition"></a></dt>
+<dd><p>Load a RODB-style file into an xarray.Dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filepath</strong> (<em>Path</em>) – Path to the .use, .raw or .dat file</p></li>
+<li><p><strong>variables</strong> (<em>list</em><em> of </em><em>str</em>) – Variables to extract (must be present in columns= line)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ds</strong> – Dataset containing requested variables</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>xr.Dataset</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="writers">
+<h3>writers<a class="headerlink" href="#writers" title="Link to this heading"></a></h3>
+<p>Write datasets to disk in standardized NetCDF format.</p>
+</section>
+<section id="plotters">
+<span id="module-oceanarray.writers"></span><h3>plotters<a class="headerlink" href="#plotters" title="Link to this heading"></a></h3>
+<p>Tools for plotting mooring time series, profile sections, and transport products.</p>
+<dl class="py function" id="module-oceanarray.plotters">
 <dt class="sig sig-object py" id="oceanarray.plotters.plot_monthly_transport">
 <span class="sig-prename descclassname"><span class="pre">oceanarray.plotters.</span></span><span class="sig-name descname"><span class="pre">plot_monthly_transport</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'moc_mar_hc10'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/oceanarray/plotters.html#plot_monthly_transport"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.plotters.plot_monthly_transport" title="Link to this definition"></a></dt>
 <dd><p>Plot original and monthly averaged transport time series.</p>
@@ -163,30 +233,54 @@ pandas.io.formats.style.Styler: A styled DataFrame containing the following colu
 </div></blockquote>
 </dd></dl>
 
-<dl class="py function" id="module-oceanarray.writers">
-<dt class="sig sig-object py" id="oceanarray.writers.save_dataset">
-<span class="sig-prename descclassname"><span class="pre">oceanarray.writers.</span></span><span class="sig-name descname"><span class="pre">save_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'../data/test.nc'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delete_existing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prompt_user</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/writers.html#save_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.writers.save_dataset" title="Link to this definition"></a></dt>
-<dd><p>Attempts to save the dataset to a NetCDF file. If a TypeError occurs due to invalid attribute values,
-it converts the invalid attributes to strings and retries the save operation.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>(</strong><strong>xarray.Dataset</strong><strong>)</strong> (<em>ds</em>)</p></li>
-<li><p><strong>(</strong><strong>str</strong><strong>)</strong> (<em>output_file</em>)</p></li>
-<li><p><strong>(</strong><strong>bool</strong><strong>)</strong> (<em>prompt_user</em>)</p></li>
-<li><p><strong>(</strong><strong>bool</strong><strong>)</strong></p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><ul class="simple">
-<li><p><strong>bool</strong> (<em>True if the dataset was saved successfully, False otherwise.</em>)</p></li>
-<li><p><strong>Based on</strong> (<em>https://github.com/pydata/xarray/issues/3743</em>)</p></li>
-</ul>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
+</section>
+</section>
+<section id="instrument-processing">
+<h2>Instrument Processing<a class="headerlink" href="#instrument-processing" title="Link to this heading"></a></h2>
+<section id="standardisation">
+<h3>standardisation<a class="headerlink" href="#standardisation" title="Link to this heading"></a></h3>
+<p>Trim instrument records to the deployment window and flag out-of-bounds values.</p>
+</section>
+<section id="trimming">
+<h3>trimming<a class="headerlink" href="#trimming" title="Link to this heading"></a></h3>
+<p>Trim instrument records to the deployment window and flag out-of-bounds values.</p>
+</section>
+<section id="calibration">
+<h3>calibration<a class="headerlink" href="#calibration" title="Link to this heading"></a></h3>
+<p>Apply post-cruise calibration offsets derived from shipboard CTD comparisons.</p>
+</section>
+<section id="convertos">
+<span id="module-oceanarray.calibration"></span><h3>convertOS<a class="headerlink" href="#convertos" title="Link to this heading"></a></h3>
+<p>Convert to OceanSites format.</p>
+</section>
+</section>
+<section id="mooring-processing">
+<span id="module-oceanarray.convertOS"></span><h2>Mooring Processing<a class="headerlink" href="#mooring-processing" title="Link to this heading"></a></h2>
+<section id="filtering">
+<h3>filtering<a class="headerlink" href="#filtering" title="Link to this heading"></a></h3>
+<p>Apply Butterworth filters to remove tides and smooth high-frequency noise.</p>
+</section>
+<section id="gridding">
+<h3>gridding<a class="headerlink" href="#gridding" title="Link to this heading"></a></h3>
+<p>Vertically interpolate T/S/P data onto a common pressure grid using climatological constraints.</p>
+</section>
+<section id="stitching">
+<h3>stitching<a class="headerlink" href="#stitching" title="Link to this heading"></a></h3>
+<p>Concatenate deployments and interpolate onto a continuous time base.</p>
+</section>
+</section>
+<section id="array-processing">
+<h2>Array Processing<a class="headerlink" href="#array-processing" title="Link to this heading"></a></h2>
+<section id="transports">
+<h3>transports<a class="headerlink" href="#transports" title="Link to this heading"></a></h3>
+<p>Compute transport time series by integrating geostrophic velocity profiles and applying boundary corrections.</p>
+</section>
+</section>
+<section id="general-tools-and-utilities">
+<span id="module-oceanarray.transports"></span><h2>General Tools and Utilities<a class="headerlink" href="#general-tools-and-utilities" title="Link to this heading"></a></h2>
+<section id="tools">
+<h3>tools<a class="headerlink" href="#tools" title="Link to this heading"></a></h3>
+<p>Helper functions for unit conversion, time alignment, and quality control.</p>
 <dl class="py function" id="module-oceanarray.tools">
 <dt class="sig sig-object py" id="oceanarray.tools.convert_units_var">
 <span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">convert_units_var</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_unit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_unit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unit_conversion</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'Celsius':</span> <span class="pre">{'factor':</span> <span class="pre">1,</span> <span class="pre">'units_name':</span> <span class="pre">'degrees_Celsius'},</span> <span class="pre">'Pa':</span> <span class="pre">{'factor':</span> <span class="pre">0.0001,</span> <span class="pre">'units_name':</span> <span class="pre">'dbar'},</span> <span class="pre">'S</span> <span class="pre">m-1':</span> <span class="pre">{'factor':</span> <span class="pre">0.1,</span> <span class="pre">'units_name':</span> <span class="pre">'mS</span> <span class="pre">cm-1'},</span> <span class="pre">'S/m':</span> <span class="pre">{'factor':</span> <span class="pre">0.1,</span> <span class="pre">'units_name':</span> <span class="pre">'mS/cm'},</span> <span class="pre">'cm':</span> <span class="pre">{'factor':</span> <span class="pre">0.01,</span> <span class="pre">'units_name':</span> <span class="pre">'m'},</span> <span class="pre">'cm</span> <span class="pre">s-1':</span> <span class="pre">{'factor':</span> <span class="pre">0.01,</span> <span class="pre">'units_name':</span> <span class="pre">'m</span> <span class="pre">s-1'},</span> <span class="pre">'cm/s':</span> <span class="pre">{'factor':</span> <span class="pre">0.01,</span> <span class="pre">'units_name':</span> <span class="pre">'m/s'},</span> <span class="pre">'dbar':</span> <span class="pre">{'factor':</span> <span class="pre">10000,</span> <span class="pre">'units_name':</span> <span class="pre">'Pa'},</span> <span class="pre">'degrees_Celsius':</span> <span class="pre">{'factor':</span> <span class="pre">1,</span> <span class="pre">'units_name':</span> <span class="pre">'Celsius'},</span> <span class="pre">'g</span> <span class="pre">m-3':</span> <span class="pre">{'factor':</span> <span class="pre">0.001,</span> <span class="pre">'units_name':</span> <span class="pre">'kg</span> <span class="pre">m-3'},</span> <span class="pre">'kg</span> <span class="pre">m-3':</span> <span class="pre">{'factor':</span> <span class="pre">1000,</span> <span class="pre">'units_name':</span> <span class="pre">'g</span> <span class="pre">m-3'},</span> <span class="pre">'km':</span> <span class="pre">{'factor':</span> <span class="pre">1000,</span> <span class="pre">'units_name':</span> <span class="pre">'m'},</span> <span class="pre">'m':</span> <span class="pre">{'factor':</span> <span class="pre">100,</span> <span class="pre">'units_name':</span> <span class="pre">'cm'},</span> <span class="pre">'m</span> <span class="pre">s-1':</span> <span class="pre">{'factor':</span> <span class="pre">100,</span> <span class="pre">'units_name':</span> <span class="pre">'cm</span> <span class="pre">s-1'},</span> <span class="pre">'m/s':</span> <span class="pre">{'factor':</span> <span class="pre">100,</span> <span class="pre">'units_name':</span> <span class="pre">'cm/s'},</span> <span class="pre">'mS</span> <span class="pre">cm-1':</span> <span class="pre">{'factor':</span> <span class="pre">10,</span> <span class="pre">'units_name':</span> <span class="pre">'S</span> <span class="pre">m-1'},</span> <span class="pre">'mS/cm':</span> <span class="pre">{'factor':</span> <span class="pre">10,</span> <span class="pre">'units_name':</span> <span class="pre">'S/m'}}</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#convert_units_var"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.convert_units_var" title="Link to this definition"></a></dt>
@@ -238,6 +332,10 @@ it converts the invalid attributes to strings and retries the save operation.</p
 </dl>
 </dd></dl>
 
+</section>
+<section id="utilities">
+<h3>utilities<a class="headerlink" href="#utilities" title="Link to this heading"></a></h3>
+<p>General utilities for file management, logging, and parsing ASCII metadata.</p>
 <dl class="py function" id="module-oceanarray.utilities">
 <dt class="sig sig-object py" id="oceanarray.utilities.apply_defaults">
 <span class="sig-prename descclassname"><span class="pre">oceanarray.utilities.</span></span><span class="sig-name descname"><span class="pre">apply_defaults</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">default_source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_files</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span></span></span><a class="reference internal" href="_modules/oceanarray/utilities.html#apply_defaults"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.utilities.apply_defaults" title="Link to this definition"></a></dt>
@@ -334,13 +432,14 @@ unless explicitly allowed.</p>
 </dd></dl>
 
 </section>
+</section>
+</section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="methods/multisite_merging.html" class="btn btn-neutral float-left" title="Multi-site Merging" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="faq.html" class="btn btn-neutral float-right" title="FAQ / Troubleshooting" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -22,29 +22,27 @@ Contents
    :maxdepth: 1
    :caption: Methods for Instruments
 
-   methods/acquisition
-   methods/standardisation
-   methods/trimming
-   methods/calibration
-   methods/conversion
+   Data Acquisition <methods/acquisition>
+   Standardisation <methods/standardisation>
+   Trim to Deployment <methods/trimming>
+   Apply Calibration <methods/calibration>
+   Convert to OceanSites <methods/conversion>
 
 .. toctree::
    :maxdepth: 1
    :caption: Methods for Moorings
 
-   methods/filtering
-   methods/gridding
-   methods/stitching
+   Filter in Time <methods/filtering>
+   Grid Vertically <methods/gridding>
+   Stitch Deployments <methods/stitching>
 
 .. toctree::
    :maxdepth: 1
    :caption: Methods for Array
 
-   methods/multisite_merging
-   methods/dynamics
-   methods/velocity
-   methods/transports
-   methods/diagnostics
+   Multi-site Merging <methods/multisite_merging>
+   Derived Profiles <methods/dynamics>
+   Transport Calculation <methods/transports>
 
 .. toctree::
    :maxdepth: 1
