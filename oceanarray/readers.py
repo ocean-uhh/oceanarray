@@ -1,14 +1,152 @@
 from pathlib import Path
 from typing import Union
 
+import numpy as np
 import pandas as pd
 import xarray as xr
 
 from oceanarray import logger
-from oceanarray.logger import log_info
+from oceanarray.logger import log_info, log_warning
 from oceanarray.read_rapid import read_rapid
 
-log = logger.log
+DUMMY_VALUES = [1e32, -9.0, -9.9]
+import pandas as pd
+import xarray as xr
+from .logger import log_info, log_warning  # adjust import to your structure
+
+
+def add_rodb_time(ds: xr.Dataset) -> xr.Dataset:
+    """
+    Construct and add a TIME variable to a dataset loaded from RODB format.
+
+    Recognized combinations (must be present as variables in ds):
+    - ["YY", "MM", "DD", "HH", "MI"] → datetime
+    - ["YY", "MM", "DD", "HH"] → datetime, minutes assumed 0
+    - ["YY", "MM", "DD", "decimal"] → decimal hour to minute conversion
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        Dataset containing RODB time fields as variables
+
+    Returns
+    -------
+    ds : xarray.Dataset
+        Dataset with added TIME coordinate
+    """
+    if "TIME" in ds:
+        log_info("TIME already present in dataset")
+        return ds
+
+    yy = ds.get("YY")
+    mm = ds.get("MM")
+    dd = ds.get("DD")
+
+    if yy is None or mm is None or dd is None:
+        raise ValueError("YY, MM, and DD must be present in dataset to build TIME")
+
+
+    # Assemble pandas datetimes
+    try:
+        yy_vals = ds["YY"].values
+        # Check if all YY values are 2-digit (i.e., < 100)
+        if np.all((yy_vals >= 0) & (yy_vals < 100)):
+            years = 2000 + yy_vals.astype(int)
+        else:
+            years = yy_vals.astype(int)
+        times = pd.to_datetime({
+            "year": years,
+            "month": ds["MM"],
+            "day": ds["DD"],
+            "hour": ds["HH"]
+
+        }, errors="coerce")
+    except Exception as e:
+        log_warning("Failed to build TIME variable: %s", e)
+        raise
+
+    ds = ds.copy()
+
+    # Create the TIME array (assuming `times` is length N and matches 'obs' dim)
+    ds.coords["TIME"] = ("obs", times)  # ✅ Associate times with the 'obs' dimension
+
+    # Promote TIME as dimension
+    ds = ds.swap_dims({"obs": "TIME"})
+
+    return ds
+
+
+def rodbload(filepath: Path, variables: list[str]) -> xr.Dataset:
+    """
+    Load a RODB-style file into an xarray.Dataset.
+
+    Parameters
+    ----------
+    filepath : Path
+        Path to the .use, .raw or .dat file
+    variables : list of str
+        Variables to extract (must be present in columns= line)
+
+    Returns
+    -------
+    ds : xr.Dataset
+        Dataset containing requested variables
+    """
+    with open(filepath, "r") as f:
+        lines = f.readlines()
+
+    # Extract header lines (up to first data block)
+    header_lines = []
+    data_start_index = None
+
+    for i, line in enumerate(lines):
+        if not line.strip():
+            continue
+        if line.lstrip().startswith("#") or "=" in line:
+            header_lines.append(line.strip())
+        else:
+            data_start_index = i
+            break
+
+    if data_start_index is None:
+        raise ValueError("Could not locate data block in file")
+
+    # Extract columns
+    col_line = next((l for l in header_lines if "columns" in l.lower()), None)
+    if col_line is None:
+        raise ValueError("No 'columns=' line found in header")
+
+    columns = col_line.split("=")[-1].strip().split(":")
+    print(columns)
+    log_info("Found columns: %s", columns)
+
+    # Validate requested variables
+    missing = [v for v in variables if v not in columns]
+    if missing:
+        raise ValueError(f"Variables not found in file: {missing}")
+
+    col_indices = {v: i for i, v in enumerate(columns) if v in variables}
+
+    # Load data block
+    data = np.genfromtxt(lines[data_start_index:], dtype=float)
+    if data.ndim == 1:
+        data = data[np.newaxis, :]  # in case of only 1 line
+
+    # Replace dummy values with NaN
+    for dummy in DUMMY_VALUES:
+        data[data == dummy] = np.nan
+
+    # Build xarray dataset
+    coords = {"obs": np.arange(data.shape[0])}
+    data_vars = {
+        var: (("obs",), data[:, col_indices[var]])
+        for var in variables
+    }
+
+
+    ds = xr.Dataset(data_vars, coords=coords)
+    ds.attrs["source_file"] = str(filepath)
+    return ds
 
 
 def _get_reader(array_name: str):
@@ -39,149 +177,3 @@ def _get_reader(array_name: str):
         raise ValueError(
             f"Unknown array name: {array_name}. Valid options are: {list(readers.keys())}",
         )
-
-
-def load_sample_dataset(array_name: str = "rapid") -> xr.Dataset:
-    """Load a sample dataset for quick testing.
-
-    Currently supports:
-    - 'rapid' : loads the 'RAPID_26N_TRANSPORT.nc' file
-
-    Parameters
-    ----------
-    array_name : str, optional
-        The name of the observing array to load. Default is 'rapid'.
-
-    Returns
-    -------
-    xr.Dataset
-        A single xarray Dataset from the sample file.
-
-    Raises
-    ------
-    ValueError
-        If the array_name is not recognised.
-
-    """
-    if array_name.lower() == "rapid":
-        sample_file = "moc_transports.nc"
-        datasets = load_dataset(
-            array_name=array_name,
-            file_list=sample_file,
-            transport_only=True,
-        )
-        if not datasets:
-            raise FileNotFoundError(
-                f"No datasets were loaded for sample file: {sample_file}",
-            )
-        return datasets[0]
-
-    raise ValueError(
-        f"Sample dataset for array '{array_name}' is not defined. "
-        "Currently only 'rapid' is supported.",
-    )
-
-
-def load_dataset(
-    array_name: str,
-    source: str = None,
-    file_list: Union[str | list[str]] = None,
-    transport_only: bool = True,
-    data_dir: Union[str, Path, None] = None,
-    redownload: bool = False,
-) -> list[xr.Dataset]:
-    """Load raw datasets from a selected AMOC observing array.
-
-    Parameters
-    ----------
-    array_name : str
-        The name of the observing array to load. Options are:
-        - 'rapid' : RAPID 26N array
-    source : str, optional
-        URL or local path to the data source.
-        If None, the reader-specific default source will be used.
-    file_list : str or list of str, optional
-        Filename or list of filenames to process.
-        If None, the reader-specific default files will be used.
-    transport_only : bool, optional
-        If True, restrict to transport files only.
-    data_dir : str, optional
-        Local directory for downloaded files.
-    redownload : bool, optional
-        If True, force redownload of the data.
-
-    Returns
-    -------
-    list of xarray.Dataset
-        List of datasets loaded from the specified array.
-
-    Raises
-    ------
-    ValueError
-        If an unknown array name is provided.
-
-    """
-    if logger.LOGGING_ENABLED:
-        logger.setup_logger(array_name=array_name)
-
-    # Use logger globally
-    log = logger.log
-    log_info(f"Loading dataset for array: {array_name}")
-
-    reader = _get_reader(array_name)
-    datasets = reader(
-        source=source,
-        file_list=file_list,
-        transport_only=transport_only,
-        data_dir=data_dir,
-        redownload=redownload,
-    )
-
-    log_info(f"Successfully loaded {len(datasets)} dataset(s) for array: {array_name}")
-    _summarise_datasets(datasets, array_name)
-
-    return datasets
-
-
-def _summarise_datasets(datasets: list, array_name: str):
-    """Print and log a summary of loaded datasets."""
-    summary_lines = []
-    summary_lines.append(f"Summary for array '{array_name}':")
-    summary_lines.append(f"Total datasets loaded: {len(datasets)}\n")
-
-    for idx, ds in enumerate(datasets, start=1):
-        summary_lines.append(f"Dataset {idx}:")
-
-        # Filename from metadata
-        source_file = ds.attrs.get("source_file", "Unknown")
-        summary_lines.append(f"  Source file: {source_file}")
-
-        # Time coverage
-        time_var = ds.get("TIME")
-        if time_var is not None:
-            time_start = pd.to_datetime(time_var.values[0]).strftime("%Y-%m-%d")
-            time_end = pd.to_datetime(time_var.values[-1]).strftime("%Y-%m-%d")
-            summary_lines.append(f"  Time coverage: {time_start} to {time_end}")
-        else:
-            summary_lines.append("  Time coverage: TIME variable not found")
-
-        # Dimensions
-        summary_lines.append("  Dimensions:")
-        for dim, size in ds.sizes.items():
-            summary_lines.append(f"    - {dim}: {size}")
-
-        # Variables
-        summary_lines.append("  Variables:")
-        for var in ds.data_vars:
-            shape = ds[var].shape
-            summary_lines.append(f"    - {var}: shape {shape}")
-
-        summary_lines.append("")  # empty line between datasets
-
-    summary = "\n".join(summary_lines)
-
-    # Print to console
-    print(summary)
-
-    # Write to log
-    log_info("\n" + summary)

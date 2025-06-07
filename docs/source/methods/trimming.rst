@@ -1,5 +1,5 @@
-2. Trimming (Instrument)
-========================
+2. Trimming to Deployed period
+==============================
 
 This document outlines the **trimming** step in the oceanarray processing workflow. Trimming refers to the process of isolating the valid deployment period from a time series—typically corresponding to the interval between instrument deployment and recovery.  It also produces summary plots.
 

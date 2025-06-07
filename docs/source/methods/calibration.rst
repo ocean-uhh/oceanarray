@@ -1,5 +1,5 @@
-3. Calibration (Instrument)
-===========================
+3. Calibration (Instrument-level Corrections)
+===========================================
 
 This document describes the **calibration** step in the `oceanarray` processing workflow. Calibration refers to applying post-deployment corrections to sensor data based on pre- and post-cruise sensor checks (e.g., comparison with CTD dips), as well as manufacturer or lab calibrations.
 

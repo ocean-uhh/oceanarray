@@ -1,0 +1,20 @@
+Microcat_apply_cal.m: 
+Date    : 18-Jul-2017 
+Operator: JC 
+Input file : /users/odb/rpdmoc/rapid/data/moor/proc/wb1_12_2015/microcat/wb1_12_2015_6123.use 
+Output file: /users/odb/rpdmoc/users/jcol/wb1_12_2015/microcat/wb1_12_2015_005.microcat 
+Variable            | pre-cruise | post-cruise 
+Conductivity [mS/cm]:  0.0181        0.0244 
+Temperature  [degC]    :  0.0000        0.0000 
+Pressure     [dbar] :  -0.9000        -3.1000 
+Average conductivity applied? y
+General conductivity trend applied? n
+Average temperature applied? y
+Average pressure applied? y
+Pressure drift removal? n
+Conductivity pressure correction redone? n
+Skipped conductivity intervals: [0]
+Skipped temperature intervals : [0]
+Skipped pressure intervals    : [0]
+Number of additional C points skipped interactively: [0]
+Number of additional C points skipped automatically: [2]
