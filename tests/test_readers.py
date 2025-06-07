@@ -1,7 +1,7 @@
 import pytest
 import xarray as xr
 
-from template_project import logger, readers
+from oceanarray import logger, readers
 
 logger.disable_logging()
 

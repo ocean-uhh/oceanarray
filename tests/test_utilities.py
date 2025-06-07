@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import xarray as xr
 
-from template_project import logger, utilities
+from oceanarray import logger, utilities
 
 # Sample data
 VALID_URL = "https://rapid.ac.uk/sites/default/files/rapid_data/"

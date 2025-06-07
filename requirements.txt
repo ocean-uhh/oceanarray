@@ -6,3 +6,7 @@ scipy>=1.10
 
 # Plotting
 matplotlib>=3.7
+
+# Oceanographic tools
+gsw>=3.6.16
+

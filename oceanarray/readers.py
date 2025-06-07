@@ -4,9 +4,9 @@ from typing import Union
 import pandas as pd
 import xarray as xr
 
-from template_project import logger
-from template_project.logger import log_info
-from template_project.read_rapid import read_rapid
+from oceanarray import logger
+from oceanarray.logger import log_info
+from oceanarray.read_rapid import read_rapid
 
 log = logger.log
 

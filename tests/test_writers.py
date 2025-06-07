@@ -1,6 +1,6 @@
 import xarray as xr
 import numpy as np
-from template_project.writers import save_dataset
+from oceanarray.writers import save_dataset
 
 
 def create_dummy_dataset():

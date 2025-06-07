@@ -1,47 +1,59 @@
-# template-project
+# 🌊 oceanarray
 
-> 🧪 A modern Python template for scientific projects — with clean code, automated tests, documentation, citation, and publication tools, ready out-of-the-box.
+**Tools, methods, and documentation for processing moored oceanographic array observations**
 
-This repository is designed to help researchers and developers (especially in the [UHH Experimental Oceanography group](http://eleanorfrajka.com) quickly launch well-structured Python projects with consistent tooling for open science.
+This repository provides an overview of data handling procedures for moored instrument arrays.  The emphasis is on documentation and methodological choices, and will use processing from e.g. RAPID as an example.
 
-📘 Full documentation available at:  
-👉 https://eleanorfrajka.github.io/template-project/
-
----
-
-## 🚀 What's Included
-
-- ✅ Example Python package layout: `template_project/*.py`
-- 📓 Jupyter notebook demo: `notebooks/demo.ipynb`
-- 📄 Markdown and Sphinx-based documentation in `docs/`
-- 🔍 Tests with `pytest` in `tests/`, CI with GitHub Actions
-- 🎨 Code style via `black`, `ruff`, `pre-commit`
-- 📦 Package config via `pyproject.toml` + optional PyPI release workflow
-- 🧾 Machine-readable citation: `CITATION.cff`
+- 📚 Standard processing steps for in situ mooring arrays
+- 🔧 Example code for filtering, calibration, gridding, and dynamic height calculations
+- 🧭 Documentation of methods and workflows
+- ⚙️ Reference implementation for reproducible data processing
 
 ---
 
-## Project structure
+## 🔎 Scope
 
-template-project/
+This project focuses on *multi-mooring array* methods — not single-instrument QC or CTD tools — and emphasizes reproducibility and transparency in the transformation from raw data to scientific diagnostics such as MOC.
+
+It is **array-focused**, but not AMOC-specific. It aims to support workflows used in:
+- Atlantic overturning circulation monitoring
+- Submesoscale calculations from high resolution arrays
+
+---
+
+## 🧱 Repository Structure
+
+```text
+oceanarray/
 ├── .github/
-│   └── workflows/              # GitHub Actions for tests, docs, PyPI
-├── docs/                       # Sphinx-based documentation
+│   └── workflows/     # GitHub Actions for tests, docs, PyPI
+├── docs/              # Documentation and method reference (Sphinx-ready)
 │   ├── source/                 # reStructuredText + MyST Markdown + _static
 │   └── Makefile                # for building HTML docs
-├── notebooks/                  # Example notebooks
-├── template_project/           # Main Python package
+├── notebooks/         # Example notebooks
+├── examples/          # Example processing chains (e.g. RAPID-style)
+├── oceanarray/        # Modular scripts/functions for each processing stage
 │   ├── __init__.py
 │   ├── _version.py
+│   ├── acquisition.py           # Instrument 1: Load/convert to CF-NetCDF
+│   ├── trimming.py              # Instrument 2: Chop to deployment period
+│   ├── calibration.py           # Instrument 3: Apply CTD-based offsets etc.
+│   ├── filtering.py             # Instrument 4: Time filtering & subsampling
+│   ├── gridding.py              # Mooring 1: Vertical interpolation (T/S)
+│   ├── stitching.py             # Mooring 2: Deployment concatenation
+│   ├── transports.py            # Array 1: Combine, compensate
 │   ├── tools.py
 │   ├── readers.py
 │   ├── writers.py
 │   ├── utilities.py
 │   ├── plotters.py
-│   └── template_project.mplstyle  # Optional: matplotlib style file
-├── tests/                      # Pytest test suite
-│   ├── test_tools.py
-│   └── test_utilities.py
+│   └── oceanarray.mplstyle  # Optional: matplotlib style file
+├── data/           # Optional small example data for demonstration
+│   └── example_mooring.nc
+├── tests/                       # ✅ Unit tests for modular functions
+│   ├── test_trimming.py
+│   ├── test_gridding.py
+│   └── ...
 ├── .gitignore
 ├── .pre-commit-config.yaml
 ├── CITATION.cff                # Sample file for citable software
@@ -50,9 +62,10 @@ template-project/
 ├── README.md
 ├── pyproject.toml              # Modern packaging config
 ├── requirements.txt            # Package requirements
+├── requirements-dev.txt        # Development requirements
 ├── customisation_checklist.md  # Development requirements
-└── requirements-dev.txt        # Linting, testing, docs tools
-
+└── README.md       # This file
+```
 
 ---
 
@@ -61,8 +74,8 @@ template-project/
 Install in development mode:
 
 ```bash
-git clone https://github.com/eleanorfrajka/template-project.git
-cd template-project
+git clone https://github.com/eleanorfrajka/oceanarray.git
+cd oceanarray
 pip install -r requirements-dev.txt
 pip install -e .
 ```
@@ -80,33 +93,14 @@ cd docs
 make html
 ```
 
----
+## 🚧 Status
 
-## 📚 Learn More
+This repository is under active development. Methods are being refactored from legacy MATLAB and project-specific scripts to generalized Python implementations with rich documentation and validation.
 
-- [Setup instructions](https://eleanorfrajka.github.io/template-project/setup.html)
-- [Solo Git workflow](https://eleanorfrajka.github.io/template-project/gitworkflow_solo.html)
-- [Fork-based collaboration](https://eleanorfrajka.github.io/template-project/gitcollab_v2.html)
-- [Building docs](https://eleanorfrajka.github.io/template-project/build_docs.html)
-- [Publishing to PyPI](https://eleanorfrajka.github.io/template-project/pypi_guide.html)
+## 📜 License
 
----
+[MIT License](LICENSE)
 
 ## 🤝 Contributing
 
-Contributions are welcome!  Please also consider adding an [issue](https://github.com/eleanorfrajka/template-project/issues) when something isn't clear.
-
-See the [customisation checklist](customisation_checklist.md) to adapt this template to your own project.
-
----
-
-## Future plans
-
-I'll also (once I know how) add instructions for how to publish the package to conda forge, so that folks who use conda or mamba for environment management can also install that way.
-
----
-
-## 📣 Citation
-
-This repository includes a `CITATION.cff` file so that users of this template can include one in their own project.  
-There is no need to cite this repository directly.
+Contributions are welcome. Please open an issue or pull request if you'd like to contribute methods, corrections, or use cases.
