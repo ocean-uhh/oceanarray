@@ -1,0 +1,1012 @@
+RODB_KEYS:
+- key: Filename
+  format: '%s'
+  count: 0
+  code: -1
+  comment: (raw data) file name
+- key: Shipname
+  format: '%s'
+  count: 0
+  code: -2
+  comment: ship name
+- key: Cruise
+  format: '%s'
+  count: 0
+  code: -3
+  comment: cruise identifier
+- key: Mooring
+  format: '%s'
+  count: 0
+  code: -4
+  comment: mooring identifer
+- key: Model
+  format: '%s'
+  count: 0
+  code: -5
+  comment: model identifer
+- key: Instrument
+  format: '%s'
+  count: 0
+  code: -10
+  comment: instrument identifier
+- key: InstrType
+  format: '%s'
+  count: 0
+  code: -10
+  comment: instrument identifier
+- key: Serial_Number
+  format: '%d'
+  count: 1
+  code: -11
+  comment: serial number
+- key: SerialNumber
+  format: '%d'
+  count: 1
+  code: -11
+  comment: serial number
+- key: Station
+  format: '%s'
+  count: 0
+  code: -12
+  comment: station number or name
+- key: Profile
+  format: '%s'
+  count: 0
+  code: -13
+  comment: profile identifier
+- key: ArgonautSN
+  format: '%d'
+  count: 1
+  code: -15
+  comment: Argonaut Serial number
+- key: MicrocatSN
+  format: '%d'
+  count: 1
+  code: -16
+  comment: MicroCat Serial number
+- key: CTD_File
+  format: '%s'
+  count: 0
+  code: -20
+  comment: CTD file name
+- key: Meteo_File
+  format: '%s'
+  count: 0
+  code: -21
+  comment: meterological data file name
+- key: WaterTemp
+  format: '%g'
+  count: 1
+  code: -31
+  comment: water temp (deg C)
+- key: WaterDepth
+  format: '%d'
+  count: 1
+  code: -32
+  comment: water depth (m)
+- key: Max_Depth
+  format: '%d'
+  count: 1
+  code: -33
+  comment: maximum profile depth (m)
+- key: MaxDepth
+  format: '%d'
+  count: 1
+  code: -34
+  comment: maximum profile depth (m)
+- key: Max_Press
+  format: '%d'
+  count: 1
+  code: -41
+  comment: maximum profile pressure (dbar)
+- key: MaxPress
+  format: '%d'
+  count: 1
+  code: -41
+  comment: maximum profile pressure (dbar)
+- key: InstrDepth
+  format: '%d'
+  count: 1
+  code: -35
+  comment: instrument depth (m)
+- key: Depth
+  format: '%d'
+  count: 1
+  code: -36
+  comment: (instrument) depth (m)
+- key: SensorSpacing
+  format: '%d'
+  count: 1
+  code: -37
+  comment: sensor spacing (m) (thermistor strings)
+- key: LayerThickness
+  format: '%g'
+  count: 1
+  code: -38
+- key: Press_Offset
+  format: '%g'
+  count: 1
+  code: -39
+  comment: pressure offset (dbar)
+- key: PressOffset
+  format: '%g'
+  count: 1
+  code: -39
+  comment: pressure offset (dbar)
+- key: Mag_Deviation
+  format: '%g'
+  count: 1
+  code: -40
+- key: MagDeviation
+  format: '%g'
+  count: 1
+  code: -40
+- key: LatentHeat
+  format: '%g'
+  count: 1
+  code: -50
+- key: ThermalExpansion
+  format: '%g'
+  count: 1
+  code: -51
+- key: HalineContraction
+  format: '%g'
+  count: 1
+  code: -52
+- key: ReferenceSalinity
+  format: '%g'
+  count: 1
+  code: -54
+- key: ReferenceDensity
+  format: '%g'
+  count: 1
+  code: -55
+- key: Temp_Coef
+  format: '%s'
+  count: 0
+  code: -60
+- key: Cond_Coef
+  format: '%s'
+  count: 0
+  code: -61
+- key: Gravity
+  format: '%g'
+  count: 1
+  code: -70
+- key: Start_Date
+  format: '%d/%d/%d'
+  count: 3
+  code: -80
+  comment: start date
+- key: StartDate
+  format: '%d/%d/%d'
+  count: 3
+  code: -80
+  comment: start date
+- key: Date
+  format: '%d/%d/%d'
+  count: 3
+  code: -80
+  comment: (start) date
+- key: Start_Time
+  format: '%d:%d'
+  count: 2
+  code: -81
+  comment: start time
+- key: StartTime
+  format: '%d:%d'
+  count: 2
+  code: -81
+  comment: start time
+- key: Time
+  format: '%d:%d'
+  count: 2
+  code: -81
+  comment: (start) time
+- key: End_Date
+  format: '%d/%d/%d'
+  count: 3
+  code: -82
+  comment: end date
+- key: EndDate
+  format: '%d/%d/%d'
+  count: 3
+  code: -82
+  comment: end date
+- key: End_Time
+  format: '%d:%d'
+  count: 2
+  code: -83
+  comment: end time
+- key: EndTime
+  format: '%d:%d'
+  count: 2
+  code: -83
+  comment: end time
+- key: Time_Step
+  format: '%g'
+  count: 1
+  code: -84
+- key: TimeStep
+  format: '%g'
+  count: 1
+  code: -84
+- key: SamplingInterval
+  format: '%g'
+  count: 1
+  code: -84
+- key: Start_Lat
+  format: pos
+  count: 1
+  code: -90
+  comment: start latitude
+- key: StartLat
+  format: pos
+  count: 1
+  code: -90
+  comment: start latitude
+- key: Latitude
+  format: pos
+  count: 1
+  code: -90
+  comment: (start) latitude
+- key: Start_Lon
+  format: pos
+  count: 1
+  code: -91
+  comment: start longitude
+- key: StartLon
+  format: pos
+  count: 1
+  code: -91
+  comment: start longitude
+- key: Start_Long
+  format: pos
+  count: 1
+  code: -91
+  comment: start longitude
+- key: StartLong
+  format: pos
+  count: 1
+  code: -91
+  comment: start longitude
+- key: Longitude
+  format: pos
+  count: 1
+  code: -91
+  comment: (start) longitude
+- key: End_Lat
+  format: pos
+  count: 1
+  code: -92
+  comment: end latitude
+- key: EndLat
+  format: pos
+  count: 1
+  code: -92
+  comment: end latitude
+- key: End_Lon
+  format: pos
+  count: 1
+  code: -93
+  comment: end longitude
+- key: EndLon
+  format: pos
+  count: 1
+  code: -93
+  comment: end longitude
+- key: End_Long
+  format: pos
+  count: 1
+  code: -93
+  comment: end longitude
+- key: EndLong
+  format: pos
+  count: 1
+  code: -93
+  comment: end longitude
+- key: deployment
+  format: '%d'
+  count: 1
+  code: -95
+  comment: number of deployment
+- key: Columns
+  format: col
+  count: 0
+  code: -100
+  comment: Columns in data file
+- key: Columns_cont.
+  format: col
+  count: 0
+  code: -101
+  comment: Columns in data file
+- key: ColumnUnits
+  format: '%s'
+  count: 0
+  code: -102
+  comment: Physical Units of columns
+- key: P
+  format: dat
+  count: 0
+  code: 1
+  comment: pressure (dbar)
+- key: D
+  format: dat
+  count: 0
+  code: 2
+  comment: water depth (m)
+- key: Z
+  format: dat
+  count: 0
+  code: 3
+  comment: depth (m)
+- key: PARG
+  format: dat
+  count: 0
+  code: 5
+  comment: press. of sontek argonaut (dbar)
+- key: PCAT
+  format: dat
+  count: 0
+  code: 6
+  comment: press. of seabird MicroCAT (dbar)
+- key: MLD
+  format: dat
+  count: 0
+  code: 8
+  comment: mixed layer depth (m)
+- key: T
+  format: dat
+  count: 0
+  code: 20
+  comment: temperature (deg C)
+- key: WT
+  format: dat
+  count: 0
+  code: 19
+  comment: wet bulb temperature (deg C)
+- key: AT
+  format: dat
+  count: 0
+  code: 21
+  comment: air temperature (deg C)
+- key: SST
+  format: dat
+  count: 0
+  code: 25
+  comment: sea surface temperature (deg C)
+- key: PT
+  format: dat
+  count: 0
+  code: 30
+  comment: potential temp (deg C)
+- key: TARG
+  format: dat
+  count: 0
+  code: 33
+  comment: temp. of sontek argonaut (deg C)
+- key: TCAT
+  format: dat
+  count: 0
+  code: 34
+  comment: temp. of seabird MicroCAT (deg C)
+- key: S
+  format: dat
+  count: 0
+  code: 41
+  comment: salinity
+- key: C
+  format: dat
+  count: 0
+  code: 50
+  comment: conductivity (mS/cm)
+- key: O
+  format: dat
+  count: 0
+  code: 60
+  comment: oxygen (ml/l)
+- key: BO
+  format: dat
+  count: 0
+  code: 61
+  comment: bottle oxygen (ml/l)
+- key: DO
+  format: dat
+  count: 0
+  code: 67
+  comment: oxygen difference (ml/l)
+- key: ST
+  format: dat
+  count: 0
+  code: 70
+  comment: sigma-t (kg/m^3)
+- key: STH
+  format: dat
+  count: 0
+  code: 71
+  comment: sigma-theta (kg/m^3)
+- key: SV
+  format: dat
+  count: 0
+  code: 80
+  comment: sound velocity (m/s)
+- key: TT
+  format: dat
+  count: 0
+  code: 85
+  comment: acoustic travel time (s)
+- key: TT1
+  format: dat
+  count: 0
+  code: 86
+  comment: acoustic travel time 1 (PIES) (s)
+- key: TT2
+  format: dat
+  count: 0
+  code: 87
+  comment: acoustic travel time 2 (PIES) (s)
+- key: TT3
+  format: dat
+  count: 0
+  code: 88
+  comment: acoustic travel time 3 (PIES) (s)
+- key: TT4
+  format: dat
+  count: 0
+  code: 89
+  comment: acoustic travel time 4 (PIES) (s)
+- key: PFIT
+  format: dat
+  count: 0
+  code: 90
+  comment: empirical drift estimate for pressure record
+- key: RCMC1
+  format: dat
+  count: 0
+  code: 95
+  comment: lower limit of RCM11 conductivity range [mS/cm]
+- key: RCMC2
+  format: dat
+  count: 0
+  code: 96
+  comment: upper limit of RCM11 conductivity range [mS/cm]
+- key: REF
+  format: dat
+  count: 0
+  code: 97
+  comment: reference number fo Aanderra instruments
+- key: MSS
+  format: dat
+  count: 0
+  code: 98
+  comment: Mean Signal strength
+- key: SN
+  format: dat
+  count: 0
+  code: 100
+  comment: scan number (or serian number)
+- key: SCN
+  format: dat
+  count: 0
+  code: 100
+  comment: scan number
+- key: BTL
+  format: dat
+  count: 0
+  code: 103
+  comment: niskin bottle number
+- key: PRF
+  format: dat
+  count: 0
+  code: 104
+  comment: profile/cast number
+- key: STN
+  format: dat
+  count: 0
+  code: 105
+  comment: station
+- key: ID
+  format: dat
+  count: 0
+  code: 105
+  comment: identifier
+- key: OC
+  format: dat
+  count: 0
+  code: 110
+  comment: oxygen current (micro A)
+- key: OT
+  format: dat
+  count: 0
+  code: 111
+  comment: oxygen temperature (deg C)
+- key: DOC
+  format: dat
+  count: 0
+  code: 112
+  comment: dOc/Dt (micro A/s)
+- key: QS
+  format: dat
+  count: 0
+  code: 133
+  comment: shortwave radiation (W/m^2)
+- key: QL
+  format: dat
+  count: 0
+  code: 136
+  comment: longwave radiation (W/m^2)
+- key: QH
+  format: dat
+  count: 0
+  code: 137
+  comment: latent heat flux (W/m^2)
+- key: QB
+  format: dat
+  count: 0
+  code: 138
+  comment: sensible heat flux (W/m^2)
+- key: PR
+  format: dat
+  count: 0
+  code: 139
+  comment: precipitation
+- key: F11
+  format: dat
+  count: 0
+  code: 150
+  comment: freon 11 (micro moles/kg)
+- key: F12
+  format: dat
+  count: 0
+  code: 151
+  comment: freon 12 (micro moles/kg)
+- key: NO3
+  format: dat
+  count: 0
+  code: 182
+  comment: nitrate (micro moles/l)
+- key: NO2
+  format: dat
+  count: 0
+  code: 184
+  comment: nitrite (micro moles/l)
+- key: NN
+  format: dat
+  count: 0
+  code: 185
+  comment: nitrate + nitrite (micro moles/l)
+- key: PO4
+  format: dat
+  count: 0
+  code: 186
+  comment: phosphate (micro moles/l)
+- key: SI
+  format: dat
+  count: 0
+  code: 188
+  comment: silicate (micro moles/l)
+- key: CCL4
+  format: dat
+  count: 0
+  code: 190
+  comment: ccl4, carbon tetrachloride (pico moles/kg)
+- key: MTHCF
+  format: dat
+  count: 0
+  code: 191
+  comment: methylchloroform (pico moles/kg)
+- key: IC
+  format: dat
+  count: 0
+  code: 215
+  comment: ice concentration (percent)
+- key: CS
+  format: dat
+  count: 0
+  code: 300
+  comment: current speed (cm/s)
+- key: CD
+  format: dat
+  count: 0
+  code: 310
+  comment: current direction (deg)
+- key: U
+  format: dat
+  count: 0
+  code: 320
+  comment: zonal current (cm/s)
+- key: V
+  format: dat
+  count: 0
+  code: 321
+  comment: meridional current (cm/s)
+- key: W
+  format: dat
+  count: 0
+  code: 329
+  comment: vertical velocity (cm/s)
+- key: X
+  format: dat
+  count: 0
+  code: 370
+  comment: x position (m)
+- key: Y
+  format: dat
+  count: 0
+  code: 371
+  comment: y position (m)
+- key: L
+  format: dat
+  count: 0
+  code: 375
+  comment: length, length scale (m)
+- key: WS
+  format: dat
+  count: 0
+  code: 401
+  comment: wind speed (m/s)
+- key: WD
+  format: dat
+  count: 0
+  code: 410
+  comment: wind direction (deg) (0-360)
+- key: WU
+  format: dat
+  count: 0
+  code: 422
+  comment: wind speed (m/s) (going E)
+- key: WV
+  format: dat
+  count: 0
+  code: 423
+  comment: wind speed (m/s) (going N)
+- key: TX
+  format: dat
+  count: 0
+  code: 446
+  comment: zonal wind stress (N/m^2)
+- key: TY
+  format: dat
+  count: 0
+  code: 447
+  comment: meridional wind stress (N/m^2)
+- key: LAT
+  format: dat
+  count: 0
+  code: 500
+  comment: latitude (degrees north)
+- key: LON
+  format: dat
+  count: 0
+  code: 501
+  comment: longitude (degrees east)
+- key: YY
+  format: dat
+  count: 0
+  code: 601
+  comment: year
+- key: YYYY
+  format: dat
+  count: 0
+  code: 601
+  comment: year
+- key: MM
+  format: dat
+  count: 0
+  code: 602
+  comment: month
+- key: DD
+  format: dat
+  count: 0
+  code: 603
+  comment: day
+- key: HH
+  format: dat
+  count: 0
+  code: 604
+  comment: hour (decimal)
+- key: MIN
+  format: dat
+  count: 0
+  code: 605
+  comment: Minute
+- key: SEC
+  format: dat
+  count: 0
+  code: 606
+  comment: Second
+- key: TIM
+  format: dat
+  count: 0
+  code: 626
+  comment: time since start (s)
+- key: SD
+  format: dat
+  count: 0
+  code: 700
+  comment: standard deviation
+- key: SK
+  format: dat
+  count: 0
+  code: 701
+  comment: skewness
+- key: PG
+  format: dat
+  count: 0
+  code: 721
+  comment: ADCP percent good pings
+- key: EV
+  format: dat
+  count: 0
+  code: 722
+  comment: ADCP error velocity (cm/s)
+- key: AMP
+  format: dat
+  count: 0
+  code: 723
+  comment: ADCP amplitude
+- key: SH
+  format: dat
+  count: 0
+  code: 913
+  comment: Specific humidity (hPa)
+- key: AGC
+  format: dat
+  count: 0
+  code: 1202
+  comment: ADCP Echo intensity (counts)
+- key: HDG
+  format: dat
+  count: 0
+  code: 1215
+  comment: ADCP heading (deg)
+- key: PIT
+  format: dat
+  count: 0
+  code: 1216
+  comment: ADCP pitch (deg)
+- key: ROL
+  format: dat
+  count: 0
+  code: 1217
+  comment: ADCP roll (deg)
+- key: TLT
+  format: dat
+  count: 0
+  code: 1218
+  comment: FSI ACM Tilt (deg)
+- key: F113
+  format: dat
+  count: 0
+  code: 1703
+  comment: freon 113 (pico moles/kg)
+- key: TCO2
+  format: dat
+  count: 0
+  code: 1751
+  comment: total carbon dioxide (micro moles)
+- key: DIC
+  format: dat
+  count: 0
+  code: 1753
+  comment: Dissolved Inorganic Carbon (micromoles/kg)
+- key: ALK
+  format: dat
+  count: 0
+  code: 1756
+  comment: alkalinity (micro moles/kg)
+- key: USD
+  format: dat
+  count: 0
+  code: 2001
+  comment: stand. dev. zonal current (cm/s)
+- key: VSD
+  format: dat
+  count: 0
+  code: 2002
+  comment: stand. dev. merid current (cm/s)
+- key: WSD
+  format: dat
+  count: 0
+  code: 2003
+  comment: stand. dev. vert velocity (cm/s)
+- key: USS
+  format: dat
+  count: 0
+  code: 2011
+  comment: signal strength zon. cur. (counts)
+- key: VSS
+  format: dat
+  count: 0
+  code: 2012
+  comment: signal strength mer. cur (counts)
+- key: WSS
+  format: dat
+  count: 0
+  code: 2013
+  comment: signal strength ver. cur. (counts)
+- key: PGP
+  format: dat
+  count: 0
+  code: 2021
+  comment: percent good pings (percent)
+- key: PITSD
+  format: dat
+  count: 0
+  code: 2022
+  comment: Pitch stand. dev. [deg] for Argonaut
+- key: ROLSD
+  format: dat
+  count: 0
+  code: 2023
+  comment: Roll stand. dev. [deg] for Argonaut
+- key: HDGSD
+  format: dat
+  count: 0
+  code: 2024
+  comment: Heading stand. dev [deg] for Argonaut
+- key: PSD
+  format: dat
+  count: 0
+  code: 2031
+  comment: Pressure stand. dev.[dbar] for Argonaut
+- key: IPOW
+  format: dat
+  count: 0
+  code: 2041
+  comment: input power level  [V] for Argonaut
+- key: CBEG
+  format: dat
+  count: 0
+  code: 2042
+  comment: start loc.of sampl. volume [m] for Argonaut
+- key: CEND
+  format: dat
+  count: 0
+  code: 2043
+  comment: end loc. of sampl. volume [m] for Argonaut
+- key: IREL
+  format: dat
+  count: 0
+  code: 2044
+  comment: release battery current drain [Amperes] for PIES
+- key: ISYS
+  format: dat
+  count: 0
+  code: 2045
+  comment: system battery current drain [Amperes] for PIES
+- key: VREL
+  format: dat
+  count: 0
+  code: 2046
+  comment: release battery voltage [V] for PIES
+- key: VSYS
+  format: dat
+  count: 0
+  code: 2047
+  comment: system battery current drain [V] for PIES
+- key: T1
+  format: dat
+  count: 0
+  code: 9111
+  comment: temp TC sensor 1 (deg C)
+- key: T2
+  format: dat
+  count: 0
+  code: 9112
+  comment: temp TC sensor 2 (deg C)
+- key: T3
+  format: dat
+  count: 0
+  code: 9113
+  comment: temp TC sensor 3 (deg C)
+- key: T4
+  format: dat
+  count: 0
+  code: 9114
+  comment: temp TC sensor 4 (deg C)
+- key: T5
+  format: dat
+  count: 0
+  code: 9115
+  comment: temp TC sensor 5 (deg C)
+- key: T6
+  format: dat
+  count: 0
+  code: 9116
+  comment: temp TC sensor 6 (deg C)
+- key: T7
+  format: dat
+  count: 0
+  code: 9117
+  comment: temp TC sensor 7 (deg C)
+- key: T8
+  format: dat
+  count: 0
+  code: 9118
+  comment: temp TC sensor 8 (deg C)
+- key: T9
+  format: dat
+  count: 0
+  code: 9119
+  comment: temp TC sensor 9 (deg C)
+- key: T10
+  format: dat
+  count: 0
+  code: 9120
+  comment: temp TC sensor 10 (deg C)
+- key: T11
+  format: dat
+  count: 0
+  code: 9121
+  comment: temp TC sensor 11 (deg C)
+- key: T12
+  format: dat
+  count: 0
+  code: 9122
+  comment: temp TC sensor 12 (deg C)
+- key: PT1
+  format: dat
+  count: 0
+  code: 9131
+  comment: pot temp TC sensor 1 (deg C)
+- key: PT2
+  format: dat
+  count: 0
+  code: 9132
+  comment: pot temp TC sensor 2 (deg C)
+- key: PT3
+  format: dat
+  count: 0
+  code: 9133
+  comment: pot temp TC sensor 3 (deg C)
+- key: PT4
+  format: dat
+  count: 0
+  code: 9134
+  comment: pot temp TC sensor 4 (deg C)
+- key: PT5
+  format: dat
+  count: 0
+  code: 9135
+  comment: pot temp TC sensor 5 (deg C)
+- key: PT6
+  format: dat
+  count: 0
+  code: 9136
+  comment: pot temp TC sensor 6 (deg C)
+- key: PT7
+  format: dat
+  count: 0
+  code: 9137
+  comment: pot temp TC sensor 7 (deg C)
+- key: PT8
+  format: dat
+  count: 0
+  code: 9138
+  comment: pot temp TC sensor 8 (deg C)
+- key: PT9
+  format: dat
+  count: 0
+  code: 9139
+  comment: pot temp TC sensor 9 (deg C)
+- key: PT10
+  format: dat
+  count: 0
+  code: 9140
+  comment: pot temp TC sensor 10 (deg C)
+- key: PT11
+  format: dat
+  count: 0
+  code: 9141
+  comment: pot temp TC sensor 11 (deg C)
+- key: PT12
+  format: dat
+  count: 0
+  code: 9142
+  comment: pot temp TC sensor 12 (deg C)
+- key: DPT
+  format: dat
+  count: 0
+  code: 9143
+  comment: Depth calc. with Moordyn (m)

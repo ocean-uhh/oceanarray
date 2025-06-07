@@ -1,5 +1,5 @@
-1. Standardisation (Instrument)
-===============================
+1. Standardisation (Internally-consistent format)
+================================================
 
 This document describes the **standardisation** step in the oceanarray processing workflow. It defines how instrument data—regardless of its original format or naming—are converted to a consistent internal structure using `xarray.Dataset`. This enables all subsequent processing steps (e.g. calibration, filtering, transport calculations) to run on semantically uniform data.
 

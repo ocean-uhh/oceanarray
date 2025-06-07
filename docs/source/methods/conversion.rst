@@ -1,4 +1,4 @@
-4. Conversion to OS format (Instrument)
+4. Conversion to OS format
 =======================================
 
 This document outlines the standardised conversion step from raw or partially processed instrument data to the AC1 format. This format builds on the OceanSITES specification but provides additional structure and vocabulary enforcement to support AMOC array interoperability.

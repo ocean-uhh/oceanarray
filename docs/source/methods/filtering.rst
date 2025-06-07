@@ -1,7 +1,9 @@
-Filtering in time
-=================
+Filter & Subsample Time Series
+===============================
 
-This document describes the **filtering** step in the `oceanarray` processing workflow. This step is performed after standardisation and trimming, and prior to vertical interpolation and transport calculation.
+Individual records may be sampled at a much higher rate than needed for a specific purpose.  When concatenating multiple records together, it may be useful for some applications to filter out high-frequency variability, such as tidal signals, and subsample the time series to a lower frequency.  This describes **filtering** as used in the RAPID array to remove tides and subsample to half-daily (12-hourly) intervals, which makes the dataset more management after 20 years of records.
+
+This step is performed after standardisation and trimming, and prior to vertical interpolation and transport calculation.
 
 1. Overview
 -----------

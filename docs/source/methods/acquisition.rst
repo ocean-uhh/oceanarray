@@ -1,5 +1,5 @@
-0. Data Acquisition (Instrument)
-================================
+0. Data Acquisition (Instrument-level processing)
+=================================================
 
 This document describes the initial steps required to bring raw instrument data into a standardized processing pipeline. These steps correspond to **Stage 0** of the RAPID data processing and management.
 

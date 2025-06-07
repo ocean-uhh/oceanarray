@@ -4,9 +4,9 @@ from typing import Union
 import xarray as xr
 
 # Import the modules used
-from template_project import logger, utilities
-from template_project.logger import log_error, log_info, log_warning
-from template_project.utilities import apply_defaults
+from oceanarray import logger, utilities
+from oceanarray.logger import log_error, log_info, log_warning
+from oceanarray.utilities import apply_defaults
 
 log = logger.log  # Use the global logger
 
