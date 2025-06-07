@@ -1,0 +1,294 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3. Calibration (Instrument) &mdash; oceanarray v0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=20758594" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=8b92e751"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="4. Conversion to OS format (Instrument)" href="conversion.html" />
+    <link rel="prev" title="2. Trimming (Instrument)" href="trimming.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            oceanarray
+              <img src="../_static/logo_template.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Overview</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../processing_framework.html">OceanArray processing framework</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Instruments</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="acquisition.html">0. Data Acquisition (Instrument)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="standardisation.html">1. Standardisation (Instrument)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="trimming.html">2. Trimming (Instrument)</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">3. Calibration (Instrument)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">1. Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#purpose">2. Purpose</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#input">3. Input</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#output">4. Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#example-microcat-txt-content">5. Example <cite>.microcat.txt</cite> Content</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#application">6. Application</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#provenance-and-metadata">7. Provenance and Metadata</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fair-considerations">8. FAIR Considerations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#legacy-calibration-script-rapid">Legacy Calibration Script (RAPID)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="conversion.html">4. Conversion to OS format (Instrument)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Moorings</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="filtering.html">Filtering in time</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gridding.html">Vertical Gridding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="stitching.html">Stitching Across Deployments</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Array</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="multisite_merging.html">Multi-site Merging</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Help and reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="http://github.com/eleanorfrajka/oceanarray">GitHub Repo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../oceanarray.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ / Troubleshooting</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">oceanarray</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">3. Calibration (Instrument)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/methods/calibration.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="calibration-instrument">
+<h1>3. Calibration (Instrument)<a class="headerlink" href="#calibration-instrument" title="Link to this heading"></a></h1>
+<p>This document describes the <strong>calibration</strong> step in the <cite>oceanarray</cite> processing workflow. Calibration refers to applying post-deployment corrections to sensor data based on pre- and post-cruise sensor checks (e.g., comparison with CTD dips), as well as manufacturer or lab calibrations.</p>
+<p>This step typically follows trimming and inspection, and corresponds to post-stage 2 functionality in the RAPID framework. The RAPID <cite>.microcat.txt</cite> files serve as logs of the calibration process.</p>
+<section id="overview">
+<h2>1. Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>Sensor readings (temperature, conductivity, pressure) can drift during deployment. Calibration corrects for this using lab comparisons or in-situ cross-checks. Adjustments may be constant offsets (e.g., linear bias) or more complex corrections. In RAPID, calibration decisions are documented alongside each instrument in human-readable logs (e.g., <cite>*.microcat.txt</cite>).</p>
+</section>
+<section id="purpose">
+<h2>2. Purpose<a class="headerlink" href="#purpose" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Apply sensor-specific calibration corrections</p></li>
+<li><p>Document whether adjustments were applied (or not)</p></li>
+<li><p>Preserve audit trail of calibration process</p></li>
+</ul>
+</section>
+<section id="input">
+<h2>3. Input<a class="headerlink" href="#input" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Trimmed, standardised instrument dataset (e.g., <cite>.use</cite>)</p></li>
+<li><p>Calibration metadata:
+- Human-readable <cite>.microcat.txt</cite> log
+- Optional structured version (e.g., YAML or JSON)</p></li>
+</ul>
+</section>
+<section id="output">
+<h2>4. Output<a class="headerlink" href="#output" title="Link to this heading"></a></h2>
+<ul>
+<li><p>Calibrated <cite>xarray.Dataset</cite>
+- Adjusted values in <cite>TEMPERATURE</cite>, <cite>CONDUCTIVITY</cite>, <cite>PRESSURE</cite>
+- Updated attributes:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><cite>calibrated = True</cite></p></li>
+<li><p>Offsets applied</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>Calibration log saved or appended to provenance</p></li>
+</ul>
+</section>
+<section id="example-microcat-txt-content">
+<h2>5. Example <cite>.microcat.txt</cite> Content<a class="headerlink" href="#example-microcat-txt-content" title="Link to this heading"></a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Microcat_apply_cal.m:
+Date    : 18-Jul-2017
+Operator: JC
+Input file : wb1_12_2015_6123.use
+Output file: wb1_12_2015_005.microcat
+
+Variable            | pre-cruise | post-cruise
+Conductivity [mS/cm]:  0.0181        0.0244
+Temperature  [degC]  :  0.0000        0.0000
+Pressure     [dbar]  : -0.9000       -3.1000
+
+Average conductivity applied? y
+Average temperature applied? y
+Average pressure applied? y
+Pressure drift removal? n
+</pre></div>
+</div>
+</section>
+<section id="application">
+<h2>6. Application<a class="headerlink" href="#application" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.methods.calibration</span><span class="w"> </span><span class="kn">import</span> <span class="n">apply_calibration</span>
+
+<span class="n">ds_cal</span> <span class="o">=</span> <span class="n">apply_calibration</span><span class="p">(</span><span class="n">ds_trimmed</span><span class="p">,</span> <span class="n">offsets</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;PRESSURE&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mf">2.0</span><span class="p">,</span> <span class="s2">&quot;CONDUCTIVITY&quot;</span><span class="p">:</span> <span class="mf">0.02</span><span class="p">})</span>
+</pre></div>
+</div>
+<p>This step should not overwrite raw data. Keep original files and record all calibration operations.</p>
+</section>
+<section id="provenance-and-metadata">
+<h2>7. Provenance and Metadata<a class="headerlink" href="#provenance-and-metadata" title="Link to this heading"></a></h2>
+<p>The following attributes should be added to the calibrated dataset:</p>
+<ul class="simple">
+<li><p><cite>calibrated = True</cite></p></li>
+<li><p><cite>calibration_notes = “Applied pressure offset -2 dbar, conductivity offset +0.02 mS/cm”</cite></p></li>
+<li><p><cite>calibration_source = “wb1_12_2015_005.microcat.txt”</cite></p></li>
+<li><p><cite>calibration_operator = “JC”</cite></p></li>
+</ul>
+</section>
+<section id="fair-considerations">
+<h2>8. FAIR Considerations<a class="headerlink" href="#fair-considerations" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Calibration logs must be preserved and ideally made machine-readable</p></li>
+<li><p>Provide both pre- and post-correction values</p></li>
+<li><p>Ensure reproducibility by archiving code and calibration metadata</p></li>
+</ul>
+<p>See also: <a class="reference internal" href="trimming.html"><span class="doc">2. Trimming (Instrument)</span></a>, <a class="reference internal" href="filtering.html"><span class="doc">Filtering in time</span></a>, <a class="reference internal" href="standardisation.html"><span class="doc">1. Standardisation (Instrument)</span></a></p>
+</section>
+<section id="legacy-calibration-script-rapid">
+<h2>Legacy Calibration Script (RAPID)<a class="headerlink" href="#legacy-calibration-script-rapid" title="Link to this heading"></a></h2>
+<p>Download the legacy RAPID calibration script here:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="../_static/code/microcat_apply_cal_plus.m">microcat_apply_cal_plus.m</a></p></li>
+</ul>
+<p>This script:</p>
+<ul class="simple">
+<li><p>Applies pre- and post-cruise calibration offsets</p></li>
+<li><p>Supports pressure and conductivity-pressure drift corrections</p></li>
+<li><p>Includes interactive and automatic despiking</p></li>
+<li><p>Produces diagnostic plots</p></li>
+<li><p>Outputs summary <cite>.txt</cite> files for provenance</p></li>
+</ul>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">Excerpt from <cite>microcat_apply_cal_plus.m</cite></span><a class="headerlink" href="#id1" title="Link to this code"></a></div>
+<div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="c">% 1) dedrift microcats using post- and pre-cruise  ctd calibration </span>
+<span class="linenos"> 2</span><span class="c">% 2) set suspicious data to dummy </span>
+<span class="linenos"> 3</span><span class="c">%</span>
+<span class="linenos"> 4</span><span class="c">% prior to this programme, microcat_insitu_cal.m has to be run for pre- and post-cruise calibration</span>
+<span class="linenos"> 5</span><span class="c">% calibration offset then have to be entered in &#39;microcat_cond.xls&#39; /</span>
+<span class="linenos"> 6</span><span class="c">% &#39;microcat_temp.xls&#39; / microcat_presX.xls (with X being the number of</span>
+<span class="linenos"> 7</span><span class="c">% deployment</span>
+<span class="linenos"> 8</span><span class="c">%</span>
+<span class="linenos"> 9</span><span class="c">%</span>
+<span class="linenos">10</span>
+<span class="linenos">11</span><span class="c">% kanzow, 23.08.05 </span>
+<span class="linenos">12</span>
+<span class="linenos">13</span><span class="nb">clear</span>
+<span class="linenos">14</span><span class="nb">warning</span><span class="w"> </span><span class="n">off</span>
+<span class="linenos">15</span><span class="n">operator</span><span class="w">  </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;JC&#39;</span><span class="p">;</span>
+<span class="linenos">16</span><span class="c">%%mooring   = &#39;mochae_1_362&#39;;    % M1; M2; M3</span>
+<span class="linenos">17</span><span class="n">mooring</span><span class="w">   </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;eb1_2_200516&#39;</span><span class="p">;</span><span class="w">    </span><span class="c">% M1; M2; M3</span>
+<span class="linenos">18</span><span class="n">sensortyp</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;microcat&#39;</span><span class="p">;</span><span class="w">   </span><span class="c">% arg / microcat</span>
+<span class="linenos">19</span>
+<span class="linenos">20</span><span class="n">delim</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;,&#39;</span><span class="p">;</span>
+<span class="linenos">21</span>
+<span class="linenos">22</span><span class="c">% input directories &amp; files </span>
+<span class="linenos">23</span><span class="n">rodbpath</span><span class="p">(</span><span class="s">&#39;/noc/ooc/rpdmoc/users/tok/rapid/data/&#39;</span><span class="p">);</span><span class="w"> </span>
+<span class="linenos">24</span><span class="n">mooring_dir</span><span class="w">         </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;/noc/ooc/rpdmoc/rapid/data/moor/proc/&#39;</span><span class="p">;</span>
+<span class="linenos">25</span><span class="n">mooring_outdir</span><span class="w">         </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;/noc/ooc/rpdmoc/users/jcol/&#39;</span><span class="p">;</span>
+<span class="linenos">26</span><span class="n">coef_dir</span><span class="w">            </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;/noc/ooc/rpdmoc/users/jcol/cal_coef/&#39;</span><span class="p">;</span>
+<span class="linenos">27</span>
+<span class="linenos">28</span><span class="n">external_ctd</span><span class="w">        </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;/noc/ooc/rpdmoc/users/tok/rapid/data/cruise/d279/ctd/&#39;</span><span class="p">;</span>
+<span class="linenos">29</span><span class="n">external_ctd_file</span><span class="w">   </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;d279_pos.mat&#39;</span><span class="p">;</span>
+<span class="linenos">30</span>
+<span class="linenos">31</span><span class="c">% extract calibration cruise indices from database (.xls spreadsheet)</span>
+<span class="linenos">32</span>
+<span class="linenos">33</span><span class="c">%[cruiseI,moors,raw]  = xlsread([coef_dir,&#39;microcat_calib_cruise.xls&#39;]);</span>
+<span class="linenos">34</span><span class="n">fid_cruise</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">fopen</span><span class="p">([</span><span class="n">coef_dir</span><span class="p">,</span><span class="s">&#39;microcat_calib_cruise.csv&#39;</span><span class="p">]);</span>
+<span class="linenos">35</span><span class="n">cruise</span><span class="w">     </span><span class="p">=</span><span class="w"> </span><span class="nb">textscan</span><span class="p">(</span><span class="n">fid_cruise</span><span class="p">,</span><span class="s">&#39;%s%d%d&#39;</span><span class="p">,</span><span class="s">&#39;delimiter&#39;</span><span class="p">,</span><span class="n">delim</span><span class="p">,</span><span class="s">&#39;HeaderLines&#39;</span><span class="p">,</span><span class="mi">2</span><span class="p">);</span>
+<span class="linenos">36</span><span class="nb">fclose</span><span class="p">(</span><span class="n">fid_cruise</span><span class="p">)</span>
+<span class="linenos">37</span>
+<span class="linenos">38</span><span class="n">moorI</span><span class="w">                </span><span class="p">=</span><span class="w"> </span><span class="nb">find</span><span class="p">((</span><span class="nb">strcmp</span><span class="p">(</span><span class="n">cruise</span><span class="p">{</span><span class="mi">1</span><span class="p">},</span><span class="n">mooring</span><span class="p">))</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">);</span>
+<span class="linenos">39</span><span class="n">cruise</span><span class="w">               </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="n">cruise</span><span class="p">{</span><span class="mi">2</span><span class="p">}</span><span class="w"> </span><span class="n">cruise</span><span class="p">{</span><span class="mi">3</span><span class="p">}];</span><span class="w"> </span>
+<span class="linenos">40</span><span class="n">cruiseI</span><span class="w">              </span><span class="p">=</span><span class="w"> </span><span class="n">cruise</span><span class="p">(</span><span class="n">moorI</span><span class="p">,:);</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="trimming.html" class="btn btn-neutral float-left" title="2. Trimming (Instrument)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="conversion.html" class="btn btn-neutral float-right" title="4. Conversion to OS format (Instrument)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Eleanor Frajka-Williams, FirstName LastName.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

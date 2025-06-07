@@ -1,0 +1,297 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Filtering in time &mdash; oceanarray v0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=20758594" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=8b92e751"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Vertical Gridding" href="gridding.html" />
+    <link rel="prev" title="4. Conversion to OS format (Instrument)" href="conversion.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            oceanarray
+              <img src="../_static/logo_template.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Overview</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../processing_framework.html">OceanArray processing framework</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Instruments</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="acquisition.html">0. Data Acquisition (Instrument)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="standardisation.html">1. Standardisation (Instrument)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="trimming.html">2. Trimming (Instrument)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="calibration.html">3. Calibration (Instrument)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conversion.html">4. Conversion to OS format (Instrument)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Moorings</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Filtering in time</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">1. Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#purpose">2. Purpose</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#input">3. Input</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#output">4. Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#method">5. Method</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#example">6. Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fair-considerations">7. FAIR Considerations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#legacy-context-rapid">Legacy Context (RAPID)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="gridding.html">Vertical Gridding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="stitching.html">Stitching Across Deployments</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Array</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="multisite_merging.html">Multi-site Merging</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Help and reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="http://github.com/eleanorfrajka/oceanarray">GitHub Repo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../oceanarray.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ / Troubleshooting</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">oceanarray</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Filtering in time</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/methods/filtering.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="filtering-in-time">
+<h1>Filtering in time<a class="headerlink" href="#filtering-in-time" title="Link to this heading"></a></h1>
+<p>This document describes the <strong>filtering</strong> step in the <cite>oceanarray</cite> processing workflow. This step is performed after standardisation and trimming, and prior to vertical interpolation and transport calculation.</p>
+<section id="overview">
+<h2>1. Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>High-frequency variability, such as tidal signals, is removed from the raw time series via low-pass filtering. This step enhances the comparability between instruments and suppresses aliasing due to undersampled high-frequency processes.</p>
+<p>In the RAPID framework (see <cite>hydro_grid.m</cite>), a <strong>2-day low-pass Butterworth filter</strong> (6th order) is applied to temperature, salinity, and pressure time series. This is a standard approach used for moored time series processing, ensuring consistency across instruments and deployments.</p>
+</section>
+<section id="purpose">
+<h2>2. Purpose<a class="headerlink" href="#purpose" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Suppress tidal and inertial variability</p></li>
+<li><p>Prepare data for interpolation and averaging</p></li>
+<li><p>Enable meaningful anomaly detection and gridding</p></li>
+</ul>
+</section>
+<section id="input">
+<h2>3. Input<a class="headerlink" href="#input" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Trimmed <cite>xarray.Dataset</cite> with variables like <cite>TEMPERATURE</cite>, <cite>SALINITY</cite>, <cite>PRESSURE</cite>, and <cite>TIME</cite></p></li>
+<li><p>Sampling frequency (or timestamp resolution)</p></li>
+</ul>
+</section>
+<section id="output">
+<h2>4. Output<a class="headerlink" href="#output" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Low-pass filtered <cite>xarray.Dataset</cite> with the same variables</p></li>
+<li><p>Optionally: filtered values as separate variables (e.g., <cite>TEMPERATURE_LP</cite>)</p></li>
+<li><p>Metadata note: <cite>filtered = “2-day Butterworth, 6th order”</cite></p></li>
+</ul>
+</section>
+<section id="method">
+<h2>5. Method<a class="headerlink" href="#method" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>The filter cutoff is typically 2 days (i.e., ~0.0058 Hz)</p></li>
+<li><p>Filter type: <strong>Butterworth</strong>, <strong>6th order</strong></p></li>
+<li><p>Apply the filter to each variable independently</p></li>
+<li><p>Optionally interpolate across short gaps (e.g., &lt;10 days)</p></li>
+<li><p>Gaps larger than a specified duration are marked as NaN post-filtering</p></li>
+</ul>
+</section>
+<section id="example">
+<h2>6. Example<a class="headerlink" href="#example" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.methods.filtering</span><span class="w"> </span><span class="kn">import</span> <span class="n">apply_lowpass_filter</span>
+
+<span class="n">ds_filtered</span> <span class="o">=</span> <span class="n">apply_lowpass_filter</span><span class="p">(</span><span class="n">ds_trimmed</span><span class="p">,</span> <span class="n">cutoff_days</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;xarray.Dataset&gt;
+Dimensions:      (TIME: 104576)
+Coordinates:
+  * TIME         (TIME) datetime64[ns] ...
+Data variables:
+    TEMPERATURE  (TIME) float32 ...
+    PRESSURE     (TIME) float32 ...
+    SALINITY     (TIME) float32 ...
+Attributes:
+    filtered: &quot;2-day Butterworth, 6th order&quot;
+</pre></div>
+</div>
+</section>
+<section id="fair-considerations">
+<h2>7. FAIR Considerations<a class="headerlink" href="#fair-considerations" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Clearly document filter type and cutoff frequency</p></li>
+<li><p>Retain unfiltered data for traceability and reproducibility</p></li>
+<li><p>Enable filtering settings to be parameterised in software</p></li>
+</ul>
+</section>
+<section id="legacy-context-rapid">
+<h2>Legacy Context (RAPID)<a class="headerlink" href="#legacy-context-rapid" title="Link to this heading"></a></h2>
+<p>The MATLAB script <cite>hydro_grid.m</cite> from the RAPID processing workflow performs a 2-day Butterworth filter using <a class="reference external" href="../_static/code/auto_filt.m">auto_filt.m</a>. The filtered output is used to grid and interpolate hydrographic time series before combining into overturning transport calculations.</p>
+<p>This process includes:</p>
+<ul class="simple">
+<li><p>Temporal alignment to common grid</p></li>
+<li><p>Conversion from conductivity to salinity</p></li>
+<li><p>Gap-filling for small gaps (&lt;10 days)</p></li>
+<li><p>Handling of missing sensors via reference levels or climatology</p></li>
+</ul>
+<p>See also: <a class="reference internal" href="gridding.html"><span class="doc">Vertical Gridding</span></a></p>
+<ul class="simple">
+<li><p><a class="reference external" href="../_static/code/hydro_grid.m">hydro_grid.m</a></p></li>
+</ul>
+<p>This script was part of the original RAPID processing chain used to convert MicroCAT <cite>.asc</cite> or <cite>.cnv</cite> output to <cite>.raw</cite> files in RODB format. It includes parsing logic, metadata extraction from <cite>info.dat</cite>, time adjustment, and basic diagnostic plotting.</p>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">Excerpt from <cite>hydro_grid.m</cite></span><a class="headerlink" href="#id1" title="Link to this code"></a></div>
+<div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="w"> </span><span class="c">% ------  temporal low pass filter ------</span>
+<span class="linenos"> 2</span>
+<span class="linenos"> 3</span><span class="w"> </span><span class="n">jd</span><span class="w">   </span><span class="p">=</span><span class="w"> </span><span class="nb">ceil</span><span class="p">(</span><span class="n">julian</span><span class="p">(</span><span class="nb">start</span><span class="p">)</span><span class="o">+</span><span class="mi">2</span><span class="p">):</span><span class="w"> </span><span class="mi">1</span><span class="o">/</span><span class="n">fss</span><span class="p">:</span><span class="nb">floor</span><span class="p">(</span><span class="n">julian</span><span class="p">(</span><span class="nb">stop</span><span class="p">)</span><span class="o">-</span><span class="mi">2</span><span class="p">);</span><span class="w"> </span>
+<span class="linenos"> 4</span><span class="w"> </span>
+<span class="linenos"> 5</span><span class="w"> </span>
+<span class="linenos"> 6</span><span class="w"> </span><span class="n">tnan_sum</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">sum</span><span class="p">(</span><span class="nb">isnan</span><span class="p">(</span><span class="n">T</span><span class="o">&#39;</span><span class="p">));</span>
+<span class="linenos"> 7</span><span class="w"> </span><span class="n">snan_sum</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">sum</span><span class="p">(</span><span class="nb">isnan</span><span class="p">(</span><span class="n">S</span><span class="o">&#39;</span><span class="p">));</span>
+<span class="linenos"> 8</span><span class="w"> </span><span class="n">pnan_sum</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">sum</span><span class="p">(</span><span class="nb">isnan</span><span class="p">(</span><span class="n">P</span><span class="o">&#39;</span><span class="p">));</span>
+<span class="linenos"> 9</span><span class="w"> </span>
+<span class="linenos">10</span><span class="w"> </span><span class="n">Tf</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">NaN</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nb">ones</span><span class="p">(</span><span class="n">m</span><span class="p">,</span><span class="n">n</span><span class="p">);</span>
+<span class="linenos">11</span><span class="w"> </span><span class="n">Sf</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">NaN</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nb">ones</span><span class="p">(</span><span class="n">m</span><span class="p">,</span><span class="n">n</span><span class="p">);</span>
+<span class="linenos">12</span><span class="w"> </span><span class="n">Pf</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">NaN</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nb">ones</span><span class="p">(</span><span class="n">m</span><span class="p">,</span><span class="n">n</span><span class="p">);</span>
+<span class="linenos">13</span><span class="w"> </span>
+<span class="linenos">14</span><span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="n">pg</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">m</span>
+<span class="linenos">15</span><span class="w">    </span><span class="n">tnnan</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">find</span><span class="p">(</span><span class="o">~</span><span class="nb">isnan</span><span class="p">(</span><span class="n">T</span><span class="p">(</span><span class="n">pg</span><span class="p">,:)));</span>
+<span class="linenos">16</span><span class="w">    </span><span class="n">snnan</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">find</span><span class="p">(</span><span class="o">~</span><span class="nb">isnan</span><span class="p">(</span><span class="n">S</span><span class="p">(</span><span class="n">pg</span><span class="p">,:)));</span>
+<span class="linenos">17</span><span class="w">    </span><span class="n">pnnan</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">find</span><span class="p">(</span><span class="o">~</span><span class="nb">isnan</span><span class="p">(</span><span class="n">P</span><span class="p">(</span><span class="n">pg</span><span class="p">,:)));</span>
+<span class="linenos">18</span><span class="w">    </span>
+<span class="linenos">19</span><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nb">length</span><span class="p">(</span><span class="n">tnnan</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">30</span><span class="w">  </span><span class="c">% Anzahl muss mind. 3fache Filterordnung sein  </span>
+<span class="linenos">20</span><span class="w">      </span><span class="n">tnnan</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[];</span>
+<span class="linenos">21</span><span class="w">    </span><span class="k">end</span>
+<span class="linenos">22</span><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nb">length</span><span class="p">(</span><span class="n">snnan</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">30</span><span class="w"> </span>
+<span class="linenos">23</span><span class="w">      </span><span class="n">snnan</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[];</span>
+<span class="linenos">24</span><span class="w">    </span><span class="k">end</span>
+<span class="linenos">25</span><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nb">length</span><span class="p">(</span><span class="n">pnnan</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">30</span><span class="w"> </span>
+<span class="linenos">26</span><span class="w">      </span><span class="n">pnnan</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[];</span>
+<span class="linenos">27</span><span class="w">    </span><span class="k">end</span>
+<span class="linenos">28</span><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="o">~</span><span class="nb">isempty</span><span class="p">(</span><span class="n">tnnan</span><span class="p">)</span>
+<span class="linenos">29</span><span class="w">    </span>
+<span class="linenos">30</span><span class="w">      </span><span class="n">Tf</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="n">tnnan</span><span class="p">)</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">auto_filt</span><span class="p">(</span><span class="n">T</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="n">tnnan</span><span class="p">),</span><span class="mi">1</span><span class="o">/</span><span class="n">tres</span><span class="p">,</span><span class="n">co</span><span class="p">);</span>
+<span class="linenos">31</span><span class="w">      </span><span class="n">Tf</span><span class="p">(</span><span class="n">pg</span><span class="p">,:)</span><span class="w">     </span><span class="p">=</span><span class="w"> </span><span class="nb">interp1</span><span class="p">(</span><span class="n">jd_grid</span><span class="p">(</span><span class="n">tnnan</span><span class="p">),</span><span class="n">Tf</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="n">tnnan</span><span class="p">)</span><span class="o">&#39;</span><span class="p">,</span><span class="n">jd_grid</span><span class="p">)</span><span class="o">&#39;</span><span class="p">;</span>
+<span class="linenos">32</span><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="n">tnan_sum</span><span class="p">(</span><span class="n">pg</span><span class="p">)</span><span class="o">/</span><span class="n">iss</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">gap_max</span>
+<span class="linenos">33</span><span class="w">        </span><span class="n">gapI</span><span class="w">   </span><span class="p">=</span><span class="w"> </span><span class="n">gap_mark</span><span class="p">(</span><span class="n">T</span><span class="p">(</span><span class="n">pg</span><span class="p">,:),</span><span class="n">gap_max</span><span class="p">,</span><span class="n">iss</span><span class="p">);</span>
+<span class="linenos">34</span><span class="w">        </span><span class="n">Tf</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="n">gapI</span><span class="p">)</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">NaN</span><span class="p">;</span>
+<span class="linenos">35</span><span class="w">      </span><span class="k">end</span><span class="w">     </span>
+<span class="linenos">36</span><span class="w">    </span><span class="k">end</span>
+<span class="linenos">37</span><span class="w">    </span>
+<span class="linenos">38</span><span class="w">   </span><span class="k">if</span><span class="w"> </span><span class="o">~</span><span class="nb">isempty</span><span class="p">(</span><span class="n">snnan</span><span class="p">)</span><span class="w">  </span>
+<span class="linenos">39</span><span class="w">     </span><span class="n">Sf</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="n">snnan</span><span class="p">)</span><span class="w">  </span><span class="p">=</span><span class="w"> </span><span class="n">auto_filt</span><span class="p">(</span><span class="n">S</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="n">snnan</span><span class="p">),</span><span class="mi">1</span><span class="o">/</span><span class="n">tres</span><span class="p">,</span><span class="n">co</span><span class="p">);</span>
+<span class="linenos">40</span><span class="w">     </span><span class="n">Sf</span><span class="p">(</span><span class="n">pg</span><span class="p">,:)</span><span class="w">      </span><span class="p">=</span><span class="w"> </span><span class="nb">interp1</span><span class="p">(</span><span class="n">jd_grid</span><span class="p">(</span><span class="n">snnan</span><span class="p">),</span><span class="n">Sf</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="n">snnan</span><span class="p">)</span><span class="o">&#39;</span><span class="p">,</span><span class="n">jd_grid</span><span class="p">)</span><span class="o">&#39;</span><span class="p">;</span>
+<span class="linenos">41</span><span class="w">     </span><span class="k">if</span><span class="w"> </span><span class="n">snan_sum</span><span class="p">(</span><span class="n">pg</span><span class="p">)</span><span class="o">/</span><span class="n">iss</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">gap_max</span>
+<span class="linenos">42</span><span class="w">        </span><span class="n">gapI</span><span class="w">        </span><span class="p">=</span><span class="w"> </span><span class="n">gap_mark</span><span class="p">(</span><span class="n">S</span><span class="p">(</span><span class="n">pg</span><span class="p">,:),</span><span class="n">gap_max</span><span class="p">,</span><span class="n">iss</span><span class="p">);</span>
+<span class="linenos">43</span><span class="w">        </span><span class="n">Sf</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="n">gapI</span><span class="p">)</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">NaN</span><span class="p">;</span>
+<span class="linenos">44</span><span class="w">      </span><span class="k">end</span><span class="w">     </span>
+<span class="linenos">45</span>
+<span class="linenos">46</span><span class="w">   </span><span class="k">end</span>
+<span class="linenos">47</span><span class="w">   </span><span class="k">if</span><span class="w"> </span><span class="o">~</span><span class="nb">isempty</span><span class="p">(</span><span class="n">pnnan</span><span class="p">)</span><span class="w">  </span>
+<span class="linenos">48</span><span class="w">     </span><span class="n">Pf</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="n">pnnan</span><span class="p">)</span><span class="w">  </span><span class="p">=</span><span class="w"> </span><span class="n">auto_filt</span><span class="p">(</span><span class="n">P</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="n">pnnan</span><span class="p">),</span><span class="mi">1</span><span class="o">/</span><span class="n">tres</span><span class="p">,</span><span class="n">co</span><span class="p">);</span>
+<span class="linenos">49</span><span class="w">     </span><span class="n">Pf</span><span class="p">(</span><span class="n">pg</span><span class="p">,:)</span><span class="w">      </span><span class="p">=</span><span class="w"> </span><span class="nb">interp1</span><span class="p">(</span><span class="n">jd_grid</span><span class="p">(</span><span class="n">pnnan</span><span class="p">),</span><span class="n">Pf</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="n">pnnan</span><span class="p">)</span><span class="o">&#39;</span><span class="p">,</span><span class="n">jd_grid</span><span class="p">)</span><span class="o">&#39;</span><span class="p">;</span>
+<span class="linenos">50</span><span class="w">     </span><span class="k">if</span><span class="w"> </span><span class="n">pnan_sum</span><span class="p">(</span><span class="n">pg</span><span class="p">)</span><span class="o">/</span><span class="n">iss</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">gap_max</span>
+<span class="linenos">51</span><span class="w">        </span><span class="n">gapI</span><span class="w">        </span><span class="p">=</span><span class="w"> </span><span class="n">gap_mark</span><span class="p">(</span><span class="n">P</span><span class="p">(</span><span class="n">pg</span><span class="p">,:),</span><span class="n">gap_max</span><span class="p">,</span><span class="n">iss</span><span class="p">);</span>
+<span class="linenos">52</span><span class="w">        </span><span class="n">Pf</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="n">gapI</span><span class="p">)</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">NaN</span><span class="p">;</span>
+<span class="linenos">53</span><span class="w">      </span><span class="k">end</span><span class="w">     </span>
+<span class="linenos">54</span>
+<span class="linenos">55</span><span class="w">     </span>
+<span class="linenos">56</span><span class="w">   </span><span class="k">end</span>
+<span class="linenos">57</span><span class="w">   </span>
+<span class="linenos">58</span><span class="w"> </span><span class="k">end</span>
+<span class="linenos">59</span><span class="w"> </span>
+<span class="linenos">60</span><span class="w">  </span>
+<span class="linenos">61</span><span class="w"> </span><span class="n">Tfs</span><span class="w">      </span><span class="p">=</span><span class="w"> </span><span class="nb">interp1</span><span class="p">(</span><span class="n">jd_grid</span><span class="p">,</span><span class="n">Tf</span><span class="o">&#39;</span><span class="p">,</span><span class="n">jd</span><span class="p">)</span><span class="o">&#39;</span><span class="p">;</span><span class="w">  </span>
+<span class="linenos">62</span><span class="w"> </span><span class="n">Sfs</span><span class="w">      </span><span class="p">=</span><span class="w"> </span><span class="nb">interp1</span><span class="p">(</span><span class="n">jd_grid</span><span class="p">,</span><span class="n">Sf</span><span class="o">&#39;</span><span class="p">,</span><span class="n">jd</span><span class="p">)</span><span class="o">&#39;</span><span class="p">;</span>
+<span class="linenos">63</span><span class="w"> </span><span class="n">Pfs</span><span class="w">      </span><span class="p">=</span><span class="w"> </span><span class="nb">interp1</span><span class="p">(</span><span class="n">jd_grid</span><span class="p">,</span><span class="n">Pf</span><span class="o">&#39;</span><span class="p">,</span><span class="n">jd</span><span class="p">)</span><span class="o">&#39;</span><span class="p">;</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="conversion.html" class="btn btn-neutral float-left" title="4. Conversion to OS format (Instrument)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="gridding.html" class="btn btn-neutral float-right" title="Vertical Gridding" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Eleanor Frajka-Williams, FirstName LastName.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

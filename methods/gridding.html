@@ -1,0 +1,198 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vertical Gridding &mdash; oceanarray v0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=20758594" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=8b92e751"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Stitching Across Deployments" href="stitching.html" />
+    <link rel="prev" title="Filtering in time" href="filtering.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            oceanarray
+              <img src="../_static/logo_template.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Overview</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../processing_framework.html">OceanArray processing framework</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Instruments</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="acquisition.html">0. Data Acquisition (Instrument)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="standardisation.html">1. Standardisation (Instrument)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="trimming.html">2. Trimming (Instrument)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="calibration.html">3. Calibration (Instrument)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conversion.html">4. Conversion to OS format (Instrument)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Moorings</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="filtering.html">Filtering in time</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Vertical Gridding</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#purpose">Purpose</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#input">Input</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#output">Output</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#implementation-notes">Implementation Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="stitching.html">Stitching Across Deployments</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Array</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="multisite_merging.html">Multi-site Merging</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Help and reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="http://github.com/eleanorfrajka/oceanarray">GitHub Repo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../oceanarray.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ / Troubleshooting</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">oceanarray</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Vertical Gridding</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/methods/gridding.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="vertical-gridding">
+<h1>Vertical Gridding<a class="headerlink" href="#vertical-gridding" title="Link to this heading"></a></h1>
+<p>For a tall mooring with multiple instruments at different depths, vertical gridding can be used to create an evenly spaced (in pressure or depth coordinates) profile of measured properties.</p>
+<p>The method below describes the interpolation used by the RAPID array which was in the <cite>hydro_grid.m</cite> script and calling subfunctions for the interpolation and extrapolation.  This has been adapted into the Python module <cite>verticalnn.rapid_interp</cite>.</p>
+<p><strong>Note:</strong> This method requires a monthly climatology of vertical gradients in temperature and salinity, which is computed from hydrographic (ship-based CTD profiles). The gradients are used to fill gaps between sensors and extrapolate above the shallowest and below the deepest sensor.</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>Sparse vertical profiles (e.g., from tall moorings with gaps) are interpolated and extrapolated using monthly climatologies of dT/dP and dS/dP, binned by temperature. This provides a fast, interpretable, and physically grounded estimate of full-depth profiles.</p>
+</section>
+<section id="purpose">
+<h2>Purpose<a class="headerlink" href="#purpose" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Fill gaps between sensors</p></li>
+<li><p>Extrapolate above the shallowest and below the deepest sensor</p></li>
+</ul>
+</section>
+<section id="input">
+<h2>Input<a class="headerlink" href="#input" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><cite>xarray.Dataset</cite> containing sparse profiles of:
+- Conservative Temperature (CT)
+- Absolute Salinity (SA)
+- Pressure (PRES)
+- LATITUDE, LONGITUDE, TIME</p></li>
+<li><p>Monthly climatology of vertical gradients:
+- <cite>dTdp(TEMP, month)</cite>
+- <cite>dSdp(TEMP, month)</cite></p></li>
+<li><p>Target pressure grid (e.g., 0 to 5000 dbar in 20 dbar steps)</p></li>
+</ul>
+</section>
+<section id="output">
+<h2>Output<a class="headerlink" href="#output" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Full-depth interpolated profiles:
+- CT(PRES), SA(PRES), SIGMA0(PRES)</p></li>
+<li><p>On a common vertical grid, for all time steps</p></li>
+<li><p>Includes vertical extrapolation if enabled</p></li>
+</ul>
+</section>
+<section id="implementation-notes">
+<h2>Implementation Notes<a class="headerlink" href="#implementation-notes" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Internal gaps are filled by dual integration from top and bottom sensors using climatological gradients and blended by linear weights</p></li>
+<li><p>Extrapolation at the top/bottom uses gradient-following integration from the nearest observed point</p></li>
+<li><p>SIGMA0 is computed using TEOS-10 from CT and SA</p></li>
+<li><p>Handles arbitrary tall moorings, not just RAPID</p></li>
+</ul>
+</section>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Johns et al. (2001): “The Kuroshio east of Taiwan: Moored transport observations from the WOCE PCM-1 Array.”</p></li>
+<li><p>Original implementation in Matlab by T. Kanzow (2000): <cite>hydro_grid.m</cite>, <cite>t_bound0.m</cite>, <cite>t_int0.m</cite></p></li>
+<li><p>Offline (i.e., not RAPID production scripts) in Python: <cite>verticalnn.rapid_interp.interpolate_profiles</cite></p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="filtering.html" class="btn btn-neutral float-left" title="Filtering in time" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="stitching.html" class="btn btn-neutral float-right" title="Stitching Across Deployments" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Eleanor Frajka-Williams, FirstName LastName.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

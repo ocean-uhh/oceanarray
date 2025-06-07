@@ -1,63 +1,70 @@
-.. template-project documentation master file
+.. oceanarray documentation master file
 
-====================================
-Template Project: Documentation Hub
-====================================
+============================================================
+Oceanarray: Methods and Workflows for Mooring Array Processing
+============================================================
 
-Welcome to the documentation for the **template-project** — a minimal, modern Python project template designed for research groups and scientific code development.
 
-This template includes tools for testing, documentation, versioning, citation, publishing to PyPI, and more. Whether you're working solo or collaborating in a team, this guide will help you get started and stay consistent.
+This repository documents and demonstrates the processing steps required to convert raw instrument data from oceanographic arrays into scientifically useful transport and circulation diagnostics, such as the meridional overturning circulation (MOC).
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Getting started
+It provides methods, example code, and reference documentation for modular, reproducible processing pipelines based on multi-mooring observational arrays.
 
-   setup.md
-   customisation_checklist.md
-   project_structure.md
+Contents
+--------
 
 .. toctree::
    :maxdepth: 2
-   :caption: GitHub basics
+   :caption: Overview
 
-   github_intro.md
-   gitworkflow_solo.md
-   gitcollab.md
-
+   processing_framework
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Development Guide
+   :maxdepth: 1
+   :caption: Methods for Instruments
 
-   style_guide.md
-   writing_tests.md
-   build_docs.md
-   precommit_guide.md
-   actions_overview.md
-
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Project Management
-
-   citation_guide.md
-   pypi_guide.md
-   gitorg_transfer.md
+   methods/acquisition
+   methods/standardisation
+   methods/trimming
+   methods/calibration
+   methods/conversion
 
 .. toctree::
-   :maxdepth: 3
-   :caption: Users' guide
+   :maxdepth: 1
+   :caption: Methods for Moorings
 
-   demo-output.ipynb
+   methods/filtering
+   methods/gridding
+   methods/stitching
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Methods for Array
+
+   methods/multisite_merging
+   methods/dynamics
+   methods/velocity
+   methods/transports
+   methods/diagnostics
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Examples
+
+   examples/rapid
 
 
 .. toctree::
    :maxdepth: 2
    :caption: Help and reference
 
-   GitHub Repo <http://github.com/eleanorfrajka/template-project>
-   template_project
+   GitHub Repo <http://github.com/eleanorfrajka/oceanarray>
+   oceanarray
    faq
 
-These documentation pages were created based on processes used to develop and maintain http://github.com/OceanGlidersCommunity/glidertest and edited using chatGPT.
+
+Indices and Tables
+------------------
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
