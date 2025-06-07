@@ -1,4 +1,3 @@
-import pytest
 import xarray as xr
 import numpy as np
 import pandas as pd
@@ -8,10 +7,9 @@ from oceanarray.instrument import stage2_trim
 # tests/test_instrument.py
 
 from pathlib import Path
-import xarray as xr
-from oceanarray.instrument import stage2_trim
 
-from oceanarray.readers import rodbload, add_rodb_time
+from oceanarray.rodb import rodbload, add_rodb_time
+
 
 def test_stage2_trim_from_raw(tmp_path):
     data_dir = Path(__file__).parent.parent / "data"
@@ -22,15 +20,20 @@ def test_stage2_trim_from_raw(tmp_path):
     deployment_end = pd.Timestamp("2017-03-28T15:00:00")
 
     # Run trimming
-    ds_raw = rodbload(raw_file, ["YY", "MM","DD","HH", "T", "C", "P"])
+    ds_raw = rodbload(raw_file, ["YY", "MM", "DD", "HH", "T", "C", "P"])
     ds_raw = add_rodb_time(ds_raw)
-    ds_trimmed = stage2_trim(ds_raw, deployment_start=deployment_start, deployment_end=deployment_end)
-
+    ds_trimmed = stage2_trim(
+        ds_raw, deployment_start=deployment_start, deployment_end=deployment_end
+    )
 
     # Basic checks
     assert isinstance(ds_trimmed, xr.Dataset)
     assert "TIME" in ds_trimmed.dims
-    assert "T" in ds_trimmed.data_vars or "C" in ds_trimmed.data_vars or "P" in ds_trimmed.data_vars
+    assert (
+        "T" in ds_trimmed.data_vars
+        or "C" in ds_trimmed.data_vars
+        or "P" in ds_trimmed.data_vars
+    )
 
     # Check that the first time in ds_trimmed is after deployment_start
     first_time = ds_trimmed.TIME.values[0]

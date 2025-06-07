@@ -3,11 +3,8 @@ from pathlib import Path
 from oceanarray.calibration.microcat import apply_microcat_calibration_from_txt
 
 
-
-
 # tests/test_calibration.py
 
-from pathlib import Path
 import xarray as xr
 
 

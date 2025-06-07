@@ -1,79 +1,12 @@
 from pathlib import Path
-from typing import Union
 
 import numpy as np
-import pandas as pd
 import xarray as xr
 
-from oceanarray import logger
-from oceanarray.logger import log_info, log_warning
+from oceanarray.logger import log_info
 from oceanarray.read_rapid import read_rapid
 
 DUMMY_VALUES = [1e32, -9.0, -9.9]
-import pandas as pd
-import xarray as xr
-from .logger import log_info, log_warning  # adjust import to your structure
-
-
-def add_rodb_time(ds: xr.Dataset) -> xr.Dataset:
-    """
-    Construct and add a TIME variable to a dataset loaded from RODB format.
-
-    Recognized combinations (must be present as variables in ds):
-    - ["YY", "MM", "DD", "HH", "MI"] → datetime
-    - ["YY", "MM", "DD", "HH"] → datetime, minutes assumed 0
-    - ["YY", "MM", "DD", "decimal"] → decimal hour to minute conversion
-
-    Parameters
-    ----------
-    ds : xarray.Dataset
-        Dataset containing RODB time fields as variables
-
-    Returns
-    -------
-    ds : xarray.Dataset
-        Dataset with added TIME coordinate
-    """
-    if "TIME" in ds:
-        log_info("TIME already present in dataset")
-        return ds
-
-    yy = ds.get("YY")
-    mm = ds.get("MM")
-    dd = ds.get("DD")
-
-    if yy is None or mm is None or dd is None:
-        raise ValueError("YY, MM, and DD must be present in dataset to build TIME")
-
-
-    # Assemble pandas datetimes
-    try:
-        yy_vals = ds["YY"].values
-        # Check if all YY values are 2-digit (i.e., < 100)
-        if np.all((yy_vals >= 0) & (yy_vals < 100)):
-            years = 2000 + yy_vals.astype(int)
-        else:
-            years = yy_vals.astype(int)
-        times = pd.to_datetime({
-            "year": years,
-            "month": ds["MM"],
-            "day": ds["DD"],
-            "hour": ds["HH"]
-
-        }, errors="coerce")
-    except Exception as e:
-        log_warning("Failed to build TIME variable: %s", e)
-        raise
-
-    ds = ds.copy()
-
-    # Create the TIME array (assuming `times` is length N and matches 'obs' dim)
-    ds.coords["TIME"] = ("obs", times)  # ✅ Associate times with the 'obs' dimension
-
-    # Promote TIME as dimension
-    ds = ds.swap_dims({"obs": "TIME"})
-
-    return ds
 
 
 def rodbload(filepath: Path, variables: list[str]) -> xr.Dataset:
@@ -138,11 +71,7 @@ def rodbload(filepath: Path, variables: list[str]) -> xr.Dataset:
 
     # Build xarray dataset
     coords = {"obs": np.arange(data.shape[0])}
-    data_vars = {
-        var: (("obs",), data[:, col_indices[var]])
-        for var in variables
-    }
-
+    data_vars = {var: (("obs",), data[:, col_indices[var]]) for var in variables}
 
     ds = xr.Dataset(data_vars, coords=coords)
     ds.attrs["source_file"] = str(filepath)

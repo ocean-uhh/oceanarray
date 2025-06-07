@@ -2,6 +2,21 @@ import tempfile
 from pathlib import Path
 from oceanarray.rodb import rodbload, rodbsave  # Replace with actual function names
 import numpy as np
+import xarray as xr
+
+
+def test_rodbload_raw_file():
+    file_path = Path(__file__).parent.parent / "data" / "wb1_12_2015_6123.raw"
+    variables = ["YY", "MM", "DD", "HH", "T", "C", "P"]
+    ds = rodbload(file_path, variables)
+
+    assert isinstance(ds, xr.Dataset)
+    assert all(var in ds for var in variables)
+    assert ds.T.shape[0] > 0
+    assert ds.C.shape[0] == ds.sizes["TIME"]
+    assert "TIME" in ds
+
+
 def test_rodb_read_write_roundtrip():
 
     infile = Path(__file__).parent.parent / "data" / "wb1_12_2015_6123_head10.use"

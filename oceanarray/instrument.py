@@ -2,8 +2,6 @@ import xarray as xr
 import numpy as np
 from datetime import datetime
 from oceanarray.logger import log_info, log_warning, log_debug
-from pathlib import Path
-from typing import Union
 
 
 def stage2_trim(
@@ -31,7 +29,11 @@ def stage2_trim(
     if "TIME" not in ds:
         raise ValueError("Dataset must contain 'TIME' coordinate")
 
-    log_info("Trimming dataset to deployment period %s – %s", deployment_start, deployment_end)
+    log_info(
+        "Trimming dataset to deployment period %s – %s",
+        deployment_start,
+        deployment_end,
+    )
 
     # Trim to deployment period
     ds_trimmed = ds.sel(TIME=slice(deployment_start, deployment_end))

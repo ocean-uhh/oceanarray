@@ -2,11 +2,10 @@ import re
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 import xarray as xr
 
-from oceanarray import readers
-from oceanarray.logger import log_info, log_warning
+from oceanarray import rodb
+from oceanarray.logger import log_info
 
 DUMMY_VALUE = -9.99e-29  # adjust if needed
 
@@ -54,9 +53,9 @@ def apply_microcat_calibration_from_txt(txt_file: str, use_file: str) -> xr.Data
     apply_p = is_applied("pressure")
 
     # Load data using rodbload
-    variables = ["YY", "MM","DD","HH", "T", "C", "P"]
-    ds = readers.rodbload(use_file, variables)
-    ds = readers.add_rodb_time(ds)
+    variables = ["YY", "MM", "DD", "HH", "T", "C", "P"]
+    ds = rodb.rodbload(use_file, variables)
+    ds = rodb.add_rodb_time(ds)
 
     # Rename to standard names
     rename_map = {"T": "TEMP", "C": "CNDC", "P": "PRES"}

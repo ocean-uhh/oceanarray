@@ -10,10 +10,10 @@ Originally written in MATLAB by:
 
 Ported to Python by E Frajka-Williams, 2025
 """
+
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Tuple
 
 import numpy as np
 import pandas as pd
@@ -21,20 +21,17 @@ import xarray as xr
 
 import yaml
 
-import re
-import yaml
-from pathlib import Path
-from datetime import datetime
+from oceanarray.logger import log_info, log_warning
 
 REVERSE_KEYS = {
     "mooring": "Mooring",
     "serial_number": "SerialNumber",
     "water_depth": "WaterDepth",
     "instrdepth": "InstrDepth",  # if present in attrs
-    "latitude": "Latitude",      # if present in attrs
-    "longitude": "Longitude",    # if present in attrs
+    "latitude": "Latitude",  # if present in attrs
+    "longitude": "Longitude",  # if present in attrs
     "start_time": ["Start_Date", "Start_Time"],  # split into date + time
-    "end_time": ["End_Date", "End_Time"],        # split into date + time
+    "end_time": ["End_Date", "End_Time"],  # split into date + time
     "columns": "Columns",
 }
 
@@ -46,9 +43,7 @@ def parse_rodb_keys_file(filepath):
     Returns a dictionary with a list of entries under the 'RODB_KEYS' key.
     """
     entries = []
-    pattern = re.compile(
-        r"^\s*'(?P<line>[^']+)';\s*\.\.\.\s*%?\s*(?P<comment>.*)?"
-    )
+    pattern = re.compile(r"^\s*'(?P<line>[^']+)';\s*\.\.\.\s*%?\s*(?P<comment>.*)?")
 
     with open(filepath, "r") as f:
         for line in f:
@@ -84,6 +79,7 @@ def parse_rodb_keys_file(filepath):
 
     return {"RODB_KEYS": entries}
 
+
 # Example usage
 if __name__ == "__main__":
     infile = Path("rodb_keys.txt")  # Replace with your actual file path
@@ -102,7 +98,64 @@ with open(RODB_KEYS_PATH, "r") as f:
 DUMMY_VALUES = [-9999, -99.999, -999.999]
 
 
-def rodbload(filepath):
+def add_rodb_time(ds: xr.Dataset) -> xr.Dataset:
+    """
+    Construct and add a TIME variable to a dataset loaded from RODB format.
+
+    Recognized combinations (must be present as variables in ds):
+    - ["YY", "MM", "DD", "HH", "MI"] → datetime
+    - ["YY", "MM", "DD", "HH"] → datetime, minutes assumed 0
+    - ["YY", "MM", "DD", "decimal"] → decimal hour to minute conversion
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        Dataset containing RODB time fields as variables
+
+    Returns
+    -------
+    ds : xarray.Dataset
+        Dataset with added TIME coordinate
+    """
+    if "TIME" in ds:
+        log_info("TIME already present in dataset")
+        return ds
+
+    yy = ds.get("YY")
+    mm = ds.get("MM")
+    dd = ds.get("DD")
+
+    if yy is None or mm is None or dd is None:
+        raise ValueError("YY, MM, and DD must be present in dataset to build TIME")
+
+    # Assemble pandas datetimes
+    try:
+        yy_vals = ds["YY"].values
+        # Check if all YY values are 2-digit (i.e., < 100)
+        if np.all((yy_vals >= 0) & (yy_vals < 100)):
+            years = 2000 + yy_vals.astype(int)
+        else:
+            years = yy_vals.astype(int)
+        times = pd.to_datetime(
+            {"year": years, "month": ds["MM"], "day": ds["DD"], "hour": ds["HH"]},
+            errors="coerce",
+        )
+    except Exception as e:
+        log_warning("Failed to build TIME variable: %s", e)
+        raise
+
+    ds = ds.copy()
+
+    # Create the TIME array (assuming `times` is length N and matches 'obs' dim)
+    ds.coords["TIME"] = ("obs", times)  # ✅ Associate times with the 'obs' dimension
+
+    # Promote TIME as dimension
+    ds = ds.swap_dims({"obs": "TIME"})
+
+    return ds
+
+
+def rodbload(filepath, variables: list[str] = None) -> xr.Dataset:
     """
     Read a RODB .use or .raw file into an xarray.Dataset.
     """
@@ -115,8 +168,8 @@ def rodbload(filepath):
     for i, line in enumerate(lines):
         if not line.strip():
             continue
-        if '=' in line:
-            key, val = map(str.strip, line.split('=', 1))
+        if "=" in line:
+            key, val = map(str.strip, line.split("=", 1))
             header[key.upper()] = val
         else:
             data_start_index = i
@@ -124,8 +177,10 @@ def rodbload(filepath):
 
     # Determine variables
     var_string = header.get("COLUMNS", "YY:MM:DD:HH:T:C:P")
-    variables = var_string.split(":")
-    col_indices = {var: i for i, var in enumerate(variables)}
+    file_variables = var_string.split(":")
+    if variables is None:
+        variables = file_variables
+    col_indices = {var: i for i, var in enumerate(file_variables) if var in variables}
 
     # Load numeric data
     data = np.genfromtxt(lines[data_start_index:], dtype=float)
@@ -138,12 +193,17 @@ def rodbload(filepath):
     coords = {"obs": np.arange(data.shape[0])}
     data_vars = {var: ("obs", data[:, col_indices[var]]) for var in variables}
 
-    # Convert YY/MM/DD/HH to datetime if available
     if all(var in col_indices for var in ["YY", "MM", "DD", "HH"]):
         y, m, d, h = (data[:, col_indices[v]] for v in ["YY", "MM", "DD", "HH"])
-        time = [datetime(int(yy), int(mm), int(dd), int(hh), int((hh % 1) * 60))
-                for yy, mm, dd, hh in zip(y, m, d, h)]
+        time = [
+            datetime(int(yy), int(mm), int(dd), int(hh), int((hh % 1) * 60))
+            for yy, mm, dd, hh in zip(y, m, d, h)
+        ]
         coords["TIME"] = ("obs", np.array(time, dtype="datetime64[s]"))
+    else:
+        # Optional: warn if TIME can't be constructed
+        missing = [v for v in ["YY", "MM", "DD", "HH"] if v not in col_indices]
+        log_warning("Could not create TIME coordinate. Missing: %s", ", ".join(missing))
 
     ds = xr.Dataset(data_vars, coords=coords)
 
@@ -178,10 +238,12 @@ def rodbload(filepath):
     # Add file reference and inferred columns
     attrs["source_file"] = str(filepath)
     attrs["columns"] = list(data_vars.keys())
+    # Promote TIME to an index if available
+    if "TIME" in ds.coords:
+        ds = ds.swap_dims({"obs": "TIME"})
 
     ds.attrs.update({k: v for k, v in attrs.items() if v is not None})
     return ds
-
 
 
 NOMINAL_HEADER_ORDER = [
@@ -211,7 +273,6 @@ REVERSE_ATTR_KEYS = {
     "Longitude": "longitude",
     "Columns": "columns",
 }
-
 
 
 def rodbsave_old(filepath, ds: xr.Dataset):
@@ -266,7 +327,6 @@ def rodbsave_old(filepath, ds: xr.Dataset):
         np.savetxt(f, data_array, fmt=fmt)
 
 
-
 def format_latlon(value, is_lat=True):
     deg = int(abs(value))
     minutes = (abs(value) - deg) * 60
@@ -302,9 +362,9 @@ def rodbsave(filepath, ds: xr.Dataset, fmt=None):
             "MM": "%4d",
             "DD": "%4d",
             "HH": "%10.5f",
-            "T":  "%9.4f",
-            "C":  "%9.4f",
-            "P":  "%7.1f",
+            "T": "%9.4f",
+            "C": "%9.4f",
+            "P": "%7.1f",
         }
         fmt_parts = []
         for var in timeseries_vars:
@@ -316,7 +376,11 @@ def rodbsave(filepath, ds: xr.Dataset, fmt=None):
         for key in NOMINAL_HEADER_ORDER:
             attr_key = REVERSE_ATTR_KEYS.get(key)
 
-            if key in ["Start_Date", "Start_Time"] and "start_time" in attrs and "Start_Date" not in written_keys:
+            if (
+                key in ["Start_Date", "Start_Time"]
+                and "start_time" in attrs
+                and "Start_Date" not in written_keys
+            ):
                 try:
                     dt = datetime.fromisoformat(attrs["start_time"])
                 except ValueError:
@@ -326,7 +390,11 @@ def rodbsave(filepath, ds: xr.Dataset, fmt=None):
                 written_keys.update(["Start_Date", "Start_Time"])
                 continue
 
-            if key in ["End_Date", "End_Time"] and "end_time" in attrs and "End_Date" not in written_keys:
+            if (
+                key in ["End_Date", "End_Time"]
+                and "end_time" in attrs
+                and "End_Date" not in written_keys
+            ):
                 try:
                     dt = datetime.fromisoformat(attrs["end_time"])
                 except ValueError:
@@ -339,14 +407,18 @@ def rodbsave(filepath, ds: xr.Dataset, fmt=None):
             if key == "Latitude" and "Latitude" not in written_keys:
                 val = ds.get("Latitude", None)
                 if val is not None:
-                    f.write(f"{'Latitude':<22} = {format_latlon(val.values.item(), is_lat=True)}\n")
+                    f.write(
+                        f"{'Latitude':<22} = {format_latlon(val.values.item(), is_lat=True)}\n"
+                    )
                     written_keys.add("Latitude")
                 continue
 
             if key == "Longitude" and "Longitude" not in written_keys:
                 val = ds.get("Longitude", None)
                 if val is not None:
-                    f.write(f"{'Longitude':<22} = {format_latlon(val.values.item(), is_lat=False)}\n")
+                    f.write(
+                        f"{'Longitude':<22} = {format_latlon(val.values.item(), is_lat=False)}\n"
+                    )
                     written_keys.add("Longitude")
                 continue
 
@@ -359,7 +431,11 @@ def rodbsave(filepath, ds: xr.Dataset, fmt=None):
                 f.write(f"{key:<22} = {attrs[attr_key]}\n")
                 written_keys.add(key)
 
-            elif key in ds and key not in written_keys and (np.isscalar(ds[key].values) or ds[key].size == 1):
+            elif (
+                key in ds
+                and key not in written_keys
+                and (np.isscalar(ds[key].values) or ds[key].size == 1)
+            ):
                 val = ds[key].values.item()
                 f.write(f"{key:<22} = {val:.0f}\n")
                 written_keys.add(key)
