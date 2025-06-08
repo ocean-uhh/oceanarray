@@ -1,4 +1,4 @@
-Stitching Across Deployments
+Concatenate Deployments
 ============================
 
 This step combines multiple mooring deployments at the same site (e.g., WB1, WB2)

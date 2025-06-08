@@ -16,12 +16,11 @@ from datetime import datetime
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 import xarray as xr
 
 import yaml
 
-from oceanarray.logger import log_info, log_warning
+from oceanarray.logger import log_warning
 
 REVERSE_KEYS = {
     "mooring": "Mooring",
@@ -98,63 +97,6 @@ with open(RODB_KEYS_PATH, "r") as f:
 DUMMY_VALUES = [-9999, -99.999, -999.999]
 
 
-def add_rodb_time(ds: xr.Dataset) -> xr.Dataset:
-    """
-    Construct and add a TIME variable to a dataset loaded from RODB format.
-
-    Recognized combinations (must be present as variables in ds):
-    - ["YY", "MM", "DD", "HH", "MI"] → datetime
-    - ["YY", "MM", "DD", "HH"] → datetime, minutes assumed 0
-    - ["YY", "MM", "DD", "decimal"] → decimal hour to minute conversion
-
-    Parameters
-    ----------
-    ds : xarray.Dataset
-        Dataset containing RODB time fields as variables
-
-    Returns
-    -------
-    ds : xarray.Dataset
-        Dataset with added TIME coordinate
-    """
-    if "TIME" in ds:
-        log_info("TIME already present in dataset")
-        return ds
-
-    yy = ds.get("YY")
-    mm = ds.get("MM")
-    dd = ds.get("DD")
-
-    if yy is None or mm is None or dd is None:
-        raise ValueError("YY, MM, and DD must be present in dataset to build TIME")
-
-    # Assemble pandas datetimes
-    try:
-        yy_vals = ds["YY"].values
-        # Check if all YY values are 2-digit (i.e., < 100)
-        if np.all((yy_vals >= 0) & (yy_vals < 100)):
-            years = 2000 + yy_vals.astype(int)
-        else:
-            years = yy_vals.astype(int)
-        times = pd.to_datetime(
-            {"year": years, "month": ds["MM"], "day": ds["DD"], "hour": ds["HH"]},
-            errors="coerce",
-        )
-    except Exception as e:
-        log_warning("Failed to build TIME variable: %s", e)
-        raise
-
-    ds = ds.copy()
-
-    # Create the TIME array (assuming `times` is length N and matches 'obs' dim)
-    ds.coords["TIME"] = ("obs", times)  # ✅ Associate times with the 'obs' dimension
-
-    # Promote TIME as dimension
-    ds = ds.swap_dims({"obs": "TIME"})
-
-    return ds
-
-
 def rodbload(filepath, variables: list[str] = None) -> xr.Dataset:
     """
     Read a RODB .use or .raw file into an xarray.Dataset.
@@ -162,6 +104,8 @@ def rodbload(filepath, variables: list[str] = None) -> xr.Dataset:
     filepath = Path(filepath)
     with open(filepath, "r") as f:
         lines = f.readlines()
+
+    default_dim = "N_MEASUREMENTS"
 
     header = {}
     data_start_index = 0
@@ -190,8 +134,8 @@ def rodbload(filepath, variables: list[str] = None) -> xr.Dataset:
     for dummy in DUMMY_VALUES:
         data[data == dummy] = np.nan
 
-    coords = {"obs": np.arange(data.shape[0])}
-    data_vars = {var: ("obs", data[:, col_indices[var]]) for var in variables}
+    coords = {default_dim: np.arange(data.shape[0])}
+    data_vars = {var: (default_dim, data[:, col_indices[var]]) for var in variables}
 
     if all(var in col_indices for var in ["YY", "MM", "DD", "HH"]):
         y, m, d, h = (data[:, col_indices[v]] for v in ["YY", "MM", "DD", "HH"])
@@ -199,7 +143,7 @@ def rodbload(filepath, variables: list[str] = None) -> xr.Dataset:
             datetime(int(yy), int(mm), int(dd), int(hh), int((hh % 1) * 60))
             for yy, mm, dd, hh in zip(y, m, d, h)
         ]
-        coords["TIME"] = ("obs", np.array(time, dtype="datetime64[s]"))
+        coords["TIME"] = (default_dim, np.array(time, dtype="datetime64[s]"))
     else:
         # Optional: warn if TIME can't be constructed
         missing = [v for v in ["YY", "MM", "DD", "HH"] if v not in col_indices]
@@ -240,7 +184,7 @@ def rodbload(filepath, variables: list[str] = None) -> xr.Dataset:
     attrs["columns"] = list(data_vars.keys())
     # Promote TIME to an index if available
     if "TIME" in ds.coords:
-        ds = ds.swap_dims({"obs": "TIME"})
+        ds = ds.swap_dims({default_dim: "TIME"})
 
     ds.attrs.update({k: v for k, v in attrs.items() if v is not None})
     return ds

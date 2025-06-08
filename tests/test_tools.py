@@ -2,7 +2,36 @@ import numpy as np
 import xarray as xr
 
 from oceanarray import tools
-from oceanarray.tools import reformat_units_var
+from oceanarray.tools import reformat_units_var, calc_ds_difference
+
+
+def test_calc_ds_difference():
+    # Create small test datasets
+
+    times = np.array(["2020-01-01T00:00", "2020-01-01T01:00"], dtype="datetime64")
+    ds1 = xr.Dataset(
+        {
+            "T": ("TIME", [10.0, 12.0]),
+            "C": ("TIME", [35.0, 36.0]),
+            "P": ("TIME", [1000.0, 1001.0]),
+        },
+        coords={"TIME": times},
+    )
+    ds2 = xr.Dataset(
+        {
+            "T": ("TIME", [9.5, 11.5]),
+            "C": ("TIME", [34.5, 35.5]),
+            "P": ("TIME", [999.0, 1000.0]),
+        },
+        coords={"TIME": times},
+    )
+
+    # Assume calc_ds_difference is already defined
+    ds_diff = calc_ds_difference(ds1, ds2)
+
+    assert np.allclose(ds_diff["T"], [0.5, 0.5])
+    assert np.allclose(ds_diff["C"], [0.5, 0.5])
+    assert np.allclose(ds_diff["P"], [1.0, 1.0])
 
 
 def test_reformat_units_var_sv_conversion():

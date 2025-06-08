@@ -1,14 +1,27 @@
-import xarray as xr
 import numpy as np
 import pandas as pd
+import xarray as xr
 from datetime import datetime
-from oceanarray.instrument import stage2_trim
-
-# tests/test_instrument.py
-
 from pathlib import Path
 
-from oceanarray.rodb import rodbload, add_rodb_time
+from oceanarray.instrument import apply_microcat_calibration_from_txt, stage2_trim
+from oceanarray.rodb import rodbload
+
+
+def test_apply_microcat_calibration_from_txt(tmp_path):
+    data_dir = Path(__file__).parent.parent / "data"
+    txt_file = data_dir / "wb1_12_2015_005.microcat.txt"
+    use_file = data_dir / "wb1_12_2015_6123.use"
+
+    # Output path
+    corrected_file = tmp_path / "wb1_12_2015_005.microcat"
+
+    # Run function
+    ds = apply_microcat_calibration_from_txt(txt_file, use_file)
+
+    # Basic checks
+    assert isinstance(ds, xr.Dataset)
+    assert "T" in ds.data_vars
 
 
 def test_stage2_trim_from_raw(tmp_path):
@@ -20,9 +33,8 @@ def test_stage2_trim_from_raw(tmp_path):
     deployment_end = pd.Timestamp("2017-03-28T15:00:00")
 
     # Run trimming
-    ds_raw = rodbload(raw_file, ["YY", "MM", "DD", "HH", "T", "C", "P"])
-    ds_raw = add_rodb_time(ds_raw)
-    ds_trimmed = stage2_trim(
+    ds_raw = rodbload(raw_file)
+    ds_trimmed, _, _ = stage2_trim(
         ds_raw, deployment_start=deployment_start, deployment_end=deployment_end
     )
 
@@ -62,7 +74,7 @@ def test_stage2_trim_basic_gap_fill():
     # Trim from 00:00 to 04:00
     start = datetime(2020, 1, 1, 0, 0)
     end = datetime(2020, 1, 1, 4, 0)
-    result = stage2_trim(ds, deployment_start=start, deployment_end=end)
+    result, _, _ = stage2_trim(ds, deployment_start=start, deployment_end=end)
 
     # Assert expected time steps (should be hourly from 00:00 to 04:00)
     expected_times = pd.date_range(start=start, end=end, freq="1h")
