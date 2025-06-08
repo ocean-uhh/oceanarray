@@ -1,13 +1,77 @@
-import xarray as xr
-import numpy as np
+import re
+from pathlib import Path
 from datetime import datetime
+
+import numpy as np
+import xarray as xr
+
 from oceanarray.logger import log_info, log_warning, log_debug
+from oceanarray import rodb, tools
+
+DUMMY_VALUE = -9.99e-29  # adjust if needed
+
+
+def trim_suggestion(ds, percent=95, threshold=6, vars_to_check=["T", "C", "P"]):
+    """
+    Normalize dataset variables using the middle percentile and determine suggested
+    deployment start and end times where the normalized values are below a given threshold.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        Input dataset with a 'TIME' coordinate and 1D data variables.
+    percent : float
+        Percentage for middle-percent normalization (e.g., 95).
+    threshold : float
+        Absolute threshold on normalized values to consider as stable.
+    vars_to_check : list of str
+        List of variable names to consider for start/end detection.
+
+    Returns
+    -------
+    start_time : np.datetime64 or None
+        Suggested deployment start time.
+    end_time : np.datetime64 or None
+        Suggested deployment end time.
+    """
+    ds_norm = tools.normalize_dataset_by_middle_percent(ds, percent=percent)
+
+    start_candidates = []
+    end_candidates = []
+
+    for var in vars_to_check:
+        if var not in ds_norm:
+            continue
+
+        arr = np.abs(ds_norm[var].values)
+        time_vals = ds_norm["TIME"].values
+
+        # First time index where normalized value drops below threshold
+        below_thresh = np.where(arr < threshold)[0]
+        if len(below_thresh) > 0:
+            first_below = time_vals[below_thresh[0]]
+            last_below = time_vals[below_thresh[-1]]
+            start_candidates.append(first_below)
+            end_candidates.append(last_below)
+        else:
+            print(f"Warning: {var} never drops below threshold {threshold}")
+
+    if not start_candidates or not end_candidates:
+        print("Could not determine suggested deployment period.")
+        return None, None
+
+    start_time = max(start_candidates)
+    end_time = min(end_candidates)
+
+    print(f"Suggested deployment start: {start_time}")
+    print(f"Suggested deployment end: {end_time}")
+    return start_time, end_time
 
 
 def stage2_trim(
     ds: xr.Dataset,
-    deployment_start: datetime,
-    deployment_end: datetime,
+    deployment_start: datetime = None,
+    deployment_end: datetime = None,
 ) -> xr.Dataset:
     """
     Trim dataset to deployment period and fill time gaps with NaN.
@@ -16,10 +80,10 @@ def stage2_trim(
     ----------
     ds : xarray.Dataset
         Input dataset with 'TIME' coordinate and variables like 'TEMP', 'CNDC', optionally 'PRES'.
-    deployment_start : datetime
-        Start of the valid deployment period.
-    deployment_end : datetime
-        End of the valid deployment period.
+    deployment_start : datetime, optional
+        Start of the valid deployment period. If None, uses first timestamp in ds.
+    deployment_end : datetime, optional
+        End of the valid deployment period. If None, uses last timestamp in ds.
 
     Returns
     -------
@@ -28,6 +92,11 @@ def stage2_trim(
     """
     if "TIME" not in ds:
         raise ValueError("Dataset must contain 'TIME' coordinate")
+
+    if deployment_start is None:
+        deployment_start = ds.TIME.values[0]
+    if deployment_end is None:
+        deployment_end = ds.TIME.values[-1]
 
     log_info(
         "Trimming dataset to deployment period %s – %s",
@@ -71,4 +140,81 @@ def stage2_trim(
                 np.nanmax(data),
             )
 
-    return ds_uniform
+    return ds_uniform, deployment_start, deployment_end
+
+
+def apply_microcat_calibration_from_txt(txt_file: str, use_file: str) -> xr.Dataset:
+    """
+    Apply calibration offsets from a *.microcat.txt file to the original .use data file.
+
+    Parameters
+    ----------
+    txt_file : str
+        Path to the calibration log file (e.g., 'wb1_12_2015_005.microcat').
+    use_file : str
+        Path to the original '.use' file.
+
+    Returns
+    -------
+    ds : xr.Dataset
+        Dataset with calibrated temperature, conductivity, and pressure.
+    """
+    txt_file = Path(txt_file)
+    use_file = Path(use_file)
+
+    with open(txt_file, "r") as f:
+        text = f.read()
+
+    def get_offsets(variable):
+        pattern = rf"{variable}.*?:\s+([-0-9.]+)\s+([-0-9.]+)"
+        match = re.search(pattern, text)
+        if match:
+            return float(match.group(1)), float(match.group(2))
+        return None, None
+
+    def is_applied(var):
+        match = re.search(rf"Average {var} applied\?\s+([yn])", text, re.IGNORECASE)
+        return match and match.group(1).lower() == "y"
+
+    # Extract offsets and flags
+    c_pre, c_post = get_offsets("Conductivity")
+    t_pre, t_post = get_offsets("Temperature")
+    p_pre, p_post = get_offsets("Pressure")
+
+    apply_c = is_applied("conductivity")
+    apply_t = is_applied("temperature")
+    apply_p = is_applied("pressure")
+
+    # Load data using rodbload
+    ds = rodb.rodbload(use_file)
+
+    # Rename to standard names
+    # rename_map = {"T": "TEMP", "C": "CNDC", "P": "PRES"}
+    # ds = ds.rename({k: v for k, v in rename_map.items() if k in ds})
+
+    def apply_avg_offset(var, pre, post, flag):
+        if var not in ds or not flag or pre is None or post is None:
+            return ds.get(var, None)
+        offset = (pre + post) / 2
+        log_info(f"Applying average offset {offset:+.4f} to {var}")
+        return ds[var] + offset
+
+    # Apply calibration offsets
+    for var, pre, post, flag in [
+        ("T", t_pre, t_post, apply_t),
+        ("C", c_pre, c_post, apply_c),
+        ("P", p_pre, p_post, apply_p),
+    ]:
+        if var in ds:
+            ds[var] = apply_avg_offset(var, pre, post, flag)
+
+    # Replace dummy values
+    for var in ["T", "C", "P"]:
+        if var in ds:
+            ds[var] = ds[var].where(ds[var] != DUMMY_VALUE, np.nan)
+
+    ds.attrs["source_file"] = str(use_file)
+    ds.attrs["calibration_log"] = str(txt_file)
+    ds.attrs["comment"] = "Calibration offsets applied from microcat log file."
+
+    return ds

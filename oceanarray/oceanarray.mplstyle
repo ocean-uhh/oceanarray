@@ -1,15 +1,18 @@
-axes.titlesize : 20
-axes.labelsize : 15
+axes.titlesize : 15
+axes.labelsize : 12
 date.autoformatter.day: %Y-%m-%d
 date.converter: auto
 figure.figsize: 8,4
 font.family:  sans-serif
 font.style:   normal
-font.size: 15
-legend.fontsize: 15
+font.size: 12
+legend.fontsize: 12
 lines.linewidth : 1
 lines.linestyle: -
 lines.markersize : 10
-xtick.labelsize : 15
+xtick.labelsize : 12
 xtick.alignment: center
-ytick.labelsize : 15
+ytick.labelsize : 12
+axes.grid : True
+grid.color : grey
+grid.linestyle : :

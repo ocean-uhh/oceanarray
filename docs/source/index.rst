@@ -32,9 +32,9 @@ Contents
    :maxdepth: 1
    :caption: Methods for Moorings
 
-   Filter in Time <methods/filtering>
-   Grid Vertically <methods/gridding>
-   Stitch Deployments <methods/stitching>
+   Grid in Time <methods/time_gridding>
+   Grid Vertically <methods/vertical_gridding>
+   Concatenate Deployments <methods/concatenation>
 
 .. toctree::
    :maxdepth: 1
