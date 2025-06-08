@@ -1,26 +1,28 @@
 import numpy as np
 import pandas as pd
 import xarray as xr
-import pytest
-from oceanarray.mooring import get_12hourly_time_grid, filter_all_time_vars  # Adjust import as needed
-from oceanarray import tools  # Assuming auto_filt is defined here
+from oceanarray.mooring import (
+    get_12hourly_time_grid,
+    filter_all_time_vars,
+)  # Adjust import as needed
 
-from oceanarray.mooring import interp_to_12hour_grid, get_12hourly_time_grid
+from oceanarray.mooring import interp_to_12hour_grid
+
 
 def test_interp_to_12hour_grid():
     # Create a synthetic dataset
     time = pd.date_range("2020-01-01", periods=48, freq="h")  # hourly for 2 days
     data = np.sin(np.linspace(0, 2 * np.pi, len(time)))  # sinusoidal signal
-    attrs = {'platform': 'testmoor'}
+    attrs = {"platform": "testmoor"}
 
     ds = xr.Dataset(
         {
             "T": ("TIME", data),
             "sal": ("TIME", data * 2),
-            "const": ("DEPTH", [1.0, 2.0])
+            "const": ("DEPTH", [1.0, 2.0]),
         },
         coords={"TIME": time, "DEPTH": [10, 20]},
-        attrs=attrs
+        attrs=attrs,
     )
 
     # Run interpolation
@@ -46,13 +48,16 @@ def test_interp_to_12hour_grid():
     assert "DEPTH" in ds_interp.coords
     np.testing.assert_array_equal(ds_interp["DEPTH"], ds["DEPTH"])
 
+
 def test_filter_all_time_vars_lowpass_behavior():
     # Create a synthetic signal: high-frequency + low-frequency component
     time = pd.date_range("2020-01-01", periods=240, freq="h")  # 10-day hourly record
     t_seconds = (time - time[0]).total_seconds().values
 
     low_freq_signal = np.sin(2 * np.pi * t_seconds / (4 * 24 * 3600))  # 4-day period
-    high_freq_noise = 0.5 * np.sin(2 * np.pi * t_seconds / (12 * 3600))  # 12-hour period
+    high_freq_noise = 0.5 * np.sin(
+        2 * np.pi * t_seconds / (12 * 3600)
+    )  # 12-hour period
     signal = low_freq_signal + high_freq_noise
 
     ds = xr.Dataset(
@@ -88,7 +93,7 @@ def test_filter_all_time_vars_ignores_non_time_vars():
             "var1": ("TIME", np.sin(np.linspace(0, 10, 48))),
             "scalar": ((), 5.0),
         },
-        coords={"TIME": time}
+        coords={"TIME": time},
     )
 
     ds_filtered = filter_all_time_vars(ds)
@@ -104,7 +109,9 @@ def test_get_12hourly_time_grid_with_array():
     expected_end = pd.Timestamp("2020-01-05T00:00")
     assert grid[0] == expected_start
     assert grid[-1] == expected_end
-    assert (grid.freq == pd.tseries.frequencies.to_offset("12h")) or (grid.freqstr == "12h")
+    assert (grid.freq == pd.tseries.frequencies.to_offset("12h")) or (
+        grid.freqstr == "12h"
+    )
 
 
 def test_get_12hourly_time_grid_with_dataset():
@@ -117,7 +124,9 @@ def test_get_12hourly_time_grid_with_dataset():
 
 def test_get_12hourly_time_grid_custom_offset():
     times = pd.date_range("2023-07-01T00:00", "2023-07-03T23:59", freq="1h")
-    grid = get_12hourly_time_grid(times, start_offset=pd.Timedelta(hours=0), end_offset=pd.Timedelta(days=1))
+    grid = get_12hourly_time_grid(
+        times, start_offset=pd.Timedelta(hours=0), end_offset=pd.Timedelta(days=1)
+    )
     assert grid[0] == pd.Timestamp("2023-07-01T00:00")
     assert grid[-1] == pd.Timestamp("2023-07-02T00:00")
 

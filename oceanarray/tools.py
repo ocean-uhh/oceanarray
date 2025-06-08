@@ -1,7 +1,6 @@
 import logging
 import numpy as np
 import xarray as xr
-import numpy as np
 from scipy.signal import butter, filtfilt
 
 # Initialize logging
@@ -42,7 +41,7 @@ unit_str_format = {
 }
 
 
-def auto_filt(y, sr, co, typ='low', fo=6):
+def auto_filt(y, sr, co, typ="low", fo=6):
     """
     Apply a Butterworth digital filter to a data array.
 

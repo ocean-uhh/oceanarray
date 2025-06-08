@@ -61,13 +61,16 @@ def test_plot_microcat_handles_time_format():
     assert isinstance(formatter, mdates.DateFormatter)
     assert formatter.fmt == "%Y.%b"
 
+
 def test_plot_trim_windows_creates_figaxes():
     import numpy as np
     import xarray as xr
     from oceanarray import plotters
     from datetime import datetime, timedelta
 
-    time = np.array([np.datetime64(datetime(2023, 1, 1) + timedelta(hours=i)) for i in range(48)])
+    time = np.array(
+        [np.datetime64(datetime(2023, 1, 1) + timedelta(hours=i)) for i in range(48)]
+    )
     data = np.random.random(48)
     ds = xr.Dataset(
         {
@@ -83,6 +86,7 @@ def test_plot_trim_windows_creates_figaxes():
     fig, axes = plotters.plot_trim_windows(ds, dstart, dend)
     assert fig is not None
     assert axes.shape == (3, 2)
+
 
 def test_plot_microcat_generates_expected_plot():
     import numpy as np
@@ -105,6 +109,7 @@ def test_plot_microcat_generates_expected_plot():
     fig = plotters.plot_microcat(ds)
     assert fig is not None
 
+
 def test_show_variables_on_xarray_dataset():
     import numpy as np
     import xarray as xr
@@ -124,6 +129,7 @@ def test_show_variables_on_xarray_dataset():
     styled = plotters.show_variables(ds)
     html = styled.to_html()
     assert "<table" in html  # crude but effective confirmation
+
 
 def test_show_attributes_from_dataset():
     import xarray as xr

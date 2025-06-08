@@ -219,7 +219,6 @@ REVERSE_ATTR_KEYS = {
 }
 
 
-
 def format_latlon(value, is_lat=True):
     deg = int(abs(value))
     minutes = (abs(value) - deg) * 60
