@@ -58,9 +58,9 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Moorings</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="methods/filtering.html">Filter in Time</a></li>
-<li class="toctree-l1"><a class="reference internal" href="methods/gridding.html">Grid Vertically</a></li>
-<li class="toctree-l1"><a class="reference internal" href="methods/stitching.html">Stitch Deployments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/time_gridding.html">Grid in Time</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/vertical_gridding.html">Grid Vertically</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/concatenation.html">Concatenate Deployments</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Array</span></p>
 <ul>
@@ -77,7 +77,8 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#writers">writers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#plotters">plotters</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#oceanarray.plotters.plot_monthly_transport"><code class="docutils literal notranslate"><span class="pre">plot_monthly_transport()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.plotters.plot_microcat"><code class="docutils literal notranslate"><span class="pre">plot_microcat()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.plotters.plot_trim_windows"><code class="docutils literal notranslate"><span class="pre">plot_trim_windows()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.plotters.show_attributes"><code class="docutils literal notranslate"><span class="pre">show_attributes()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.plotters.show_variables"><code class="docutils literal notranslate"><span class="pre">show_variables()</span></code></a></li>
 </ul>
@@ -103,8 +104,14 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#general-tools-and-utilities">General Tools and Utilities</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#tools">tools</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.calc_ds_difference"><code class="docutils literal notranslate"><span class="pre">calc_ds_difference()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.convert_units_var"><code class="docutils literal notranslate"><span class="pre">convert_units_var()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.mean_of_middle_percent"><code class="docutils literal notranslate"><span class="pre">mean_of_middle_percent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.middle_percent"><code class="docutils literal notranslate"><span class="pre">middle_percent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.normalize_by_middle_percent"><code class="docutils literal notranslate"><span class="pre">normalize_by_middle_percent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.normalize_dataset_by_middle_percent"><code class="docutils literal notranslate"><span class="pre">normalize_dataset_by_middle_percent()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.reformat_units_var"><code class="docutils literal notranslate"><span class="pre">reformat_units_var()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.std_of_middle_percent"><code class="docutils literal notranslate"><span class="pre">std_of_middle_percent()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#utilities">utilities</a><ul>
@@ -184,14 +191,22 @@
 <span id="module-oceanarray.writers"></span><h3>plotters<a class="headerlink" href="#plotters" title="Link to this heading"></a></h3>
 <p>Tools for plotting mooring time series, profile sections, and transport products.</p>
 <dl class="py function" id="module-oceanarray.plotters">
-<dt class="sig sig-object py" id="oceanarray.plotters.plot_monthly_transport">
-<span class="sig-prename descclassname"><span class="pre">oceanarray.plotters.</span></span><span class="sig-name descname"><span class="pre">plot_monthly_transport</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'moc_mar_hc10'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/oceanarray/plotters.html#plot_monthly_transport"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.plotters.plot_monthly_transport" title="Link to this definition"></a></dt>
-<dd><p>Plot original and monthly averaged transport time series.</p>
+<dt class="sig sig-object py" id="oceanarray.plotters.plot_microcat">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.plotters.</span></span><span class="sig-name descname"><span class="pre">plot_microcat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/plotters.html#plot_microcat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.plotters.plot_microcat" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.plotters.plot_trim_windows">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.plotters.</span></span><span class="sig-name descname"><span class="pre">plot_trim_windows</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dstart</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dend</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">NN</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">np.timedelta64(12,</span> <span class="pre">'h')</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/plotters.html#plot_trim_windows"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.plotters.plot_trim_windows" title="Link to this definition"></a></dt>
+<dd><p>Plot start and end windows for variables T, C, P in the dataset,
+highlighting data before/after dstart/dend.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>ds</strong> (<em>xr.Dataset</em>) – Dataset with a time dimension and a transport variable.</p></li>
-<li><p><strong>var</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of the variable to plot. Default is “moc_mar_hc10”.</p></li>
+<li><p><strong>ds</strong> (<em>xarray.Dataset</em>) – Dataset containing variables ‘T’, ‘C’, ‘P’ and ‘TIME’.</p></li>
+<li><p><strong>dstart</strong> (<em>np.datetime64</em>) – Deployment start time.</p></li>
+<li><p><strong>dend</strong> (<em>np.datetime64</em>) – Deployment end time.</p></li>
+<li><p><strong>NN</strong> (<em>np.timedelta64</em><em>, </em><em>optional</em>) – Window size (default: 12 hours).</p></li>
 </ul>
 </dd>
 </dl>
@@ -282,6 +297,11 @@ pandas.io.formats.style.Styler: A styled DataFrame containing the following colu
 <h3>tools<a class="headerlink" href="#tools" title="Link to this heading"></a></h3>
 <p>Helper functions for unit conversion, time alignment, and quality control.</p>
 <dl class="py function" id="module-oceanarray.tools">
+<dt class="sig sig-object py" id="oceanarray.tools.calc_ds_difference">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">calc_ds_difference</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ds2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#calc_ds_difference"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.calc_ds_difference" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="oceanarray.tools.convert_units_var">
 <span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">convert_units_var</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_unit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_unit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unit_conversion</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'Celsius':</span> <span class="pre">{'factor':</span> <span class="pre">1,</span> <span class="pre">'units_name':</span> <span class="pre">'degrees_Celsius'},</span> <span class="pre">'Pa':</span> <span class="pre">{'factor':</span> <span class="pre">0.0001,</span> <span class="pre">'units_name':</span> <span class="pre">'dbar'},</span> <span class="pre">'S</span> <span class="pre">m-1':</span> <span class="pre">{'factor':</span> <span class="pre">0.1,</span> <span class="pre">'units_name':</span> <span class="pre">'mS</span> <span class="pre">cm-1'},</span> <span class="pre">'S/m':</span> <span class="pre">{'factor':</span> <span class="pre">0.1,</span> <span class="pre">'units_name':</span> <span class="pre">'mS/cm'},</span> <span class="pre">'cm':</span> <span class="pre">{'factor':</span> <span class="pre">0.01,</span> <span class="pre">'units_name':</span> <span class="pre">'m'},</span> <span class="pre">'cm</span> <span class="pre">s-1':</span> <span class="pre">{'factor':</span> <span class="pre">0.01,</span> <span class="pre">'units_name':</span> <span class="pre">'m</span> <span class="pre">s-1'},</span> <span class="pre">'cm/s':</span> <span class="pre">{'factor':</span> <span class="pre">0.01,</span> <span class="pre">'units_name':</span> <span class="pre">'m/s'},</span> <span class="pre">'dbar':</span> <span class="pre">{'factor':</span> <span class="pre">10000,</span> <span class="pre">'units_name':</span> <span class="pre">'Pa'},</span> <span class="pre">'degrees_Celsius':</span> <span class="pre">{'factor':</span> <span class="pre">1,</span> <span class="pre">'units_name':</span> <span class="pre">'Celsius'},</span> <span class="pre">'g</span> <span class="pre">m-3':</span> <span class="pre">{'factor':</span> <span class="pre">0.001,</span> <span class="pre">'units_name':</span> <span class="pre">'kg</span> <span class="pre">m-3'},</span> <span class="pre">'kg</span> <span class="pre">m-3':</span> <span class="pre">{'factor':</span> <span class="pre">1000,</span> <span class="pre">'units_name':</span> <span class="pre">'g</span> <span class="pre">m-3'},</span> <span class="pre">'km':</span> <span class="pre">{'factor':</span> <span class="pre">1000,</span> <span class="pre">'units_name':</span> <span class="pre">'m'},</span> <span class="pre">'m':</span> <span class="pre">{'factor':</span> <span class="pre">100,</span> <span class="pre">'units_name':</span> <span class="pre">'cm'},</span> <span class="pre">'m</span> <span class="pre">s-1':</span> <span class="pre">{'factor':</span> <span class="pre">100,</span> <span class="pre">'units_name':</span> <span class="pre">'cm</span> <span class="pre">s-1'},</span> <span class="pre">'m/s':</span> <span class="pre">{'factor':</span> <span class="pre">100,</span> <span class="pre">'units_name':</span> <span class="pre">'cm/s'},</span> <span class="pre">'mS</span> <span class="pre">cm-1':</span> <span class="pre">{'factor':</span> <span class="pre">10,</span> <span class="pre">'units_name':</span> <span class="pre">'S</span> <span class="pre">m-1'},</span> <span class="pre">'mS/cm':</span> <span class="pre">{'factor':</span> <span class="pre">10,</span> <span class="pre">'units_name':</span> <span class="pre">'S/m'}}</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#convert_units_var"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.convert_units_var" title="Link to this definition"></a></dt>
 <dd><p>Convert the units of variables in an xarray Dataset to preferred units.  This is useful, for instance, to convert cm/s to m/s.</p>
@@ -313,6 +333,88 @@ pandas.io.formats.style.Styler: A styled DataFrame containing the following colu
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.tools.mean_of_middle_percent">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">mean_of_middle_percent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">percent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">95</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#mean_of_middle_percent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.mean_of_middle_percent" title="Link to this definition"></a></dt>
+<dd><p>Compute the mean of values within the central <cite>percent</cite> of the data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>values</strong> (<em>array-like</em>) – Input data (1D array). NaNs will be ignored.</p></li>
+<li><p><strong>percent</strong> (<em>float</em>) – Desired central percentage (e.g., 95 for middle 95%).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Mean of values within the specified middle percentage.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.tools.middle_percent">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">middle_percent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">percent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">95</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#middle_percent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.middle_percent" title="Link to this definition"></a></dt>
+<dd><p>Return the lower and upper bounds for the central <cite>percent</cite> of the data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>values</strong> (<em>array-like</em>) – Input data (1D array). NaNs will be ignored.</p></li>
+<li><p><strong>percent</strong> (<em>float</em>) – Desired central percentage (e.g., 95 for middle 95%).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(lower_bound, upper_bound)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.tools.normalize_by_middle_percent">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">normalize_by_middle_percent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">percent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">95</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#normalize_by_middle_percent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.normalize_by_middle_percent" title="Link to this definition"></a></dt>
+<dd><p>Normalize a data series by the mean and standard deviation
+of its central <cite>percent</cite> range.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>values</strong> (<em>array-like</em>) – Input data (1D array). NaNs are ignored.</p></li>
+<li><p><strong>percent</strong> (<em>float</em>) – Central percentage to define the ‘middle’ of the distribution (e.g., 95).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Normalized array with the same shape as input.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.tools.normalize_dataset_by_middle_percent">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">normalize_dataset_by_middle_percent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">percent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">95</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#normalize_dataset_by_middle_percent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.normalize_dataset_by_middle_percent" title="Link to this definition"></a></dt>
+<dd><p>Normalize all 1D data variables in an xarray Dataset that match the length of TIME,
+using the mean and std over the central <cite>percent</cite> of each variable.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ds</strong> (<em>xarray.Dataset</em>) – Input dataset with a ‘TIME’ coordinate.</p></li>
+<li><p><strong>percent</strong> (<em>float</em>) – Percentage of central values to define the middle (e.g., 95 for middle 95%).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>New dataset with normalized data variables.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>xarray.Dataset</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="oceanarray.tools.reformat_units_var">
 <span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">reformat_units_var</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unit_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'S/m':</span> <span class="pre">'S</span> <span class="pre">m-1',</span> <span class="pre">'cm/s':</span> <span class="pre">'cm</span> <span class="pre">s-1',</span> <span class="pre">'degrees_Celsius':</span> <span class="pre">'Celsius',</span> <span class="pre">'g/m^3':</span> <span class="pre">'g</span> <span class="pre">m-3',</span> <span class="pre">'m/s':</span> <span class="pre">'m</span> <span class="pre">s-1',</span> <span class="pre">'m^3/s':</span> <span class="pre">'Sv',</span> <span class="pre">'meters':</span> <span class="pre">'m'}</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#reformat_units_var"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.reformat_units_var" title="Link to this definition"></a></dt>
 <dd><p>Renames units in the dataset based on the provided dictionary for OG1.</p>
@@ -328,6 +430,26 @@ pandas.io.formats.style.Styler: A styled DataFrame containing the following colu
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>The dataset with renamed units.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.tools.std_of_middle_percent">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">std_of_middle_percent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">percent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">95</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#std_of_middle_percent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.std_of_middle_percent" title="Link to this definition"></a></dt>
+<dd><p>Compute the standard deviation of values within the central <cite>percent</cite> of the data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>values</strong> (<em>array-like</em>) – Input data (1D array). NaNs will be ignored.</p></li>
+<li><p><strong>percent</strong> (<em>float</em>) – Desired central percentage (e.g., 95 for middle 95%).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Standard deviation of values within the specified middle percentage.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
 </dd>
 </dl>
 </dd></dl>

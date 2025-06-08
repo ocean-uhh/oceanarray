@@ -21,7 +21,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="0. Data Acquisition (Instrument-level processing)" href="methods/acquisition.html" />
+    <link rel="next" title="Data Acquisition (Download in proprietary formats)" href="methods/acquisition.html" />
     <link rel="prev" title="Oceanarray: Methods and Workflows for Mooring Array Processing" href="index.html" /> 
 </head>
 
@@ -48,19 +48,17 @@
               <p class="caption" role="heading"><span class="caption-text">Overview</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">OceanArray processing framework</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#stage-0-data-acquisition-download-in-proprietary-format">Stage 0 — Data Acquisition (Download in proprietary format)</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#instrument-level-processing">Instrument-level processing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#mooring-level-processing">Mooring-level processing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#array-level-processing-analysis">Array-level processing &amp; analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#instrument-level-processing">Instrument-level processing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#mooring-level-processing">Mooring-level processing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#array-level-processing">Array-level processing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#further-analysis">Further Analysis</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#transbasin-transport">Transbasin Transport</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#velocity-based-transports">Velocity-Based Transports</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#composite-transport-and-mass-compensation">Composite Transport and Mass Compensation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#moc-time-series-and-diagnostics">MOC Time Series and Diagnostics</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#derived-fields-dynamic-height-and-shear">Derived Fields: Dynamic Height and Shear</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#velocity-based-transports">Velocity-Based Transports</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#composite-transport-and-mass-compensation">Composite Transport and Mass Compensation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#moc-time-series-and-diagnostics">MOC Time Series and Diagnostics</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#summary-table">Summary Table</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="#summary-table">Summary Table</a></li>
 </ul>
 </li>
 </ul>
@@ -74,9 +72,9 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Moorings</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="methods/filtering.html">Filter in Time</a></li>
-<li class="toctree-l1"><a class="reference internal" href="methods/gridding.html">Grid Vertically</a></li>
-<li class="toctree-l1"><a class="reference internal" href="methods/stitching.html">Stitch Deployments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/time_gridding.html">Grid in Time</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/vertical_gridding.html">Grid Vertically</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/concatenation.html">Concatenate Deployments</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Array</span></p>
 <ul>
@@ -114,10 +112,8 @@
              
   <section id="oceanarray-processing-framework">
 <h1>OceanArray processing framework<a class="headerlink" href="#oceanarray-processing-framework" title="Link to this heading"></a></h1>
-<p>This document outlines the modular stages required for processing data from moored instruments
-into time series of meridional overturning circulation (MOC) transports. Each stage is defined
-abstractly, with reference to typical workflows (e.g., RAPID) as examples, without prescribing
-any specific implementation or intermediate format.</p>
+<p>This document outlines the stages of processing for data from moored instruments.  Processing is separated into “instrument-level” processing (actions performed on a single instrument for a single deployment), “mooring-level” processing (actions performed on a mooring consisting of instruments deployed at the same x/y location), and “array-level” processing (actions performed on multiple moorings used together).</p>
+<p>Initial examples are built from the RAPID project, which is a well-established mooring array in the Atlantic Ocean, which uses an array of moored instruments to measure the Atlantic Meridional Overturning Circulation (AMOC).</p>
 <p><strong>Principles:</strong></p>
 <ul class="simple">
 <li><p><strong>Modular</strong>: Each stage has clearly defined inputs and outputs.</p></li>
@@ -126,11 +122,10 @@ different instrument types, platforms, and processing strategies.</p></li>
 <li><p><strong>Reproducible</strong>: Every transformation step should be traceable, with logs, versioning, and metadata.</p></li>
 <li><p><strong>Incremental</strong>: Intermediate outputs should be storable and reloadable for downstream processing.</p></li>
 </ul>
-<section id="stage-0-data-acquisition-download-in-proprietary-format">
-<h2>Stage 0 — Data Acquisition (Download in proprietary format)<a class="headerlink" href="#stage-0-data-acquisition-download-in-proprietary-format" title="Link to this heading"></a></h2>
-<p>The initial stage (stage 0) is downloading data from instruments in the manufacturer’s format, such as SeaBird <cite>.cnv</cite> files or ASCII logs. This stage is typically performed at sea as soon as a mooring is recovered and instruments are available.</p>
+<p>Final datasets are intended to be stored in a common format (e.g., CF-netCDF following <a class="reference external" href="https://www.ocean-ops.org/oceansites/data/index.html">OceanSITES</a>) with consistent metadata, ready for further analysis or transport diagnostics.</p>
+<hr class="docutils" />
 <section id="instrument-level-processing">
-<h3>Instrument-level processing<a class="headerlink" href="#instrument-level-processing" title="Link to this heading"></a></h3>
+<h2>Instrument-level processing<a class="headerlink" href="#instrument-level-processing" title="Link to this heading"></a></h2>
 <figure class="align-center" id="id1">
 <img alt="Instrument-level processing workflow" src="_images/instrument_processing_v5.png" />
 <figcaption>
@@ -139,15 +134,38 @@ different instrument types, platforms, and processing strategies.</p></li>
 </figure>
 <p>The instrument-level processing carries out 2 main steps:</p>
 <ul class="simple">
-<li><p>Removing the period prior to the “on the sea-bed” deployment period, i.e. when the moored instruments are sinking or rising.</p></li>
-<li><p>Applying calibrations based on laboratory calibrations or the pre- and post-deployment calibration dips (when a microCAT is lowered on the CTD-rosette and compared with the CTD data).</p></li>
+<li><p><strong>Stage 0:</strong> Downloading raw instrument files (e.g., <cite>.cnv</cite>, <cite>.asc</cite>).</p></li>
+<li><p><strong>Stage 1:</strong> Converting data files to a consistent (internal) format.</p></li>
+<li><p><strong>Stage 2:</strong> Trimming the record to the deployment period (i.e., removing the launch and recovery periods) and applying clock corrections.</p></li>
+<li><p><strong>Stage 3:</strong> Applying calibrations to the moored instrument and create a traceable log of the calibration process.</p></li>
+<li><p><strong>Stage 4:</strong> Convert data to a common format for onward use with rich metadata.</p></li>
 </ul>
-<p>Additional corrections for clock drift or incorrectly set clocks can also be applied, but are not usually expected.</p>
-<p>For the RAPID project, these processing steps are referred to as <strong>stage 1</strong> where data are loaded from raw and saved into the intermediate format RDB (as a <cite>*.raw</cite> file) without making any changes (see <a class="reference internal" href="methods/standardisation.html"><span class="doc">1. Standardisation (Internally-consistent format)</span></a>), and <strong>stage 2</strong> where the raw files are trimmed to the deployment period (see <a class="reference internal" href="methods/trimming.html"><span class="doc">2. Trimming to Deployed period</span></a>).  The step where calibrations are applied is outlined in the <a class="reference internal" href="methods/calibration.html"><span class="doc">3. Calibration (Instrument-level Corrections)</span></a> document, and produces a traceable record of the calibration corrections that were applied.</p>
-<p>Note that determining the calibration corrections is a separate step, which is not part of the <cite>oceanarray</cite> processing framework.  The calibration corrections are typically determined by comparing the instrument data with a CTD profile taken at the same time, or by comparing the instrument data with a laboratory calibration.</p>
+<p>The first step step is downloading data from instruments.  This is typically using manufacturers’ software and some of the downloaded files may be in proprietary formats (e.g., SeaBird <cite>.cnv</cite> format).  Formats can also change over time or depending on settings used when downloading the data, hence the need for the “standardisation” step.  Stage 0 is typically performed at sea as soon as a mooring is recovered and instruments are available.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Stage 2 clock corrections are only necessary if the clock on the instrument was set up incorrectly (normally should be UTC to the nearest second) or if the instrument drifts over the deployment period (usually small/negligible for microCATs, i.e. a clock drift of a few seconds or up to a minute is usually ignored except for bottom pressure sensors).</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Stage 3 only involves <em>applying</em> calibration corrections.  The corrections should be determined in a separate step, e.g., by comparing the instrument data with the CTD during a calibration cast (pre- and post-deployment) or with laboratory calibrations (pre- and/or post-deployment).</p>
+</div>
+<div class="hint admonition">
+<p class="admonition-title">RAPID Analogy</p>
+<p>Stage 0: Download raw instrument files (e.g., <cite>.cnv</cite>, <cite>.asc</cite>).
+The initial conversion to the RDB (or RODB) format is called “stage 1” and takes place while still onboard the ship.  Stage 2 is mainly trimming to the deployment period, which requires some minor iteration between running the processing, updating the mooring-level metadata (contained in a RAPID <cite>*info.dat</cite> file), and then re-running the processing.  Outputs are the <cite>*.use</cite> RDB format file.  The third stage is performed after the cruise, and isn’t necessarily referred to by the RAPID project as “stage 3”.  This is done also with some iterative steps where corrections are applied making various choices (linear change between pre- and post-cruise calibrations) or using only the pre- or post-cruise cal dip, and making different versions of the <cite>*.microcat</cite> file in RDB format.  Each variation of the processing also produces a parallel <cite>*.microcat.txt</cite> file recording the choices made.  A final choice may be made only after comparing to auxiliary data or other instruments on the mooring, so while this falls within “instrument-level” processing because it’s performed on a single instrument, the inputs may be broader.</p>
+</div>
+<p><strong>Further details</strong>:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="methods/acquisition.html"><span class="doc">Data Acquisition (Download in proprietary formats)</span></a> describes downloading raw instrument files.</p></li>
+<li><p><a class="reference internal" href="methods/standardisation.html"><span class="doc">1. Standardisation (Internally-consistent format)</span></a> describes how to convert the raw instrument files to an internally-consistent format (e.g., RBD or netCDF).</p></li>
+<li><p><a class="reference internal" href="methods/trimming.html"><span class="doc">2. Trimming to Deployed period</span></a> describes how to trim the data to the deployment period and apply clock corrections.</p></li>
+<li><p><a class="reference internal" href="methods/calibration.html"><span class="doc">3. Calibration (Instrument-level Corrections)</span></a> describes how to apply calibration corrections to the instrument data and create a traceable log of the calibration process.</p></li>
+<li><p><a class="reference internal" href="methods/conversion.html"><span class="doc">4. Conversion to OS format</span></a> describes how to convert the data to a common format (e.g., CF-netCDF) with rich metadata.</p></li>
+</ul>
 </section>
+<hr class="docutils" />
 <section id="mooring-level-processing">
-<h3>Mooring-level processing<a class="headerlink" href="#mooring-level-processing" title="Link to this heading"></a></h3>
+<h2>Mooring-level processing<a class="headerlink" href="#mooring-level-processing" title="Link to this heading"></a></h2>
 <figure class="align-center" id="id2">
 <img alt="Mooring-level processing workflow" src="_images/mooring_processing_v3.png" />
 <figcaption>
@@ -156,36 +174,68 @@ different instrument types, platforms, and processing strategies.</p></li>
 </figure>
 <p>The previous steps (stage 0 to stage 3) are applied per instrument, per deployment. When multiple instruments are deployed on the same tall mooring, the next steps can be applied to produce a vertical profile of data.</p>
 <ul class="simple">
-<li><p><strong>Step 1: filtering</strong> removes high-frequency variability (e.g., tides) by applying a lowpass filter (for RAPID, a 2-day 6th order Butterworth filter) and subsamples the output to a standard interval (for RAPID, 12 hours). See <a class="reference internal" href="methods/filtering.html"><span class="doc">Filter &amp; Subsample Time Series</span></a> for details.</p></li>
-<li><p><strong>Step 2: gridding</strong> vertically interpolates the filtered data onto a standard pressure grid (for RAPID, every 20 dbar), combining measurements from multiple instruments on the same mooring and interpolating between them using climatological data. See <a class="reference internal" href="methods/gridding.html"><span class="doc">Vertical Gridding</span></a> for details.</p></li>
+<li><p><strong>Step 1:</strong> Time gridding onto a consistent time axis for all instruments on a mooring.  Low-pass filtering or other de-tiding procedures can also be applied.</p></li>
+<li><p><strong>Step 2:</strong> Vertical gridding onto a standard pressure grid, combining measurements from multiple instruments on the same mooring</p></li>
+<li><p><strong>Step 3:</strong> Concatenating (in time) the data from multiple mooring deployments at a single x/y location.</p></li>
 </ul>
-<p>The output from step 1 and 2 are saved to a datafile with one time-axis (12-hourly) and two vertical dimensions.  Filtered (but not gridded) data are stored per instrument  (e.g., <cite>N_LEVEL</cite>), and filtered and gridded data are stored on pressure (e.g., <cite>PRES</cite>).  This is because the filtered but not gridded data will be used in the merging of moorings between different locations on an array.</p>
+<p>Outputs can be stored in updated OceanSites format file(s) which include details of processing steps in the metadata.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Step 1 may include filtering to remove tides, and subsampling to a coarser grid for data decimation, depending on the scientific aims of the project.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Step 2 as included here assumes that all individual instruments have a pressure sensor and so they know their vertical position.  If this is not the case, then a “virtual” pressure record may need to be created, e.g. by interpolating between two sensors with pressure measurements.</p>
+</div>
+<div class="hint admonition">
+<p class="admonition-title">RAPID Analogy</p>
+<p>For RAPID, data are de-tided by using a 2-day, 6th order Butterworth low-pass filter.  Data are then subsampled to 12 hour intervals for onward processing.  Vertical gridding is done by using climatological (monthly) profiles of temperature and salinity built from hydrographic (CTD and Argo profile) data.  Concatenating in time is done with a simple application of <cite>interp1.m</cite> in Matlab onto a uniform 12-hourly time axis.</p>
+</div>
+<p><strong>Further details</strong>:</p>
 <ul class="simple">
-<li><p>Finally, <strong>Step 3: concatenation</strong> stitches together (in time) the gridded data from multiple mooring deployments at an individual x/y- or lat/lon-location to generate continuous time series of vertically-resolved data. See <a class="reference internal" href="methods/stitching.html"><span class="doc">Stitching Across Deployments</span></a> for details.</p></li>
+<li><p><a class="reference internal" href="methods/time_gridding.html"><span class="doc">Gridding in time</span></a> describes how to apply a low-pass filter and subsample the time series to a common time axis.</p></li>
+<li><p><a class="reference internal" href="methods/vertical_gridding.html"><span class="doc">Vertical Gridding</span></a> describes how to vertically interpolate the data onto a standard pressure grid.</p></li>
+<li><p><a class="reference internal" href="methods/concatenation.html"><span class="doc">Concatenate Deployments</span></a> describes how to concatenate multiple deployments at a single x/y location into a continuous time series.</p></li>
 </ul>
 </section>
-<section id="array-level-processing-analysis">
-<h3>Array-level processing &amp; analysis<a class="headerlink" href="#array-level-processing-analysis" title="Link to this heading"></a></h3>
-<figure class="align-center">
+<hr class="docutils" />
+<section id="array-level-processing">
+<h2>Array-level processing<a class="headerlink" href="#array-level-processing" title="Link to this heading"></a></h2>
+<figure class="align-center" id="id3">
 <img alt="Array-level processing workflow" src="_images/array_processing_v2.png" />
+<figcaption>
+<p><span class="caption-text">Array-level processing workflow.</span><a class="headerlink" href="#id3" title="Link to this image"></a></p>
+</figcaption>
 </figure>
-<p>This step combines filtered (but <em>not</em> vertically gridded datasets) from multiple mooring sites located near the continental slope (e.g., WB2, WB3, WBH2) into a boundary profile. These sites, deployed across a sloping ocean boundary, improve coverage along the boundary (e.g., when WB2 ends at 3800 dbar, and WB3 at 4500 dbar). To produce a consistent time–depth matrix for dynamic height and overturning calculations, their records are already on a common time access, but stacked and sorted vertically at each time step.  This helps minimize data gaps and ensures smooth transitions across deployments. A final vertical regridding step (using the same method as the gridding for the individual mooring locations) fills missing levels and ensures regular spacing in pressure.  Note that this may not have any method to flag or identify possibly statically unstable profiles. The output is a consolidated mooring product for the boundary region, ready for use in transport diagnostics.</p>
+<p>For <strong>boundary profiles</strong>, this step starts from the time-gridded individual instrument records produced in the previous steps, stacking them and sorting them vertically at east time step, and then re-doing the vertical regridding now across instrument data from multiple moorings. This helps minimize data gaps and ensures smooth transitions across deployments. Note that this may not have any method to flag or identify possibly statically unstable profiles.</p>
+<div class="hint admonition">
+<p class="admonition-title">RAPID Analogy</p>
+<p>For RAPID, this is done by merging the mooring sites WB2, WB3, and WBH2 where data from 0-3800 dbar are used from WB2, then the next deeper instruments from WBH2 and then WB3 are added.  These sites, deployed across a sloping ocean boundary, improve coverage along the boundary (e.g., when WB2 ends at 3800 dbar, and WB3 at 4500 dbar).  The final output is a merged “West” profile, ready for use in transport calculations.</p>
+</div>
+<p><strong>Further details</strong>:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="methods/multisite_merging.html"><span class="doc">Multi-site Merging</span></a> describes how to merge multiple mooring sites into a single boundary profile.</p></li>
+</ul>
 </section>
-</section>
-<section id="derived-fields-dynamic-height-and-shear">
-<h2>Derived Fields: Dynamic Height and Shear<a class="headerlink" href="#derived-fields-dynamic-height-and-shear" title="Link to this heading"></a></h2>
+<hr class="docutils" />
+<section id="further-analysis">
+<h2>Further Analysis<a class="headerlink" href="#further-analysis" title="Link to this heading"></a></h2>
+<p>The notes below are a stub.</p>
+<section id="transbasin-transport">
+<h3>Transbasin Transport<a class="headerlink" href="#transbasin-transport" title="Link to this heading"></a></h3>
 <p><strong>Description</strong>: TEOS-10 conversion, dynamic height, and shear.</p>
 <p><strong>Actions</strong>:</p>
 <ul class="simple">
 <li><p>Convert to Absolute Salinity and Conservative Temp.</p></li>
 <li><p>Compute dynamic height and geostrophic shear.</p></li>
 </ul>
-<p><strong>Inputs</strong>: T/S/P profiles, reference pressure</p>
+<p><strong>Inputs</strong>: T/S/P profiles</p>
+<p><strong>Choices</strong>: reference pressure</p>
 <p><strong>Outputs</strong>: Dynamic height fields</p>
 <p><strong>RAPID Analogy</strong>: <cite>gsw_geo_strf_dyn_height</cite></p>
 </section>
 <section id="velocity-based-transports">
-<h2>Velocity-Based Transports<a class="headerlink" href="#velocity-based-transports" title="Link to this heading"></a></h2>
+<h3>Velocity-Based Transports<a class="headerlink" href="#velocity-based-transports" title="Link to this heading"></a></h3>
 <p><strong>Description</strong>: Processing of WBW/ADCP data.</p>
 <p><strong>Actions</strong>:</p>
 <ul class="simple">
@@ -197,7 +247,7 @@ different instrument types, platforms, and processing strategies.</p></li>
 <p><strong>RAPID Analogy</strong>: WBW/Johns et al. 2008</p>
 </section>
 <section id="composite-transport-and-mass-compensation">
-<h2>Composite Transport and Mass Compensation<a class="headerlink" href="#composite-transport-and-mass-compensation" title="Link to this heading"></a></h2>
+<h3>Composite Transport and Mass Compensation<a class="headerlink" href="#composite-transport-and-mass-compensation" title="Link to this heading"></a></h3>
 <p><strong>Description</strong>: Combine transports and ensure mass balance.</p>
 <p><strong>Actions</strong>:</p>
 <ul class="simple">
@@ -210,7 +260,7 @@ different instrument types, platforms, and processing strategies.</p></li>
 <p><strong>RAPID Analogy</strong>: <cite>transports.m</cite>, <cite>stream2moc.m</cite></p>
 </section>
 <section id="moc-time-series-and-diagnostics">
-<h2>MOC Time Series and Diagnostics<a class="headerlink" href="#moc-time-series-and-diagnostics" title="Link to this heading"></a></h2>
+<h3>MOC Time Series and Diagnostics<a class="headerlink" href="#moc-time-series-and-diagnostics" title="Link to this heading"></a></h3>
 <p><strong>Description</strong>: Final diagnostics and time series generation.</p>
 <p><strong>Actions</strong>:</p>
 <ul class="simple">
@@ -219,8 +269,10 @@ different instrument types, platforms, and processing strategies.</p></li>
 <li><p>Apply final time filtering.</p></li>
 </ul>
 <p><strong>Outputs</strong>: MOC time series, diagnostics, plots</p>
+</section>
+</section>
 <section id="summary-table">
-<h3>Summary Table<a class="headerlink" href="#summary-table" title="Link to this heading"></a></h3>
+<h2>Summary Table<a class="headerlink" href="#summary-table" title="Link to this heading"></a></h2>
 <table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head"><p>Step</p></th>
@@ -274,14 +326,13 @@ different instrument types, platforms, and processing strategies.</p></li>
 </table>
 </section>
 </section>
-</section>
 
 
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="index.html" class="btn btn-neutral float-left" title="Oceanarray: Methods and Workflows for Mooring Array Processing" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="methods/acquisition.html" class="btn btn-neutral float-right" title="0. Data Acquisition (Instrument-level processing)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="methods/acquisition.html" class="btn btn-neutral float-right" title="Data Acquisition (Download in proprietary formats)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

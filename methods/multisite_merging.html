@@ -22,7 +22,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="oceanarray API" href="../oceanarray.html" />
-    <link rel="prev" title="Stitching Across Deployments" href="stitching.html" /> 
+    <link rel="prev" title="Concatenate Deployments" href="concatenation.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -59,9 +59,9 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Moorings</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="filtering.html">Filter in Time</a></li>
-<li class="toctree-l1"><a class="reference internal" href="gridding.html">Grid Vertically</a></li>
-<li class="toctree-l1"><a class="reference internal" href="stitching.html">Stitch Deployments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="time_gridding.html">Grid in Time</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vertical_gridding.html">Grid Vertically</a></li>
+<li class="toctree-l1"><a class="reference internal" href="concatenation.html">Concatenate Deployments</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Array</span></p>
 <ul class="current">
@@ -161,7 +161,7 @@ Multiple deployments are stacked together (e.g., <cite>Tfs     = [Tfs1;Tfs2;Tfs3
 </div>
 <ol class="arabic" start="4">
 <li><p><strong>Regrid vertically</strong>:
-Since we now have moorings ending at different depths and from different moorings, they need to be vertically gridded over possible gaps. This re-applies the method from <a class="reference internal" href="gridding.html"><span class="doc">Vertical Gridding</span></a> to concatenate all year-specific fragments into a single time–depth matrix and re-interpolate:</p>
+Since we now have moorings ending at different depths and from different moorings, they need to be vertically gridded over possible gaps. This re-applies the method from <span class="xref std std-doc">gridding</span> to concatenate all year-specific fragments into a single time–depth matrix and re-interpolate:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">TG_wb2</span> <span class="o">=</span> <span class="n">interp1</span><span class="p">([</span><span class="n">jg_y1</span> <span class="n">jg_y2</span> <span class="o">...</span><span class="p">],</span> <span class="p">[</span><span class="n">TG_y1</span> <span class="n">TG_y2</span> <span class="o">...</span><span class="p">],</span> <span class="n">jg</span><span class="p">);</span>
 <span class="n">SG_wb2</span> <span class="o">=</span> <span class="n">interp1</span><span class="p">([</span><span class="n">jg_y1</span> <span class="n">jg_y2</span> <span class="o">...</span><span class="p">],</span> <span class="p">[</span><span class="n">SG_y1</span> <span class="n">SG_y2</span> <span class="o">...</span><span class="p">],</span> <span class="n">jg</span><span class="p">);</span>
 </pre></div>
@@ -188,7 +188,7 @@ Store combined profiles in NetCDF or <cite>.mat</cite> format for use in dynamic
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="stitching.html" class="btn btn-neutral float-left" title="Stitching Across Deployments" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="concatenation.html" class="btn btn-neutral float-left" title="Concatenate Deployments" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="../oceanarray.html" class="btn btn-neutral float-right" title="oceanarray API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

@@ -2,10 +2,9 @@
 OceanArray processing framework
 ===============================
 
-This document outlines the modular stages required for processing data from moored instruments
-into time series of meridional overturning circulation (MOC) transports. Each stage is defined
-abstractly, with reference to typical workflows (e.g., RAPID) as examples, without prescribing
-any specific implementation or intermediate format.
+This document outlines the stages of processing for data from moored instruments.  Processing is separated into "instrument-level" processing (actions performed on a single instrument for a single deployment), "mooring-level" processing (actions performed on a mooring consisting of instruments deployed at the same x/y location), and "array-level" processing (actions performed on multiple moorings used together).
+
+Initial examples are built from the RAPID project, which is a well-established mooring array in the Atlantic Ocean, which uses an array of moored instruments to measure the Atlantic Meridional Overturning Circulation (AMOC).
 
 **Principles:**
 
@@ -15,9 +14,12 @@ any specific implementation or intermediate format.
 - **Reproducible**: Every transformation step should be traceable, with logs, versioning, and metadata.
 - **Incremental**: Intermediate outputs should be storable and reloadable for downstream processing.
 
-Stage 0 — Data Acquisition (Download in proprietary format)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The initial stage (stage 0) is downloading data from instruments in the manufacturer's format, such as SeaBird `.cnv` files or ASCII logs. This stage is typically performed at sea as soon as a mooring is recovered and instruments are available.
+Final datasets are intended to be stored in a common format (e.g., CF-netCDF following OceanSITES_) with consistent metadata, ready for further analysis or transport diagnostics.
+
+.. _OceanSITES: https://www.ocean-ops.org/oceansites/data/index.html
+
+
+----
 
 Instrument-level processing
 ---------------------------
@@ -30,14 +32,40 @@ Instrument-level processing
 
 The instrument-level processing carries out 2 main steps:
 
-- Removing the period prior to the "on the sea-bed" deployment period, i.e. when the moored instruments are sinking or rising.
-- Applying calibrations based on laboratory calibrations or the pre- and post-deployment calibration dips (when a microCAT is lowered on the CTD-rosette and compared with the CTD data).
+- **Stage 0:** Downloading raw instrument files (e.g., `.cnv`, `.asc`).
+- **Stage 1:** Converting data files to a consistent (internal) format.
+- **Stage 2:** Trimming the record to the deployment period (i.e., removing the launch and recovery periods) and applying clock corrections.
+- **Stage 3:** Applying calibrations to the moored instrument and create a traceable log of the calibration process.
+- **Stage 4:** Convert data to a common format for onward use with rich metadata.
 
-Additional corrections for clock drift or incorrectly set clocks can also be applied, but are not usually expected.
+The first step step is downloading data from instruments.  This is typically using manufacturers' software and some of the downloaded files may be in proprietary formats (e.g., SeaBird `.cnv` format).  Formats can also change over time or depending on settings used when downloading the data, hence the need for the "standardisation" step.  Stage 0 is typically performed at sea as soon as a mooring is recovered and instruments are available.
 
-For the RAPID project, these processing steps are referred to as **stage 1** where data are loaded from raw and saved into the intermediate format RDB (as a `*.raw` file) without making any changes (see :doc:`methods/standardisation`), and **stage 2** where the raw files are trimmed to the deployment period (see :doc:`methods/trimming`).  The step where calibrations are applied is outlined in the :doc:`methods/calibration` document, and produces a traceable record of the calibration corrections that were applied.
 
-Note that determining the calibration corrections is a separate step, which is not part of the `oceanarray` processing framework.  The calibration corrections are typically determined by comparing the instrument data with a CTD profile taken at the same time, or by comparing the instrument data with a laboratory calibration.
+.. note::
+
+  Stage 2 clock corrections are only necessary if the clock on the instrument was set up incorrectly (normally should be UTC to the nearest second) or if the instrument drifts over the deployment period (usually small/negligible for microCATs, i.e. a clock drift of a few seconds or up to a minute is usually ignored except for bottom pressure sensors).
+
+.. note::
+
+  Stage 3 only involves *applying* calibration corrections.  The corrections should be determined in a separate step, e.g., by comparing the instrument data with the CTD during a calibration cast (pre- and post-deployment) or with laboratory calibrations (pre- and/or post-deployment).
+
+.. admonition:: RAPID Analogy
+  :class: hint
+
+  Stage 0: Download raw instrument files (e.g., `.cnv`, `.asc`).
+  The initial conversion to the RDB (or RODB) format is called "stage 1" and takes place while still onboard the ship.  Stage 2 is mainly trimming to the deployment period, which requires some minor iteration between running the processing, updating the mooring-level metadata (contained in a RAPID `*info.dat` file), and then re-running the processing.  Outputs are the `*.use` RDB format file.  The third stage is performed after the cruise, and isn't necessarily referred to by the RAPID project as "stage 3".  This is done also with some iterative steps where corrections are applied making various choices (linear change between pre- and post-cruise calibrations) or using only the pre- or post-cruise cal dip, and making different versions of the `*.microcat` file in RDB format.  Each variation of the processing also produces a parallel `*.microcat.txt` file recording the choices made.  A final choice may be made only after comparing to auxiliary data or other instruments on the mooring, so while this falls within "instrument-level" processing because it's performed on a single instrument, the inputs may be broader.
+
+
+**Further details**:
+
+- :doc:`methods/acquisition` describes downloading raw instrument files.
+- :doc:`methods/standardisation` describes how to convert the raw instrument files to an internally-consistent format (e.g., RBD or netCDF).
+- :doc:`methods/trimming` describes how to trim the data to the deployment period and apply clock corrections.
+- :doc:`methods/calibration` describes how to apply calibration corrections to the instrument data and create a traceable log of the calibration process.
+- :doc:`methods/conversion` describes how to convert the data to a common format (e.g., CF-netCDF) with rich metadata.
+
+----
+
 
 Mooring-level processing
 ------------------------
@@ -50,29 +78,68 @@ Mooring-level processing
 
 The previous steps (stage 0 to stage 3) are applied per instrument, per deployment. When multiple instruments are deployed on the same tall mooring, the next steps can be applied to produce a vertical profile of data.
 
-- **Step 1: filtering** removes high-frequency variability (e.g., tides) by applying a lowpass filter (for RAPID, a 2-day 6th order Butterworth filter) and subsamples the output to a standard interval (for RAPID, 12 hours). See :doc:`methods/filtering` for details.
+- **Step 1:** Time gridding onto a consistent time axis for all instruments on a mooring.  Low-pass filtering or other de-tiding procedures can also be applied.
+- **Step 2:** Vertical gridding onto a standard pressure grid, combining measurements from multiple instruments on the same mooring
+- **Step 3:** Concatenating (in time) the data from multiple mooring deployments at a single x/y location.
 
-- **Step 2: gridding** vertically interpolates the filtered data onto a standard pressure grid (for RAPID, every 20 dbar), combining measurements from multiple instruments on the same mooring and interpolating between them using climatological data. See :doc:`methods/gridding` for details.
+Outputs can be stored in updated OceanSites format file(s) which include details of processing steps in the metadata.
 
-The output from step 1 and 2 are saved to a datafile with one time-axis (12-hourly) and two vertical dimensions.  Filtered (but not gridded) data are stored per instrument  (e.g., `N_LEVEL`), and filtered and gridded data are stored on pressure (e.g., `PRES`).  This is because the filtered but not gridded data will be used in the merging of moorings between different locations on an array.
+.. note::
 
-- Finally, **Step 3: concatenation** stitches together (in time) the gridded data from multiple mooring deployments at an individual x/y- or lat/lon-location to generate continuous time series of vertically-resolved data. See :doc:`methods/stitching` for details.
+  Step 1 may include filtering to remove tides, and subsampling to a coarser grid for data decimation, depending on the scientific aims of the project.
+
+.. note::
+
+  Step 2 as included here assumes that all individual instruments have a pressure sensor and so they know their vertical position.  If this is not the case, then a "virtual" pressure record may need to be created, e.g. by interpolating between two sensors with pressure measurements.
+
+
+.. admonition:: RAPID Analogy
+  :class: hint
+
+  For RAPID, data are de-tided by using a 2-day, 6th order Butterworth low-pass filter.  Data are then subsampled to 12 hour intervals for onward processing.  Vertical gridding is done by using climatological (monthly) profiles of temperature and salinity built from hydrographic (CTD and Argo profile) data.  Concatenating in time is done with a simple application of `interp1.m` in Matlab onto a uniform 12-hourly time axis.
+
+**Further details**:
+
+- :doc:`methods/time_gridding` describes how to apply a low-pass filter and subsample the time series to a common time axis.
+- :doc:`methods/vertical_gridding` describes how to vertically interpolate the data onto a standard pressure grid.
+- :doc:`methods/concatenation` describes how to concatenate multiple deployments at a single x/y location into a continuous time series.
 
 
 
 
-Array-level processing & analysis
----------------------------------
+----
+
+Array-level processing
+----------------------
 
 
 .. figure:: /_static/array_processing_v2.png
   :alt: Array-level processing workflow
   :align: center
 
-This step combines filtered (but *not* vertically gridded datasets) from multiple mooring sites located near the continental slope (e.g., WB2, WB3, WBH2) into a boundary profile. These sites, deployed across a sloping ocean boundary, improve coverage along the boundary (e.g., when WB2 ends at 3800 dbar, and WB3 at 4500 dbar). To produce a consistent time–depth matrix for dynamic height and overturning calculations, their records are already on a common time access, but stacked and sorted vertically at each time step.  This helps minimize data gaps and ensures smooth transitions across deployments. A final vertical regridding step (using the same method as the gridding for the individual mooring locations) fills missing levels and ensures regular spacing in pressure.  Note that this may not have any method to flag or identify possibly statically unstable profiles. The output is a consolidated mooring product for the boundary region, ready for use in transport diagnostics.
+  Array-level processing workflow.
 
-Derived Fields: Dynamic Height and Shear
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+For **boundary profiles**, this step starts from the time-gridded individual instrument records produced in the previous steps, stacking them and sorting them vertically at east time step, and then re-doing the vertical regridding now across instrument data from multiple moorings. This helps minimize data gaps and ensures smooth transitions across deployments. Note that this may not have any method to flag or identify possibly statically unstable profiles.
+
+.. admonition:: RAPID Analogy
+  :class: hint
+
+  For RAPID, this is done by merging the mooring sites WB2, WB3, and WBH2 where data from 0-3800 dbar are used from WB2, then the next deeper instruments from WBH2 and then WB3 are added.  These sites, deployed across a sloping ocean boundary, improve coverage along the boundary (e.g., when WB2 ends at 3800 dbar, and WB3 at 4500 dbar).  The final output is a merged "West" profile, ready for use in transport calculations.
+
+
+**Further details**:
+
+- :doc:`methods/multisite_merging` describes how to merge multiple mooring sites into a single boundary profile.
+
+----
+
+Further Analysis
+----------------
+
+The notes below are a stub.
+
+Transbasin Transport
+^^^^^^^^^^^^^^^^^^^^
 
 **Description**: TEOS-10 conversion, dynamic height, and shear.
 
@@ -81,7 +148,9 @@ Derived Fields: Dynamic Height and Shear
 - Convert to Absolute Salinity and Conservative Temp.
 - Compute dynamic height and geostrophic shear.
 
-**Inputs**: T/S/P profiles, reference pressure
+**Inputs**: T/S/P profiles
+
+**Choices**: reference pressure
 
 **Outputs**: Dynamic height fields
 

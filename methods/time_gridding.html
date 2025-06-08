@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Filter &amp; Subsample Time Series &mdash; oceanarray v0.0.0 documentation</title>
+  <title>Gridding in time &mdash; oceanarray v0.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=20758594" />
@@ -21,7 +21,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Vertical Gridding" href="gridding.html" />
+    <link rel="next" title="Vertical Gridding" href="vertical_gridding.html" />
     <link rel="prev" title="4. Conversion to OS format" href="conversion.html" /> 
 </head>
 
@@ -59,7 +59,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Moorings</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Filter in Time</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Grid in Time</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#overview">1. Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#purpose">2. Purpose</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#input">3. Input</a></li>
@@ -70,8 +70,8 @@
 <li class="toctree-l2"><a class="reference internal" href="#legacy-context-rapid">Legacy Context (RAPID)</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="gridding.html">Grid Vertically</a></li>
-<li class="toctree-l1"><a class="reference internal" href="stitching.html">Stitch Deployments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vertical_gridding.html">Grid Vertically</a></li>
+<li class="toctree-l1"><a class="reference internal" href="concatenation.html">Concatenate Deployments</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Array</span></p>
 <ul>
@@ -97,9 +97,9 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Filter &amp; Subsample Time Series</li>
+      <li class="breadcrumb-item active">Gridding in time</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/methods/filtering.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/methods/time_gridding.rst.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -107,8 +107,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="filter-subsample-time-series">
-<h1>Filter &amp; Subsample Time Series<a class="headerlink" href="#filter-subsample-time-series" title="Link to this heading"></a></h1>
+  <section id="gridding-in-time">
+<h1>Gridding in time<a class="headerlink" href="#gridding-in-time" title="Link to this heading"></a></h1>
 <p>Individual records may be sampled at a much higher rate than needed for a specific purpose.  When concatenating multiple records together, it may be useful for some applications to filter out high-frequency variability, such as tidal signals, and subsample the time series to a lower frequency.  This describes <strong>filtering</strong> as used in the RAPID array to remove tides and subsample to half-daily (12-hourly) intervals, which makes the dataset more management after 20 years of records.</p>
 <p>This step is performed after standardisation and trimming, and prior to vertical interpolation and transport calculation.</p>
 <section id="overview">
@@ -187,7 +187,7 @@ Attributes:
 <li><p>Gap-filling for small gaps (&lt;10 days)</p></li>
 <li><p>Handling of missing sensors via reference levels or climatology</p></li>
 </ul>
-<p>See also: <a class="reference internal" href="gridding.html"><span class="doc">Vertical Gridding</span></a></p>
+<p>See also: <span class="xref std std-doc">gridding</span></p>
 <ul class="simple">
 <li><p><a class="reference external" href="../_static/code/hydro_grid.m">hydro_grid.m</a></p></li>
 </ul>
@@ -268,7 +268,7 @@ Attributes:
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="conversion.html" class="btn btn-neutral float-left" title="4. Conversion to OS format" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="gridding.html" class="btn btn-neutral float-right" title="Vertical Gridding" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="vertical_gridding.html" class="btn btn-neutral float-right" title="Vertical Gridding" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

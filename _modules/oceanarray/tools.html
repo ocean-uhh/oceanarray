@@ -56,9 +56,9 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Moorings</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../methods/filtering.html">Filter in Time</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../methods/gridding.html">Grid Vertically</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../methods/stitching.html">Stitch Deployments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../methods/time_gridding.html">Grid in Time</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../methods/vertical_gridding.html">Grid Vertically</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../methods/concatenation.html">Concatenate Deployments</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Array</span></p>
 <ul>
@@ -96,6 +96,8 @@
              
   <h1>Source code for oceanarray.tools</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
 
 <span class="c1"># Initialize logging</span>
 <span class="n">_log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
@@ -133,6 +135,199 @@
     <span class="s2">&quot;g/m^3&quot;</span><span class="p">:</span> <span class="s2">&quot;g m-3&quot;</span><span class="p">,</span>
     <span class="s2">&quot;m^3/s&quot;</span><span class="p">:</span> <span class="s2">&quot;Sv&quot;</span><span class="p">,</span>
 <span class="p">}</span>
+
+
+<div class="viewcode-block" id="normalize_dataset_by_middle_percent">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.tools.normalize_dataset_by_middle_percent">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">normalize_dataset_by_middle_percent</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">percent</span><span class="o">=</span><span class="mi">95</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Normalize all 1D data variables in an xarray Dataset that match the length of TIME,</span>
+<span class="sd">    using the mean and std over the central `percent` of each variable.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ds : xarray.Dataset</span>
+<span class="sd">        Input dataset with a &#39;TIME&#39; coordinate.</span>
+<span class="sd">    percent : float</span>
+<span class="sd">        Percentage of central values to define the middle (e.g., 95 for middle 95%).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    xarray.Dataset</span>
+<span class="sd">        New dataset with normalized data variables.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ds_norm</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="n">attrs</span><span class="o">=</span><span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">)</span>
+    <span class="n">time_shape</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;TIME&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">ds</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">time_shape</span><span class="p">:</span>
+            <span class="n">norm_values</span> <span class="o">=</span> <span class="n">normalize_by_middle_percent</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">percent</span><span class="p">)</span>
+            <span class="n">ds_norm</span><span class="p">[</span><span class="n">var</span><span class="p">]</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span>
+                <span class="n">norm_values</span><span class="p">,</span>
+                <span class="n">coords</span><span class="o">=</span><span class="n">ds</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span>
+                <span class="n">dims</span><span class="o">=</span><span class="n">ds</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span><span class="p">,</span>
+                <span class="n">attrs</span><span class="o">=</span><span class="n">ds</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="c1"># Retain TIME coordinate</span>
+    <span class="n">ds_norm</span> <span class="o">=</span> <span class="n">ds_norm</span><span class="o">.</span><span class="n">assign_coords</span><span class="p">({</span><span class="s2">&quot;TIME&quot;</span><span class="p">:</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;TIME&quot;</span><span class="p">]})</span>
+    <span class="k">return</span> <span class="n">ds_norm</span></div>
+
+
+
+<div class="viewcode-block" id="normalize_by_middle_percent">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.tools.normalize_by_middle_percent">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">normalize_by_middle_percent</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">percent</span><span class="o">=</span><span class="mi">95</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Normalize a data series by the mean and standard deviation</span>
+<span class="sd">    of its central `percent` range.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    values : array-like</span>
+<span class="sd">        Input data (1D array). NaNs are ignored.</span>
+<span class="sd">    percent : float</span>
+<span class="sd">        Central percentage to define the &#39;middle&#39; of the distribution (e.g., 95).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    array</span>
+<span class="sd">        Normalized array with the same shape as input.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">valid_values</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">valid_values</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">values</span>  <span class="c1"># return original if all NaNs</span>
+
+    <span class="n">lower</span><span class="p">,</span> <span class="n">upper</span> <span class="o">=</span> <span class="n">middle_percent</span><span class="p">(</span><span class="n">valid_values</span><span class="p">,</span> <span class="n">percent</span><span class="p">)</span>
+    <span class="n">middle_vals</span> <span class="o">=</span> <span class="n">valid_values</span><span class="p">[(</span><span class="n">valid_values</span> <span class="o">&gt;=</span> <span class="n">lower</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">valid_values</span> <span class="o">&lt;=</span> <span class="n">upper</span><span class="p">)]</span>
+
+    <span class="n">mean_mid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">middle_vals</span><span class="p">)</span>
+    <span class="n">std_mid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">middle_vals</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">std_mid</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Standard deviation of middle percent is zero — normalization not possible.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="n">normalized</span> <span class="o">=</span> <span class="p">(</span><span class="n">values</span> <span class="o">-</span> <span class="n">mean_mid</span><span class="p">)</span> <span class="o">/</span> <span class="n">std_mid</span>
+    <span class="k">return</span> <span class="n">normalized</span></div>
+
+
+
+<div class="viewcode-block" id="std_of_middle_percent">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.tools.std_of_middle_percent">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">std_of_middle_percent</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">percent</span><span class="o">=</span><span class="mi">95</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the standard deviation of values within the central `percent` of the data.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    values : array-like</span>
+<span class="sd">        Input data (1D array). NaNs will be ignored.</span>
+<span class="sd">    percent : float</span>
+<span class="sd">        Desired central percentage (e.g., 95 for middle 95%).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">        Standard deviation of values within the specified middle percentage.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">values</span><span class="p">)]</span>
+    <span class="n">lower</span><span class="p">,</span> <span class="n">upper</span> <span class="o">=</span> <span class="n">middle_percent</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">percent</span><span class="p">)</span>
+    <span class="n">filtered</span> <span class="o">=</span> <span class="n">values</span><span class="p">[(</span><span class="n">values</span> <span class="o">&gt;=</span> <span class="n">lower</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">values</span> <span class="o">&lt;=</span> <span class="n">upper</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">filtered</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="mean_of_middle_percent">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.tools.mean_of_middle_percent">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">mean_of_middle_percent</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">percent</span><span class="o">=</span><span class="mi">95</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the mean of values within the central `percent` of the data.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    values : array-like</span>
+<span class="sd">        Input data (1D array). NaNs will be ignored.</span>
+<span class="sd">    percent : float</span>
+<span class="sd">        Desired central percentage (e.g., 95 for middle 95%).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float</span>
+<span class="sd">        Mean of values within the specified middle percentage.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">values</span><span class="p">)]</span>
+    <span class="n">lower</span><span class="p">,</span> <span class="n">upper</span> <span class="o">=</span> <span class="n">middle_percent</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">percent</span><span class="p">)</span>
+    <span class="n">filtered</span> <span class="o">=</span> <span class="n">values</span><span class="p">[(</span><span class="n">values</span> <span class="o">&gt;=</span> <span class="n">lower</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">values</span> <span class="o">&lt;=</span> <span class="n">upper</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">filtered</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="middle_percent">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.tools.middle_percent">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">middle_percent</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">percent</span><span class="o">=</span><span class="mi">95</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the lower and upper bounds for the central `percent` of the data.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    values : array-like</span>
+<span class="sd">        Input data (1D array). NaNs will be ignored.</span>
+<span class="sd">    percent : float</span>
+<span class="sd">        Desired central percentage (e.g., 95 for middle 95%).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple</span>
+<span class="sd">        (lower_bound, upper_bound)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">values</span><span class="p">)]</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="n">percent</span> <span class="o">&lt;</span> <span class="mi">100</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;percent must be between 0 and 100 (exclusive)&quot;</span><span class="p">)</span>
+
+    <span class="n">tail</span> <span class="o">=</span> <span class="p">(</span><span class="mi">100</span> <span class="o">-</span> <span class="n">percent</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="n">lower</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanpercentile</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">tail</span><span class="p">)</span>
+    <span class="n">upper</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanpercentile</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="mi">100</span> <span class="o">-</span> <span class="n">tail</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">lower</span><span class="p">,</span> <span class="n">upper</span></div>
+
+
+
+<div class="viewcode-block" id="calc_ds_difference">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.tools.calc_ds_difference">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">calc_ds_difference</span><span class="p">(</span><span class="n">ds1</span><span class="p">,</span> <span class="n">ds2</span><span class="p">):</span>
+    <span class="c1"># Check that the time grids are the same</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">ds1</span><span class="p">[</span><span class="s2">&quot;TIME&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">ds2</span><span class="p">[</span><span class="s2">&quot;TIME&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;TIME grids do not match between datasets.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Variables to exclude from differencing</span>
+    <span class="n">exclude_vars</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;YY&quot;</span><span class="p">,</span> <span class="s2">&quot;MM&quot;</span><span class="p">,</span> <span class="s2">&quot;DD&quot;</span><span class="p">,</span> <span class="s2">&quot;HH&quot;</span><span class="p">}</span>
+
+    <span class="c1"># Prepare a dict for new data variables</span>
+    <span class="n">diff_data</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">ds1</span><span class="o">.</span><span class="n">data_vars</span><span class="p">:</span>
+        <span class="c1"># Only difference variables with dimension TIME and not in exclude list</span>
+        <span class="k">if</span> <span class="s2">&quot;TIME&quot;</span> <span class="ow">in</span> <span class="n">ds1</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span> <span class="ow">and</span> <span class="n">var</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">exclude_vars</span><span class="p">:</span>
+            <span class="n">diff_data</span><span class="p">[</span><span class="n">var</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds1</span><span class="p">[</span><span class="n">var</span><span class="p">]</span> <span class="o">-</span> <span class="n">ds2</span><span class="p">[</span><span class="n">var</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Copy over variables that are not differenced</span>
+            <span class="n">diff_data</span><span class="p">[</span><span class="n">var</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds1</span><span class="p">[</span><span class="n">var</span><span class="p">]</span>
+
+    <span class="c1"># Create a new dataset with the same coordinates and attributes</span>
+    <span class="n">ds_diff</span> <span class="o">=</span> <span class="n">ds1</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">diff_data</span><span class="p">:</span>
+        <span class="n">ds_diff</span><span class="p">[</span><span class="n">var</span><span class="p">]</span> <span class="o">=</span> <span class="n">diff_data</span><span class="p">[</span><span class="n">var</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">ds_diff</span></div>
+
 
 
 <div class="viewcode-block" id="reformat_units_var">

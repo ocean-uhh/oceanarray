@@ -1,5 +1,5 @@
-Filter & Subsample Time Series
-===============================
+Gridding in time
+================
 
 Individual records may be sampled at a much higher rate than needed for a specific purpose.  When concatenating multiple records together, it may be useful for some applications to filter out high-frequency variability, such as tidal signals, and subsample the time series to a lower frequency.  This describes **filtering** as used in the RAPID array to remove tides and subsample to half-daily (12-hourly) intervals, which makes the dataset more management after 20 years of records.
 
