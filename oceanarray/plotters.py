@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import xarray as xr
 import numpy as np
 from pathlib import Path
+import matplotlib.dates as mdates
 
 
 def plot_trim_windows(ds, dstart, dend, NN=np.timedelta64(12, "h")):
@@ -117,10 +118,8 @@ def plot_microcat(ds):
     instr_depth = ds["InstrDepth"].item() if "InstrDepth" in ds else "Unknown"
     axs[0].set_title(f"MicroCAT s/n: {serial_number}; Target Depth: {instr_depth}")
 
-    # Format x-axis as YYYY.mm
-    import matplotlib.dates as mdates
-
     axs[2].xaxis.set_major_formatter(mdates.DateFormatter("%Y.%b"))
+    plt.setp(axs[2].get_xticklabels(), rotation=30, ha="right")
 
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     return fig

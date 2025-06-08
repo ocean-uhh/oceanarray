@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 import xarray as xr
+from scipy.signal import butter, filtfilt
 
 # Initialize logging
 _log = logging.getLogger(__name__)
@@ -38,6 +39,40 @@ unit_str_format = {
     "g/m^3": "g m-3",
     "m^3/s": "Sv",
 }
+
+
+def auto_filt(y, sr, co, typ="low", fo=6):
+    """
+    Apply a Butterworth digital filter to a data array.
+
+    Parameters
+    ----------
+    y : array_like
+        Input data array (1D).
+    sr : float
+        Sampling rate (Hz or 1/time units of your data).
+    co : float or tuple of float
+        Cutoff frequency/frequencies. A scalar for 'low' or 'high', a 2-tuple for 'bandstop'.
+    typ : str, optional
+        Filter type: 'low', 'high', or 'bandstop'. Default is 'low'.
+    fo : int, optional
+        Filter order. Default is 6.
+
+    Returns
+    -------
+    yf : ndarray
+        Filtered data array.
+    """
+    # Normalize cutoff frequency to the Nyquist rate
+    nyquist = 0.5 * sr
+    if isinstance(co, (list, tuple, np.ndarray)):
+        wh = [c / nyquist for c in co]
+    else:
+        wh = co / nyquist
+
+    b, a = butter(fo, wh, btype=typ)
+    yf = filtfilt(b, a, y)
+    return yf
 
 
 def normalize_dataset_by_middle_percent(ds, percent=95):

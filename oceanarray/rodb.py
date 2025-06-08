@@ -219,58 +219,6 @@ REVERSE_ATTR_KEYS = {
 }
 
 
-def rodbsave_old(filepath, ds: xr.Dataset):
-    """
-    Save xarray.Dataset as RODB-style text file with header.
-
-    Parameters
-    ----------
-    filepath : str or Path
-        Output file path.
-    ds : xarray.Dataset
-        Dataset to write. Assumes time series variables are indexed by 'obs'.
-    fmt : str, optional
-        Format string for data output (passed to np.savetxt).
-    """
-    filepath = Path(filepath)
-    written_keys = set()
-
-    with open(filepath, "w") as f:
-        attrs = ds.attrs
-
-        for key, rodb_key in REVERSE_KEYS.items():
-            if key not in attrs:
-                continue
-            value = attrs[key]
-
-            if isinstance(rodb_key, list) and key in ["start_time", "end_time"]:
-                try:
-                    dt = datetime.fromisoformat(value)
-                except ValueError:
-                    dt = datetime.strptime(value, "%Y/%m/%dT%H:%M")
-                f.write(f"{rodb_key[0]:<22} = {dt.strftime('%Y/%m/%d')}\n")
-                f.write(f"{rodb_key[1]:<22} = {dt.strftime('%H:%M')}\n")
-            else:
-                f.write(f"{rodb_key:<22} = {value}\n")
-
-        # Promote scalar variables like InstrDepth, Latitude, Longitude (if not already in attrs)
-        scalar_keys = ["InstrDepth", "Latitude", "Longitude"]
-        for var in scalar_keys:
-            if var in ds and np.isscalar(ds[var].values) or ds[var].size == 1:
-                f.write(f"{var:<22} = {ds[var].values.item():.3f}\n")
-
-        # Select only time series variables with 'obs' dimension
-        timeseries_vars = [v for v in ds.data_vars if "obs" in ds[v].dims]
-        f.write(f"{'Columns':<22} = " + ":".join(timeseries_vars) + "\n")
-
-        # Dynamically generate format string if needed
-        fmt = " ".join(["%10.4f"] * len(timeseries_vars)) + "\n"
-
-        # Write time series data
-        data_array = np.column_stack([ds[var].values for var in timeseries_vars])
-        np.savetxt(f, data_array, fmt=fmt)
-
-
 def format_latlon(value, is_lat=True):
     deg = int(abs(value))
     minutes = (abs(value) - deg) * 60
