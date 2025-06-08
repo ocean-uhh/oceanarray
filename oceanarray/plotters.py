@@ -1,11 +1,11 @@
-
 from pandas import DataFrame
 import matplotlib.pyplot as plt
 import xarray as xr
 import numpy as np
 from pathlib import Path
 
-def plot_trim_windows(ds, dstart, dend, NN=np.timedelta64(12, 'h')):
+
+def plot_trim_windows(ds, dstart, dend, NN=np.timedelta64(12, "h")):
     """
     Plot start and end windows for variables T, C, P in the dataset,
     highlighting data before/after dstart/dend.
@@ -23,12 +23,12 @@ def plot_trim_windows(ds, dstart, dend, NN=np.timedelta64(12, 'h')):
     """
     style_path = Path(__file__).parent.parent / "oceanarray" / "oceanarray.mplstyle"
     plt.style.use(str(style_path))
-    fig, axes = plt.subplots(3, 2, figsize=(9, 8), sharex='col')
-    variables = ['T', 'C', 'P']
+    fig, axes = plt.subplots(3, 2, figsize=(9, 8), sharex="col")
+    variables = ["T", "C", "P"]
 
     for i, var in enumerate(variables):
         data = ds[var].values
-        time = ds['TIME'].values
+        time = ds["TIME"].values
 
         valid_idx = np.where(~np.isnan(data))[0]
         first_idx = valid_idx[0]
@@ -37,30 +37,61 @@ def plot_trim_windows(ds, dstart, dend, NN=np.timedelta64(12, 'h')):
         # Left column: start of record
         start_window_end = dstart + NN
         left_mask = (time >= time[first_idx]) & (time <= start_window_end)
-        axes[i, 0].plot(time[left_mask], data[left_mask], marker='o', linestyle='-', markerfacecolor='none', label=f'{var} start', markersize=5)
+        axes[i, 0].plot(
+            time[left_mask],
+            data[left_mask],
+            marker="o",
+            linestyle="-",
+            markerfacecolor="none",
+            label=f"{var} start",
+            markersize=5,
+        )
         after_dstart_mask = left_mask & (time >= dstart)
-        axes[i, 0].plot(time[after_dstart_mask], data[after_dstart_mask], marker='o', color='red', label=f'{var} after dstart', markersize=5)
-        axes[i, 0].axvline(dstart, color='k', linestyle='--', label='dstart')
+        axes[i, 0].plot(
+            time[after_dstart_mask],
+            data[after_dstart_mask],
+            marker="o",
+            color="red",
+            label=f"{var} after dstart",
+            markersize=5,
+        )
+        axes[i, 0].axvline(dstart, color="k", linestyle="--", label="dstart")
         axes[i, 0].set_ylabel(var)
         if i == 0:
-            axes[i, 0].set_title('Start of Record')
+            axes[i, 0].set_title("Start of Record")
         axes[i, 0].legend()
 
         # Right column: end of record
         end_window_start = dend - NN
         right_mask = (time >= end_window_start) & (time <= time[last_idx])
-        axes[i, 1].plot(time[right_mask], data[right_mask], marker='o', linestyle='-', markerfacecolor='none', label=f'{var} end', markersize=5)
+        axes[i, 1].plot(
+            time[right_mask],
+            data[right_mask],
+            marker="o",
+            linestyle="-",
+            markerfacecolor="none",
+            label=f"{var} end",
+            markersize=5,
+        )
         before_dend_mask = right_mask & (time <= dend)
-        axes[i, 1].plot(time[before_dend_mask], data[before_dend_mask], marker='o', color='red', label=f'{var} before dend', markersize=5)
-        axes[i, 1].axvline(dend, color='k', linestyle='--', label='dend')
+        axes[i, 1].plot(
+            time[before_dend_mask],
+            data[before_dend_mask],
+            marker="o",
+            color="red",
+            label=f"{var} before dend",
+            markersize=5,
+        )
+        axes[i, 1].axvline(dend, color="k", linestyle="--", label="dend")
         if i == 0:
-            axes[i, 1].set_title('End of Record')
+            axes[i, 1].set_title("End of Record")
         axes[i, 1].legend()
         for ax in axes[i, :]:
-            plt.setp(ax.get_xticklabels(), rotation=30, ha='right')
+            plt.setp(ax.get_xticklabels(), rotation=30, ha="right")
 
     plt.tight_layout()
     return fig, axes
+
 
 def plot_microcat(ds):
     style_path = Path(__file__).parent.parent / "oceanarray" / "oceanarray.mplstyle"

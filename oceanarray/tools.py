@@ -39,6 +39,7 @@ unit_str_format = {
     "m^3/s": "Sv",
 }
 
+
 def normalize_dataset_by_middle_percent(ds, percent=95):
     """
     Normalize all 1D data variables in an xarray Dataset that match the length of TIME,
@@ -62,11 +63,17 @@ def normalize_dataset_by_middle_percent(ds, percent=95):
     for var in ds.data_vars:
         if ds[var].shape == time_shape:
             norm_values = normalize_by_middle_percent(ds[var].values, percent)
-            ds_norm[var] = xr.DataArray(norm_values, coords=ds[var].coords, dims=ds[var].dims, attrs=ds[var].attrs)
+            ds_norm[var] = xr.DataArray(
+                norm_values,
+                coords=ds[var].coords,
+                dims=ds[var].dims,
+                attrs=ds[var].attrs,
+            )
 
     # Retain TIME coordinate
     ds_norm = ds_norm.assign_coords({"TIME": ds["TIME"]})
     return ds_norm
+
 
 def normalize_by_middle_percent(values, percent=95):
     """
@@ -99,10 +106,13 @@ def normalize_by_middle_percent(values, percent=95):
     std_mid = np.std(middle_vals)
 
     if std_mid == 0:
-        raise ValueError("Standard deviation of middle percent is zero — normalization not possible.")
+        raise ValueError(
+            "Standard deviation of middle percent is zero — normalization not possible."
+        )
 
     normalized = (values - mean_mid) / std_mid
     return normalized
+
 
 def std_of_middle_percent(values, percent=95):
     """
@@ -126,6 +136,7 @@ def std_of_middle_percent(values, percent=95):
     filtered = values[(values >= lower) & (values <= upper)]
     return np.std(filtered)
 
+
 def mean_of_middle_percent(values, percent=95):
     """
     Compute the mean of values within the central `percent` of the data.
@@ -147,6 +158,7 @@ def mean_of_middle_percent(values, percent=95):
     lower, upper = middle_percent(values, percent)
     filtered = values[(values >= lower) & (values <= upper)]
     return np.mean(filtered)
+
 
 def middle_percent(values, percent=95):
     """

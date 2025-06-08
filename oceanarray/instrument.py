@@ -3,14 +3,13 @@ from pathlib import Path
 from datetime import datetime
 
 import numpy as np
-import pandas as pd
 import xarray as xr
-import matplotlib.pyplot as plt
 
 from oceanarray.logger import log_info, log_warning, log_debug
 from oceanarray import rodb, tools
 
 DUMMY_VALUE = -9.99e-29  # adjust if needed
+
 
 def trim_suggestion(ds, percent=95, threshold=6, vars_to_check=["T", "C", "P"]):
     """
