@@ -60,3 +60,79 @@ def test_plot_microcat_handles_time_format():
     formatter = fig.axes[2].xaxis.get_major_formatter()
     assert isinstance(formatter, mdates.DateFormatter)
     assert formatter.fmt == "%Y.%b"
+
+def test_plot_trim_windows_creates_figaxes():
+    import numpy as np
+    import xarray as xr
+    from oceanarray import plotters
+    from datetime import datetime, timedelta
+
+    time = np.array([np.datetime64(datetime(2023, 1, 1) + timedelta(hours=i)) for i in range(48)])
+    data = np.random.random(48)
+    ds = xr.Dataset(
+        {
+            "T": ("TIME", data),
+            "C": ("TIME", data * 1.1),
+            "P": ("TIME", data * 10),
+        },
+        coords={"TIME": time},
+    )
+
+    dstart = time[5]
+    dend = time[40]
+    fig, axes = plotters.plot_trim_windows(ds, dstart, dend)
+    assert fig is not None
+    assert axes.shape == (3, 2)
+
+def test_plot_microcat_generates_expected_plot():
+    import numpy as np
+    import xarray as xr
+    from oceanarray import plotters
+
+    time = np.arange("2023-01", "2023-02", dtype="datetime64[D]")
+    ds = xr.Dataset(
+        {
+            "T": ("TIME", np.random.rand(len(time))),
+            "C": ("TIME", np.random.rand(len(time))),
+            "P": ("TIME", np.random.rand(len(time))),
+            "InstrDepth": ([], 150.0),  # correct scalar definition
+        },
+        coords={"TIME": time},
+        attrs={"serial_number": "12345"},
+    )
+    ds["InstrDepth"].data = 150
+
+    fig = plotters.plot_microcat(ds)
+    assert fig is not None
+
+def test_show_variables_on_xarray_dataset():
+    import numpy as np
+    import xarray as xr
+    from oceanarray import plotters
+
+    time = np.arange("2023-01", "2023-01-10", dtype="datetime64[D]")
+    ds = xr.Dataset(
+        {
+            "temperature": ("TIME", np.random.rand(len(time))),
+        },
+        coords={"TIME": time},
+    )
+    ds["temperature"].attrs["units"] = "degC"
+    ds["temperature"].attrs["comment"] = "Surface temperature"
+    ds["temperature"].attrs["standard_name"] = "sea_water_temperature"
+
+    styled = plotters.show_variables(ds)
+    html = styled.to_html()
+    assert "<table" in html  # crude but effective confirmation
+
+def test_show_attributes_from_dataset():
+    import xarray as xr
+    from oceanarray import plotters
+
+    ds = xr.Dataset()
+    ds.attrs["title"] = "Test Dataset"
+    ds.attrs["institution"] = "Ocean Lab"
+
+    df = plotters.show_attributes(ds)
+    assert "Attribute" in df.columns
+    assert "Value" in df.columns

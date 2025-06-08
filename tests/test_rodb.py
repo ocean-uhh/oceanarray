@@ -1,8 +1,32 @@
 import tempfile
 from pathlib import Path
-from oceanarray.rodb import rodbload, rodbsave  # Replace with actual function names
+from oceanarray.rodb import rodbload, rodbsave, parse_rodb_keys_file, format_latlon  # Replace with actual function names
 import numpy as np
 import xarray as xr
+import pandas as pd
+
+def test_parse_rodb_keys_file(tmp_path):
+    test_file = tmp_path / "rodb_keys.txt"
+    test_file.write_text(
+        "'YY I4 1 1'; ... % Year\n"
+        "'MM I4 1 2'; ... % Month\n"
+        "'BADLINE'; ... % Should be skipped\n"
+        "'T F8.3 1 3'; ... % Temperature\n"
+    )
+    result = parse_rodb_keys_file(test_file)
+    assert isinstance(result, dict)
+    assert "RODB_KEYS" in result
+    assert len(result["RODB_KEYS"]) == 3
+    assert result["RODB_KEYS"][0]["key"] == "YY"
+
+
+def test_rodbload_missing_time(tmp_path, caplog):
+    use_file = tmp_path / "test.use"
+    use_file.write_text("MOORING = WB1\nCOLUMNS = T:C\n\n10.0 35.0\n11.0 35.1\n")
+    with caplog.at_level("WARNING"):
+        ds = rodbload(use_file)
+        assert "TIME" not in ds.coords
+        assert "Could not create TIME coordinate" in caplog.text
 
 
 def test_rodbload_raw_file():
@@ -16,6 +40,42 @@ def test_rodbload_raw_file():
     assert ds.C.shape[0] == ds.sizes["TIME"]
     assert "TIME" in ds
 
+def test_rodbload_missing_time(tmp_path, caplog):
+    use_file = tmp_path / "test.use"
+    use_file.write_text("MOORING = WB1\nCOLUMNS = T:C\n\n10.0 35.0\n11.0 35.1\n")
+    with caplog.at_level("WARNING"):
+        ds = rodbload(use_file)
+        assert "TIME" not in ds.coords
+        assert "Could not create TIME coordinate" in caplog.text
+
+def test_rodbload_lat_lon_parsing(tmp_path):
+    use_file = tmp_path / "test.use"
+    use_file.write_text(
+        "LATITUDE = 12 30 S\nLONGITUDE = 45 15 W\n"
+        "COLUMNS = YY:MM:DD:HH:T\n\n"
+        "2020 01 01 00 10.0\n"
+    )
+    ds = rodbload(use_file)
+    assert np.isclose(ds["Latitude"].item(), -12.5)
+    assert np.isclose(ds["Longitude"].item(), -45.25)
+
+def test_rodbload_time_dim_swap(tmp_path):
+    use_file = tmp_path / "test.use"
+    use_file.write_text(
+        "COLUMNS = YY:MM:DD:HH:T\n\n"
+        "2020 01 01 00 10.0\n2020 01 01 01 11.0\n"
+    )
+    ds = rodbload(use_file)
+    assert "TIME" in ds.dims
+    assert ds.sizes["TIME"] == 2
+
+
+
+def test_format_latlon():
+    assert format_latlon(45.5, is_lat=True) == "45 30.000 N"
+    assert format_latlon(-45.5, is_lat=True) == "45 30.000 S"
+    assert format_latlon(123.75, is_lat=False) == "123 45.000 E"
+    assert format_latlon(-123.75, is_lat=False) == "123 45.000 W"
 
 def test_rodb_read_write_roundtrip():
 

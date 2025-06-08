@@ -4,8 +4,63 @@ import xarray as xr
 from datetime import datetime
 from pathlib import Path
 
-from oceanarray.instrument import apply_microcat_calibration_from_txt, stage2_trim
+from oceanarray.instrument import apply_microcat_calibration_from_txt, stage2_trim, trim_suggestion
+from oceanarray.instrument import apply_microcat_calibration_from_txt
 from oceanarray.rodb import rodbload
+
+def test_trim_suggestion_basic():
+    time = pd.date_range("2020-01-01", periods=10, freq="h")
+    ds = xr.Dataset({
+        "T": ("TIME", [0]*3 + [10]*4 + [0]*3),
+        "C": ("TIME", [0]*3 + [12]*4 + [0]*3),
+        "P": ("TIME", [0]*3 + [8]*4 + [0]*3),
+    }, coords={"TIME": time})
+
+    start, end = trim_suggestion(ds, percent=80, threshold=5)
+
+    # Expect the middle values to fall within threshold
+    assert isinstance(start, np.datetime64)
+    assert isinstance(end, np.datetime64)
+    assert start == np.datetime64("2020-01-01T00:00:00")
+    assert end == np.datetime64("2020-01-01T09:00:00")
+
+
+def test_stage2_trim_single_sample():
+    time = pd.to_datetime(["2022-01-01T00:00"])
+    ds = xr.Dataset({"T": ("TIME", [10.0])}, coords={"TIME": time})
+
+    trimmed = stage2_trim(ds)
+    assert trimmed.sizes["TIME"] == 1
+    assert np.allclose(trimmed["T"].values, [10.0])
+
+
+def test_apply_microcat_with_flags(tmp_path):
+    txt = tmp_path / "mock.microcat.txt"
+    txt.write_text("""Conductivity: 1.0 2.0
+Temperature: -0.5 0.5
+Pressure: 0.0 1.0
+Average conductivity applied? y
+Average temperature applied? y
+Average pressure applied? n
+""")
+
+    # Create dummy .use file
+    time = pd.date_range("2022-01-01", periods=3, freq="h")
+    ds = xr.Dataset({"T": ("TIME", [10.0, 11.0, 12.0]),
+                     "C": ("TIME", [35.0, 35.1, 35.2]),
+                     "P": ("TIME", [1000.0, 1001.0, 1002.0])},
+                    coords={"TIME": time})
+    use_path = tmp_path / "mock.use"
+    ds.to_netcdf(use_path)  # write as .nc, simulate reading in `rodbload`
+
+    # Patch rodbload to return this dataset
+    from oceanarray import instrument
+    instrument.rodb.rodbload = lambda _: ds
+
+    ds_cal = apply_microcat_calibration_from_txt(txt, use_path)
+    assert "T" in ds_cal and np.allclose(ds_cal["T"].values, [10.0 + 0.0, 11.0 + 0.0, 12.0 + 0.0], atol=1e-6)
+    assert "C" in ds_cal and np.allclose(ds_cal["C"].values, [36.5, 36.6, 36.7], atol=1e-6)
+    assert "P" in ds_cal and np.allclose(ds_cal["P"].values, [1000.0, 1001.0, 1002.0], atol=1e-6)  # unchanged
 
 
 def test_apply_microcat_calibration_from_txt(tmp_path):
