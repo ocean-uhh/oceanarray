@@ -6,10 +6,54 @@ import xarray as xr
 from oceanarray.logger import log_info
 from oceanarray.read_rapid import read_rapid
 
+
 DUMMY_VALUES = [1e32, -9.0, -9.9]
 
 
-def rodbload(filepath: Path, variables: list[str]) -> xr.Dataset:
+
+# in readers.py
+from oceanarray import rodb
+from typing import Union, List
+
+def load_dataset(source: Union[str, Path, List[Union[str, Path]]]) -> Union[xr.Dataset, List[xr.Dataset]]:
+    """
+    Load one or more observational data files and return as xarray Datasets.
+    Dispatches based on file extension or known formats.
+
+    Parameters
+    ----------
+    source : str, Path, or list of str/Path
+        Single file or list of files to load.
+
+    Returns
+    -------
+    xarray.Dataset or list of xarray.Dataset
+        Loaded dataset(s). A single dataset is returned if one file is given;
+        a list of datasets is returned for multiple files.
+
+    Raises
+    ------
+    ValueError
+        If file type is unrecognized.
+    """
+    if isinstance(source, (str, Path)):
+        source = [Path(source)]
+    else:
+        source = [Path(f) for f in source]
+
+    datasets = []
+    for f in source:
+        if f.suffix.lower() == ".nc":
+            ds = xr.open_dataset(f)
+        elif rodb.is_rodb_file(f):
+            ds = rodb.rodbload(f)
+        else:
+            raise ValueError(f"Unknown file type: {f}")
+        datasets.append(ds)
+
+    return datasets if len(datasets) > 1 else datasets[0]
+
+def rodbload_old(filepath: Path, variables: list[str]) -> xr.Dataset:
     """
     Load a RODB-style file into an xarray.Dataset.
 

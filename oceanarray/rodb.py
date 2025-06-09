@@ -35,7 +35,10 @@ REVERSE_KEYS = {
     "columns": "Columns",
 }
 
-
+# in rodb.py
+def is_rodb_file(filepath: Path) -> bool:
+    """Check whether a file is RODB-style based on filename and/or content."""
+    return filepath.suffix.lower() in {".raw", ".use", ".microcat"}
 def parse_rodb_keys_file(filepath):
     """
     Parse a rodb_keys.txt file with MATLAB-style lines into structured dicts.

@@ -7,10 +7,49 @@ from oceanarray.mooring import (
 )  # Adjust import as needed
 
 from oceanarray.mooring import interp_to_12hour_grid
+from oceanarray import mooring
 
 import pytest
 from oceanarray.mooring import stack_instruments, find_common_attributes, find_time_vars
 
+def create_mock_os_dataset(depth, serial_number, source_file):
+    time = pd.date_range("2020-01-01", periods=5, freq="D")
+    data = np.random.rand(5)
+    ds = xr.Dataset(
+        {
+            "TEMP": ("TIME", data),
+        },
+        coords={
+            "TIME": time,
+            "DEPTH": depth,
+            "LATITUDE": 52.0,
+            "LONGITUDE": -35.0,
+        },
+        attrs={
+            "serial_number": serial_number,
+            "source_file": source_file,
+            "title": f"Time series from wb2_9_201115, instrument {serial_number}",
+            "id": f"OS_wb2_9_201115_{serial_number}_P",
+            "geospatial_vertical_min": depth,
+            "geospatial_vertical_max": depth,
+            "platform_code": "wb2",
+            "deployment_code": "9_201115",
+        },
+    )
+    return ds
+
+def test_combine_mooring():
+    ds1 = create_mock_os_dataset(100.0, "1234", "file1.nc")
+    ds2 = create_mock_os_dataset(200.0, "5678", "file2.nc")
+    combined = mooring.combine_mooring_OS([ds1, ds2])
+
+    assert "TEMP" in combined
+    assert "serial_number" not in combined.attrs
+    assert combined.attrs["title"] == "Time series from wb2_9_201115"
+    assert combined.attrs["id"] == "OS_wb2_9_201115_P"
+    assert combined.attrs["geospatial_vertical_min"] == 100.0
+    assert combined.attrs["geospatial_vertical_max"] == 200.0
+    assert combined.attrs["source_file"] == "file1.nc, file2.nc"
 
 @pytest.fixture
 def sample_datasets():
