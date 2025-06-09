@@ -48,7 +48,8 @@ jobs:
       shell: bash -l {0}
       run: |
         set -e
-        jupyter nbconvert --to notebook --execute notebooks/demo.ipynb --output=demo-output.ipynb --ExecutePreprocessor.allow_errors=False
+        jupyter nbconvert --to notebook --execute notebooks/demo_instrument.ipynb --output=demo_instrument-output.ipynb --ExecutePreprocessor.allow_errors=True
+        jupyter nbconvert --to notebook --execute notebooks/demo_mooring.ipynb --output=demo_mooring-output.ipynb --ExecutePreprocessor.allow_errors=True
         mv notebooks/*output.ipynb docs/source/
         pushd docs
         make clean html
