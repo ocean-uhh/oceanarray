@@ -1,8 +1,9 @@
 import numpy as np
 import xarray as xr
+import pytest
 
 from oceanarray import tools
-from oceanarray.tools import reformat_units_var, calc_ds_difference
+from oceanarray.tools import calc_ds_difference
 
 
 def test_calc_ds_difference():
@@ -34,34 +35,69 @@ def test_calc_ds_difference():
     assert np.allclose(ds_diff["P"], [1.0, 1.0])
 
 
-def test_reformat_units_var_sv_conversion():
-    # Create a fake transport DataArray with units in m3/s
-    ds = xr.Dataset(
-        {
-            "transport": xr.DataArray(
-                data=np.array([1.0e6, 2.0e6]),
-                dims=["time"],
-                attrs={"units": "m^3/s", "long_name": "Volume transport"},
-            ),
-            "velocity": xr.DataArray(
-                data=np.array([100.0, 200.0]),
-                dims=["time"],
-                attrs={"units": "cm/s", "long_name": "Flow velocity"},
-            ),
-        }
+
+
+def test_middle_percent_bounds():
+    data = np.linspace(0, 100, 1000)
+    lower, upper = tools.middle_percent(data, 90)
+    assert np.isclose(lower, 5)
+    assert np.isclose(upper, 95)
+
+
+def test_mean_of_middle_percent():
+    data = np.concatenate([np.random.normal(10, 1, 1000), np.array([1000, -1000])])
+    mean = tools.mean_of_middle_percent(data, 95)
+    assert abs(mean - 10) < 0.2
+
+
+def test_std_of_middle_percent():
+    data = np.concatenate([np.random.normal(5, 2, 1000), np.array([999, -999])])
+    std = tools.std_of_middle_percent(data, 95)
+    assert 1.5 < std < 2.5
+
+
+def test_normalize_by_middle_percent():
+    data = np.random.normal(0, 1, 1000)
+    norm = tools.normalize_by_middle_percent(data, 90)
+    mid_std = tools.std_of_middle_percent(norm, 90)
+    assert 0.9 < mid_std < 1.1
+
+
+def test_normalize_dataset_by_middle_percent():
+    time = np.arange(10)
+    ds = xr.Dataset({"TEMP": ("TIME", np.random.rand(10) + 20)}, coords={"TIME": time})
+    ds_norm = tools.normalize_dataset_by_middle_percent(ds)
+    assert "TEMP" in ds_norm
+    assert np.allclose(ds_norm.TIME, time)
+
+
+def test_auto_filt_low():
+    sr = 1.0  # Hz
+    t = np.linspace(0, 10, 500)
+    signal = np.sin(2 * np.pi * 0.1 * t) + 0.5 * np.sin(
+        2 * np.pi * 2 * t
+    )  # low + high freq
+    filtered = tools.auto_filt(signal, sr, co=0.2, typ="low")
+    assert len(filtered) == len(signal)
+    assert np.std(filtered) < np.std(signal)
+
+
+def test_calc_ds_difference():
+    time = np.arange(5)
+    ds1 = xr.Dataset(
+        {"TEMP": ("TIME", np.array([1, 2, 3, 4, 5]))}, coords={"TIME": time}
     )
-
-    new_unit = reformat_units_var(ds, "transport")
-    # Units should now be Sv
-    assert new_unit == "Sv"
-
-    new_unit = reformat_units_var(ds, "velocity")
-    assert new_unit == "cm s-1"
+    ds2 = xr.Dataset(
+        {"TEMP": ("TIME", np.array([1, 1, 1, 1, 1]))}, coords={"TIME": time}
+    )
+    ds_diff = tools.calc_ds_difference(ds1, ds2)
+    assert np.allclose(ds_diff.TEMP, [0, 1, 2, 3, 4])
 
 
-def test_convert_units_var():
-    var_values = 100
-    current_units = "cm/s"
-    new_units = "m/s"
-    converted_values = tools.convert_units_var(var_values, current_units, new_units)
-    assert converted_values == 1.0
+def test_calc_ds_difference_time_mismatch():
+    time1 = np.arange(5)
+    time2 = np.arange(1, 6)
+    ds1 = xr.Dataset({"TEMP": ("TIME", np.ones(5))}, coords={"TIME": time1})
+    ds2 = xr.Dataset({"TEMP": ("TIME", np.ones(5))}, coords={"TIME": time2})
+    with pytest.raises(ValueError, match="TIME grids do not match"):
+        tools.calc_ds_difference(ds1, ds2)

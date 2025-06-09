@@ -67,4 +67,3 @@ QC_indicator: # 'unknown', 'excellent', 'probably good' validation phase, 'moxed
 #contributor_role_vocabulary: # https://vocab.nerc.ac.uk/collection/C87/current/ - project roles
 # dataset roles: https://vocab.nerc.ac.uk/collection/C89/current/,
 # Contributor roles: http://vocab.nerc.ac.uk/search_nvs/W08
-

@@ -110,7 +110,6 @@ def rodbload(filepath, variables: list[str] = None) -> xr.Dataset:
 
     default_dim = "N_MEASUREMENTS"
 
-
     # Determine variables
     var_string = header.get("COLUMNS", "YY:MM:DD:HH:T:C:P")
     file_variables = var_string.split(":")

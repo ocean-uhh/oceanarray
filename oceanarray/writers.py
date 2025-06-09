@@ -1,6 +1,7 @@
 from pathlib import Path
 import xarray as xr
 
+
 def save_OS_instrument(ds: xr.Dataset, data_dir: Path):
     """
     Save OceanSITES dataset to netCDF using the 'id' global attribute as filename.
@@ -18,7 +19,9 @@ def save_OS_instrument(ds: xr.Dataset, data_dir: Path):
         Full path to the saved NetCDF file.
     """
     if "id" not in ds.attrs:
-        raise ValueError("Global attribute 'id' not found. Cannot determine output filename.")
+        raise ValueError(
+            "Global attribute 'id' not found. Cannot determine output filename."
+        )
 
     filename = f"{ds.attrs['id']}.nc"
     filepath = data_dir / filename

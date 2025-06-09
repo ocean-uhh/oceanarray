@@ -9,13 +9,12 @@ from oceanarray.mooring import (
 from oceanarray.mooring import interp_to_12hour_grid
 
 import pytest
-import numpy as np
-import xarray as xr
 from oceanarray.mooring import stack_instruments, find_common_attributes, find_time_vars
+
 
 @pytest.fixture
 def sample_datasets():
-    time = np.arange('2020-01', '2020-02', dtype='datetime64[D]')
+    time = np.arange("2020-01", "2020-02", dtype="datetime64[D]")
     n_time = len(time)
 
     def make_ds(depth, serial, extra_var=False):
@@ -34,12 +33,8 @@ def sample_datasets():
                 "serial_number": serial,
                 "mooring": "M123",
                 "water_depth": 4000,
-            }
-        ).assign_coords({
-            "InstrDepth": depth,
-            "Latitude": 26.5,
-            "Longitude": -76.7
-        })
+            },
+        ).assign_coords({"InstrDepth": depth, "Latitude": 26.5, "Longitude": -76.7})
 
     ds1 = make_ds(1000, "SN001")
     ds2 = make_ds(1500, "SN002")
@@ -47,15 +42,18 @@ def sample_datasets():
 
     return [ds1, ds2, ds3]
 
+
 def test_find_time_vars(sample_datasets):
     vars_found = find_time_vars(sample_datasets)
     assert set(vars_found) == {"T", "C", "P", "O2"}
+
 
 def test_find_common_attributes(sample_datasets):
     common = find_common_attributes(sample_datasets)
     assert common["mooring"] == "M123"
     assert common["water_depth"] == 4000
     assert "serial_number" not in common
+
 
 def test_stack_instruments_shape_and_coords(sample_datasets):
     stacked = stack_instruments(sample_datasets)
@@ -72,6 +70,7 @@ def test_stack_instruments_shape_and_coords(sample_datasets):
     assert np.isnan(stacked["O2"][0, :]).all()  # First two levels should be NaN for O2
     assert np.isnan(stacked["O2"][1, :]).all()
     assert not np.isnan(stacked["O2"][2, :]).any()
+
 
 def test_stack_instruments_attrs(sample_datasets):
     stacked = stack_instruments(sample_datasets)

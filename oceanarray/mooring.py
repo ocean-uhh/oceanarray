@@ -4,12 +4,14 @@ import numpy as np
 import pandas as pd
 from scipy.interpolate import interp1d
 
-def find_time_vars(ds_list, time_key='TIME'):
+
+def find_time_vars(ds_list, time_key="TIME"):
     """Return all variable names that have (time_key,) dimensions in any dataset."""
     time_vars = set()
     for ds in ds_list:
         time_vars.update([var for var in ds.data_vars if ds[var].dims == (time_key,)])
     return sorted(time_vars)
+
 
 def find_common_attributes(ds_list):
     """Return attributes that are common across all datasets with the same value."""
@@ -21,7 +23,8 @@ def find_common_attributes(ds_list):
             common[key] = values[0]
     return common
 
-def stack_instruments(ds_list, time_key='TIME'):
+
+def stack_instruments(ds_list, time_key="TIME"):
     ds_list = sorted(ds_list, key=lambda ds: ds.InstrDepth.values)
     time = ds_list[0][time_key]
     n_levels = len(ds_list)
@@ -42,7 +45,7 @@ def stack_instruments(ds_list, time_key='TIME'):
         for i, ds in enumerate(ds_list):
             if var in ds:
                 stacked[i, :] = ds[var].values
-        data_vars[var] = (('N_LEVELS', time_key), stacked)
+        data_vars[var] = (("N_LEVELS", time_key), stacked)
 
     # Create a list of instrument depths
     instr_depths = np.array([ds.InstrDepth.values for ds in ds_list])
@@ -56,25 +59,26 @@ def stack_instruments(ds_list, time_key='TIME'):
         raise ValueError("Longitude values differ between datasets.")
 
     # Collect serial numbers and common attributes
-    serial_numbers = [ds.attrs.get('serial_number', 'unknown') for ds in ds_list]
+    serial_numbers = [ds.attrs.get("serial_number", "unknown") for ds in ds_list]
     common_attrs = find_common_attributes(ds_list)
 
     ds_out = xr.Dataset(
         data_vars=data_vars,
         coords={
             time_key: time,
-            'N_LEVELS': np.arange(n_levels),
-            'InstrDepth': ('N_LEVELS', instr_depths),
+            "N_LEVELS": np.arange(n_levels),
+            "InstrDepth": ("N_LEVELS", instr_depths),
         },
         attrs={
             **common_attrs,
-            'Latitude': float(lats[0]),
-            'Longitude': float(lons[0]),
-            'serial_numbers': serial_numbers,
-        }
+            "Latitude": float(lats[0]),
+            "Longitude": float(lons[0]),
+            "serial_numbers": serial_numbers,
+        },
     )
 
     return ds_out
+
 
 def filter_all_time_vars(ds):
     """
