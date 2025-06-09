@@ -5,6 +5,81 @@ import pandas as pd
 from scipy.interpolate import interp1d
 
 
+def find_time_vars(ds_list, time_key="TIME"):
+    """Return all variable names that have (time_key,) dimensions in any dataset."""
+    time_vars = set()
+    for ds in ds_list:
+        time_vars.update([var for var in ds.data_vars if ds[var].dims == (time_key,)])
+    return sorted(time_vars)
+
+
+def find_common_attributes(ds_list):
+    """Return attributes that are common across all datasets with the same value."""
+    common = {}
+    shared_keys = set.intersection(*(set(ds.attrs) for ds in ds_list))
+    for key in shared_keys:
+        values = [ds.attrs[key] for ds in ds_list]
+        if all(val == values[0] for val in values):
+            common[key] = values[0]
+    return common
+
+
+def stack_instruments(ds_list, time_key="TIME"):
+    ds_list = sorted(ds_list, key=lambda ds: ds.InstrDepth.values)
+    time = ds_list[0][time_key]
+    n_levels = len(ds_list)
+    n_time = len(time)
+
+    # Ensure all datasets have the same TIME dimension & arrays are exactly equal
+    for ds in ds_list:
+        if not np.array_equal(ds[time_key], time):
+            raise ValueError("Not all datasets share the same TIME dimension.")
+
+    # Find all time variables across datasets
+    time_vars = find_time_vars(ds_list, time_key=time_key)
+
+    # Stack the time variables across datasets
+    data_vars = {}
+    for var in time_vars:
+        stacked = np.full((n_levels, n_time), np.nan)
+        for i, ds in enumerate(ds_list):
+            if var in ds:
+                stacked[i, :] = ds[var].values
+        data_vars[var] = (("N_LEVELS", time_key), stacked)
+
+    # Create a list of instrument depths
+    instr_depths = np.array([ds.InstrDepth.values for ds in ds_list])
+
+    # Verify that all datasets have the same latitude and longitude
+    lats = np.array([ds.Latitude.values for ds in ds_list])
+    lons = np.array([ds.Longitude.values for ds in ds_list])
+    if not np.allclose(lats, lats[0]):
+        raise ValueError("Latitude values differ between datasets.")
+    if not np.allclose(lons, lons[0]):
+        raise ValueError("Longitude values differ between datasets.")
+
+    # Collect serial numbers and common attributes
+    serial_numbers = [ds.attrs.get("serial_number", "unknown") for ds in ds_list]
+    common_attrs = find_common_attributes(ds_list)
+
+    ds_out = xr.Dataset(
+        data_vars=data_vars,
+        coords={
+            time_key: time,
+            "N_LEVELS": np.arange(n_levels),
+            "InstrDepth": ("N_LEVELS", instr_depths),
+        },
+        attrs={
+            **common_attrs,
+            "Latitude": float(lats[0]),
+            "Longitude": float(lons[0]),
+            "serial_numbers": serial_numbers,
+        },
+    )
+
+    return ds_out
+
+
 def filter_all_time_vars(ds):
     """
     Return a copy of ds with all data variables of length TIME lowpass filtered.

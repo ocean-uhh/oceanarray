@@ -1,0 +1,69 @@
+site_code: RAPID # This is the site code for the mooring, indicating the second mooring at the western boundary
+#platform_code: wb2 # This is the platform code for the mooring
+#deployment_code: 9_2015 # This is the deployment code for the mooring, indicating the 9th deployment in 2015
+data_mode: P # D for delayed-mode, P for provisional after instruments are recovered or serviced
+#title: Provisional WBX mooring data from RAPID
+theme: Transport Moored Arrays
+#summary: "Oceanographic mooring from the 2015 deployment of the WB2 mooring at the western boundary of the Atlantic.  Measured properties: temperature and salinity at depth levels"
+naming_authority: uk.ac.noc
+#id: OS_wb2_9_2015_D.nc # OS_[PlatformCode]_[DeploymentCode]_[DataMode]_[PARTX].nc
+source: subsurface mooring
+source_vocabulary: https://vocab.nerc.ac.uk/collection/L06/current/
+principal_investigator: "Ben Moat, Eleanor Frajka-Williams, David Smeed, Stuart Cunningham"
+principal_investigator_email: "bim@noc.ac.uk, eleanor.frajka@uni-hamburg.de, das@noc.ac.uk, stuart.cunningham@sams.ac.uk"
+principal_investigator_id: "https://orcid.org/0000-0001-8676-7779, https://orcid.org/0000-0001-8773-7838,
+https://orcid.org/0000-0003-1740-1778, https://orcid.org/0000-0001-9439-5442"
+creator_name: "National Oceanography Centre"
+creator_type: institution # Use person for individual contributors, institution for organisations
+creator_url: "https://www.noc.ac.uk"
+creator_institution: "National Oceanography Centre"
+creator_id: https://edmo.seadatanet.org/report/17
+array: RAPID
+comment: Data file in OS format produced using http://github.com/eleanorfrajka/oceanarray
+sea_area: North Atlantic Ocean
+sea_area_vocabulary: https://vocab.nerc.ac.uk/collection/C19/current/
+#geospatial_lat_min:
+#geospatial_lat_max:
+#geospatial_lon_min:
+#geospatial_lon_max:
+#geospatial_vertical_min: 0
+#geospatial_vertical_max: 5000
+#geospatial_vertical_positive: down
+#geospatial_vertical_units: m
+#time_coverage_start: 2015-01-01T00:00:00Z
+#time_coverage_end: 2015-12-31T23:59:59Z
+#time_coverage_duration: P1Y # Use ISO 8601 duration format
+#time_coverage_resolution: PT12H # Use ISO 8601 duration format, (PnYnMnDTnHnMnS)
+cdm_data_type: Station # The Unidata CDM (common data model) data type used by THREDDS. e.g. point, profile, section, station, station_profile, trajectory, grid, radial, swath, image; use Station for OceanSITES mooring data
+featureType: timeSeries # or timeSeriesProfile
+#platform_deployment_date: # date and time in ISO format of the deployment
+#platform_deployment_ship_name: # name of the ship that deployed the mooring RRS Discovery, R/V Melville, FS Maria S. Merian, R/V Knorr, R/V Kilo Moana, R/V Roger Revelle, R/V Thomas G. Thompson, R/V Atlantis, R/V Endeavor, R/V Oceanus, R/V Langseth, R/V Falkor, R/V Sarmiento de Gamboa
+#platform_deployment_cruise_name: # name of the cruise that deployed the mooring
+#platform_recovery_date: # date and time in ISO format of the recovery
+#platform_recovery_ship_name: # name of the ship that recovered the mooring
+#platform_recovery_cruise_name: # name of the cruise that recovered the mooring
+data_type: OceanSITES time-series data
+format_version: 1.4
+Conventions: CF-1.6, OceanSITES-1.4, ACDD-1.2
+publisher_name: Eleanor Frajka-Williams
+publisher_email: eleanor.frajka@uni-hamburg.de
+publisher_id: https://orcid.org/0000-0001-8773-7838
+publisher_institution: University of Hamburg - Institute of Oceanography
+publisher_institution_vocabulary: https://edmo.seadatanet.org/report/1156
+references: http://rapid.ac.uk, https://repository.oceanbestpractices.org/handle/11329/874.2
+update_interval: void
+license: CC-BY-4.0
+citation: "These data were collected and made freely available by the OceanSITES program and the national programs that contribute to it."
+acknowledgement: ""
+date_created: # Date of creating of this file in ISO format
+#date_modified: # Date of last modification of this file in ISO format
+history: # Audit trail for modifications to the original data, it should contain a separate line for each modification with each line beginning with a timestamp and including user name, modification name, and modification arguments.
+processing_level: # see reference table 3
+QC_indicator: # 'unknown', 'excellent', 'probably good' validation phase, 'moxed' some problems see variable attributes
+#contributor_name: #
+#contributor_email:
+#contributor_id:
+#contributor_role:
+#contributor_role_vocabulary: # https://vocab.nerc.ac.uk/collection/C87/current/ - project roles
+# dataset roles: https://vocab.nerc.ac.uk/collection/C89/current/,
+# Contributor roles: http://vocab.nerc.ac.uk/search_nvs/W08
