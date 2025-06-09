@@ -1,10 +1,10 @@
-
-
 from oceanarray import logger
 
 log = logger.log
 
 from datetime import datetime
+from typing import List, Optional, Callable
+from functools import wraps
 
 
 def iso8601_duration_from_seconds(seconds):
@@ -55,3 +55,39 @@ def is_iso8601_utc(timestr):
             return True
         except ValueError:
             return False
+
+
+def apply_defaults(default_source: str, default_files: List[str]) -> Callable:
+    """Decorator to apply default values for 'source' and 'file_list' parameters if they are None.
+
+    Parameters
+    ----------
+    default_source : str
+        Default source URL or path.
+    default_files : list of str
+        Default list of filenames.
+
+    Returns
+    -------
+    Callable
+        A wrapped function with defaults applied.
+
+    """
+
+    def decorator(func: Callable) -> Callable:
+        @wraps(func)
+        def wrapper(
+            source: Optional[str] = None,
+            file_list: Optional[List[str]] = None,
+            *args,
+            **kwargs,
+        ) -> Callable:
+            if source is None:
+                source = default_source
+            if file_list is None:
+                file_list = default_files
+            return func(source=source, file_list=file_list, *args, **kwargs)
+
+        return wrapper
+
+    return decorator

@@ -30,8 +30,8 @@ from scipy.integrate import cumulative_trapezoid
 from scipy.interpolate import interp1d
 import xarray as xr
 
-from verticalnn import utilities
-from verticalnn.logger import log_info
+from oceanarray import utilities
+from oceanarray.logger import log_info
 
 
 def spacing(p_start: float, p_end: float, step: float) -> np.ndarray:

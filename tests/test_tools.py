@@ -35,8 +35,6 @@ def test_calc_ds_difference():
     assert np.allclose(ds_diff["P"], [1.0, 1.0])
 
 
-
-
 def test_middle_percent_bounds():
     data = np.linspace(0, 100, 1000)
     lower, upper = tools.middle_percent(data, 90)
