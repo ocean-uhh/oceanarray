@@ -1,0 +1,85 @@
+TEMP:
+  long_name: 'Temperature of the water body by CTD'
+  observation_type: measured
+  standard_name: sea_water_temperature
+  units: degree_Celsius
+  valid_min: -5
+  valid_max: 42
+  units_metadata: on-scale
+  uri: https://vocab.nerc.ac.uk/collection/P07/current/CFSN0335/
+  sea_data_net_parameter: https://vocab.nerc.ac.uk/collection/P02/current/TEMP/
+  cmip6_equivalent: thetao
+  note: >
+    Commonly used for directly measured CTD temperatures.
+    Be mindful of historical temperature scales (e.g., IPTS-68, ITS-90).
+
+
+
+PRES:
+  long_name: 'Sea water pressure relative to the sea surface'
+  observation_type: measured
+  standard_name: sea_water_pressure
+  units: dbar
+  valid_min: 0
+  valid_max: 11000
+  uri: https://vocab.nerc.ac.uk/collection/P07/current/CFSN0330/
+  note: >
+    Often derived from depth or pressure sensor readings.
+    Needed for TEOS-10 calculations and vertical gridding.
+
+CNDC:
+  long_name: 'Electrical conductivity of the water column'
+  observation_type: measured
+  standard_name: sea_water_conductivity
+  units: mS cm-1
+  valid_min: 0
+  valid_max: 80
+  uri: http://vocab.nerc.ac.uk/collection/P02/current/CNDC/
+  sea_data_net_parameter: SDN:P02::CNDC
+  note: >
+    Quantifies electrical current flow or resistance in water.
+    Used in salinity and TEOS-10 derivations.
+
+LATITUDE:
+  standard_name: latitude
+  units: degrees_north
+  axis: Y
+  long_name: latitude of measurement
+  reference: WGS84
+  coordinate_reference_frame: urn:ogc:def:crs:EPSG::4326
+  valid_min: -90.0
+  valid_max: 90.0
+  QC_indicator: <X>
+  Processing_level: <Y>
+  uncertainty: <Z>  # or use accuracy if preferred
+  comment: Surveyed anchor position
+
+LONGITUDE:
+  standard_name: longitude
+  units: degrees_east
+  axis: X
+  long_name: Longitude of measurement
+  reference: WGS84
+  coordinate_reference_frame: urn:ogc:def:crs:EPSG::4326
+  valid_min: -180.0
+  valid_max: 180.0
+  QC_indicator: <X>
+  processing_level: <Y>
+  uncertainty: <Z>  # or use accuracy if preferred
+  comment: Optional comment...
+
+DEPTH:
+  standard_name: depth
+  units: meters
+  positive: <Q>  # typically "down"
+  axis: Z
+  reference: <R>  # e.g., "sea_level", "moorings"
+  coordinate_reference_frame: urn:ogc:def:crs:EPSG::<S>  # e.g., 4326
+  long_name: Depth of measurement
+  _FillValue: -99999.0
+  valid_min: 0.0
+  valid_max: 12000.0
+  QC_indicator: <X>
+  processing_level: <Y>
+  uncertainty: <Z>  # or use accuracy if preferred
+  comment: Depth calculated from mooring diagram

@@ -21,6 +21,7 @@ import xarray as xr
 import yaml
 
 from oceanarray.logger import log_warning
+from oceanarray.convertOS import parse_rodb_metadata
 
 REVERSE_KEYS = {
     "mooring": "Mooring",
@@ -105,19 +106,10 @@ def rodbload(filepath, variables: list[str] = None) -> xr.Dataset:
     with open(filepath, "r") as f:
         lines = f.readlines()
 
+    header, data_start_index = parse_rodb_metadata(filepath)
+
     default_dim = "N_MEASUREMENTS"
 
-    header = {}
-    data_start_index = 0
-    for i, line in enumerate(lines):
-        if not line.strip():
-            continue
-        if "=" in line:
-            key, val = map(str.strip, line.split("=", 1))
-            header[key.upper()] = val
-        else:
-            data_start_index = i
-            break
 
     # Determine variables
     var_string = header.get("COLUMNS", "YY:MM:DD:HH:T:C:P")

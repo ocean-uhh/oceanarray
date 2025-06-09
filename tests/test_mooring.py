@@ -8,6 +8,79 @@ from oceanarray.mooring import (
 
 from oceanarray.mooring import interp_to_12hour_grid
 
+import pytest
+import numpy as np
+import xarray as xr
+from oceanarray.mooring import stack_instruments, find_common_attributes, find_time_vars
+
+@pytest.fixture
+def sample_datasets():
+    time = np.arange('2020-01', '2020-02', dtype='datetime64[D]')
+    n_time = len(time)
+
+    def make_ds(depth, serial, extra_var=False):
+        data = {
+            "T": ("TIME", 5 + depth + 0.01 * np.arange(n_time)),
+            "C": ("TIME", 35 + 0.01 * np.arange(n_time)),
+            "P": ("TIME", 1000 + depth + np.zeros(n_time)),
+        }
+        if extra_var:
+            data["O2"] = ("TIME", 200 + 0.1 * np.arange(n_time))
+
+        return xr.Dataset(
+            data_vars=data,
+            coords={"TIME": time},
+            attrs={
+                "serial_number": serial,
+                "mooring": "M123",
+                "water_depth": 4000,
+            }
+        ).assign_coords({
+            "InstrDepth": depth,
+            "Latitude": 26.5,
+            "Longitude": -76.7
+        })
+
+    ds1 = make_ds(1000, "SN001")
+    ds2 = make_ds(1500, "SN002")
+    ds3 = make_ds(2000, "SN003", extra_var=True)
+
+    return [ds1, ds2, ds3]
+
+def test_find_time_vars(sample_datasets):
+    vars_found = find_time_vars(sample_datasets)
+    assert set(vars_found) == {"T", "C", "P", "O2"}
+
+def test_find_common_attributes(sample_datasets):
+    common = find_common_attributes(sample_datasets)
+    assert common["mooring"] == "M123"
+    assert common["water_depth"] == 4000
+    assert "serial_number" not in common
+
+def test_stack_instruments_shape_and_coords(sample_datasets):
+    stacked = stack_instruments(sample_datasets)
+    assert set(stacked.dims) == {"N_LEVELS", "TIME"}
+    assert "InstrDepth" in stacked.coords
+    assert "T" in stacked.data_vars
+    assert "C" in stacked.data_vars
+    assert "P" in stacked.data_vars
+    assert "O2" in stacked.data_vars  # only in one dataset, but should be included
+
+    assert stacked["T"].shape[0] == 3  # N_LEVELS
+    assert stacked["T"].shape[1] == len(sample_datasets[0].TIME)
+
+    assert np.isnan(stacked["O2"][0, :]).all()  # First two levels should be NaN for O2
+    assert np.isnan(stacked["O2"][1, :]).all()
+    assert not np.isnan(stacked["O2"][2, :]).any()
+
+def test_stack_instruments_attrs(sample_datasets):
+    stacked = stack_instruments(sample_datasets)
+    assert "serial_numbers" in stacked.attrs
+    assert stacked.attrs["serial_numbers"] == ["SN001", "SN002", "SN003"]
+    assert stacked.attrs["Latitude"] == 26.5
+    assert stacked.attrs["Longitude"] == -76.7
+    assert stacked.attrs["mooring"] == "M123"
+
 
 def test_interp_to_12hour_grid():
     # Create a synthetic dataset

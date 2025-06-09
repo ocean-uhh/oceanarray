@@ -1,0 +1,49 @@
+instrument_1:
+  sensor_model: SBE37
+  sensor_manufacturer: Sea-Bird
+  sensor_serial_number: 3904
+  sensor_SeaVoX_L22_code: SDN:L22::TOOL123
+  sensor_reference: https://seabird.com/sbe37
+  sensor_data_start_date: "2011-04-28T20:00:00Z"
+  sensor_data_end_date: "2012-02-27T19:00:00Z"
+  sensor_data_file_DOI: "https://doi.org/10.1594/PANGAEA.896648"
+
+variables:
+  TEMP: instrument_1
+  CNDC: instrument_1
+  PRES: instrument_1
+
+TOOL0018:
+  sensor_model: SBE 37 MicroCat SMP-CT
+  sensor_manufacturer: Sea-Bird
+  sensor_SeaVoX_L22_code: SDN:L22::TOOL0018
+  sensor_reference: https://www.seabird.com/sbe37
+  comment: Serial interface + pump, optional pressure, internally powered
+
+TOOL0019:
+  sensor_model: SBE 37 MicroCat IMP-CT
+  sensor_manufacturer: Sea-Bird
+  sensor_SeaVoX_L22_code: SDN:L22::TOOL0019
+  sensor_reference: https://www.seabird.com/sbe37
+  comment: Inductive Modem + pump, optional pressure, internally powered
+
+TOOL0017:
+  sensor_model: SBE 37 MicroCat SM-CT
+  sensor_manufacturer: Sea-Bird
+  sensor_SeaVoX_L22_code: SDN:L22::TOOL0017
+  sensor_reference: https://www.seabird.com/sbe37
+  comment: Serial interface, optional pressure, internally powered
+
+TOOL0022:
+  sensor_model: SBE 37 MicroCat IM-CT
+  sensor_manufacturer: Sea-Bird
+  sensor_SeaVoX_L22_code: SDN:L22::TOOL0022
+  sensor_reference: https://www.seabird.com/sbe37
+  comment: Inductive Modem, optional pressure, internally powered
+
+TOOL0634:
+  sensor_model: SBE 37 MicroCat SMP-CT-IDO
+  sensor_manufacturer: Sea-Bird
+  sensor_SeaVoX_L22_code: SDN:L22::TOOL0634
+  sensor_reference: https://www.seabird.com/sbe37
+  comment: SMP-CT with membrane-type Integrated Dissolved Oxygen sensor
