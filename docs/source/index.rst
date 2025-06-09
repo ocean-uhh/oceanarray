@@ -48,8 +48,8 @@ Contents
    :maxdepth: 1
    :caption: Examples
 
-   examples/rapid
-
+   demo_instrument-output.ipynb
+   demo_mooring-output.ipynb
 
 .. toctree::
    :maxdepth: 2
