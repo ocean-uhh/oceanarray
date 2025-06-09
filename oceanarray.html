@@ -75,7 +75,10 @@
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.readers.rodbload"><code class="docutils literal notranslate"><span class="pre">rodbload()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#writers">writers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#writers">writers</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.writers.save_OS_instrument"><code class="docutils literal notranslate"><span class="pre">save_OS_instrument()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="#plotters">plotters</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.plotters.plot_microcat"><code class="docutils literal notranslate"><span class="pre">plot_microcat()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.plotters.plot_trim_windows"><code class="docutils literal notranslate"><span class="pre">plot_trim_windows()</span></code></a></li>
@@ -89,7 +92,20 @@
 <li class="toctree-l3"><a class="reference internal" href="#standardisation">standardisation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#trimming">trimming</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#calibration">calibration</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#convertos">convertOS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#convertos">convertOS</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.convertOS.add_fixed_coordinates"><code class="docutils literal notranslate"><span class="pre">add_fixed_coordinates()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.convertOS.add_global_attributes"><code class="docutils literal notranslate"><span class="pre">add_global_attributes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.convertOS.add_instrument_metadata"><code class="docutils literal notranslate"><span class="pre">add_instrument_metadata()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.convertOS.add_project_attributes"><code class="docutils literal notranslate"><span class="pre">add_project_attributes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.convertOS.add_variable_attributes"><code class="docutils literal notranslate"><span class="pre">add_variable_attributes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.convertOS.convert_rodb_to_oceansites"><code class="docutils literal notranslate"><span class="pre">convert_rodb_to_oceansites()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.convertOS.format_time_variable"><code class="docutils literal notranslate"><span class="pre">format_time_variable()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.convertOS.infer_data_mode"><code class="docutils literal notranslate"><span class="pre">infer_data_mode()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.convertOS.load_yaml"><code class="docutils literal notranslate"><span class="pre">load_yaml()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.convertOS.parse_rodb_metadata"><code class="docutils literal notranslate"><span class="pre">parse_rodb_metadata()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.convertOS.sort_global_attributes"><code class="docutils literal notranslate"><span class="pre">sort_global_attributes()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#mooring-processing">Mooring Processing</a><ul>
@@ -106,21 +122,17 @@
 <li class="toctree-l3"><a class="reference internal" href="#tools">tools</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.auto_filt"><code class="docutils literal notranslate"><span class="pre">auto_filt()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.calc_ds_difference"><code class="docutils literal notranslate"><span class="pre">calc_ds_difference()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.convert_units_var"><code class="docutils literal notranslate"><span class="pre">convert_units_var()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.mean_of_middle_percent"><code class="docutils literal notranslate"><span class="pre">mean_of_middle_percent()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.middle_percent"><code class="docutils literal notranslate"><span class="pre">middle_percent()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.normalize_by_middle_percent"><code class="docutils literal notranslate"><span class="pre">normalize_by_middle_percent()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.normalize_dataset_by_middle_percent"><code class="docutils literal notranslate"><span class="pre">normalize_dataset_by_middle_percent()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.reformat_units_var"><code class="docutils literal notranslate"><span class="pre">reformat_units_var()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.std_of_middle_percent"><code class="docutils literal notranslate"><span class="pre">std_of_middle_percent()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#utilities">utilities</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.utilities.apply_defaults"><code class="docutils literal notranslate"><span class="pre">apply_defaults()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#oceanarray.utilities.download_file"><code class="docutils literal notranslate"><span class="pre">download_file()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#oceanarray.utilities.get_default_data_dir"><code class="docutils literal notranslate"><span class="pre">get_default_data_dir()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#oceanarray.utilities.resolve_file_path"><code class="docutils literal notranslate"><span class="pre">resolve_file_path()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#oceanarray.utilities.safe_update_attrs"><code class="docutils literal notranslate"><span class="pre">safe_update_attrs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.utilities.is_iso8601_utc"><code class="docutils literal notranslate"><span class="pre">is_iso8601_utc()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.utilities.iso8601_duration_from_seconds"><code class="docutils literal notranslate"><span class="pre">iso8601_duration_from_seconds()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -187,9 +199,29 @@
 <section id="writers">
 <h3>writers<a class="headerlink" href="#writers" title="Link to this heading"></a></h3>
 <p>Write datasets to disk in standardized NetCDF format.</p>
+<dl class="py function" id="module-oceanarray.writers">
+<dt class="sig sig-object py" id="oceanarray.writers.save_OS_instrument">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.writers.</span></span><span class="sig-name descname"><span class="pre">save_OS_instrument</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/writers.html#save_OS_instrument"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.writers.save_OS_instrument" title="Link to this definition"></a></dt>
+<dd><p>Save OceanSITES dataset to netCDF using the ‘id’ global attribute as filename.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ds</strong> (<em>xarray.Dataset</em>) – Dataset with OceanSITES-compliant global attributes including ‘id’.</p></li>
+<li><p><strong>data_dir</strong> (<em>pathlib.Path</em>) – Directory to save the netCDF file.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Full path to the saved NetCDF file.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Path</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 <section id="plotters">
-<span id="module-oceanarray.writers"></span><h3>plotters<a class="headerlink" href="#plotters" title="Link to this heading"></a></h3>
+<h3>plotters<a class="headerlink" href="#plotters" title="Link to this heading"></a></h3>
 <p>Tools for plotting mooring time series, profile sections, and transport products.</p>
 <dl class="py function" id="module-oceanarray.plotters">
 <dt class="sig sig-object py" id="oceanarray.plotters.plot_microcat">
@@ -268,10 +300,124 @@ pandas.io.formats.style.Styler: A styled DataFrame containing the following colu
 <section id="convertos">
 <span id="module-oceanarray.calibration"></span><h3>convertOS<a class="headerlink" href="#convertos" title="Link to this heading"></a></h3>
 <p>Convert to OceanSites format.</p>
+<dl class="py function" id="module-oceanarray.convertOS">
+<dt class="sig sig-object py" id="oceanarray.convertOS.add_fixed_coordinates">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.convertOS.</span></span><span class="sig-name descname"><span class="pre">add_fixed_coordinates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/convertOS.html#add_fixed_coordinates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.convertOS.add_fixed_coordinates" title="Link to this definition"></a></dt>
+<dd><p>Add fixed spatial coordinates LATITUDE, LONGITUDE, and DEPTH from metadata.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.convertOS.add_global_attributes">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.convertOS.</span></span><span class="sig-name descname"><span class="pre">add_global_attributes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/convertOS.html#add_global_attributes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.convertOS.add_global_attributes" title="Link to this definition"></a></dt>
+<dd><p>Add OceanSITES-compliant global attributes to the dataset.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.convertOS.add_instrument_metadata">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.convertOS.</span></span><span class="sig-name descname"><span class="pre">add_instrument_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sensor_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/convertOS.html#add_instrument_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.convertOS.add_instrument_metadata" title="Link to this definition"></a></dt>
+<dd><p>Add centralized instrument metadata and link variables via the ‘instrument’ attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ds</strong> (<em>xarray.Dataset</em>) – The dataset to modify.</p></li>
+<li><p><strong>sensor_dict</strong> (<em>dict</em>) – Dictionary with ‘instrument_&lt;N&gt;’ keys and/or TOOL### templates, plus ‘variables’.</p></li>
+<li><p><strong>metadata</strong> (<em>dict</em>) – Header metadata to extract instrument-specific fields like serial and dates.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.convertOS.add_project_attributes">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.convertOS.</span></span><span class="sig-name descname"><span class="pre">add_project_attributes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project_attrs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/convertOS.html#add_project_attributes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.convertOS.add_project_attributes" title="Link to this definition"></a></dt>
+<dd><p>Merge project-level attributes into dataset, with derived and dynamic values.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.convertOS.add_variable_attributes">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.convertOS.</span></span><span class="sig-name descname"><span class="pre">add_variable_attributes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_attrs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/convertOS.html#add_variable_attributes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.convertOS.add_variable_attributes" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.convertOS.convert_rodb_to_oceansites">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.convertOS.</span></span><span class="sig-name descname"><span class="pre">convert_rodb_to_oceansites</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata_txt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_map_yaml</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_yaml</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sensor_yaml</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project_yaml</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dataset</span></span></span><a class="reference internal" href="_modules/oceanarray/convertOS.html#convert_rodb_to_oceansites"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.convertOS.convert_rodb_to_oceansites" title="Link to this definition"></a></dt>
+<dd><p>Convert a dataset loaded from RODB format into OceanSITES-compliant format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ds</strong> (<em>xarray.Dataset</em>) – Original dataset with RODB-style variables and TIME coordinate.</p></li>
+<li><p><strong>metadata_txt</strong> (<em>str</em><em> or </em><em>Path</em>) – Path to RODB metadata text file (header block with key=value lines).</p></li>
+<li><p><strong>var_map_yaml</strong> (<em>str</em><em> or </em><em>Path</em>) – YAML file mapping original variable names to OceanSITES names.</p></li>
+<li><p><strong>vocab_yaml</strong> (<em>str</em><em> or </em><em>Path</em>) – YAML file providing OceanSITES variable attributes.</p></li>
+<li><p><strong>sensor_yaml</strong> (<em>str</em><em> or </em><em>Path</em><em>, </em><em>optional</em>) – YAML file with instrument metadata and variable-instrument mapping.</p></li>
+<li><p><strong>project_yaml</strong> (<em>str</em><em> or </em><em>Path</em><em>, </em><em>optional</em>) – YAML file with project-level global attributes.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>OceanSITES-compliant dataset.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>xarray.Dataset</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.convertOS.format_time_variable">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.convertOS.</span></span><span class="sig-name descname"><span class="pre">format_time_variable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/convertOS.html#format_time_variable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.convertOS.format_time_variable" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.convertOS.infer_data_mode">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.convertOS.</span></span><span class="sig-name descname"><span class="pre">infer_data_mode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">history</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/convertOS.html#infer_data_mode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.convertOS.infer_data_mode" title="Link to this definition"></a></dt>
+<dd><p>Infer data_mode (D=delayed, R=real-time, P=provisional) from filename or processing history.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_filename</strong> (<em>str</em><em> or </em><em>Path</em><em>, </em><em>optional</em>) – Original filename (e.g., ‘example.raw’, ‘data.microcat’).</p></li>
+<li><p><strong>history</strong> (<em>str</em><em>, </em><em>optional</em>) – Global attribute describing the file’s processing history.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>One of “D”, “R”, or “P”. Defaults to “D” (delayed mode) if no clear match found.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.convertOS.load_yaml">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.convertOS.</span></span><span class="sig-name descname"><span class="pre">load_yaml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/convertOS.html#load_yaml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.convertOS.load_yaml" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.convertOS.parse_rodb_metadata">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.convertOS.</span></span><span class="sig-name descname"><span class="pre">parse_rodb_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">txt_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/convertOS.html#parse_rodb_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.convertOS.parse_rodb_metadata" title="Link to this definition"></a></dt>
+<dd><p>Parse RODB metadata from a .raw or .use file header.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>txt_path</strong> (<em>str</em><em> or </em><em>Path</em>) – Path to the RODB file.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(header_dict, data_start_index)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.convertOS.sort_global_attributes">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.convertOS.</span></span><span class="sig-name descname"><span class="pre">sort_global_attributes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attr_order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/convertOS.html#sort_global_attributes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.convertOS.sort_global_attributes" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
 </section>
 </section>
 <section id="mooring-processing">
-<span id="module-oceanarray.convertOS"></span><h2>Mooring Processing<a class="headerlink" href="#mooring-processing" title="Link to this heading"></a></h2>
+<h2>Mooring Processing<a class="headerlink" href="#mooring-processing" title="Link to this heading"></a></h2>
 <section id="filtering">
 <h3>filtering<a class="headerlink" href="#filtering" title="Link to this heading"></a></h3>
 <p>Apply Butterworth filters to remove tides and smooth high-frequency noise.</p>
@@ -324,37 +470,6 @@ pandas.io.formats.style.Styler: A styled DataFrame containing the following colu
 <dt class="sig sig-object py" id="oceanarray.tools.calc_ds_difference">
 <span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">calc_ds_difference</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ds2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#calc_ds_difference"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.calc_ds_difference" title="Link to this definition"></a></dt>
 <dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="oceanarray.tools.convert_units_var">
-<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">convert_units_var</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">var_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_unit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_unit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unit_conversion</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'Celsius':</span> <span class="pre">{'factor':</span> <span class="pre">1,</span> <span class="pre">'units_name':</span> <span class="pre">'degrees_Celsius'},</span> <span class="pre">'Pa':</span> <span class="pre">{'factor':</span> <span class="pre">0.0001,</span> <span class="pre">'units_name':</span> <span class="pre">'dbar'},</span> <span class="pre">'S</span> <span class="pre">m-1':</span> <span class="pre">{'factor':</span> <span class="pre">0.1,</span> <span class="pre">'units_name':</span> <span class="pre">'mS</span> <span class="pre">cm-1'},</span> <span class="pre">'S/m':</span> <span class="pre">{'factor':</span> <span class="pre">0.1,</span> <span class="pre">'units_name':</span> <span class="pre">'mS/cm'},</span> <span class="pre">'cm':</span> <span class="pre">{'factor':</span> <span class="pre">0.01,</span> <span class="pre">'units_name':</span> <span class="pre">'m'},</span> <span class="pre">'cm</span> <span class="pre">s-1':</span> <span class="pre">{'factor':</span> <span class="pre">0.01,</span> <span class="pre">'units_name':</span> <span class="pre">'m</span> <span class="pre">s-1'},</span> <span class="pre">'cm/s':</span> <span class="pre">{'factor':</span> <span class="pre">0.01,</span> <span class="pre">'units_name':</span> <span class="pre">'m/s'},</span> <span class="pre">'dbar':</span> <span class="pre">{'factor':</span> <span class="pre">10000,</span> <span class="pre">'units_name':</span> <span class="pre">'Pa'},</span> <span class="pre">'degrees_Celsius':</span> <span class="pre">{'factor':</span> <span class="pre">1,</span> <span class="pre">'units_name':</span> <span class="pre">'Celsius'},</span> <span class="pre">'g</span> <span class="pre">m-3':</span> <span class="pre">{'factor':</span> <span class="pre">0.001,</span> <span class="pre">'units_name':</span> <span class="pre">'kg</span> <span class="pre">m-3'},</span> <span class="pre">'kg</span> <span class="pre">m-3':</span> <span class="pre">{'factor':</span> <span class="pre">1000,</span> <span class="pre">'units_name':</span> <span class="pre">'g</span> <span class="pre">m-3'},</span> <span class="pre">'km':</span> <span class="pre">{'factor':</span> <span class="pre">1000,</span> <span class="pre">'units_name':</span> <span class="pre">'m'},</span> <span class="pre">'m':</span> <span class="pre">{'factor':</span> <span class="pre">100,</span> <span class="pre">'units_name':</span> <span class="pre">'cm'},</span> <span class="pre">'m</span> <span class="pre">s-1':</span> <span class="pre">{'factor':</span> <span class="pre">100,</span> <span class="pre">'units_name':</span> <span class="pre">'cm</span> <span class="pre">s-1'},</span> <span class="pre">'m/s':</span> <span class="pre">{'factor':</span> <span class="pre">100,</span> <span class="pre">'units_name':</span> <span class="pre">'cm/s'},</span> <span class="pre">'mS</span> <span class="pre">cm-1':</span> <span class="pre">{'factor':</span> <span class="pre">10,</span> <span class="pre">'units_name':</span> <span class="pre">'S</span> <span class="pre">m-1'},</span> <span class="pre">'mS/cm':</span> <span class="pre">{'factor':</span> <span class="pre">10,</span> <span class="pre">'units_name':</span> <span class="pre">'S/m'}}</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#convert_units_var"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.convert_units_var" title="Link to this definition"></a></dt>
-<dd><p>Convert the units of variables in an xarray Dataset to preferred units.  This is useful, for instance, to convert cm/s to m/s.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>(</strong><strong>xarray.Dataset</strong><strong>)</strong> (<em>ds</em>)</p></li>
-<li><p><strong>(</strong><strong>list</strong><strong>)</strong> (<em>preferred_units</em>)</p></li>
-<li><p><strong>(</strong><strong>dict</strong><strong>)</strong> (<em>unit_conversion</em>)</p></li>
-<li><p><strong>string</strong> (<em>Each key is a unit</em>) – <ul>
-<li><p>‘factor’: The factor to multiply the variable by to convert it.</p></li>
-<li><p>’units_name’: The new unit name after conversion.</p></li>
-</ul>
-</p></li>
-<li><p><strong>with</strong> (<em>and each value is a dictionary</em>) – <ul>
-<li><p>‘factor’: The factor to multiply the variable by to convert it.</p></li>
-<li><p>’units_name’: The new unit name after conversion.</p></li>
-</ul>
-</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>xarray.Dataset</strong></p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>The dataset with converted units.</p>
-</dd>
-</dl>
-</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="oceanarray.tools.mean_of_middle_percent">
@@ -439,26 +554,6 @@ using the mean and std over the central <cite>percent</cite> of each variable.</
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="oceanarray.tools.reformat_units_var">
-<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">reformat_units_var</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unit_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'S/m':</span> <span class="pre">'S</span> <span class="pre">m-1',</span> <span class="pre">'cm/s':</span> <span class="pre">'cm</span> <span class="pre">s-1',</span> <span class="pre">'degrees_Celsius':</span> <span class="pre">'Celsius',</span> <span class="pre">'g/m^3':</span> <span class="pre">'g</span> <span class="pre">m-3',</span> <span class="pre">'m/s':</span> <span class="pre">'m</span> <span class="pre">s-1',</span> <span class="pre">'m^3/s':</span> <span class="pre">'Sv',</span> <span class="pre">'meters':</span> <span class="pre">'m'}</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#reformat_units_var"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.reformat_units_var" title="Link to this definition"></a></dt>
-<dd><p>Renames units in the dataset based on the provided dictionary for OG1.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>(</strong><strong>xarray.Dataset</strong><strong>)</strong> (<em>ds</em>)</p></li>
-<li><p><strong>(</strong><strong>dict</strong><strong>)</strong> (<em>unit_format</em>)</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>xarray.Dataset</strong></p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>The dataset with renamed units.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="oceanarray.tools.std_of_middle_percent">
 <span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">std_of_middle_percent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">percent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">95</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#std_of_middle_percent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.std_of_middle_percent" title="Link to this definition"></a></dt>
 <dd><p>Compute the standard deviation of values within the central <cite>percent</cite> of the data.</p>
@@ -503,76 +598,35 @@ using the mean and std over the central <cite>percent</cite> of each variable.</
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="oceanarray.utilities.download_file">
-<span class="sig-prename descclassname"><span class="pre">oceanarray.utilities.</span></span><span class="sig-name descname"><span class="pre">download_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dest_folder</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redownload</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/oceanarray/utilities.html#download_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.utilities.download_file" title="Link to this definition"></a></dt>
-<dd><p>Download a file from HTTP(S) or FTP to the specified destination folder.</p>
+<dt class="sig sig-object py" id="oceanarray.utilities.is_iso8601_utc">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.utilities.</span></span><span class="sig-name descname"><span class="pre">is_iso8601_utc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/utilities.html#is_iso8601_utc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.utilities.is_iso8601_utc" title="Link to this definition"></a></dt>
+<dd><p>Validate whether a string is in ISO8601 UTC format: YYYY-MM-DDTHH:MM:SSZ</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>url</strong> (<em>str</em>) – The URL of the file to download.</p></li>
-<li><p><strong>dest_folder</strong> (<em>str</em>) – Local folder to save the downloaded file.</p></li>
-<li><p><strong>redownload</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, force re-download of the file even if it exists.</p></li>
-</ul>
+<dd class="field-odd"><p><strong>timestr</strong> (<em>str</em>) – Input time string.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The full path to the downloaded file.</p>
+<dd class="field-even"><p>True if valid ISO8601 UTC format, False otherwise.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.utilities.iso8601_duration_from_seconds">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.utilities.</span></span><span class="sig-name descname"><span class="pre">iso8601_duration_from_seconds</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seconds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/utilities.html#iso8601_duration_from_seconds"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.utilities.iso8601_duration_from_seconds" title="Link to this definition"></a></dt>
+<dd><p>Convert a duration in seconds to an ISO 8601 duration string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>seconds</strong> (<em>float</em>) – Duration in seconds.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>ISO 8601 duration string, e.g., ‘PT1H’, ‘PT30M’, ‘PT15S’.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>str</p>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>ValueError</strong> – If the URL scheme is unsupported.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="oceanarray.utilities.get_default_data_dir">
-<span class="sig-prename descclassname"><span class="pre">oceanarray.utilities.</span></span><span class="sig-name descname"><span class="pre">get_default_data_dir</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Path</span></span></span><a class="reference internal" href="_modules/oceanarray/utilities.html#get_default_data_dir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.utilities.get_default_data_dir" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="oceanarray.utilities.resolve_file_path">
-<span class="sig-prename descclassname"><span class="pre">oceanarray.utilities.</span></span><span class="sig-name descname"><span class="pre">resolve_file_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">download_url</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local_data_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">redownload</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Path</span></span></span><a class="reference internal" href="_modules/oceanarray/utilities.html#resolve_file_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.utilities.resolve_file_path" title="Link to this definition"></a></dt>
-<dd><p>Resolve the path to a data file, using local source, cache, or downloading if necessary.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>file_name</strong> (<em>str</em>) – The name of the file to resolve.</p></li>
-<li><p><strong>source</strong> (<em>str</em><em> or </em><em>Path</em><em> or </em><em>None</em>) – Optional local source directory.</p></li>
-<li><p><strong>download_url</strong> (<em>str</em><em> or </em><em>None</em>) – URL to download the file if needed.</p></li>
-<li><p><strong>local_data_dir</strong> (<em>Path</em>) – Directory where downloaded files are stored.</p></li>
-<li><p><strong>redownload</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, force redownload even if cached file exists.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Path to the resolved file.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Path</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="oceanarray.utilities.safe_update_attrs">
-<span class="sig-prename descclassname"><span class="pre">oceanarray.utilities.</span></span><span class="sig-name descname"><span class="pre">safe_update_attrs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_attrs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overwrite</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dataset</span></span></span><a class="reference internal" href="_modules/oceanarray/utilities.html#safe_update_attrs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.utilities.safe_update_attrs" title="Link to this definition"></a></dt>
-<dd><p>Safely update attributes of an xarray Dataset without overwriting existing keys,
-unless explicitly allowed.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>ds</strong> (<em>xr.Dataset</em>) – The xarray Dataset whose attributes will be updated.</p></li>
-<li><p><strong>new_attrs</strong> (<em>dict</em><em> of </em><em>str</em>) – Dictionary of new attributes to add.</p></li>
-<li><p><strong>overwrite</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, allow overwriting existing attributes. Defaults to False.</p></li>
-<li><p><strong>verbose</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, emit a warning when skipping existing attributes. Defaults to True.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The dataset with updated attributes.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>xr.Dataset</p>
 </dd>
 </dl>
 </dd></dl>

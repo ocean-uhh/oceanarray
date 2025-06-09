@@ -95,24 +95,68 @@
            <div itemprop="articleBody">
              
   <h1>Source code for oceanarray.utilities</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">wraps</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">urllib.parse</span><span class="w"> </span><span class="kn">import</span> <span class="n">urlparse</span>
-
-<span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
-
-<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray</span><span class="w"> </span><span class="kn">import</span> <span class="n">logger</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">log_debug</span><span class="p">,</span> <span class="n">log_error</span><span class="p">,</span> <span class="n">log_info</span>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray</span><span class="w"> </span><span class="kn">import</span> <span class="n">logger</span>
 
 <span class="n">log</span> <span class="o">=</span> <span class="n">logger</span><span class="o">.</span><span class="n">log</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Callable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">wraps</span>
 
-<div class="viewcode-block" id="get_default_data_dir">
-<a class="viewcode-back" href="../../oceanarray.html#oceanarray.utilities.get_default_data_dir">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">get_default_data_dir</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;data&quot;</span></div>
+
+<div class="viewcode-block" id="iso8601_duration_from_seconds">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.utilities.iso8601_duration_from_seconds">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">iso8601_duration_from_seconds</span><span class="p">(</span><span class="n">seconds</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert a duration in seconds to an ISO 8601 duration string.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    seconds : float</span>
+<span class="sd">        Duration in seconds.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        ISO 8601 duration string, e.g., &#39;PT1H&#39;, &#39;PT30M&#39;, &#39;PT15S&#39;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">seconds</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">seconds</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">seconds</span> <span class="o">&gt;=</span> <span class="mi">86400</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;P</span><span class="si">{</span><span class="n">seconds</span><span class="w"> </span><span class="o">//</span><span class="w"> </span><span class="mi">86400</span><span class="si">}</span><span class="s2">D&quot;</span>
+    <span class="k">elif</span> <span class="n">seconds</span> <span class="o">&gt;=</span> <span class="mi">3600</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;PT</span><span class="si">{</span><span class="n">seconds</span><span class="w"> </span><span class="o">//</span><span class="w"> </span><span class="mi">3600</span><span class="si">}</span><span class="s2">H&quot;</span>
+    <span class="k">elif</span> <span class="n">seconds</span> <span class="o">&gt;=</span> <span class="mi">60</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;PT</span><span class="si">{</span><span class="n">seconds</span><span class="w"> </span><span class="o">//</span><span class="w"> </span><span class="mi">60</span><span class="si">}</span><span class="s2">M&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;PT</span><span class="si">{</span><span class="n">seconds</span><span class="si">}</span><span class="s2">S&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="is_iso8601_utc">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.utilities.is_iso8601_utc">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_iso8601_utc</span><span class="p">(</span><span class="n">timestr</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Validate whether a string is in ISO8601 UTC format: YYYY-MM-DDTHH:MM:SSZ</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    timestr : str</span>
+<span class="sd">        Input time string.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bool</span>
+<span class="sd">        True if valid ISO8601 UTC format, False otherwise.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">timestr</span><span class="p">,</span> <span class="s2">&quot;%Y/%m/</span><span class="si">%d</span><span class="s2">T%H:%M:%SZ&quot;</span><span class="p">)</span>  <span class="c1"># RODB-style</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">timestr</span><span class="p">,</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%SZ&quot;</span><span class="p">)</span>  <span class="c1"># ISO8601 style</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
 
 
 
@@ -152,196 +196,6 @@
         <span class="k">return</span> <span class="n">wrapper</span>
 
     <span class="k">return</span> <span class="n">decorator</span></div>
-
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_is_valid_url</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate if a given string is a valid URL with supported schemes.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    url : str</span>
-<span class="sd">        The URL string to validate.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    bool</span>
-<span class="sd">        True if the URL is valid and uses a supported scheme (&#39;http&#39;, &#39;https&#39;, &#39;ftp&#39;),</span>
-<span class="sd">        otherwise False.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
-        <span class="k">return</span> <span class="nb">all</span><span class="p">(</span>
-            <span class="p">[</span>
-                <span class="n">result</span><span class="o">.</span><span class="n">scheme</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;http&quot;</span><span class="p">,</span> <span class="s2">&quot;https&quot;</span><span class="p">,</span> <span class="s2">&quot;ftp&quot;</span><span class="p">),</span>
-                <span class="n">result</span><span class="o">.</span><span class="n">netloc</span><span class="p">,</span>
-                <span class="n">result</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>  <span class="c1"># Ensure there&#39;s a path, not necessarily its format</span>
-            <span class="p">],</span>
-        <span class="p">)</span>
-    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-        <span class="k">return</span> <span class="kc">False</span>
-
-
-<div class="viewcode-block" id="resolve_file_path">
-<a class="viewcode-back" href="../../oceanarray.html#oceanarray.utilities.resolve_file_path">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">resolve_file_path</span><span class="p">(</span>
-    <span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">source</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
-    <span class="n">download_url</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">local_data_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
-    <span class="n">redownload</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Resolve the path to a data file, using local source, cache, or downloading if necessary.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    file_name : str</span>
-<span class="sd">        The name of the file to resolve.</span>
-<span class="sd">    source : str or Path or None</span>
-<span class="sd">        Optional local source directory.</span>
-<span class="sd">    download_url : str or None</span>
-<span class="sd">        URL to download the file if needed.</span>
-<span class="sd">    local_data_dir : Path</span>
-<span class="sd">        Directory where downloaded files are stored.</span>
-<span class="sd">    redownload : bool, optional</span>
-<span class="sd">        If True, force redownload even if cached file exists.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    Path</span>
-<span class="sd">        Path to the resolved file.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># Use local source if provided</span>
-    <span class="k">if</span> <span class="n">source</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_is_valid_url</span><span class="p">(</span><span class="n">source</span><span class="p">):</span>
-        <span class="n">source_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
-        <span class="n">candidate_file</span> <span class="o">=</span> <span class="n">source_path</span> <span class="o">/</span> <span class="n">file_name</span>
-        <span class="k">if</span> <span class="n">candidate_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
-            <span class="n">log_info</span><span class="p">(</span><span class="s2">&quot;Using local file: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">candidate_file</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">candidate_file</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">log_error</span><span class="p">(</span><span class="s2">&quot;Local file not found: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">candidate_file</span><span class="p">)</span>
-            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Local file not found: </span><span class="si">{</span><span class="n">candidate_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-    <span class="c1"># Use cached file if available and redownload is False</span>
-    <span class="n">cached_file</span> <span class="o">=</span> <span class="n">local_data_dir</span> <span class="o">/</span> <span class="n">file_name</span>
-    <span class="k">if</span> <span class="n">cached_file</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">redownload</span><span class="p">:</span>
-        <span class="n">log_info</span><span class="p">(</span><span class="s2">&quot;Using cached file: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">cached_file</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">cached_file</span>
-
-    <span class="c1"># Download if URL is provided</span>
-    <span class="k">if</span> <span class="n">download_url</span><span class="p">:</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">log_info</span><span class="p">(</span><span class="s2">&quot;Downloading file from </span><span class="si">%s</span><span class="s2"> to </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">download_url</span><span class="p">,</span> <span class="n">local_data_dir</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">download_file</span><span class="p">(</span><span class="n">download_url</span><span class="p">,</span> <span class="n">local_data_dir</span><span class="p">,</span> <span class="n">redownload</span><span class="o">=</span><span class="n">redownload</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="n">log_error</span><span class="p">(</span><span class="s2">&quot;Failed to download </span><span class="si">%s</span><span class="s2">: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">download_url</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
-            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to download </span><span class="si">{</span><span class="n">download_url</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-    <span class="c1"># If no options succeeded</span>
-    <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span>
-        <span class="sa">f</span><span class="s2">&quot;File </span><span class="si">{</span><span class="n">file_name</span><span class="si">}</span><span class="s2"> could not be resolved from local source, cache, or remote URL.&quot;</span><span class="p">,</span>
-    <span class="p">)</span></div>
-
-
-
-<div class="viewcode-block" id="download_file">
-<a class="viewcode-back" href="../../oceanarray.html#oceanarray.utilities.download_file">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">download_file</span><span class="p">(</span><span class="n">url</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dest_folder</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">redownload</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Download a file from HTTP(S) or FTP to the specified destination folder.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    url : str</span>
-<span class="sd">        The URL of the file to download.</span>
-<span class="sd">    dest_folder : str</span>
-<span class="sd">        Local folder to save the downloaded file.</span>
-<span class="sd">    redownload : bool, optional</span>
-<span class="sd">        If True, force re-download of the file even if it exists.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    str</span>
-<span class="sd">        The full path to the downloaded file.</span>
-
-<span class="sd">    Raises</span>
-<span class="sd">    ------</span>
-<span class="sd">    ValueError</span>
-<span class="sd">        If the URL scheme is unsupported.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">dest_folder_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">dest_folder</span><span class="p">)</span>
-    <span class="n">dest_folder_path</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-    <span class="n">local_filename</span> <span class="o">=</span> <span class="n">dest_folder_path</span> <span class="o">/</span> <span class="n">Path</span><span class="p">(</span><span class="n">url</span><span class="p">)</span><span class="o">.</span><span class="n">name</span>
-    <span class="k">if</span> <span class="n">local_filename</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">redownload</span><span class="p">:</span>
-        <span class="c1"># File exists and redownload not requested</span>
-        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">local_filename</span><span class="p">)</span>
-
-    <span class="n">parsed_url</span> <span class="o">=</span> <span class="n">urlparse</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">parsed_url</span><span class="o">.</span><span class="n">scheme</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;http&quot;</span><span class="p">,</span> <span class="s2">&quot;https&quot;</span><span class="p">):</span>
-        <span class="c1"># HTTP(S) download</span>
-        <span class="k">with</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">response</span><span class="p">:</span>
-            <span class="n">response</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">local_filename</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-                <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">response</span><span class="o">.</span><span class="n">iter_content</span><span class="p">(</span><span class="n">chunk_size</span><span class="o">=</span><span class="mi">8192</span><span class="p">):</span>
-                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
-
-    <span class="k">elif</span> <span class="n">parsed_url</span><span class="o">.</span><span class="n">scheme</span> <span class="o">==</span> <span class="s2">&quot;ftp&quot;</span><span class="p">:</span>
-        <span class="c1"># FTP download</span>
-        <span class="k">with</span> <span class="n">FTP</span><span class="p">(</span><span class="n">parsed_url</span><span class="o">.</span><span class="n">netloc</span><span class="p">)</span> <span class="k">as</span> <span class="n">ftp</span><span class="p">:</span>
-            <span class="n">ftp</span><span class="o">.</span><span class="n">login</span><span class="p">()</span>  <span class="c1"># anonymous login</span>
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">local_filename</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-                <span class="n">ftp</span><span class="o">.</span><span class="n">retrbinary</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;RETR </span><span class="si">{</span><span class="n">parsed_url</span><span class="o">.</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">)</span>
-
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported URL scheme in </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">local_filename</span><span class="p">)</span></div>
-
-
-
-<div class="viewcode-block" id="safe_update_attrs">
-<a class="viewcode-back" href="../../oceanarray.html#oceanarray.utilities.safe_update_attrs">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">safe_update_attrs</span><span class="p">(</span>
-    <span class="n">ds</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span>
-    <span class="n">new_attrs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
-    <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">verbose</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Safely update attributes of an xarray Dataset without overwriting existing keys,</span>
-<span class="sd">    unless explicitly allowed.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    ds : xr.Dataset</span>
-<span class="sd">        The xarray Dataset whose attributes will be updated.</span>
-<span class="sd">    new_attrs : dict of str</span>
-<span class="sd">        Dictionary of new attributes to add.</span>
-<span class="sd">    overwrite : bool, optional</span>
-<span class="sd">        If True, allow overwriting existing attributes. Defaults to False.</span>
-<span class="sd">    verbose : bool, optional</span>
-<span class="sd">        If True, emit a warning when skipping existing attributes. Defaults to True.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    xr.Dataset</span>
-<span class="sd">        The dataset with updated attributes.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">new_attrs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">overwrite</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
-                    <span class="n">log_debug</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">&quot;Attribute &#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39; already exists in dataset attrs and will not be overwritten.&quot;</span><span class="p">,</span>
-                    <span class="p">)</span>
-                <span class="k">continue</span>  <span class="c1"># Skip assignment</span>
-        <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
-
-    <span class="k">return</span> <span class="n">ds</span></div>
 
 </pre></div>
 
