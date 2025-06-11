@@ -66,10 +66,8 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="demo_instrument-output.html">oceanarray demo - instrument-level processing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="demo_instrument-output.html#Instrument-level-processing">Instrument-level processing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="demo_mooring-output.html">oceanarray demo - mooring-level processing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="demo_mooring-output.html#Mooring-level-processing">Mooring-level processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="demo_instrument-output.html">Demo: instrument-level processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="demo_mooring-output.html">oceanarray demo - preparation</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Help and reference</span></p>
 <ul>
@@ -106,7 +104,9 @@
 <div class="genindex-jumpbox">
  <a href="#A"><strong>A</strong></a>
  | <a href="#C"><strong>C</strong></a>
+ | <a href="#D"><strong>D</strong></a>
  | <a href="#F"><strong>F</strong></a>
+ | <a href="#G"><strong>G</strong></a>
  | <a href="#I"><strong>I</strong></a>
  | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
@@ -144,9 +144,21 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="oceanarray.html#oceanarray.tools.calc_ds_difference">calc_ds_difference() (in module oceanarray.tools)</a>
 </li>
+      <li><a href="oceanarray.html#oceanarray.tools.calc_psal">calc_psal() (in module oceanarray.tools)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="oceanarray.html#oceanarray.utilities.concat_with_scalar_vars">concat_with_scalar_vars() (in module oceanarray.utilities)</a>
+</li>
       <li><a href="oceanarray.html#oceanarray.convertOS.convert_rodb_to_oceansites">convert_rodb_to_oceansites() (in module oceanarray.convertOS)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="D">D</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="oceanarray.html#oceanarray.tools.downsample_to_sparse">downsample_to_sparse() (in module oceanarray.tools)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -154,7 +166,27 @@
 <h2 id="F">F</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="oceanarray.html#oceanarray.tools.flag_salinity_outliers">flag_salinity_outliers() (in module oceanarray.tools)</a>
+</li>
+      <li><a href="oceanarray.html#oceanarray.tools.flag_temporal_spikes">flag_temporal_spikes() (in module oceanarray.tools)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="oceanarray.html#oceanarray.tools.flag_vertical_inconsistencies">flag_vertical_inconsistencies() (in module oceanarray.tools)</a>
+</li>
       <li><a href="oceanarray.html#oceanarray.convertOS.format_time_variable">format_time_variable() (in module oceanarray.convertOS)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="G">G</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="oceanarray.html#oceanarray.utilities.get_dims">get_dims() (in module oceanarray.utilities)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="oceanarray.html#oceanarray.utilities.get_time_key">get_time_key() (in module oceanarray.utilities)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -176,6 +208,10 @@
 <h2 id="L">L</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="oceanarray.html#oceanarray.readers.load_dataset">load_dataset() (in module oceanarray.readers)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="oceanarray.html#oceanarray.convertOS.load_yaml">load_yaml() (in module oceanarray.convertOS)</a>
 </li>
   </ul></td>
@@ -192,8 +228,6 @@
     module
 
       <ul>
-        <li><a href="oceanarray.html#module-oceanarray.calibration">oceanarray.calibration</a>
-</li>
         <li><a href="oceanarray.html#module-oceanarray.convertOS">oceanarray.convertOS</a>
 </li>
         <li><a href="oceanarray.html#module-oceanarray.plotters">oceanarray.plotters</a>
@@ -228,13 +262,6 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li>
-    oceanarray.calibration
-
-      <ul>
-        <li><a href="oceanarray.html#module-oceanarray.calibration">module</a>
-</li>
-      </ul></li>
-      <li>
     oceanarray.convertOS
 
       <ul>
@@ -255,8 +282,6 @@
         <li><a href="oceanarray.html#module-oceanarray.readers">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     oceanarray.tools
 
@@ -264,6 +289,8 @@
         <li><a href="oceanarray.html#module-oceanarray.tools">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     oceanarray.transports
 
@@ -293,11 +320,21 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="oceanarray.html#oceanarray.convertOS.parse_rodb_metadata">parse_rodb_metadata() (in module oceanarray.convertOS)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="oceanarray.html#oceanarray.plotters.pcolor_timeseries_by_depth">pcolor_timeseries_by_depth() (in module oceanarray.plotters)</a>
+</li>
+      <li><a href="oceanarray.html#oceanarray.plotters.plot_climatology">plot_climatology() (in module oceanarray.plotters)</a>
+</li>
       <li><a href="oceanarray.html#oceanarray.plotters.plot_microcat">plot_microcat() (in module oceanarray.plotters)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="oceanarray.html#oceanarray.plotters.plot_qartod_summary">plot_qartod_summary() (in module oceanarray.plotters)</a>
+</li>
+      <li><a href="oceanarray.html#oceanarray.plotters.plot_timeseries_by_depth">plot_timeseries_by_depth() (in module oceanarray.plotters)</a>
+</li>
       <li><a href="oceanarray.html#oceanarray.plotters.plot_trim_windows">plot_trim_windows() (in module oceanarray.plotters)</a>
+</li>
+      <li><a href="oceanarray.html#oceanarray.tools.process_dataset">process_dataset() (in module oceanarray.tools)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -305,7 +342,11 @@
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="oceanarray.html#oceanarray.readers.rodbload">rodbload() (in module oceanarray.readers)</a>
+      <li><a href="oceanarray.html#oceanarray.readers.rodbload_old">rodbload_old() (in module oceanarray.readers)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="oceanarray.html#oceanarray.tools.run_qc">run_qc() (in module oceanarray.tools)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -314,6 +355,8 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="oceanarray.html#oceanarray.writers.save_OS_instrument">save_OS_instrument() (in module oceanarray.writers)</a>
+</li>
+      <li><a href="oceanarray.html#oceanarray.plotters.scatter_profile_vs_PRES">scatter_profile_vs_PRES() (in module oceanarray.plotters)</a>
 </li>
       <li><a href="oceanarray.html#oceanarray.plotters.show_attributes">show_attributes() (in module oceanarray.plotters)</a>
 </li>

@@ -66,10 +66,8 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../demo_instrument-output.html">oceanarray demo - instrument-level processing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../demo_instrument-output.html#Instrument-level-processing">Instrument-level processing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../demo_mooring-output.html">oceanarray demo - mooring-level processing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../demo_mooring-output.html#Mooring-level-processing">Mooring-level processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../demo_instrument-output.html">Demo: instrument-level processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../demo_mooring-output.html">oceanarray demo - preparation</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Help and reference</span></p>
 <ul>
@@ -102,16 +100,17 @@
            <div itemprop="articleBody">
              
   <h1>Source code for oceanarray.convertOS</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+
 <span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray</span><span class="w"> </span><span class="kn">import</span> <span class="n">utilities</span>  <span class="c1"># for any shared helpers like date parsing</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.utilities</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
-    <span class="n">iso8601_duration_from_seconds</span><span class="p">,</span>
-<span class="p">)</span>  <span class="c1"># or wherever you store it</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.utilities</span><span class="w"> </span><span class="kn">import</span> \
+    <span class="n">iso8601_duration_from_seconds</span>  <span class="c1"># or wherever you store it</span>
 
 
 <div class="viewcode-block" id="convert_rodb_to_oceansites">
@@ -207,6 +206,13 @@
     <span class="k">if</span> <span class="s2">&quot;mooring&quot;</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">:</span>
         <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;internal_identifier&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;mooring&quot;</span><span class="p">)</span>
     <span class="n">ds</span> <span class="o">=</span> <span class="n">sort_global_attributes</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+    <span class="n">lat</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;LATITUDE&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">lon</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;LONGITUDE&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;LATITUDE&quot;</span><span class="p">,</span> <span class="s2">&quot;LONGITUDE&quot;</span><span class="p">],</span> <span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">assign_coords</span><span class="p">(</span><span class="n">LATITUDE</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;TIME&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">lat</span><span class="p">]</span> <span class="o">*</span> <span class="n">ds</span><span class="o">.</span><span class="n">sizes</span><span class="p">[</span><span class="s2">&quot;TIME&quot;</span><span class="p">]))</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">assign_coords</span><span class="p">(</span><span class="n">LONGITUDE</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;TIME&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">lon</span><span class="p">]</span> <span class="o">*</span> <span class="n">ds</span><span class="o">.</span><span class="n">sizes</span><span class="p">[</span><span class="s2">&quot;TIME&quot;</span><span class="p">]))</span>
 
     <span class="k">return</span> <span class="n">ds</span></div>
 
@@ -446,13 +452,12 @@
         <span class="n">base</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;sensor_data_start_date&quot;</span><span class="p">,</span> <span class="n">start</span><span class="p">)</span>
         <span class="n">base</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;sensor_data_end_date&quot;</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
 
-        <span class="c1"># Attach with depth coordinate</span>
-        <span class="n">ds</span><span class="p">[</span><span class="n">sensor_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span>
-            <span class="n">data</span><span class="o">=</span><span class="p">[</span><span class="n">inst_depth</span><span class="p">],</span>
-            <span class="n">dims</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;DEPTH&quot;</span><span class="p">],</span>
-            <span class="n">coords</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;DEPTH&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;DEPTH&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">inst_depth</span><span class="p">])},</span>
-            <span class="n">attrs</span><span class="o">=</span><span class="n">base</span><span class="p">,</span>
-        <span class="p">)</span>
+    <span class="c1"># If inst_depth is an integer (i.e., no values smaller than 1), convert to int</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inst_depth</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="n">inst_depth</span><span class="o">.</span><span class="n">is_integer</span><span class="p">():</span>
+        <span class="n">inst_depth</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">inst_depth</span><span class="p">)</span>
+
+    <span class="c1"># Attach as scalar variable with attributes only (no dims, no coords)</span>
+    <span class="n">ds</span><span class="p">[</span><span class="n">sensor_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span><span class="n">inst_depth</span><span class="p">,</span> <span class="n">attrs</span><span class="o">=</span><span class="n">base</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">ds</span></div>
 

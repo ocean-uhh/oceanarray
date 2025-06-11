@@ -66,10 +66,8 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../demo_instrument-output.html">oceanarray demo - instrument-level processing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../demo_instrument-output.html#Instrument-level-processing">Instrument-level processing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../demo_mooring-output.html">oceanarray demo - mooring-level processing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../demo_mooring-output.html#Mooring-level-processing">Mooring-level processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../demo_instrument-output.html">Demo: instrument-level processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../demo_mooring-output.html">oceanarray demo - preparation</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Help and reference</span></p>
 <ul>
@@ -103,12 +101,271 @@
              
   <h1>Source code for oceanarray.tools</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">gsw</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy.signal</span><span class="w"> </span><span class="kn">import</span> <span class="n">butter</span><span class="p">,</span> <span class="n">filtfilt</span>
 
+<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray</span><span class="w"> </span><span class="kn">import</span> <span class="n">utilities</span>
+
 <span class="c1"># Initialize logging</span>
 <span class="n">_log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="calc_psal">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.tools.calc_psal">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">calc_psal</span><span class="p">(</span><span class="n">ds</span><span class="p">):</span>
+    <span class="k">if</span> <span class="s2">&quot;PSAL&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">:</span>
+        <span class="n">SP</span> <span class="o">=</span> <span class="n">gsw</span><span class="o">.</span><span class="n">SP_from_C</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;CNDC&quot;</span><span class="p">],</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">],</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;PRES&quot;</span><span class="p">])</span>
+        <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;PSAL&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;CNDC&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span><span class="p">,</span> <span class="n">SP</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ds already contains variable PSAL&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ds</span></div>
+
+
+
+<div class="viewcode-block" id="flag_salinity_outliers">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.tools.flag_salinity_outliers">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">flag_salinity_outliers</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">n_std</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Flags PSAL values that are more than n_std standard deviations from the mean,</span>
+<span class="sd">    computed separately for each depth level.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ds : xarray.Dataset</span>
+<span class="sd">        Dataset containing &quot;PSAL&quot; variable with dimensions including &quot;DEPTH&quot;.</span>
+<span class="sd">    n_std : float, optional</span>
+<span class="sd">        Number of standard deviations from the mean to define an outlier (default is 4).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    xarray.DataArray (bool)</span>
+<span class="sd">        Boolean array with True where salinity is flagged as an outlier.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="s2">&quot;CNDC_QC&quot;</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">:</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;CNDC_QC&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="n">mean_sal</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;PSAL&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s2">&quot;TIME&quot;</span><span class="p">,</span> <span class="n">skipna</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">std_sal</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;PSAL&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s2">&quot;TIME&quot;</span><span class="p">,</span> <span class="n">skipna</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">mean_sal</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;PSAL&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s2">&quot;TIME&quot;</span><span class="p">,</span> <span class="n">skipna</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">std_sal</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;PSAL&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="s2">&quot;TIME&quot;</span><span class="p">,</span> <span class="n">skipna</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># Broadcast mean and std over time</span>
+    <span class="n">lower</span> <span class="o">=</span> <span class="n">mean_sal</span> <span class="o">-</span> <span class="n">n_std</span> <span class="o">*</span> <span class="n">std_sal</span>
+    <span class="n">upper</span> <span class="o">=</span> <span class="n">mean_sal</span> <span class="o">+</span> <span class="n">n_std</span> <span class="o">*</span> <span class="n">std_sal</span>
+
+    <span class="n">flag</span> <span class="o">=</span> <span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;PSAL&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">lower</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;PSAL&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">upper</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">flag</span></div>
+
+
+
+<div class="viewcode-block" id="flag_temporal_spikes">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.tools.flag_temporal_spikes">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">flag_temporal_spikes</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">var</span><span class="o">=</span><span class="s2">&quot;CNDC&quot;</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Flags large absolute differences in time for each depth.</span>
+<span class="sd">    threshold: maximum allowed difference in units of the variable</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="s2">&quot;TIME&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;upper&quot;</span><span class="p">))</span>
+    <span class="n">flag</span> <span class="o">=</span> <span class="n">diff</span> <span class="o">&gt;</span> <span class="n">threshold</span>
+    <span class="c1"># Pad to match original dimensions</span>
+    <span class="n">flag</span> <span class="o">=</span> <span class="n">flag</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">TIME</span><span class="o">=</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;TIME&quot;</span><span class="p">],</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;ffill&quot;</span><span class="p">)</span>
+    <span class="n">flag</span> <span class="o">=</span> <span class="n">flag</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">flag</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="flag_vertical_inconsistencies">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.tools.flag_vertical_inconsistencies">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">flag_vertical_inconsistencies</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">var</span><span class="o">=</span><span class="s2">&quot;CNDC&quot;</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Flags points that are very different from vertical neighbors.</span>
+<span class="sd">    threshold: max allowed difference between vertically adjacent sensors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Central difference approximation in depth</span>
+    <span class="n">vert_diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="s2">&quot;DEPTH&quot;</span><span class="p">))</span>
+    <span class="c1"># Pad to match original dimensions</span>
+    <span class="n">vert_diff</span> <span class="o">=</span> <span class="n">vert_diff</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">DEPTH</span><span class="o">=</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;DEPTH&quot;</span><span class="p">],</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;ffill&quot;</span><span class="p">)</span>
+    <span class="n">flag</span> <span class="o">=</span> <span class="n">vert_diff</span> <span class="o">&gt;</span> <span class="n">threshold</span>
+    <span class="k">return</span> <span class="n">flag</span></div>
+
+
+
+<div class="viewcode-block" id="run_qc">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.tools.run_qc">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">run_qc</span><span class="p">(</span><span class="n">ds</span><span class="p">):</span>
+    <span class="k">if</span> <span class="s2">&quot;PSAL&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">:</span>
+        <span class="n">ds</span> <span class="o">=</span> <span class="n">calc_psal</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+    <span class="n">sal_flag</span> <span class="o">=</span> <span class="n">flag_salinity_outliers</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="n">time_flag</span> <span class="o">=</span> <span class="n">flag_temporal_spikes</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="c1">#    vert_flag = flag_vertical_inconsistencies(ds).astype(bool)</span>
+
+    <span class="c1"># Combine all</span>
+    <span class="n">combined_flag</span> <span class="o">=</span> <span class="n">sal_flag</span> <span class="o">|</span> <span class="n">time_flag</span>
+    <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;CNDC_QC&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;CNDC&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span><span class="p">,</span> <span class="n">combined_flag</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">))</span>
+
+    <span class="n">sal_flag</span> <span class="o">=</span> <span class="n">flag_salinity_outliers</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+    <span class="n">combined_flag</span> <span class="o">=</span> <span class="n">sal_flag</span> <span class="o">|</span> <span class="n">time_flag</span>
+    <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;CNDC_QC&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;CNDC&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span><span class="p">,</span> <span class="n">combined_flag</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">ds</span></div>
+
+
+
+<div class="viewcode-block" id="downsample_to_sparse">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.tools.downsample_to_sparse">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">downsample_to_sparse</span><span class="p">(</span>
+    <span class="n">temp_profiles</span><span class="p">,</span> <span class="n">salt_profiles</span><span class="p">,</span> <span class="n">full_pressures</span><span class="p">,</span> <span class="n">sparse_pressures</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Downsample full T/S profiles to sparse pressure levels.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    temp_profiles : np.ndarray</span>
+<span class="sd">        Full temperature profiles, shape (n_profiles, n_pressures_full).</span>
+<span class="sd">    salt_profiles : np.ndarray</span>
+<span class="sd">        Full salinity profiles, shape (n_profiles, n_pressures_full).</span>
+<span class="sd">    full_pressures : np.ndarray</span>
+<span class="sd">        Full pressure levels corresponding to temp_profiles and salt_profiles, shape (n_pressures_full,).</span>
+<span class="sd">    sparse_pressures : np.ndarray</span>
+<span class="sd">        Target sparse pressure levels to sample, shape (n_pressures_sparse,).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    sparse_inputs : np.ndarray</span>
+<span class="sd">        Concatenated sparse temperature and salinity features,</span>
+<span class="sd">        shape (n_profiles, 2 * n_pressures_sparse).</span>
+<span class="sd">        (temp_sparse followed by salt_sparse)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n_profiles</span> <span class="o">=</span> <span class="n">temp_profiles</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">all_temp</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">all_salt</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_profiles</span><span class="p">):</span>
+        <span class="n">temp_sparse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span>
+            <span class="n">sparse_pressures</span><span class="p">,</span>
+            <span class="n">full_pressures</span><span class="p">,</span>
+            <span class="n">temp_profiles</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+            <span class="n">left</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="n">right</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">salt_sparse</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">interp</span><span class="p">(</span>
+            <span class="n">sparse_pressures</span><span class="p">,</span>
+            <span class="n">full_pressures</span><span class="p">,</span>
+            <span class="n">salt_profiles</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+            <span class="n">left</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+            <span class="n">right</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">all_temp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">temp_sparse</span><span class="p">)</span>
+        <span class="n">all_salt</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">salt_sparse</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">all_temp</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">all_salt</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="process_dataset">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.tools.process_dataset">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">process_dataset</span><span class="p">(</span>
+    <span class="n">ds</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span>
+    <span class="n">latlim</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mf">26.0</span><span class="p">,</span> <span class="mf">27.0</span><span class="p">),</span>
+    <span class="n">lonlim</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mf">77.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">76.5</span><span class="p">),</span>
+    <span class="n">pgrid</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Filter and process a hydrographic dataset for use in training.</span>
+
+<span class="sd">    This function selects a region of interest, extracts and downsamples profiles of</span>
+<span class="sd">    temperature and salinity onto both standard and sparse pressure grids. It also computes</span>
+<span class="sd">    potential density anomaly for both resolutions.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ds : xr.Dataset</span>
+<span class="sd">        Input dataset containing hydrographic data including CT, SA, PRES, and metadata.</span>
+<span class="sd">    latlim : tuple of float, optional</span>
+<span class="sd">        Latitude limits for filtering, by default (26.0, 27.0).</span>
+<span class="sd">    lonlim : tuple of float, optional</span>
+<span class="sd">        Longitude limits for filtering, by default (-77.0, -76.5).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ds_standard : xr.Dataset</span>
+<span class="sd">        Dataset downsampled to standard pressure levels.</span>
+<span class="sd">    ds_sparse : xr.Dataset</span>
+<span class="sd">        Dataset downsampled to sparse pressure levels.</span>
+
+<span class="sd">    See Also</span>
+<span class="sd">    --------</span>
+<span class="sd">    verticalnn.data_utils.downsample_to_sparse : Used to interpolate to target pressure levels.</span>
+<span class="sd">    verticalnn.config.STANDARD_PRESSURES : Standard pressure grid.</span>
+<span class="sd">    verticalnn.config.SPARSE_PRESSURES : Sparse pressure grid.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">pres_key</span><span class="p">,</span> <span class="n">time_key</span><span class="p">,</span> <span class="n">pres_dim</span><span class="p">,</span> <span class="n">time_dim</span> <span class="o">=</span> <span class="n">utilities</span><span class="o">.</span><span class="n">get_dims</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">pgrid</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">max_pres</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="n">pres_key</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+        <span class="n">pgrid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_pres</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+
+    <span class="c1"># Extract variables</span>
+    <span class="n">TEMP_profiles</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+    <span class="n">PSAL_profiles</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;PSAL&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+    <span class="n">CT_profiles</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;CT&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+    <span class="n">SA_profiles</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;SA&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+    <span class="n">PRES</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="n">pres_key</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+    <span class="n">LAT</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;LATITUDE&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+    <span class="n">LON</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;LONGITUDE&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+    <span class="n">time</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="n">time_key</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+
+    <span class="c1"># Apply region of interest mask</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="n">LAT</span> <span class="o">&gt;=</span> <span class="n">latlim</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="o">&amp;</span> <span class="p">(</span><span class="n">LAT</span> <span class="o">&lt;=</span> <span class="n">latlim</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="o">&amp;</span> <span class="p">(</span><span class="n">LON</span> <span class="o">&gt;=</span> <span class="n">lonlim</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="o">&amp;</span> <span class="p">(</span><span class="n">LON</span> <span class="o">&lt;=</span> <span class="n">lonlim</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="p">)</span>
+    <span class="n">TEMP_profiles</span> <span class="o">=</span> <span class="n">TEMP_profiles</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+    <span class="n">PSAL_profiles</span> <span class="o">=</span> <span class="n">PSAL_profiles</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+    <span class="n">CT_profiles</span> <span class="o">=</span> <span class="n">CT_profiles</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+    <span class="n">SA_profiles</span> <span class="o">=</span> <span class="n">SA_profiles</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+    <span class="n">time</span> <span class="o">=</span> <span class="n">time</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+    <span class="n">LAT</span> <span class="o">=</span> <span class="n">LAT</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+    <span class="n">LON</span> <span class="o">=</span> <span class="n">LON</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+
+    <span class="c1"># Downsample to standard pressures</span>
+    <span class="n">CT_standard</span><span class="p">,</span> <span class="n">SA_standard</span> <span class="o">=</span> <span class="n">downsample_to_sparse</span><span class="p">(</span>
+        <span class="n">CT_profiles</span><span class="p">,</span> <span class="n">SA_profiles</span><span class="p">,</span> <span class="n">PRES</span><span class="p">,</span> <span class="n">pgrid</span>
+    <span class="p">)</span>
+    <span class="c1"># Downsample to standard pressures</span>
+    <span class="n">temp_standard</span><span class="p">,</span> <span class="n">salt_standard</span> <span class="o">=</span> <span class="n">downsample_to_sparse</span><span class="p">(</span>
+        <span class="n">TEMP_profiles</span><span class="p">,</span> <span class="n">PSAL_profiles</span><span class="p">,</span> <span class="n">PRES</span><span class="p">,</span> <span class="n">pgrid</span>
+    <span class="p">)</span>
+    <span class="n">standard_pressures</span> <span class="o">=</span> <span class="n">pgrid</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+
+    <span class="c1"># Tile standard pressures</span>
+    <span class="n">pressure_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">standard_pressures</span><span class="p">,</span> <span class="p">(</span><span class="n">temp_standard</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="c1"># Create ds_standard</span>
+    <span class="n">ds_standard</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;CT&quot;</span><span class="p">:</span> <span class="p">((</span><span class="n">time_dim</span><span class="p">,</span> <span class="n">pres_dim</span><span class="p">),</span> <span class="n">CT_standard</span><span class="p">),</span>
+            <span class="s2">&quot;SA&quot;</span><span class="p">:</span> <span class="p">((</span><span class="n">time_dim</span><span class="p">,</span> <span class="n">pres_dim</span><span class="p">),</span> <span class="n">SA_standard</span><span class="p">),</span>
+            <span class="s2">&quot;TEMP&quot;</span><span class="p">:</span> <span class="p">((</span><span class="n">time_dim</span><span class="p">,</span> <span class="n">pres_dim</span><span class="p">),</span> <span class="n">temp_standard</span><span class="p">),</span>
+            <span class="s2">&quot;PSAL&quot;</span><span class="p">:</span> <span class="p">((</span><span class="n">time_dim</span><span class="p">,</span> <span class="n">pres_dim</span><span class="p">),</span> <span class="n">salt_standard</span><span class="p">),</span>
+        <span class="p">},</span>
+        <span class="n">coords</span><span class="o">=</span><span class="p">{</span>
+            <span class="n">time_key</span><span class="p">:</span> <span class="p">(</span><span class="n">time_dim</span><span class="p">,</span> <span class="n">time</span><span class="p">),</span>
+            <span class="n">pres_key</span><span class="p">:</span> <span class="p">(</span><span class="n">pres_dim</span><span class="p">,</span> <span class="n">standard_pressures</span><span class="p">),</span>
+            <span class="s2">&quot;LATITUDE&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">time_dim</span><span class="p">,</span> <span class="n">LAT</span><span class="p">),</span>
+            <span class="s2">&quot;LONGITUDE&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">time_dim</span><span class="p">,</span> <span class="n">LON</span><span class="p">),</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ds_standard</span></div>
+
 
 
 <div class="viewcode-block" id="auto_filt">

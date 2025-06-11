@@ -21,7 +21,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="oceanarray demo - mooring-level processing" href="demo_mooring-output.html" /> 
+    <link rel="prev" title="oceanarray demo - preparation" href="demo_mooring-output.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -68,10 +68,8 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="demo_instrument-output.html">oceanarray demo - instrument-level processing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="demo_instrument-output.html#Instrument-level-processing">Instrument-level processing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="demo_mooring-output.html">oceanarray demo - mooring-level processing</a></li>
-<li class="toctree-l1"><a class="reference internal" href="demo_mooring-output.html#Mooring-level-processing">Mooring-level processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="demo_instrument-output.html">Demo: instrument-level processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="demo_mooring-output.html">oceanarray demo - preparation</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Help and reference</span></p>
 <ul class="current">
@@ -79,7 +77,8 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code></a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#inputs-and-outputs">Inputs and Outputs</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#readers">readers</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#oceanarray.readers.rodbload"><code class="docutils literal notranslate"><span class="pre">rodbload()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.readers.load_dataset"><code class="docutils literal notranslate"><span class="pre">load_dataset()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.readers.rodbload_old"><code class="docutils literal notranslate"><span class="pre">rodbload_old()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#writers">writers</a><ul>
@@ -87,8 +86,13 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#plotters">plotters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.plotters.pcolor_timeseries_by_depth"><code class="docutils literal notranslate"><span class="pre">pcolor_timeseries_by_depth()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.plotters.plot_climatology"><code class="docutils literal notranslate"><span class="pre">plot_climatology()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.plotters.plot_microcat"><code class="docutils literal notranslate"><span class="pre">plot_microcat()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.plotters.plot_qartod_summary"><code class="docutils literal notranslate"><span class="pre">plot_qartod_summary()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.plotters.plot_timeseries_by_depth"><code class="docutils literal notranslate"><span class="pre">plot_timeseries_by_depth()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.plotters.plot_trim_windows"><code class="docutils literal notranslate"><span class="pre">plot_trim_windows()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.plotters.scatter_profile_vs_PRES"><code class="docutils literal notranslate"><span class="pre">scatter_profile_vs_PRES()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.plotters.show_attributes"><code class="docutils literal notranslate"><span class="pre">show_attributes()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.plotters.show_variables"><code class="docutils literal notranslate"><span class="pre">show_variables()</span></code></a></li>
 </ul>
@@ -129,15 +133,25 @@
 <li class="toctree-l3"><a class="reference internal" href="#tools">tools</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.auto_filt"><code class="docutils literal notranslate"><span class="pre">auto_filt()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.calc_ds_difference"><code class="docutils literal notranslate"><span class="pre">calc_ds_difference()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.calc_psal"><code class="docutils literal notranslate"><span class="pre">calc_psal()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.downsample_to_sparse"><code class="docutils literal notranslate"><span class="pre">downsample_to_sparse()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.flag_salinity_outliers"><code class="docutils literal notranslate"><span class="pre">flag_salinity_outliers()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.flag_temporal_spikes"><code class="docutils literal notranslate"><span class="pre">flag_temporal_spikes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.flag_vertical_inconsistencies"><code class="docutils literal notranslate"><span class="pre">flag_vertical_inconsistencies()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.mean_of_middle_percent"><code class="docutils literal notranslate"><span class="pre">mean_of_middle_percent()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.middle_percent"><code class="docutils literal notranslate"><span class="pre">middle_percent()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.normalize_by_middle_percent"><code class="docutils literal notranslate"><span class="pre">normalize_by_middle_percent()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.normalize_dataset_by_middle_percent"><code class="docutils literal notranslate"><span class="pre">normalize_dataset_by_middle_percent()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.process_dataset"><code class="docutils literal notranslate"><span class="pre">process_dataset()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.run_qc"><code class="docutils literal notranslate"><span class="pre">run_qc()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.std_of_middle_percent"><code class="docutils literal notranslate"><span class="pre">std_of_middle_percent()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#utilities">utilities</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.utilities.apply_defaults"><code class="docutils literal notranslate"><span class="pre">apply_defaults()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.utilities.concat_with_scalar_vars"><code class="docutils literal notranslate"><span class="pre">concat_with_scalar_vars()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.utilities.get_dims"><code class="docutils literal notranslate"><span class="pre">get_dims()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.utilities.get_time_key"><code class="docutils literal notranslate"><span class="pre">get_time_key()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.utilities.is_iso8601_utc"><code class="docutils literal notranslate"><span class="pre">is_iso8601_utc()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.utilities.iso8601_duration_from_seconds"><code class="docutils literal notranslate"><span class="pre">iso8601_duration_from_seconds()</span></code></a></li>
 </ul>
@@ -183,8 +197,30 @@
 <h3>readers<a class="headerlink" href="#readers" title="Link to this heading"></a></h3>
 <p>Shared utilities and base classes for loading raw instrument data.</p>
 <dl class="py function" id="module-oceanarray.readers">
-<dt class="sig sig-object py" id="oceanarray.readers.rodbload">
-<span class="sig-prename descclassname"><span class="pre">oceanarray.readers.</span></span><span class="sig-name descname"><span class="pre">rodbload</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filepath</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variables</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dataset</span></span></span><a class="reference internal" href="_modules/oceanarray/readers.html#rodbload"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.readers.rodbload" title="Link to this definition"></a></dt>
+<dt class="sig sig-object py" id="oceanarray.readers.load_dataset">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.readers.</span></span><span class="sig-name descname"><span class="pre">load_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dataset</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dataset</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/oceanarray/readers.html#load_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.readers.load_dataset" title="Link to this definition"></a></dt>
+<dd><p>Load one or more observational data files and return as xarray Datasets.
+Dispatches based on file extension or known formats.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>source</strong> (<em>str</em><em>, </em><em>Path</em><em>, or </em><em>list</em><em> of </em><em>str/Path</em>) – Single file or list of files to load.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Loaded dataset(s). A single dataset is returned if one file is given;
+a list of datasets is returned for multiple files.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>xarray.Dataset or list of xarray.Dataset</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If file type is unrecognized.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.readers.rodbload_old">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.readers.</span></span><span class="sig-name descname"><span class="pre">rodbload_old</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filepath</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variables</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dataset</span></span></span><a class="reference internal" href="_modules/oceanarray/readers.html#rodbload_old"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.readers.rodbload_old" title="Link to this definition"></a></dt>
 <dd><p>Load a RODB-style file into an xarray.Dataset.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -231,9 +267,63 @@
 <h3>plotters<a class="headerlink" href="#plotters" title="Link to this heading"></a></h3>
 <p>Tools for plotting mooring time series, profile sections, and transport products.</p>
 <dl class="py function" id="module-oceanarray.plotters">
+<dt class="sig sig-object py" id="oceanarray.plotters.pcolor_timeseries_by_depth">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.plotters.</span></span><span class="sig-name descname"><span class="pre">pcolor_timeseries_by_depth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds_interp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'SA'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/plotters.html#pcolor_timeseries_by_depth"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.plotters.pcolor_timeseries_by_depth" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.plotters.plot_climatology">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.plotters.</span></span><span class="sig-name descname"><span class="pre">plot_climatology</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">clim_ds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'dTdp'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clim_ds_smoothed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dataset</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fig</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/plotters.html#plot_climatology"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.plotters.plot_climatology" title="Link to this definition"></a></dt>
+<dd><p>Plot seasonal climatology of dT/dP or dS/dP, optionally with smoothed version overlaid.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>clim_ds</strong> (<em>xr.Dataset</em>) – Raw climatology dataset with ‘dTdp’ and/or ‘dSdp’.</p></li>
+<li><p><strong>var</strong> (<em>str</em><em>, </em><em>optional</em>) – Variable to plot (‘dTdp’ or ‘dSdp’), by default ‘dTdp’.</p></li>
+<li><p><strong>clim_ds_smoothed</strong> (<em>xr.Dataset</em><em>, </em><em>optional</em>) – Smoothed climatology dataset to overlay, by default None.</p></li>
+<li><p><strong>fig</strong> (<em>matplotlib.figure.Figure</em><em>, </em><em>optional</em>) – Existing figure to plot on. If None, a new figure is created.</p></li>
+<li><p><strong>ax</strong> (<em>matplotlib.axes.Axes</em><em>, </em><em>optional</em>) – Existing axes to plot on. If None, new axes are created.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>If smoothed climatology is provided, the raw climatology is shown in grey.
+Otherwise, only the provided climatology is shown in color.</p>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="oceanarray.plotters.plot_microcat">
 <span class="sig-prename descclassname"><span class="pre">oceanarray.plotters.</span></span><span class="sig-name descname"><span class="pre">plot_microcat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/plotters.html#plot_microcat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.plotters.plot_microcat" title="Link to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.plotters.plot_qartod_summary">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.plotters.</span></span><span class="sig-name descname"><span class="pre">plot_qartod_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'TEMP'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qc_var</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'QC_ROLLUP'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/plotters.html#plot_qartod_summary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.plotters.plot_qartod_summary" title="Link to this definition"></a></dt>
+<dd><p>Plot QARTOD rollup flags and flagged data points for a given variable.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ds</strong> (<em>xarray.Dataset</em>) – Dataset containing the variable and the QC flag.</p></li>
+<li><p><strong>var</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of the variable to plot (default is “TEMP”).</p></li>
+<li><p><strong>qc_var</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of the QC rollup flag variable (default is “QC_ROLLUP”).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.plotters.plot_timeseries_by_depth">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.plotters.</span></span><span class="sig-name descname"><span class="pre">plot_timeseries_by_depth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'TEMP'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/plotters.html#plot_timeseries_by_depth"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.plotters.plot_timeseries_by_depth" title="Link to this definition"></a></dt>
+<dd><p>Plot individual time series for each depth level.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ds</strong> (<em>xarray.Dataset</em>) – Dataset containing the variable to plot.</p></li>
+<li><p><strong>var</strong> (<em>str</em>) – Variable name (default is “TEMP”).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="oceanarray.plotters.plot_trim_windows">
@@ -251,6 +341,11 @@ highlighting data before/after dstart/dend.</p>
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.plotters.scatter_profile_vs_PRES">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.plotters.</span></span><span class="sig-name descname"><span class="pre">scatter_profile_vs_PRES</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds_interp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ds_12h</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'CT'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/plotters.html#scatter_profile_vs_PRES"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.plotters.scatter_profile_vs_PRES" title="Link to this definition"></a></dt>
+<dd></dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="oceanarray.plotters.show_attributes">
@@ -305,7 +400,7 @@ pandas.io.formats.style.Styler: A styled DataFrame containing the following colu
 <p>Apply post-cruise calibration offsets derived from shipboard CTD comparisons.</p>
 </section>
 <section id="convertos">
-<span id="module-oceanarray.calibration"></span><h3>convertOS<a class="headerlink" href="#convertos" title="Link to this heading"></a></h3>
+<h3>convertOS<a class="headerlink" href="#convertos" title="Link to this heading"></a></h3>
 <p>Convert to OceanSites format.</p>
 <dl class="py function" id="module-oceanarray.convertOS">
 <dt class="sig sig-object py" id="oceanarray.convertOS.add_fixed_coordinates">
@@ -479,6 +574,70 @@ pandas.io.formats.style.Styler: A styled DataFrame containing the following colu
 <dd></dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.tools.calc_psal">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">calc_psal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#calc_psal"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.calc_psal" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.tools.downsample_to_sparse">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">downsample_to_sparse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">temp_profiles</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">salt_profiles</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_pressures</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sparse_pressures</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#downsample_to_sparse"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.downsample_to_sparse" title="Link to this definition"></a></dt>
+<dd><p>Downsample full T/S profiles to sparse pressure levels.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>temp_profiles</strong> (<em>np.ndarray</em>) – Full temperature profiles, shape (n_profiles, n_pressures_full).</p></li>
+<li><p><strong>salt_profiles</strong> (<em>np.ndarray</em>) – Full salinity profiles, shape (n_profiles, n_pressures_full).</p></li>
+<li><p><strong>full_pressures</strong> (<em>np.ndarray</em>) – Full pressure levels corresponding to temp_profiles and salt_profiles, shape (n_pressures_full,).</p></li>
+<li><p><strong>sparse_pressures</strong> (<em>np.ndarray</em>) – Target sparse pressure levels to sample, shape (n_pressures_sparse,).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>sparse_inputs</strong> – Concatenated sparse temperature and salinity features,
+shape (n_profiles, 2 * n_pressures_sparse).
+(temp_sparse followed by salt_sparse)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.tools.flag_salinity_outliers">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">flag_salinity_outliers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#flag_salinity_outliers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.flag_salinity_outliers" title="Link to this definition"></a></dt>
+<dd><p>Flags PSAL values that are more than n_std standard deviations from the mean,
+computed separately for each depth level.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ds</strong> (<em>xarray.Dataset</em>) – Dataset containing “PSAL” variable with dimensions including “DEPTH”.</p></li>
+<li><p><strong>n_std</strong> (<em>float</em><em>, </em><em>optional</em>) – Number of standard deviations from the mean to define an outlier (default is 4).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Boolean array with True where salinity is flagged as an outlier.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>xarray.DataArray (bool)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.tools.flag_temporal_spikes">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">flag_temporal_spikes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'CNDC'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#flag_temporal_spikes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.flag_temporal_spikes" title="Link to this definition"></a></dt>
+<dd><p>Flags large absolute differences in time for each depth.
+threshold: maximum allowed difference in units of the variable</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.tools.flag_vertical_inconsistencies">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">flag_vertical_inconsistencies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'CNDC'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#flag_vertical_inconsistencies"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.flag_vertical_inconsistencies" title="Link to this definition"></a></dt>
+<dd><p>Flags points that are very different from vertical neighbors.
+threshold: max allowed difference between vertically adjacent sensors.</p>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="oceanarray.tools.mean_of_middle_percent">
 <span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">mean_of_middle_percent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">percent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">95</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#mean_of_middle_percent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.mean_of_middle_percent" title="Link to this definition"></a></dt>
 <dd><p>Compute the mean of values within the central <cite>percent</cite> of the data.</p>
@@ -561,6 +720,47 @@ using the mean and std over the central <cite>percent</cite> of each variable.</
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.tools.process_dataset">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">process_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">latlim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">(26.0,</span> <span class="pre">27.0)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lonlim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">(-77.0,</span> <span class="pre">-76.5)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pgrid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Dataset</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Dataset</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/oceanarray/tools.html#process_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.process_dataset" title="Link to this definition"></a></dt>
+<dd><p>Filter and process a hydrographic dataset for use in training.</p>
+<p>This function selects a region of interest, extracts and downsamples profiles of
+temperature and salinity onto both standard and sparse pressure grids. It also computes
+potential density anomaly for both resolutions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ds</strong> (<em>xr.Dataset</em>) – Input dataset containing hydrographic data including CT, SA, PRES, and metadata.</p></li>
+<li><p><strong>latlim</strong> (<em>tuple</em><em> of </em><em>float</em><em>, </em><em>optional</em>) – Latitude limits for filtering, by default (26.0, 27.0).</p></li>
+<li><p><strong>lonlim</strong> (<em>tuple</em><em> of </em><em>float</em><em>, </em><em>optional</em>) – Longitude limits for filtering, by default (-77.0, -76.5).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>ds_standard</strong> (<em>xr.Dataset</em>) – Dataset downsampled to standard pressure levels.</p></li>
+<li><p><strong>ds_sparse</strong> (<em>xr.Dataset</em>) – Dataset downsampled to sparse pressure levels.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">verticalnn.data_utils.downsample_to_sparse</span></code></dt><dd><p>Used to interpolate to target pressure levels.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">verticalnn.config.STANDARD_PRESSURES</span></code></dt><dd><p>Standard pressure grid.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">verticalnn.config.SPARSE_PRESSURES</span></code></dt><dd><p>Sparse pressure grid.</p>
+</dd>
+</dl>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.tools.run_qc">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">run_qc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#run_qc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.run_qc" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="oceanarray.tools.std_of_middle_percent">
 <span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">std_of_middle_percent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">percent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">95</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#std_of_middle_percent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.std_of_middle_percent" title="Link to this definition"></a></dt>
 <dd><p>Compute the standard deviation of values within the central <cite>percent</cite> of the data.</p>
@@ -600,6 +800,69 @@ using the mean and std over the central <cite>percent</cite> of each variable.</
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Callable</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.utilities.concat_with_scalar_vars">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.utilities.</span></span><span class="sig-name descname"><span class="pre">concat_with_scalar_vars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">datasets</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scalar_vars</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/utilities.html#concat_with_scalar_vars"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.utilities.concat_with_scalar_vars" title="Link to this definition"></a></dt>
+<dd><p>Concatenate a list of xarray Datasets along a given dimension,
+preserving scalar variables (0-D DataArrays) as scalars (not broadcast).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>datasets</strong> (<em>list</em><em> of </em><em>xarray.Dataset</em>) – Datasets to concatenate.</p></li>
+<li><p><strong>dim</strong> (<em>str</em>) – Dimension along which to concatenate.</p></li>
+<li><p><strong>scalar_vars</strong> (<em>list</em><em> of </em><em>str</em><em>, </em><em>optional</em>) – List of variable names to treat as scalars. If None, auto-detect
+scalar variables (those with ndim == 0 in any dataset).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Concatenated dataset with scalar variables re-attached as 0-D DataArrays.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>xarray.Dataset</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.utilities.get_dims">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.utilities.</span></span><span class="sig-name descname"><span class="pre">get_dims</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds_gridded</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/utilities.html#get_dims"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.utilities.get_dims" title="Link to this definition"></a></dt>
+<dd><p>Helper function to extract pressure key, time key, and their respective dimensions from a dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ds_gridded</strong> (<em>xarray.Dataset</em>) – Dataset containing the variables and dimensions.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>pres_key</strong> (<em>str</em>) – Key for the pressure variable.</p></li>
+<li><p><strong>time_key</strong> (<em>str</em>) – Key for the time variable.</p></li>
+<li><p><strong>pres_dim</strong> (<em>str</em>) – Dimension associated with the pressure variable.</p></li>
+<li><p><strong>time_dim</strong> (<em>str</em>) – Dimension associated with the time variable.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.utilities.get_time_key">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.utilities.</span></span><span class="sig-name descname"><span class="pre">get_time_key</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/utilities.html#get_time_key"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.utilities.get_time_key" title="Link to this definition"></a></dt>
+<dd><p>Return the name of the time coordinate or variable in an xarray.Dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ds</strong> (<em>xarray.Dataset</em>) – The dataset to inspect.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The name of the time coordinate or variable.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If no time dimension or coordinate is found.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -646,7 +909,7 @@ using the mean and std over the central <cite>percent</cite> of each variable.</
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="demo_mooring-output.html" class="btn btn-neutral float-left" title="oceanarray demo - mooring-level processing" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="demo_mooring-output.html" class="btn btn-neutral float-left" title="oceanarray demo - preparation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>
