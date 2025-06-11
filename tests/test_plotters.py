@@ -1,10 +1,64 @@
+import matplotlib
 import numpy as np
 import pandas as pd
 import xarray as xr
-import matplotlib
+
 from oceanarray.plotters import plot_microcat
 
 matplotlib.use("Agg")  # Use non-interactive backend for testing
+
+
+from oceanarray import plotters
+
+
+def test_plot_qartod_summary_runs():
+    time = pd.date_range("2020-01-01", periods=10, freq="D")
+    data = np.random.rand(10)
+    qc_flags = np.random.choice([1, 3, 4], size=10)
+    ds = xr.Dataset(
+        {
+            "TEMP": ("TIME", data),
+            "QC_ROLLUP": ("TIME", qc_flags),
+        },
+        coords={"TIME": time},
+    )
+    plotters.plot_qartod_summary(ds)
+
+
+def test_plot_climatology_runs():
+    temp = np.linspace(0, 10, 50)
+    months = np.arange(1, 13)
+    data = np.random.rand(12, 50)
+    clim_ds = xr.Dataset(
+        {
+            "dTdp": (("month", "TEMP"), data),
+            "TEMP": ("TEMP", temp),
+        },
+        coords={"month": months},
+    )
+    fig, ax = plotters.plot_climatology(clim_ds, var="dTdp")
+    assert fig is not None
+    assert ax is not None
+
+
+def test_show_variables_returns_styler():
+    ds = xr.Dataset(
+        {
+            "TEMP": ("TIME", np.random.rand(5)),
+            "PRES": ("TIME", np.random.rand(5)),
+        },
+        coords={"TIME": pd.date_range("2021-01-01", periods=5)},
+    )
+    result = plotters.show_variables(ds)
+    assert hasattr(result, "data") or hasattr(result, "render")
+
+
+def test_show_attributes_returns_dataframe():
+    ds = xr.Dataset(attrs={"title": "Test Dataset", "institution": "Ocean Lab"})
+    df = plotters.show_attributes(ds)
+    assert isinstance(df, pd.DataFrame)
+    assert "Attribute" in df.columns
+    assert "Value" in df.columns
 
 
 def make_microcat_dataset(include_instr_depth=True, serial_number="12345"):
@@ -63,10 +117,12 @@ def test_plot_microcat_handles_time_format():
 
 
 def test_plot_trim_windows_creates_figaxes():
+    from datetime import datetime, timedelta
+
     import numpy as np
     import xarray as xr
+
     from oceanarray import plotters
-    from datetime import datetime, timedelta
 
     time = np.array(
         [np.datetime64(datetime(2023, 1, 1) + timedelta(hours=i)) for i in range(48)]
@@ -91,6 +147,7 @@ def test_plot_trim_windows_creates_figaxes():
 def test_plot_microcat_generates_expected_plot():
     import numpy as np
     import xarray as xr
+
     from oceanarray import plotters
 
     time = np.arange("2023-01", "2023-02", dtype="datetime64[D]")
@@ -113,6 +170,7 @@ def test_plot_microcat_generates_expected_plot():
 def test_show_variables_on_xarray_dataset():
     import numpy as np
     import xarray as xr
+
     from oceanarray import plotters
 
     time = np.arange("2023-01", "2023-01-10", dtype="datetime64[D]")
@@ -133,6 +191,7 @@ def test_show_variables_on_xarray_dataset():
 
 def test_show_attributes_from_dataset():
     import xarray as xr
+
     from oceanarray import plotters
 
     ds = xr.Dataset()

@@ -1,12 +1,12 @@
 import re
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 import numpy as np
 import xarray as xr
 
-from oceanarray.logger import log_info, log_warning, log_debug
 from oceanarray import rodb, tools
+from oceanarray.logger import log_debug, log_info, log_warning
 
 DUMMY_VALUE = -9.99e-29  # adjust if needed
 

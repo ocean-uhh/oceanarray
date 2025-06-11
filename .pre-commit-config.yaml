@@ -13,13 +13,13 @@ repos:
       - id: codespell
         args: ["--ignore-words-list", "nd"]  # Optional: ignore some false positives
 
-#  - repo: https://github.com/pycqa/isort
-#    rev: 5.13.2
-#    hooks:
-#      - id: isort
-#        language_version: python3
-#        files: \.(py|ipynb)$
-#        exclude: ^data/
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        language_version: python3
+        files: \.(py|ipynb)$
+        exclude: ^data/
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0

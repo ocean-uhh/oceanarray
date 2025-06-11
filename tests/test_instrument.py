@@ -1,14 +1,12 @@
-import numpy as np
-import pandas as pd
-import xarray as xr
 from datetime import datetime
 from pathlib import Path
 
-from oceanarray.instrument import (
-    apply_microcat_calibration_from_txt,
-    stage2_trim,
-    trim_suggestion,
-)
+import numpy as np
+import pandas as pd
+import xarray as xr
+
+from oceanarray.instrument import (apply_microcat_calibration_from_txt,
+                                   stage2_trim, trim_suggestion)
 from oceanarray.rodb import rodbload
 
 
