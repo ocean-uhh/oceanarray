@@ -6,16 +6,18 @@ import xarray as xr
 from oceanarray.logger import log_info
 from oceanarray.read_rapid import read_rapid
 
-
 DUMMY_VALUES = [1e32, -9.0, -9.9]
 
 
+from typing import List, Union
 
 # in readers.py
 from oceanarray import rodb
-from typing import Union, List
 
-def load_dataset(source: Union[str, Path, List[Union[str, Path]]]) -> Union[xr.Dataset, List[xr.Dataset]]:
+
+def load_dataset(
+    source: Union[str, Path, List[Union[str, Path]]]
+) -> Union[xr.Dataset, List[xr.Dataset]]:
     """
     Load one or more observational data files and return as xarray Datasets.
     Dispatches based on file extension or known formats.
@@ -52,6 +54,7 @@ def load_dataset(source: Union[str, Path, List[Union[str, Path]]]) -> Union[xr.D
         datasets.append(ds)
 
     return datasets if len(datasets) > 1 else datasets[0]
+
 
 def rodbload_old(filepath: Path, variables: list[str]) -> xr.Dataset:
     """

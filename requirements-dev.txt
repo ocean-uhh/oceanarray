@@ -10,6 +10,9 @@ gsw>=3.6.16
 #cmocean>=2.0  # optional, confirm usage
 #cartopy>=0.22  # optional, confirm usage
 
+# QC
+ioos_qc
+
 # Progress bar (optional)
 #tqdm>=4.66  # optional, confirm usage
 

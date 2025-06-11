@@ -10,3 +10,5 @@ matplotlib>=3.7
 # Oceanographic tools
 gsw>=3.6.16
 
+# QC
+ioos_qc

@@ -17,11 +17,10 @@ from pathlib import Path
 
 import numpy as np
 import xarray as xr
-
 import yaml
 
-from oceanarray.logger import log_warning
 from oceanarray.convertOS import parse_rodb_metadata
+from oceanarray.logger import log_warning
 
 REVERSE_KEYS = {
     "mooring": "Mooring",
@@ -35,10 +34,13 @@ REVERSE_KEYS = {
     "columns": "Columns",
 }
 
+
 # in rodb.py
 def is_rodb_file(filepath: Path) -> bool:
     """Check whether a file is RODB-style based on filename and/or content."""
     return filepath.suffix.lower() in {".raw", ".use", ".microcat"}
+
+
 def parse_rodb_keys_file(filepath):
     """
     Parse a rodb_keys.txt file with MATLAB-style lines into structured dicts.

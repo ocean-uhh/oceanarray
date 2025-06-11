@@ -8,7 +8,6 @@ TEMP:
   units_metadata: on-scale
   uri: https://vocab.nerc.ac.uk/collection/P07/current/CFSN0335/
   sea_data_net_parameter: https://vocab.nerc.ac.uk/collection/P02/current/TEMP/
-  cmip6_equivalent: thetao
   note: >
     Commonly used for directly measured CTD temperatures.
     Be mindful of historical temperature scales (e.g., IPTS-68, ITS-90).

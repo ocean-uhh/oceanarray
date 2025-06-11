@@ -1,6 +1,7 @@
-import time
-from oceanarray import logger
 import logging
+import time
+
+from oceanarray import logger
 
 
 def test_setup_logger_creates_file_and_logs(tmp_path):

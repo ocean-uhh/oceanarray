@@ -1,15 +1,13 @@
+import numpy as np
 import pytest
 import xarray as xr
-import numpy as np
-from oceanarray import convertOS
-from oceanarray.convertOS import (
-    convert_rodb_to_oceansites,
-    parse_rodb_metadata,
-    add_fixed_coordinates,
-    add_variable_attributes,
-    format_time_variable,
-)
 import yaml
+
+from oceanarray import convertOS
+from oceanarray.convertOS import (add_fixed_coordinates,
+                                  add_variable_attributes,
+                                  convert_rodb_to_oceansites,
+                                  format_time_variable, parse_rodb_metadata)
 
 
 @pytest.fixture

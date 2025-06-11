@@ -1,13 +1,14 @@
-from pathlib import Path
-import yaml
-import xarray as xr
-from typing import Optional, Union
-import numpy as np
 import datetime
+from pathlib import Path
+from typing import Optional, Union
+
+import numpy as np
+import xarray as xr
+import yaml
+
 from oceanarray import utilities  # for any shared helpers like date parsing
-from oceanarray.utilities import (
-    iso8601_duration_from_seconds,
-)  # or wherever you store it
+from oceanarray.utilities import \
+    iso8601_duration_from_seconds  # or wherever you store it
 
 
 def convert_rodb_to_oceansites(
@@ -101,6 +102,13 @@ def convert_rodb_to_oceansites(
     if "mooring" in ds.attrs:
         ds.attrs["internal_identifier"] = ds.attrs.pop("mooring")
     ds = sort_global_attributes(ds)
+
+    lat = float(ds["LATITUDE"].values)
+    lon = float(ds["LONGITUDE"].values)
+
+    ds = ds.squeeze(dim=["LATITUDE", "LONGITUDE"], drop=True)
+    ds = ds.assign_coords(LATITUDE=("TIME", [lat] * ds.sizes["TIME"]))
+    ds = ds.assign_coords(LONGITUDE=("TIME", [lon] * ds.sizes["TIME"]))
 
     return ds
 
@@ -319,13 +327,12 @@ def add_instrument_metadata(ds, sensor_dict, metadata):
         base.setdefault("sensor_data_start_date", start)
         base.setdefault("sensor_data_end_date", end)
 
-        # Attach with depth coordinate
-        ds[sensor_name] = xr.DataArray(
-            data=[inst_depth],
-            dims=["DEPTH"],
-            coords={"DEPTH": ("DEPTH", [inst_depth])},
-            attrs=base,
-        )
+    # If inst_depth is an integer (i.e., no values smaller than 1), convert to int
+    if isinstance(inst_depth, (int, float)) and inst_depth.is_integer():
+        inst_depth = int(inst_depth)
+
+    # Attach as scalar variable with attributes only (no dims, no coords)
+    ds[sensor_name] = xr.DataArray(inst_depth, attrs=base)
 
     return ds
 

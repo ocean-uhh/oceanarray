@@ -19,16 +19,16 @@ References
 - Adapted and translated from Matlab routines by T. Kanzow (2000).
 """
 
-from datetime import datetime
 import pathlib
+from datetime import datetime
 from typing import Tuple, Union
 
 import gsw
 import numpy as np
 import pandas as pd
+import xarray as xr
 from scipy.integrate import cumulative_trapezoid
 from scipy.interpolate import interp1d
-import xarray as xr
 
 from oceanarray import utilities
 from oceanarray.logger import log_info
@@ -146,7 +146,7 @@ def smooth_climatology(clim_ds: xr.Dataset, window: int = 3) -> xr.Dataset:
 
     See Also
     --------
-    verticalnn.rapid_interp.save_climatology : Persists smoothed output to disk.
+    verticalnn.rapid_interp.save_climatology : saves smoothed output to disk.
     """
     dTdp_smoothed = (
         clim_ds["dTdp"].rolling(TEMP=window, center=True, min_periods=1).mean()

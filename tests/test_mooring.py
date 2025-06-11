@@ -1,16 +1,13 @@
 import numpy as np
 import pandas as pd
-import xarray as xr
-from oceanarray.mooring import (
-    get_12hourly_time_grid,
-    filter_all_time_vars,
-)  # Adjust import as needed
-
-from oceanarray.mooring import interp_to_12hour_grid
-from oceanarray import mooring
-
 import pytest
-from oceanarray.mooring import stack_instruments, find_common_attributes, find_time_vars
+import xarray as xr
+
+from oceanarray import mooring
+from oceanarray.mooring import (  # Adjust import as needed
+    filter_all_time_vars, find_common_attributes, find_time_vars,
+    get_12hourly_time_grid, interp_to_12hour_grid, stack_instruments)
+
 
 def create_mock_os_dataset(depth, serial_number, source_file):
     time = pd.date_range("2020-01-01", periods=5, freq="D")
@@ -38,6 +35,7 @@ def create_mock_os_dataset(depth, serial_number, source_file):
     )
     return ds
 
+
 def test_combine_mooring():
     ds1 = create_mock_os_dataset(100.0, "1234", "file1.nc")
     ds2 = create_mock_os_dataset(200.0, "5678", "file2.nc")
@@ -50,6 +48,7 @@ def test_combine_mooring():
     assert combined.attrs["geospatial_vertical_min"] == 100.0
     assert combined.attrs["geospatial_vertical_max"] == 200.0
     assert combined.attrs["source_file"] == "file1.nc, file2.nc"
+
 
 @pytest.fixture
 def sample_datasets():

@@ -1,8 +1,9 @@
-import xarray as xr
-from oceanarray import tools
 import numpy as np
 import pandas as pd
+import xarray as xr
 from scipy.interpolate import interp1d
+
+from oceanarray import tools, utilities
 
 
 def find_time_vars(ds_list, time_key="TIME"):
@@ -79,6 +80,81 @@ def stack_instruments(ds_list, time_key="TIME"):
 
     return ds_out
 
+
+def add_serial_and_sensor_info(ds_combined, ds_list):
+    """
+    Add serial number/depth mapping and sensor variable info to the combined dataset.
+
+    Parameters
+    ----------
+    ds_combined : xarray.Dataset
+        The combined mooring-level dataset (with DEPTH coordinate).
+    ds_list : list of xarray.Dataset
+        List of instrument-level datasets used to create ds_combined.
+
+    Returns
+    -------
+    xarray.Dataset
+        The dataset with added attributes and SENSOR_VARS variable.
+    dict
+        The updated attributes dictionary.
+    """
+    # Get the serial numbers and depths
+    serial_numbers = []
+    depths = []
+    for ds in ds_list:
+        serial_number = ds.attrs.get("serial_number", "unknown")
+        if serial_number not in serial_numbers:
+            serial_numbers.append(serial_number)
+        depth_val = (
+            float(ds.InstrDepth.values)
+            if np.ndim(ds.InstrDepth.values) == 0
+            else float(ds.InstrDepth.values[0])
+        )
+        depths.append(depth_val)
+    serial_depth_dict = dict(zip(serial_numbers, depths))
+    attrs = ds_combined.attrs.copy()
+    attrs["serial_depth_dict"] = str(serial_depth_dict)
+
+    # Collect all variable names that match "SENSOR_" prefix
+    sensor_vars = [var for var in ds_combined.data_vars if var.startswith("SENSOR_")]
+    sensor_depths = []
+    for var in sensor_vars:
+        vals = ds_combined[var].values
+        if vals.ndim == 1:
+            idx = np.where(~np.isnan(vals))[0]
+            depth = (
+                float(ds_combined["DEPTH"].values[idx[0]]) if idx.size > 0 else np.nan
+            )
+        elif vals.ndim > 1:
+            idx = np.where(~np.isnan(vals.any(axis=tuple(range(1, vals.ndim)))))
+            depth = (
+                float(ds_combined["DEPTH"].values[idx[0][0]])
+                if idx[0].size > 0
+                else np.nan
+            )
+        else:
+            depth = np.nan
+        sensor_depths.append(depth)
+    sensor_vars = np.array(sensor_vars)
+    sensor_depths = np.array(sensor_depths)
+    sensor_vars_at_depth = []
+    for depth in ds_combined["DEPTH"].values:
+        matching_vars = sensor_vars[sensor_depths == depth]
+        if matching_vars.size > 0:
+            sensor_vars_at_depth.append(", ".join(matching_vars))
+        else:
+            sensor_vars_at_depth.append("")
+    sensor_vars_arr = np.array(sensor_vars_at_depth, dtype="object")
+    ds_combined["SENSOR_VARS"] = xr.DataArray(
+        sensor_vars_arr,
+        dims=("DEPTH",),
+        coords={"DEPTH": ds_combined["DEPTH"]},
+        attrs={"long_name": "Sensor variable names", "units": "string"},
+    )
+    return ds_combined, attrs
+
+
 def combine_mooring_OS(ds_list):
     """
     Combine a list of OceanSITES instrument-level datasets into a mooring-level dataset.
@@ -96,7 +172,8 @@ def combine_mooring_OS(ds_list):
     if not ds_list:
         raise ValueError("Input list is empty. At least one dataset is required.")
 
-    ds_combined = xr.concat(ds_list, dim="DEPTH")
+    ds_combined = utilities.concat_with_scalar_vars(ds_list, dim="DEPTH")
+    ds_combined = ds_combined.sortby("DEPTH")  # Ensure DEPTH is sorted
 
     # Start with a copy of attributes from the first dataset
     attrs = ds_combined.attrs.copy()
@@ -116,7 +193,6 @@ def combine_mooring_OS(ds_list):
     unique_sorted = sorted(set(source_files))
     attrs["source_file"] = ", ".join(unique_sorted)
 
-
     # Simplify id and title
     platform_code = attrs.get("platform_code", "unknown")
     deployment_code = attrs.get("deployment_code", "unknown")
@@ -128,6 +204,21 @@ def combine_mooring_OS(ds_list):
         depths = ds_combined["DEPTH"].values
         attrs["geospatial_vertical_min"] = float(np.nanmin(depths))
         attrs["geospatial_vertical_max"] = float(np.nanmax(depths))
+
+    # Re-order variables to put any scalar variables at the end, and if they have numeric values, then put them in order of low to high values
+    scalar_vars = []
+    for var in ds_combined.data_vars:
+        if ds_combined[var].ndim == 0:
+            scalar_vars.append(var)
+    scalar_vars.sort(
+        key=lambda v: (
+            ds_combined[v].values
+            if np.issubdtype(ds_combined[v].dtype, np.number)
+            else float("inf")
+        )
+    )
+    non_scalar_vars = [var for var in ds_combined.data_vars if var not in scalar_vars]
+    ds_combined = ds_combined[non_scalar_vars + scalar_vars]
 
     # Assign back updated attributes
     ds_combined.attrs = attrs
@@ -187,8 +278,6 @@ def filter_all_time_vars(ds, cutoff_days=2, fo=6):
             ds_filt[var].values = y_filt.reshape(y.shape)
 
     return ds_filt
-
-
 
 
 def get_12hourly_time_grid(
@@ -275,7 +364,9 @@ def interp_to_12hour_grid(ds1):
             interpolated[:, i] = interp_func(grid_float)
 
         # Reshape back to (TIME, *other_dims)
-        new_shape = (len(grid_float),) + tuple(da.transpose("TIME", *other_dims).shape[1:])
+        new_shape = (len(grid_float),) + tuple(
+            da.transpose("TIME", *other_dims).shape[1:]
+        )
         interp_data = interpolated.reshape(new_shape)
 
         # Create new DataArray
@@ -283,7 +374,9 @@ def interp_to_12hour_grid(ds1):
         for dim in other_dims:
             coords[dim] = ds1[dim]
 
-        interp_vars[var] = xr.DataArray(interp_data, dims=("TIME", *other_dims), coords=coords, attrs=da.attrs)
+        interp_vars[var] = xr.DataArray(
+            interp_data, dims=("TIME", *other_dims), coords=coords, attrs=da.attrs
+        )
 
     # Build new dataset
     ds_interp = xr.Dataset(interp_vars, coords={"TIME": jd_grid})
