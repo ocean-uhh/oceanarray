@@ -35,7 +35,8 @@ The instrument-level processing carries out 2 main steps:
 - **Stage 0:** Downloading raw instrument files (e.g., `.cnv`, `.asc`).
 - **Stage 1:** Converting data files to a consistent (internal) format.
 - **Stage 2:** Trimming the record to the deployment period (i.e., removing the launch and recovery periods) and applying clock corrections.
-- **Stage 3:** Applying calibrations to the moored instrument and create a traceable log of the calibration process.
+- **Stage 3:** Applying automatic QC, i.e. global range tests and spike tests from ioos_qc QARTOD.
+- **Stage 3.5:** Apply calibrations to the moored instrument and create a traceable log of the calibration process.
 - **Stage 4:** Convert data to a common format for onward use with rich metadata.
 
 The first step step is downloading data from instruments.  This is typically using manufacturers' software and some of the downloaded files may be in proprietary formats (e.g., SeaBird `.cnv` format).  Formats can also change over time or depending on settings used when downloading the data, hence the need for the "standardisation" step.  Stage 0 is typically performed at sea as soon as a mooring is recovered and instruments are available.
@@ -61,6 +62,7 @@ The first step step is downloading data from instruments.  This is typically usi
 - :doc:`methods/acquisition` describes downloading raw instrument files.
 - :doc:`methods/standardisation` describes how to convert the raw instrument files to an internally-consistent format (e.g., RBD or netCDF).
 - :doc:`methods/trimming` describes how to trim the data to the deployment period and apply clock corrections.
+- :doc:`methods/auto_qc` describes the approach for automatically generating and adding quality control flags to the data parameters (geophysical ones, e.g., `TEMP`, `CNDC`, `PRES`).
 - :doc:`methods/calibration` describes how to apply calibration corrections to the instrument data and create a traceable log of the calibration process.
 - :doc:`methods/conversion` describes how to convert the data to a common format (e.g., CF-netCDF) with rich metadata.
 
