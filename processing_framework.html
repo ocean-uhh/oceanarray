@@ -67,6 +67,7 @@
 <li class="toctree-l1"><a class="reference internal" href="methods/acquisition.html">Data Acquisition</a></li>
 <li class="toctree-l1"><a class="reference internal" href="methods/standardisation.html">Standardisation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="methods/trimming.html">Trim to Deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/auto_qc.html">Automatic QC</a></li>
 <li class="toctree-l1"><a class="reference internal" href="methods/calibration.html">Apply Calibration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="methods/conversion.html">Convert to OceanSites</a></li>
 </ul>
@@ -142,7 +143,8 @@ different instrument types, platforms, and processing strategies.</p></li>
 <li><p><strong>Stage 0:</strong> Downloading raw instrument files (e.g., <cite>.cnv</cite>, <cite>.asc</cite>).</p></li>
 <li><p><strong>Stage 1:</strong> Converting data files to a consistent (internal) format.</p></li>
 <li><p><strong>Stage 2:</strong> Trimming the record to the deployment period (i.e., removing the launch and recovery periods) and applying clock corrections.</p></li>
-<li><p><strong>Stage 3:</strong> Applying calibrations to the moored instrument and create a traceable log of the calibration process.</p></li>
+<li><p><strong>Stage 3:</strong> Applying automatic QC, i.e. global range tests and spike tests from ioos_qc QARTOD.</p></li>
+<li><p><strong>Stage 3.5:</strong> Apply calibrations to the moored instrument and create a traceable log of the calibration process.</p></li>
 <li><p><strong>Stage 4:</strong> Convert data to a common format for onward use with rich metadata.</p></li>
 </ul>
 <p>The first step step is downloading data from instruments.  This is typically using manufacturers’ software and some of the downloaded files may be in proprietary formats (e.g., SeaBird <cite>.cnv</cite> format).  Formats can also change over time or depending on settings used when downloading the data, hence the need for the “standardisation” step.  Stage 0 is typically performed at sea as soon as a mooring is recovered and instruments are available.</p>
@@ -164,6 +166,7 @@ The initial conversion to the RDB (or RODB) format is called “stage 1” and t
 <li><p><a class="reference internal" href="methods/acquisition.html"><span class="doc">Data Acquisition (Download in proprietary formats)</span></a> describes downloading raw instrument files.</p></li>
 <li><p><a class="reference internal" href="methods/standardisation.html"><span class="doc">1. Standardisation (Internally-consistent format)</span></a> describes how to convert the raw instrument files to an internally-consistent format (e.g., RBD or netCDF).</p></li>
 <li><p><a class="reference internal" href="methods/trimming.html"><span class="doc">2. Trimming to Deployed period</span></a> describes how to trim the data to the deployment period and apply clock corrections.</p></li>
+<li><p><a class="reference internal" href="methods/auto_qc.html"><span class="doc">3. Automatic QC flagging</span></a> describes the approach for automatically generating and adding quality control flags to the data parameters (geophysical ones, e.g., <cite>TEMP</cite>, <cite>CNDC</cite>, <cite>PRES</cite>).</p></li>
 <li><p><a class="reference internal" href="methods/calibration.html"><span class="doc">3. Calibration (Instrument-level Corrections)</span></a> describes how to apply calibration corrections to the instrument data and create a traceable log of the calibration process.</p></li>
 <li><p><a class="reference internal" href="methods/conversion.html"><span class="doc">4. Conversion to OS format</span></a> describes how to convert the data to a common format (e.g., CF-netCDF) with rich metadata.</p></li>
 </ul>

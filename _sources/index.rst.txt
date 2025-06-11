@@ -25,6 +25,7 @@ Contents
    Data Acquisition <methods/acquisition>
    Standardisation <methods/standardisation>
    Trim to Deployment <methods/trimming>
+   Automatic QC <methods/auto_qc>
    Apply Calibration <methods/calibration>
    Convert to OceanSites <methods/conversion>
 
