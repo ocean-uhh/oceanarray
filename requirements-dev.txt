@@ -7,6 +7,7 @@ netcdf4>=1.6
 
 # Oceanographic tools
 gsw>=3.6.16
+ctd_tools
 #cmocean>=2.0  # optional, confirm usage
 #cartopy>=0.22  # optional, confirm usage
 
