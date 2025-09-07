@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>oceanarray demo - preparation &mdash; oceanarray v0.0.0 documentation</title>
+  <title>Demo: mooring-level processing (Step 1) &mdash; oceanarray v0.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="_static/nbsphinx-code-cells.css?v=2aa19091" />
@@ -25,7 +25,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="oceanarray API" href="oceanarray.html" />
-    <link rel="prev" title="Demo: instrument-level processing" href="demo_instrument-output.html" /> 
+    <link rel="prev" title="Demo: instrument-level processing (Stage 1 and Stage 2)" href="demo_instrument-output.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -74,11 +74,15 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="demo_instrument-output.html">Demo: instrument-level processing</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">oceanarray demo - preparation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#Stack-instruments-on-a-mooring">Stack instruments on a mooring</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#Step-1:-Grid-in-time">Step 1: Grid in time</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#Step-2:-Grid-vertically">Step 2: Grid vertically</a></li>
+<li class="toctree-l1"><a class="reference internal" href="demo_instrument-output.html">Demo: instrument-level processing (Stage 1 and Stage 2)</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Demo: mooring-level processing (Step 1)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Step-1:-Time-Gridding-and-Optional-Filtering-Demo">Step 1: Time Gridding and Optional Filtering Demo</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Configuration">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Examine-individual-instrument-files">Examine individual instrument files</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Process-with-time-gridding-(no-filtering)">Process with time gridding (no filtering)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Visualize-Combined-Dataset">Visualize Combined Dataset</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -102,7 +106,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">oceanarray demo - preparation</li>
+      <li class="breadcrumb-item active">Demo: mooring-level processing (Step 1)</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/demo_mooring-output.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
@@ -112,49 +116,85 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="oceanarray-demo---preparation">
-<h1>oceanarray demo - preparation<a class="headerlink" href="#oceanarray-demo---preparation" title="Link to this heading"></a></h1>
-<p>This notebook walks through the instrument-level processing.</p>
-<div class="nbinput nblast docutils container">
+  <section id="Demo:-mooring-level-processing-(Step-1)">
+<h1>Demo: mooring-level processing (Step 1)<a class="headerlink" href="#Demo:-mooring-level-processing-(Step-1)" title="Link to this heading"></a></h1>
+<p>This notebook demonstrates the first of the mooring-level processing steps, time_gridding.</p>
+<section id="Step-1:-Time-Gridding-and-Optional-Filtering-Demo">
+<h2>Step 1: Time Gridding and Optional Filtering Demo<a class="headerlink" href="#Step-1:-Time-Gridding-and-Optional-Filtering-Demo" title="Link to this heading"></a></h2>
+<p>This notebook demonstrates the Step 1 processing workflow for mooring data:</p>
+<ul class="simple">
+<li><p>Loading multiple instrument datasets</p></li>
+<li><p>Optional time-domain filtering (applied BEFORE interpolation)</p></li>
+<li><p>Interpolating onto a common time grid</p></li>
+<li><p>Combining into a unified mooring dataset</p></li>
+</ul>
+<p><strong>Key Point</strong>: Filtering is applied to individual instrument records on their native time grids BEFORE interpolation to preserve data integrity.</p>
+<div class="line-block">
+<div class="line">Version: 1.0</div>
+<div class="line">Date: 2025-09-07</div>
+</div>
+<div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">gsw</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray</span><span class="w"> </span><span class="kn">import</span> <span class="n">readers</span><span class="p">,</span> <span class="n">plotters</span><span class="p">,</span> <span class="n">tools</span><span class="p">,</span> <span class="n">convertOS</span><span class="p">,</span> <span class="n">writers</span><span class="p">,</span> <span class="n">mooring</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray</span><span class="w"> </span><span class="kn">import</span> <span class="n">rapid_interp</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">seaborn</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">sns</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+
+<span class="c1"># Import the time gridding module</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.time_gridding</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">TimeGriddingProcessor</span><span class="p">,</span>
+    <span class="n">time_gridding_mooring</span><span class="p">,</span>
+    <span class="n">process_multiple_moorings_time_gridding</span>
+<span class="p">)</span>
+
+<span class="c1"># Set up plotting</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">use</span><span class="p">(</span><span class="s1">&#39;default&#39;</span><span class="p">)</span>
+<span class="n">sns</span><span class="o">.</span><span class="n">set_palette</span><span class="p">(</span><span class="s2">&quot;husl&quot;</span><span class="p">)</span>
 <br/></pre></div>
 </div>
 </div>
-<section id="Stack-instruments-on-a-mooring">
-<h2>Stack instruments on a mooring<a class="headerlink" href="#Stack-instruments-on-a-mooring" title="Link to this heading"></a></h2>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">ModuleNotFoundError</span>                       Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[1]</span><span class="ansi-green-fg">, line 5</span>
+<span class="ansi-green-fg">      3</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">xarray</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">as</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">xr</span>
+<span class="ansi-green-fg">      4</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">matplotlib</span><span class="ansi-blue-intense-fg ansi-bold">.</span><span class="ansi-blue-intense-fg ansi-bold">pyplot</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">as</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">plt</span>
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">5</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">seaborn</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">as</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">sns</span>
+<span class="ansi-green-fg">      6</span> <span class="ansi-bold" style="color: rgb(0,135,0)">from</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">pathlib</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">import</span> Path
+<span class="ansi-green-fg">      7</span> <span class="ansi-bold" style="color: rgb(0,135,0)">import</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-blue-intense-fg ansi-bold">yaml</span>
+
+<span class="ansi-red-fg">ModuleNotFoundError</span>: No module named &#39;seaborn&#39;
+</pre></div></div>
+</div>
+<section id="Configuration">
+<h3>Configuration<a class="headerlink" href="#Configuration" title="Link to this heading"></a></h3>
+<p>First, let’s set up our data paths and examine the mooring configuration.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">data_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;..&quot;</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">)</span>
-<span class="n">files</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">data_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;OS_wb2_9_201114_P.nc&quot;</span><span class="p">))</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
-<span class="n">ds_stack</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">files</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Set your data paths here</span>
+<span class="n">basedir</span> <span class="o">=</span> <span class="s1">&#39;../data&#39;</span>
+<span class="n">mooring_name</span> <span class="o">=</span> <span class="s1">&#39;dsE_1_2018&#39;</span>
 
-<span class="c1">#ds_list_OS = readers.load_dataset(files)</span>
+<span class="c1"># Construct paths</span>
+<span class="n">proc_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">basedir</span><span class="p">)</span> <span class="o">/</span> <span class="s1">&#39;moor&#39;</span> <span class="o">/</span> <span class="s1">&#39;proc&#39;</span> <span class="o">/</span> <span class="n">mooring_name</span>
+<span class="n">config_file</span> <span class="o">=</span> <span class="n">proc_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">mooring_name</span><span class="si">}</span><span class="s2">.mooring.yaml&quot;</span>
 
-<span class="c1">#ds_stack = mooring.combine_mooring_OS(ds_list_OS)</span>
-<span class="c1">#ds_stack</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Processing directory: </span><span class="si">{</span><span class="n">proc_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Configuration file: </span><span class="si">{</span><span class="n">config_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Config exists: </span><span class="si">{</span><span class="n">config_file</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-[]
-</pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
 <div class="prompt empty docutils container">
@@ -162,30 +202,38 @@
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 <span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">IndexError</span>                                Traceback (most recent call last)
-<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[2]</span><span class="ansi-green-fg">, line 4</span>
-<span class="ansi-green-fg">      2</span> files = <span style="color: rgb(0,135,0)">list</span>(data_dir.glob(<span class="ansi-yellow-fg">&#34;</span><span class="ansi-yellow-fg">OS_wb2_9_201114_P.nc</span><span class="ansi-yellow-fg">&#34;</span>))
-<span class="ansi-green-fg">      3</span> <span style="color: rgb(0,135,0)">print</span>(files)
-<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">4</span> ds_stack = xr.open_dataset(<span class="ansi-yellow-bg">files</span><span class="ansi-yellow-bg">[</span><span class="ansi-green-fg ansi-yellow-bg">0</span><span class="ansi-yellow-bg">]</span>)
-<span class="ansi-green-fg">      6</span> <span style="color: rgb(95,135,135)">#ds_list_OS = readers.load_dataset(files)</span>
-<span class="ansi-green-fg">      7</span>
-<span class="ansi-green-fg">      8</span> <span style="color: rgb(95,135,135)">#ds_stack = mooring.combine_mooring_OS(ds_list_OS)</span>
-<span class="ansi-green-fg">      9</span> <span style="color: rgb(95,135,135)">#ds_stack</span>
+<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[2]</span><span class="ansi-green-fg">, line 6</span>
+<span class="ansi-green-fg">      3</span> mooring_name = <span class="ansi-yellow-fg">&#39;</span><span class="ansi-yellow-fg">dsE_1_2018</span><span class="ansi-yellow-fg">&#39;</span>
+<span class="ansi-green-fg">      5</span> <span style="color: rgb(95,135,135)"># Construct paths</span>
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">6</span> proc_dir = <span class="ansi-yellow-bg">Path</span>(basedir) / <span class="ansi-yellow-fg">&#39;</span><span class="ansi-yellow-fg">moor</span><span class="ansi-yellow-fg">&#39;</span> / <span class="ansi-yellow-fg">&#39;</span><span class="ansi-yellow-fg">proc</span><span class="ansi-yellow-fg">&#39;</span> / mooring_name
+<span class="ansi-green-fg">      7</span> config_file = proc_dir / <span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">&#34;</span><span class="ansi-bold" style="color: rgb(175,95,135)">{</span>mooring_name<span class="ansi-bold" style="color: rgb(175,95,135)">}</span><span class="ansi-yellow-fg">.mooring.yaml</span><span class="ansi-yellow-fg">&#34;</span>
+<span class="ansi-green-fg">      9</span> <span style="color: rgb(0,135,0)">print</span>(<span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">&#34;</span><span class="ansi-yellow-fg">Processing directory: </span><span class="ansi-bold" style="color: rgb(175,95,135)">{</span>proc_dir<span class="ansi-bold" style="color: rgb(175,95,135)">}</span><span class="ansi-yellow-fg">&#34;</span>)
 
-<span class="ansi-red-fg">IndexError</span>: list index out of range
+<span class="ansi-red-fg">NameError</span>: name &#39;Path&#39; is not defined
 </pre></div></div>
 </div>
-</section>
-<section id="Step-1:-Grid-in-time">
-<h2>Step 1: Grid in time<a class="headerlink" href="#Step-1:-Grid-in-time" title="Link to this heading"></a></h2>
-<p>In this case, we are filtering with a 2-day 6th order Butterworth filter, then linearly interpolating onto a regular 12-hour grid.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ds_filt</span> <span class="o">=</span> <span class="n">mooring</span><span class="o">.</span><span class="n">filter_all_time_vars</span><span class="p">(</span><span class="n">ds_stack</span><span class="p">)</span>
-<span class="n">ds_12h</span> <span class="o">=</span> <span class="n">mooring</span><span class="o">.</span><span class="n">interp_to_12hour_grid</span><span class="p">(</span><span class="n">ds_filt</span><span class="p">)</span>
-<span class="n">ds_12h</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Load and examine the mooring configuration</span>
+<span class="k">if</span> <span class="n">config_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Mooring Configuration:&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Name: </span><span class="si">{</span><span class="n">config</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Water depth: </span><span class="si">{</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;waterdepth&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2"> m&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Location: </span><span class="si">{</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;latitude&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">°N, </span><span class="si">{</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;longitude&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">°E&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Instruments (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;instruments&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">[]))</span><span class="si">}</span><span class="s2">):&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">inst</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;instruments&#39;</span><span class="p">,</span> <span class="p">[])):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">. </span><span class="si">{</span><span class="n">inst</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;instrument&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2"> &quot;</span>
+              <span class="sa">f</span><span class="s2">&quot;(serial: </span><span class="si">{</span><span class="n">inst</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;serial num.&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">) at </span><span class="si">{</span><span class="n">inst</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;depth&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2"> m&quot;</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Configuration file not found!&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Please check your data path and mooring name.&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -196,587 +244,91 @@
 <div class="highlight"><pre>
 <span class="ansi-red-fg">---------------------------------------------------------------------------</span>
 <span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[3]</span><span class="ansi-green-fg">, line 1</span>
-<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">1</span> ds_filt = mooring.filter_all_time_vars(<span class="ansi-yellow-bg">ds_stack</span>)
-<span class="ansi-green-fg">      2</span> ds_12h = mooring.interp_to_12hour_grid(ds_filt)
-<span class="ansi-green-fg">      3</span> ds_12h
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[3]</span><span class="ansi-green-fg">, line 2</span>
+<span class="ansi-green-fg">      1</span> <span style="color: rgb(95,135,135)"># Load and examine the mooring configuration</span>
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">2</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> <span class="ansi-yellow-bg">config_file</span>.exists():
+<span class="ansi-green-fg">      3</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">with</span> <span style="color: rgb(0,135,0)">open</span>(config_file, <span class="ansi-yellow-fg">&#39;</span><span class="ansi-yellow-fg">r</span><span class="ansi-yellow-fg">&#39;</span>) <span class="ansi-bold" style="color: rgb(0,135,0)">as</span> f:
+<span class="ansi-green-fg">      4</span>         config = yaml.safe_load(f)
 
-<span class="ansi-red-fg">NameError</span>: name &#39;ds_stack&#39; is not defined
+<span class="ansi-red-fg">NameError</span>: name &#39;config_file&#39; is not defined
 </pre></div></div>
 </div>
+</section>
+<section id="Examine-individual-instrument-files">
+<h3>Examine individual instrument files<a class="headerlink" href="#Examine-individual-instrument-files" title="Link to this heading"></a></h3>
+<p>Let’s look at the individual instrument files before processing to understand the different sampling rates and data characteristics.</p>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Plot the temperature time series by depth</span>
-<span class="n">plotters</span><span class="o">.</span><span class="n">plot_timeseries_by_depth</span><span class="p">(</span><span class="n">ds_12h</span><span class="p">,</span> <span class="n">var</span><span class="o">=</span><span class="s2">&quot;CNDC&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[4]</span><span class="ansi-green-fg">, line 2</span>
-<span class="ansi-green-fg">      1</span> <span style="color: rgb(95,135,135)"># Plot the temperature time series by depth</span>
-<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">2</span> plotters.plot_timeseries_by_depth(<span class="ansi-yellow-bg">ds_12h</span>, var=<span class="ansi-yellow-fg">&#34;</span><span class="ansi-yellow-fg">CNDC</span><span class="ansi-yellow-fg">&#34;</span>)
-
-<span class="ansi-red-fg">NameError</span>: name &#39;ds_12h&#39; is not defined
-</pre></div></div>
-</div>
-<p>plotters.plot_timeseries_by_depth(ds_12h, var=”PRES”)</p>
-</section>
-<section id="Step-2:-Grid-vertically">
-<h2>Step 2: Grid vertically<a class="headerlink" href="#Step-2:-Grid-vertically" title="Link to this heading"></a></h2>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">clim_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;../data/climatology_WB2.nc&quot;</span><span class="p">)</span>
-<span class="n">ds_clim</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">clim_path</span><span class="p">)</span>
-<span class="c1"># plot the climatology</span>
-<span class="c1"># Plot the climatology</span>
-<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
-<span class="n">plotters</span><span class="o">.</span><span class="n">plot_climatology</span><span class="p">(</span><span class="n">ds_clim</span><span class="p">,</span> <span class="n">clim_ds_smoothed</span><span class="o">=</span><span class="n">ds_clim</span><span class="p">,</span><span class="n">var</span><span class="o">=</span><span class="s2">&quot;dTdp&quot;</span><span class="p">,</span> <span class="n">fig</span><span class="o">=</span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-<span class="n">plotters</span><span class="o">.</span><span class="n">plot_climatology</span><span class="p">(</span><span class="n">ds_clim</span><span class="p">,</span> <span class="n">clim_ds_smoothed</span><span class="o">=</span><span class="n">ds_clim</span><span class="p">,</span> <span class="n">var</span><span class="o">=</span><span class="s2">&quot;dSdp&quot;</span><span class="p">,</span> <span class="n">fig</span><span class="o">=</span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
-</pre></div>
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-(&lt;Figure size 1200x300 with 2 Axes&gt;,
- &lt;Axes: title={&#39;center&#39;: &#39;Monthly dSdp Climatology&#39;}, xlabel=&#39;Temperature (°C)&#39;, ylabel=&#39;dSdp (per dbar)&#39;&gt;)
-</pre></div></div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<img alt="_images/demo_mooring-output_9_1.png" src="_images/demo_mooring-output_9_1.png" />
-</div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># The climatology is in SA and CT, so we need to convert our data</span>
-<span class="c1"># Maybe for similarity with RAPID, we shoudl convert the climatology to T and S</span>
-<span class="n">ds_clim</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
-</pre></div>
-</div>
-<div class="output_area rendered_html docutils container">
-<div><svg style="position: absolute; width: 0; height: 0; overflow: hidden">
-<defs>
-<symbol id="icon-database" viewBox="0 0 32 32">
-<path d="M16 0c-8.837 0-16 2.239-16 5v4c0 2.761 7.163 5 16 5s16-2.239 16-5v-4c0-2.761-7.163-5-16-5z"></path>
-<path d="M16 17c-8.837 0-16-2.239-16-5v6c0 2.761 7.163 5 16 5s16-2.239 16-5v-6c0 2.761-7.163 5-16 5z"></path>
-<path d="M16 26c-8.837 0-16-2.239-16-5v6c0 2.761 7.163 5 16 5s16-2.239 16-5v-6c0 2.761-7.163 5-16 5z"></path>
-</symbol>
-<symbol id="icon-file-text2" viewBox="0 0 32 32">
-<path d="M28.681 7.159c-0.694-0.947-1.662-2.053-2.724-3.116s-2.169-2.030-3.116-2.724c-1.612-1.182-2.393-1.319-2.841-1.319h-15.5c-1.378 0-2.5 1.121-2.5 2.5v27c0 1.378 1.122 2.5 2.5 2.5h23c1.378 0 2.5-1.122 2.5-2.5v-19.5c0-0.448-0.137-1.23-1.319-2.841zM24.543 5.457c0.959 0.959 1.712 1.825 2.268 2.543h-4.811v-4.811c0.718 0.556 1.584 1.309 2.543 2.268zM28 29.5c0 0.271-0.229 0.5-0.5 0.5h-23c-0.271 0-0.5-0.229-0.5-0.5v-27c0-0.271 0.229-0.5 0.5-0.5 0 0 15.499-0 15.5 0v7c0 0.552 0.448 1 1 1h7v19.5z"></path>
-<path d="M23 26h-14c-0.552 0-1-0.448-1-1s0.448-1 1-1h14c0.552 0 1 0.448 1 1s-0.448 1-1 1z"></path>
-<path d="M23 22h-14c-0.552 0-1-0.448-1-1s0.448-1 1-1h14c0.552 0 1 0.448 1 1s-0.448 1-1 1z"></path>
-<path d="M23 18h-14c-0.552 0-1-0.448-1-1s0.448-1 1-1h14c0.552 0 1 0.448 1 1s-0.448 1-1 1z"></path>
-</symbol>
-</defs>
-</svg>
-<style>/* CSS stylesheet for displaying xarray objects in jupyterlab.
- *
- */
-
-:root {
-  --xr-font-color0: var(
-    --jp-content-font-color0,
-    var(--pst-color-text-base rgba(0, 0, 0, 1))
-  );
-  --xr-font-color2: var(
-    --jp-content-font-color2,
-    var(--pst-color-text-base, rgba(0, 0, 0, 0.54))
-  );
-  --xr-font-color3: var(
-    --jp-content-font-color3,
-    var(--pst-color-text-base, rgba(0, 0, 0, 0.38))
-  );
-  --xr-border-color: var(
-    --jp-border-color2,
-    hsl(from var(--pst-color-on-background, white) h s calc(l - 10))
-  );
-  --xr-disabled-color: var(
-    --jp-layout-color3,
-    hsl(from var(--pst-color-on-background, white) h s calc(l - 40))
-  );
-  --xr-background-color: var(
-    --jp-layout-color0,
-    var(--pst-color-on-background, white)
-  );
-  --xr-background-color-row-even: var(
-    --jp-layout-color1,
-    hsl(from var(--pst-color-on-background, white) h s calc(l - 5))
-  );
-  --xr-background-color-row-odd: var(
-    --jp-layout-color2,
-    hsl(from var(--pst-color-on-background, white) h s calc(l - 15))
-  );
-}
-
-html[theme="dark"],
-html[data-theme="dark"],
-body[data-theme="dark"],
-body.vscode-dark {
-  --xr-font-color0: var(
-    --jp-content-font-color0,
-    var(--pst-color-text-base, rgba(255, 255, 255, 1))
-  );
-  --xr-font-color2: var(
-    --jp-content-font-color2,
-    var(--pst-color-text-base, rgba(255, 255, 255, 0.54))
-  );
-  --xr-font-color3: var(
-    --jp-content-font-color3,
-    var(--pst-color-text-base, rgba(255, 255, 255, 0.38))
-  );
-  --xr-border-color: var(
-    --jp-border-color2,
-    hsl(from var(--pst-color-on-background, #111111) h s calc(l + 10))
-  );
-  --xr-disabled-color: var(
-    --jp-layout-color3,
-    hsl(from var(--pst-color-on-background, #111111) h s calc(l + 40))
-  );
-  --xr-background-color: var(
-    --jp-layout-color0,
-    var(--pst-color-on-background, #111111)
-  );
-  --xr-background-color-row-even: var(
-    --jp-layout-color1,
-    hsl(from var(--pst-color-on-background, #111111) h s calc(l + 5))
-  );
-  --xr-background-color-row-odd: var(
-    --jp-layout-color2,
-    hsl(from var(--pst-color-on-background, #111111) h s calc(l + 15))
-  );
-}
-
-.xr-wrap {
-  display: block !important;
-  min-width: 300px;
-  max-width: 700px;
-}
-
-.xr-text-repr-fallback {
-  /* fallback to plain text repr when CSS is not injected (untrusted notebook) */
-  display: none;
-}
-
-.xr-header {
-  padding-top: 6px;
-  padding-bottom: 6px;
-  margin-bottom: 4px;
-  border-bottom: solid 1px var(--xr-border-color);
-}
-
-.xr-header > div,
-.xr-header > ul {
-  display: inline;
-  margin-top: 0;
-  margin-bottom: 0;
-}
-
-.xr-obj-type,
-.xr-array-name {
-  margin-left: 2px;
-  margin-right: 10px;
-}
-
-.xr-obj-type {
-  color: var(--xr-font-color2);
-}
-
-.xr-sections {
-  padding-left: 0 !important;
-  display: grid;
-  grid-template-columns: 150px auto auto 1fr 0 20px 0 20px;
-}
-
-.xr-section-item {
-  display: contents;
-}
-
-.xr-section-item input {
-  display: inline-block;
-  opacity: 0;
-  height: 0;
-}
-
-.xr-section-item input + label {
-  color: var(--xr-disabled-color);
-  border: 2px solid transparent !important;
-}
-
-.xr-section-item input:enabled + label {
-  cursor: pointer;
-  color: var(--xr-font-color2);
-}
-
-.xr-section-item input:focus + label {
-  border: 2px solid var(--xr-font-color0) !important;
-}
-
-.xr-section-item input:enabled + label:hover {
-  color: var(--xr-font-color0);
-}
-
-.xr-section-summary {
-  grid-column: 1;
-  color: var(--xr-font-color2);
-  font-weight: 500;
-}
-
-.xr-section-summary > span {
-  display: inline-block;
-  padding-left: 0.5em;
-}
-
-.xr-section-summary-in:disabled + label {
-  color: var(--xr-font-color2);
-}
-
-.xr-section-summary-in + label:before {
-  display: inline-block;
-  content: "►";
-  font-size: 11px;
-  width: 15px;
-  text-align: center;
-}
-
-.xr-section-summary-in:disabled + label:before {
-  color: var(--xr-disabled-color);
-}
-
-.xr-section-summary-in:checked + label:before {
-  content: "▼";
-}
-
-.xr-section-summary-in:checked + label > span {
-  display: none;
-}
-
-.xr-section-summary,
-.xr-section-inline-details {
-  padding-top: 4px;
-  padding-bottom: 4px;
-}
-
-.xr-section-inline-details {
-  grid-column: 2 / -1;
-}
-
-.xr-section-details {
-  display: none;
-  grid-column: 1 / -1;
-  margin-bottom: 5px;
-}
-
-.xr-section-summary-in:checked ~ .xr-section-details {
-  display: contents;
-}
-
-.xr-array-wrap {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: 20px auto;
-}
-
-.xr-array-wrap > label {
-  grid-column: 1;
-  vertical-align: top;
-}
-
-.xr-preview {
-  color: var(--xr-font-color3);
-}
-
-.xr-array-preview,
-.xr-array-data {
-  padding: 0 5px !important;
-  grid-column: 2;
-}
-
-.xr-array-data,
-.xr-array-in:checked ~ .xr-array-preview {
-  display: none;
-}
-
-.xr-array-in:checked ~ .xr-array-data,
-.xr-array-preview {
-  display: inline-block;
-}
-
-.xr-dim-list {
-  display: inline-block !important;
-  list-style: none;
-  padding: 0 !important;
-  margin: 0;
-}
-
-.xr-dim-list li {
-  display: inline-block;
-  padding: 0;
-  margin: 0;
-}
-
-.xr-dim-list:before {
-  content: "(";
-}
-
-.xr-dim-list:after {
-  content: ")";
-}
-
-.xr-dim-list li:not(:last-child):after {
-  content: ",";
-  padding-right: 5px;
-}
-
-.xr-has-index {
-  font-weight: bold;
-}
-
-.xr-var-list,
-.xr-var-item {
-  display: contents;
-}
-
-.xr-var-item > div,
-.xr-var-item label,
-.xr-var-item > .xr-var-name span {
-  background-color: var(--xr-background-color-row-even);
-  border-color: var(--xr-background-color-row-odd);
-  margin-bottom: 0;
-  padding-top: 2px;
-}
-
-.xr-var-item > .xr-var-name:hover span {
-  padding-right: 5px;
-}
-
-.xr-var-list > li:nth-child(odd) > div,
-.xr-var-list > li:nth-child(odd) > label,
-.xr-var-list > li:nth-child(odd) > .xr-var-name span {
-  background-color: var(--xr-background-color-row-odd);
-  border-color: var(--xr-background-color-row-even);
-}
-
-.xr-var-name {
-  grid-column: 1;
-}
-
-.xr-var-dims {
-  grid-column: 2;
-}
-
-.xr-var-dtype {
-  grid-column: 3;
-  text-align: right;
-  color: var(--xr-font-color2);
-}
-
-.xr-var-preview {
-  grid-column: 4;
-}
-
-.xr-index-preview {
-  grid-column: 2 / 5;
-  color: var(--xr-font-color2);
-}
-
-.xr-var-name,
-.xr-var-dims,
-.xr-var-dtype,
-.xr-preview,
-.xr-attrs dt {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding-right: 10px;
-}
-
-.xr-var-name:hover,
-.xr-var-dims:hover,
-.xr-var-dtype:hover,
-.xr-attrs dt:hover {
-  overflow: visible;
-  width: auto;
-  z-index: 1;
-}
-
-.xr-var-attrs,
-.xr-var-data,
-.xr-index-data {
-  display: none;
-  border-top: 2px dotted var(--xr-background-color);
-  padding-bottom: 20px !important;
-  padding-top: 10px !important;
-}
-
-.xr-var-attrs-in + label,
-.xr-var-data-in + label,
-.xr-index-data-in + label {
-  padding: 0 1px;
-}
-
-.xr-var-attrs-in:checked ~ .xr-var-attrs,
-.xr-var-data-in:checked ~ .xr-var-data,
-.xr-index-data-in:checked ~ .xr-index-data {
-  display: block;
-}
-
-.xr-var-data > table {
-  float: right;
-}
-
-.xr-var-data > pre,
-.xr-index-data > pre,
-.xr-var-data > table > tbody > tr {
-  background-color: transparent !important;
-}
-
-.xr-var-name span,
-.xr-var-data,
-.xr-index-name div,
-.xr-index-data,
-.xr-attrs {
-  padding-left: 25px !important;
-}
-
-.xr-attrs,
-.xr-var-attrs,
-.xr-var-data,
-.xr-index-data {
-  grid-column: 1 / -1;
-}
-
-dl.xr-attrs {
-  padding: 0;
-  margin: 0;
-  display: grid;
-  grid-template-columns: 125px auto;
-}
-
-.xr-attrs dt,
-.xr-attrs dd {
-  padding: 0;
-  margin: 0;
-  float: left;
-  padding-right: 10px;
-  width: auto;
-}
-
-.xr-attrs dt {
-  font-weight: normal;
-  grid-column: 1;
-}
-
-.xr-attrs dt:hover span {
-  display: inline-block;
-  background: var(--xr-background-color);
-  padding-right: 10px;
-}
-
-.xr-attrs dd {
-  grid-column: 2;
-  white-space: pre-wrap;
-  word-break: break-all;
-}
-
-.xr-icon-database,
-.xr-icon-file-text2,
-.xr-no-icon {
-  display: inline-block;
-  vertical-align: middle;
-  width: 1em;
-  height: 1.5em !important;
-  stroke-width: 0;
-  stroke: currentColor;
-  fill: currentColor;
-}
-
-.xr-var-attrs-in:checked + label > .xr-icon-file-text2,
-.xr-var-data-in:checked + label > .xr-icon-database,
-.xr-index-data-in:checked + label > .xr-icon-database {
-  color: var(--xr-font-color0);
-  filter: drop-shadow(1px 1px 5px var(--xr-font-color2));
-  stroke-width: 0.8px;
-}
-</style><pre class='xr-text-repr-fallback'>&lt;xarray.Dataset&gt; Size: 15kB
-Dimensions:  (month: 12, TEMP: 74)
-Coordinates:
-  * month    (month) int64 96B 1 2 3 4 5 6 7 8 9 10 11 12
-  * TEMP     (TEMP) float64 592B -1.75 -1.25 -0.75 -0.25 ... 33.75 34.25 34.75
-Data variables:
-    dTdp     (month, TEMP) float64 7kB ...
-    dSdp     (month, TEMP) float64 7kB ...
-Attributes:
-    method:          seasonal climatology built from downsampled CTD profiles
-    temp_bin_width:  0.5
-    description:     Monthly climatology of dT/dP and dS/dP vs temperature.
-    generated_by:    verticalnn rapid_interp module
-    created_on:      2025-06-09T17:45:03</pre><div class='xr-wrap' style='display:none'><div class='xr-header'><div class='xr-obj-type'>xarray.Dataset</div></div><ul class='xr-sections'><li class='xr-section-item'><input id='section-aa4e404f-6d17-4e41-b94f-283b53bbffeb' class='xr-section-summary-in' type='checkbox' disabled ><label for='section-aa4e404f-6d17-4e41-b94f-283b53bbffeb' class='xr-section-summary'  title='Expand/collapse section'>Dimensions:</label><div class='xr-section-inline-details'><ul class='xr-dim-list'><li><span class='xr-has-index'>month</span>: 12</li><li><span class='xr-has-index'>TEMP</span>: 74</li></ul></div><div class='xr-section-details'></div></li><li class='xr-section-item'><input id='section-026a43e4-b7e7-41ea-bd5b-9818355e79ae' class='xr-section-summary-in' type='checkbox'  checked><label for='section-026a43e4-b7e7-41ea-bd5b-9818355e79ae' class='xr-section-summary' >Coordinates: <span>(2)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><ul class='xr-var-list'><li class='xr-var-item'><div class='xr-var-name'><span class='xr-has-index'>month</span></div><div class='xr-var-dims'>(month)</div><div class='xr-var-dtype'>int64</div><div class='xr-var-preview xr-preview'>1 2 3 4 5 6 7 8 9 10 11 12</div><input id='attrs-4acd68ff-2b27-4055-b901-8f505197af77' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-4acd68ff-2b27-4055-b901-8f505197af77' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-d300813b-f7b9-4cb4-8044-53506967468c' class='xr-var-data-in' type='checkbox'><label for='data-d300813b-f7b9-4cb4-8044-53506967468c' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>array([ 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12])</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span class='xr-has-index'>TEMP</span></div><div class='xr-var-dims'>(TEMP)</div><div class='xr-var-dtype'>float64</div><div class='xr-var-preview xr-preview'>-1.75 -1.25 -0.75 ... 34.25 34.75</div><input id='attrs-f5a7d31e-4fac-4a43-a9fa-b8be47a63a34' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-f5a7d31e-4fac-4a43-a9fa-b8be47a63a34' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-b4927a1c-f7e3-427d-87e1-8452e76be647' class='xr-var-data-in' type='checkbox'><label for='data-b4927a1c-f7e3-427d-87e1-8452e76be647' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>array([-1.75, -1.25, -0.75, -0.25,  0.25,  0.75,  1.25,  1.75,  2.25,  2.75,
-        3.25,  3.75,  4.25,  4.75,  5.25,  5.75,  6.25,  6.75,  7.25,  7.75,
-        8.25,  8.75,  9.25,  9.75, 10.25, 10.75, 11.25, 11.75, 12.25, 12.75,
-       13.25, 13.75, 14.25, 14.75, 15.25, 15.75, 16.25, 16.75, 17.25, 17.75,
-       18.25, 18.75, 19.25, 19.75, 20.25, 20.75, 21.25, 21.75, 22.25, 22.75,
-       23.25, 23.75, 24.25, 24.75, 25.25, 25.75, 26.25, 26.75, 27.25, 27.75,
-       28.25, 28.75, 29.25, 29.75, 30.25, 30.75, 31.25, 31.75, 32.25, 32.75,
-       33.25, 33.75, 34.25, 34.75])</pre></div></li></ul></div></li><li class='xr-section-item'><input id='section-db9342c9-7f57-4114-91ea-b374fc5bd640' class='xr-section-summary-in' type='checkbox'  checked><label for='section-db9342c9-7f57-4114-91ea-b374fc5bd640' class='xr-section-summary' >Data variables: <span>(2)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><ul class='xr-var-list'><li class='xr-var-item'><div class='xr-var-name'><span>dTdp</span></div><div class='xr-var-dims'>(month, TEMP)</div><div class='xr-var-dtype'>float64</div><div class='xr-var-preview xr-preview'>...</div><input id='attrs-f0b4c378-4739-4a7e-ab5d-9d2493c0bd77' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-f0b4c378-4739-4a7e-ab5d-9d2493c0bd77' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-1593bd14-c70e-42ce-b368-7d685f215bf5' class='xr-var-data-in' type='checkbox'><label for='data-1593bd14-c70e-42ce-b368-7d685f215bf5' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>[888 values with dtype=float64]</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>dSdp</span></div><div class='xr-var-dims'>(month, TEMP)</div><div class='xr-var-dtype'>float64</div><div class='xr-var-preview xr-preview'>...</div><input id='attrs-4fa95ae4-4e5a-481c-9ba7-87e7c13bcb77' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-4fa95ae4-4e5a-481c-9ba7-87e7c13bcb77' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-202319d8-4e0f-41e6-a811-a008f2fa3fb9' class='xr-var-data-in' type='checkbox'><label for='data-202319d8-4e0f-41e6-a811-a008f2fa3fb9' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>[888 values with dtype=float64]</pre></div></li></ul></div></li><li class='xr-section-item'><input id='section-e9f2035f-4c1d-4df4-b617-15ca6989bb73' class='xr-section-summary-in' type='checkbox'  ><label for='section-e9f2035f-4c1d-4df4-b617-15ca6989bb73' class='xr-section-summary' >Indexes: <span>(2)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><ul class='xr-var-list'><li class='xr-var-item'><div class='xr-index-name'><div>month</div></div><div class='xr-index-preview'>PandasIndex</div><input type='checkbox' disabled/><label></label><input id='index-74b9f616-85d3-402b-b913-fc24596d4f7f' class='xr-index-data-in' type='checkbox'/><label for='index-74b9f616-85d3-402b-b913-fc24596d4f7f' title='Show/Hide index repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-index-data'><pre>PandasIndex(Index([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], dtype=&#x27;int64&#x27;, name=&#x27;month&#x27;))</pre></div></li><li class='xr-var-item'><div class='xr-index-name'><div>TEMP</div></div><div class='xr-index-preview'>PandasIndex</div><input type='checkbox' disabled/><label></label><input id='index-ab8eaee9-38c0-4f62-8ee3-709378b81252' class='xr-index-data-in' type='checkbox'/><label for='index-ab8eaee9-38c0-4f62-8ee3-709378b81252' title='Show/Hide index repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-index-data'><pre>PandasIndex(Index([-1.75, -1.25, -0.75, -0.25,  0.25,  0.75,  1.25,  1.75,  2.25,  2.75,
-        3.25,  3.75,  4.25,  4.75,  5.25,  5.75,  6.25,  6.75,  7.25,  7.75,
-        8.25,  8.75,  9.25,  9.75, 10.25, 10.75, 11.25, 11.75, 12.25, 12.75,
-       13.25, 13.75, 14.25, 14.75, 15.25, 15.75, 16.25, 16.75, 17.25, 17.75,
-       18.25, 18.75, 19.25, 19.75, 20.25, 20.75, 21.25, 21.75, 22.25, 22.75,
-       23.25, 23.75, 24.25, 24.75, 25.25, 25.75, 26.25, 26.75, 27.25, 27.75,
-       28.25, 28.75, 29.25, 29.75, 30.25, 30.75, 31.25, 31.75, 32.25, 32.75,
-       33.25, 33.75, 34.25, 34.75],
-      dtype=&#x27;float64&#x27;, name=&#x27;TEMP&#x27;))</pre></div></li></ul></div></li><li class='xr-section-item'><input id='section-678ccc2b-4be6-4fe7-a521-b5c4118622b5' class='xr-section-summary-in' type='checkbox'  checked><label for='section-678ccc2b-4be6-4fe7-a521-b5c4118622b5' class='xr-section-summary' >Attributes: <span>(5)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><dl class='xr-attrs'><dt><span>method :</span></dt><dd>seasonal climatology built from downsampled CTD profiles</dd><dt><span>temp_bin_width :</span></dt><dd>0.5</dd><dt><span>description :</span></dt><dd>Monthly climatology of dT/dP and dS/dP vs temperature.</dd><dt><span>generated_by :</span></dt><dd>verticalnn rapid_interp module</dd><dt><span>created_on :</span></dt><dd>2025-06-09T17:45:03</dd></dl></div></li></ul></div></div></div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pmax</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ds_12h</span><span class="o">.</span><span class="n">PRES</span><span class="o">.</span><span class="n">max</span><span class="p">())</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Maximum pressure in ds_interp:&quot;</span><span class="p">,</span> <span class="n">pmax</span><span class="p">)</span>
-
-<span class="n">pmax</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">ds_12h</span><span class="o">.</span><span class="n">PRES</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="mi">3900</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Maximum pressure after adjustment:&quot;</span><span class="p">,</span> <span class="n">pmax</span><span class="p">)</span>
-
-<span class="n">pgrid</span> <span class="o">=</span> <span class="n">rapid_interp</span><span class="o">.</span><span class="n">spacing</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">pmax</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
-
-<span class="n">SP</span> <span class="o">=</span> <span class="n">gsw</span><span class="o">.</span><span class="n">SP_from_C</span><span class="p">(</span><span class="n">ds_12h</span><span class="p">[</span><span class="s2">&quot;CNDC&quot;</span><span class="p">],</span> <span class="n">ds_12h</span><span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">],</span> <span class="n">ds_12h</span><span class="p">[</span><span class="s2">&quot;PRES&quot;</span><span class="p">])</span>
-<span class="n">SA</span> <span class="o">=</span> <span class="n">gsw</span><span class="o">.</span><span class="n">SA_from_SP</span><span class="p">(</span><span class="n">SP</span><span class="p">,</span> <span class="n">ds_12h</span><span class="p">[</span><span class="s2">&quot;PRES&quot;</span><span class="p">],</span> <span class="n">ds_12h</span><span class="p">[</span><span class="s2">&quot;LONGITUDE&quot;</span><span class="p">],</span> <span class="n">ds_12h</span><span class="p">[</span><span class="s2">&quot;LATITUDE&quot;</span><span class="p">])</span>
-<span class="n">CT</span> <span class="o">=</span> <span class="n">gsw</span><span class="o">.</span><span class="n">CT_from_t</span><span class="p">(</span><span class="n">SA</span><span class="p">,</span> <span class="n">ds_12h</span><span class="p">[</span><span class="s2">&quot;TEMP&quot;</span><span class="p">],</span> <span class="n">ds_12h</span><span class="p">[</span><span class="s2">&quot;PRES&quot;</span><span class="p">])</span>
-<span class="n">ds_12h</span> <span class="o">=</span> <span class="n">ds_12h</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">SP</span><span class="o">=</span><span class="p">((</span><span class="s2">&quot;TIME&quot;</span><span class="p">,</span> <span class="s2">&quot;DEPTH&quot;</span><span class="p">,</span> <span class="s2">&quot;LATITUDE&quot;</span><span class="p">,</span> <span class="s2">&quot;LONGITUDE&quot;</span><span class="p">),</span> <span class="n">SP</span><span class="o">.</span><span class="n">data</span><span class="p">),</span>
-    <span class="n">SA</span><span class="o">=</span><span class="p">((</span><span class="s2">&quot;TIME&quot;</span><span class="p">,</span> <span class="s2">&quot;DEPTH&quot;</span><span class="p">,</span> <span class="s2">&quot;LATITUDE&quot;</span><span class="p">,</span> <span class="s2">&quot;LONGITUDE&quot;</span><span class="p">),</span> <span class="n">SA</span><span class="o">.</span><span class="n">data</span><span class="p">),</span>
-    <span class="n">CT</span><span class="o">=</span><span class="p">((</span><span class="s2">&quot;TIME&quot;</span><span class="p">,</span> <span class="s2">&quot;DEPTH&quot;</span><span class="p">,</span> <span class="s2">&quot;LATITUDE&quot;</span><span class="p">,</span> <span class="s2">&quot;LONGITUDE&quot;</span><span class="p">),</span> <span class="n">CT</span><span class="o">.</span><span class="n">data</span><span class="p">))</span>
-<span class="n">lat</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ds_12h</span><span class="p">[</span><span class="s2">&quot;LATITUDE&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
-<span class="n">lon</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">ds_12h</span><span class="p">[</span><span class="s2">&quot;LONGITUDE&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
-
-<span class="n">ds_12h</span> <span class="o">=</span> <span class="n">ds_12h</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;LATITUDE&quot;</span><span class="p">,</span> <span class="s2">&quot;LONGITUDE&quot;</span><span class="p">],</span> <span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="n">ds_12h</span> <span class="o">=</span> <span class="n">ds_12h</span><span class="o">.</span><span class="n">assign_coords</span><span class="p">(</span><span class="n">LATITUDE</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;TIME&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">lat</span><span class="p">]</span> <span class="o">*</span> <span class="n">ds_12h</span><span class="o">.</span><span class="n">dims</span><span class="p">[</span><span class="s2">&quot;TIME&quot;</span><span class="p">]))</span>
-<span class="n">ds_12h</span> <span class="o">=</span> <span class="n">ds_12h</span><span class="o">.</span><span class="n">assign_coords</span><span class="p">(</span><span class="n">LONGITUDE</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;TIME&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">lon</span><span class="p">]</span> <span class="o">*</span> <span class="n">ds_12h</span><span class="o">.</span><span class="n">dims</span><span class="p">[</span><span class="s2">&quot;TIME&quot;</span><span class="p">]))</span>
-
-<span class="n">ds_interp</span> <span class="o">=</span> <span class="n">rapid_interp</span><span class="o">.</span><span class="n">interpolate_profiles</span><span class="p">(</span><span class="n">ds_12h</span><span class="p">,</span> <span class="n">ds_clim</span><span class="p">,</span> <span class="n">time_key</span><span class="o">=</span><span class="s2">&quot;TIME&quot;</span><span class="p">,</span> <span class="n">p_grid</span><span class="o">=</span><span class="n">pgrid</span><span class="p">)</span>
-<span class="n">ds_12h</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Find and examine individual instrument files</span>
+<span class="n">file_suffix</span> <span class="o">=</span> <span class="s2">&quot;_use&quot;</span>
+<span class="n">instrument_files</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">instrument_datasets</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="k">if</span> <span class="n">config_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+    <span class="k">for</span> <span class="n">inst_config</span> <span class="ow">in</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;instruments&quot;</span><span class="p">,</span> <span class="p">[]):</span>
+        <span class="n">instrument_type</span> <span class="o">=</span> <span class="n">inst_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;instrument&quot;</span><span class="p">,</span> <span class="s2">&quot;unknown&quot;</span><span class="p">)</span>
+        <span class="n">serial</span> <span class="o">=</span> <span class="n">inst_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;serial&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">depth</span> <span class="o">=</span> <span class="n">inst_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;depth&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Look for the file</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">mooring_name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">serial</span><span class="si">}{</span><span class="n">file_suffix</span><span class="si">}</span><span class="s2">.nc&quot;</span>
+        <span class="n">filepath</span> <span class="o">=</span> <span class="n">proc_dir</span> <span class="o">/</span> <span class="n">instrument_type</span> <span class="o">/</span> <span class="n">filename</span>
+
+        <span class="k">if</span> <span class="n">filepath</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+            <span class="n">instrument_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+            <span class="n">instrument_datasets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+            <span class="c1"># Time coverage</span>
+            <span class="n">t0</span><span class="p">,</span> <span class="n">t1</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">ds</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">npoints</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">time</span><span class="p">)</span>
+
+            <span class="c1"># Median sampling interval</span>
+            <span class="n">time_diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">values</span><span class="p">)</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">timedelta64</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;m&quot;</span><span class="p">)</span>  <span class="c1"># in minutes</span>
+            <span class="n">median_interval</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmedian</span><span class="p">(</span><span class="n">time_diff</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">median_interval</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">sampling</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">median_interval</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> min&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">sampling</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">median_interval</span><span class="o">*</span><span class="mi">60</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> sec&quot;</span>
+
+            <span class="c1"># Collect a row for the table</span>
+            <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;Instrument&quot;</span><span class="p">:</span> <span class="n">instrument_type</span><span class="p">,</span>
+                    <span class="s2">&quot;Serial&quot;</span><span class="p">:</span> <span class="n">serial</span><span class="p">,</span>
+                    <span class="s2">&quot;Depth [m]&quot;</span><span class="p">:</span> <span class="n">depth</span><span class="p">,</span>
+                    <span class="s2">&quot;File&quot;</span><span class="p">:</span> <span class="n">filepath</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="s2">&quot;Start&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">t0</span><span class="p">)[:</span><span class="mi">19</span><span class="p">],</span>
+                    <span class="s2">&quot;End&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">t1</span><span class="p">)[:</span><span class="mi">19</span><span class="p">],</span>
+                    <span class="s2">&quot;Points&quot;</span><span class="p">:</span> <span class="n">npoints</span><span class="p">,</span>
+                    <span class="s2">&quot;Sampling&quot;</span><span class="p">:</span> <span class="n">sampling</span><span class="p">,</span>
+                    <span class="s2">&quot;Variables&quot;</span><span class="p">:</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)),</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;Instrument&quot;</span><span class="p">:</span> <span class="n">instrument_type</span><span class="p">,</span>
+                    <span class="s2">&quot;Serial&quot;</span><span class="p">:</span> <span class="n">serial</span><span class="p">,</span>
+                    <span class="s2">&quot;Depth [m]&quot;</span><span class="p">:</span> <span class="n">depth</span><span class="p">,</span>
+                    <span class="s2">&quot;File&quot;</span><span class="p">:</span> <span class="s2">&quot;MISSING&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Start&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;End&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Points&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                    <span class="s2">&quot;Sampling&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;Variables&quot;</span><span class="p">:</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+
+    <span class="c1"># Make a DataFrame summary</span>
+    <span class="n">summary</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span>
+    <span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s2">&quot;display.max_colwidth&quot;</span><span class="p">,</span> <span class="mi">80</span><span class="p">)</span>  <span class="c1"># allow long var lists</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">summary</span><span class="o">.</span><span class="n">to_markdown</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">instrument_datasets</span><span class="p">)</span><span class="si">}</span><span class="s2"> instrument datasets&quot;</span><span class="p">)</span>
 <br/></pre></div>
 </div>
 </div>
@@ -787,19 +339,72 @@ Attributes:
 <div class="highlight"><pre>
 <span class="ansi-red-fg">---------------------------------------------------------------------------</span>
 <span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[7]</span><span class="ansi-green-fg">, line 1</span>
-<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">1</span> pmax = <span style="color: rgb(0,135,0)">float</span>(<span class="ansi-yellow-bg">ds_12h</span>.PRES.max())
-<span class="ansi-green-fg">      2</span> <span style="color: rgb(0,135,0)">print</span>(<span class="ansi-yellow-fg">&#34;</span><span class="ansi-yellow-fg">Maximum pressure in ds_interp:</span><span class="ansi-yellow-fg">&#34;</span>, pmax)
-<span class="ansi-green-fg">      4</span> pmax = <span style="color: rgb(0,135,0)">max</span>(ds_12h.PRES.max(), <span class="ansi-green-fg">3900</span>)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[4]</span><span class="ansi-green-fg">, line 7</span>
+<span class="ansi-green-fg">      4</span> instrument_datasets = []
+<span class="ansi-green-fg">      5</span> rows = []
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">7</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> <span class="ansi-yellow-bg">config_file</span>.exists():
+<span class="ansi-green-fg">      8</span>     <span class="ansi-bold" style="color: rgb(0,135,0)">for</span> inst_config <span class="ansi-bold" style="color: rgb(175,0,255)">in</span> config.get(<span class="ansi-yellow-fg">&#34;</span><span class="ansi-yellow-fg">instruments</span><span class="ansi-yellow-fg">&#34;</span>, []):
+<span class="ansi-green-fg">      9</span>         instrument_type = inst_config.get(<span class="ansi-yellow-fg">&#34;</span><span class="ansi-yellow-fg">instrument</span><span class="ansi-yellow-fg">&#34;</span>, <span class="ansi-yellow-fg">&#34;</span><span class="ansi-yellow-fg">unknown</span><span class="ansi-yellow-fg">&#34;</span>)
 
-<span class="ansi-red-fg">NameError</span>: name &#39;ds_12h&#39; is not defined
+<span class="ansi-red-fg">NameError</span>: name &#39;config_file&#39; is not defined
+</pre></div></div>
+</div>
+</section>
+<section id="Process-with-time-gridding-(no-filtering)">
+<h3>Process with time gridding (no filtering)<a class="headerlink" href="#Process-with-time-gridding-(no-filtering)" title="Link to this heading"></a></h3>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Process without filtering</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Processing mooring with time gridding only (no filtering)...&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=&quot;</span><span class="o">*</span><span class="mi">60</span><span class="p">)</span>
+
+<span class="n">result</span> <span class="o">=</span> <span class="n">time_gridding_mooring</span><span class="p">(</span><span class="n">mooring_name</span><span class="p">,</span> <span class="n">basedir</span><span class="p">,</span> <span class="n">file_suffix</span><span class="o">=</span><span class="s1">&#39;_use&#39;</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Processing result: </span><span class="si">{</span><span class="s1">&#39;SUCCESS&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;FAILED&#39;</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Processing mooring with time gridding only (no filtering)...
+============================================================
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
+<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[5]</span><span class="ansi-green-fg">, line 5</span>
+<span class="ansi-green-fg">      2</span> <span style="color: rgb(0,135,0)">print</span>(<span class="ansi-yellow-fg">&#34;</span><span class="ansi-yellow-fg">Processing mooring with time gridding only (no filtering)...</span><span class="ansi-yellow-fg">&#34;</span>)
+<span class="ansi-green-fg">      3</span> <span style="color: rgb(0,135,0)">print</span>(<span class="ansi-yellow-fg">&#34;</span><span class="ansi-yellow-fg">=</span><span class="ansi-yellow-fg">&#34;</span>*<span class="ansi-green-fg">60</span>)
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">5</span> result = <span class="ansi-yellow-bg">time_gridding_mooring</span>(mooring_name, basedir, file_suffix=<span class="ansi-yellow-fg">&#39;</span><span class="ansi-yellow-fg">_use</span><span class="ansi-yellow-fg">&#39;</span>)
+<span class="ansi-green-fg">      7</span> <span style="color: rgb(0,135,0)">print</span>(<span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">&#34;</span><span class="ansi-bold" style="color: rgb(175,95,0)">\n</span><span class="ansi-yellow-fg">Processing result: </span><span class="ansi-bold" style="color: rgb(175,95,135)">{</span><span class="ansi-yellow-fg">&#39;</span><span class="ansi-yellow-fg">SUCCESS</span><span class="ansi-yellow-fg">&#39;</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">if</span><span style="color: rgb(188,188,188)"> </span>result<span style="color: rgb(188,188,188)"> </span><span class="ansi-bold" style="color: rgb(0,135,0)">else</span><span style="color: rgb(188,188,188)"> </span><span class="ansi-yellow-fg">&#39;</span><span class="ansi-yellow-fg">FAILED</span><span class="ansi-yellow-fg">&#39;</span><span class="ansi-bold" style="color: rgb(175,95,135)">}</span><span class="ansi-yellow-fg">&#34;</span>)
+
+<span class="ansi-red-fg">NameError</span>: name &#39;time_gridding_mooring&#39; is not defined
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">ds_interp</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Load and examine the combined dataset</span>
+<span class="n">output_file</span> <span class="o">=</span> <span class="n">proc_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">mooring_name</span><span class="si">}</span><span class="s2">_mooring_use.nc&quot;</span>
+
+<span class="k">if</span> <span class="n">output_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Output file exists: </span><span class="si">{</span><span class="n">output_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Load the combined dataset</span>
+    <span class="n">combined_ds</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">output_file</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Output file not found - processing may have failed&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -810,58 +415,132 @@ Attributes:
 <div class="highlight"><pre>
 <span class="ansi-red-fg">---------------------------------------------------------------------------</span>
 <span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[8]</span><span class="ansi-green-fg">, line 1</span>
-<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">1</span> <span class="ansi-yellow-bg">ds_interp</span>
+<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[6]</span><span class="ansi-green-fg">, line 2</span>
+<span class="ansi-green-fg">      1</span> <span style="color: rgb(95,135,135)"># Load and examine the combined dataset</span>
+<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">2</span> output_file = <span class="ansi-yellow-bg">proc_dir</span> / <span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">&#34;</span><span class="ansi-bold" style="color: rgb(175,95,135)">{</span>mooring_name<span class="ansi-bold" style="color: rgb(175,95,135)">}</span><span class="ansi-yellow-fg">_mooring_use.nc</span><span class="ansi-yellow-fg">&#34;</span>
+<span class="ansi-green-fg">      4</span> <span class="ansi-bold" style="color: rgb(0,135,0)">if</span> output_file.exists():
+<span class="ansi-green-fg">      5</span>     <span style="color: rgb(0,135,0)">print</span>(<span class="ansi-yellow-fg">f</span><span class="ansi-yellow-fg">&#34;</span><span class="ansi-yellow-fg">Output file exists: </span><span class="ansi-bold" style="color: rgb(175,95,135)">{</span>output_file<span class="ansi-bold" style="color: rgb(175,95,135)">}</span><span class="ansi-yellow-fg">&#34;</span>)
 
-<span class="ansi-red-fg">NameError</span>: name &#39;ds_interp&#39; is not defined
+<span class="ansi-red-fg">NameError</span>: name &#39;proc_dir&#39; is not defined
 </pre></div></div>
 </div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</section>
+<section id="Visualize-Combined-Dataset">
+<h3>Visualize Combined Dataset<a class="headerlink" href="#Visualize-Combined-Dataset" title="Link to this heading"></a></h3>
+<p>Let’s plot the combined dataset to see how the different instruments look on the common time grid.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><br/><br/><span></span><span class="n">plotters</span><span class="o">.</span><span class="n">plot_timeseries_by_depth</span><span class="p">(</span><span class="n">ds_12h</span><span class="p">,</span> <span class="n">var</span><span class="o">=</span><span class="s2">&quot;PRES&quot;</span><span class="p">)</span>
-<span class="n">plotters</span><span class="o">.</span><span class="n">pcolor_timeseries_by_depth</span><span class="p">(</span><span class="n">ds_interp</span><span class="p">,</span> <span class="n">var</span><span class="o">=</span><span class="s2">&quot;SA&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[9]</span><span class="ansi-green-fg">, line 1</span>
-<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">1</span> plotters.plot_timeseries_by_depth(<span class="ansi-yellow-bg">ds_12h</span>, var=<span class="ansi-yellow-fg">&#34;</span><span class="ansi-yellow-fg">PRES</span><span class="ansi-yellow-fg">&#34;</span>)
-<span class="ansi-green-fg">      2</span> plotters.pcolor_timeseries_by_depth(ds_interp, var=<span class="ansi-yellow-fg">&#34;</span><span class="ansi-yellow-fg">SA</span><span class="ansi-yellow-fg">&#34;</span>)
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
 
-<span class="ansi-red-fg">NameError</span>: name &#39;ds_12h&#39; is not defined
-</pre></div></div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Check the profiles</span>
-<span class="n">plotters</span><span class="o">.</span><span class="n">scatter_profile_vs_PRES</span><span class="p">(</span><span class="n">ds_interp</span><span class="p">,</span> <span class="n">ds_12h</span><span class="p">,</span> <span class="n">var</span><span class="o">=</span><span class="s2">&quot;SA&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-<span class="ansi-red-fg">---------------------------------------------------------------------------</span>
-<span class="ansi-red-fg">NameError</span>                                 Traceback (most recent call last)
-<span class="ansi-cyan-fg">Cell</span><span class="ansi-cyan-fg"> </span><span class="ansi-green-fg">In[10]</span><span class="ansi-green-fg">, line 2</span>
-<span class="ansi-green-fg">      1</span> <span style="color: rgb(95,135,135)"># Check the profiles</span>
-<span class="ansi-green-fg">----&gt; </span><span class="ansi-green-fg">2</span> plotters.scatter_profile_vs_PRES(<span class="ansi-yellow-bg">ds_interp</span>, ds_12h, var=<span class="ansi-yellow-fg">&#34;</span><span class="ansi-yellow-fg">SA</span><span class="ansi-yellow-fg">&#34;</span>)
+<span class="k">def</span><span class="w"> </span><span class="nf">plot_combined_timeseries</span><span class="p">(</span>
+    <span class="n">combined_ds</span><span class="p">,</span>
+    <span class="n">variables</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;temperature&quot;</span><span class="p">,</span> <span class="s2">&quot;salinity&quot;</span><span class="p">,</span> <span class="s2">&quot;pressure&quot;</span><span class="p">),</span>
+    <span class="n">cmap_name</span><span class="o">=</span><span class="s2">&quot;viridis&quot;</span><span class="p">,</span>
+    <span class="n">line_alpha</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+    <span class="n">line_width</span><span class="o">=</span><span class="mf">1.2</span><span class="p">,</span>
+    <span class="n">percentile_limits</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">99</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Plot selected variables from a combined mooring dataset as stacked time series.</span>
 
-<span class="ansi-red-fg">NameError</span>: name &#39;ds_interp&#39; is not defined
-</pre></div></div>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    combined_ds : xarray.Dataset</span>
+<span class="sd">        Must have dims: time, N_LEVELS. Optional coords: nominal_depth, serial_number.</span>
+<span class="sd">    variables : iterable[str]</span>
+<span class="sd">        Variable names to try to plot (if present in dataset).</span>
+<span class="sd">    cmap_name : str</span>
+<span class="sd">        Matplotlib colormap name for coloring by instrument level.</span>
+<span class="sd">    line_alpha : float</span>
+<span class="sd">        Line transparency.</span>
+<span class="sd">    line_width : float</span>
+<span class="sd">        Line width.</span>
+<span class="sd">    percentile_limits : (low, high)</span>
+<span class="sd">        Percentiles to use for automatic y-limits (e.g., (1, 99)).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">combined_ds</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Combined dataset not available.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+    <span class="n">n_levels</span> <span class="o">=</span> <span class="n">combined_ds</span><span class="o">.</span><span class="n">sizes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;N_LEVELS&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">n_levels</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Dataset must contain dimension &#39;N_LEVELS&#39;.&quot;</span><span class="p">)</span>
+
+    <span class="n">available</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variables</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">combined_ds</span><span class="o">.</span><span class="n">data_vars</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">available</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No requested variables found to plot.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+
+    <span class="c1"># Colors by level</span>
+    <span class="n">cmap</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">cmap_name</span><span class="p">)</span>
+    <span class="n">colors</span> <span class="o">=</span> <span class="n">cmap</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">n_levels</span><span class="p">))</span>
+
+    <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span>
+        <span class="nb">len</span><span class="p">(</span><span class="n">available</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">14</span><span class="p">,</span> <span class="mf">3.6</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">available</span><span class="p">)),</span> <span class="n">sharex</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">constrained_layout</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">available</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">axes</span> <span class="o">=</span> <span class="p">[</span><span class="n">axes</span><span class="p">]</span>
+
+    <span class="n">depth_arr</span> <span class="o">=</span> <span class="n">combined_ds</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;nominal_depth&quot;</span><span class="p">)</span>
+    <span class="n">serial_arr</span> <span class="o">=</span> <span class="n">combined_ds</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;serial_number&quot;</span><span class="p">)</span>
+
+    <span class="n">first_axis</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">for</span> <span class="n">ax</span><span class="p">,</span> <span class="n">var</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">available</span><span class="p">):</span>
+        <span class="n">values_for_limits</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">level</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_levels</span><span class="p">):</span>
+            <span class="n">depth</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">depth_arr</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">depth_arr</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">level</span><span class="p">]</span>
+            <span class="n">serial</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">serial_arr</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">serial_arr</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">level</span><span class="p">]</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">first_axis</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">depth</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">depth</span><span class="p">):</span>
+                    <span class="n">label</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Serial </span><span class="si">{</span><span class="n">serial</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">depth</span><span class="p">)</span><span class="si">}</span><span class="s2"> m)&quot;</span> <span class="k">if</span> <span class="n">serial</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">depth</span><span class="p">)</span><span class="si">}</span><span class="s2"> m)&quot;</span>
+                <span class="k">elif</span> <span class="n">serial</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">label</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Serial </span><span class="si">{</span><span class="n">serial</span><span class="si">}</span><span class="s2">&quot;</span>
+
+            <span class="n">da</span> <span class="o">=</span> <span class="n">combined_ds</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">N_LEVELS</span><span class="o">=</span><span class="n">level</span><span class="p">)</span>
+            <span class="n">da</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">da</span><span class="p">),</span> <span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">da</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">values_for_limits</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">da</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+
+            <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+                <span class="n">da</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+                <span class="n">da</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
+                <span class="n">color</span><span class="o">=</span><span class="n">colors</span><span class="p">[</span><span class="n">level</span><span class="p">],</span>
+                <span class="n">alpha</span><span class="o">=</span><span class="n">line_alpha</span><span class="p">,</span>
+                <span class="n">linewidth</span><span class="o">=</span><span class="n">line_width</span><span class="p">,</span>
+                <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="c1"># Set labels and grid</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">title</span><span class="p">())</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.3</span><span class="p">)</span>
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">var</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39; &#39;</span><span class="p">)</span><span class="o">.</span><span class="n">title</span><span class="p">()</span><span class="si">}</span><span class="s2"> — Combined Time Grid&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Legend only once</span>
+        <span class="k">if</span> <span class="n">first_axis</span><span class="p">:</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">ncol</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="s2">&quot;upper right&quot;</span><span class="p">,</span> <span class="n">frameon</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">first_axis</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># Auto y-limits based on percentiles</span>
+        <span class="k">if</span> <span class="n">values_for_limits</span><span class="p">:</span>
+            <span class="n">flat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">values_for_limits</span><span class="p">)</span>
+            <span class="n">low</span><span class="p">,</span> <span class="n">high</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanpercentile</span><span class="p">(</span><span class="n">flat</span><span class="p">,</span> <span class="n">percentile_limits</span><span class="p">)</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="p">)</span>
+
+    <span class="n">axes</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Time&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">fig</span><span class="p">,</span> <span class="n">axes</span>
+
+<span class="c1"># Usage:</span>
+<span class="k">if</span> <span class="s1">&#39;combined_ds&#39;</span> <span class="ow">in</span> <span class="nb">locals</span><span class="p">():</span>
+    <span class="n">plot_combined_timeseries</span><span class="p">(</span><span class="n">combined_ds</span><span class="p">)</span>
+<br/></pre></div>
 </div>
+</div>
+</section>
 </section>
 </section>
 
@@ -869,7 +548,7 @@ Attributes:
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="demo_instrument-output.html" class="btn btn-neutral float-left" title="Demo: instrument-level processing" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="demo_instrument-output.html" class="btn btn-neutral float-left" title="Demo: instrument-level processing (Stage 1 and Stage 2)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="oceanarray.html" class="btn btn-neutral float-right" title="oceanarray API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
