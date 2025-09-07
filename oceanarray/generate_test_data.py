@@ -2,8 +2,10 @@
 """
 Generate test_data_raw.nc from the real CNV file for Stage 2 testing.
 """
-import yaml
 from pathlib import Path
+
+import yaml
+
 from oceanarray.stage1 import MooringProcessor
 
 
@@ -32,33 +34,33 @@ def create_test_stage1_data():
 
     # Create YAML configuration
     yaml_data = {
-        'name': 'test_mooring',
-        'waterdepth': 1000,
-        'longitude': -30.0,
-        'latitude': 60.0,
-        'deployment_latitude': '60 00.000 N',
-        'deployment_longitude': '030 00.000 W',
-        'deployment_time': '2018-08-12T08:00:00',  # Before data starts
-        'recovery_time': '2018-08-26T20:47:24',    # After data ends
-        'seabed_latitude': '60 00.000 N',
-        'seabed_longitude': '030 00.000 W',
-        'directory': 'moor/raw/test_deployment/',
-        'instruments': [
+        "name": "test_mooring",
+        "waterdepth": 1000,
+        "longitude": -30.0,
+        "latitude": 60.0,
+        "deployment_latitude": "60 00.000 N",
+        "deployment_longitude": "030 00.000 W",
+        "deployment_time": "2018-08-12T08:00:00",  # Before data starts
+        "recovery_time": "2018-08-26T20:47:24",  # After data ends
+        "seabed_latitude": "60 00.000 N",
+        "seabed_longitude": "030 00.000 W",
+        "directory": "moor/raw/test_deployment/",
+        "instruments": [
             {
-                'instrument': 'microcat',
-                'serial': 7518,
-                'depth': 100,
-                'filename': 'test_data.cnv',
-                'file_type': 'sbe-cnv',
-                'clock_offset': 300,  # 5 minutes offset for testing
-                'start_time': '2018-08-12T08:00:00',
-                'end_time': '2018-08-26T20:47:24'
+                "instrument": "microcat",
+                "serial": 7518,
+                "depth": 100,
+                "filename": "test_data.cnv",
+                "file_type": "sbe-cnv",
+                "clock_offset": 300,  # 5 minutes offset for testing
+                "start_time": "2018-08-12T08:00:00",
+                "end_time": "2018-08-26T20:47:24",
             }
-        ]
+        ],
     }
 
     config_file = proc_dir / "test_mooring.mooring.yaml"
-    with open(config_file, 'w') as f:
+    with open(config_file, "w") as f:
         yaml.dump(yaml_data, f)
 
     print(f"Created YAML config at {config_file}")
@@ -83,8 +85,9 @@ def create_test_stage1_data():
 
             # Cleanup temp directory
             import shutil
+
             shutil.rmtree(test_dir)
-            print(f"Cleaned up temporary directory")
+            print("Cleaned up temporary directory")
 
             return True
         else:
