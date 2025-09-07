@@ -1,0 +1,20 @@
+deployment_latitude: 60 00.000 N
+deployment_longitude: 030 00.000 W
+deployment_time: '2018-08-12T08:00:00'
+directory: moor/raw/test_deployment/
+instruments:
+- clock_offset: 300
+  depth: 100
+  end_time: '2018-08-26T20:47:24'
+  file_type: sbe-cnv
+  filename: test_data.cnv
+  instrument: microcat
+  serial: 7518
+  start_time: '2018-08-12T08:00:00'
+latitude: 60.0
+longitude: -30.0
+name: test_mooring
+recovery_time: '2018-08-26T20:47:24'
+seabed_latitude: 60 00.000 N
+seabed_longitude: 030 00.000 W
+waterdepth: 1000
