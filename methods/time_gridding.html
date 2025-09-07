@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gridding in time &mdash; oceanarray v0.0.0 documentation</title>
+  <title>Step 1: Time Gridding and Optional Filtering &mdash; oceanarray v0.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=20758594" />
@@ -60,15 +60,30 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Moorings</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Grid in Time</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Step 1: Time Gridding and Optional Filtering</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#overview">1. Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#purpose">2. Purpose</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#input">3. Input</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#output">4. Output</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#method">5. Method</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#example">6. Example</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#fair-considerations">7. FAIR Considerations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#legacy-context-rapid">Legacy Context (RAPID)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#processing-workflow">3. Processing Workflow</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#implemented-filtering-types">Implemented Filtering Types</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#current-implementation">4. Current Implementation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#input-requirements">4.1. Input Requirements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#processing-workflow-implementation">4.2. Processing Workflow Implementation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#filtering-implementation">4.3. Filtering Implementation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#timing-analysis-and-warnings">4.4. Timing Analysis and Warnings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#configuration-example">4.5. Configuration Example</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#usage-examples">4.6. Usage Examples</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#output-format">5. Output Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#quality-control-and-processing-intelligence">6. Quality Control and Processing Intelligence</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#time-domain-filtering-details">7. Time-Domain Filtering Details</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#integration-with-processing-chain">8. Integration with Processing Chain</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#implementation-notes">9. Implementation Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fair-considerations">10. FAIR Considerations</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="vertical_gridding.html">Grid Vertically</a></li>
@@ -103,7 +118,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Gridding in time</li>
+      <li class="breadcrumb-item active">Step 1: Time Gridding and Optional Filtering</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/methods/time_gridding.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -113,159 +128,334 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="gridding-in-time">
-<h1>Gridding in time<a class="headerlink" href="#gridding-in-time" title="Link to this heading"></a></h1>
-<p>Individual records may be sampled at a much higher rate than needed for a specific purpose.  When concatenating multiple records together, it may be useful for some applications to filter out high-frequency variability, such as tidal signals, and subsample the time series to a lower frequency.  This describes <strong>filtering</strong> as used in the RAPID array to remove tides and subsample to half-daily (12-hourly) intervals, which makes the dataset more management after 20 years of records.</p>
-<p>This step is performed after standardisation and trimming, and prior to vertical interpolation and transport calculation.</p>
+  <section id="step-1-time-gridding-and-optional-filtering">
+<h1>Step 1: Time Gridding and Optional Filtering<a class="headerlink" href="#step-1-time-gridding-and-optional-filtering" title="Link to this heading"></a></h1>
+<p>This document describes <strong>Step 1</strong> in the mooring-level processing workflow: combining multiple instruments onto a common time grid with optional time-domain filtering. This step consolidates individual instrument time series from different sampling rates into a unified mooring dataset suitable for further analysis.</p>
+<p>This represents the first step in mooring-level processing:</p>
+<ul class="simple">
+<li><p><strong>Step 1</strong>: Time gridding (this document)</p></li>
+<li><p><strong>Step 2</strong>: Vertical gridding (future)</p></li>
+<li><p><strong>Step 3</strong>: Multi-deployment stitching (future)</p></li>
+</ul>
+<p>This step is performed after individual instrument processing (Stages 1-3: standardisation, trimming, QC/calibration) and prior to vertical interpolation and transport calculations.</p>
+<p><strong>CRITICAL</strong>: Any filtering is applied to individual instrument records <strong>BEFORE</strong> interpolation onto the common time grid since normally we are low pass filtering and downsampling.  Downsampling first could alias high frequency variability into the filtered dataset.</p>
 <section id="overview">
 <h2>1. Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
-<p>High-frequency variability, such as tidal signals, is removed from the raw time series via low-pass filtering. This step enhances the comparability between instruments and suppresses aliasing due to undersampled high-frequency processes.</p>
-<p>In the RAPID framework (see <cite>hydro_grid.m</cite>), a <strong>2-day low-pass Butterworth filter</strong> (6th order) is applied to temperature, salinity, and pressure time series. This is a standard approach used for moored time series processing, ensuring consistency across instruments and deployments.</p>
+<p>Multiple instruments on a mooring often sample at different rates, creating challenges for comparative analysis and further processing. Time gridding addresses this by:</p>
+<ul class="simple">
+<li><p>Optionally applying time-domain filtering to individual instrument records</p></li>
+<li><p>Interpolating all instruments onto a common temporal grid</p></li>
+<li><p>Preserving high-frequency temporal resolution when desired</p></li>
+<li><p>Creating unified mooring datasets with standardized structure</p></li>
+</ul>
+<p>The process combines individual instrument files (<cite>*_use.nc</cite>) into single mooring files (<cite>*_mooring_use.nc</cite>) with an N_LEVELS dimension representing the different instruments/depths.</p>
 </section>
 <section id="purpose">
 <h2>2. Purpose<a class="headerlink" href="#purpose" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p>Suppress tidal and inertial variability</p></li>
-<li><p>Prepare data for interpolation and averaging</p></li>
-<li><p>Enable meaningful anomaly detection and gridding</p></li>
+<li><p><strong>Optional filtering</strong>: Apply lowpass filters to remove high frequency variability</p></li>
+<li><p><strong>Common time grid</strong>: Align instruments with different sampling rates onto a single time vector</p></li>
+<li><p><strong>Data consolidation</strong>: Create single files representing entire moorings</p></li>
+<li><p><strong>Preserve resolution</strong> (optional): Maintain temporal detail for high-frequency analysis</p></li>
+<li><p><strong>Standardized structure</strong>: Enable consistent downstream processing</p></li>
 </ul>
 </section>
-<section id="input">
-<h2>3. Input<a class="headerlink" href="#input" title="Link to this heading"></a></h2>
+<section id="processing-workflow">
+<h2>3. Processing Workflow<a class="headerlink" href="#processing-workflow" title="Link to this heading"></a></h2>
+<p>The correct processing order is essential for data integrity:</p>
+<ol class="arabic simple">
+<li><p><strong>Load instrument datasets</strong>: Read all available <cite>*_use.nc</cite> files for a mooring</p></li>
+<li><p><strong>Apply filtering to individual datasets</strong>: Filter each instrument on its native time grid</p></li>
+<li><p><strong>Timing analysis</strong>: Analyze sampling rates and detect temporal coverage</p></li>
+<li><p><strong>Common grid creation</strong>: Calculate median sampling interval across all instruments.  <strong>Note:</strong> may be worthwhile to consider other options here in future.</p></li>
+<li><p><strong>Interpolation</strong>: Interpolate filtered datasets onto the common temporal grid</p></li>
+<li><p><strong>Dataset combination</strong>: Merge into single dataset with N_LEVELS dimension</p></li>
+<li><p><strong>Metadata encoding</strong>: Convert string variables to CF-compliant integer flags</p></li>
+<li><p><strong>NetCDF output</strong>: Write combined mooring dataset</p></li>
+</ol>
+<section id="implemented-filtering-types">
+<h3>Implemented Filtering Types<a class="headerlink" href="#implemented-filtering-types" title="Link to this heading"></a></h3>
+<p><strong>Low-pass Butterworth Filter (RAPID-style)</strong>
+- <strong>Purpose</strong>: Remove tidal and inertial variability for long-term analysis
+- <strong>Default parameters</strong>: 2-day cutoff, 6th order Butterworth
+- <strong>Applications</strong>: Climate studies, transport calculations, data volume reduction
+- <strong>Gap handling</strong>: Filters continuous segments separately</p>
+<p>Consider for the future (especially for bottom pressure?):</p>
+<p><strong>Harmonic De-tiding (Future??)</strong>
+- <strong>Purpose</strong>: Remove specific tidal constituents using harmonic analysis
+- <strong>Status</strong>: Placeholder - currently falls back to low-pass filtering
+- <strong>Applications</strong>: Precise tidal removal, retained sub-tidal variability</p>
+</section>
+</section>
+<section id="current-implementation">
+<h2>4. Current Implementation<a class="headerlink" href="#current-implementation" title="Link to this heading"></a></h2>
+<p>The time gridding process is implemented in the <code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray.time_gridding</span></code> module, which provides automated processing for mooring datasets.</p>
+<section id="input-requirements">
+<h3>4.1. Input Requirements<a class="headerlink" href="#input-requirements" title="Link to this heading"></a></h3>
+<p>The <code class="xref py py-class docutils literal notranslate"><span class="pre">oceanarray.time_gridding.TimeGriddingProcessor</span></code> class processes Stage 1, 2 or 3 output files:</p>
 <ul class="simple">
-<li><p>Trimmed <cite>xarray.Dataset</cite> with variables like <cite>TEMPERATURE</cite>, <cite>SALINITY</cite>, <cite>PRESSURE</cite>, and <cite>TIME</cite></p></li>
-<li><p>Sampling frequency (or timestamp resolution)</p></li>
+<li><p><strong>Individual instrument files</strong> (<cite>*_use.nc</cite>): Trimmed and clock-corrected time series.  It can also be applied to <cite>*_qc.nc</cite>.</p></li>
+<li><p><strong>YAML configuration</strong>: Mooring metadata with instrument specifications</p></li>
+<li><p><strong>Multiple sampling rates</strong>: Automatic detection and handling of different temporal resolutions</p></li>
 </ul>
 </section>
-<section id="output">
-<h2>4. Output<a class="headerlink" href="#output" title="Link to this heading"></a></h2>
+<section id="processing-workflow-implementation">
+<h3>4.2. Processing Workflow Implementation<a class="headerlink" href="#processing-workflow-implementation" title="Link to this heading"></a></h3>
+<p>The <code class="xref py py-meth docutils literal notranslate"><span class="pre">TimeGriddingProcessor.process_mooring()</span></code> method follows these steps:</p>
+<ol class="arabic simple">
+<li><p><strong>Load instrument datasets</strong>: Read all available <cite>*_use.nc</cite> files for a mooring</p></li>
+<li><p><strong>Apply individual filtering</strong>: Use <code class="xref py py-meth docutils literal notranslate"><span class="pre">_apply_time_filtering_single()</span></code> on each dataset</p></li>
+<li><p><strong>Timing analysis</strong>: Analyze sampling rates using <code class="xref py py-meth docutils literal notranslate"><span class="pre">_analyze_timing_info()</span></code></p></li>
+<li><p><strong>Common grid creation</strong>: Calculate median sampling interval across filtered instruments</p></li>
+<li><p><strong>Interpolation</strong>: Use <code class="xref py py-meth docutils literal notranslate"><span class="pre">_interpolate_datasets()</span></code> on filtered data</p></li>
+<li><p><strong>Dataset combination</strong>: Merge using <code class="xref py py-meth docutils literal notranslate"><span class="pre">_create_combined_dataset()</span></code></p></li>
+<li><p><strong>Metadata encoding</strong>: Apply <code class="xref py py-meth docutils literal notranslate"><span class="pre">_encode_instrument_as_flags()</span></code></p></li>
+<li><p><strong>NetCDF output</strong>: Write combined mooring dataset</p></li>
+</ol>
+</section>
+<section id="filtering-implementation">
+<h3>4.3. Filtering Implementation<a class="headerlink" href="#filtering-implementation" title="Link to this heading"></a></h3>
+<p><strong>Individual Dataset Filtering</strong></p>
+<p>The <code class="xref py py-meth docutils literal notranslate"><span class="pre">_apply_time_filtering_single()</span></code> method processes each instrument separately:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">_apply_time_filtering_single</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">filter_type</span><span class="p">,</span> <span class="n">filter_params</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply filtering to individual instrument on native time grid.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">filter_type</span> <span class="o">==</span> <span class="s1">&#39;lowpass&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_lowpass_filter</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">filter_params</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">filter_type</span> <span class="o">==</span> <span class="s1">&#39;detide&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_detiding_filter</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">filter_params</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">dataset</span>  <span class="c1"># No filtering</span>
+</pre></div>
+</div>
+<p><strong>Low-pass Butterworth Filter</strong></p>
+<p>The <code class="xref py py-meth docutils literal notranslate"><span class="pre">_apply_lowpass_filter()</span></code> method implements RAPID-style filtering:</p>
 <ul class="simple">
-<li><p>Low-pass filtered <cite>xarray.Dataset</cite> with the same variables</p></li>
-<li><p>Optionally: filtered values as separate variables (e.g., <cite>TEMPERATURE_LP</cite>)</p></li>
-<li><p>Metadata note: <cite>filtered = “2-day Butterworth, 6th order”</cite></p></li>
+<li><p><strong>Frequency analysis</strong>: Validates cutoff frequency against Nyquist limit</p></li>
+<li><p><strong>Filter design</strong>: 6th order Butterworth low-pass filter using scipy.signal</p></li>
+<li><p><strong>Gap handling</strong>: Processes continuous segments separately via <code class="xref py py-meth docutils literal notranslate"><span class="pre">_filter_with_gaps()</span></code></p></li>
+<li><p><strong>Quality control</strong>: Checks data length and validity before filtering</p></li>
+<li><p><strong>Robust processing</strong>: Graceful fallbacks when filtering fails</p></li>
 </ul>
+<p><strong>Filter Parameters</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">filter_params</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;cutoff_days&#39;</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span>     <span class="c1"># Cutoff frequency in days</span>
+    <span class="s1">&#39;order&#39;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>             <span class="c1"># Filter order</span>
+    <span class="s1">&#39;method&#39;</span><span class="p">:</span> <span class="s1">&#39;butterworth&#39;</span> <span class="c1"># Filter type</span>
+<span class="p">}</span>
+</pre></div>
+</div>
 </section>
-<section id="method">
-<h2>5. Method<a class="headerlink" href="#method" title="Link to this heading"></a></h2>
+<section id="timing-analysis-and-warnings">
+<h3>4.4. Timing Analysis and Warnings<a class="headerlink" href="#timing-analysis-and-warnings" title="Link to this heading"></a></h3>
+<p>The processor provides comprehensive timing analysis:</p>
 <ul class="simple">
-<li><p>The filter cutoff is typically 2 days (i.e., ~0.0058 Hz)</p></li>
-<li><p>Filter type: <strong>Butterworth</strong>, <strong>6th order</strong></p></li>
-<li><p>Apply the filter to each variable independently</p></li>
-<li><p>Optionally interpolate across short gaps (e.g., &lt;10 days)</p></li>
-<li><p>Gaps larger than a specified duration are marked as NaN post-filtering</p></li>
+<li><p><strong>Sampling rate detection</strong>: Identifies median intervals for each instrument</p></li>
+<li><p><strong>Interpolation warnings</strong>: Alerts when large sampling rate differences exist (&gt;2x)</p></li>
+<li><p><strong>Missing instrument alerts</strong>: Compares loaded files against YAML configuration</p></li>
+<li><p><strong>Irregular sampling detection</strong>: Flags instruments with &gt;10% timing variability</p></li>
+<li><p><strong>Filter impact assessment</strong>: Reports changes to original sampling rates</p></li>
 </ul>
 </section>
-<section id="example">
-<h2>6. Example<a class="headerlink" href="#example" title="Link to this heading"></a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.methods.filtering</span><span class="w"> </span><span class="kn">import</span> <span class="n">apply_lowpass_filter</span>
+<section id="configuration-example">
+<h3>4.5. Configuration Example<a class="headerlink" href="#configuration-example" title="Link to this heading"></a></h3>
+<p>Time gridding uses existing YAML mooring configurations:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mooring_name</span>
+<span class="nt">instruments</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">instrument</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">microcat</span>
+<span class="w">    </span><span class="nt">serial</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">7518</span>
+<span class="w">    </span><span class="nt">depth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">instrument</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">adcp</span>
+<span class="w">    </span><span class="nt">serial</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1234</span>
+<span class="w">    </span><span class="nt">depth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">300</span>
+</pre></div>
+</div>
+</section>
+<section id="usage-examples">
+<h3>4.6. Usage Examples<a class="headerlink" href="#usage-examples" title="Link to this heading"></a></h3>
+<p><strong>Basic Processing (No Filtering)</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.time_gridding</span><span class="w"> </span><span class="kn">import</span> <span class="n">process_multiple_moorings_time_gridding</span>
 
-<span class="n">ds_filtered</span> <span class="o">=</span> <span class="n">apply_lowpass_filter</span><span class="p">(</span><span class="n">ds_trimmed</span><span class="p">,</span> <span class="n">cutoff_days</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="mi">6</span><span class="p">)</span>
+<span class="c1"># Process moorings without filtering</span>
+<span class="n">moorings</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;mooring1&#39;</span><span class="p">,</span> <span class="s1">&#39;mooring2&#39;</span><span class="p">]</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">process_multiple_moorings_time_gridding</span><span class="p">(</span><span class="n">moorings</span><span class="p">,</span> <span class="n">basedir</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;xarray.Dataset&gt;
-Dimensions:      (TIME: 104576)
-Coordinates:
-  * TIME         (TIME) datetime64[ns] ...
-Data variables:
-    TEMPERATURE  (TIME) float32 ...
-    PRESSURE     (TIME) float32 ...
-    SALINITY     (TIME) float32 ...
-Attributes:
-    filtered: &quot;2-day Butterworth, 6th order&quot;
+<p><strong>RAPID-style De-tiding</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Apply 2-day low-pass filter (RAPID-style)</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">process_multiple_moorings_time_gridding</span><span class="p">(</span>
+    <span class="n">moorings</span><span class="p">,</span> <span class="n">basedir</span><span class="p">,</span>
+    <span class="n">filter_type</span><span class="o">=</span><span class="s1">&#39;lowpass&#39;</span><span class="p">,</span>
+    <span class="n">filter_params</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;cutoff_days&#39;</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span> <span class="s1">&#39;order&#39;</span><span class="p">:</span> <span class="mi">6</span><span class="p">}</span>
+<span class="p">)</span>
 </pre></div>
 </div>
+<p><strong>Custom Filter Parameters</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Custom filter settings</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">process_multiple_moorings_time_gridding</span><span class="p">(</span>
+    <span class="n">moorings</span><span class="p">,</span> <span class="n">basedir</span><span class="p">,</span>
+    <span class="n">filter_type</span><span class="o">=</span><span class="s1">&#39;lowpass&#39;</span><span class="p">,</span>
+    <span class="n">filter_params</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;cutoff_days&#39;</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;order&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">}</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="output-format">
+<h2>5. Output Format<a class="headerlink" href="#output-format" title="Link to this heading"></a></h2>
+<p>The time-gridded output includes:</p>
+<ul class="simple">
+<li><p><strong>Combined mooring dataset</strong> (<cite>*_mooring_use.nc</cite>) with:
+- Time coordinates common to all instruments
+- N_LEVELS dimension representing instrument/depth levels
+- Variables stacked across instruments with NaN for missing data
+- Comprehensive metadata preservation
+- Filter provenance when filtering applied</p></li>
+<li><p><strong>Processing logs</strong> with detailed information about:
+- Filtering decisions and parameters
+- Timing analysis and interpolation decisions
+- Missing instruments and sampling rate warnings
+- Processing success/failure status</p></li>
+</ul>
+<p><strong>Example output structure:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">xarray</span><span class="o">.</span><span class="n">Dataset</span><span class="o">&gt;</span>
+<span class="n">Dimensions</span><span class="p">:</span>        <span class="p">(</span><span class="n">time</span><span class="p">:</span> <span class="mi">8640</span><span class="p">,</span> <span class="n">N_LEVELS</span><span class="p">:</span> <span class="mi">3</span><span class="p">)</span>
+<span class="n">Coordinates</span><span class="p">:</span>
+  <span class="o">*</span> <span class="n">time</span>           <span class="p">(</span><span class="n">time</span><span class="p">)</span> <span class="n">datetime64</span><span class="p">[</span><span class="n">ns</span><span class="p">]</span> <span class="mi">2018</span><span class="o">-</span><span class="mi">08</span><span class="o">-</span><span class="mi">12</span><span class="n">T08</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span> <span class="o">...</span> <span class="mi">2018</span><span class="o">-</span><span class="mi">08</span><span class="o">-</span><span class="mi">26</span><span class="n">T20</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span>
+  <span class="o">*</span> <span class="n">N_LEVELS</span>       <span class="p">(</span><span class="n">N_LEVELS</span><span class="p">)</span> <span class="n">int64</span> <span class="mi">0</span> <span class="mi">1</span> <span class="mi">2</span>
+    <span class="n">nominal_depth</span>  <span class="p">(</span><span class="n">N_LEVELS</span><span class="p">)</span> <span class="n">float32</span> <span class="mf">100.0</span> <span class="mf">200.0</span> <span class="mf">300.0</span>
+    <span class="n">serial_number</span>  <span class="p">(</span><span class="n">N_LEVELS</span><span class="p">)</span> <span class="n">int64</span> <span class="mi">7518</span> <span class="mi">7519</span> <span class="mi">1234</span>
+    <span class="n">clock_offset</span>   <span class="p">(</span><span class="n">N_LEVELS</span><span class="p">)</span> <span class="n">int64</span> <span class="mi">0</span> <span class="mi">300</span> <span class="o">-</span><span class="mi">120</span>
+<span class="n">Data</span> <span class="n">variables</span><span class="p">:</span>
+    <span class="n">temperature</span>    <span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">N_LEVELS</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+    <span class="n">salinity</span>       <span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">N_LEVELS</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+    <span class="n">pressure</span>       <span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">N_LEVELS</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+    <span class="n">instrument_id</span>  <span class="p">(</span><span class="n">N_LEVELS</span><span class="p">)</span> <span class="n">int16</span> <span class="mi">1</span> <span class="mi">1</span> <span class="mi">2</span>
+<span class="n">Attributes</span><span class="p">:</span>
+    <span class="n">mooring_name</span><span class="p">:</span>              <span class="n">test_mooring</span>
+    <span class="n">instrument_names</span><span class="p">:</span>          <span class="n">microcat</span><span class="p">,</span> <span class="n">adcp</span>
+    <span class="n">time_filtering_applied</span><span class="p">:</span>    <span class="p">{</span><span class="s1">&#39;cutoff_days&#39;</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">,</span> <span class="s1">&#39;order&#39;</span><span class="p">:</span> <span class="mi">6</span><span class="p">}</span>  <span class="c1"># If filtered</span>
+</pre></div>
+</div>
+</section>
+<section id="quality-control-and-processing-intelligence">
+<h2>6. Quality Control and Processing Intelligence<a class="headerlink" href="#quality-control-and-processing-intelligence" title="Link to this heading"></a></h2>
+<p>The time gridding processor includes several quality control features:</p>
+<ul class="simple">
+<li><p><strong>Temporal coverage analysis</strong>: Identifies gaps and overlaps in instrument records</p></li>
+<li><p><strong>Sampling rate optimization</strong>: Uses median interval to minimize interpolation artifacts</p></li>
+<li><p><strong>Missing data handling</strong>: Preserves NaN values and missing instrument periods</p></li>
+<li><p><strong>Filter validation</strong>: Checks filter parameters against data characteristics</p></li>
+<li><p><strong>Interpolation impact assessment</strong>: Quantifies changes to original sampling rates</p></li>
+<li><p><strong>Comprehensive logging</strong>: Detailed processing logs for debugging and validation</p></li>
+</ul>
+</section>
+</section>
+<section id="time-domain-filtering-details">
+<h1>7. Time-Domain Filtering Details<a class="headerlink" href="#time-domain-filtering-details" title="Link to this heading"></a></h1>
+<p>Time-domain filtering is particularly useful for:</p>
+<ul class="simple">
+<li><p><strong>Long-term climate studies</strong>: Removing tidal signals for multi-year analysis</p></li>
+<li><p><strong>Transport calculations</strong>: Focusing on sub-inertial variability</p></li>
+<li><p><strong>Data volume reduction</strong>: Subsampling to lower frequencies for storage efficiency</p></li>
+<li><p><strong>Spectral analysis preparation</strong>: Removing specific frequency bands</p></li>
+</ul>
+<p>But it is not necessarily appropriate for:</p>
+<ul class="simple">
+<li><p><strong>High-frequency process studies</strong>: Where tidal and inertial signals are of interest</p></li>
+<li><p><strong>Short-term deployments</strong>: Where filtering may remove significant portions of the record</p></li>
+</ul>
+<p>The filtering implementation is based on the RAPID array processing workflow, where <strong>2-day low-pass Butterworth filtering</strong> (6th order) was applied to remove tidal and inertial variability from year-long mooring records.</p>
+<p><strong>RAPID filtering characteristics:</strong>
+- <strong>Purpose</strong>: Remove tides from hourly-sampled, year-long records
+- <strong>Filter type</strong>: Butterworth, 6th order
+- <strong>Cutoff frequency</strong>: 2 days (~0.0058 Hz)
+- <strong>Application</strong>: Temperature, salinity, and pressure time series
+- <strong>Output frequency</strong>: Often subsampled to 12-hourly intervals
+- <strong>Gap handling</strong>: Interpolation across gaps &lt;10 days</p>
+<p><strong>Historical RAPID workflow:</strong></p>
+<div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="c">% MATLAB implementation (hydro_grid.m)</span>
+<span class="n">filtered_temp</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">auto_filt</span><span class="p">(</span><span class="n">temperature</span><span class="p">,</span><span class="w"> </span><span class="n">sample_rate</span><span class="p">,</span><span class="w"> </span><span class="n">cutoff_days</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>This approach was essential for RAPID’s 20-year dataset management, converting high-frequency hourly data to manageable half-daily records suitable for transport calculations and long-term climate analysis.</p>
+<p><strong>Modern improvements:</strong></p>
+<p>The Python implementation in <code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray.time_gridding</span></code> provides equivalent functionality with:</p>
+<ul class="simple">
+<li><p><strong>Multi-instrument handling</strong>: Process entire moorings simultaneously</p></li>
+<li><p><strong>Flexible filtering</strong>: Multiple filter types and parameters</p></li>
+<li><p><strong>Quality control</strong>: Comprehensive timing analysis and warnings</p></li>
+<li><p><strong>Modern formats</strong>: NetCDF output with CF conventions</p></li>
+<li><p><strong>Gap-aware processing</strong>: Intelligent handling of data gaps</p></li>
+</ul>
+<p><strong>Gap Handling</strong></p>
+<p>The <code class="xref py py-meth docutils literal notranslate"><span class="pre">_filter_with_gaps()</span></code> method processes data with missing values:</p>
+<ul class="simple">
+<li><p><strong>Segment identification</strong>: Finds continuous data segments</p></li>
+<li><p><strong>Minimum length</strong>: Only filters segments &gt;50 points for stability</p></li>
+<li><p><strong>Separate processing</strong>: Filters each segment independently</p></li>
+<li><p><strong>Graceful fallbacks</strong>: Preserves original data if filtering fails</p></li>
+</ul>
+<p><strong>Quality Validation</strong></p>
+<p>Before applying filters, the system validates:</p>
+<ul class="simple">
+<li><p><strong>Data length</strong>: Minimum 100 points required for stable filtering</p></li>
+<li><p><strong>Sampling rate</strong>: Must be regular and well-defined</p></li>
+<li><p><strong>Nyquist criterion</strong>: Cutoff frequency must be below Nyquist limit</p></li>
+<li><p><strong>Data quality</strong>: Sufficient valid (non-NaN) data points</p></li>
+</ul>
+<p><strong>Filter Variables</strong></p>
+<p>The following variables are filtered when present:</p>
+<ul class="simple">
+<li><p>Temperature, salinity, conductivity</p></li>
+<li><p>Pressure and derived quantities</p></li>
+<li><p>Velocity components (u, v, eastward, northward)</p></li>
+</ul>
+<p>Coordinate variables and metadata are preserved unchanged.</p>
+<section id="integration-with-processing-chain">
+<h2>8. Integration with Processing Chain<a class="headerlink" href="#integration-with-processing-chain" title="Link to this heading"></a></h2>
+<p>Time-gridded files serve as input to subsequent mooring-level processing:</p>
+<ul class="simple">
+<li><p><strong>Step 2</strong>: Vertical gridding onto common pressure levels</p></li>
+<li><p><strong>Step 3</strong>: Multi-deployment temporal stitching</p></li>
+<li><p><strong>Analysis workflows</strong>: Transport calculations, climatological analysis</p></li>
+</ul>
+<p>The consistent structure and temporal alignment created during time gridding enables efficient downstream processing across different instrument configurations.</p>
+<p><strong>Processing provenance</strong> is maintained through:</p>
+<ul class="simple">
+<li><p>Global attributes recording filter parameters</p></li>
+<li><p>Processing logs with detailed decision information</p></li>
+<li><p>Preserved original metadata where possible</p></li>
+<li><p>Clear documentation of interpolation and filtering steps</p></li>
+</ul>
+</section>
+<section id="implementation-notes">
+<h2>9. Implementation Notes<a class="headerlink" href="#implementation-notes" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Interpolation method</strong>: Linear interpolation via xarray.Dataset.interp()</p></li>
+<li><p><strong>Time handling</strong>: All times processed as UTC datetime64 objects</p></li>
+<li><p><strong>Memory efficiency</strong>: Chunked NetCDF output for large datasets</p></li>
+<li><p><strong>Attribute preservation</strong>: Global and variable attributes maintained through processing</p></li>
+<li><p><strong>Missing data</strong>: NaN values preserved and propagated appropriately</p></li>
+<li><p><strong>Filter dependencies</strong>: Requires scipy for Butterworth filter implementation</p></li>
+</ul>
 </section>
 <section id="fair-considerations">
-<h2>7. FAIR Considerations<a class="headerlink" href="#fair-considerations" title="Link to this heading"></a></h2>
+<h2>10. FAIR Considerations<a class="headerlink" href="#fair-considerations" title="Link to this heading"></a></h2>
 <ul class="simple">
-<li><p>Clearly document filter type and cutoff frequency</p></li>
-<li><p>Retain unfiltered data for traceability and reproducibility</p></li>
-<li><p>Enable filtering settings to be parameterised in software</p></li>
+<li><p><strong>Findable</strong>: Standardized file naming and comprehensive metadata</p></li>
+<li><p><strong>Accessible</strong>: NetCDF format with CF conventions for broad compatibility</p></li>
+<li><p><strong>Interoperable</strong>: Consistent structure across moorings and deployments</p></li>
+<li><p><strong>Reusable</strong>: Detailed processing logs and parameter documentation</p></li>
 </ul>
-</section>
-<section id="legacy-context-rapid">
-<h2>Legacy Context (RAPID)<a class="headerlink" href="#legacy-context-rapid" title="Link to this heading"></a></h2>
-<p>The MATLAB script <cite>hydro_grid.m</cite> from the RAPID processing workflow performs a 2-day Butterworth filter using <a class="reference external" href="../_static/code/auto_filt.m">auto_filt.m</a>. The filtered output is used to grid and interpolate hydrographic time series before combining into overturning transport calculations.</p>
-<p>This process includes:</p>
+<p>Time gridding decisions, interpolation details, and filtering parameters are documented transparently in processing logs and dataset attributes to maintain full provenance.</p>
+<p><strong>Filter provenance includes:</strong></p>
 <ul class="simple">
-<li><p>Temporal alignment to common grid</p></li>
-<li><p>Conversion from conductivity to salinity</p></li>
-<li><p>Gap-filling for small gaps (&lt;10 days)</p></li>
-<li><p>Handling of missing sensors via reference levels or climatology</p></li>
+<li><p>Filter type and parameters in global attributes</p></li>
+<li><p>Original sampling rates and interpolation changes</p></li>
+<li><p>Gap locations and filter segment boundaries</p></li>
+<li><p>Quality control decisions and warnings</p></li>
 </ul>
-<p>See also: <span class="xref std std-doc">gridding</span></p>
-<ul class="simple">
-<li><p><a class="reference external" href="../_static/code/hydro_grid.m">hydro_grid.m</a></p></li>
-</ul>
-<p>This script was part of the original RAPID processing chain used to convert MicroCAT <cite>.asc</cite> or <cite>.cnv</cite> output to <cite>.raw</cite> files in RODB format. It includes parsing logic, metadata extraction from <cite>info.dat</cite>, time adjustment, and basic diagnostic plotting.</p>
-<div class="literal-block-wrapper docutils container" id="id1">
-<div class="code-block-caption"><span class="caption-text">Excerpt from <cite>hydro_grid.m</cite></span><a class="headerlink" href="#id1" title="Link to this code"></a></div>
-<div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="w"> </span><span class="c">% ------  temporal low pass filter ------</span>
-<span class="linenos"> 2</span>
-<span class="linenos"> 3</span><span class="w"> </span><span class="n">jd</span><span class="w">   </span><span class="p">=</span><span class="w"> </span><span class="nb">ceil</span><span class="p">(</span><span class="n">julian</span><span class="p">(</span><span class="nb">start</span><span class="p">)</span><span class="o">+</span><span class="mi">2</span><span class="p">):</span><span class="w"> </span><span class="mi">1</span><span class="o">/</span><span class="n">fss</span><span class="p">:</span><span class="nb">floor</span><span class="p">(</span><span class="n">julian</span><span class="p">(</span><span class="nb">stop</span><span class="p">)</span><span class="o">-</span><span class="mi">2</span><span class="p">);</span><span class="w"> </span>
-<span class="linenos"> 4</span><span class="w"> </span>
-<span class="linenos"> 5</span><span class="w"> </span>
-<span class="linenos"> 6</span><span class="w"> </span><span class="n">tnan_sum</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">sum</span><span class="p">(</span><span class="nb">isnan</span><span class="p">(</span><span class="n">T</span><span class="o">&#39;</span><span class="p">));</span>
-<span class="linenos"> 7</span><span class="w"> </span><span class="n">snan_sum</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">sum</span><span class="p">(</span><span class="nb">isnan</span><span class="p">(</span><span class="n">S</span><span class="o">&#39;</span><span class="p">));</span>
-<span class="linenos"> 8</span><span class="w"> </span><span class="n">pnan_sum</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">sum</span><span class="p">(</span><span class="nb">isnan</span><span class="p">(</span><span class="n">P</span><span class="o">&#39;</span><span class="p">));</span>
-<span class="linenos"> 9</span><span class="w"> </span>
-<span class="linenos">10</span><span class="w"> </span><span class="n">Tf</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">NaN</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nb">ones</span><span class="p">(</span><span class="n">m</span><span class="p">,</span><span class="n">n</span><span class="p">);</span>
-<span class="linenos">11</span><span class="w"> </span><span class="n">Sf</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">NaN</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nb">ones</span><span class="p">(</span><span class="n">m</span><span class="p">,</span><span class="n">n</span><span class="p">);</span>
-<span class="linenos">12</span><span class="w"> </span><span class="n">Pf</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">NaN</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nb">ones</span><span class="p">(</span><span class="n">m</span><span class="p">,</span><span class="n">n</span><span class="p">);</span>
-<span class="linenos">13</span><span class="w"> </span>
-<span class="linenos">14</span><span class="w">  </span><span class="k">for</span><span class="w"> </span><span class="n">pg</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="p">:</span><span class="w"> </span><span class="n">m</span>
-<span class="linenos">15</span><span class="w">    </span><span class="n">tnnan</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">find</span><span class="p">(</span><span class="o">~</span><span class="nb">isnan</span><span class="p">(</span><span class="n">T</span><span class="p">(</span><span class="n">pg</span><span class="p">,:)));</span>
-<span class="linenos">16</span><span class="w">    </span><span class="n">snnan</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">find</span><span class="p">(</span><span class="o">~</span><span class="nb">isnan</span><span class="p">(</span><span class="n">S</span><span class="p">(</span><span class="n">pg</span><span class="p">,:)));</span>
-<span class="linenos">17</span><span class="w">    </span><span class="n">pnnan</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">find</span><span class="p">(</span><span class="o">~</span><span class="nb">isnan</span><span class="p">(</span><span class="n">P</span><span class="p">(</span><span class="n">pg</span><span class="p">,:)));</span>
-<span class="linenos">18</span><span class="w">    </span>
-<span class="linenos">19</span><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nb">length</span><span class="p">(</span><span class="n">tnnan</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">30</span><span class="w">  </span><span class="c">% Anzahl muss mind. 3fache Filterordnung sein  </span>
-<span class="linenos">20</span><span class="w">      </span><span class="n">tnnan</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[];</span>
-<span class="linenos">21</span><span class="w">    </span><span class="k">end</span>
-<span class="linenos">22</span><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nb">length</span><span class="p">(</span><span class="n">snnan</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">30</span><span class="w"> </span>
-<span class="linenos">23</span><span class="w">      </span><span class="n">snnan</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[];</span>
-<span class="linenos">24</span><span class="w">    </span><span class="k">end</span>
-<span class="linenos">25</span><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nb">length</span><span class="p">(</span><span class="n">pnnan</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">30</span><span class="w"> </span>
-<span class="linenos">26</span><span class="w">      </span><span class="n">pnnan</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[];</span>
-<span class="linenos">27</span><span class="w">    </span><span class="k">end</span>
-<span class="linenos">28</span><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="o">~</span><span class="nb">isempty</span><span class="p">(</span><span class="n">tnnan</span><span class="p">)</span>
-<span class="linenos">29</span><span class="w">    </span>
-<span class="linenos">30</span><span class="w">      </span><span class="n">Tf</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="n">tnnan</span><span class="p">)</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="n">auto_filt</span><span class="p">(</span><span class="n">T</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="n">tnnan</span><span class="p">),</span><span class="mi">1</span><span class="o">/</span><span class="n">tres</span><span class="p">,</span><span class="n">co</span><span class="p">);</span>
-<span class="linenos">31</span><span class="w">      </span><span class="n">Tf</span><span class="p">(</span><span class="n">pg</span><span class="p">,:)</span><span class="w">     </span><span class="p">=</span><span class="w"> </span><span class="nb">interp1</span><span class="p">(</span><span class="n">jd_grid</span><span class="p">(</span><span class="n">tnnan</span><span class="p">),</span><span class="n">Tf</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="n">tnnan</span><span class="p">)</span><span class="o">&#39;</span><span class="p">,</span><span class="n">jd_grid</span><span class="p">)</span><span class="o">&#39;</span><span class="p">;</span>
-<span class="linenos">32</span><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="n">tnan_sum</span><span class="p">(</span><span class="n">pg</span><span class="p">)</span><span class="o">/</span><span class="n">iss</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">gap_max</span>
-<span class="linenos">33</span><span class="w">        </span><span class="n">gapI</span><span class="w">   </span><span class="p">=</span><span class="w"> </span><span class="n">gap_mark</span><span class="p">(</span><span class="n">T</span><span class="p">(</span><span class="n">pg</span><span class="p">,:),</span><span class="n">gap_max</span><span class="p">,</span><span class="n">iss</span><span class="p">);</span>
-<span class="linenos">34</span><span class="w">        </span><span class="n">Tf</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="n">gapI</span><span class="p">)</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">NaN</span><span class="p">;</span>
-<span class="linenos">35</span><span class="w">      </span><span class="k">end</span><span class="w">     </span>
-<span class="linenos">36</span><span class="w">    </span><span class="k">end</span>
-<span class="linenos">37</span><span class="w">    </span>
-<span class="linenos">38</span><span class="w">   </span><span class="k">if</span><span class="w"> </span><span class="o">~</span><span class="nb">isempty</span><span class="p">(</span><span class="n">snnan</span><span class="p">)</span><span class="w">  </span>
-<span class="linenos">39</span><span class="w">     </span><span class="n">Sf</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="n">snnan</span><span class="p">)</span><span class="w">  </span><span class="p">=</span><span class="w"> </span><span class="n">auto_filt</span><span class="p">(</span><span class="n">S</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="n">snnan</span><span class="p">),</span><span class="mi">1</span><span class="o">/</span><span class="n">tres</span><span class="p">,</span><span class="n">co</span><span class="p">);</span>
-<span class="linenos">40</span><span class="w">     </span><span class="n">Sf</span><span class="p">(</span><span class="n">pg</span><span class="p">,:)</span><span class="w">      </span><span class="p">=</span><span class="w"> </span><span class="nb">interp1</span><span class="p">(</span><span class="n">jd_grid</span><span class="p">(</span><span class="n">snnan</span><span class="p">),</span><span class="n">Sf</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="n">snnan</span><span class="p">)</span><span class="o">&#39;</span><span class="p">,</span><span class="n">jd_grid</span><span class="p">)</span><span class="o">&#39;</span><span class="p">;</span>
-<span class="linenos">41</span><span class="w">     </span><span class="k">if</span><span class="w"> </span><span class="n">snan_sum</span><span class="p">(</span><span class="n">pg</span><span class="p">)</span><span class="o">/</span><span class="n">iss</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">gap_max</span>
-<span class="linenos">42</span><span class="w">        </span><span class="n">gapI</span><span class="w">        </span><span class="p">=</span><span class="w"> </span><span class="n">gap_mark</span><span class="p">(</span><span class="n">S</span><span class="p">(</span><span class="n">pg</span><span class="p">,:),</span><span class="n">gap_max</span><span class="p">,</span><span class="n">iss</span><span class="p">);</span>
-<span class="linenos">43</span><span class="w">        </span><span class="n">Sf</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="n">gapI</span><span class="p">)</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">NaN</span><span class="p">;</span>
-<span class="linenos">44</span><span class="w">      </span><span class="k">end</span><span class="w">     </span>
-<span class="linenos">45</span>
-<span class="linenos">46</span><span class="w">   </span><span class="k">end</span>
-<span class="linenos">47</span><span class="w">   </span><span class="k">if</span><span class="w"> </span><span class="o">~</span><span class="nb">isempty</span><span class="p">(</span><span class="n">pnnan</span><span class="p">)</span><span class="w">  </span>
-<span class="linenos">48</span><span class="w">     </span><span class="n">Pf</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="n">pnnan</span><span class="p">)</span><span class="w">  </span><span class="p">=</span><span class="w"> </span><span class="n">auto_filt</span><span class="p">(</span><span class="n">P</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="n">pnnan</span><span class="p">),</span><span class="mi">1</span><span class="o">/</span><span class="n">tres</span><span class="p">,</span><span class="n">co</span><span class="p">);</span>
-<span class="linenos">49</span><span class="w">     </span><span class="n">Pf</span><span class="p">(</span><span class="n">pg</span><span class="p">,:)</span><span class="w">      </span><span class="p">=</span><span class="w"> </span><span class="nb">interp1</span><span class="p">(</span><span class="n">jd_grid</span><span class="p">(</span><span class="n">pnnan</span><span class="p">),</span><span class="n">Pf</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="n">pnnan</span><span class="p">)</span><span class="o">&#39;</span><span class="p">,</span><span class="n">jd_grid</span><span class="p">)</span><span class="o">&#39;</span><span class="p">;</span>
-<span class="linenos">50</span><span class="w">     </span><span class="k">if</span><span class="w"> </span><span class="n">pnan_sum</span><span class="p">(</span><span class="n">pg</span><span class="p">)</span><span class="o">/</span><span class="n">iss</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">gap_max</span>
-<span class="linenos">51</span><span class="w">        </span><span class="n">gapI</span><span class="w">        </span><span class="p">=</span><span class="w"> </span><span class="n">gap_mark</span><span class="p">(</span><span class="n">P</span><span class="p">(</span><span class="n">pg</span><span class="p">,:),</span><span class="n">gap_max</span><span class="p">,</span><span class="n">iss</span><span class="p">);</span>
-<span class="linenos">52</span><span class="w">        </span><span class="n">Pf</span><span class="p">(</span><span class="n">pg</span><span class="p">,</span><span class="n">gapI</span><span class="p">)</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nb">NaN</span><span class="p">;</span>
-<span class="linenos">53</span><span class="w">      </span><span class="k">end</span><span class="w">     </span>
-<span class="linenos">54</span>
-<span class="linenos">55</span><span class="w">     </span>
-<span class="linenos">56</span><span class="w">   </span><span class="k">end</span>
-<span class="linenos">57</span><span class="w">   </span>
-<span class="linenos">58</span><span class="w"> </span><span class="k">end</span>
-<span class="linenos">59</span><span class="w"> </span>
-<span class="linenos">60</span><span class="w">  </span>
-<span class="linenos">61</span><span class="w"> </span><span class="n">Tfs</span><span class="w">      </span><span class="p">=</span><span class="w"> </span><span class="nb">interp1</span><span class="p">(</span><span class="n">jd_grid</span><span class="p">,</span><span class="n">Tf</span><span class="o">&#39;</span><span class="p">,</span><span class="n">jd</span><span class="p">)</span><span class="o">&#39;</span><span class="p">;</span><span class="w">  </span>
-<span class="linenos">62</span><span class="w"> </span><span class="n">Sfs</span><span class="w">      </span><span class="p">=</span><span class="w"> </span><span class="nb">interp1</span><span class="p">(</span><span class="n">jd_grid</span><span class="p">,</span><span class="n">Sf</span><span class="o">&#39;</span><span class="p">,</span><span class="n">jd</span><span class="p">)</span><span class="o">&#39;</span><span class="p">;</span>
-<span class="linenos">63</span><span class="w"> </span><span class="n">Pfs</span><span class="w">      </span><span class="p">=</span><span class="w"> </span><span class="nb">interp1</span><span class="p">(</span><span class="n">jd_grid</span><span class="p">,</span><span class="n">Pf</span><span class="o">&#39;</span><span class="p">,</span><span class="n">jd</span><span class="p">)</span><span class="o">&#39;</span><span class="p">;</span>
-</pre></div>
-</div>
-</div>
+<p>See also: <a class="reference internal" href="../oceanarray.html"><span class="doc">oceanarray API</span></a>, <a class="reference internal" href="trimming.html"><span class="doc">2. Trimming to Deployed period</span></a>, <a class="reference internal" href="vertical_gridding.html"><span class="doc">Vertical Gridding</span></a>, <span class="xref std std-doc">stitching</span></p>
 </section>
 </section>
 
