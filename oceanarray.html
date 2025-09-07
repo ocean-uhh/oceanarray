@@ -84,6 +84,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#writers">writers</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.writers.save_OS_instrument"><code class="docutils literal notranslate"><span class="pre">save_OS_instrument()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.writers.save_dataset"><code class="docutils literal notranslate"><span class="pre">save_dataset()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#plotters">plotters</a><ul>
@@ -136,15 +137,19 @@
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.calc_ds_difference"><code class="docutils literal notranslate"><span class="pre">calc_ds_difference()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.calc_psal"><code class="docutils literal notranslate"><span class="pre">calc_psal()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.downsample_to_sparse"><code class="docutils literal notranslate"><span class="pre">downsample_to_sparse()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.find_cold_entry_exit"><code class="docutils literal notranslate"><span class="pre">find_cold_entry_exit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.find_deployment"><code class="docutils literal notranslate"><span class="pre">find_deployment()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.flag_salinity_outliers"><code class="docutils literal notranslate"><span class="pre">flag_salinity_outliers()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.flag_temporal_spikes"><code class="docutils literal notranslate"><span class="pre">flag_temporal_spikes()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.flag_vertical_inconsistencies"><code class="docutils literal notranslate"><span class="pre">flag_vertical_inconsistencies()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.lag_correlation"><code class="docutils literal notranslate"><span class="pre">lag_correlation()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.mean_of_middle_percent"><code class="docutils literal notranslate"><span class="pre">mean_of_middle_percent()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.middle_percent"><code class="docutils literal notranslate"><span class="pre">middle_percent()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.normalize_by_middle_percent"><code class="docutils literal notranslate"><span class="pre">normalize_by_middle_percent()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.normalize_dataset_by_middle_percent"><code class="docutils literal notranslate"><span class="pre">normalize_dataset_by_middle_percent()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.process_dataset"><code class="docutils literal notranslate"><span class="pre">process_dataset()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.run_qc"><code class="docutils literal notranslate"><span class="pre">run_qc()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.split_value"><code class="docutils literal notranslate"><span class="pre">split_value()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.std_of_middle_percent"><code class="docutils literal notranslate"><span class="pre">std_of_middle_percent()</span></code></a></li>
 </ul>
 </li>
@@ -261,6 +266,30 @@ a list of datasets is returned for multiple files.</p>
 <dd class="field-odd"><p>Path</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.writers.save_dataset">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.writers.</span></span><span class="sig-name descname"><span class="pre">save_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'../test.nc'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/oceanarray/writers.html#save_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.writers.save_dataset" title="Link to this definition"></a></dt>
+<dd><p>Attempts to save the dataset to a NetCDF file. If a TypeError occurs due to invalid attribute values,
+it converts the invalid attributes to strings and retries the save operation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ds</strong> (<em>xarray.Dataset</em>) – The dataset to be saved.</p></li>
+<li><p><strong>output_file</strong> (<em>str</em><em>, </em><em>optional</em>) – The path to the output NetCDF file. Defaults to ‘../test.nc’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the dataset was saved successfully, False otherwise.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This function is based on a workaround for issues with saving datasets containing
+attributes of unsupported types. See: <a class="reference external" href="https://github.com/pydata/xarray/issues/3743">https://github.com/pydata/xarray/issues/3743</a></p>
 </dd></dl>
 
 </section>
@@ -604,6 +633,34 @@ shape (n_profiles, 2 * n_pressures_sparse).
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.tools.find_cold_entry_exit">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">find_cold_entry_exit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantile</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.95</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dwell_seconds</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1800</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">smooth_window</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#find_cold_entry_exit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.find_cold_entry_exit" title="Link to this definition"></a></dt>
+<dd><p>Identify first sustained entry into ‘cold’ regime and last sustained exit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>time</strong> (<em>array-like</em><em> of </em><em>datetime64</em>)</p></li>
+<li><p><strong>temp</strong> (<em>array-like</em><em> of </em><em>float</em>)</p></li>
+<li><p><strong>quantile</strong> (<em>float</em>) – Percentile for threshold (e.g. 0.1 ~ 10th percentile).</p></li>
+<li><p><strong>dwell_seconds</strong> (<em>int</em>) – Minimum time in cold regime for it to count (seconds).</p></li>
+<li><p><strong>smooth_window</strong> (<em>int</em>) – Rolling median window length (samples).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>t_start, t_end, threshold</strong></p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple of (Timestamp or None, Timestamp or None, float)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.tools.find_deployment">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">find_deployment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'temperature'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#find_deployment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.find_deployment" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="oceanarray.tools.flag_salinity_outliers">
 <span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">flag_salinity_outliers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#flag_salinity_outliers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.flag_salinity_outliers" title="Link to this definition"></a></dt>
 <dd><p>Flags PSAL values that are more than n_std standard deviations from the mean,
@@ -636,6 +693,12 @@ threshold: maximum allowed difference in units of the variable</p>
 <span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">flag_vertical_inconsistencies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'CNDC'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#flag_vertical_inconsistencies"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.flag_vertical_inconsistencies" title="Link to this definition"></a></dt>
 <dd><p>Flags points that are very different from vertical neighbors.
 threshold: max allowed difference between vertically adjacent sensors.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.tools.lag_correlation">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">lag_correlation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_lag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_overlap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#lag_correlation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.lag_correlation" title="Link to this definition"></a></dt>
+<dd><p>Pearson correlation at integer lags in [-max_lag, max_lag].</p>
 </dd></dl>
 
 <dl class="py function">
@@ -759,6 +822,11 @@ potential density anomaly for both resolutions.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="oceanarray.tools.run_qc">
 <span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">run_qc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#run_qc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.run_qc" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.tools.split_value">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">split_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nbins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#split_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.split_value" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">

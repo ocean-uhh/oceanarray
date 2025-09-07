@@ -19,6 +19,8 @@
       <script src="_static/doctools.js?v=9bcbadda"></script>
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -294,28 +296,76 @@
  */
 
 :root {
-  --xr-font-color0: var(--jp-content-font-color0, rgba(0, 0, 0, 1));
-  --xr-font-color2: var(--jp-content-font-color2, rgba(0, 0, 0, 0.54));
-  --xr-font-color3: var(--jp-content-font-color3, rgba(0, 0, 0, 0.38));
-  --xr-border-color: var(--jp-border-color2, #e0e0e0);
-  --xr-disabled-color: var(--jp-layout-color3, #bdbdbd);
-  --xr-background-color: var(--jp-layout-color0, white);
-  --xr-background-color-row-even: var(--jp-layout-color1, white);
-  --xr-background-color-row-odd: var(--jp-layout-color2, #eeeeee);
+  --xr-font-color0: var(
+    --jp-content-font-color0,
+    var(--pst-color-text-base rgba(0, 0, 0, 1))
+  );
+  --xr-font-color2: var(
+    --jp-content-font-color2,
+    var(--pst-color-text-base, rgba(0, 0, 0, 0.54))
+  );
+  --xr-font-color3: var(
+    --jp-content-font-color3,
+    var(--pst-color-text-base, rgba(0, 0, 0, 0.38))
+  );
+  --xr-border-color: var(
+    --jp-border-color2,
+    hsl(from var(--pst-color-on-background, white) h s calc(l - 10))
+  );
+  --xr-disabled-color: var(
+    --jp-layout-color3,
+    hsl(from var(--pst-color-on-background, white) h s calc(l - 40))
+  );
+  --xr-background-color: var(
+    --jp-layout-color0,
+    var(--pst-color-on-background, white)
+  );
+  --xr-background-color-row-even: var(
+    --jp-layout-color1,
+    hsl(from var(--pst-color-on-background, white) h s calc(l - 5))
+  );
+  --xr-background-color-row-odd: var(
+    --jp-layout-color2,
+    hsl(from var(--pst-color-on-background, white) h s calc(l - 15))
+  );
 }
 
 html[theme="dark"],
 html[data-theme="dark"],
 body[data-theme="dark"],
 body.vscode-dark {
-  --xr-font-color0: rgba(255, 255, 255, 1);
-  --xr-font-color2: rgba(255, 255, 255, 0.54);
-  --xr-font-color3: rgba(255, 255, 255, 0.38);
-  --xr-border-color: #1f1f1f;
-  --xr-disabled-color: #515151;
-  --xr-background-color: #111111;
-  --xr-background-color-row-even: #111111;
-  --xr-background-color-row-odd: #313131;
+  --xr-font-color0: var(
+    --jp-content-font-color0,
+    var(--pst-color-text-base, rgba(255, 255, 255, 1))
+  );
+  --xr-font-color2: var(
+    --jp-content-font-color2,
+    var(--pst-color-text-base, rgba(255, 255, 255, 0.54))
+  );
+  --xr-font-color3: var(
+    --jp-content-font-color3,
+    var(--pst-color-text-base, rgba(255, 255, 255, 0.38))
+  );
+  --xr-border-color: var(
+    --jp-border-color2,
+    hsl(from var(--pst-color-on-background, #111111) h s calc(l + 10))
+  );
+  --xr-disabled-color: var(
+    --jp-layout-color3,
+    hsl(from var(--pst-color-on-background, #111111) h s calc(l + 40))
+  );
+  --xr-background-color: var(
+    --jp-layout-color0,
+    var(--pst-color-on-background, #111111)
+  );
+  --xr-background-color-row-even: var(
+    --jp-layout-color1,
+    hsl(from var(--pst-color-on-background, #111111) h s calc(l + 5))
+  );
+  --xr-background-color-row-odd: var(
+    --jp-layout-color2,
+    hsl(from var(--pst-color-on-background, #111111) h s calc(l + 15))
+  );
 }
 
 .xr-wrap {
@@ -371,6 +421,7 @@ body.vscode-dark {
 
 .xr-section-item input + label {
   color: var(--xr-disabled-color);
+  border: 2px solid transparent !important;
 }
 
 .xr-section-item input:enabled + label {
@@ -379,7 +430,7 @@ body.vscode-dark {
 }
 
 .xr-section-item input:focus + label {
-  border: 2px solid var(--xr-font-color0);
+  border: 2px solid var(--xr-font-color0) !important;
 }
 
 .xr-section-item input:enabled + label:hover {
@@ -511,7 +562,9 @@ body.vscode-dark {
 .xr-var-item label,
 .xr-var-item > .xr-var-name span {
   background-color: var(--xr-background-color-row-even);
+  border-color: var(--xr-background-color-row-odd);
   margin-bottom: 0;
+  padding-top: 2px;
 }
 
 .xr-var-item > .xr-var-name:hover span {
@@ -522,6 +575,7 @@ body.vscode-dark {
 .xr-var-list > li:nth-child(odd) > label,
 .xr-var-list > li:nth-child(odd) > .xr-var-name span {
   background-color: var(--xr-background-color-row-odd);
+  border-color: var(--xr-background-color-row-even);
 }
 
 .xr-var-name {
@@ -571,8 +625,15 @@ body.vscode-dark {
 .xr-var-data,
 .xr-index-data {
   display: none;
-  background-color: var(--xr-background-color) !important;
-  padding-bottom: 5px !important;
+  border-top: 2px dotted var(--xr-background-color);
+  padding-bottom: 20px !important;
+  padding-top: 10px !important;
+}
+
+.xr-var-attrs-in + label,
+.xr-var-data-in + label,
+.xr-index-data-in + label {
+  padding: 0 1px;
 }
 
 .xr-var-attrs-in:checked ~ .xr-var-attrs,
@@ -583,6 +644,12 @@ body.vscode-dark {
 
 .xr-var-data > table {
   float: right;
+}
+
+.xr-var-data > pre,
+.xr-index-data > pre,
+.xr-var-data > table > tbody > tr {
+  background-color: transparent !important;
 }
 
 .xr-var-name span,
@@ -644,6 +711,14 @@ dl.xr-attrs {
   stroke: currentColor;
   fill: currentColor;
 }
+
+.xr-var-attrs-in:checked + label > .xr-icon-file-text2,
+.xr-var-data-in:checked + label > .xr-icon-database,
+.xr-index-data-in:checked + label > .xr-icon-database {
+  color: var(--xr-font-color0);
+  filter: drop-shadow(1px 1px 5px var(--xr-font-color2));
+  stroke-width: 0.8px;
+}
 </style><pre class='xr-text-repr-fallback'>&lt;xarray.Dataset&gt; Size: 15kB
 Dimensions:  (month: 12, TEMP: 74)
 Coordinates:
@@ -657,14 +732,14 @@ Attributes:
     temp_bin_width:  0.5
     description:     Monthly climatology of dT/dP and dS/dP vs temperature.
     generated_by:    verticalnn rapid_interp module
-    created_on:      2025-06-09T17:45:03</pre><div class='xr-wrap' style='display:none'><div class='xr-header'><div class='xr-obj-type'>xarray.Dataset</div></div><ul class='xr-sections'><li class='xr-section-item'><input id='section-9f3911e5-a367-447a-9e20-b797acb31479' class='xr-section-summary-in' type='checkbox' disabled ><label for='section-9f3911e5-a367-447a-9e20-b797acb31479' class='xr-section-summary'  title='Expand/collapse section'>Dimensions:</label><div class='xr-section-inline-details'><ul class='xr-dim-list'><li><span class='xr-has-index'>month</span>: 12</li><li><span class='xr-has-index'>TEMP</span>: 74</li></ul></div><div class='xr-section-details'></div></li><li class='xr-section-item'><input id='section-f8e7be6d-3fb6-42a7-9977-0b868373b46f' class='xr-section-summary-in' type='checkbox'  checked><label for='section-f8e7be6d-3fb6-42a7-9977-0b868373b46f' class='xr-section-summary' >Coordinates: <span>(2)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><ul class='xr-var-list'><li class='xr-var-item'><div class='xr-var-name'><span class='xr-has-index'>month</span></div><div class='xr-var-dims'>(month)</div><div class='xr-var-dtype'>int64</div><div class='xr-var-preview xr-preview'>1 2 3 4 5 6 7 8 9 10 11 12</div><input id='attrs-ef8f8f87-8e54-4d33-96e5-9cd4e54fe050' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-ef8f8f87-8e54-4d33-96e5-9cd4e54fe050' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-c2d85199-5753-4524-b28e-b6964ec1b868' class='xr-var-data-in' type='checkbox'><label for='data-c2d85199-5753-4524-b28e-b6964ec1b868' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>array([ 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12])</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span class='xr-has-index'>TEMP</span></div><div class='xr-var-dims'>(TEMP)</div><div class='xr-var-dtype'>float64</div><div class='xr-var-preview xr-preview'>-1.75 -1.25 -0.75 ... 34.25 34.75</div><input id='attrs-d76c7fef-5238-4694-806a-bd3a2b29a745' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-d76c7fef-5238-4694-806a-bd3a2b29a745' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-d49774dd-f721-4337-b1f2-47a150527abf' class='xr-var-data-in' type='checkbox'><label for='data-d49774dd-f721-4337-b1f2-47a150527abf' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>array([-1.75, -1.25, -0.75, -0.25,  0.25,  0.75,  1.25,  1.75,  2.25,  2.75,
+    created_on:      2025-06-09T17:45:03</pre><div class='xr-wrap' style='display:none'><div class='xr-header'><div class='xr-obj-type'>xarray.Dataset</div></div><ul class='xr-sections'><li class='xr-section-item'><input id='section-1586b755-9852-4b7a-80fe-f0d3afc76215' class='xr-section-summary-in' type='checkbox' disabled ><label for='section-1586b755-9852-4b7a-80fe-f0d3afc76215' class='xr-section-summary'  title='Expand/collapse section'>Dimensions:</label><div class='xr-section-inline-details'><ul class='xr-dim-list'><li><span class='xr-has-index'>month</span>: 12</li><li><span class='xr-has-index'>TEMP</span>: 74</li></ul></div><div class='xr-section-details'></div></li><li class='xr-section-item'><input id='section-719702e3-c29e-4c85-97ab-a2879b922fe7' class='xr-section-summary-in' type='checkbox'  checked><label for='section-719702e3-c29e-4c85-97ab-a2879b922fe7' class='xr-section-summary' >Coordinates: <span>(2)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><ul class='xr-var-list'><li class='xr-var-item'><div class='xr-var-name'><span class='xr-has-index'>month</span></div><div class='xr-var-dims'>(month)</div><div class='xr-var-dtype'>int64</div><div class='xr-var-preview xr-preview'>1 2 3 4 5 6 7 8 9 10 11 12</div><input id='attrs-abb5a612-4a29-4467-ba36-f327bf5555f6' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-abb5a612-4a29-4467-ba36-f327bf5555f6' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-40999216-5f5f-4895-8949-b3cffb7314a9' class='xr-var-data-in' type='checkbox'><label for='data-40999216-5f5f-4895-8949-b3cffb7314a9' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>array([ 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12])</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span class='xr-has-index'>TEMP</span></div><div class='xr-var-dims'>(TEMP)</div><div class='xr-var-dtype'>float64</div><div class='xr-var-preview xr-preview'>-1.75 -1.25 -0.75 ... 34.25 34.75</div><input id='attrs-8ef44f63-6693-460c-a02d-c6cdd3e02712' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-8ef44f63-6693-460c-a02d-c6cdd3e02712' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-1a4bdd07-fb85-444a-98d0-396c214a177c' class='xr-var-data-in' type='checkbox'><label for='data-1a4bdd07-fb85-444a-98d0-396c214a177c' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>array([-1.75, -1.25, -0.75, -0.25,  0.25,  0.75,  1.25,  1.75,  2.25,  2.75,
         3.25,  3.75,  4.25,  4.75,  5.25,  5.75,  6.25,  6.75,  7.25,  7.75,
         8.25,  8.75,  9.25,  9.75, 10.25, 10.75, 11.25, 11.75, 12.25, 12.75,
        13.25, 13.75, 14.25, 14.75, 15.25, 15.75, 16.25, 16.75, 17.25, 17.75,
        18.25, 18.75, 19.25, 19.75, 20.25, 20.75, 21.25, 21.75, 22.25, 22.75,
        23.25, 23.75, 24.25, 24.75, 25.25, 25.75, 26.25, 26.75, 27.25, 27.75,
        28.25, 28.75, 29.25, 29.75, 30.25, 30.75, 31.25, 31.75, 32.25, 32.75,
-       33.25, 33.75, 34.25, 34.75])</pre></div></li></ul></div></li><li class='xr-section-item'><input id='section-536694fb-4805-439d-b46f-50321cdc32e7' class='xr-section-summary-in' type='checkbox'  checked><label for='section-536694fb-4805-439d-b46f-50321cdc32e7' class='xr-section-summary' >Data variables: <span>(2)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><ul class='xr-var-list'><li class='xr-var-item'><div class='xr-var-name'><span>dTdp</span></div><div class='xr-var-dims'>(month, TEMP)</div><div class='xr-var-dtype'>float64</div><div class='xr-var-preview xr-preview'>...</div><input id='attrs-b29550e2-3f05-469a-b1c4-1d7546df79c6' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-b29550e2-3f05-469a-b1c4-1d7546df79c6' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-dbe9d590-32b7-4aca-b1f3-59894132fd78' class='xr-var-data-in' type='checkbox'><label for='data-dbe9d590-32b7-4aca-b1f3-59894132fd78' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>[888 values with dtype=float64]</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>dSdp</span></div><div class='xr-var-dims'>(month, TEMP)</div><div class='xr-var-dtype'>float64</div><div class='xr-var-preview xr-preview'>...</div><input id='attrs-957ef09d-0bb3-4425-ba3e-dbc5ebc8fca8' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-957ef09d-0bb3-4425-ba3e-dbc5ebc8fca8' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-09c28749-2a76-4065-98fb-690a8d230138' class='xr-var-data-in' type='checkbox'><label for='data-09c28749-2a76-4065-98fb-690a8d230138' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>[888 values with dtype=float64]</pre></div></li></ul></div></li><li class='xr-section-item'><input id='section-3962f5e0-9192-4997-a07c-29ca7b0cdd89' class='xr-section-summary-in' type='checkbox'  ><label for='section-3962f5e0-9192-4997-a07c-29ca7b0cdd89' class='xr-section-summary' >Indexes: <span>(2)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><ul class='xr-var-list'><li class='xr-var-item'><div class='xr-index-name'><div>month</div></div><div class='xr-index-preview'>PandasIndex</div><input type='checkbox' disabled/><label></label><input id='index-0cc529be-683b-42a9-9987-7706d9f9637c' class='xr-index-data-in' type='checkbox'/><label for='index-0cc529be-683b-42a9-9987-7706d9f9637c' title='Show/Hide index repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-index-data'><pre>PandasIndex(Index([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], dtype=&#x27;int64&#x27;, name=&#x27;month&#x27;))</pre></div></li><li class='xr-var-item'><div class='xr-index-name'><div>TEMP</div></div><div class='xr-index-preview'>PandasIndex</div><input type='checkbox' disabled/><label></label><input id='index-2e2c8ada-6c49-4815-b9dc-3bc4f02931b7' class='xr-index-data-in' type='checkbox'/><label for='index-2e2c8ada-6c49-4815-b9dc-3bc4f02931b7' title='Show/Hide index repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-index-data'><pre>PandasIndex(Index([-1.75, -1.25, -0.75, -0.25,  0.25,  0.75,  1.25,  1.75,  2.25,  2.75,
+       33.25, 33.75, 34.25, 34.75])</pre></div></li></ul></div></li><li class='xr-section-item'><input id='section-57567bf7-ae19-4cc6-94e8-09b0bbcd04e7' class='xr-section-summary-in' type='checkbox'  checked><label for='section-57567bf7-ae19-4cc6-94e8-09b0bbcd04e7' class='xr-section-summary' >Data variables: <span>(2)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><ul class='xr-var-list'><li class='xr-var-item'><div class='xr-var-name'><span>dTdp</span></div><div class='xr-var-dims'>(month, TEMP)</div><div class='xr-var-dtype'>float64</div><div class='xr-var-preview xr-preview'>...</div><input id='attrs-b0de5e13-32e2-4331-ac50-fdbbb6039a3b' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-b0de5e13-32e2-4331-ac50-fdbbb6039a3b' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-31f97004-dee8-40bc-ad73-8dd55d7cb3c5' class='xr-var-data-in' type='checkbox'><label for='data-31f97004-dee8-40bc-ad73-8dd55d7cb3c5' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>[888 values with dtype=float64]</pre></div></li><li class='xr-var-item'><div class='xr-var-name'><span>dSdp</span></div><div class='xr-var-dims'>(month, TEMP)</div><div class='xr-var-dtype'>float64</div><div class='xr-var-preview xr-preview'>...</div><input id='attrs-f2dc3ddb-d54c-4307-aec3-90bfbc3c5d14' class='xr-var-attrs-in' type='checkbox' disabled><label for='attrs-f2dc3ddb-d54c-4307-aec3-90bfbc3c5d14' title='Show/Hide attributes'><svg class='icon xr-icon-file-text2'><use xlink:href='#icon-file-text2'></use></svg></label><input id='data-10479e54-db98-495e-af4f-3692a8b52067' class='xr-var-data-in' type='checkbox'><label for='data-10479e54-db98-495e-af4f-3692a8b52067' title='Show/Hide data repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-var-attrs'><dl class='xr-attrs'></dl></div><div class='xr-var-data'><pre>[888 values with dtype=float64]</pre></div></li></ul></div></li><li class='xr-section-item'><input id='section-cb9db661-6209-454c-8fb3-830030c86127' class='xr-section-summary-in' type='checkbox'  ><label for='section-cb9db661-6209-454c-8fb3-830030c86127' class='xr-section-summary' >Indexes: <span>(2)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><ul class='xr-var-list'><li class='xr-var-item'><div class='xr-index-name'><div>month</div></div><div class='xr-index-preview'>PandasIndex</div><input type='checkbox' disabled/><label></label><input id='index-e53c8f51-9261-4fd5-b8a3-6bd4bebd9a1e' class='xr-index-data-in' type='checkbox'/><label for='index-e53c8f51-9261-4fd5-b8a3-6bd4bebd9a1e' title='Show/Hide index repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-index-data'><pre>PandasIndex(Index([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], dtype=&#x27;int64&#x27;, name=&#x27;month&#x27;))</pre></div></li><li class='xr-var-item'><div class='xr-index-name'><div>TEMP</div></div><div class='xr-index-preview'>PandasIndex</div><input type='checkbox' disabled/><label></label><input id='index-0569d47d-38ee-4da1-867f-e0c9a6435cab' class='xr-index-data-in' type='checkbox'/><label for='index-0569d47d-38ee-4da1-867f-e0c9a6435cab' title='Show/Hide index repr'><svg class='icon xr-icon-database'><use xlink:href='#icon-database'></use></svg></label><div class='xr-index-data'><pre>PandasIndex(Index([-1.75, -1.25, -0.75, -0.25,  0.25,  0.75,  1.25,  1.75,  2.25,  2.75,
         3.25,  3.75,  4.25,  4.75,  5.25,  5.75,  6.25,  6.75,  7.25,  7.75,
         8.25,  8.75,  9.25,  9.75, 10.25, 10.75, 11.25, 11.75, 12.25, 12.75,
        13.25, 13.75, 14.25, 14.75, 15.25, 15.75, 16.25, 16.75, 17.25, 17.75,
@@ -672,7 +747,7 @@ Attributes:
        23.25, 23.75, 24.25, 24.75, 25.25, 25.75, 26.25, 26.75, 27.25, 27.75,
        28.25, 28.75, 29.25, 29.75, 30.25, 30.75, 31.25, 31.75, 32.25, 32.75,
        33.25, 33.75, 34.25, 34.75],
-      dtype=&#x27;float64&#x27;, name=&#x27;TEMP&#x27;))</pre></div></li></ul></div></li><li class='xr-section-item'><input id='section-95945b14-033a-400f-86eb-fc0f533ae5f3' class='xr-section-summary-in' type='checkbox'  checked><label for='section-95945b14-033a-400f-86eb-fc0f533ae5f3' class='xr-section-summary' >Attributes: <span>(5)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><dl class='xr-attrs'><dt><span>method :</span></dt><dd>seasonal climatology built from downsampled CTD profiles</dd><dt><span>temp_bin_width :</span></dt><dd>0.5</dd><dt><span>description :</span></dt><dd>Monthly climatology of dT/dP and dS/dP vs temperature.</dd><dt><span>generated_by :</span></dt><dd>verticalnn rapid_interp module</dd><dt><span>created_on :</span></dt><dd>2025-06-09T17:45:03</dd></dl></div></li></ul></div></div></div>
+      dtype=&#x27;float64&#x27;, name=&#x27;TEMP&#x27;))</pre></div></li></ul></div></li><li class='xr-section-item'><input id='section-d07d6d26-3cb4-4981-9348-0a7e56a5c174' class='xr-section-summary-in' type='checkbox'  checked><label for='section-d07d6d26-3cb4-4981-9348-0a7e56a5c174' class='xr-section-summary' >Attributes: <span>(5)</span></label><div class='xr-section-inline-details'></div><div class='xr-section-details'><dl class='xr-attrs'><dt><span>method :</span></dt><dd>seasonal climatology built from downsampled CTD profiles</dd><dt><span>temp_bin_width :</span></dt><dd>0.5</dd><dt><span>description :</span></dt><dd>Monthly climatology of dT/dP and dS/dP vs temperature.</dd><dt><span>generated_by :</span></dt><dd>verticalnn rapid_interp module</dd><dt><span>created_on :</span></dt><dd>2025-06-09T17:45:03</dd></dl></div></li></ul></div></div></div>
 </div>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
