@@ -2,19 +2,15 @@ import logging
 
 import gsw
 import numpy as np
+import pandas as pd
 import xarray as xr
 from scipy.signal import butter, filtfilt
-import numpy as np
-import pandas as pd
 
-import numpy as np
-import pandas as pd
 from oceanarray import utilities
 
 # Initialize logging
 _log = logging.getLogger(__name__)
 
-import numpy as np
 from scipy.signal import find_peaks
 
 
@@ -25,14 +21,14 @@ def lag_correlation(x, y, max_lag, min_overlap=10):
     if x.shape != y.shape:
         raise ValueError("x and y must have same length (subsample both).")
     n = len(x)
-    corrs = np.full(2*max_lag + 1, np.nan)
+    corrs = np.full(2 * max_lag + 1, np.nan)
     for k, lag in enumerate(range(-max_lag, max_lag + 1)):
         if lag < 0:
-            xs = x[:lag]           # up to last |lag|
-            ys = y[-lag:]          # from |lag| to end
+            xs = x[:lag]  # up to last |lag|
+            ys = y[-lag:]  # from |lag| to end
         elif lag > 0:
-            xs = x[lag:]           # from lag to end
-            ys = y[:-lag]          # up to n-lag
+            xs = x[lag:]  # from lag to end
+            ys = y[:-lag]  # up to n-lag
         else:
             xs, ys = x, y
 
@@ -41,11 +37,11 @@ def lag_correlation(x, y, max_lag, min_overlap=10):
             xc = xs[m] - np.nanmean(xs[m])
             yc = ys[m] - np.nanmean(ys[m])
             denom = np.nanstd(xc) * np.nanstd(yc)
-            corrs[k] = (np.nanmean(xc*yc) / denom) if denom > 0 else np.nan
+            corrs[k] = (np.nanmean(xc * yc) / denom) if denom > 0 else np.nan
     return corrs
 
 
-def split_value(data,nbins=30):
+def split_value(data, nbins=30):
     # Example: Your 1D data array
     data = data[~np.isnan(data)]  # Remove NaNs for histogram
     # Step 1: Create histogram
@@ -59,12 +55,13 @@ def split_value(data,nbins=30):
         i1, i2 = sorted(peaks[:2])
         split_index = np.argmin(counts[i1:i2]) + i1
         splitter = bins[split_index]
-        #print("Split value:", splitter)
+        # print("Split value:", splitter)
     return splitter
 
 
-
-def find_cold_entry_exit(time, temp, quantile=0.95, dwell_seconds=1800, smooth_window=5):
+def find_cold_entry_exit(
+    time, temp, quantile=0.95, dwell_seconds=1800, smooth_window=5
+):
     """
     Identify first sustained entry into 'cold' regime and last sustained exit.
 
@@ -89,7 +86,12 @@ def find_cold_entry_exit(time, temp, quantile=0.95, dwell_seconds=1800, smooth_w
 
     # smooth with rolling median
     if smooth_window > 1:
-        temp = pd.Series(temp).rolling(smooth_window, center=True, min_periods=1).median().values
+        temp = (
+            pd.Series(temp)
+            .rolling(smooth_window, center=True, min_periods=1)
+            .median()
+            .values
+        )
 
     below = temp <= thr
     if not below.any():
@@ -103,7 +105,7 @@ def find_cold_entry_exit(time, temp, quantile=0.95, dwell_seconds=1800, smooth_w
     idx = np.where(below)[0]
     gaps = np.diff(idx) > 1
     starts = np.r_[idx[0], idx[1:][gaps]]
-    ends   = np.r_[idx[:-1][gaps], idx[-1]]
+    ends = np.r_[idx[:-1][gaps], idx[-1]]
 
     runs = [(s, e) for s, e in zip(starts, ends) if (e - s + 1) >= min_len]
     if not runs:
@@ -114,40 +116,41 @@ def find_cold_entry_exit(time, temp, quantile=0.95, dwell_seconds=1800, smooth_w
     return time[s0], time[eL], thr
 
 
-
-def find_deployment(ds, var_name='temperature'):
+def find_deployment(ds, var_name="temperature"):
     pre_deploy_before = []
     start_deployment = []
     end_deployment = []
     mooring_rising = []
     split_vals = []
     split_vals2 = []
-    N_LEVELS = ds['N_LEVELS']
+    N_LEVELS = ds["N_LEVELS"]
     for i in range(0, len(N_LEVELS)):
-        if var_name in ds and ds[var_name].dims == ('time', 'N_LEVELS'):
-            data1 = ds[var_name][:,i]
+        if var_name in ds and ds[var_name].dims == ("time", "N_LEVELS"):
+            data1 = ds[var_name][:, i]
 
             splitter = split_value(data1)
-            x, y, split2 = find_cold_entry_exit(ds['time'], data1)
+            x, y, split2 = find_cold_entry_exit(ds["time"], data1)
 
             # Assume the deployment data are below the threshold
             idx_less_than = np.where(data1 < splitter)
             idx_more_than = np.where(data1 > splitter)
 
             # Find out whether idx_less_than or idx_more_than contains the first non-Nan value
-            if idx_less_than[0].size > 0 and (idx_more_than[0].size == 0 or idx_less_than[0][0] < idx_more_than[0][0]):
+            if idx_less_than[0].size > 0 and (
+                idx_more_than[0].size == 0 or idx_less_than[0][0] < idx_more_than[0][0]
+            ):
                 # idx_less_than starts sooner (i.e. contains the pre-deployment)
                 idx = idx_more_than
-                condition = '>'
+                condition = ">"
             else:
                 idx = idx_less_than
-                condition = '<'
+                condition = "<"
 
-            first_deep_time = ds['time'][idx].values[0] if idx[0].size > 0 else None
-            time_before = ds['time'][idx[0][0] - 1].values if idx[0].size > 0 else None
+            first_deep_time = ds["time"][idx].values[0] if idx[0].size > 0 else None
+            time_before = ds["time"][idx[0][0] - 1].values if idx[0].size > 0 else None
             # End of deployment + one after
-            last_deep_time = ds['time'][idx].values[-1] if idx[0].size > 0 else None
-            time_after = ds['time'][idx[0][-1] + 1].values if idx[0].size > 0 else None
+            last_deep_time = ds["time"][idx].values[-1] if idx[0].size > 0 else None
+            time_after = ds["time"][idx[0][-1] + 1].values if idx[0].size > 0 else None
 
             pre_deploy_before.append(time_before)
             start_deployment.append(first_deep_time)
@@ -157,30 +160,45 @@ def find_deployment(ds, var_name='temperature'):
             split_vals2.append(split2)
 
             # Initialise new variable in dataset ds, called start_time with same size as ds[var_name]
-            if 'start_time' not in ds:
+            if "start_time" not in ds:
                 # Use proper datetime64 unit specification
-                ds['start_time'] = (('N_LEVELS'), np.full(ds['N_LEVELS'].shape, np.datetime64('NaT', 'ns')))
-                ds['end_time'] = (('N_LEVELS'), np.full(ds['N_LEVELS'].shape, np.datetime64('NaT', 'ns')))
-            if 'split_value' not in ds:
-                ds['split_value'] = (('N_LEVELS'), np.full(ds['N_LEVELS'].shape, np.nan))
-            if 'split_value2' not in ds:
-                ds['split_value2'] = (('N_LEVELS'), np.full(ds['N_LEVELS'].shape, np.nan))
-            ds['start_time'][i] = first_deep_time
-            ds['end_time'][i] = last_deep_time
-            ds['split_value'][i] = splitter
-            ds['split_value2'][i] = split2
+                ds["start_time"] = (
+                    ("N_LEVELS"),
+                    np.full(ds["N_LEVELS"].shape, np.datetime64("NaT", "ns")),
+                )
+                ds["end_time"] = (
+                    ("N_LEVELS"),
+                    np.full(ds["N_LEVELS"].shape, np.datetime64("NaT", "ns")),
+                )
+            if "split_value" not in ds:
+                ds["split_value"] = (
+                    ("N_LEVELS"),
+                    np.full(ds["N_LEVELS"].shape, np.nan),
+                )
+            if "split_value2" not in ds:
+                ds["split_value2"] = (
+                    ("N_LEVELS"),
+                    np.full(ds["N_LEVELS"].shape, np.nan),
+                )
+            ds["start_time"][i] = first_deep_time
+            ds["end_time"][i] = last_deep_time
+            ds["split_value"][i] = splitter
+            ds["split_value2"][i] = split2
 
-            print(f"{i}/{data1['serial_number'].values}:{data1['instrument'].values}: Split at {splitter:1.2f}.  Start after {first_deep_time}.  End with {last_deep_time}.")
+            print(
+                f"{i}/{data1['serial_number'].values}:{data1['instrument'].values}: Split at {splitter:1.2f}.  Start after {first_deep_time}.  End with {last_deep_time}."
+            )
 
         else:
-            pre_deploy_before.append(np.datetime64('NaT', 'ns'))
-            start_deployment.append(np.datetime64('NaT', 'ns'))
-            end_deployment.append(np.datetime64('NaT', 'ns'))
-            mooring_rising.append(np.datetime64('NaT', 'ns'))
+            pre_deploy_before.append(np.datetime64("NaT", "ns"))
+            start_deployment.append(np.datetime64("NaT", "ns"))
+            end_deployment.append(np.datetime64("NaT", "ns"))
+            mooring_rising.append(np.datetime64("NaT", "ns"))
             split_value.append(np.nan)
             split_value2.append(np.nan)
 
     return ds
+
 
 def calc_psal(ds):
     if "PSAL" not in ds:
