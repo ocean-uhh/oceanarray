@@ -54,11 +54,11 @@ Instrument Processing
 ----------------------
 
 
-standardisation
-^^^^^^^^^^^^^^^^^
+stage 1 - standardisation
+^^^^^^^^^^^^^^^^^^^^^^^^^
 Trim instrument records to the deployment window and flag out-of-bounds values.
 
-.. automodule:: oceanarray.standardisation
+.. automodule:: oceanarray.stage1
    :members:
    :undoc-members:
 
