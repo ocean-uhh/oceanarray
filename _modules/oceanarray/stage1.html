@@ -110,8 +110,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">ctd_tools.readers</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span><span class="n">NortekAsciiReader</span><span class="p">,</span>
-                               <span class="n">RbrAsciiReader</span><span class="p">,</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ctd_tools.readers</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span><span class="n">NortekAsciiReader</span><span class="p">,</span> <span class="n">RbrAsciiReader</span><span class="p">,</span>
                                <span class="n">RbrRskAutoReader</span><span class="p">,</span> <span class="n">SbeAsciiReader</span><span class="p">,</span> <span class="n">SbeCnvReader</span><span class="p">)</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">ctd_tools.writers</span><span class="w"> </span><span class="kn">import</span> <span class="n">NetCdfWriter</span>
 
@@ -127,9 +126,9 @@
         <span class="s2">&quot;nortek-aqd&quot;</span><span class="p">:</span> <span class="n">NortekAsciiReader</span><span class="p">,</span>
         <span class="s2">&quot;sbe-asc&quot;</span><span class="p">:</span> <span class="n">SbeAsciiReader</span><span class="p">,</span>
         <span class="s2">&quot;rbr-rsk&quot;</span><span class="p">:</span> <span class="n">RbrRskAutoReader</span><span class="p">,</span>
-        <span class="c1">#&quot;rbr-matlab&quot;: RbrMatlabReader,</span>
+        <span class="c1"># &quot;rbr-matlab&quot;: RbrMatlabReader,</span>
         <span class="s2">&quot;rbr-dat&quot;</span><span class="p">:</span> <span class="n">RbrAsciiReader</span><span class="p">,</span>
-        <span class="c1">#&quot;adcp-matlab&quot;: AdcpMatlabReader,</span>
+        <span class="c1"># &quot;adcp-matlab&quot;: AdcpMatlabReader,</span>
     <span class="p">}</span>
 
     <span class="c1"># Variables to remove for specific file types</span>
