@@ -28,15 +28,6 @@ def save_dataset(ds: xr.Dataset, output_file: str = "../test.nc") -> bool:
     attributes of unsupported types. See: https://github.com/pydata/xarray/issues/3743
 
     """
-    valid_types: tuple[Union[type, tuple], ...] = (
-        str,
-        int,
-        float,
-        np.float32,
-        np.float64,
-        np.int32,
-        np.int64,
-    )
     # More general
     valid_types = (str, Number, np.ndarray, np.number, list, tuple)
     try:
