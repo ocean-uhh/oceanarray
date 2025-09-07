@@ -22,7 +22,7 @@ class MooringProcessor:
         "nortek-aqd": NortekAsciiReader,
         "sbe-asc": SbeAsciiReader,
         "rbr-rsk": RbrRskAutoReader,
-        "rbr-matlab": RbrMatlabReader,
+        #"rbr-matlab": RbrMatlabReader,
         "rbr-dat": RbrAsciiReader,
         "adcp-matlab": AdcpMatlabReader,
     }
