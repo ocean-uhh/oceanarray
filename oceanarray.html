@@ -109,7 +109,12 @@
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.stage1.stage1_mooring"><code class="docutils literal notranslate"><span class="pre">stage1_mooring()</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#trimming">trimming</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stage-2-trimming">stage 2 - trimming</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.stage2.Stage2Processor"><code class="docutils literal notranslate"><span class="pre">Stage2Processor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.stage2.process_multiple_moorings_stage2"><code class="docutils literal notranslate"><span class="pre">process_multiple_moorings_stage2()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.stage2.stage2_mooring"><code class="docutils literal notranslate"><span class="pre">stage2_mooring()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="#calibration">calibration</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#convertos">convertOS</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.convertOS.add_fixed_coordinates"><code class="docutils literal notranslate"><span class="pre">add_fixed_coordinates()</span></code></a></li>
@@ -128,9 +133,14 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#mooring-processing">Mooring Processing</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#filtering">filtering</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#gridding">gridding</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#stitching">stitching</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#step-1-time-gridding">Step 1 - time_gridding</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.time_gridding.TimeGriddingProcessor"><code class="docutils literal notranslate"><span class="pre">TimeGriddingProcessor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.time_gridding.process_multiple_moorings_time_gridding"><code class="docutils literal notranslate"><span class="pre">process_multiple_moorings_time_gridding()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.time_gridding.time_gridding_mooring"><code class="docutils literal notranslate"><span class="pre">time_gridding_mooring()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#step-2-vertical-gridding">Step 2 - vertical gridding</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#step-3-stitching">Step 3 - stitching</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#array-processing">Array Processing</a><ul>
@@ -507,9 +517,79 @@ pandas.io.formats.style.Styler: A styled DataFrame containing the following colu
 </dd></dl>
 
 </section>
-<section id="trimming">
-<h3>trimming<a class="headerlink" href="#trimming" title="Link to this heading"></a></h3>
+<section id="stage-2-trimming">
+<h3>stage 2 - trimming<a class="headerlink" href="#stage-2-trimming" title="Link to this heading"></a></h3>
 <p>Trim instrument records to the deployment window and flag out-of-bounds values.</p>
+<p id="module-oceanarray.stage2">Stage 2 processing for mooring data: Apply clock offsets and trim to deployment period.</p>
+<p>This module handles:
+- Loading processed Stage 1 NetCDF files
+- Applying clock corrections from YAML configuration
+- Trimming data to deployment/recovery time windows
+- Writing updated NetCDF files with ‘_use’ suffix</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="oceanarray.stage2.Stage2Processor">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">oceanarray.stage2.</span></span><span class="sig-name descname"><span class="pre">Stage2Processor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/stage2.html#Stage2Processor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.stage2.Stage2Processor" title="Link to this definition"></a></dt>
+<dd><p>Handles Stage 2 processing: clock correction and temporal trimming.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="oceanarray.stage2.Stage2Processor.process_mooring">
+<span class="sig-name descname"><span class="pre">process_mooring</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mooring_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/oceanarray/stage2.html#Stage2Processor.process_mooring"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.stage2.Stage2Processor.process_mooring" title="Link to this definition"></a></dt>
+<dd><p>Process Stage 2 for a single mooring.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mooring_name</strong> – Name of the mooring to process</p></li>
+<li><p><strong>output_path</strong> – Optional custom output path</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if processing completed successfully</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.stage2.process_multiple_moorings_stage2">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.stage2.</span></span><span class="sig-name descname"><span class="pre">process_multiple_moorings_stage2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mooring_list</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">basedir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/oceanarray/stage2.html#process_multiple_moorings_stage2"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.stage2.process_multiple_moorings_stage2" title="Link to this definition"></a></dt>
+<dd><p>Process Stage 2 for multiple moorings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mooring_list</strong> – List of mooring names to process</p></li>
+<li><p><strong>basedir</strong> – Base directory containing the data</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict mapping mooring names to success status</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.stage2.stage2_mooring">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.stage2.</span></span><span class="sig-name descname"><span class="pre">stage2_mooring</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mooring_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">basedir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/oceanarray/stage2.html#stage2_mooring"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.stage2.stage2_mooring" title="Link to this definition"></a></dt>
+<dd><p>Process Stage 2 for a single mooring (backwards compatibility function).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mooring_name</strong> – Name of the mooring to process</p></li>
+<li><p><strong>basedir</strong> – Base directory containing the data</p></li>
+<li><p><strong>output_path</strong> – Optional output path override</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if processing completed successfully</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 <section id="calibration">
 <h3>calibration<a class="headerlink" href="#calibration" title="Link to this heading"></a></h3>
@@ -636,16 +716,106 @@ pandas.io.formats.style.Styler: A styled DataFrame containing the following colu
 </section>
 <section id="mooring-processing">
 <h2>Mooring Processing<a class="headerlink" href="#mooring-processing" title="Link to this heading"></a></h2>
-<section id="filtering">
-<h3>filtering<a class="headerlink" href="#filtering" title="Link to this heading"></a></h3>
+<section id="step-1-time-gridding">
+<h3>Step 1 - time_gridding<a class="headerlink" href="#step-1-time-gridding" title="Link to this heading"></a></h3>
 <p>Apply Butterworth filters to remove tides and smooth high-frequency noise.</p>
+<p id="module-oceanarray.time_gridding">Step 1 processing for mooring data: Time gridding and optional filtering.</p>
+<p>This module handles:
+- Loading processed Stage 2 NetCDF files (_use.nc) from multiple instruments
+- Optional time-domain filtering applied to individual instrument records
+- Interpolating all instruments onto a common time grid
+- Combining instruments into a single dataset with N_LEVELS dimension
+- Encoding instrument metadata as coordinate arrays
+- Writing time-gridded mooring datasets</p>
+<p>This represents Step 1 in the mooring-level processing workflow:
+- Step 1: Time gridding (this module)
+- Step 2: Vertical gridding (future)
+- Step 3: Multi-deployment stitching (future)</p>
+<p>IMPORTANT: Filtering is applied to individual instrument records BEFORE interpolation
+to preserve data integrity and avoid interpolation artifacts.</p>
+<p>Version: 1.1
+Last updated: 2025-09-07</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="oceanarray.time_gridding.TimeGriddingProcessor">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">oceanarray.time_gridding.</span></span><span class="sig-name descname"><span class="pre">TimeGriddingProcessor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/time_gridding.html#TimeGriddingProcessor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.time_gridding.TimeGriddingProcessor" title="Link to this definition"></a></dt>
+<dd><p>Handles Step 1 processing: time gridding and optional filtering of mooring instruments.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="oceanarray.time_gridding.TimeGriddingProcessor.process_mooring">
+<span class="sig-name descname"><span class="pre">process_mooring</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mooring_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_suffix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'_use'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vars_to_keep</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/oceanarray/time_gridding.html#TimeGriddingProcessor.process_mooring"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.time_gridding.TimeGriddingProcessor.process_mooring" title="Link to this definition"></a></dt>
+<dd><p>Process Step 1 for a single mooring: time gridding and optional filtering.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mooring_name</strong> – Name of the mooring to process</p></li>
+<li><p><strong>output_path</strong> – Optional custom output path</p></li>
+<li><p><strong>file_suffix</strong> – Suffix for input files (‘_use’ or ‘_raw’)</p></li>
+<li><p><strong>vars_to_keep</strong> – List of variables to include in combined dataset</p></li>
+<li><p><strong>filter_type</strong> – Type of time filtering to apply (‘lowpass’, ‘detide’, ‘bandpass’)</p></li>
+<li><p><strong>filter_params</strong> – Parameters for filtering</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if processing completed successfully</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.time_gridding.process_multiple_moorings_time_gridding">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.time_gridding.</span></span><span class="sig-name descname"><span class="pre">process_multiple_moorings_time_gridding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mooring_list</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">basedir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_suffix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'_use'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/oceanarray/time_gridding.html#process_multiple_moorings_time_gridding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.time_gridding.process_multiple_moorings_time_gridding" title="Link to this definition"></a></dt>
+<dd><p>Process Step 1 for multiple moorings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mooring_list</strong> – List of mooring names to process</p></li>
+<li><p><strong>basedir</strong> – Base directory containing the data</p></li>
+<li><p><strong>file_suffix</strong> – Suffix for input files (‘_use’ or ‘_raw’)</p></li>
+<li><p><strong>filter_type</strong> – Optional time filtering to apply (‘lowpass’, ‘detide’, ‘bandpass’)</p></li>
+<li><p><strong>filter_params</strong> – Optional parameters for filtering</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict mapping mooring names to success status</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.time_gridding.time_gridding_mooring">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.time_gridding.</span></span><span class="sig-name descname"><span class="pre">time_gridding_mooring</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mooring_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">basedir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_suffix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'_use'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filter_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/oceanarray/time_gridding.html#time_gridding_mooring"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.time_gridding.time_gridding_mooring" title="Link to this definition"></a></dt>
+<dd><p>Process Step 1 for a single mooring (convenience function).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mooring_name</strong> – Name of the mooring to process</p></li>
+<li><p><strong>basedir</strong> – Base directory containing the data</p></li>
+<li><p><strong>output_path</strong> – Optional output path override</p></li>
+<li><p><strong>file_suffix</strong> – Suffix for input files (‘_use’ or ‘_raw’)</p></li>
+<li><p><strong>filter_type</strong> – Optional time filtering to apply (‘lowpass’, ‘detide’, ‘bandpass’)</p></li>
+<li><p><strong>filter_params</strong> – Optional parameters for filtering</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if processing completed successfully</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
-<section id="gridding">
-<h3>gridding<a class="headerlink" href="#gridding" title="Link to this heading"></a></h3>
+<section id="step-2-vertical-gridding">
+<h3>Step 2 - vertical gridding<a class="headerlink" href="#step-2-vertical-gridding" title="Link to this heading"></a></h3>
 <p>Vertically interpolate T/S/P data onto a common pressure grid using climatological constraints.</p>
 </section>
-<section id="stitching">
-<h3>stitching<a class="headerlink" href="#stitching" title="Link to this heading"></a></h3>
+<section id="step-3-stitching">
+<h3>Step 3 - stitching<a class="headerlink" href="#step-3-stitching" title="Link to this heading"></a></h3>
 <p>Concatenate deployments and interpolate onto a continuous time base.</p>
 </section>
 </section>
