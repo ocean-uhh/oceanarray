@@ -1,0 +1,195 @@
+name: dsE_1_2018
+year: 2018
+waterdepth: 929
+longitude: -29.570083333333333
+latitude: 65.47561666666667
+deployment_time: '2018-08-12T22:44:00'
+deployment_latitude: 65 28.537 N
+deployment_longitude: 029 34.205 W
+seabed_latitude: 65 28.537 N
+seabed_longitude: 029 34.205 W
+recovery_time: '2018-08-26T10:38:00'
+ship: FS MSMerian
+cruise: msm76
+directory: 'moor/raw/msm76_2018/'
+instruments:
+- position: '1'
+  serial: 6363
+  label: 'SBE 56'
+  instrument: sbe56
+  file_type: 'sbe-cnv'
+  filename: 'DSE18_SBE05606363_2018_08_27.cnv'
+  depth: 629
+- position: '2'
+  serial: 2419
+  label: 'Seacat SBE16'
+  instrument: sbe16
+  file_type: 'sbe-cnv'
+  filename: 'DSE18_sbe16_2419efw1.cnv'
+  depth: 679
+  clock_offset: 259000
+- position: '3'
+  serial: 6401
+  label: 'SBE 56'
+  instrument: sbe56
+  file_type: 'sbe-cnv'
+  filename: 'DSE18_SBE05606401_2018_08_27.cnv'
+  depth: 689
+  clock_offset: -2400
+- position: '4'
+  serial: 6402
+  label: 'SBE 56'
+  instrument: sbe56
+  file_type: 'sbe-cnv'
+  filename: 'DSE18_SBE05606402_2018_08_27.cnv'
+  depth: 699
+  clock_offset: 950
+- position: '5'
+  serial: 8482
+  label: 'SBE 56'
+  instrument: sbe56
+  file_type: 'sbe-cnv'
+  filename: 'DSE18_SBE05608482_2018_08_27.cnv'
+  depth: 709
+  clock_offset: 2000
+- position: '6'
+  serial: 6365
+  label: 'SBE 56'
+  instrument: sbe56
+  file_type: 'sbe-cnv'
+  filename: 'DSE18_SBE05606365_2018_08_27.cnv'
+  depth: 719
+- position: '7'
+  serial: 6409
+  label: 'SBE 56'
+  instrument: sbe56
+  file_type: 'sbe-cnv'
+  filename: 'DSE18_SBE05606409_2018_08_27.cnv'
+  depth: 729
+- position: '8'
+  serial: 6397
+  label: 'SBE 56'
+  instrument: sbe56
+  file_type: 'sbe-cnv'
+  filename: 'DSE18_SBE05606397_2018_08_27.cnv'
+  depth: 739
+  clock_offset: -2400
+- position: '9'
+  serial: 6366
+  label: 'SBE 56'
+  instrument: sbe56
+  file_type: 'sbe-cnv'
+  filename: 'DSE18_SBE05606366_2018_08_27.cnv'
+  depth: 749
+  clock_offset: -2400
+- position: '10'
+  serial: 6394
+  label: 'SBE 56'
+  instrument: sbe56
+  file_type: 'sbe-cnv'
+  filename: 'DSE18_SBE05606394_2018_08_27.cnv'
+  depth: 759
+  clock_offset: -2400
+- position: '11'
+  serial: 6370
+  label: 'SBE 56'
+  instrument: sbe56
+  file_type: 'sbe-cnv'
+  filename: 'DSE18_SBE05606370_2018_08_27.cnv'
+  depth: 769
+  clock_offset: -2400
+- position: '12'
+  serial: 2418
+  label: 'Seacat SBE16'
+  instrument: sbe16
+  file_type: 'sbe-hex'
+  filename: 'DSE18_sbe16_2418.hex'
+  depth: 780
+- position: '13'
+  serial: 13889
+  label: 'TR-1050'
+  instrument: tr1050
+  file_type: 'rbr-matlab'
+  filename: 'DSE18_013889_20180827_1349.mat'
+  depth: 790
+  clock_offset: 85620
+- position: '14'
+  serial: 101651
+  label: 'RBR Solo'
+  instrument: rbrsolo
+  file_type: 'rbr-rsk'
+  filename: 'DSE18_101651_20180827_1541.rsk'
+  depth: 800
+  clock_offset: 85970
+- position: '15'
+  serial: 15580
+  label: 'TR-1050'
+  instrument: tr1050
+  file_type: 'rbr-matlab'
+  filename: 'DSE18_015580_20180827_1403.mat'
+  depth: 810
+  clock_offset: 85170
+- position: '16'
+  serial: 101647
+  label: RBR Solo'
+  instrument: rbrsolo
+  file_type: 'rbr-rsk'
+  filename: 'DSE18_101647_20180827_1551.rsk'
+  depth: 820
+  clock_offset: 85920
+- position: '17'
+  serial: 13874
+  label: 'TR-1050'
+  instrument: tr1050
+  file_type: 'rbr-matlab'
+  filename: 'DSE18_013874_20180827_1410.mat'
+  depth: 830
+  clock_offset: 86256
+- position: '18'
+  serial: 101645
+  label: 'RBR Solo'
+  instrument: rbrsolo
+  file_type: 'rbr-rsk'
+  filename: 'DSE18_101645_20180827_1553.rsk'
+  depth: 840
+  clock_offset: 85860
+- position: '19'
+  serial: 15574
+  label: 'TR-1050'
+  instrument: tr1050
+  file_type: 'rbr-matlab'
+  filename: 'DSE18_015574_20180827_1407.mat'
+  depth: 850
+  clock_offset: 85920
+- position: '20'
+  serial: 101646
+  label: 'RBR Solo'
+  instrument: rbrsolo
+  file_type: 'rbr-rsk'
+  filename: 'DSE18_101646_20180827_1548.rsk'
+  depth: 860
+  clock_offset: 85320
+- position: '21'
+  serial: 15577
+  label: 'TR-1050'
+  instrument: tr1050
+  file_type: 'rbr-matlab'
+  filename: 'DSE18_015577_20180827_1338.mat'
+  depth: 870
+  clock_offset: 84420
+- position: '22'
+  serial: 7518
+  label: 'Microcat SBE37'
+  instrument: microcat
+  file_type: 'sbe-cnv'
+  filename: 'DSE18_SBE37SM_RS232_03707518_2018_08_26efw1.cnv'
+  clock_offset: -2050
+  depth: 880
+- position: '23'
+  serial: 6364
+  label: 'SBE 56'
+  instrument: sbe56
+  file_type: 'sbe-cnv'
+  filename: 'DSE18_SBE05606364_2018_08_27.cnv'
+  depth: 905
+  clock_offset: -200
