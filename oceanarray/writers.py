@@ -1,6 +1,5 @@
 from numbers import Number
 from pathlib import Path
-from typing import Union
 
 import numpy as np
 import xarray as xr
