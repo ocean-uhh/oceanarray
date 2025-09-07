@@ -3,17 +3,16 @@ Tests for oceanarray.stage1 module.
 
 Tests use real data files for reliable integration testing.
 """
-
+import pytest
 import tempfile
+import yaml
+import numpy as np
+import xarray as xr
 from pathlib import Path
 from unittest.mock import Mock, patch
+from datetime import datetime
 
-import pytest
-import xarray as xr
-import yaml
-
-from oceanarray.stage1 import (MooringProcessor, process_multiple_moorings,
-                               stage1_mooring)
+from oceanarray.stage1 import MooringProcessor, stage1_mooring, process_multiple_moorings
 
 
 class TestMooringProcessor:
@@ -34,29 +33,29 @@ class TestMooringProcessor:
     def sample_yaml_data(self):
         """Sample YAML configuration data for SBE CNV file."""
         return {
-            "name": "test_mooring",
-            "waterdepth": 1000,
-            "longitude": -30.0,
-            "latitude": 60.0,
-            "deployment_latitude": "60 00.000 N",
-            "deployment_longitude": "030 00.000 W",
-            "deployment_time": "2018-08-12T08:00:00",
-            "recovery_time": "2018-08-26T20:47:24",
-            "seabed_latitude": "60 00.000 N",
-            "seabed_longitude": "030 00.000 W",
-            "directory": "moor/raw/test_deployment/",
-            "instruments": [
+            'name': 'test_mooring',
+            'waterdepth': 1000,
+            'longitude': -30.0,
+            'latitude': 60.0,
+            'deployment_latitude': '60 00.000 N',
+            'deployment_longitude': '030 00.000 W',
+            'deployment_time': '2018-08-12T08:00:00',
+            'recovery_time': '2018-08-26T20:47:24',
+            'seabed_latitude': '60 00.000 N',
+            'seabed_longitude': '030 00.000 W',
+            'directory': 'moor/raw/test_deployment/',
+            'instruments': [
                 {
-                    "instrument": "microcat",
-                    "serial": 7518,
-                    "depth": 100,
-                    "filename": "test_data.cnv",
-                    "file_type": "sbe-cnv",
-                    "clock_offset": 0,
-                    "start_time": "2018-08-12T08:00:00",
-                    "end_time": "2018-08-26T20:47:24",
+                    'instrument': 'microcat',
+                    'serial': 7518,
+                    'depth': 100,
+                    'filename': 'test_data.cnv',
+                    'file_type': 'sbe-cnv',
+                    'clock_offset': 0,
+                    'start_time': '2018-08-12T08:00:00',
+                    'end_time': '2018-08-26T20:47:24'
                 }
-            ],
+            ]
         }
 
     def test_init(self, temp_dir):
@@ -66,19 +65,17 @@ class TestMooringProcessor:
         assert processor.log_file is None
 
     def test_reader_map_completeness(self):
-        """Test that READER_MAP contains expected file types."""
+        """Test that READER_MAP contains expected file types that are available in PyPI ctd_tools."""
         processor = MooringProcessor("/tmp")
+        # Only test for readers that are available in the PyPI version
         expected_types = [
-            "sbe-cnv",
-            "nortek-aqd",
-            "sbe-asc",
-            "rbr-rsk",
-            "rbr-matlab",
-            "rbr-dat",
-            "adcp-matlab",
+            'sbe-cnv', 'nortek-aqd', 'sbe-asc', 'rbr-rsk', 'rbr-dat'
         ]
         for file_type in expected_types:
             assert file_type in processor.READER_MAP
+
+        # Test that we have at least the core readers
+        assert len(processor.READER_MAP) >= 5
 
     def test_setup_logging(self, processor, temp_dir):
         """Test logging setup."""
@@ -110,7 +107,7 @@ class TestMooringProcessor:
     def test_load_mooring_config(self, processor, temp_dir, sample_yaml_data):
         """Test loading YAML configuration."""
         config_file = temp_dir / "test_config.yaml"
-        with open(config_file, "w") as f:
+        with open(config_file, 'w') as f:
             yaml.dump(sample_yaml_data, f)
 
         loaded_data = processor._load_mooring_config(config_file)
@@ -126,15 +123,13 @@ class TestMooringProcessor:
     def test_generate_output_filename(self, processor, temp_dir):
         """Test output filename generation."""
         instrument_config = {
-            "file_type": "sbe-cnv",
-            "filename": "test.cnv",
-            "serial": 7518,
+            'file_type': 'sbe-cnv',
+            'filename': 'test.cnv',
+            'serial': 7518
         }
         output_dir = temp_dir / "output"
 
-        filename = processor._generate_output_filename(
-            "test_mooring", instrument_config, output_dir
-        )
+        filename = processor._generate_output_filename("test_mooring", instrument_config, output_dir)
         expected = output_dir / "test_mooring_7518_raw.nc"
         assert filename == expected
 
@@ -143,11 +138,11 @@ class TestMooringProcessor:
         params = processor._get_netcdf_writer_params()
 
         assert isinstance(params, dict)
-        assert "optimize" in params
-        assert "uint8_vars" in params
-        assert "float32_vars" in params
-        assert params["chunk_time"] == 3600
-        assert params["complevel"] == 5
+        assert 'optimize' in params
+        assert 'uint8_vars' in params
+        assert 'float32_vars' in params
+        assert params['chunk_time'] == 3600
+        assert params['complevel'] == 5
 
 
 class TestRealDataProcessing:
@@ -175,48 +170,48 @@ class TestRealDataProcessing:
 
         # Create YAML config
         yaml_data = {
-            "name": "test_mooring",
-            "waterdepth": 1000,
-            "longitude": -30.0,
-            "latitude": 60.0,
-            "deployment_latitude": "60 00.000 N",
-            "deployment_longitude": "030 00.000 W",
-            "deployment_time": "2018-08-12T08:00:00",
-            "recovery_time": "2018-08-26T20:47:24",
-            "seabed_latitude": "60 00.000 N",
-            "seabed_longitude": "030 00.000 W",
-            "directory": "moor/raw/test_deployment/",
-            "instruments": [
+            'name': 'test_mooring',
+            'waterdepth': 1000,
+            'longitude': -30.0,
+            'latitude': 60.0,
+            'deployment_latitude': '60 00.000 N',
+            'deployment_longitude': '030 00.000 W',
+            'deployment_time': '2018-08-12T08:00:00',
+            'recovery_time': '2018-08-26T20:47:24',
+            'seabed_latitude': '60 00.000 N',
+            'seabed_longitude': '030 00.000 W',
+            'directory': 'moor/raw/test_deployment/',
+            'instruments': [
                 {
-                    "instrument": "microcat",
-                    "serial": 7518,
-                    "depth": 100,
-                    "filename": "test_data.cnv",
-                    "file_type": "sbe-cnv",
-                    "clock_offset": 0,
-                    "start_time": "2018-08-12T08:00:00",
-                    "end_time": "2018-08-26T20:47:24",
+                    'instrument': 'microcat',
+                    'serial': 7518,
+                    'depth': 100,
+                    'filename': 'test_data.cnv',
+                    'file_type': 'sbe-cnv',
+                    'clock_offset': 0,
+                    'start_time': '2018-08-12T08:00:00',
+                    'end_time': '2018-08-26T20:47:24'
                 }
-            ],
+            ]
         }
 
         config_file = proc_dir / "test_mooring.mooring.yaml"
-        with open(config_file, "w") as f:
+        with open(config_file, 'w') as f:
             yaml.dump(yaml_data, f)
 
         return {
-            "base_dir": base_dir,
-            "raw_dir": raw_dir,
-            "proc_dir": proc_dir,
-            "config_file": config_file,
-            "data_file": test_data_dest,
-            "yaml_data": yaml_data,
+            'base_dir': base_dir,
+            'raw_dir': raw_dir,
+            'proc_dir': proc_dir,
+            'config_file': config_file,
+            'data_file': test_data_dest,
+            'yaml_data': yaml_data
         }
 
     def test_process_real_sbe_file(self, test_data_setup):
         """Test processing with real SBE CNV file."""
         setup = test_data_setup
-        processor = MooringProcessor(str(setup["base_dir"]))
+        processor = MooringProcessor(str(setup['base_dir']))
 
         # Process the mooring
         result = processor.process_mooring("test_mooring")
@@ -225,22 +220,22 @@ class TestRealDataProcessing:
         assert result is True
 
         # Check that output file was created
-        output_file = setup["proc_dir"] / "microcat" / "test_mooring_7518_raw.nc"
+        output_file = setup['proc_dir'] / "microcat" / "test_mooring_7518_raw.nc"
         assert output_file.exists()
 
         # Check that we can open and validate the NetCDF file
         with xr.open_dataset(output_file) as ds:
             # Check basic structure
-            assert "temperature" in ds.data_vars
-            assert "pressure" in ds.data_vars
-            assert "salinity" in ds.data_vars
-            assert "time" in ds.coords
+            assert 'temperature' in ds.data_vars
+            assert 'pressure' in ds.data_vars
+            assert 'salinity' in ds.data_vars
+            assert 'time' in ds.coords
 
             # Check metadata
-            assert ds.attrs["mooring_name"] == "test_mooring"
-            assert ds["serial_number"].values == 7518
-            assert ds["instrument"].values == "microcat"
-            assert ds["InstrDepth"].values == 100
+            assert ds.attrs['mooring_name'] == 'test_mooring'
+            assert ds['serial_number'].values == 7518
+            assert ds['instrument'].values == 'microcat'
+            assert ds['InstrDepth'].values == 100
 
             # Check data ranges are reasonable
             assert len(ds.time) == 151  # Should match the test file
@@ -254,16 +249,16 @@ class TestRealDataProcessing:
         setup = test_data_setup
 
         # Remove the data file
-        setup["data_file"].unlink()
+        setup['data_file'].unlink()
 
-        processor = MooringProcessor(str(setup["base_dir"]))
+        processor = MooringProcessor(str(setup['base_dir']))
         result = processor.process_mooring("test_mooring")
 
         # Should fail gracefully
         assert result is False
 
         # Check log file contains error message
-        log_files = list(setup["proc_dir"].glob("*_stage1.mooring.log"))
+        log_files = list(setup['proc_dir'].glob("*_stage1.mooring.log"))
         assert len(log_files) == 1
         log_content = log_files[0].read_text()
         assert "Error reading file" in log_content
@@ -271,7 +266,7 @@ class TestRealDataProcessing:
     def test_process_existing_output(self, test_data_setup):
         """Test processing when output file already exists."""
         setup = test_data_setup
-        processor = MooringProcessor(str(setup["base_dir"]))
+        processor = MooringProcessor(str(setup['base_dir']))
 
         # First processing run
         result1 = processor.process_mooring("test_mooring")
@@ -282,7 +277,7 @@ class TestRealDataProcessing:
         assert result2 is True
 
         # Check log mentions skipping
-        log_files = list(setup["proc_dir"].glob("*_stage1.mooring.log"))
+        log_files = list(setup['proc_dir'].glob("*_stage1.mooring.log"))
         log_content = log_files[-1].read_text()  # Get the latest log
         assert "OUTFILE EXISTS" in log_content
 
@@ -301,7 +296,7 @@ class TestRealDataProcessing:
 class TestConvenienceFunctions:
     """Test convenience functions."""
 
-    @patch("oceanarray.stage1.MooringProcessor")
+    @patch('oceanarray.stage1.MooringProcessor')
     def test_stage1_mooring(self, mock_processor_class):
         """Test backwards compatibility function."""
         mock_processor = Mock()
@@ -314,7 +309,7 @@ class TestConvenienceFunctions:
         mock_processor_class.assert_called_once_with("/test/dir")
         mock_processor.process_mooring.assert_called_once_with("test_mooring", None)
 
-    @patch("oceanarray.stage1.MooringProcessor")
+    @patch('oceanarray.stage1.MooringProcessor')
     def test_process_multiple_moorings(self, mock_processor_class):
         """Test batch processing function."""
         mock_processor = Mock()
@@ -324,7 +319,11 @@ class TestConvenienceFunctions:
         moorings = ["mooring1", "mooring2", "mooring3"]
         results = process_multiple_moorings(moorings, "/test/dir")
 
-        expected = {"mooring1": True, "mooring2": False, "mooring3": True}
+        expected = {
+            "mooring1": True,
+            "mooring2": False,
+            "mooring3": True
+        }
         assert results == expected
         assert mock_processor.process_mooring.call_count == 3
 
