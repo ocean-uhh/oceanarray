@@ -194,8 +194,8 @@ def find_deployment(ds, var_name="temperature"):
             start_deployment.append(np.datetime64("NaT", "ns"))
             end_deployment.append(np.datetime64("NaT", "ns"))
             mooring_rising.append(np.datetime64("NaT", "ns"))
-            split_value.append(np.nan)
-            split_value2.append(np.nan)
+            split_vals.append(np.nan)
+            split_vals2.append(np.nan)
 
     return ds
 
