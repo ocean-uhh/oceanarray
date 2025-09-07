@@ -56,12 +56,20 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Trim to Deployment</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#overview">1. Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#purpose">2. Purpose</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#input">3. Input</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#output">4. Output</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#example">5. Example</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#implementation-notes">6. Implementation Notes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#fair-considerations">7. FAIR Considerations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#legacy-script-rapid">Legacy Script (RAPID)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#current-implementation-stage-2">3. Current Implementation (Stage 2)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#input-requirements">3.1. Input Requirements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#processing-workflow">3.2. Processing Workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#configuration-format">3.3. Configuration Format</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#usage-example">3.4. Usage Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#output-format">4. Output Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#quality-control-and-error-handling">5. Quality Control and Error Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#integration-with-processing-chain">6. Integration with Processing Chain</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#historical-context-rapid-processing">7. Historical Context: RAPID Processing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#legacy-processing-scripts">8. Legacy Processing Scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#implementation-notes">9. Implementation Notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fair-considerations">10. FAIR Considerations</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="auto_qc.html">Automatic QC</a></li>
@@ -115,99 +123,174 @@
              
   <section id="trimming-to-deployed-period">
 <h1>2. Trimming to Deployed period<a class="headerlink" href="#trimming-to-deployed-period" title="Link to this heading"></a></h1>
-<p>This document outlines the <strong>trimming</strong> step in the oceanarray processing workflow. Trimming refers to the process of isolating the valid deployment period from a time series—typically corresponding to the interval between instrument deployment and recovery.  It also produces summary plots.</p>
-<p>This step may need to be run several times, adjusting the start and end of the deployment periods.</p>
-<p>It corresponds to <strong>Stage 2</strong> from RAPID data processing and management, which uses as input the RDB format and outputs (in RDB format) the <cite>*.use`</cite> file.</p>
+<p>This document outlines the <strong>trimming</strong> step in the oceanarray processing workflow. Trimming refers to the process of isolating the valid deployment period from a time series—typically corresponding to the interval between instrument deployment and recovery. This step also applies clock corrections and produces standardized NetCDF files ready for further processing.</p>
+<p>This step may need to be run several times, adjusting the start and end of the deployment periods based on data inspection.</p>
+<p>It corresponds to <strong>Stage 2</strong> from RAPID data processing and management, which uses as input the RDB format and outputs (in RDB format) the <cite>*.use</cite> file.  Here, we start with the Stage 1 output <cite>*_raw.nc</cite> files and produce <cite>*_use.nc</cite> files.</p>
 <section id="overview">
 <h2>1. Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
-<p>Raw mooring records often contain extraneous data before deployment or after recovery (e.g., deck recording, values during ascent/descent, post-recovery handling). These segments must be trimmed to retain only the time interval when the instrument was collecting valid in-situ measurements at the nominal depth during deployment.  In this stage:</p>
+<p>Raw mooring records often contain extraneous data before deployment or after recovery (e.g., deck recording, values during ascent/descent, post-recovery handling). These segments must be trimmed to retain only the time interval when the instrument was collecting valid in-situ measurements at the nominal depth during deployment. In this stage:</p>
 <ul class="simple">
-<li><p>Visualised to identify data issues (e.g., deployment start/end spikes only)</p></li>
-<li><p>Optionally low-pass filtered (e.g., 2-day Butterworth)</p></li>
-<li><p>Inspected manually</p></li>
-<li><p>Optionally adjusted:
-- Revised trimming bounds</p></li>
-<li><p>Prepared for further processing (e.g., gridding)</p></li>
+<li><p>Clock offsets are applied to correct instrument timing</p></li>
+<li><p>Data is trimmed to deployment/recovery time windows</p></li>
+<li><p>Unnecessary variables are removed</p></li>
+<li><p>Metadata is enriched and standardized</p></li>
+<li><p>Files are converted from <cite>*_raw.nc</cite> to <cite>*_use.nc</cite> format</p></li>
 </ul>
 </section>
 <section id="purpose">
 <h2>2. Purpose<a class="headerlink" href="#purpose" title="Link to this heading"></a></h2>
 <ul class="simple">
+<li><p>Apply clock corrections to synchronize instrument times</p></li>
 <li><p>Remove non-oceanographic data before deployment and after recovery</p></li>
 <li><p>Ensure temporal consistency across instruments on the same mooring</p></li>
 <li><p>Define the usable deployment interval for each instrument</p></li>
-<li><p>Generate summary plots for review and archiving</p></li>
+<li><p>Standardize file naming and metadata structure</p></li>
 </ul>
 </section>
-<section id="input">
-<h2>3. Input<a class="headerlink" href="#input" title="Link to this heading"></a></h2>
+<section id="current-implementation-stage-2">
+<h2>3. Current Implementation (Stage 2)<a class="headerlink" href="#current-implementation-stage-2" title="Link to this heading"></a></h2>
+<p>The trimming process is implemented in the <code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray.stage2</span></code> module, which provides automated clock correction and temporal trimming for mooring datasets.</p>
+<section id="input-requirements">
+<h3>3.1. Input Requirements<a class="headerlink" href="#input-requirements" title="Link to this heading"></a></h3>
+<p>The <code class="xref py py-class docutils literal notranslate"><span class="pre">oceanarray.stage2.Stage2Processor</span></code> class processes Stage 1 output files:</p>
 <ul class="simple">
-<li><p>Standardised <cite>xarray.Dataset</cite> containing raw time series (<cite>TIME</cite>, <cite>TEMPERATURE</cite>, etc.)</p></li>
-<li><p>Metadata indicating deployment and recovery times, either:
-- Attached to the dataset (e.g., <cite>ds.attrs[“start_time”]</cite>)
-- Auxiliary logs (optional): info.dat with mooring latitude and longitude, and deployment times (anchor away) and recovery times (all gear on deck)</p></li>
+<li><p><strong>Raw NetCDF files</strong> (<cite>*_raw.nc</cite>): Standardized files from Stage 1 processing</p></li>
+<li><p><strong>YAML configuration</strong>: Mooring metadata including deployment times and clock offsets</p></li>
+<li><p><strong>Deployment windows</strong>: Start and end times for valid data periods</p></li>
 </ul>
 </section>
-<section id="output">
-<h2>4. Output<a class="headerlink" href="#output" title="Link to this heading"></a></h2>
-<ul class="simple">
-<li><p>Trimmed <cite>xarray.Dataset</cite> with:
-- <cite>TIME</cite> restricted to deployment period
-- Attributes updated with <cite>trimmed = True</cite> and <cite>start_time</cite>, <cite>end_time</cite></p></li>
-<li><p>Summary plots (e.g., <cite>.png</cite> or <cite>.pdf</cite> of raw and filtered time series)</p></li>
-<li><p>Updated deployment metadata (e.g., revised start/end time if needed) in <cite>info.dat</cite> or similar human-readable format</p></li>
-</ul>
-<p>Common plots include:</p>
-<ul class="simple">
-<li><p>Full record: <cite>TEMPERATURE</cite>, <cite>CONDUCTIVITY</cite>, <cite>PRESSURE</cite></p></li>
-<li><p>2-day Butterworth filtered versions</p></li>
-</ul>
+<section id="processing-workflow">
+<h3>3.2. Processing Workflow<a class="headerlink" href="#processing-workflow" title="Link to this heading"></a></h3>
+<p>The Stage 2 processing follows these steps:</p>
+<ol class="arabic simple">
+<li><p><strong>Configuration Loading</strong>: Read YAML files containing:
+- Deployment and recovery timestamps
+- Instrument-specific clock offsets
+- Mooring location and metadata</p></li>
+<li><p><strong>Clock Offset Application</strong>: Correct instrument timing by:
+- Adding clock offset variables to datasets
+- Shifting time coordinates by specified offset amounts
+- Preserving original datasets (immutable processing)</p></li>
+<li><p><strong>Temporal Trimming</strong>: Remove invalid data by:
+- Trimming to deployment time window (if specified)
+- Trimming to recovery time window (if specified)
+- Handling missing or invalid time bounds gracefully</p></li>
+<li><p><strong>Metadata Enrichment</strong>: Ensure complete metadata by:
+- Adding missing instrument depth, serial number, type
+- Preserving existing metadata without overwriting
+- Maintaining provenance information</p></li>
+<li><p><strong>Variable Cleanup</strong>: Remove unnecessary variables:
+- Legacy time variables (e.g., <cite>timeS</cite>)
+- Derived variables not needed for further processing</p></li>
+<li><p><strong>NetCDF Output</strong>: Write processed files with:
+- Updated filename suffix (<cite>*_use.nc</cite>)
+- Optimized compression and chunking
+- CF-compliant metadata structure</p></li>
+</ol>
 </section>
-<section id="example">
-<h2>5. Example<a class="headerlink" href="#example" title="Link to this heading"></a></h2>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.methods.trimming</span><span class="w"> </span><span class="kn">import</span> <span class="n">trim_to_deployment</span>
+<section id="configuration-format">
+<h3>3.3. Configuration Format<a class="headerlink" href="#configuration-format" title="Link to this heading"></a></h3>
+<p>Clock offsets and deployment times are specified in YAML configuration:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mooring_name</span>
+<span class="nt">deployment_time</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;2018-08-12T08:00:00&#39;</span>
+<span class="nt">recovery_time</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;2018-08-26T20:47:24&#39;</span>
+<span class="nt">instruments</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">instrument</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">microcat</span>
+<span class="w">    </span><span class="nt">serial</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">7518</span>
+<span class="w">    </span><span class="nt">depth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span>
+<span class="w">    </span><span class="nt">clock_offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">300</span><span class="w">  </span><span class="c1"># seconds</span>
+</pre></div>
+</div>
+</section>
+<section id="usage-example">
+<h3>3.4. Usage Example<a class="headerlink" href="#usage-example" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.stage2</span><span class="w"> </span><span class="kn">import</span> <span class="n">Stage2Processor</span><span class="p">,</span> <span class="n">process_multiple_moorings_stage2</span>
 
-<span class="n">ds_trimmed</span> <span class="o">=</span> <span class="n">trim_to_deployment</span><span class="p">(</span><span class="n">ds_std</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="s2">&quot;2021-01-05T20:00&quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;2023-02-25T17:00&quot;</span><span class="p">)</span>
-</pre></div>
-</div>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;xarray.Dataset&gt;
-Dimensions:      (TIME: 104576)
-Coordinates:
-  * TIME         (TIME) datetime64[ns] ...
-Data variables:
-    TEMPERATURE  (TIME) float32 ...
-    PRESSURE     (TIME) float32 ...
-Attributes:
-    start_time: 2021-01-05T20:00
-    end_time: 2023-02-25T17:00
-    trimmed: True
+<span class="c1"># Process a single mooring</span>
+<span class="n">processor</span> <span class="o">=</span> <span class="n">Stage2Processor</span><span class="p">(</span><span class="s1">&#39;/path/to/data/&#39;</span><span class="p">)</span>
+<span class="n">success</span> <span class="o">=</span> <span class="n">processor</span><span class="o">.</span><span class="n">process_mooring</span><span class="p">(</span><span class="s1">&#39;mooring_name&#39;</span><span class="p">)</span>
+
+<span class="c1"># Process multiple moorings</span>
+<span class="n">moorings</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;mooring1&#39;</span><span class="p">,</span> <span class="s1">&#39;mooring2&#39;</span><span class="p">,</span> <span class="s1">&#39;mooring3&#39;</span><span class="p">]</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">process_multiple_moorings_stage2</span><span class="p">(</span><span class="n">moorings</span><span class="p">,</span> <span class="s1">&#39;/path/to/data/&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
-<section id="implementation-notes">
-<h2>6. Implementation Notes<a class="headerlink" href="#implementation-notes" title="Link to this heading"></a></h2>
+</section>
+<section id="output-format">
+<h2>4. Output Format<a class="headerlink" href="#output-format" title="Link to this heading"></a></h2>
+<p>The processed output includes:</p>
 <ul class="simple">
-<li><p>Deployment periods should be specified in UTC or provided in the mooring <cite>*info.dat</cite> file as in the RAPID data processing and management framework.</p></li>
-<li><p>Start and end times may come from cruise logs or recovery reports</p></li>
-<li><p>Optionally: implement automatic detection of stable deployment periods (e.g., threshold in pressure)</p></li>
+<li><p><strong>Trimmed NetCDF files</strong> (<cite>*_use.nc</cite>) with:
+- Time coordinates corrected for clock offsets
+- Data restricted to deployment period
+- Standardized metadata and variable structure
+- Optimized storage format</p></li>
+<li><p><strong>Processing logs</strong> with detailed information about:
+- Clock offsets applied
+- Trimming operations performed
+- Data volume changes
+- Error conditions encountered</p></li>
+</ul>
+<p>Example output structure:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">xarray</span><span class="o">.</span><span class="n">Dataset</span><span class="o">&gt;</span>
+<span class="n">Dimensions</span><span class="p">:</span>        <span class="p">(</span><span class="n">time</span><span class="p">:</span> <span class="mi">8640</span><span class="p">)</span>  <span class="c1"># Trimmed from original 124619</span>
+<span class="n">Coordinates</span><span class="p">:</span>
+  <span class="o">*</span> <span class="n">time</span>           <span class="p">(</span><span class="n">time</span><span class="p">)</span> <span class="n">datetime64</span><span class="p">[</span><span class="n">ns</span><span class="p">]</span> <span class="mi">2018</span><span class="o">-</span><span class="mi">08</span><span class="o">-</span><span class="mi">12</span><span class="n">T08</span><span class="p">:</span><span class="mi">05</span><span class="p">:</span><span class="mi">00</span> <span class="o">...</span> <span class="mi">2018</span><span class="o">-</span><span class="mi">08</span><span class="o">-</span><span class="mi">26</span><span class="n">T19</span><span class="p">:</span><span class="mi">55</span><span class="p">:</span><span class="mi">00</span>
+<span class="n">Data</span> <span class="n">variables</span><span class="p">:</span>
+    <span class="n">temperature</span>    <span class="p">(</span><span class="n">time</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+    <span class="n">salinity</span>       <span class="p">(</span><span class="n">time</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+    <span class="n">pressure</span>       <span class="p">(</span><span class="n">time</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+    <span class="n">serial_number</span>  <span class="n">int64</span> <span class="mi">7518</span>
+    <span class="n">InstrDepth</span>     <span class="n">int64</span> <span class="mi">100</span>
+    <span class="n">instrument</span>     <span class="o">&lt;</span><span class="n">U8</span> <span class="s1">&#39;microcat&#39;</span>
+    <span class="n">clock_offset</span>   <span class="n">int64</span> <span class="mi">300</span>
+<span class="n">Attributes</span><span class="p">:</span>
+    <span class="n">mooring_name</span><span class="p">:</span>           <span class="n">test_mooring</span>
+    <span class="n">deployment_time</span><span class="p">:</span>        <span class="mi">2018</span><span class="o">-</span><span class="mi">08</span><span class="o">-</span><span class="mi">12</span><span class="n">T08</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span>
+    <span class="n">recovery_time</span><span class="p">:</span>          <span class="mi">2018</span><span class="o">-</span><span class="mi">08</span><span class="o">-</span><span class="mi">26</span><span class="n">T20</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mi">24</span>
+</pre></div>
+</div>
+</section>
+<section id="quality-control-and-error-handling">
+<h2>5. Quality Control and Error Handling<a class="headerlink" href="#quality-control-and-error-handling" title="Link to this heading"></a></h2>
+<p>Stage 2 processing includes comprehensive quality control:</p>
+<ul class="simple">
+<li><p><strong>Time Range Validation</strong>: Ensures deployment/recovery times are reasonable</p></li>
+<li><p><strong>Clock Offset Verification</strong>: Logs all timing corrections applied</p></li>
+<li><p><strong>Data Completeness Checks</strong>: Warns when trimming results in empty datasets</p></li>
+<li><p><strong>File Integrity</strong>: Validates input files before processing</p></li>
+<li><p><strong>Graceful Degradation</strong>: Continues processing other instruments if one fails</p></li>
+</ul>
+<p>All processing activities are logged with timestamps for audit trails and debugging.</p>
+</section>
+<section id="integration-with-processing-chain">
+<h2>6. Integration with Processing Chain<a class="headerlink" href="#integration-with-processing-chain" title="Link to this heading"></a></h2>
+<p>Stage 2 processed files serve as input to subsequent processing steps:</p>
+<ul class="simple">
+<li><p><strong>Stage 3</strong>: Further quality control and calibration applications</p></li>
+<li><p><strong>Later stages</strong>: <span class="xref std std-doc">filtering</span>, <span class="xref std std-doc">gridding</span>, <span class="xref std std-doc">stitching</span> for array products</p></li>
+</ul>
+<p>The consistent structure and timing corrections applied during Stage 2 ensure that downstream processing tools can operate reliably across different instrument types and deployments.</p>
+</section>
+<section id="historical-context-rapid-processing">
+<h2>7. Historical Context: RAPID Processing<a class="headerlink" href="#historical-context-rapid-processing" title="Link to this heading"></a></h2>
+<p>This trimming step evolved from the RAPID programme’s Stage 2 processing, which converted RDB format files from <cite>*.raw</cite> to <cite>*.use</cite> format. The modern implementation provides equivalent functionality with several improvements:</p>
+<ul class="simple">
+<li><p><strong>Automated Processing</strong>: Batch processing of multiple instruments and moorings</p></li>
+<li><p><strong>Enhanced Metadata</strong>: Comprehensive provenance and quality control information</p></li>
+<li><p><strong>Flexible Configuration</strong>: YAML-based configuration for easy modification</p></li>
+<li><p><strong>Error Recovery</strong>: Robust handling of missing files and invalid configurations</p></li>
+<li><p><strong>Modern Formats</strong>: NetCDF output with CF conventions for interoperability</p></li>
 </ul>
 </section>
-<section id="fair-considerations">
-<h2>7. FAIR Considerations<a class="headerlink" href="#fair-considerations" title="Link to this heading"></a></h2>
-<ul class="simple">
-<li><p>Trimmed intervals should be <strong>documented transparently</strong> in dataset attributes</p></li>
-<li><p>Retain untrimmed data for provenance if needed</p></li>
-<li><p>Enhances <strong>reusability</strong> and <strong>accuracy</strong> in further processing</p></li>
-</ul>
-<p>See also: <a class="reference internal" href="standardisation.html"><span class="doc">1. Standardisation (Internally-consistent format)</span></a></p>
-</section>
-<section id="legacy-script-rapid">
-<h2>Legacy Script (RAPID)<a class="headerlink" href="#legacy-script-rapid" title="Link to this heading"></a></h2>
-<p>The RAPID script shows how the Seabird format data were changed into the RDB format.</p>
+<section id="legacy-processing-scripts">
+<h2>8. Legacy Processing Scripts<a class="headerlink" href="#legacy-processing-scripts" title="Link to this heading"></a></h2>
+<p>The original RAPID processing chain used MATLAB scripts for trimming operations:</p>
 <ul class="simple">
 <li><p><a class="reference external" href="../_static/code/microcat_raw2use_003.m">microcat_raw2use_003.m</a></p></li>
 </ul>
-<p>This script was part of the original RAPID processing chain used to convert MicroCAT <cite>.asc</cite> or <cite>.cnv</cite> output to <cite>.raw</cite> files in RODB format. It includes parsing logic, metadata extraction from <cite>info.dat</cite>, time adjustment, and basic diagnostic plotting.</p>
+<p>This script performed similar functions to the current Python implementation:</p>
 <div class="literal-block-wrapper docutils container" id="id1">
 <div class="code-block-caption"><span class="caption-text">Excerpt from <cite>microcat_raw2use_003.m</cite></span><a class="headerlink" href="#id1" title="Link to this code"></a></div>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="nb">clear</span>
@@ -251,6 +334,34 @@ Attributes:
 </pre></div>
 </div>
 </div>
+<p>The modern Python implementation in <code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray.stage2</span></code> provides equivalent functionality with improved:</p>
+<ul class="simple">
+<li><p><strong>Scalability</strong>: Process multiple moorings and years of data efficiently</p></li>
+<li><p><strong>Reproducibility</strong>: Automated processing with comprehensive logging</p></li>
+<li><p><strong>Flexibility</strong>: Easy modification of deployment windows and clock offsets</p></li>
+<li><p><strong>Integration</strong>: Seamless connection to subsequent processing stages</p></li>
+</ul>
+</section>
+<section id="implementation-notes">
+<h2>9. Implementation Notes<a class="headerlink" href="#implementation-notes" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Time Handling</strong>: All times are processed as UTC datetime64 objects for consistency</p></li>
+<li><p><strong>Clock Corrections</strong>: Applied as integer second offsets to maintain precision</p></li>
+<li><p><strong>Immutable Processing</strong>: Original datasets are preserved; all operations return new objects</p></li>
+<li><p><strong>Flexible Trimming</strong>: Supports trimming by deployment time, recovery time, or both</p></li>
+<li><p><strong>Batch Processing</strong>: Efficient processing of multiple instruments and moorings</p></li>
+</ul>
+</section>
+<section id="fair-considerations">
+<h2>10. FAIR Considerations<a class="headerlink" href="#fair-considerations" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Findable</strong>: Standardized file naming and metadata structure</p></li>
+<li><p><strong>Accessible</strong>: NetCDF format with CF conventions for broad compatibility</p></li>
+<li><p><strong>Interoperable</strong>: Consistent data structure across instruments and deployments</p></li>
+<li><p><strong>Reusable</strong>: Comprehensive metadata and processing provenance</p></li>
+</ul>
+<p>Trimmed intervals and clock corrections are documented transparently in dataset attributes and processing logs to maintain full provenance.</p>
+<p>See also: <a class="reference internal" href="../oceanarray.html"><span class="doc">oceanarray API</span></a>, <a class="reference internal" href="standardisation.html"><span class="doc">1. Standardisation (Internally-consistent format)</span></a>, <span class="xref std std-doc">filtering</span></p>
 </section>
 </section>
 
