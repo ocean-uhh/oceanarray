@@ -1,14 +1,23 @@
 """
-Stage 3 processing for mooring data: Combine individual instruments into one xarray dataset.
+Step 1 processing for mooring data: Time gridding and optional filtering.
 
 This module handles:
-- Loading processed Stage 2 NetCDF files (_use.nc)
+- Loading processed Stage 2 NetCDF files (_use.nc) from multiple instruments
+- Optional time-domain filtering applied to individual instrument records
 - Interpolating all instruments onto a common time grid
 - Combining instruments into a single dataset with N_LEVELS dimension
 - Encoding instrument metadata as coordinate arrays
-- Writing combined mooring datasets
+- Writing time-gridded mooring datasets
 
-Version: 1.0
+This represents Step 1 in the mooring-level processing workflow:
+- Step 1: Time gridding (this module)
+- Step 2: Vertical gridding (future)
+- Step 3: Multi-deployment stitching (future)
+
+IMPORTANT: Filtering is applied to individual instrument records BEFORE interpolation
+to preserve data integrity and avoid interpolation artifacts.
+
+Version: 1.1
 Last updated: 2025-09-07
 """
 import os
@@ -22,8 +31,8 @@ from typing import Dict, List, Optional, Tuple, Any, Union
 from ctd_tools.writers import NetCdfWriter
 
 
-class Stage3Processor:
-    """Handles Stage 3 processing: combining instruments into single dataset."""
+class TimeGriddingProcessor:
+    """Handles Step 1 processing: time gridding and optional filtering of mooring instruments."""
 
     def __init__(self, base_dir: str):
         """Initialize processor with base directory."""
@@ -33,7 +42,7 @@ class Stage3Processor:
     def _setup_logging(self, mooring_name: str, output_path: Path) -> None:
         """Set up logging for the processing run."""
         log_time = datetime.now().strftime('%Y%m%dT%H')
-        self.log_file = output_path / f"{mooring_name}_{log_time}_stage3.mooring.log"
+        self.log_file = output_path / f"{mooring_name}_{log_time}_time_gridding.mooring.log"
 
     def _log_print(self, *args, **kwargs) -> None:
         """Print to both console and log file."""
@@ -123,6 +132,188 @@ class Stage3Processor:
             if var in dataset.variables:
                 dataset = dataset.drop_vars(var, errors='ignore')
 
+        return dataset
+
+    def _apply_time_filtering_single(self, dataset: xr.Dataset,
+                                   filter_type: Optional[str] = None,
+                                   filter_params: Optional[Dict[str, Any]] = None) -> xr.Dataset:
+        """
+        Apply time-domain filtering to a single instrument dataset.
+
+        This method applies filtering to the original instrument time grid
+        BEFORE interpolation to preserve data integrity.
+
+        Args:
+            dataset: Single instrument dataset on its native time grid
+            filter_type: Type of filtering ('lowpass', 'bandpass', 'detide', etc.)
+            filter_params: Filter parameters (cutoff frequencies, order, etc.)
+
+        Returns:
+            Filtered dataset on the same time grid
+        """
+        if filter_type is None:
+            # No filtering requested
+            return dataset
+
+        # Get instrument info for logging
+        instrument = dataset['instrument'].values if 'instrument' in dataset else 'unknown'
+        serial = dataset['serial_number'].values if 'serial_number' in dataset else 'unknown'
+        depth = dataset['InstrDepth'].values if 'InstrDepth' in dataset else 'unknown'
+
+        self._log_print(f"  Applying {filter_type} filtering to {instrument}:{serial} at {depth}m")
+
+        if filter_type.lower() == 'lowpass':
+            return self._apply_lowpass_filter(dataset, filter_params)
+        elif filter_type.lower() == 'detide':
+            return self._apply_detiding_filter(dataset, filter_params)
+        elif filter_type.lower() == 'bandpass':
+            return self._apply_bandpass_filter(dataset, filter_params)
+        else:
+            self._log_print(f"    WARNING: Unknown filter type '{filter_type}', skipping")
+            return dataset
+
+    def _apply_lowpass_filter(self, dataset: xr.Dataset,
+                             filter_params: Optional[Dict[str, Any]] = None) -> xr.Dataset:
+        """
+        Apply low-pass Butterworth filter (e.g., for de-tiding).
+
+        Default parameters match RAPID array processing:
+        - Cutoff: 2 days (removes tidal and inertial signals)
+        - Order: 6th order Butterworth
+        """
+        # Default RAPID-style parameters
+        default_params = {
+            'cutoff_days': 2.0,
+            'order': 6,
+            'method': 'butterworth'
+        }
+
+        if filter_params:
+            default_params.update(filter_params)
+
+        cutoff_days = default_params['cutoff_days']
+        order = default_params['order']
+
+        self._log_print(f"    Low-pass filter: {cutoff_days} day cutoff, order {order}")
+
+        # Check if we have sufficient data length
+        if 'time' not in dataset.sizes or dataset.sizes['time'] < 100:
+            self._log_print(f"    WARNING: Insufficient data for filtering (n={dataset.sizes.get('time', 0)})")
+            return dataset
+
+        # Calculate sampling rate
+        time_diffs = np.diff(dataset['time'].values) / np.timedelta64(1, 's')
+        dt_seconds = np.nanmedian(time_diffs)
+
+        if not np.isfinite(dt_seconds) or dt_seconds <= 0:
+            self._log_print(f"    WARNING: Invalid sampling rate, skipping filter")
+            return dataset
+
+        # Convert cutoff to frequency
+        cutoff_seconds = cutoff_days * 24 * 3600
+        nyquist = 1.0 / (2.0 * dt_seconds)
+        cutoff_freq = 1.0 / cutoff_seconds
+
+        if cutoff_freq >= nyquist:
+            self._log_print(f"    WARNING: Cutoff frequency ({cutoff_freq:.2e} Hz) >= Nyquist ({nyquist:.2e} Hz)")
+            self._log_print(f"    Skipping filter to avoid artifacts")
+            return dataset
+
+        # Apply filter to each data variable
+        try:
+            from scipy import signal
+
+            # Design Butterworth filter
+            sos = signal.butter(order, cutoff_freq, btype='low', fs=1/dt_seconds, output='sos')
+
+            # Create filtered dataset
+            ds_filtered = dataset.copy()
+
+            # Variables to filter (skip coordinates and metadata)
+            filter_vars = ['temperature', 'salinity', 'conductivity', 'pressure',
+                          'u_velocity', 'v_velocity', 'eastward_velocity', 'northward_velocity']
+
+            for var in filter_vars:
+                if var in dataset.data_vars:
+                    data = dataset[var].values
+
+                    # Check for sufficient valid data
+                    valid_mask = np.isfinite(data)
+                    if np.sum(valid_mask) < 0.1 * len(data):
+                        self._log_print(f"    WARNING: Too few valid points in {var}, skipping")
+                        continue
+
+                    # Apply filter only to valid data segments
+                    if np.all(valid_mask):
+                        # No gaps, apply filter directly
+                        filtered_data = signal.sosfiltfilt(sos, data)
+                    else:
+                        # Handle gaps by filtering continuous segments
+                        filtered_data = self._filter_with_gaps(data, sos, valid_mask)
+
+                    ds_filtered[var] = (dataset[var].dims, filtered_data, dataset[var].attrs)
+
+            # Update attributes to record filtering
+            ds_filtered.attrs.update({
+                'time_filtering_applied': filter_params or default_params,
+                'time_filtering_cutoff_days': cutoff_days,
+                'time_filtering_order': order,
+                'processing_step': 'time_filtered'
+            })
+
+            self._log_print(f"    Successfully applied low-pass filter")
+            return ds_filtered
+
+        except ImportError:
+            self._log_print(f"    ERROR: scipy not available for filtering")
+            return dataset
+        except Exception as e:
+            self._log_print(f"    ERROR applying filter: {e}")
+            return dataset
+
+    def _filter_with_gaps(self, data: np.ndarray, sos: np.ndarray,
+                         valid_mask: np.ndarray) -> np.ndarray:
+        """Apply filter to data with gaps by processing continuous segments."""
+        from scipy import signal
+
+        filtered_data = np.full_like(data, np.nan)
+
+        # Find continuous segments
+        diff_mask = np.diff(np.concatenate(([False], valid_mask, [False])).astype(int))
+        starts = np.where(diff_mask == 1)[0]
+        ends = np.where(diff_mask == -1)[0]
+
+        for start, end in zip(starts, ends):
+            segment_length = end - start
+
+            # Only filter segments with sufficient length
+            if segment_length > 50:  # Minimum length for stable filtering
+                segment_data = data[start:end]
+                try:
+                    filtered_segment = signal.sosfiltfilt(sos, segment_data)
+                    filtered_data[start:end] = filtered_segment
+                except:
+                    # If filtering fails, keep original data
+                    filtered_data[start:end] = segment_data
+            else:
+                # Keep short segments unfiltered
+                filtered_data[start:end] = data[start:end]
+
+        return filtered_data
+
+    def _apply_detiding_filter(self, dataset: xr.Dataset,
+                              filter_params: Optional[Dict[str, Any]] = None) -> xr.Dataset:
+        """Apply harmonic analysis for tidal removal (future implementation)."""
+        self._log_print(f"    WARNING: Harmonic de-tiding not yet implemented")
+        self._log_print(f"    Using low-pass filter as substitute")
+
+        # Fall back to low-pass filtering for now
+        return self._apply_lowpass_filter(dataset, filter_params)
+
+    def _apply_bandpass_filter(self, dataset: xr.Dataset,
+                              filter_params: Optional[Dict[str, Any]] = None) -> xr.Dataset:
+        """Apply band-pass filter (future implementation)."""
+        self._log_print(f"    WARNING: Band-pass filtering not yet implemented")
         return dataset
 
     def _analyze_timing_info(self, datasets: List[xr.Dataset]) -> Tuple[np.ndarray, np.datetime64, np.datetime64]:
@@ -434,15 +625,19 @@ class Stage3Processor:
     def process_mooring(self, mooring_name: str,
                        output_path: Optional[str] = None,
                        file_suffix: str = '_use',
-                       vars_to_keep: List[str] = None) -> bool:
+                       vars_to_keep: List[str] = None,
+                       filter_type: Optional[str] = None,
+                       filter_params: Optional[Dict[str, Any]] = None) -> bool:
         """
-        Process Stage 3 for a single mooring: combine instruments into single dataset.
+        Process Step 1 for a single mooring: time gridding and optional filtering.
 
         Args:
             mooring_name: Name of the mooring to process
             output_path: Optional custom output path
             file_suffix: Suffix for input files ('_use' or '_raw')
             vars_to_keep: List of variables to include in combined dataset
+            filter_type: Type of time filtering to apply ('lowpass', 'detide', 'bandpass')
+            filter_params: Parameters for filtering
 
         Returns:
             bool: True if processing completed successfully
@@ -459,8 +654,13 @@ class Stage3Processor:
 
         # Set up logging
         self._setup_logging(mooring_name, proc_dir)
-        self._log_print(f"Starting Stage 3 processing for mooring: {mooring_name}")
+        self._log_print(f"Starting Step 1 (time gridding) processing for mooring: {mooring_name}")
         self._log_print(f"Using files with suffix: {file_suffix}")
+
+        if filter_type:
+            self._log_print(f"Filtering requested: {filter_type}")
+            if filter_params:
+                self._log_print(f"Filter parameters: {filter_params}")
 
         # Load configuration
         config_file = proc_dir / f"{mooring_name}.mooring.yaml"
@@ -484,83 +684,109 @@ class Stage3Processor:
         self._log_print(f"Loaded {len(datasets)} instrument datasets")
 
         try:
-            # Analyze timing and create common grid
-            time_grid, start_time, end_time = self._analyze_timing_info(datasets)
+            # STEP 1: Apply filtering to individual instrument records (BEFORE interpolation)
+            if filter_type:
+                self._log_print(f"")
+                self._log_print(f"APPLYING TIME FILTERING TO INDIVIDUAL INSTRUMENTS:")
+                datasets_filtered = []
+                for ds in datasets:
+                    ds_filtered = self._apply_time_filtering_single(ds, filter_type, filter_params)
+                    datasets_filtered.append(ds_filtered)
+                self._log_print(f"Completed filtering for all instruments")
+            else:
+                datasets_filtered = datasets
 
-            # Interpolate datasets onto common grid
-            datasets_interp = self._interpolate_datasets(datasets, time_grid)
+            # STEP 2: Analyze timing and create common grid
+            time_grid, start_time, end_time = self._analyze_timing_info(datasets_filtered)
+
+            # STEP 3: Interpolate filtered datasets onto common grid
+            self._log_print(f"INTERPOLATING FILTERED DATASETS ONTO COMMON GRID:")
+            datasets_interp = self._interpolate_datasets(datasets_filtered, time_grid)
 
             if not datasets_interp:
                 self._log_print(f"ERROR: No datasets could be interpolated")
                 return False
 
-            # Combine into single dataset
+            # STEP 4: Combine into single dataset
             combined_ds = self._create_combined_dataset(datasets_interp, time_grid, vars_to_keep)
 
-            # Encode instrument names as flags
+            # STEP 5: Encode instrument names as flags
             ds_to_save = self._encode_instrument_as_flags(combined_ds)
 
             # Write output file
-            output_filename = f"{mooring_name}_mooring{file_suffix}.nc"
+            filter_suffix = f"_{filter_type}" if filter_type else ""
+            output_filename = f"{mooring_name}_mooring{file_suffix}{filter_suffix}.nc"
             output_filepath = proc_dir / output_filename
 
             writer = NetCdfWriter(ds_to_save)
             writer_params = self._get_netcdf_writer_params()
             writer.write(str(output_filepath), **writer_params)
 
-            self._log_print(f"Successfully wrote combined dataset: {output_filepath}")
+            self._log_print(f"Successfully wrote time-gridded dataset: {output_filepath}")
             self._log_print(f"Combined dataset shape: {dict(ds_to_save.dims)}")
             self._log_print(f"Variables: {list(ds_to_save.data_vars)}")
 
             return True
 
         except Exception as e:
-            self._log_print(f"ERROR during Stage 3 processing: {e}")
+            self._log_print(f"ERROR during time gridding processing: {e}")
             return False
 
 
-def stage3_mooring(mooring_name: str, basedir: str,
-                  output_path: Optional[str] = None,
-                  file_suffix: str = '_use') -> bool:
+def time_gridding_mooring(mooring_name: str, basedir: str,
+                         output_path: Optional[str] = None,
+                         file_suffix: str = '_use',
+                         filter_type: Optional[str] = None,
+                         filter_params: Optional[Dict[str, Any]] = None) -> bool:
     """
-    Process Stage 3 for a single mooring (backwards compatibility function).
+    Process Step 1 for a single mooring (convenience function).
 
     Args:
         mooring_name: Name of the mooring to process
         basedir: Base directory containing the data
         output_path: Optional output path override
         file_suffix: Suffix for input files ('_use' or '_raw')
+        filter_type: Optional time filtering to apply ('lowpass', 'detide', 'bandpass')
+        filter_params: Optional parameters for filtering
 
     Returns:
         bool: True if processing completed successfully
     """
-    processor = Stage3Processor(basedir)
-    return processor.process_mooring(mooring_name, output_path, file_suffix)
+    processor = TimeGriddingProcessor(basedir)
+    return processor.process_mooring(mooring_name, output_path, file_suffix,
+                                   filter_type=filter_type, filter_params=filter_params)
 
 
-def process_multiple_moorings_stage3(mooring_list: List[str],
-                                    basedir: str,
-                                    file_suffix: str = '_use') -> Dict[str, bool]:
+def process_multiple_moorings_time_gridding(mooring_list: List[str],
+                                           basedir: str,
+                                           file_suffix: str = '_use',
+                                           filter_type: Optional[str] = None,
+                                           filter_params: Optional[Dict[str, Any]] = None) -> Dict[str, bool]:
     """
-    Process Stage 3 for multiple moorings.
+    Process Step 1 for multiple moorings.
 
     Args:
         mooring_list: List of mooring names to process
         basedir: Base directory containing the data
         file_suffix: Suffix for input files ('_use' or '_raw')
+        filter_type: Optional time filtering to apply ('lowpass', 'detide', 'bandpass')
+        filter_params: Optional parameters for filtering
 
     Returns:
         Dict mapping mooring names to success status
     """
-    processor = Stage3Processor(basedir)
+    processor = TimeGriddingProcessor(basedir)
     results = {}
 
     for mooring_name in mooring_list:
         print(f"\n{'='*50}")
-        print(f"Processing Stage 3 for mooring {mooring_name}")
+        print(f"Processing Step 1 (time gridding) for mooring {mooring_name}")
         print(f"{'='*50}")
 
-        results[mooring_name] = processor.process_mooring(mooring_name, file_suffix=file_suffix)
+        results[mooring_name] = processor.process_mooring(mooring_name,
+                                                        file_suffix=file_suffix,
+                                                        filter_type=filter_type,
+                                                        filter_params=filter_params)
 
     return results
 
@@ -572,12 +798,19 @@ if __name__ == "__main__":
 
     basedir = '/Users/eddifying/Dropbox/data/ifmro_mixsed/ds_data_eleanor/'
 
-    # Process all moorings
-    results = process_multiple_moorings_stage3(moorlist, basedir)
+    # Process all moorings without filtering
+    results = process_multiple_moorings_time_gridding(moorlist, basedir)
+
+    # Example: Process with low-pass filtering (RAPID-style de-tiding)
+    # results = process_multiple_moorings_time_gridding(
+    #     moorlist, basedir,
+    #     filter_type='lowpass',
+    #     filter_params={'cutoff_days': 2.0, 'order': 6}
+    # )
 
     # Print summary
     print(f"\n{'='*50}")
-    print("STAGE 3 PROCESSING SUMMARY")
+    print("STEP 1 (TIME GRIDDING) PROCESSING SUMMARY")
     print(f"{'='*50}")
     for mooring, success in results.items():
         status = "SUCCESS" if success else "FAILED"

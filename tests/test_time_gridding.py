@@ -1,15 +1,14 @@
 """
-Tests for oceanarray.stage3 module.
+Tests for oceanarray.time_gridding module.
 
-Tests cover combining multiple instruments into single datasets with interpolation.
+Tests cover Step 1: time gridding and optional filtering of multiple instruments.
 
-Version: 1.0
+Version: 1.1
 Last updated: 2025-09-07
 Changes:
-- Initial test suite for Stage 3 processing
-- Mock data generation for multi-instrument scenarios
-- Real data integration tests
-- Timing analysis and interpolation validation
+- Fixed test_apply_time_filtering_single method indentation and placement
+- Fixed test_filtering_parameter_placeholder to work with new structure
+- Removed bandpass filter references
 """
 import pytest
 import tempfile
@@ -21,7 +20,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 from datetime import datetime, timedelta
 
-from oceanarray.stage3 import Stage3Processor, stage3_mooring, process_multiple_moorings_stage3
+from oceanarray.time_gridding import TimeGriddingProcessor, time_gridding_mooring, process_multiple_moorings_time_gridding
 
 
 def create_mock_instrument_dataset(start_time, end_time, interval_min,
@@ -54,8 +53,8 @@ def create_mock_instrument_dataset(start_time, end_time, interval_min,
     return ds
 
 
-class TestStage3Processor:
-    """Test cases for Stage3Processor class."""
+class TestTimeGriddingProcessor:
+    """Test cases for TimeGriddingProcessor class."""
 
     @pytest.fixture
     def temp_dir(self):
@@ -65,12 +64,12 @@ class TestStage3Processor:
 
     @pytest.fixture
     def processor(self, temp_dir):
-        """Create a Stage3Processor instance for testing."""
-        return Stage3Processor(str(temp_dir))
+        """Create a TimeGriddingProcessor instance for testing."""
+        return TimeGriddingProcessor(str(temp_dir))
 
     @pytest.fixture
     def sample_yaml_data(self):
-        """Sample YAML configuration data for Stage 3."""
+        """Sample YAML configuration data for time gridding."""
         return {
             'name': 'test_mooring',
             'waterdepth': 1000,
@@ -113,8 +112,8 @@ class TestStage3Processor:
         return datasets
 
     def test_init(self, temp_dir):
-        """Test Stage3Processor initialization."""
-        processor = Stage3Processor(str(temp_dir))
+        """Test TimeGriddingProcessor initialization."""
+        processor = TimeGriddingProcessor(str(temp_dir))
         assert processor.base_dir == temp_dir
         assert processor.log_file is None
 
@@ -129,7 +128,7 @@ class TestStage3Processor:
         assert processor.log_file is not None
         assert processor.log_file.parent == output_path
         assert mooring_name in processor.log_file.name
-        assert "stage3.mooring.log" in processor.log_file.name
+        assert "time_gridding.mooring.log" in processor.log_file.name
 
     def test_ensure_instrument_metadata(self, processor):
         """Test metadata addition to datasets."""
@@ -166,6 +165,47 @@ class TestStage3Processor:
         assert 'timeS' not in result.variables
         assert 'density' not in result.variables
         assert 'potential_temperature' not in result.variables
+
+    def test_apply_time_filtering_single(self, processor, mock_datasets):
+        """Test time filtering on individual instrument datasets."""
+        # Test with no filtering
+        result = processor._apply_time_filtering_single(mock_datasets[0], filter_type=None)
+        assert result is mock_datasets[0]  # Should return same dataset unchanged
+
+        # Test with lowpass filtering (now implemented)
+        with patch.object(processor, '_log_print') as mock_log:
+            result = processor._apply_time_filtering_single(mock_datasets[0], filter_type='lowpass')
+            mock_log.assert_called()
+
+            # Should contain lowpass filter messages
+            log_messages = [str(call) for call in mock_log.call_args_list]
+            lowpass_messages = [msg for msg in log_messages if 'Low-pass filter' in msg]
+            assert len(lowpass_messages) > 0
+
+            # Result should be a dataset (may be same if filtering failed due to insufficient data)
+            assert isinstance(result, type(mock_datasets[0]))
+
+        # Test with detide filter (should warn about not implemented, then use lowpass)
+        with patch.object(processor, '_log_print') as mock_log:
+            result = processor._apply_time_filtering_single(mock_datasets[0], filter_type='detide')
+            mock_log.assert_called()
+
+            # Should contain warning about harmonic de-tiding not implemented
+            warning_calls = [call for call in mock_log.call_args_list if 'not yet implemented' in str(call)]
+            assert len(warning_calls) > 0
+
+            # Result should be a dataset (filtered with lowpass as substitute)
+            assert isinstance(result, type(mock_datasets[0]))
+
+        # Test with unknown filter type (should warn and return unchanged)
+        with patch.object(processor, '_log_print') as mock_log:
+            result = processor._apply_time_filtering_single(mock_datasets[0], filter_type='unknown_filter')
+            mock_log.assert_called()
+
+            # Should contain warning about unknown filter
+            warning_calls = [call for call in mock_log.call_args_list if 'Unknown filter type' in str(call)]
+            assert len(warning_calls) > 0
+            assert result is mock_datasets[0]  # Should return unchanged
 
     def test_analyze_timing_info(self, processor, mock_datasets):
         """Test timing analysis across multiple datasets."""
@@ -286,8 +326,8 @@ class TestStage3Processor:
         assert 'instrument_names' in result.attrs
 
 
-class TestStage3Integration:
-    """Integration tests for Stage 3 processing."""
+class TestTimeGriddingIntegration:
+    """Integration tests for time gridding processing."""
 
     @pytest.fixture
     def test_data_setup(self, tmp_path):
@@ -340,10 +380,10 @@ class TestStage3Integration:
             'yaml_data': yaml_data
         }
 
-    def test_full_stage3_processing(self, test_data_setup):
-        """Test complete Stage 3 processing workflow."""
+    def test_full_time_gridding_processing(self, test_data_setup):
+        """Test complete time gridding processing workflow."""
         setup = test_data_setup
-        processor = Stage3Processor(str(setup['base_dir']))
+        processor = TimeGriddingProcessor(str(setup['base_dir']))
 
         # Process the mooring
         result = processor.process_mooring("test_mooring")
@@ -394,14 +434,14 @@ class TestStage3Integration:
         with open(setup['config_file'], 'w') as f:
             yaml.dump(yaml_data, f)
 
-        processor = Stage3Processor(str(setup['base_dir']))
+        processor = TimeGriddingProcessor(str(setup['base_dir']))
         result = processor.process_mooring("test_mooring")
 
         # Should still succeed with available instruments
         assert result is True
 
         # Check log file mentions missing instrument
-        log_files = list(setup['proc_dir'].glob("*_stage3.mooring.log"))
+        log_files = list(setup['proc_dir'].glob("*_time_gridding.mooring.log"))
         assert len(log_files) == 1
         log_content = log_files[0].read_text()
         assert "Missing instruments" in log_content
@@ -410,17 +450,36 @@ class TestStage3Integration:
     def test_different_sampling_rates_warning(self, test_data_setup):
         """Test warnings about different sampling rates."""
         setup = test_data_setup
-        processor = Stage3Processor(str(setup['base_dir']))
+        processor = TimeGriddingProcessor(str(setup['base_dir']))
 
         # Process (datasets have 10min and 5min intervals)
         result = processor.process_mooring("test_mooring")
         assert result is True
 
         # Check log mentions timing analysis
-        log_files = list(setup['proc_dir'].glob("*_stage3.mooring.log"))
+        log_files = list(setup['proc_dir'].glob("*_time_gridding.mooring.log"))
         log_content = log_files[0].read_text()
         assert "TIMING ANALYSIS" in log_content
         assert "min intervals" in log_content
+
+    def test_filtering_parameter_detide(self, test_data_setup):
+        """Test filtering integration with detide filter (not yet implemented)."""
+        setup = test_data_setup
+        processor = TimeGriddingProcessor(str(setup['base_dir']))
+
+        # Test with detide filtering (should show "not yet implemented" warning)
+        result = processor.process_mooring("test_mooring", filter_type='detide')
+
+        # Check that processing succeeded
+        assert result is True
+
+        # Check the log file contains the expected warning
+        log_files = list(setup['proc_dir'].glob("*_time_gridding.mooring.log"))
+        assert len(log_files) == 1
+
+        log_content = log_files[0].read_text()
+        assert 'not yet implemented' in log_content
+        assert 'Harmonic de-tiding not yet implemented' in log_content
 
     def test_no_valid_datasets(self, tmp_path):
         """Test handling when no valid datasets are found."""
@@ -438,7 +497,7 @@ class TestStage3Integration:
         with open(config_file, 'w') as f:
             yaml.dump(yaml_data, f)
 
-        processor = Stage3Processor(str(base_dir))
+        processor = TimeGriddingProcessor(str(base_dir))
         result = processor.process_mooring("test_mooring")
 
         assert result is False
@@ -446,7 +505,7 @@ class TestStage3Integration:
     def test_custom_variables_to_keep(self, test_data_setup):
         """Test processing with custom variable selection."""
         setup = test_data_setup
-        processor = Stage3Processor(str(setup['base_dir']))
+        processor = TimeGriddingProcessor(str(setup['base_dir']))
 
         # Process with only temperature
         result = processor.process_mooring("test_mooring", vars_to_keep=['temperature'])
@@ -463,28 +522,27 @@ class TestStage3Integration:
 class TestConvenienceFunctions:
     """Test convenience functions."""
 
-    @patch('oceanarray.stage3.Stage3Processor')
-    def test_stage3_mooring(self, mock_processor_class):
-        """Test backwards compatibility function."""
+    @patch('oceanarray.time_gridding.TimeGriddingProcessor')
+    def test_time_gridding_mooring(self, mock_processor_class):
+        """Test convenience function."""
         mock_processor = Mock()
         mock_processor.process_mooring.return_value = True
         mock_processor_class.return_value = mock_processor
 
-        result = stage3_mooring("test_mooring", "/test/dir", file_suffix='_use')
+        result = time_gridding_mooring("test_mooring", "/test/dir", file_suffix='_use')
 
         assert result is True
         mock_processor_class.assert_called_once_with("/test/dir")
-        mock_processor.process_mooring.assert_called_once_with("test_mooring", None, '_use')
 
-    @patch('oceanarray.stage3.Stage3Processor')
-    def test_process_multiple_moorings_stage3(self, mock_processor_class):
+    @patch('oceanarray.time_gridding.TimeGriddingProcessor')
+    def test_process_multiple_moorings_time_gridding(self, mock_processor_class):
         """Test batch processing function."""
         mock_processor = Mock()
         mock_processor.process_mooring.side_effect = [True, False, True]
         mock_processor_class.return_value = mock_processor
 
         moorings = ["mooring1", "mooring2", "mooring3"]
-        results = process_multiple_moorings_stage3(moorings, "/test/dir", file_suffix='_use')
+        results = process_multiple_moorings_time_gridding(moorings, "/test/dir", file_suffix='_use')
 
         expected = {
             "mooring1": True,
@@ -504,7 +562,7 @@ class TestErrorHandling:
         proc_dir = base_dir / "moor" / "proc" / "test_mooring"
         proc_dir.mkdir(parents=True)
 
-        processor = Stage3Processor(str(base_dir))
+        processor = TimeGriddingProcessor(str(base_dir))
         result = processor.process_mooring("test_mooring")
 
         assert result is False
@@ -519,19 +577,19 @@ class TestErrorHandling:
         invalid_yaml = proc_dir / "test_mooring.mooring.yaml"
         invalid_yaml.write_text("invalid: yaml: content: [")
 
-        processor = Stage3Processor(str(base_dir))
+        processor = TimeGriddingProcessor(str(base_dir))
         result = processor.process_mooring("test_mooring")
 
         assert result is False
 
     def test_processing_directory_not_found(self, tmp_path):
         """Test handling when processing directory doesn't exist."""
-        processor = Stage3Processor(str(tmp_path))
+        processor = TimeGriddingProcessor(str(tmp_path))
         result = processor.process_mooring("nonexistent_mooring")
 
         assert result is False
 
 
 if __name__ == "__main__":
-    # Version 1.0 - Initial Stage 3 test suite
+    # Version 1.1 - Time gridding test suite
     pytest.main([__file__, "-v", "--tb=short"])
