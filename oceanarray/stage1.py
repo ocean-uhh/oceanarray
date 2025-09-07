@@ -7,8 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
-from ctd_tools.readers import (NortekAsciiReader,
-                               RbrAsciiReader,
+from ctd_tools.readers import (NortekAsciiReader, RbrAsciiReader,
                                RbrRskAutoReader, SbeAsciiReader, SbeCnvReader)
 from ctd_tools.writers import NetCdfWriter
 
@@ -22,9 +21,9 @@ class MooringProcessor:
         "nortek-aqd": NortekAsciiReader,
         "sbe-asc": SbeAsciiReader,
         "rbr-rsk": RbrRskAutoReader,
-        #"rbr-matlab": RbrMatlabReader,
+        # "rbr-matlab": RbrMatlabReader,
         "rbr-dat": RbrAsciiReader,
-        #"adcp-matlab": AdcpMatlabReader,
+        # "adcp-matlab": AdcpMatlabReader,
     }
 
     # Variables to remove for specific file types
