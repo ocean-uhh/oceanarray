@@ -1,0 +1,273 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2. Trimming to Deployed period &mdash; oceanarray v0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=20758594" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=8b92e751"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            oceanarray
+              <img src="../_static/logo_template.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Overview</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../processing_framework.html">OceanArray processing framework</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Instruments</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="acquisition.html">Data Acquisition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="standardisation.html">Standardisation (Stage 1)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="trimming.html">Trim to Deployment (Stage 2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auto_qc.html">Automatic QC (Stage 3)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="calibration.html">Apply Calibration (Stage 4)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conversion.html">Convert to OceanSites</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Moorings</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="time_gridding.html">Grid in Time (Step 1)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vertical_gridding.html">Grid Vertically (Step 2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="concatenation.html">Combine Deployments (Step 3)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Array</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="multisite_merging.html">Multi-site Merging</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../demo_instrument-output.html">Demo: instrument-level processing (Stage 1 and Stage 2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demo_mooring-output.html">Demo: mooring-level processing (Step 1)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Help and reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="http://github.com/eleanorfrajka/oceanarray">GitHub Repo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../oceanarray.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code></a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">oceanarray</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">2. Trimming to Deployed period</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/methods/trimming_old.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="trimming-to-deployed-period">
+<h1>2. Trimming to Deployed period<a class="headerlink" href="#trimming-to-deployed-period" title="Link to this heading"></a></h1>
+<p>This document outlines the <strong>trimming</strong> step in the oceanarray processing workflow. Trimming refers to the process of isolating the valid deployment period from a time series—typically corresponding to the interval between instrument deployment and recovery.  It also produces summary plots.</p>
+<p>This step may need to be run several times, adjusting the start and end of the deployment periods.</p>
+<p>It corresponds to <strong>Stage 2</strong> from RAPID data processing and management, which uses as input the RDB format and outputs (in RDB format) the <cite>*.use`</cite> file.</p>
+<section id="overview">
+<h2>1. Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>Raw mooring records often contain extraneous data before deployment or after recovery (e.g., deck recording, values during ascent/descent, post-recovery handling). These segments must be trimmed to retain only the time interval when the instrument was collecting valid in-situ measurements at the nominal depth during deployment.  In this stage:</p>
+<ul class="simple">
+<li><p>Visualised to identify data issues (e.g., deployment start/end spikes only)</p></li>
+<li><p>Optionally low-pass filtered (e.g., 2-day Butterworth)</p></li>
+<li><p>Inspected manually</p></li>
+<li><p>Optionally adjusted:
+- Revised trimming bounds</p></li>
+<li><p>Prepared for further processing (e.g., gridding)</p></li>
+</ul>
+</section>
+<section id="purpose">
+<h2>2. Purpose<a class="headerlink" href="#purpose" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Remove non-oceanographic data before deployment and after recovery</p></li>
+<li><p>Ensure temporal consistency across instruments on the same mooring</p></li>
+<li><p>Define the usable deployment interval for each instrument</p></li>
+<li><p>Generate summary plots for review and archiving</p></li>
+</ul>
+</section>
+<section id="input">
+<h2>3. Input<a class="headerlink" href="#input" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Standardised <cite>xarray.Dataset</cite> containing raw time series (<cite>TIME</cite>, <cite>TEMPERATURE</cite>, etc.)</p></li>
+<li><p>Metadata indicating deployment and recovery times, either:
+- Attached to the dataset (e.g., <cite>ds.attrs[“start_time”]</cite>)
+- Auxiliary logs (optional): info.dat with mooring latitude and longitude, and deployment times (anchor away) and recovery times (all gear on deck)</p></li>
+</ul>
+</section>
+<section id="output">
+<h2>4. Output<a class="headerlink" href="#output" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Trimmed <cite>xarray.Dataset</cite> with:
+- <cite>TIME</cite> restricted to deployment period
+- Attributes updated with <cite>trimmed = True</cite> and <cite>start_time</cite>, <cite>end_time</cite></p></li>
+<li><p>Summary plots (e.g., <cite>.png</cite> or <cite>.pdf</cite> of raw and filtered time series)</p></li>
+<li><p>Updated deployment metadata (e.g., revised start/end time if needed) in <cite>info.dat</cite> or similar human-readable format</p></li>
+</ul>
+<p>Common plots include:</p>
+<ul class="simple">
+<li><p>Full record: <cite>TEMPERATURE</cite>, <cite>CONDUCTIVITY</cite>, <cite>PRESSURE</cite></p></li>
+<li><p>2-day Butterworth filtered versions</p></li>
+</ul>
+</section>
+<section id="example">
+<h2>5. Example<a class="headerlink" href="#example" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.methods.trimming</span><span class="w"> </span><span class="kn">import</span> <span class="n">trim_to_deployment</span>
+
+<span class="n">ds_trimmed</span> <span class="o">=</span> <span class="n">trim_to_deployment</span><span class="p">(</span><span class="n">ds_std</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="s2">&quot;2021-01-05T20:00&quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;2023-02-25T17:00&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;xarray.Dataset&gt;
+Dimensions:      (TIME: 104576)
+Coordinates:
+  * TIME         (TIME) datetime64[ns] ...
+Data variables:
+    TEMPERATURE  (TIME) float32 ...
+    PRESSURE     (TIME) float32 ...
+Attributes:
+    start_time: 2021-01-05T20:00
+    end_time: 2023-02-25T17:00
+    trimmed: True
+</pre></div>
+</div>
+</section>
+<section id="implementation-notes">
+<h2>6. Implementation Notes<a class="headerlink" href="#implementation-notes" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Deployment periods should be specified in UTC or provided in the mooring <cite>*info.dat</cite> file as in the RAPID data processing and management framework.</p></li>
+<li><p>Start and end times may come from cruise logs or recovery reports</p></li>
+<li><p>Optionally: implement automatic detection of stable deployment periods (e.g., threshold in pressure)</p></li>
+</ul>
+</section>
+<section id="fair-considerations">
+<h2>7. FAIR Considerations<a class="headerlink" href="#fair-considerations" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Trimmed intervals should be <strong>documented transparently</strong> in dataset attributes</p></li>
+<li><p>Retain untrimmed data for provenance if needed</p></li>
+<li><p>Enhances <strong>reusability</strong> and <strong>accuracy</strong> in further processing</p></li>
+</ul>
+<p>See also: <a class="reference internal" href="standardisation.html"><span class="doc">1. Standardisation (Internally-consistent format)</span></a></p>
+</section>
+<section id="legacy-script-rapid">
+<h2>Legacy Script (RAPID)<a class="headerlink" href="#legacy-script-rapid" title="Link to this heading"></a></h2>
+<p>The RAPID script shows how the Seabird format data were changed into the RDB format.</p>
+<ul class="simple">
+<li><p><a class="reference external" href="../_static/code/microcat_raw2use_003.m">microcat_raw2use_003.m</a></p></li>
+</ul>
+<p>This script was part of the original RAPID processing chain used to convert MicroCAT <cite>.asc</cite> or <cite>.cnv</cite> output to <cite>.raw</cite> files in RODB format. It includes parsing logic, metadata extraction from <cite>info.dat</cite>, time adjustment, and basic diagnostic plotting.</p>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">Excerpt from <cite>microcat_raw2use_003.m</cite></span><a class="headerlink" href="#id1" title="Link to this code"></a></div>
+<div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="nb">clear</span>
+<span class="linenos"> 2</span><span class="c">% basic preprocessing for microcat data</span>
+<span class="linenos"> 3</span><span class="c">%   </span>
+<span class="linenos"> 4</span><span class="c">% features</span>
+<span class="linenos"> 5</span><span class="c">%      1. eliminate lauching and recovery period</span>
+<span class="linenos"> 6</span><span class="c">%      2. save data to rodb file</span>
+<span class="linenos"> 7</span><span class="c">%      3. create data overview sheet</span>
+<span class="linenos"> 8</span><span class="c">%</span>
+<span class="linenos"> 9</span><span class="c">% uses timeaxis.m, auto_filt.m, julian.m </span>
+<span class="linenos">10</span>
+<span class="linenos">11</span><span class="c">% 11.01.01 Kanzow </span>
+<span class="linenos">12</span><span class="c">% 13.08.02 Kanzow : debugged</span>
+<span class="linenos">13</span><span class="c">%</span>
+<span class="linenos">14</span><span class="c">%      </span>
+<span class="linenos">15</span><span class="w">  </span>
+<span class="linenos">16</span><span class="c">% --- get mooring information from infofile </span>
+<span class="linenos">17</span>
+<span class="linenos">18</span>
+<span class="linenos">19</span><span class="n">moor</span><span class="w">          </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;ebm1_2_200736&#39;</span><span class="p">;</span><span class="w">    </span><span class="c">% Mooring name</span>
+<span class="linenos">20</span>
+<span class="linenos">21</span><span class="n">operator</span><span class="w">      </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;wallace&#39;</span><span class="p">;</span>
+<span class="linenos">22</span>
+<span class="linenos">23</span><span class="n">plot_interval</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="mi">2007</span><span class="w"> </span><span class="mi">11</span><span class="w"> </span><span class="mi">07</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w">   </span><span class="c">% start time of time axis on plot</span>
+<span class="linenos">24</span><span class="w">		 </span><span class="mi">2008</span><span class="w"> </span><span class="mi">11</span><span class="w"> </span><span class="mi">20</span><span class="w"> </span><span class="mi">0</span><span class="p">];</span><span class="w">  </span><span class="c">% end time of time axis on plot</span>
+<span class="linenos">25</span>
+<span class="linenos">26</span><span class="n">mc_id</span><span class="w">    </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="mi">333</span><span class="w"> </span><span class="mi">337</span><span class="p">]</span><span class="w"> </span><span class="p">;</span><span class="w">         </span><span class="c">% microcat id</span>
+<span class="linenos">27</span>
+<span class="linenos">28</span><span class="c">%-- path</span>
+<span class="linenos">29</span>
+<span class="linenos">30</span><span class="c">% -- set path for data input and output</span>
+<span class="linenos">31</span>
+<span class="linenos">32</span><span class="c">% inpath  = [&#39;/data/rapid/cd170/moorings/&#39;,moor,&#39;/microcat/&#39;];</span>
+<span class="linenos">33</span><span class="c">% outpath = [&#39;/data/rapid/cd170/moorings/&#39;,moor,&#39;/microcat/&#39;];</span>
+<span class="linenos">34</span><span class="c">% infofile =[&#39;/data/rapid/cd170/moorings/&#39;,moor,&#39;/&#39;,moor,&#39;info.dat&#39;];</span>
+<span class="linenos">35</span>
+<span class="linenos">36</span><span class="n">inpath</span><span class="w">  </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="s">&#39;~/Data/rpdmoc/rapid/data/moor/proc/&#39;</span><span class="p">,</span><span class="n">moor</span><span class="p">,</span><span class="s">&#39;/microcat/&#39;</span><span class="p">];</span><span class="w"> </span><span class="c">% C Wallace changed paths for cruise d334</span>
+<span class="linenos">37</span><span class="n">outpath</span><span class="w">  </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="s">&#39;~/Data/rpdmoc/rapid/data/moor/proc/&#39;</span><span class="p">,</span><span class="n">moor</span><span class="p">,</span><span class="s">&#39;/microcat/&#39;</span><span class="p">];</span>
+<span class="linenos">38</span><span class="n">infofile</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="p">[</span><span class="s">&#39;~/Data/rpdmoc/rapid/data/moor/proc/&#39;</span><span class="p">,</span><span class="n">moor</span><span class="p">,</span><span class="s">&#39;/&#39;</span><span class="p">,</span><span class="n">moor</span><span class="p">,</span><span class="s">&#39;info.dat&#39;</span><span class="p">];</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Eleanor Frajka-Williams, FirstName LastName.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Vertical Gridding &mdash; oceanarray v0.0.0 documentation</title>
+  <title>Step 2: Vertical Gridding &mdash; oceanarray v0.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=20758594" />
@@ -52,17 +52,16 @@
 <p class="caption" role="heading"><span class="caption-text">Methods for Instruments</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="acquisition.html">Data Acquisition</a></li>
-<li class="toctree-l1"><a class="reference internal" href="standardisation.html">Standardisation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="trimming.html">Trim to Deployment</a></li>
-<li class="toctree-l1"><a class="reference internal" href="auto_qc.html">Automatic QC</a></li>
-<li class="toctree-l1"><a class="reference internal" href="calibration.html">Apply Calibration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="standardisation.html">Standardisation (Stage 1)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="trimming.html">Trim to Deployment (Stage 2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auto_qc.html">Automatic QC (Stage 3)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="calibration.html">Apply Calibration (Stage 4)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="conversion.html">Convert to OceanSites</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Moorings</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="time_gridding.html">Step 1: Time Gridding and Optional Filtering</a></li>
-<li class="toctree-l1"><a class="reference internal" href="time_gridding.html#time-domain-filtering-details">7. Time-Domain Filtering Details</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Grid Vertically</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="time_gridding.html">Grid in Time (Step 1)</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Grid Vertically (Step 2)</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#purpose">Purpose</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#input">Input</a></li>
@@ -71,7 +70,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#references">References</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="concatenation.html">Concatenate Deployments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="concatenation.html">Combine Deployments (Step 3)</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Array</span></p>
 <ul>
@@ -102,7 +101,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Vertical Gridding</li>
+      <li class="breadcrumb-item active">Step 2: Vertical Gridding</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/methods/vertical_gridding.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -112,8 +111,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="vertical-gridding">
-<h1>Vertical Gridding<a class="headerlink" href="#vertical-gridding" title="Link to this heading"></a></h1>
+  <section id="step-2-vertical-gridding">
+<h1>Step 2: Vertical Gridding<a class="headerlink" href="#step-2-vertical-gridding" title="Link to this heading"></a></h1>
 <p>For a tall mooring with multiple instruments at different depths, vertical gridding can be used to create an evenly spaced (in pressure or depth coordinates) profile of measured properties.</p>
 <p>The method below describes the interpolation used by the RAPID array which was in the <cite>hydro_grid.m</cite> script and calling subfunctions for the interpolation and extrapolation.  This has been adapted into the Python module <cite>verticalnn.rapid_interp</cite>.</p>
 <p><strong>Note:</strong> This method requires a monthly climatology of vertical gradients in temperature and salinity, which is computed from hydrographic (ship-based CTD profiles). The gradients are used to fill gaps between sensors and extrapolate above the shallowest and below the deepest sensor.</p>

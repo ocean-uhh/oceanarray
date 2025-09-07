@@ -23,19 +23,19 @@ Contents
    :caption: Methods for Instruments
 
    Data Acquisition <methods/acquisition>
-   Standardisation <methods/standardisation>
-   Trim to Deployment <methods/trimming>
-   Automatic QC <methods/auto_qc>
-   Apply Calibration <methods/calibration>
+   Standardisation (Stage 1) <methods/standardisation>
+   Trim to Deployment (Stage 2) <methods/trimming>
+   Automatic QC (Stage 3) <methods/auto_qc>
+   Apply Calibration (Stage 4) <methods/calibration>
    Convert to OceanSites <methods/conversion>
 
 .. toctree::
    :maxdepth: 1
    :caption: Methods for Moorings
 
-   Grid in Time <methods/time_gridding>
-   Grid Vertically <methods/vertical_gridding>
-   Concatenate Deployments <methods/concatenation>
+   Grid in Time (Step 1) <methods/time_gridding>
+   Grid Vertically (Step 2) <methods/vertical_gridding>
+   Combine Deployments (Step 3) <methods/concatenation>
 
 .. toctree::
    :maxdepth: 1
