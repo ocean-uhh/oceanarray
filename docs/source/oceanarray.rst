@@ -63,11 +63,11 @@ Trim instrument records to the deployment window and flag out-of-bounds values.
    :undoc-members:
 
 
-trimming
-^^^^^^^^^^^
+stage 2 - trimming
+^^^^^^^^^^^^^^^^^^^
 Trim instrument records to the deployment window and flag out-of-bounds values.
 
-.. automodule:: oceanarray.trimming
+.. automodule:: oceanarray.stage2
    :members:
    :undoc-members:
 
@@ -90,24 +90,24 @@ Convert to OceanSites format.
 Mooring Processing
 ----------------------
 
-filtering
-^^^^^^^^^^^
+Step 1 - time_gridding
+^^^^^^^^^^^^^^^^^^^^^^^
 Apply Butterworth filters to remove tides and smooth high-frequency noise.
 
-.. automodule:: oceanarray.filtering
+.. automodule:: oceanarray.time_gridding
    :members:
    :undoc-members:
 
-gridding
+Step 2 - vertical gridding
 ^^^^^^^^^^^
 Vertically interpolate T/S/P data onto a common pressure grid using climatological constraints.
 
-.. automodule:: oceanarray.gridding
+.. automodule:: oceanarray.vertical_gridding
    :members:
    :undoc-members:
 
-stitching
-^^^^^^^^^^^
+Step 3 - stitching
+^^^^^^^^^^^^^^^^^^^
 Concatenate deployments and interpolate onto a continuous time base.
 
 .. automodule:: oceanarray.stitching
