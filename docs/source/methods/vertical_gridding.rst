@@ -1,6 +1,6 @@
 
-Vertical Gridding
-=================
+Step 2: Vertical Gridding
+==========================
 
 For a tall mooring with multiple instruments at different depths, vertical gridding can be used to create an evenly spaced (in pressure or depth coordinates) profile of measured properties.
 

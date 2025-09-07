@@ -247,10 +247,7 @@ The time gridding processor includes several quality control features:
 - **Comprehensive logging**: Detailed processing logs for debugging and validation
 
 7. Time-Domain Filtering Details
-=================================
-
-7.1. Filtering Applications
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+----------------------------------------------
 
 Time-domain filtering is particularly useful for:
 
@@ -264,7 +261,7 @@ But it is not necessarily appropriate for:
 - **High-frequency process studies**: Where tidal and inertial signals are of interest
 - **Short-term deployments**: Where filtering may remove significant portions of the record
 
-7.2. RAPID Array Context: De-tiding for Long-term Records
+7.1. RAPID Array Context: De-tiding for Long-term Records
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The filtering implementation is based on the RAPID array processing workflow, where **2-day low-pass Butterworth filtering** (6th order) was applied to remove tidal and inertial variability from year-long mooring records.
@@ -296,8 +293,8 @@ The Python implementation in :mod:`oceanarray.time_gridding` provides equivalent
 - **Modern formats**: NetCDF output with CF conventions
 - **Gap-aware processing**: Intelligent handling of data gaps
 
-7.3. Filter Implementation Details
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+7.2. Filter Implementation Details (not yet implemented)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 **Gap Handling**
 
