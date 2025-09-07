@@ -1,0 +1,293 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>1. Standardisation (Internally-consistent format) &mdash; oceanarray v0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=20758594" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=8b92e751"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            oceanarray
+              <img src="../_static/logo_template.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Overview</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../processing_framework.html">OceanArray processing framework</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Instruments</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="acquisition.html">Data Acquisition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="standardisation.html">Standardisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="trimming.html">Trim to Deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="auto_qc.html">Automatic QC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="calibration.html">Apply Calibration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="conversion.html">Convert to OceanSites</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Moorings</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="time_gridding.html">Grid in Time</a></li>
+<li class="toctree-l1"><a class="reference internal" href="vertical_gridding.html">Grid Vertically</a></li>
+<li class="toctree-l1"><a class="reference internal" href="concatenation.html">Concatenate Deployments</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Array</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="multisite_merging.html">Multi-site Merging</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../demo_instrument-output.html">Demo: instrument-level processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../demo_mooring-output.html">oceanarray demo - preparation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Help and reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="http://github.com/eleanorfrajka/oceanarray">GitHub Repo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../oceanarray.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code></a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">oceanarray</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">1. Standardisation (Internally-consistent format)</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/methods/standardisation_old.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="standardisation-internally-consistent-format">
+<h1>1. Standardisation (Internally-consistent format)<a class="headerlink" href="#standardisation-internally-consistent-format" title="Link to this heading"></a></h1>
+<p>This document describes the <strong>standardisation</strong> step in the oceanarray processing workflow. It defines how instrument data—regardless of its original format or naming—are converted to a consistent internal structure using <cite>xarray.Dataset</cite>. This enables all subsequent processing steps (e.g. calibration, filtering, transport calculations) to run on semantically uniform data.</p>
+<p>It corresponds to <strong>Stage 1</strong> from RAPID data processing and management, which uses the RDB format.  An example of RDB format is below:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Mooring              = wb2_16_2020
+SerialNumber         = 5768
+WaterDepth           = 3916
+InstrDepth           = 1700
+Start_Date           = 2021/01/05
+Start_Time           = 20:00
+End_Date             = 2023/02/25
+End_Time             = 17:00
+Latitude             = 26 31.000 N
+Longitude            = 076 44.460 W
+Columns              = YY:MM:DD:HH:T:C:P
+2021   01   05   20.00056   3.9239   33.2233  1726.4
+2021   01   05   21.00056   3.9389   33.2389  1725.4
+2021   01   05   22.00056   3.9389   33.2405  1725.3
+2021   01   05   23.00056   3.9315   33.2331  1725.2
+2021   01   06    0.00056   3.9333   33.2355  1725.2
+2021   01   06    1.00056   3.9297   33.2316  1725.3
+2021   01   06    2.00028   3.9349   33.2377  1725.4
+2021   01   06    3.00028   3.9373   33.2391  1725.6
+2021   01   06    4.00028   3.9423   33.2432  1725.8
+</pre></div>
+</div>
+<section id="overview">
+<h2>1. Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>Standardisation occurs <strong>immediately after raw data are loaded</strong> (Stage 0) and before any scientific transformations. Its goal is to normalize:</p>
+<ul class="simple">
+<li><p>Variable names</p></li>
+<li><p>Dimensions</p></li>
+<li><p>Coordinate names</p></li>
+<li><p>Minimal core attributes (e.g., instrument, mooring, location)</p></li>
+</ul>
+<p>This creates a uniform structure suitable for later trimming, filtering, and conversion.</p>
+</section>
+<section id="purpose">
+<h2>2. Purpose<a class="headerlink" href="#purpose" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Remove variability in legacy file formats and naming conventions</p></li>
+<li><p>Enable consistent handling across deployments and years</p></li>
+<li><p>Attach minimal metadata needed for downstream tracking (e.g., serial number, water depth, instrument depth, start and end times, location and mooring names)</p></li>
+<li><p>Provide a clean, consistent internal structure with raw data</p></li>
+</ul>
+</section>
+<section id="input">
+<h2>3. Input<a class="headerlink" href="#input" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Parsed raw time series and header metadata (from Stage 0)</p></li>
+<li><p>No assumptions about units or QC applied</p></li>
+</ul>
+</section>
+<section id="output">
+<h2>4. Output<a class="headerlink" href="#output" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>A <strong>raw-equivalent</strong> <cite>xarray.Dataset</cite> with:
+- Dimensions: <cite>TIME</cite>
+- Variable names standardized (e.g., <cite>TEMPERATURE</cite>, <cite>CONDUCTIVITY</cite>, <cite>PRESSURE</cite>)
+- Coordinates: <cite>TIME</cite>, optionally <cite>LATITUDE</cite>, <cite>LONGITUDE</cite>, <cite>DEPTH</cite>
+- Minimal metadata: instrument ID, mooring name, nominal depth, etc.</p></li>
+</ul>
+<p>Example (RDB-style input parsed to <cite>xarray.Dataset</cite>):</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Mooring              = wb2_16_2020
+SerialNumber         = 5768
+WaterDepth           = 3916
+InstrDepth           = 1700
+Start_Date           = 2021/01/05
+Start_Time           = 20:00
+End_Date             = 2023/02/25
+End_Time             = 17:00
+Latitude             = 26 31.000 N
+Longitude            = 076 44.460 W
+Columns              = YY:MM:DD:HH:T:C:P
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">xarray</span><span class="o">.</span><span class="n">Dataset</span><span class="o">&gt;</span>
+<span class="n">Dimensions</span><span class="p">:</span>      <span class="p">(</span><span class="n">TIME</span><span class="p">:</span> <span class="mi">9</span><span class="p">)</span>
+<span class="n">Coordinates</span><span class="p">:</span>
+  <span class="o">*</span> <span class="n">TIME</span>         <span class="p">(</span><span class="n">TIME</span><span class="p">)</span> <span class="n">datetime64</span><span class="p">[</span><span class="n">ns</span><span class="p">]</span> <span class="mi">2021</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">05</span><span class="n">T20</span><span class="p">:</span><span class="mi">00</span> <span class="o">...</span> <span class="mi">2021</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">06</span><span class="n">T04</span><span class="p">:</span><span class="mi">00</span>
+    <span class="n">LATITUDE</span>     <span class="n">float64</span> <span class="mf">26.52</span>
+    <span class="n">LONGITUDE</span>    <span class="n">float64</span> <span class="o">-</span><span class="mf">76.741</span>
+    <span class="n">DEPTH</span>        <span class="n">float64</span> <span class="mf">1700.0</span>
+<span class="n">Data</span> <span class="n">variables</span><span class="p">:</span>
+    <span class="n">TEMPERATURE</span>  <span class="p">(</span><span class="n">TIME</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+    <span class="n">CONDUCTIVITY</span> <span class="p">(</span><span class="n">TIME</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+    <span class="n">PRESSURE</span>     <span class="p">(</span><span class="n">TIME</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+<span class="n">Attributes</span><span class="p">:</span>
+    <span class="n">mooring</span><span class="p">:</span> <span class="n">wb2_16_2020</span>
+    <span class="n">serial_number</span><span class="p">:</span> <span class="mi">5768</span>
+    <span class="n">water_depth</span><span class="p">:</span> <span class="mi">3916</span>
+    <span class="n">source_file</span><span class="p">:</span> <span class="n">wb2_16_2020_5768</span><span class="o">.</span><span class="n">raw</span>
+</pre></div>
+</div>
+<p>The <cite>Start_Date</cite> and <cite>Start_Time</cite> are trimmed during processing using the <cite>info.dat</cite> file to represent the first (normally rounded hour) after which data are considered valid (i.e., the mooring anchor is on the seabed).  Similarly, <cite>End_Date</cite> and <cite>End_Time</cite> are used to represent the last hour of valid data before the mooring is released from the seabed (i.e., the mooring starts rising in the water column).  These will be used to trim</p>
+<p>Optional variables (if available) may include <cite>DEPLOYMENT_TIME</cite>, <cite>DEPLOYMENT_LATITUDE</cite> and <cite>DEPLOYMENT_LONGITUDE</cite> for where the ship was when the anchor was deployed.  Similarly for <cite>RECOVERY_TIME</cite>, <cite>RECOVERY_LATITUDE</cite> and <cite>RECOVERY_LONGITUDE</cite> which could include where the ship was when the gear was all on deck.</p>
+</section>
+<section id="notes">
+<h2>5. Notes<a class="headerlink" href="#notes" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>No unit conversions, filters, or calibration applied</p></li>
+<li><p>Time parsed as UTC <cite>datetime64</cite></p></li>
+<li><p>Variable names and minimal metadata allow standardised tools to begin working</p></li>
+<li><p>Equivalent in philosophy to the RAPID “RDB” format</p></li>
+</ul>
+<p>See also: <a class="reference internal" href="acquisition.html"><span class="doc">Data Acquisition (Download in proprietary formats)</span></a>, <a class="reference internal" href="conversion.html"><span class="doc">4. Conversion to OS format</span></a></p>
+</section>
+<section id="legacy-script-rapid">
+<h2>Legacy Script (RAPID)<a class="headerlink" href="#legacy-script-rapid" title="Link to this heading"></a></h2>
+<p>The RAPID script shows how the Seabird format data were changed into the RDB format.</p>
+<ul class="simple">
+<li><p><a class="reference external" href="../_static/code/microcat2rodb_3.m">microcat2rodb_3.m</a></p></li>
+</ul>
+<p>This script was part of the original RAPID processing chain used to convert MicroCAT <cite>.asc</cite> or <cite>.cnv</cite> output to <cite>.raw</cite> files in RODB format. It includes parsing logic, metadata extraction from <cite>info.dat</cite>, time adjustment, and basic diagnostic plotting.</p>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">Excerpt from <cite>microcat2rodb_3.m</cite></span><a class="headerlink" href="#id1" title="Link to this code"></a></div>
+<div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="c">% function microcat2rodb_3(&#39;infile&#39;,&#39;outfile&#39;,&#39;infofile&#39;,fidlog,[graphics],[toffset])</span>
+<span class="linenos"> 2</span><span class="c">%</span>
+<span class="linenos"> 3</span><span class="c">% reads ACSII output from SBE-37 MicroCAT and converts</span>
+<span class="linenos"> 4</span><span class="c">% writes it to RODB file </span>
+<span class="linenos"> 5</span><span class="c">% So far the input format contain (temp,cond,day,month,year,time)  </span>
+<span class="linenos"> 6</span><span class="c">% or .cnv format (temp,cond,press,seconds,data_flag)</span>
+<span class="linenos"> 7</span><span class="c">% where seconds is seconds since Jan 1st 2000.</span>
+<span class="linenos"> 8</span><span class="c">%</span>
+<span class="linenos"> 9</span><span class="c">% input: </span>
+<span class="linenos">10</span><span class="c">%   outfile  : path and name of RODB outputfile</span>
+<span class="linenos">11</span><span class="c">%   infile   : path and name of MicroCAT ASCII input file</span>
+<span class="linenos">12</span><span class="c">%   infofile : path and name of mooring info.dat file  </span>
+<span class="linenos">13</span><span class="c">%   fidlog   : file identifier for log file</span>
+<span class="linenos">14</span><span class="c">%   graphics : &#39;y&#39; = display some graphics (mooring)</span>
+<span class="linenos">15</span><span class="c">%              &#39;w&#39; = display some graphics with whole range (rosette)</span>
+<span class="linenos">16</span><span class="c">%   toffset  : offset of recorded instrument time rel to GMT (decimal days),</span>
+<span class="linenos">17</span><span class="c">%              if omitted, default toffset = 0 is set </span>
+<span class="linenos">18</span><span class="c">%</span>
+<span class="linenos">19</span><span class="c">%  uses: microcat_month2.m, hms2h.m  (all by T.Kanzow), rodbsave.m</span>
+<span class="linenos">20</span><span class="c">%</span>
+<span class="linenos">21</span><span class="c">% kanzow   26.12.2000 Xmas edition</span>
+<span class="linenos">22</span><span class="c">%          28.03.2001 pressure option added </span>
+<span class="linenos">23</span><span class="c">%          20.04.2005 CSIRO seawater routine for computation of salinity </span>
+<span class="linenos">24</span><span class="c">%          24.04.2005 recorded time checked against mooring deployment time </span>
+<span class="linenos">25</span><span class="c">%          25.04.2005 input variable &#39;toffset&#39; added</span>
+<span class="linenos">26</span><span class="c">%          27/10/09 - DR added functionality for .cnv format files for</span>
+<span class="linenos">27</span><span class="c">%             microcat firmware 3.0 and above. and created microcat2rodb_3</span>
+<span class="linenos">28</span><span class="c">%             from microcat2rodb_2_002</span>
+<span class="linenos">29</span><span class="c">%          03.04.2010 - ZBS changed the method for setting &#39;ylim&#39;</span>
+<span class="linenos">30</span><span class="c">%             for graphics==&#39;y&#39; to use prctile.</span>
+<span class="linenos">31</span><span class="c">%</span>
+<span class="linenos">32</span><span class="k">function</span><span class="w"> </span><span class="nf">microcat2rodb_3</span><span class="p">(</span>infile,outfile,infofile,fidlog,graphics,toffset<span class="p">)</span>
+<span class="linenos">33</span>
+<span class="linenos">34</span><span class="k">if</span><span class="w"> </span><span class="nb">nargin</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">4</span>
+<span class="linenos">35</span><span class="w">  </span><span class="nb">disp</span><span class="p">(</span><span class="s">&#39;not enough input arguments&#39;</span><span class="p">)</span>
+<span class="linenos">36</span><span class="k">elseif</span><span class="w"> </span><span class="nb">nargin</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="mi">4</span>
+<span class="linenos">37</span><span class="w">  </span><span class="n">graphics</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&#39;n&#39;</span>
+<span class="linenos">38</span><span class="w">  </span><span class="nb">disp</span><span class="p">(</span><span class="s">&#39;graphics will not be  displayed&#39;</span><span class="p">)</span>
+<span class="linenos">39</span><span class="k">end</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Eleanor Frajka-Williams, FirstName LastName.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

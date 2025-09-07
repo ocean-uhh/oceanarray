@@ -116,6 +116,7 @@
  | <a href="#P"><strong>P</strong></a>
  | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
+ | <a href="#V"><strong>V</strong></a>
  
 </div>
 <h2 id="A">A</h2>
@@ -152,6 +153,8 @@
       <li><a href="oceanarray.html#oceanarray.utilities.concat_with_scalar_vars">concat_with_scalar_vars() (in module oceanarray.utilities)</a>
 </li>
       <li><a href="oceanarray.html#oceanarray.convertOS.convert_rodb_to_oceansites">convert_rodb_to_oceansites() (in module oceanarray.convertOS)</a>
+</li>
+      <li><a href="oceanarray.html#oceanarray.stage1.MooringProcessor.COORDS_TO_REMOVE">COORDS_TO_REMOVE (oceanarray.stage1.MooringProcessor attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -241,6 +244,8 @@
 </li>
         <li><a href="oceanarray.html#module-oceanarray.readers">oceanarray.readers</a>
 </li>
+        <li><a href="oceanarray.html#module-oceanarray.stage1">oceanarray.stage1</a>
+</li>
         <li><a href="oceanarray.html#module-oceanarray.tools">oceanarray.tools</a>
 </li>
         <li><a href="oceanarray.html#module-oceanarray.transports">oceanarray.transports</a>
@@ -250,6 +255,10 @@
         <li><a href="oceanarray.html#module-oceanarray.writers">oceanarray.writers</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="oceanarray.html#oceanarray.stage1.MooringProcessor">MooringProcessor (class in oceanarray.stage1)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -290,14 +299,21 @@
 </li>
       </ul></li>
       <li>
+    oceanarray.stage1
+
+      <ul>
+        <li><a href="oceanarray.html#module-oceanarray.stage1">module</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li>
     oceanarray.tools
 
       <ul>
         <li><a href="oceanarray.html#module-oceanarray.tools">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     oceanarray.transports
 
@@ -333,15 +349,19 @@
 </li>
       <li><a href="oceanarray.html#oceanarray.plotters.plot_microcat">plot_microcat() (in module oceanarray.plotters)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="oceanarray.html#oceanarray.plotters.plot_qartod_summary">plot_qartod_summary() (in module oceanarray.plotters)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="oceanarray.html#oceanarray.plotters.plot_timeseries_by_depth">plot_timeseries_by_depth() (in module oceanarray.plotters)</a>
 </li>
       <li><a href="oceanarray.html#oceanarray.plotters.plot_trim_windows">plot_trim_windows() (in module oceanarray.plotters)</a>
 </li>
       <li><a href="oceanarray.html#oceanarray.tools.process_dataset">process_dataset() (in module oceanarray.tools)</a>
+</li>
+      <li><a href="oceanarray.html#oceanarray.stage1.MooringProcessor.process_mooring">process_mooring() (oceanarray.stage1.MooringProcessor method)</a>
+</li>
+      <li><a href="oceanarray.html#oceanarray.stage1.process_multiple_moorings">process_multiple_moorings() (in module oceanarray.stage1)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -349,10 +369,12 @@
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="oceanarray.html#oceanarray.readers.rodbload_old">rodbload_old() (in module oceanarray.readers)</a>
+      <li><a href="oceanarray.html#oceanarray.stage1.MooringProcessor.READER_MAP">READER_MAP (oceanarray.stage1.MooringProcessor attribute)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="oceanarray.html#oceanarray.readers.rodbload_old">rodbload_old() (in module oceanarray.readers)</a>
+</li>
       <li><a href="oceanarray.html#oceanarray.tools.run_qc">run_qc() (in module oceanarray.tools)</a>
 </li>
   </ul></td>
@@ -377,7 +399,17 @@
 </li>
       <li><a href="oceanarray.html#oceanarray.tools.split_value">split_value() (in module oceanarray.tools)</a>
 </li>
+      <li><a href="oceanarray.html#oceanarray.stage1.stage1_mooring">stage1_mooring() (in module oceanarray.stage1)</a>
+</li>
       <li><a href="oceanarray.html#oceanarray.tools.std_of_middle_percent">std_of_middle_percent() (in module oceanarray.tools)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="V">V</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="oceanarray.html#oceanarray.stage1.MooringProcessor.VARS_TO_REMOVE">VARS_TO_REMOVE (oceanarray.stage1.MooringProcessor attribute)</a>
 </li>
   </ul></td>
 </tr></table>

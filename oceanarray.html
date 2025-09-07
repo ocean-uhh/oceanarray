@@ -102,7 +102,12 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#instrument-processing">Instrument Processing</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#standardisation">standardisation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stage-1-standardisation">stage 1 - standardisation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.stage1.MooringProcessor"><code class="docutils literal notranslate"><span class="pre">MooringProcessor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.stage1.process_multiple_moorings"><code class="docutils literal notranslate"><span class="pre">process_multiple_moorings()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#oceanarray.stage1.stage1_mooring"><code class="docutils literal notranslate"><span class="pre">stage1_mooring()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="#trimming">trimming</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#calibration">calibration</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#convertos">convertOS</a><ul>
@@ -417,9 +422,89 @@ pandas.io.formats.style.Styler: A styled DataFrame containing the following colu
 </section>
 <section id="instrument-processing">
 <h2>Instrument Processing<a class="headerlink" href="#instrument-processing" title="Link to this heading"></a></h2>
-<section id="standardisation">
-<h3>standardisation<a class="headerlink" href="#standardisation" title="Link to this heading"></a></h3>
+<section id="stage-1-standardisation">
+<h3>stage 1 - standardisation<a class="headerlink" href="#stage-1-standardisation" title="Link to this heading"></a></h3>
 <p>Trim instrument records to the deployment window and flag out-of-bounds values.</p>
+<p id="module-oceanarray.stage1">Refactored stage1 processing for mooring data with improved readability.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="oceanarray.stage1.MooringProcessor">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">oceanarray.stage1.</span></span><span class="sig-name descname"><span class="pre">MooringProcessor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/stage1.html#MooringProcessor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.stage1.MooringProcessor" title="Link to this definition"></a></dt>
+<dd><p>Handles stage1 processing of mooring data.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="oceanarray.stage1.MooringProcessor.COORDS_TO_REMOVE">
+<span class="sig-name descname"><span class="pre">COORDS_TO_REMOVE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'sbe-asc':</span> <span class="pre">['depth',</span> <span class="pre">'latitude',</span> <span class="pre">'longitude'],</span> <span class="pre">'sbe-cnv':</span> <span class="pre">['depth',</span> <span class="pre">'latitude',</span> <span class="pre">'longitude']}</span></em><a class="headerlink" href="#oceanarray.stage1.MooringProcessor.COORDS_TO_REMOVE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="oceanarray.stage1.MooringProcessor.READER_MAP">
+<span class="sig-name descname"><span class="pre">READER_MAP</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'nortek-aqd':</span> <span class="pre">&lt;class</span> <span class="pre">'ctd_tools.readers.nortek_ascii_reader.NortekAsciiReader'&gt;,</span> <span class="pre">'rbr-dat':</span> <span class="pre">&lt;class</span> <span class="pre">'ctd_tools.readers.rbr_ascii_reader.RbrAsciiReader'&gt;,</span> <span class="pre">'rbr-rsk':</span> <span class="pre">&lt;class</span> <span class="pre">'ctd_tools.readers.rbr_rsk_auto_reader.RbrRskAutoReader'&gt;,</span> <span class="pre">'sbe-asc':</span> <span class="pre">&lt;class</span> <span class="pre">'ctd_tools.readers.sbe_ascii_reader.SbeAsciiReader'&gt;,</span> <span class="pre">'sbe-cnv':</span> <span class="pre">&lt;class</span> <span class="pre">'ctd_tools.readers.sbe_cnv_reader.SbeCnvReader'&gt;}</span></em><a class="headerlink" href="#oceanarray.stage1.MooringProcessor.READER_MAP" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="oceanarray.stage1.MooringProcessor.VARS_TO_REMOVE">
+<span class="sig-name descname"><span class="pre">VARS_TO_REMOVE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'sbe-asc':</span> <span class="pre">['potential_temperature',</span> <span class="pre">'julian_days_offset',</span> <span class="pre">'density'],</span> <span class="pre">'sbe-cnv':</span> <span class="pre">['potential_temperature',</span> <span class="pre">'julian_days_offset',</span> <span class="pre">'density']}</span></em><a class="headerlink" href="#oceanarray.stage1.MooringProcessor.VARS_TO_REMOVE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="oceanarray.stage1.MooringProcessor.process_mooring">
+<span class="sig-name descname"><span class="pre">process_mooring</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mooring_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/oceanarray/stage1.html#MooringProcessor.process_mooring"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.stage1.MooringProcessor.process_mooring" title="Link to this definition"></a></dt>
+<dd><p>Process a single mooring’s data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mooring_name</strong> – Name of the mooring to process</p></li>
+<li><p><strong>output_path</strong> – Optional custom output path. If None, uses default structure.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if processing completed successfully, False otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.stage1.process_multiple_moorings">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.stage1.</span></span><span class="sig-name descname"><span class="pre">process_multiple_moorings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mooring_list</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">basedir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/oceanarray/stage1.html#process_multiple_moorings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.stage1.process_multiple_moorings" title="Link to this definition"></a></dt>
+<dd><p>Process multiple moorings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mooring_list</strong> – List of mooring names to process</p></li>
+<li><p><strong>basedir</strong> – Base directory containing the data</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict mapping mooring names to success status</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.stage1.stage1_mooring">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.stage1.</span></span><span class="sig-name descname"><span class="pre">stage1_mooring</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mooring_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">basedir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/oceanarray/stage1.html#stage1_mooring"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.stage1.stage1_mooring" title="Link to this definition"></a></dt>
+<dd><p>Process a single mooring’s data (backwards compatibility function).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mooring_name</strong> – Name of the mooring to process</p></li>
+<li><p><strong>basedir</strong> – Base directory containing the data</p></li>
+<li><p><strong>output_path</strong> – Optional output path override</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if processing completed successfully</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 <section id="trimming">
 <h3>trimming<a class="headerlink" href="#trimming" title="Link to this heading"></a></h3>

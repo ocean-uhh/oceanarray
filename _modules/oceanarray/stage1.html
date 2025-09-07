@@ -1,0 +1,568 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>oceanarray.stage1 &mdash; oceanarray v0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=20758594" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=8b92e751"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            oceanarray
+              <img src="../../_static/logo_template.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Overview</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../processing_framework.html">OceanArray processing framework</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Instruments</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../methods/acquisition.html">Data Acquisition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../methods/standardisation.html">Standardisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../methods/trimming.html">Trim to Deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../methods/auto_qc.html">Automatic QC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../methods/calibration.html">Apply Calibration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../methods/conversion.html">Convert to OceanSites</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Moorings</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../methods/time_gridding.html">Grid in Time</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../methods/vertical_gridding.html">Grid Vertically</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../methods/concatenation.html">Concatenate Deployments</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Array</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../methods/multisite_merging.html">Multi-site Merging</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../demo_instrument-output.html">Demo: instrument-level processing</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../demo_mooring-output.html">oceanarray demo - preparation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Help and reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="http://github.com/eleanorfrajka/oceanarray">GitHub Repo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../oceanarray.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code></a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">oceanarray</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">oceanarray.stage1</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for oceanarray.stage1</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Refactored stage1 processing for mooring data with improved readability.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ctd_tools.readers</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span><span class="n">NortekAsciiReader</span><span class="p">,</span>
+                               <span class="n">RbrAsciiReader</span><span class="p">,</span>
+                               <span class="n">RbrRskAutoReader</span><span class="p">,</span> <span class="n">SbeAsciiReader</span><span class="p">,</span> <span class="n">SbeCnvReader</span><span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">ctd_tools.writers</span><span class="w"> </span><span class="kn">import</span> <span class="n">NetCdfWriter</span>
+
+
+<div class="viewcode-block" id="MooringProcessor">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.stage1.MooringProcessor">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MooringProcessor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Handles stage1 processing of mooring data.&quot;&quot;&quot;</span>
+
+    <span class="c1"># File type to reader mapping</span>
+    <span class="n">READER_MAP</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;sbe-cnv&quot;</span><span class="p">:</span> <span class="n">SbeCnvReader</span><span class="p">,</span>
+        <span class="s2">&quot;nortek-aqd&quot;</span><span class="p">:</span> <span class="n">NortekAsciiReader</span><span class="p">,</span>
+        <span class="s2">&quot;sbe-asc&quot;</span><span class="p">:</span> <span class="n">SbeAsciiReader</span><span class="p">,</span>
+        <span class="s2">&quot;rbr-rsk&quot;</span><span class="p">:</span> <span class="n">RbrRskAutoReader</span><span class="p">,</span>
+        <span class="c1">#&quot;rbr-matlab&quot;: RbrMatlabReader,</span>
+        <span class="s2">&quot;rbr-dat&quot;</span><span class="p">:</span> <span class="n">RbrAsciiReader</span><span class="p">,</span>
+        <span class="c1">#&quot;adcp-matlab&quot;: AdcpMatlabReader,</span>
+    <span class="p">}</span>
+
+    <span class="c1"># Variables to remove for specific file types</span>
+    <span class="n">VARS_TO_REMOVE</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;sbe-cnv&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;potential_temperature&quot;</span><span class="p">,</span> <span class="s2">&quot;julian_days_offset&quot;</span><span class="p">,</span> <span class="s2">&quot;density&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;sbe-asc&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;potential_temperature&quot;</span><span class="p">,</span> <span class="s2">&quot;julian_days_offset&quot;</span><span class="p">,</span> <span class="s2">&quot;density&quot;</span><span class="p">],</span>
+    <span class="p">}</span>
+
+    <span class="c1"># Coordinates to remove for specific file types</span>
+    <span class="n">COORDS_TO_REMOVE</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;sbe-cnv&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;depth&quot;</span><span class="p">,</span> <span class="s2">&quot;latitude&quot;</span><span class="p">,</span> <span class="s2">&quot;longitude&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;sbe-asc&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;depth&quot;</span><span class="p">,</span> <span class="s2">&quot;latitude&quot;</span><span class="p">,</span> <span class="s2">&quot;longitude&quot;</span><span class="p">],</span>
+    <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize processor with base directory.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">base_dir</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_file</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_setup_logging</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mooring_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">output_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set up logging for the processing run.&quot;&quot;&quot;</span>
+        <span class="n">log_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%Y%m</span><span class="si">%d</span><span class="s2">T%H&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_file</span> <span class="o">=</span> <span class="n">output_path</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">mooring_name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">log_time</span><span class="si">}</span><span class="s2">_stage1.mooring.log&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_log_print</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Print to both console and log file.&quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_file</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_file</span><span class="p">,</span> <span class="s2">&quot;a&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_mooring_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load mooring configuration from YAML file.&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_reader_for_file_type</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">file_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">header_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get appropriate reader instance for file type.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">file_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">READER_MAP</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown file type: </span><span class="si">{</span><span class="n">file_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">reader_class</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">READER_MAP</span><span class="p">[</span><span class="n">file_type</span><span class="p">]</span>
+
+        <span class="c1"># Handle special cases that need additional parameters</span>
+        <span class="k">if</span> <span class="n">file_type</span> <span class="o">==</span> <span class="s2">&quot;nortek-aqd&quot;</span> <span class="ow">and</span> <span class="n">header_path</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">reader_class</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">header_file_path</span><span class="o">=</span><span class="n">header_path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">reader_class</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_clean_dataset_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">file_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove unwanted variables and coordinates from dataset.&quot;&quot;&quot;</span>
+        <span class="c1"># Remove variables</span>
+        <span class="n">vars_to_remove</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">VARS_TO_REMOVE</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">file_type</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">vars_to_remove</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">dataset</span><span class="o">.</span><span class="n">variables</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_log_print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Removing variable: </span><span class="si">{</span><span class="n">var</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">drop_vars</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
+
+        <span class="c1"># Remove coordinates</span>
+        <span class="n">coords_to_remove</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">COORDS_TO_REMOVE</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">file_type</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="n">coords_to_remove</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">coord</span> <span class="ow">in</span> <span class="n">dataset</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_log_print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Removing coordinate: </span><span class="si">{</span><span class="n">coord</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">drop_vars</span><span class="p">(</span><span class="n">coord</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">dataset</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_add_global_attributes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">yaml_data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add global attributes from YAML configuration.&quot;&quot;&quot;</span>
+        <span class="n">global_attrs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;mooring_name&quot;</span><span class="p">:</span> <span class="n">yaml_data</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;waterdepth&quot;</span><span class="p">:</span> <span class="n">yaml_data</span><span class="p">[</span><span class="s2">&quot;waterdepth&quot;</span><span class="p">],</span>
+            <span class="s2">&quot;longitude&quot;</span><span class="p">:</span> <span class="n">yaml_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;longitude&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+            <span class="s2">&quot;latitude&quot;</span><span class="p">:</span> <span class="n">yaml_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;latitude&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+            <span class="s2">&quot;deployment_latitude&quot;</span><span class="p">:</span> <span class="n">yaml_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;deployment_latitude&quot;</span><span class="p">,</span> <span class="s2">&quot;00 00.000 N&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;deployment_longitude&quot;</span><span class="p">:</span> <span class="n">yaml_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="s2">&quot;deployment_longitude&quot;</span><span class="p">,</span> <span class="s2">&quot;000 00.000 W&quot;</span>
+            <span class="p">),</span>
+            <span class="s2">&quot;deployment_time&quot;</span><span class="p">:</span> <span class="n">yaml_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;deployment_time&quot;</span><span class="p">,</span> <span class="s2">&quot;YYYY-mm-ddTHH:MM:ss&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;seabed_latitude&quot;</span><span class="p">:</span> <span class="n">yaml_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;seabed_latitude&quot;</span><span class="p">,</span> <span class="s2">&quot;00 00.000 N&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;seabed_longitude&quot;</span><span class="p">:</span> <span class="n">yaml_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;seabed_longitude&quot;</span><span class="p">,</span> <span class="s2">&quot;000 00.000 W&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;recovery_time&quot;</span><span class="p">:</span> <span class="n">yaml_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;recovery_time&quot;</span><span class="p">,</span> <span class="s2">&quot;YYYY-mm-ddTHH:MM:ss&quot;</span><span class="p">),</span>
+        <span class="p">}</span>
+
+        <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">global_attrs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">dataset</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="k">return</span> <span class="n">dataset</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_add_instrument_metadata</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">instrument_config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">yaml_data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add instrument-specific metadata to dataset.&quot;&quot;&quot;</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;serial_number&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">instrument_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;serial&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;InstrDepth&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">instrument_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;depth&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;instrument&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">instrument_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;instrument&quot;</span><span class="p">,</span> <span class="s2">&quot;Unknown&quot;</span><span class="p">)</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;clock_offset&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">instrument_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;clock_offset&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;clock_offset&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;units&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;s&quot;</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;start_time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">instrument_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s2">&quot;start_time&quot;</span><span class="p">,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;deployment_time&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;end_time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">instrument_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s2">&quot;end_time&quot;</span><span class="p">,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;recovery_time&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">dataset</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_find_file_tag</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">tags</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;_000&quot;</span><span class="p">,</span> <span class="s2">&quot;_001&quot;</span><span class="p">,</span> <span class="s2">&quot;_002&quot;</span><span class="p">)</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Find known tag in filename.&quot;&quot;&quot;</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">tags</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">filename</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">tag</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_generate_output_filename</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">mooring_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">instrument_config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">output_dir</span><span class="p">:</span> <span class="n">Path</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate output filename for processed data.&quot;&quot;&quot;</span>
+        <span class="n">file_type</span> <span class="o">=</span> <span class="n">instrument_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;file_type&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">instrument_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;filename&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">serial</span> <span class="o">=</span> <span class="n">instrument_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;serial&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># Handle special tag for ADCP matlab files</span>
+        <span class="n">tag</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">file_type</span> <span class="o">==</span> <span class="s2">&quot;adcp-matlab&quot;</span><span class="p">:</span>
+            <span class="n">tag</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_find_file_tag</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+        <span class="n">output_filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">mooring_name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">serial</span><span class="si">}{</span><span class="n">tag</span><span class="si">}</span><span class="s2">_raw.nc&quot;</span>
+        <span class="k">return</span> <span class="n">output_dir</span> <span class="o">/</span> <span class="n">output_filename</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_netcdf_writer_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get standard parameters for NetCDF writer.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;optimize&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">&quot;drop_derived&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s2">&quot;uint8_vars&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">&quot;correlation_magnitude&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;echo_intensity&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;status&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;percent_good&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;bt_correlation&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;bt_amplitude&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;bt_percent_good&quot;</span><span class="p">,</span>
+            <span class="p">],</span>
+            <span class="s2">&quot;float32_vars&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s2">&quot;eastward_velocity&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;northward_velocity&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;upward_velocity&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;temperature&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;salinity&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;pressure&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;pressure_std&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;depth&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;bt_velocity&quot;</span><span class="p">,</span>
+            <span class="p">],</span>
+            <span class="s2">&quot;chunk_time&quot;</span><span class="p">:</span> <span class="mi">3600</span><span class="p">,</span>
+            <span class="s2">&quot;complevel&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+            <span class="s2">&quot;quantize&quot;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_process_instrument</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">instrument_config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="n">yaml_data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="n">input_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+        <span class="n">output_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+        <span class="n">mooring_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Process a single instrument&#39;s data.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="s2">&quot;filename&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">instrument_config</span><span class="p">:</span>
+            <span class="n">instrument_name</span> <span class="o">=</span> <span class="n">instrument_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;instrument&quot;</span><span class="p">,</span> <span class="s2">&quot;unknown&quot;</span><span class="p">)</span>
+            <span class="n">serial</span> <span class="o">=</span> <span class="n">instrument_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;serial&quot;</span><span class="p">,</span> <span class="s2">&quot;unknown&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log_print</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;FILENAME MISSING: Skipping </span><span class="si">{</span><span class="n">instrument_name</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">serial</span><span class="si">}</span><span class="s2">. &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;YAML is missing &#39;filename&#39;.&quot;</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="c1"># Set up file paths</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">instrument_config</span><span class="p">[</span><span class="s2">&quot;filename&quot;</span><span class="p">]</span>
+        <span class="n">file_type</span> <span class="o">=</span> <span class="n">instrument_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;file_type&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">instrument_name</span> <span class="o">=</span> <span class="n">instrument_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;instrument&quot;</span><span class="p">,</span> <span class="s2">&quot;unknown&quot;</span><span class="p">)</span>
+
+        <span class="n">input_file</span> <span class="o">=</span> <span class="n">input_dir</span> <span class="o">/</span> <span class="n">instrument_name</span> <span class="o">/</span> <span class="n">filename</span>
+
+        <span class="c1"># Create output directory</span>
+        <span class="n">output_inst_dir</span> <span class="o">=</span> <span class="n">output_path</span> <span class="o">/</span> <span class="n">instrument_name</span>
+        <span class="n">output_inst_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">output_inst_dir</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log_print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Created directory: </span><span class="si">{</span><span class="n">output_inst_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Generate output filename</span>
+        <span class="n">output_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_output_filename</span><span class="p">(</span>
+            <span class="n">mooring_name</span><span class="p">,</span> <span class="n">instrument_config</span><span class="p">,</span> <span class="n">output_inst_dir</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Skip if output file already exists</span>
+        <span class="k">if</span> <span class="n">output_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="n">relative_path</span> <span class="o">=</span> <span class="n">output_file</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log_print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;OUTFILE EXISTS: Skipping </span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="c1"># Process the file</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_read_and_write_file</span><span class="p">(</span>
+                <span class="n">input_file</span><span class="p">,</span>
+                <span class="n">output_file</span><span class="p">,</span>
+                <span class="n">file_type</span><span class="p">,</span>
+                <span class="n">instrument_config</span><span class="p">,</span>
+                <span class="n">yaml_data</span><span class="p">,</span>
+                <span class="n">input_dir</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">relative_input</span> <span class="o">=</span> <span class="n">input_file</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log_print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ERROR: Failed to process </span><span class="si">{</span><span class="n">relative_input</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_read_and_write_file</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">input_file</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+        <span class="n">output_file</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+        <span class="n">file_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">instrument_config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="n">yaml_data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="n">input_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Read data file and write to NetCDF.&quot;&quot;&quot;</span>
+        <span class="c1"># Get header file for Nortek instruments</span>
+        <span class="n">header_file</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">file_type</span> <span class="o">==</span> <span class="s2">&quot;nortek-aqd&quot;</span> <span class="ow">and</span> <span class="s2">&quot;header&quot;</span> <span class="ow">in</span> <span class="n">instrument_config</span><span class="p">:</span>
+            <span class="n">instrument_name</span> <span class="o">=</span> <span class="n">instrument_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;instrument&quot;</span><span class="p">,</span> <span class="s2">&quot;unknown&quot;</span><span class="p">)</span>
+            <span class="n">header_file</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">input_dir</span> <span class="o">/</span> <span class="n">instrument_name</span> <span class="o">/</span> <span class="n">instrument_config</span><span class="p">[</span><span class="s2">&quot;header&quot;</span><span class="p">])</span>
+
+        <span class="c1"># Create reader and read data</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">reader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_reader_for_file_type</span><span class="p">(</span>
+                <span class="n">file_type</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">input_file</span><span class="p">),</span> <span class="n">header_file</span>
+            <span class="p">)</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">relative_path</span> <span class="o">=</span> <span class="n">input_file</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log_print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;EXCEPT: Error reading file </span><span class="si">{</span><span class="n">relative_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="c1"># Log processing</span>
+        <span class="n">relative_input</span> <span class="o">=</span> <span class="n">input_file</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span><span class="p">)</span>
+        <span class="n">relative_output</span> <span class="o">=</span> <span class="n">output_file</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span><span class="p">)</span>
+        <span class="n">instrument_name</span> <span class="o">=</span> <span class="n">instrument_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;instrument&quot;</span><span class="p">,</span> <span class="s2">&quot;unknown&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log_print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;--&gt;   Processing </span><span class="si">{</span><span class="n">instrument_name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">relative_input</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log_print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Creating output file: </span><span class="si">{</span><span class="n">relative_output</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Clean dataset</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clean_dataset_variables</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">file_type</span><span class="p">)</span>
+
+        <span class="c1"># Add metadata</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_global_attributes</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">yaml_data</span><span class="p">)</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_instrument_metadata</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">instrument_config</span><span class="p">,</span> <span class="n">yaml_data</span><span class="p">)</span>
+
+        <span class="c1"># Write to NetCDF</span>
+        <span class="n">writer</span> <span class="o">=</span> <span class="n">NetCdfWriter</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+        <span class="n">writer_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_netcdf_writer_params</span><span class="p">()</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">output_file</span><span class="p">),</span> <span class="o">**</span><span class="n">writer_params</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="kc">True</span>
+
+<div class="viewcode-block" id="MooringProcessor.process_mooring">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.stage1.MooringProcessor.process_mooring">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">process_mooring</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">mooring_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">output_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Process a single mooring&#39;s data.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            mooring_name: Name of the mooring to process</span>
+<span class="sd">            output_path: Optional custom output path. If None, uses default structure.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: True if processing completed successfully, False otherwise</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Set up paths</span>
+        <span class="k">if</span> <span class="n">output_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">output_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span> <span class="o">/</span> <span class="s2">&quot;moor&quot;</span> <span class="o">/</span> <span class="s2">&quot;proc&quot;</span> <span class="o">/</span> <span class="n">mooring_name</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">output_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span> <span class="o">/</span> <span class="n">mooring_name</span>
+
+        <span class="n">output_path</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># Set up logging</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_setup_logging</span><span class="p">(</span><span class="n">mooring_name</span><span class="p">,</span> <span class="n">output_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log_print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Processing mooring: </span><span class="si">{</span><span class="n">mooring_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Load configuration</span>
+        <span class="n">config_file</span> <span class="o">=</span> <span class="n">output_path</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">mooring_name</span><span class="si">}</span><span class="s2">.mooring.yaml&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">config_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log_print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ERROR: Configuration file not found: </span><span class="si">{</span><span class="n">config_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">yaml_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_mooring_config</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log_print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ERROR: Failed to load configuration: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="c1"># Set up input directory</span>
+        <span class="n">input_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span> <span class="o">/</span> <span class="n">yaml_data</span><span class="p">[</span><span class="s2">&quot;directory&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">input_dir</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log_print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ERROR: Input directory not found: </span><span class="si">{</span><span class="n">input_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="c1"># Process each instrument</span>
+        <span class="n">success_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">total_count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">yaml_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;instruments&quot;</span><span class="p">,</span> <span class="p">[]))</span>
+
+        <span class="k">for</span> <span class="n">instrument_config</span> <span class="ow">in</span> <span class="n">yaml_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;instruments&quot;</span><span class="p">,</span> <span class="p">[]):</span>
+            <span class="n">success</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_instrument</span><span class="p">(</span>
+                <span class="n">instrument_config</span><span class="p">,</span> <span class="n">yaml_data</span><span class="p">,</span> <span class="n">input_dir</span><span class="p">,</span> <span class="n">output_path</span><span class="p">,</span> <span class="n">mooring_name</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">success</span><span class="p">:</span>
+                <span class="n">success_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log_print</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Completed processing: </span><span class="si">{</span><span class="n">success_count</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">total_count</span><span class="si">}</span><span class="s2"> instruments successful&quot;</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">success_count</span> <span class="o">&gt;</span> <span class="mi">0</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="stage1_mooring">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.stage1.stage1_mooring">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">stage1_mooring</span><span class="p">(</span>
+    <span class="n">mooring_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">basedir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">output_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Process a single mooring&#39;s data (backwards compatibility function).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        mooring_name: Name of the mooring to process</span>
+<span class="sd">        basedir: Base directory containing the data</span>
+<span class="sd">        output_path: Optional output path override</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        bool: True if processing completed successfully</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">processor</span> <span class="o">=</span> <span class="n">MooringProcessor</span><span class="p">(</span><span class="n">basedir</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">processor</span><span class="o">.</span><span class="n">process_mooring</span><span class="p">(</span><span class="n">mooring_name</span><span class="p">,</span> <span class="n">output_path</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="process_multiple_moorings">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.stage1.process_multiple_moorings">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">process_multiple_moorings</span><span class="p">(</span><span class="n">mooring_list</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">basedir</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Process multiple moorings.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        mooring_list: List of mooring names to process</span>
+<span class="sd">        basedir: Base directory containing the data</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict mapping mooring names to success status</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">processor</span> <span class="o">=</span> <span class="n">MooringProcessor</span><span class="p">(</span><span class="n">basedir</span><span class="p">)</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">mooring_name</span> <span class="ow">in</span> <span class="n">mooring_list</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="s1">&#39;=&#39;</span><span class="o">*</span><span class="mi">50</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Processing mooring </span><span class="si">{</span><span class="n">mooring_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;=&#39;</span><span class="o">*</span><span class="mi">50</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">results</span><span class="p">[</span><span class="n">mooring_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">processor</span><span class="o">.</span><span class="n">process_mooring</span><span class="p">(</span><span class="n">mooring_name</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">results</span></div>
+
+
+
+<span class="c1"># Example usage</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="c1"># Your mooring list</span>
+    <span class="n">moorlist</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;dsA_1_2018&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;dsB_1_2018&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;dsC_1_2018&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;dsD_1_2018&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;dsE_1_2018&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;dsF_1_2018&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+
+    <span class="n">basedir</span> <span class="o">=</span> <span class="s2">&quot;/Users/eddifying/Dropbox/data/ifmro_mixsed/ds_data_eleanor/&quot;</span>
+
+    <span class="c1"># Process all moorings</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">process_multiple_moorings</span><span class="p">(</span><span class="n">moorlist</span><span class="p">,</span> <span class="n">basedir</span><span class="p">)</span>
+
+    <span class="c1"># Print summary</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="s1">&#39;=&#39;</span><span class="o">*</span><span class="mi">50</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;PROCESSING SUMMARY&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;=&#39;</span><span class="o">*</span><span class="mi">50</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">mooring</span><span class="p">,</span> <span class="n">success</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;SUCCESS&quot;</span> <span class="k">if</span> <span class="n">success</span> <span class="k">else</span> <span class="s2">&quot;FAILED&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">mooring</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">status</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Eleanor Frajka-Williams, FirstName LastName.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

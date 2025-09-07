@@ -55,10 +55,18 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Standardisation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#overview">1. Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#purpose">2. Purpose</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#input">3. Input</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#output">4. Output</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#notes">5. Notes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#legacy-script-rapid">Legacy Script (RAPID)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#current-implementation-stage-1">3. Current Implementation (Stage 1)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#input-formats-supported">3.1. Input Formats Supported</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#processing-workflow">3.2. Processing Workflow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#configuration-format">3.3. Configuration Format</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#usage-example">3.4. Usage Example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#output-format">4. Output Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#quality-control-and-error-handling">5. Quality Control and Error Handling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#historical-context-rapid-rdb-format">6. Historical Context: RAPID RDB Format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#legacy-processing-scripts">7. Legacy Processing Scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#integration-with-processing-chain">8. Integration with Processing Chain</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="trimming.html">Trim to Deployment</a></li>
@@ -114,32 +122,10 @@
   <section id="standardisation-internally-consistent-format">
 <h1>1. Standardisation (Internally-consistent format)<a class="headerlink" href="#standardisation-internally-consistent-format" title="Link to this heading"></a></h1>
 <p>This document describes the <strong>standardisation</strong> step in the oceanarray processing workflow. It defines how instrument data—regardless of its original format or naming—are converted to a consistent internal structure using <cite>xarray.Dataset</cite>. This enables all subsequent processing steps (e.g. calibration, filtering, transport calculations) to run on semantically uniform data.</p>
-<p>It corresponds to <strong>Stage 1</strong> from RAPID data processing and management, which uses the RDB format.  An example of RDB format is below:</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Mooring              = wb2_16_2020
-SerialNumber         = 5768
-WaterDepth           = 3916
-InstrDepth           = 1700
-Start_Date           = 2021/01/05
-Start_Time           = 20:00
-End_Date             = 2023/02/25
-End_Time             = 17:00
-Latitude             = 26 31.000 N
-Longitude            = 076 44.460 W
-Columns              = YY:MM:DD:HH:T:C:P
-2021   01   05   20.00056   3.9239   33.2233  1726.4
-2021   01   05   21.00056   3.9389   33.2389  1725.4
-2021   01   05   22.00056   3.9389   33.2405  1725.3
-2021   01   05   23.00056   3.9315   33.2331  1725.2
-2021   01   06    0.00056   3.9333   33.2355  1725.2
-2021   01   06    1.00056   3.9297   33.2316  1725.3
-2021   01   06    2.00028   3.9349   33.2377  1725.4
-2021   01   06    3.00028   3.9373   33.2391  1725.6
-2021   01   06    4.00028   3.9423   33.2432  1725.8
-</pre></div>
-</div>
+<p>It corresponds to <strong>Stage 1</strong> from RAPID data processing and management, which uses the RDB format.</p>
 <section id="overview">
 <h2>1. Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
-<p>Standardisation occurs <strong>immediately after raw data are loaded</strong> (Stage 0) and before any scientific transformations. Its goal is to normalize:</p>
+<p>Standardisation occurs <strong>immediately after raw data are loaded</strong> and before any scientific transformations. Its goal is to normalize:</p>
 <ul class="simple">
 <li><p>Variable names</p></li>
 <li><p>Dimensions</p></li>
@@ -157,23 +143,160 @@ Columns              = YY:MM:DD:HH:T:C:P
 <li><p>Provide a clean, consistent internal structure with raw data</p></li>
 </ul>
 </section>
-<section id="input">
-<h2>3. Input<a class="headerlink" href="#input" title="Link to this heading"></a></h2>
+<section id="current-implementation-stage-1">
+<h2>3. Current Implementation (Stage 1)<a class="headerlink" href="#current-implementation-stage-1" title="Link to this heading"></a></h2>
+<p>The standardisation process is implemented in the <a class="reference internal" href="../oceanarray.html#module-oceanarray.stage1" title="oceanarray.stage1"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray.stage1</span></code></a> module, which provides automated conversion from native instrument formats to standardised NetCDF files.</p>
+<section id="input-formats-supported">
+<h3>3.1. Input Formats Supported<a class="headerlink" href="#input-formats-supported" title="Link to this heading"></a></h3>
+<p>The <a class="reference internal" href="../oceanarray.html#oceanarray.stage1.MooringProcessor" title="oceanarray.stage1.MooringProcessor"><code class="xref py py-class docutils literal notranslate"><span class="pre">oceanarray.stage1.MooringProcessor</span></code></a> class supports multiple instrument formats:</p>
 <ul class="simple">
-<li><p>Parsed raw time series and header metadata (from Stage 0)</p></li>
-<li><p>No assumptions about units or QC applied</p></li>
+<li><p><strong>Sea-Bird CNV files</strong> (<cite>sbe-cnv</cite>): Standard SBE 37 MicroCAT output</p></li>
+<li><p><strong>Sea-Bird ASCII files</strong> (<cite>sbe-asc</cite>): Alternative SBE ASCII format</p></li>
+<li><p><strong>Nortek AquaDopp</strong> (<cite>nortek-aqd</cite>): Current meter data with header files</p></li>
+<li><p><strong>RBR RSK files</strong> (<cite>rbr-rsk</cite>): RBR logger binary format</p></li>
+<li><p><strong>RBR ASCII files</strong> (<cite>rbr-dat</cite>): RBR text output</p></li>
+</ul>
+<p>Each format is handled by specialized readers from the <cite>ctd_tools</cite> library that parse instrument-specific headers and data structures.</p>
+</section>
+<section id="processing-workflow">
+<h3>3.2. Processing Workflow<a class="headerlink" href="#processing-workflow" title="Link to this heading"></a></h3>
+<p>The standardisation process follows these steps:</p>
+<ol class="arabic simple">
+<li><p><strong>Configuration Loading</strong>: Read YAML configuration files containing:</p>
+<ul class="simple">
+<li><p>Mooring metadata (location, water depth, deployment times)</p></li>
+<li><p>Instrument specifications (serial numbers, depths, file locations)</p></li>
+<li><p>Clock offsets and timing corrections (not applied in stage 1)</p></li>
+</ul>
+</li>
+<li><p><strong>Data Reading</strong>: Use appropriate readers to parse native instrument files:</p>
+<ul class="simple">
+<li><p>Extract time series data</p></li>
+<li><p>Parse instrument metadata from headers</p></li>
+<li><p>Handle instrument-specific data structures</p></li>
+</ul>
+</li>
+<li><p><strong>Variable Standardisation</strong>: Convert to consistent naming:</p>
+<ul class="simple">
+<li><p>Remove derived variables (e.g., potential temperature, density)</p></li>
+<li><p>Standardise coordinate names</p></li>
+<li><p>Apply consistent units and metadata</p></li>
+</ul>
+</li>
+<li><p><strong>Metadata Integration</strong>: Add standardised attributes:</p>
+<ul class="simple">
+<li><p>Global mooring information</p></li>
+<li><p>Instrument-specific metadata</p></li>
+<li><p>Deployment and recovery information</p></li>
+<li><p>Quality control flags and processing history</p></li>
+</ul>
+</li>
+<li><p><strong>NetCDF Output</strong>: Write to compressed, chunked NetCDF files with:</p>
+<ul class="simple">
+<li><p>Optimised data types (float32, uint8 for flags)</p></li>
+<li><p>Time-based chunking for efficient access</p></li>
+<li><p>CF-compliant metadata structure</p></li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="configuration-format">
+<h3>3.3. Configuration Format<a class="headerlink" href="#configuration-format" title="Link to this heading"></a></h3>
+<p>Mooring configurations are defined in YAML files with the following structure:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mooring_name</span>
+<span class="nt">waterdepth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1000</span>
+<span class="nt">longitude</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-30.0</span>
+<span class="nt">latitude</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">60.0</span>
+<span class="nt">deployment_time</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;2018-05-01T12:00:00&#39;</span>
+<span class="nt">recovery_time</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;2019-05-01T12:00:00&#39;</span>
+<span class="nt">directory</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;moor/raw/deployment_name/&#39;</span>
+<span class="nt">instruments</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">instrument</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">microcat</span>
+<span class="w">    </span><span class="nt">serial</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">12345</span>
+<span class="w">    </span><span class="nt">depth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span>
+<span class="w">    </span><span class="nt">filename</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;data_file.cnv&#39;</span>
+<span class="w">    </span><span class="nt">file_type</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;sbe-cnv&#39;</span>
+<span class="w">    </span><span class="nt">clock_offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+</pre></div>
+</div>
+<p>Here the <code class="docutils literal notranslate"><span class="pre">name</span></code> is the unique mooring identifier (for example, for mooring “DS E” deployed in 2018 for the first time, we have “dsE_1_2018”.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">waterdepth</span></code> is the nominal water depth at the mooring site in metres.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">longitude</span></code> and <code class="docutils literal notranslate"><span class="pre">latitude</span></code> are the mooring coordinates in decimal degrees.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">deployment_time</span></code> and <code class="docutils literal notranslate"><span class="pre">recovery_time</span></code> are the UTC timestamps for the mooring deployment and recovery, with format <cite>YYYY-MM-DDTHH:MM:SS</cite>.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">directory</span></code> is the path to the raw data files for this deployment.  According to our convention, this is in a directory named <cite>moor/raw/deployment_name/</cite>, where <cite>deployment_name</cite> is a unique identifier for the cruise on which the mooring was recovered.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">instruments</span></code> list contains one entry per instrument on the mooring, with:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">instrument</span></code>: The type of instrument (e.g., <code class="docutils literal notranslate"><span class="pre">microcat</span></code>, <code class="docutils literal notranslate"><span class="pre">aquadopp</span></code>, <code class="docutils literal notranslate"><span class="pre">rbr</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">serial</span></code>: The instrument’s serial number</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">depth</span></code>: The instrument’s nominal depth in metres</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">filename</span></code>: The name of the raw data file</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">file_type</span></code>: The type of the raw data file (e.g., <code class="docutils literal notranslate"><span class="pre">sbe-cnv</span></code>, <code class="docutils literal notranslate"><span class="pre">rbr-rsk</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">clock_offset</span></code> (optional, defaults to zero): The clock offset for the instrument in seconds.</p></li>
 </ul>
 </section>
-<section id="output">
-<h2>4. Output<a class="headerlink" href="#output" title="Link to this heading"></a></h2>
+<section id="usage-example">
+<h3>3.4. Usage Example<a class="headerlink" href="#usage-example" title="Link to this heading"></a></h3>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.stage1</span><span class="w"> </span><span class="kn">import</span> <span class="n">MooringProcessor</span><span class="p">,</span> <span class="n">process_multiple_moorings</span>
+
+<span class="c1"># Process a single mooring</span>
+<span class="n">processor</span> <span class="o">=</span> <span class="n">MooringProcessor</span><span class="p">(</span><span class="s1">&#39;/path/to/data/&#39;</span><span class="p">)</span>
+<span class="n">success</span> <span class="o">=</span> <span class="n">processor</span><span class="o">.</span><span class="n">process_mooring</span><span class="p">(</span><span class="s1">&#39;mooring_name&#39;</span><span class="p">)</span>
+
+<span class="c1"># Process multiple moorings</span>
+<span class="n">moorings</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;mooring1&#39;</span><span class="p">,</span> <span class="s1">&#39;mooring2&#39;</span><span class="p">,</span> <span class="s1">&#39;mooring3&#39;</span><span class="p">]</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">process_multiple_moorings</span><span class="p">(</span><span class="n">moorings</span><span class="p">,</span> <span class="s1">&#39;/path/to/data/&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="output-format">
+<h2>4. Output Format<a class="headerlink" href="#output-format" title="Link to this heading"></a></h2>
+<p>The standardised output is a <strong>raw-equivalent</strong> <cite>xarray.Dataset</cite> with:</p>
 <ul class="simple">
-<li><p>A <strong>raw-equivalent</strong> <cite>xarray.Dataset</cite> with:
-- Dimensions: <cite>TIME</cite>
-- Variable names standardized (e.g., <cite>TEMPERATURE</cite>, <cite>CONDUCTIVITY</cite>, <cite>PRESSURE</cite>)
-- Coordinates: <cite>TIME</cite>, optionally <cite>LATITUDE</cite>, <cite>LONGITUDE</cite>, <cite>DEPTH</cite>
-- Minimal metadata: instrument ID, mooring name, nominal depth, etc.</p></li>
+<li><p><strong>Dimensions</strong>: <cite>time</cite> (primary coordinate)</p></li>
+<li><p><strong>Variables</strong>: Standardised names (e.g., <cite>temperature</cite>, <cite>salinity</cite>, <cite>pressure</cite>)</p></li>
+<li><p><strong>Coordinates</strong>: <cite>time</cite>, plus instrument metadata variables</p></li>
+<li><p><strong>Attributes</strong>: Comprehensive metadata including instrument, mooring, and deployment information</p></li>
 </ul>
-<p>Example (RDB-style input parsed to <cite>xarray.Dataset</cite>):</p>
+<p>Example output structure:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">xarray</span><span class="o">.</span><span class="n">Dataset</span><span class="o">&gt;</span>
+<span class="n">Dimensions</span><span class="p">:</span>        <span class="p">(</span><span class="n">time</span><span class="p">:</span> <span class="mi">124619</span><span class="p">)</span>
+<span class="n">Coordinates</span><span class="p">:</span>
+  <span class="o">*</span> <span class="n">time</span>           <span class="p">(</span><span class="n">time</span><span class="p">)</span> <span class="n">datetime64</span><span class="p">[</span><span class="n">ns</span><span class="p">]</span> <span class="mi">2018</span><span class="o">-</span><span class="mi">08</span><span class="o">-</span><span class="mi">12</span><span class="n">T08</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">01</span> <span class="o">...</span> <span class="mi">2018</span><span class="o">-</span><span class="mi">08</span><span class="o">-</span><span class="mi">26</span><span class="n">T20</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mi">24</span>
+<span class="n">Data</span> <span class="n">variables</span><span class="p">:</span>
+    <span class="n">temperature</span>    <span class="p">(</span><span class="n">time</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+    <span class="n">salinity</span>       <span class="p">(</span><span class="n">time</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+    <span class="n">pressure</span>       <span class="p">(</span><span class="n">time</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
+    <span class="n">serial_number</span>  <span class="n">int64</span> <span class="mi">7518</span>
+    <span class="n">InstrDepth</span>     <span class="n">int64</span> <span class="mi">100</span>
+    <span class="n">instrument</span>     <span class="o">&lt;</span><span class="n">U8</span> <span class="s1">&#39;microcat&#39;</span>
+    <span class="n">clock_offset</span>   <span class="n">int64</span> <span class="mi">0</span>
+    <span class="n">start_time</span>     <span class="o">&lt;</span><span class="n">U19</span> <span class="s1">&#39;2018-08-12T08:00:00&#39;</span>
+    <span class="n">end_time</span>       <span class="o">&lt;</span><span class="n">U19</span> <span class="s1">&#39;2018-08-26T20:47:24&#39;</span>
+<span class="n">Attributes</span><span class="p">:</span>
+    <span class="n">mooring_name</span><span class="p">:</span>           <span class="n">test_mooring</span>
+    <span class="n">waterdepth</span><span class="p">:</span>             <span class="mi">1000</span>
+    <span class="n">longitude</span><span class="p">:</span>              <span class="o">-</span><span class="mf">30.0</span>
+    <span class="n">latitude</span><span class="p">:</span>               <span class="mf">60.0</span>
+    <span class="n">deployment_time</span><span class="p">:</span>        <span class="mi">2018</span><span class="o">-</span><span class="mi">08</span><span class="o">-</span><span class="mi">12</span><span class="n">T08</span><span class="p">:</span><span class="mi">00</span><span class="p">:</span><span class="mi">00</span>
+    <span class="n">recovery_time</span><span class="p">:</span>          <span class="mi">2018</span><span class="o">-</span><span class="mi">08</span><span class="o">-</span><span class="mi">26</span><span class="n">T20</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mi">24</span>
+</pre></div>
+</div>
+</section>
+<section id="quality-control-and-error-handling">
+<h2>5. Quality Control and Error Handling<a class="headerlink" href="#quality-control-and-error-handling" title="Link to this heading"></a></h2>
+<p>The standardisation process includes robust error handling:</p>
+<ul class="simple">
+<li><p><strong>Missing Files</strong>: Graceful handling with detailed logging</p></li>
+<li><p><strong>Format Errors</strong>: Reader-specific error catching and reporting</p></li>
+<li><p><strong>Metadata Validation</strong>: Checks for required configuration fields</p></li>
+<li><p><strong>Output Verification</strong>: Ensures NetCDF files are created successfully</p></li>
+</ul>
+<p>All processing activities are logged to timestamped log files for debugging and audit trails.</p>
+</section>
+<section id="historical-context-rapid-rdb-format">
+<h2>6. Historical Context: RAPID RDB Format<a class="headerlink" href="#historical-context-rapid-rdb-format" title="Link to this heading"></a></h2>
+<p>This standardisation step evolved from the RAPID programme’s RDB format, which provided a similar function for historical mooring data. An example of the original RDB format structure:</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Mooring              = wb2_16_2020
 SerialNumber         = 5768
 WaterDepth           = 3916
@@ -185,46 +308,26 @@ End_Time             = 17:00
 Latitude             = 26 31.000 N
 Longitude            = 076 44.460 W
 Columns              = YY:MM:DD:HH:T:C:P
+2021   01   05   20.00056   3.9239   33.2233  1726.4
+2021   01   05   21.00056   3.9389   33.2389  1725.4
+2021   01   05   22.00056   3.9389   33.2405  1725.3
 </pre></div>
 </div>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">xarray</span><span class="o">.</span><span class="n">Dataset</span><span class="o">&gt;</span>
-<span class="n">Dimensions</span><span class="p">:</span>      <span class="p">(</span><span class="n">TIME</span><span class="p">:</span> <span class="mi">9</span><span class="p">)</span>
-<span class="n">Coordinates</span><span class="p">:</span>
-  <span class="o">*</span> <span class="n">TIME</span>         <span class="p">(</span><span class="n">TIME</span><span class="p">)</span> <span class="n">datetime64</span><span class="p">[</span><span class="n">ns</span><span class="p">]</span> <span class="mi">2021</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">05</span><span class="n">T20</span><span class="p">:</span><span class="mi">00</span> <span class="o">...</span> <span class="mi">2021</span><span class="o">-</span><span class="mi">01</span><span class="o">-</span><span class="mi">06</span><span class="n">T04</span><span class="p">:</span><span class="mi">00</span>
-    <span class="n">LATITUDE</span>     <span class="n">float64</span> <span class="mf">26.52</span>
-    <span class="n">LONGITUDE</span>    <span class="n">float64</span> <span class="o">-</span><span class="mf">76.741</span>
-    <span class="n">DEPTH</span>        <span class="n">float64</span> <span class="mf">1700.0</span>
-<span class="n">Data</span> <span class="n">variables</span><span class="p">:</span>
-    <span class="n">TEMPERATURE</span>  <span class="p">(</span><span class="n">TIME</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
-    <span class="n">CONDUCTIVITY</span> <span class="p">(</span><span class="n">TIME</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
-    <span class="n">PRESSURE</span>     <span class="p">(</span><span class="n">TIME</span><span class="p">)</span> <span class="n">float32</span> <span class="o">...</span>
-<span class="n">Attributes</span><span class="p">:</span>
-    <span class="n">mooring</span><span class="p">:</span> <span class="n">wb2_16_2020</span>
-    <span class="n">serial_number</span><span class="p">:</span> <span class="mi">5768</span>
-    <span class="n">water_depth</span><span class="p">:</span> <span class="mi">3916</span>
-    <span class="n">source_file</span><span class="p">:</span> <span class="n">wb2_16_2020_5768</span><span class="o">.</span><span class="n">raw</span>
-</pre></div>
-</div>
-<p>The <cite>Start_Date</cite> and <cite>Start_Time</cite> are trimmed during processing using the <cite>info.dat</cite> file to represent the first (normally rounded hour) after which data are considered valid (i.e., the mooring anchor is on the seabed).  Similarly, <cite>End_Date</cite> and <cite>End_Time</cite> are used to represent the last hour of valid data before the mooring is released from the seabed (i.e., the mooring starts rising in the water column).  These will be used to trim</p>
-<p>Optional variables (if available) may include <cite>DEPLOYMENT_TIME</cite>, <cite>DEPLOYMENT_LATITUDE</cite> and <cite>DEPLOYMENT_LONGITUDE</cite> for where the ship was when the anchor was deployed.  Similarly for <cite>RECOVERY_TIME</cite>, <cite>RECOVERY_LATITUDE</cite> and <cite>RECOVERY_LONGITUDE</cite> which could include where the ship was when the gear was all on deck.</p>
-</section>
-<section id="notes">
-<h2>5. Notes<a class="headerlink" href="#notes" title="Link to this heading"></a></h2>
+<p>The modern NetCDF-based approach provides several advantages over the historical RDB format:</p>
 <ul class="simple">
-<li><p>No unit conversions, filters, or calibration applied</p></li>
-<li><p>Time parsed as UTC <cite>datetime64</cite></p></li>
-<li><p>Variable names and minimal metadata allow standardised tools to begin working</p></li>
-<li><p>Equivalent in philosophy to the RAPID “RDB” format</p></li>
+<li><p><strong>Self-describing metadata</strong>: CF-compliant attributes and coordinate information</p></li>
+<li><p><strong>Efficient storage</strong>: Compression and chunking for large datasets</p></li>
+<li><p><strong>Software compatibility</strong>: Wide support across analysis tools and languages</p></li>
+<li><p><strong>Extensibility</strong>: Easy addition of new variables and metadata</p></li>
 </ul>
-<p>See also: <a class="reference internal" href="acquisition.html"><span class="doc">Data Acquisition (Download in proprietary formats)</span></a>, <a class="reference internal" href="conversion.html"><span class="doc">4. Conversion to OS format</span></a></p>
 </section>
-<section id="legacy-script-rapid">
-<h2>Legacy Script (RAPID)<a class="headerlink" href="#legacy-script-rapid" title="Link to this heading"></a></h2>
-<p>The RAPID script shows how the Seabird format data were changed into the RDB format.</p>
+<section id="legacy-processing-scripts">
+<h2>7. Legacy Processing Scripts<a class="headerlink" href="#legacy-processing-scripts" title="Link to this heading"></a></h2>
+<p>The original RAPID processing chain used MATLAB scripts to convert instrument data to RDB format. The key script was:</p>
 <ul class="simple">
 <li><p><a class="reference external" href="../_static/code/microcat2rodb_3.m">microcat2rodb_3.m</a></p></li>
 </ul>
-<p>This script was part of the original RAPID processing chain used to convert MicroCAT <cite>.asc</cite> or <cite>.cnv</cite> output to <cite>.raw</cite> files in RODB format. It includes parsing logic, metadata extraction from <cite>info.dat</cite>, time adjustment, and basic diagnostic plotting.</p>
+<p>This script performed similar functions to the current Python implementation:</p>
 <div class="literal-block-wrapper docutils container" id="id1">
 <div class="code-block-caption"><span class="caption-text">Excerpt from <cite>microcat2rodb_3.m</cite></span><a class="headerlink" href="#id1" title="Link to this code"></a></div>
 <div class="highlight-matlab notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="c">% function microcat2rodb_3(&#39;infile&#39;,&#39;outfile&#39;,&#39;infofile&#39;,fidlog,[graphics],[toffset])</span>
@@ -269,6 +372,24 @@ Columns              = YY:MM:DD:HH:T:C:P
 </pre></div>
 </div>
 </div>
+<p>The modern Python implementation in <a class="reference internal" href="../oceanarray.html#module-oceanarray.stage1" title="oceanarray.stage1"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray.stage1</span></code></a> provides equivalent functionality with improved:</p>
+<ul class="simple">
+<li><p><strong>Error handling</strong>: Comprehensive logging and graceful failure modes</p></li>
+<li><p><strong>Format support</strong>: Multiple instrument types through pluggable readers</p></li>
+<li><p><strong>Metadata management</strong>: YAML-based configuration with validation</p></li>
+<li><p><strong>Output formats</strong>: NetCDF with CF conventions for interoperability</p></li>
+</ul>
+</section>
+<section id="integration-with-processing-chain">
+<h2>8. Integration with Processing Chain<a class="headerlink" href="#integration-with-processing-chain" title="Link to this heading"></a></h2>
+<p>Standardised files from Stage 1 serve as input to subsequent processing steps:</p>
+<ul class="simple">
+<li><p><strong>Stage 2</strong>: <a class="reference internal" href="trimming.html"><span class="doc">2. Trimming to Deployed period</span></a> - Remove pre/post deployment data</p></li>
+<li><p><strong>Stage 3</strong>: <a class="reference internal" href="calibration.html"><span class="doc">3. Calibration (Instrument-level Corrections)</span></a> - Apply post-cruise calibration offsets</p></li>
+<li><p><strong>Later stages</strong>: <span class="xref std std-doc">filtering</span>, <span class="xref std std-doc">gridding</span>, <span class="xref std std-doc">stitching</span> for array products</p></li>
+</ul>
+<p>The consistent structure created during standardisation ensures that all downstream processing tools can operate on any instrument dataset without format-specific modifications.</p>
+<p>See also: <a class="reference internal" href="../oceanarray.html"><span class="doc">oceanarray API</span></a>, <a class="reference internal" href="trimming.html"><span class="doc">2. Trimming to Deployed period</span></a>, <a class="reference internal" href="calibration.html"><span class="doc">3. Calibration (Instrument-level Corrections)</span></a></p>
 </section>
 </section>
 
