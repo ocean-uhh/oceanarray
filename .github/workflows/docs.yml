@@ -24,11 +24,12 @@ jobs:
         uses: mamba-org/setup-micromamba@v2
         with:
           environment-file: environment.yml
+          init-shell: bash
           condarc: |
             channels:
               - conda-forge
             channel_priority: strict
-          init-shell: bash
+          cache-environment: true
 
       - name: Install package (editable)
         shell: bash -l {0}
@@ -36,7 +37,7 @@ jobs:
           micromamba run -n TEST python -m pip install --upgrade pip
           micromamba run -n TEST python -m pip install -e . --no-deps --force-reinstall
 
-      - name: Build docs
+      - name: Build documentation
         shell: bash -l {0}
         run: |
           set -e
