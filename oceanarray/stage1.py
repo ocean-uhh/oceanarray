@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 from ctd_tools.readers import (AdcpMatlabReader, NortekAsciiReader,
-                               RbrAsciiReader, RbrMatlabReader,
+                               RbrAsciiReader,
                                RbrRskAutoReader, SbeAsciiReader, SbeCnvReader)
 from ctd_tools.writers import NetCdfWriter
 
