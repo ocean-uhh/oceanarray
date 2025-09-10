@@ -140,9 +140,9 @@ class TestTimeGriddingProcessor:
         processor._setup_logging(mooring_name, output_path)
 
         assert processor.log_file is not None
-        assert processor.log_file.parent == output_path
+        assert processor.log_file.parent == output_path / "processing_logs"
         assert mooring_name in processor.log_file.name
-        assert "time_gridding.mooring.log" in processor.log_file.name
+        assert "time_gridding.log" in processor.log_file.name
 
     def test_ensure_instrument_metadata(self, processor):
         """Test metadata addition to datasets."""
@@ -479,7 +479,7 @@ class TestTimeGriddingIntegration:
         assert result is True
 
         # Check log file mentions missing instrument
-        log_files = list(setup["proc_dir"].glob("*_time_gridding.mooring.log"))
+        log_files = list(setup["proc_dir"].glob("processing_logs/*_time_gridding.log"))
         assert len(log_files) == 1
         log_content = log_files[0].read_text()
         assert "Missing instruments" in log_content
@@ -495,7 +495,7 @@ class TestTimeGriddingIntegration:
         assert result is True
 
         # Check log mentions timing analysis
-        log_files = list(setup["proc_dir"].glob("*_time_gridding.mooring.log"))
+        log_files = list(setup["proc_dir"].glob("processing_logs/*_time_gridding.log"))
         log_content = log_files[0].read_text()
         assert "TIMING ANALYSIS" in log_content
         assert "min intervals" in log_content
@@ -512,7 +512,7 @@ class TestTimeGriddingIntegration:
         assert result is True
 
         # Check the log file contains the expected warning
-        log_files = list(setup["proc_dir"].glob("*_time_gridding.mooring.log"))
+        log_files = list(setup["proc_dir"].glob("processing_logs/*_time_gridding.log"))
         assert len(log_files) == 1
 
         log_content = log_files[0].read_text()

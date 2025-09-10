@@ -85,9 +85,9 @@ class TestMooringProcessor:
         processor._setup_logging(mooring_name, output_path)
 
         assert processor.log_file is not None
-        assert processor.log_file.parent == output_path
+        assert processor.log_file.parent == output_path / "processing_logs"
         assert mooring_name in processor.log_file.name
-        assert "stage1.mooring.log" in processor.log_file.name
+        assert "stage1.log" in processor.log_file.name
 
     def test_log_print(self, processor, temp_dir):
         """Test log printing functionality."""
@@ -259,7 +259,7 @@ class TestRealDataProcessing:
         assert result is False
 
         # Check log file contains error message
-        log_files = list(setup["proc_dir"].glob("*_stage1.mooring.log"))
+        log_files = list(setup["proc_dir"].glob("processing_logs/*_stage1.log"))
         assert len(log_files) == 1
         log_content = log_files[0].read_text()
         assert "Error reading file" in log_content
@@ -278,7 +278,7 @@ class TestRealDataProcessing:
         assert result2 is True
 
         # Check log mentions skipping
-        log_files = list(setup["proc_dir"].glob("*_stage1.mooring.log"))
+        log_files = list(setup["proc_dir"].glob("processing_logs/*_stage1.log"))
         log_content = log_files[-1].read_text()  # Get the latest log
         assert "OUTFILE EXISTS" in log_content
 
