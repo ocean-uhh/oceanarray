@@ -24,7 +24,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="oceanarray API" href="oceanarray.html" />
+    <link rel="next" title="Development Roadmap" href="roadmap.html" />
     <link rel="prev" title="Demo: instrument-level processing (Stage 1 and Stage 2)" href="demo_instrument-output.html" /> 
 </head>
 
@@ -56,6 +56,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="methods/acquisition.html">Data Acquisition</a></li>
 <li class="toctree-l1"><a class="reference internal" href="methods/standardisation.html">Standardisation (Stage 1)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="clock_offset.html">Clock Offset Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="methods/trimming.html">Trim to Deployment (Stage 2)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="methods/auto_qc.html">Automatic QC (Stage 3)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="methods/calibration.html">Apply Calibration (Stage 4)</a></li>
@@ -88,6 +89,7 @@
 <p class="caption" role="heading"><span class="caption-text">Help and reference</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference external" href="http://github.com/eleanorfrajka/oceanarray">GitHub Repo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="roadmap.html">Development Roadmap</a></li>
 <li class="toctree-l1"><a class="reference internal" href="oceanarray.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code></a></li>
 </ul>
 
@@ -463,7 +465,7 @@ Processing result: SUCCESS
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-/home/runner/work/oceanarray/oceanarray/oceanarray/time_gridding.py:858: FutureWarning: The return type of `Dataset.dims` will be changed to return a set of dimension names in future, in order to be more consistent with `DataArray.dims`. To access a mapping from dimension names to lengths, please use `Dataset.sizes`.
+/home/runner/work/oceanarray/oceanarray/oceanarray/time_gridding.py:854: FutureWarning: The return type of `Dataset.dims` will be changed to return a set of dimension names in future, in order to be more consistent with `DataArray.dims`. To access a mapping from dimension names to lengths, please use `Dataset.sizes`.
   self._log_print(f&#34;Combined dataset shape: {dict(ds_to_save.dims)}&#34;)
 </pre></div></div>
 </div>
@@ -624,7 +626,7 @@ Output file exists: ../data/moor/proc/dsE_1_2018/dsE_1_2018_mooring_use.nc
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="demo_instrument-output.html" class="btn btn-neutral float-left" title="Demo: instrument-level processing (Stage 1 and Stage 2)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="oceanarray.html" class="btn btn-neutral float-right" title="oceanarray API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="roadmap.html" class="btn btn-neutral float-right" title="Development Roadmap" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -50,6 +50,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../methods/acquisition.html">Data Acquisition</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../methods/standardisation.html">Standardisation (Stage 1)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../clock_offset.html">Clock Offset Analysis</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../methods/trimming.html">Trim to Deployment (Stage 2)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../methods/auto_qc.html">Automatic QC (Stage 3)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../methods/calibration.html">Apply Calibration (Stage 4)</a></li>
@@ -73,6 +74,7 @@
 <p class="caption" role="heading"><span class="caption-text">Help and reference</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference external" href="http://github.com/eleanorfrajka/oceanarray">GitHub Repo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../roadmap.html">Development Roadmap</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../oceanarray.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code></a></li>
 </ul>
 
@@ -221,7 +223,7 @@
     <span class="c1"># Fallback: look for any variable or coordinate with datetime dtype</span>
     <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">coords</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">datetime64</span><span class="p">):</span>
-            <span class="n">log_warning</span><span class="p">(</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">log_warning</span><span class="p">(</span>
                 <span class="s2">&quot;No standard time coordinate found. Using first datetime coordinate: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
                 <span class="n">name</span><span class="p">,</span>
             <span class="p">)</span>
@@ -229,7 +231,7 @@
 
     <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">variables</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">datetime64</span><span class="p">):</span>
-            <span class="n">log_warning</span><span class="p">(</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">log_warning</span><span class="p">(</span>
                 <span class="s2">&quot;No standard time coordinate found. Using first datetime coordinate: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span>
                 <span class="n">name</span><span class="p">,</span>
             <span class="p">)</span>

@@ -1,0 +1,580 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Development Roadmap &mdash; oceanarray v0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=20758594" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8b92e751"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="oceanarray API" href="oceanarray.html" />
+    <link rel="prev" title="Demo: mooring-level processing (Step 1)" href="demo_mooring-output.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            oceanarray
+              <img src="_static/logo_template.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Overview</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="processing_framework.html">OceanArray processing framework</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Instruments</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="methods/acquisition.html">Data Acquisition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/standardisation.html">Standardisation (Stage 1)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="clock_offset.html">Clock Offset Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/trimming.html">Trim to Deployment (Stage 2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/auto_qc.html">Automatic QC (Stage 3)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/calibration.html">Apply Calibration (Stage 4)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/conversion.html">Convert to OceanSites</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Moorings</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="methods/time_gridding.html">Grid in Time (Step 1)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/vertical_gridding.html">Grid Vertically (Step 2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/concatenation.html">Combine Deployments (Step 3)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Array</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="methods/multisite_merging.html">Multi-site Merging</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="demo_instrument-output.html">Demo: instrument-level processing (Stage 1 and Stage 2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="demo_mooring-output.html">Demo: mooring-level processing (Step 1)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Help and reference</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference external" href="http://github.com/eleanorfrajka/oceanarray">GitHub Repo</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Development Roadmap</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#status-overview">Status Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#priority-1-core-missing-features">Priority 1: Core Missing Features</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#stage-3-comprehensive-auto-qc-framework">1. Stage 3: Comprehensive Auto QC Framework</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stage-4-oceansites-ac1-format-conversion">2. Stage 4: OceanSites/AC1 Format Conversion</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#step-3-deployment-concatenation">3. Step 3: Deployment Concatenation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#priority-2-advanced-processing-features">Priority 2: Advanced Processing Features</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#multi-site-merging-for-boundary-profiles">4. Multi-site Merging for Boundary Profiles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#complete-vertical-gridding-integration">5. Complete Vertical Gridding Integration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#priority-3-enhanced-calibration-system">Priority 3: Enhanced Calibration System</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#comprehensive-calibration-framework">6. Comprehensive Calibration Framework</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#priority-4-system-architecture-improvements">Priority 4: System Architecture Improvements</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#methods-module-organization">7. Methods Module Organization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#enhanced-configuration-system">8. Enhanced Configuration System</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#comprehensive-testing-suite">9. Comprehensive Testing Suite</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#priority-5-advanced-analysis-features">Priority 5: Advanced Analysis Features</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#transport-calculation-framework">10. Transport Calculation Framework</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#development-milestones">Development Milestones</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#phase-1-core-framework-completion-months-1-3">Phase 1: Core Framework Completion (Months 1-3)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#phase-2-advanced-processing-months-4-6">Phase 2: Advanced Processing (Months 4-6)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#phase-3-analysis-tools-months-7-9">Phase 3: Analysis Tools (Months 7-9)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#technical-debt-and-maintenance">Technical Debt and Maintenance</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ongoing-improvements">Ongoing Improvements</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#dependencies-and-external-integration">Dependencies and External Integration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#key-external-dependencies">Key External Dependencies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#integration-opportunities">Integration Opportunities</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#community-and-collaboration">Community and Collaboration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#contribution-priorities">Contribution Priorities</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="oceanarray.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code></a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">oceanarray</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Development Roadmap</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/roadmap.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="development-roadmap">
+<h1>Development Roadmap<a class="headerlink" href="#development-roadmap" title="Link to this heading"></a></h1>
+<p>This document outlines the development roadmap for the OceanArray processing framework, focusing on features documented in the processing workflow that need implementation, technical improvements, and future functionality priorities.</p>
+<nav class="contents local" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#status-overview" id="id1">Status Overview</a></p></li>
+<li><p><a class="reference internal" href="#priority-1-core-missing-features" id="id2">Priority 1: Core Missing Features</a></p>
+<ul>
+<li><p><a class="reference internal" href="#stage-3-comprehensive-auto-qc-framework" id="id3">1. Stage 3: Comprehensive Auto QC Framework</a></p></li>
+<li><p><a class="reference internal" href="#stage-4-oceansites-ac1-format-conversion" id="id4">2. Stage 4: OceanSites/AC1 Format Conversion</a></p></li>
+<li><p><a class="reference internal" href="#step-3-deployment-concatenation" id="id5">3. Step 3: Deployment Concatenation</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#priority-2-advanced-processing-features" id="id6">Priority 2: Advanced Processing Features</a></p>
+<ul>
+<li><p><a class="reference internal" href="#multi-site-merging-for-boundary-profiles" id="id7">4. Multi-site Merging for Boundary Profiles</a></p></li>
+<li><p><a class="reference internal" href="#complete-vertical-gridding-integration" id="id8">5. Complete Vertical Gridding Integration</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#priority-3-enhanced-calibration-system" id="id9">Priority 3: Enhanced Calibration System</a></p>
+<ul>
+<li><p><a class="reference internal" href="#comprehensive-calibration-framework" id="id10">6. Comprehensive Calibration Framework</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#priority-4-system-architecture-improvements" id="id11">Priority 4: System Architecture Improvements</a></p>
+<ul>
+<li><p><a class="reference internal" href="#methods-module-organization" id="id12">7. Methods Module Organization</a></p></li>
+<li><p><a class="reference internal" href="#enhanced-configuration-system" id="id13">8. Enhanced Configuration System</a></p></li>
+<li><p><a class="reference internal" href="#comprehensive-testing-suite" id="id14">9. Comprehensive Testing Suite</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#priority-5-advanced-analysis-features" id="id15">Priority 5: Advanced Analysis Features</a></p>
+<ul>
+<li><p><a class="reference internal" href="#transport-calculation-framework" id="id16">10. Transport Calculation Framework</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#development-milestones" id="id17">Development Milestones</a></p>
+<ul>
+<li><p><a class="reference internal" href="#phase-1-core-framework-completion-months-1-3" id="id18">Phase 1: Core Framework Completion (Months 1-3)</a></p></li>
+<li><p><a class="reference internal" href="#phase-2-advanced-processing-months-4-6" id="id19">Phase 2: Advanced Processing (Months 4-6)</a></p></li>
+<li><p><a class="reference internal" href="#phase-3-analysis-tools-months-7-9" id="id20">Phase 3: Analysis Tools (Months 7-9)</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#technical-debt-and-maintenance" id="id21">Technical Debt and Maintenance</a></p>
+<ul>
+<li><p><a class="reference internal" href="#ongoing-improvements" id="id22">Ongoing Improvements</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#dependencies-and-external-integration" id="id23">Dependencies and External Integration</a></p>
+<ul>
+<li><p><a class="reference internal" href="#key-external-dependencies" id="id24">Key External Dependencies</a></p></li>
+<li><p><a class="reference internal" href="#integration-opportunities" id="id25">Integration Opportunities</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#community-and-collaboration" id="id26">Community and Collaboration</a></p>
+<ul>
+<li><p><a class="reference internal" href="#contribution-priorities" id="id27">Contribution Priorities</a></p></li>
+</ul>
+</li>
+</ul>
+</nav>
+<section id="status-overview">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">Status Overview</a><a class="headerlink" href="#status-overview" title="Link to this heading"></a></h2>
+<p>The OceanArray framework currently provides a solid foundation for oceanographic data processing, but several key components documented in the processing framework require implementation or completion.</p>
+<p><strong>Current Implementation Status:</strong></p>
+<dl class="simple">
+<dt>✅ <strong>Implemented &amp; Working</strong></dt><dd><ul class="simple">
+<li><p>Stage 1: Standardisation (<code class="docutils literal notranslate"><span class="pre">stage1.py</span></code>)</p></li>
+<li><p>Stage 2: Trimming &amp; Clock Corrections (<code class="docutils literal notranslate"><span class="pre">stage2.py</span></code>)</p></li>
+<li><p>Step 1: Time Gridding (<code class="docutils literal notranslate"><span class="pre">time_gridding.py</span></code>)</p></li>
+<li><p>Clock Offset Analysis (<code class="docutils literal notranslate"><span class="pre">clock_offset.py</span></code>)</p></li>
+<li><p>Data Readers (<code class="docutils literal notranslate"><span class="pre">readers.py</span></code>)</p></li>
+<li><p>Basic QC visualization (<code class="docutils literal notranslate"><span class="pre">plotters.py</span></code>)</p></li>
+<li><p>Configurable Logging System</p></li>
+</ul>
+</dd>
+<dt>🟡 <strong>Partially Implemented</strong></dt><dd><ul class="simple">
+<li><p>Stage 3: Auto QC - basic QARTOD functions exist (<code class="docutils literal notranslate"><span class="pre">tools.py</span></code>)</p></li>
+<li><p>Stage 4: Calibration - microcat calibration exists (<code class="docutils literal notranslate"><span class="pre">instrument.py</span></code>)</p></li>
+<li><p>Step 2: Vertical Gridding - physics-based interpolation exists (<code class="docutils literal notranslate"><span class="pre">rapid_interp.py</span></code>)</p></li>
+</ul>
+</dd>
+<dt>❌ <strong>Documented but Not Implemented</strong></dt><dd><ul class="simple">
+<li><p>Stage 4: Conversion to OceanSites/AC1 format</p></li>
+<li><p>Step 3: Concatenation of deployments</p></li>
+<li><p>Multi-site merging for boundary profiles</p></li>
+<li><p>Comprehensive automatic QC framework</p></li>
+<li><p>Transport calculations and MOC diagnostics</p></li>
+</ul>
+</dd>
+</dl>
+</section>
+<section id="priority-1-core-missing-features">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">Priority 1: Core Missing Features</a><a class="headerlink" href="#priority-1-core-missing-features" title="Link to this heading"></a></h2>
+<section id="stage-3-comprehensive-auto-qc-framework">
+<h3><a class="toc-backref" href="#id3" role="doc-backlink">1. Stage 3: Comprehensive Auto QC Framework</a><a class="headerlink" href="#stage-3-comprehensive-auto-qc-framework" title="Link to this heading"></a></h3>
+<p><strong>Documentation</strong>: <code class="docutils literal notranslate"><span class="pre">docs/source/methods/auto_qc.rst</span></code></p>
+<p><strong>Current State</strong>: Basic QARTOD functions exist in <code class="docutils literal notranslate"><span class="pre">tools.py:run_qc()</span></code> and visualization in <code class="docutils literal notranslate"><span class="pre">plotters.py:plot_qartod_summary()</span></code>.</p>
+<p><strong>Missing Implementation</strong>:
+- Structured QC configuration system
+- Integration with <code class="docutils literal notranslate"><span class="pre">ioos_qc</span></code> package as documented
+- Complete flag value handling (0,1,2,3,4,7,8,9)
+- Automated QC report generation
+- QC metadata preservation in datasets</p>
+<p><strong>Estimated Effort</strong>: 2-3 weeks</p>
+<dl class="simple">
+<dt><strong>Implementation Plan</strong>:</dt><dd><ol class="arabic simple">
+<li><p>Create <code class="docutils literal notranslate"><span class="pre">oceanarray/auto_qc.py</span></code> module</p></li>
+<li><p>Design YAML-based QC configuration system</p></li>
+<li><p>Implement comprehensive flag handling</p></li>
+<li><p>Add QC validation and reporting</p></li>
+<li><p>Integrate with existing Stage 2 workflow</p></li>
+</ol>
+</dd>
+</dl>
+</section>
+<section id="stage-4-oceansites-ac1-format-conversion">
+<h3><a class="toc-backref" href="#id4" role="doc-backlink">2. Stage 4: OceanSites/AC1 Format Conversion</a><a class="headerlink" href="#stage-4-oceansites-ac1-format-conversion" title="Link to this heading"></a></h3>
+<p><strong>Documentation</strong>: <code class="docutils literal notranslate"><span class="pre">docs/source/methods/conversion.rst</span></code></p>
+<p><strong>Current State</strong>: Some format conversion exists in <code class="docutils literal notranslate"><span class="pre">convertOS.py</span></code>, but not the full AC1 specification.</p>
+<p><strong>Missing Implementation</strong>:
+- Complete AC1 format specification compliance
+- Global attribute validation and enforcement
+- CF-convention compliance checking
+- Variable attribute standardization
+- Comprehensive metadata handling</p>
+<p><strong>Estimated Effort</strong>: 2-3 weeks</p>
+<dl class="simple">
+<dt><strong>Implementation Plan</strong>:</dt><dd><ol class="arabic simple">
+<li><p>Create <code class="docutils literal notranslate"><span class="pre">oceanarray/conversion.py</span></code> module</p></li>
+<li><p>Implement AC1 format validation</p></li>
+<li><p>Add CF-compliance checking</p></li>
+<li><p>Design metadata template system</p></li>
+<li><p>Add format conversion pipeline</p></li>
+</ol>
+</dd>
+</dl>
+</section>
+<section id="step-3-deployment-concatenation">
+<h3><a class="toc-backref" href="#id5" role="doc-backlink">3. Step 3: Deployment Concatenation</a><a class="headerlink" href="#step-3-deployment-concatenation" title="Link to this heading"></a></h3>
+<p><strong>Documentation</strong>: <code class="docutils literal notranslate"><span class="pre">docs/source/methods/concatenation.rst</span></code></p>
+<p><strong>Current State</strong>: No implementation found.</p>
+<p><strong>Missing Implementation</strong>:
+- Multi-deployment time series merging
+- Gap handling and interpolation
+- Consistent time-pressure grid creation
+- Metadata preservation across deployments
+- Quality flag propagation</p>
+<p><strong>Estimated Effort</strong>: 1-2 weeks</p>
+<dl class="simple">
+<dt><strong>Implementation Plan</strong>:</dt><dd><ol class="arabic simple">
+<li><p>Create <code class="docutils literal notranslate"><span class="pre">oceanarray/concatenation.py</span></code> module</p></li>
+<li><p>Design deployment merging algorithm</p></li>
+<li><p>Implement gap filling strategies</p></li>
+<li><p>Add time-pressure grid standardization</p></li>
+<li><p>Create validation and QC checks</p></li>
+</ol>
+</dd>
+</dl>
+</section>
+</section>
+<section id="priority-2-advanced-processing-features">
+<h2><a class="toc-backref" href="#id6" role="doc-backlink">Priority 2: Advanced Processing Features</a><a class="headerlink" href="#priority-2-advanced-processing-features" title="Link to this heading"></a></h2>
+<section id="multi-site-merging-for-boundary-profiles">
+<h3><a class="toc-backref" href="#id7" role="doc-backlink">4. Multi-site Merging for Boundary Profiles</a><a class="headerlink" href="#multi-site-merging-for-boundary-profiles" title="Link to this heading"></a></h3>
+<p><strong>Documentation</strong>: <code class="docutils literal notranslate"><span class="pre">docs/source/methods/multisite_merging.rst</span></code></p>
+<p><strong>Current State</strong>: No implementation found.</p>
+<p><strong>Missing Implementation</strong>:
+- Cross-site data integration
+- Boundary profile construction
+- Static stability checking
+- Site-specific weighting strategies
+- Spatial interpolation methods</p>
+<p><strong>Estimated Effort</strong>: 3-4 weeks</p>
+<dl class="simple">
+<dt><strong>Implementation Plan</strong>:</dt><dd><ol class="arabic simple">
+<li><p>Create <code class="docutils literal notranslate"><span class="pre">oceanarray/multisite_merging.py</span></code> module</p></li>
+<li><p>Implement spatial merging algorithms</p></li>
+<li><p>Add static stability validation</p></li>
+<li><p>Design site weighting strategies</p></li>
+<li><p>Create boundary profile outputs</p></li>
+</ol>
+</dd>
+</dl>
+</section>
+<section id="complete-vertical-gridding-integration">
+<h3><a class="toc-backref" href="#id8" role="doc-backlink">5. Complete Vertical Gridding Integration</a><a class="headerlink" href="#complete-vertical-gridding-integration" title="Link to this heading"></a></h3>
+<p><strong>Documentation</strong>: <code class="docutils literal notranslate"><span class="pre">docs/source/methods/vertical_gridding.rst</span></code></p>
+<p><strong>Current State</strong>: Physics-based interpolation exists in <code class="docutils literal notranslate"><span class="pre">rapid_interp.py</span></code> but needs integration.</p>
+<p><strong>Missing Implementation</strong>:
+- Integration with main processing pipeline
+- Climatology data management
+- Configuration for different interpolation strategies
+- Gap filling and extrapolation options
+- Validation against known profiles</p>
+<p><strong>Estimated Effort</strong>: 1-2 weeks</p>
+<dl class="simple">
+<dt><strong>Implementation Plan</strong>:</dt><dd><ol class="arabic simple">
+<li><p>Refactor <code class="docutils literal notranslate"><span class="pre">rapid_interp.py</span></code> for general use</p></li>
+<li><p>Create configuration system for interpolation parameters</p></li>
+<li><p>Add climatology data handling</p></li>
+<li><p>Integrate with mooring processing workflow</p></li>
+<li><p>Add validation and diagnostic tools</p></li>
+</ol>
+</dd>
+</dl>
+</section>
+</section>
+<section id="priority-3-enhanced-calibration-system">
+<h2><a class="toc-backref" href="#id9" role="doc-backlink">Priority 3: Enhanced Calibration System</a><a class="headerlink" href="#priority-3-enhanced-calibration-system" title="Link to this heading"></a></h2>
+<section id="comprehensive-calibration-framework">
+<h3><a class="toc-backref" href="#id10" role="doc-backlink">6. Comprehensive Calibration Framework</a><a class="headerlink" href="#comprehensive-calibration-framework" title="Link to this heading"></a></h3>
+<p><strong>Documentation</strong>: <code class="docutils literal notranslate"><span class="pre">docs/source/methods/calibration.rst</span></code></p>
+<p><strong>Current State</strong>: Basic microcat calibration exists in <code class="docutils literal notranslate"><span class="pre">instrument.py</span></code>.</p>
+<p><strong>Missing Implementation</strong>:
+- Multi-instrument calibration support (not just microcat)
+- Structured calibration metadata handling
+- Pre/post-cruise comparison workflows
+- Calibration uncertainty propagation
+- Automated calibration log parsing</p>
+<p><strong>Estimated Effort</strong>: 2-3 weeks</p>
+<dl class="simple">
+<dt><strong>Implementation Plan</strong>:</dt><dd><ol class="arabic simple">
+<li><p>Expand <code class="docutils literal notranslate"><span class="pre">instrument.py</span></code> calibration functions</p></li>
+<li><p>Create calibration configuration system</p></li>
+<li><p>Add uncertainty propagation</p></li>
+<li><p>Design calibration workflow automation</p></li>
+<li><p>Add comprehensive logging and provenance</p></li>
+</ol>
+</dd>
+</dl>
+</section>
+</section>
+<section id="priority-4-system-architecture-improvements">
+<h2><a class="toc-backref" href="#id11" role="doc-backlink">Priority 4: System Architecture Improvements</a><a class="headerlink" href="#priority-4-system-architecture-improvements" title="Link to this heading"></a></h2>
+<section id="methods-module-organization">
+<h3><a class="toc-backref" href="#id12" role="doc-backlink">7. Methods Module Organization</a><a class="headerlink" href="#methods-module-organization" title="Link to this heading"></a></h3>
+<p><strong>Current State</strong>: Processing functions scattered across multiple modules.</p>
+<p><strong>Improvement</strong>: Create organized <code class="docutils literal notranslate"><span class="pre">methods/</span></code> directory structure:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>oceanarray/methods/
+├── __init__.py
+├── auto_qc.py
+├── calibration.py
+├── concatenation.py
+├── conversion.py
+├── multisite_merging.py
+└── vertical_gridding.py
+</pre></div>
+</div>
+<p><strong>Estimated Effort</strong>: 1 week</p>
+</section>
+<section id="enhanced-configuration-system">
+<h3><a class="toc-backref" href="#id13" role="doc-backlink">8. Enhanced Configuration System</a><a class="headerlink" href="#enhanced-configuration-system" title="Link to this heading"></a></h3>
+<p><strong>Current State</strong>: Basic logging configuration exists.</p>
+<p><strong>Missing Features</strong>:
+- Global processing configuration
+- Site-specific parameter management
+- Processing pipeline configuration
+- Validation and schema checking</p>
+<p><strong>Estimated Effort</strong>: 1-2 weeks</p>
+</section>
+<section id="comprehensive-testing-suite">
+<h3><a class="toc-backref" href="#id14" role="doc-backlink">9. Comprehensive Testing Suite</a><a class="headerlink" href="#comprehensive-testing-suite" title="Link to this heading"></a></h3>
+<p><strong>Current State</strong>: Basic tests exist in <code class="docutils literal notranslate"><span class="pre">tests/</span></code> directory.</p>
+<p><strong>Missing Features</strong>:
+- End-to-end pipeline testing
+- Method-specific unit tests
+- Configuration validation tests
+- Performance benchmarking</p>
+<p><strong>Estimated Effort</strong>: 2-3 weeks (ongoing)</p>
+</section>
+</section>
+<section id="priority-5-advanced-analysis-features">
+<h2><a class="toc-backref" href="#id15" role="doc-backlink">Priority 5: Advanced Analysis Features</a><a class="headerlink" href="#priority-5-advanced-analysis-features" title="Link to this heading"></a></h2>
+<section id="transport-calculation-framework">
+<h3><a class="toc-backref" href="#id16" role="doc-backlink">10. Transport Calculation Framework</a><a class="headerlink" href="#transport-calculation-framework" title="Link to this heading"></a></h3>
+<p><strong>Documentation</strong>: Transport calculations mentioned in <code class="docutils literal notranslate"><span class="pre">processing_framework.rst</span></code></p>
+<p><strong>Current State</strong>: Some transport code exists in <code class="docutils literal notranslate"><span class="pre">transports.py</span></code>.</p>
+<p><strong>Missing Implementation</strong>:
+- TEOS-10 conversion utilities
+- Dynamic height calculations
+- Geostrophic shear computation
+- Mass compensation algorithms
+- MOC time series generation</p>
+<p><strong>Estimated Effort</strong>: 4-6 weeks</p>
+<dl class="simple">
+<dt><strong>Implementation Plan</strong>:</dt><dd><ol class="arabic simple">
+<li><p>Expand <code class="docutils literal notranslate"><span class="pre">transports.py</span></code> functionality</p></li>
+<li><p>Add TEOS-10 integration</p></li>
+<li><p>Implement dynamic height calculations</p></li>
+<li><p>Create MOC diagnostic tools</p></li>
+<li><p>Add transport validation methods</p></li>
+</ol>
+</dd>
+</dl>
+</section>
+</section>
+<section id="development-milestones">
+<h2><a class="toc-backref" href="#id17" role="doc-backlink">Development Milestones</a><a class="headerlink" href="#development-milestones" title="Link to this heading"></a></h2>
+<section id="phase-1-core-framework-completion-months-1-3">
+<h3><a class="toc-backref" href="#id18" role="doc-backlink">Phase 1: Core Framework Completion (Months 1-3)</a><a class="headerlink" href="#phase-1-core-framework-completion-months-1-3" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>Complete auto QC framework</p></li>
+<li><p>Implement AC1 format conversion</p></li>
+<li><p>Add deployment concatenation</p></li>
+<li><p>Organize methods module structure</p></li>
+<li><p>Enhance configuration system</p></li>
+</ul>
+</section>
+<section id="phase-2-advanced-processing-months-4-6">
+<h3><a class="toc-backref" href="#id19" role="doc-backlink">Phase 2: Advanced Processing (Months 4-6)</a><a class="headerlink" href="#phase-2-advanced-processing-months-4-6" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>Implement multi-site merging</p></li>
+<li><p>Complete vertical gridding integration</p></li>
+<li><p>Enhance calibration framework</p></li>
+<li><p>Expand testing suite</p></li>
+</ul>
+</section>
+<section id="phase-3-analysis-tools-months-7-9">
+<h3><a class="toc-backref" href="#id20" role="doc-backlink">Phase 3: Analysis Tools (Months 7-9)</a><a class="headerlink" href="#phase-3-analysis-tools-months-7-9" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>Implement transport calculations</p></li>
+<li><p>Add MOC diagnostic tools</p></li>
+<li><p>Create comprehensive documentation</p></li>
+<li><p>Performance optimization</p></li>
+</ul>
+</section>
+</section>
+<section id="technical-debt-and-maintenance">
+<h2><a class="toc-backref" href="#id21" role="doc-backlink">Technical Debt and Maintenance</a><a class="headerlink" href="#technical-debt-and-maintenance" title="Link to this heading"></a></h2>
+<section id="ongoing-improvements">
+<h3><a class="toc-backref" href="#id22" role="doc-backlink">Ongoing Improvements</a><a class="headerlink" href="#ongoing-improvements" title="Link to this heading"></a></h3>
+<ol class="arabic simple">
+<li><p><strong>Code Quality</strong>
+- Add type hints throughout codebase
+- Improve error handling and validation
+- Standardize documentation strings
+- Enhance logging throughout pipeline</p></li>
+<li><p><strong>Performance</strong>
+- Profile processing bottlenecks
+- Optimize memory usage for large datasets
+- Add parallel processing capabilities
+- Implement caching strategies</p></li>
+<li><p><strong>User Experience</strong>
+- Create command-line interface
+- Add progress indicators for long operations
+- Improve error messages and debugging
+- Create tutorial notebooks</p></li>
+<li><p><strong>Documentation</strong>
+- Complete API documentation
+- Add processing examples
+- Create troubleshooting guides
+- Document best practices</p></li>
+</ol>
+</section>
+</section>
+<section id="dependencies-and-external-integration">
+<h2><a class="toc-backref" href="#id23" role="doc-backlink">Dependencies and External Integration</a><a class="headerlink" href="#dependencies-and-external-integration" title="Link to this heading"></a></h2>
+<section id="key-external-dependencies">
+<h3><a class="toc-backref" href="#id24" role="doc-backlink">Key External Dependencies</a><a class="headerlink" href="#key-external-dependencies" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ioos_qc</span></code>: For comprehensive QC implementation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gsw</span></code> (TEOS-10): For seawater property calculations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">verticalnn</span></code>: For physics-based vertical interpolation</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">xarray</span></code> &amp; <code class="docutils literal notranslate"><span class="pre">netCDF4</span></code>: Core data handling</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dask</span></code>: For large dataset processing (future)</p></li>
+</ul>
+</section>
+<section id="integration-opportunities">
+<h3><a class="toc-backref" href="#id25" role="doc-backlink">Integration Opportunities</a><a class="headerlink" href="#integration-opportunities" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>ERDDAP</strong>: Direct data ingestion capabilities</p></li>
+<li><p><strong>Pangaea</strong>: Data publication workflows</p></li>
+<li><p><strong>OceanSites</strong>: Enhanced format compliance</p></li>
+<li><p><strong>Cloud platforms</strong>: Scalable processing deployment</p></li>
+</ul>
+</section>
+</section>
+<section id="community-and-collaboration">
+<h2><a class="toc-backref" href="#id26" role="doc-backlink">Community and Collaboration</a><a class="headerlink" href="#community-and-collaboration" title="Link to this heading"></a></h2>
+<section id="contribution-priorities">
+<h3><a class="toc-backref" href="#id27" role="doc-backlink">Contribution Priorities</a><a class="headerlink" href="#contribution-priorities" title="Link to this heading"></a></h3>
+<ol class="arabic simple">
+<li><p>Documentation of existing RAPID/OSNAP workflows</p></li>
+<li><p>Method validation with known datasets</p></li>
+<li><p>Cross-array compatibility testing</p></li>
+<li><p>Performance benchmarking</p></li>
+<li><p>User interface development</p></li>
+</ol>
+<p>This roadmap provides a structured path toward completing the OceanArray processing framework while maintaining focus on documented requirements and practical implementation priorities.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="demo_mooring-output.html" class="btn btn-neutral float-left" title="Demo: mooring-level processing (Step 1)" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="oceanarray.html" class="btn btn-neutral float-right" title="oceanarray API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Eleanor Frajka-Williams, FirstName LastName.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
