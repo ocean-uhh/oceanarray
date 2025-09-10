@@ -44,9 +44,9 @@ class MooringProcessor:
         self.log_file = None
 
     def _setup_logging(self, mooring_name: str, output_path: Path) -> None:
-        """Set up logging for the processing run."""
-        log_time = datetime.now().strftime("%Y%m%dT%H")
-        self.log_file = output_path / f"{mooring_name}_{log_time}_stage1.mooring.log"
+        """Set up logging for the processing run using global config."""
+        from .logger import setup_stage_logging
+        self.log_file = setup_stage_logging(mooring_name, "stage1", output_path)
 
     def _log_print(self, *args, **kwargs) -> None:
         """Print to both console and log file."""
