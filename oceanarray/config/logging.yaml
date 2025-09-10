@@ -1,5 +1,5 @@
 # Global logging configuration for oceanarray processing stages
-# 
+#
 # This configuration file controls where and how log files are created
 # for all processing stages (stage1, stage2, time_gridding, etc.)
 
@@ -7,22 +7,22 @@ logging:
   # Directory for log files
   # - Can be relative path (created within each mooring's proc directory)
   # - Can be absolute path for centralized logging
-  # - Default: "logs" creates ~/moor/proc/<mooring_name>/logs/
-  directory: "logs"
-  
+  # - Default: "processing_logs" creates ~/moor/proc/<mooring_name>/processing_logs/
+  directory: "processing_logs"
+
   # Log filename pattern
   # Available variables:
   #   {mooring_name} - Name of the mooring (e.g., dsE_1_2018)
-  #   {timestamp}    - Formatted timestamp 
+  #   {timestamp}    - Formatted timestamp
   #   {stage}        - Processing stage name (stage1, stage2, time_gridding)
   filename_pattern: "{mooring_name}_{timestamp}_{stage}.log"
-  
+
   # Timestamp format for log filenames
   # Uses Python strftime format codes:
   #   %Y = 4-digit year    %m = month     %d = day
   #   %H = hour (24hr)     %M = minute    %S = second
   # Default: "%Y%m%dT%H" produces YYYYMMDTHH (e.g., 20180827T14)
   timestamp_format: "%Y%m%dT%H"
-  
+
   # Whether to create the log directory if it doesn't exist
   create_directory: true

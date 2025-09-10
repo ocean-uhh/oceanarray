@@ -287,5 +287,3 @@ def apply_defaults(default_source: str, default_files: List[str]) -> Callable:
         return wrapper
 
     return decorator
-
-

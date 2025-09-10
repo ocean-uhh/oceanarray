@@ -98,12 +98,12 @@ def setup_logger(array_name: str, output_dir: str = "logs") -> None:
 def load_logging_config():
     """
     Load the global logging configuration from config/logging.yaml.
-    
+
     Returns
     -------
     dict
         Logging configuration dictionary
-        
+
     Raises
     ------
     FileNotFoundError
@@ -112,25 +112,25 @@ def load_logging_config():
         If logging.yaml cannot be parsed
     """
     import yaml
-    
+
     config_path = Path(__file__).parent / "config" / "logging.yaml"
-    
+
     if not config_path.exists():
         raise FileNotFoundError(f"Logging config not found: {config_path}")
-    
+
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
-    
+
     return config.get("logging", {})
 
 
 def setup_stage_logging(mooring_name: str, stage_name: str, proc_dir: Path) -> Path:
     """
     Set up logging for a processing stage using global configuration.
-    
+
     This creates simple file-based logging for processing stages (stage1, stage2, etc.)
     using the configuration from config/logging.yaml.
-    
+
     Parameters
     ----------
     mooring_name : str
@@ -139,35 +139,37 @@ def setup_stage_logging(mooring_name: str, stage_name: str, proc_dir: Path) -> P
         Name of the processing stage (e.g., 'stage1', 'stage2', 'time_gridding')
     proc_dir : Path
         Processing directory for the mooring
-        
+
     Returns
     -------
     Path
         Full path to the log file
-        
+
     Raises
     ------
     FileNotFoundError
         If logging config cannot be loaded
     """
     import yaml
-    
+
     try:
         config = load_logging_config()
-    except (FileNotFoundError, yaml.YAMLError) as e:
+    except (FileNotFoundError, yaml.YAMLError):
         # Fallback to old behavior if config is not available
         log_time = datetime.datetime.now().strftime("%Y%m%dT%H")
         return proc_dir / f"{mooring_name}_{log_time}_{stage_name}.mooring.log"
-    
+
     # Extract configuration values with defaults
     log_directory = config.get("directory", "logs")
-    filename_pattern = config.get("filename_pattern", "{mooring_name}_{timestamp}_{stage}.log")
+    filename_pattern = config.get(
+        "filename_pattern", "{mooring_name}_{timestamp}_{stage}.log"
+    )
     timestamp_format = config.get("timestamp_format", "%Y%m%dT%H")
     create_directory = config.get("create_directory", True)
-    
+
     # Generate timestamp
     timestamp = datetime.datetime.now().strftime(timestamp_format)
-    
+
     # Determine log directory path
     if Path(log_directory).is_absolute():
         # Absolute path specified
@@ -175,16 +177,14 @@ def setup_stage_logging(mooring_name: str, stage_name: str, proc_dir: Path) -> P
     else:
         # Relative path - create within mooring proc directory
         log_dir = proc_dir / log_directory
-    
+
     # Create directory if requested and it doesn't exist
     if create_directory:
         log_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Generate filename using pattern
     filename = filename_pattern.format(
-        mooring_name=mooring_name,
-        timestamp=timestamp,
-        stage=stage_name
+        mooring_name=mooring_name, timestamp=timestamp, stage=stage_name
     )
-    
+
     return log_dir / filename

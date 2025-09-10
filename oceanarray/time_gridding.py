@@ -21,7 +21,6 @@ Version: 1.1
 Last updated: 2025-09-07
 """
 
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -42,6 +41,7 @@ class TimeGriddingProcessor:
     def _setup_logging(self, mooring_name: str, output_path: Path) -> None:
         """Set up logging for the processing run using global config."""
         from .logger import setup_stage_logging
+
         self.log_file = setup_stage_logging(mooring_name, "time_gridding", output_path)
 
     def _log_print(self, *args, **kwargs) -> None:
