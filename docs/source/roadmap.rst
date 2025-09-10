@@ -30,11 +30,10 @@ The OceanArray framework currently provides a solid foundation for oceanographic
   - Step 2: Vertical Gridding - physics-based interpolation exists (``rapid_interp.py``)
 
 ❌ **Documented but Not Implemented**
-  - Stage 4: Conversion to OceanSites/AC1 format
+  - Stage 4: Conversion to OceanSites format
   - Step 3: Concatenation of deployments  
   - Multi-site merging for boundary profiles
   - Comprehensive automatic QC framework
-  - Transport calculations and MOC diagnostics
 
 Priority 1: Core Missing Features
 =================================
@@ -62,15 +61,15 @@ Priority 1: Core Missing Features
   4. Add QC validation and reporting
   5. Integrate with existing Stage 2 workflow
 
-2. Stage 4: OceanSites/AC1 Format Conversion  
+2. Stage 4: OceanSites Format Conversion  
 --------------------------------------------
 
 **Documentation**: ``docs/source/methods/conversion.rst``
 
-**Current State**: Some format conversion exists in ``convertOS.py``, but not the full AC1 specification.
+**Current State**: Some format conversion exists in ``convertOS.py``, but not the full OceanSites specification.
 
 **Missing Implementation**:
-- Complete AC1 format specification compliance
+- Complete OceanSites format specification compliance
 - Global attribute validation and enforcement
 - CF-convention compliance checking
 - Variable attribute standardization  
@@ -80,7 +79,7 @@ Priority 1: Core Missing Features
 
 **Implementation Plan**:
   1. Create ``oceanarray/conversion.py`` module
-  2. Implement AC1 format validation
+  2. Implement OceanSites format validation
   3. Add CF-compliance checking
   4. Design metadata template system
   5. Add format conversion pipeline
@@ -108,10 +107,81 @@ Priority 1: Core Missing Features
   4. Add time-pressure grid standardization
   5. Create validation and QC checks
 
+4. Enhanced Visualization System
+--------------------------------
+
+**Current State**: Basic plotting functions exist in ``plotters.py``.
+
+**Missing Implementation**:
+- Interactive plotting capabilities
+- Multi-instrument comparison plots
+- Time series overview with zoom functionality
+- QC flag visualization overlays
+- Deployment boundary and gap visualization
+- Statistical summary plots
+- Customizable plot templates
+
+**Estimated Effort**: 2-3 weeks
+
+**Implementation Plan**:
+  1. Expand ``plotters.py`` with interactive features
+  2. Add multi-instrument comparison tools
+  3. Implement QC flag overlay visualization
+  4. Create statistical summary plots
+  5. Add customizable plotting templates
+  6. Integrate with processing pipeline for automatic reporting
+
+5. Intelligent Metadata Fallback System
+----------------------------------------
+
+**Current State**: Metadata extraction relies on explicit YAML configuration.
+
+**Missing Implementation**:
+- Filename pattern parsing for instrument type and serial number
+- Fallback metadata extraction when YAML is incomplete
+- Intelligent instrument identification from file patterns
+- Automatic serial number detection from filenames
+- Validation and warning system for inferred metadata
+
+**Estimated Effort**: 1 week
+
+**Implementation Plan**:
+  1. Create filename parsing utilities in ``utilities.py``
+  2. Design instrument type detection patterns
+  3. Add serial number extraction from common filename formats
+  4. Implement metadata validation and fallback logic
+  5. Add logging and warnings for inferred metadata
+  6. Integrate with Stage 1 processing pipeline
+
+6. Comprehensive Mooring Processing Reports
+-------------------------------------------
+
+**Current State**: No automated reporting system exists.
+
+**Missing Implementation**:
+- HTML report generation for each mooring
+- Processing completeness analysis (YAML vs actual files)
+- Missing file detection and reporting
+- Data coverage visualization and statistics
+- Automated figure generation for all available variables
+- Processing timeline and status summaries
+- Integration with existing processing pipeline
+
+**Estimated Effort**: 2-3 weeks
+
+**Implementation Plan**:
+  1. Create ``oceanarray/reporting.py`` module with ``ReportGenerator`` class
+  2. Design HTML template system for mooring reports
+  3. Implement file completeness checking (YAML vs ``*_use.nc`` vs raw files)
+  4. Add automated visualization generation for all data variables
+  5. Create processing status and timeline summaries
+  6. Integrate with processing pipeline for automatic report generation
+  7. Design directory structure: ``moor/proc/{mooring}/processing/{report,logs,figures}/``
+
 Priority 2: Advanced Processing Features
 =======================================
 
-4. Multi-site Merging for Boundary Profiles
+7. Multi-site Merging for Boundary Profiles
 -------------------------------------------
 
 **Documentation**: ``docs/source/methods/multisite_merging.rst``
@@ -134,7 +204,7 @@ Priority 2: Advanced Processing Features
   4. Design site weighting strategies
   5. Create boundary profile outputs
 
-5. Complete Vertical Gridding Integration
+8. Complete Vertical Gridding Integration
 -----------------------------------------
 
 **Documentation**: ``docs/source/methods/vertical_gridding.rst``
@@ -160,7 +230,7 @@ Priority 2: Advanced Processing Features
 Priority 3: Enhanced Calibration System
 ======================================
 
-6. Comprehensive Calibration Framework
+9. Comprehensive Calibration Framework
 --------------------------------------
 
 **Documentation**: ``docs/source/methods/calibration.rst``
@@ -186,7 +256,7 @@ Priority 3: Enhanced Calibration System
 Priority 4: System Architecture Improvements
 ============================================
 
-7. Methods Module Organization
+10. Methods Module Organization
 ------------------------------
 
 **Current State**: Processing functions scattered across multiple modules.
@@ -206,7 +276,7 @@ Priority 4: System Architecture Improvements
 
 **Estimated Effort**: 1 week
 
-8. Enhanced Configuration System
+11. Enhanced Configuration System
 --------------------------------
 
 **Current State**: Basic logging configuration exists.
@@ -219,8 +289,8 @@ Priority 4: System Architecture Improvements
 
 **Estimated Effort**: 1-2 weeks
 
-9. Comprehensive Testing Suite
-------------------------------
+12. Test Coverage Improvement
+-----------------------------
 
 **Current State**: Basic tests exist in ``tests/`` directory.
 
@@ -232,56 +302,59 @@ Priority 4: System Architecture Improvements
 
 **Estimated Effort**: 2-3 weeks (ongoing)
 
+**Technical Debt Note**: This represents accumulated testing debt where functionality exists but lacks comprehensive test coverage, making maintenance and refactoring more risky.
+
 Priority 5: Advanced Analysis Features
 =====================================
 
-10. Transport Calculation Framework
------------------------------------
+13. Data Storage Efficiency Improvements
+-----------------------------------------
 
-**Documentation**: Transport calculations mentioned in ``processing_framework.rst``
-
-**Current State**: Some transport code exists in ``transports.py``.
+**Current State**: Standard NetCDF output with basic compression.
 
 **Missing Implementation**:
-- TEOS-10 conversion utilities
-- Dynamic height calculations
-- Geostrophic shear computation
-- Mass compensation algorithms
-- MOC time series generation
+- Optimized chunking strategies
+- Advanced compression algorithms
+- Memory-efficient processing for large datasets
+- Streaming processing capabilities
+- Storage format optimization
 
-**Estimated Effort**: 4-6 weeks
+**Estimated Effort**: 2-3 weeks
 
 **Implementation Plan**:
-  1. Expand ``transports.py`` functionality
-  2. Add TEOS-10 integration
-  3. Implement dynamic height calculations
-  4. Create MOC diagnostic tools
-  5. Add transport validation methods
+  1. Profile current storage bottlenecks
+  2. Implement optimized chunking strategies
+  3. Add advanced compression options
+  4. Create memory-efficient processing pipelines
+  5. Add storage format benchmarking
 
 Development Milestones
 =====================
 
 Phase 1: Core Framework Completion (Months 1-3)
 -----------------------------------------------
+- Improve test coverage (address technical debt)
+- Implement intelligent metadata fallback system
+- Enhance visualization system
+- **Implement comprehensive mooring processing reports**
 - Complete auto QC framework
-- Implement AC1 format conversion
+- Implement OceanSites format conversion
 - Add deployment concatenation
-- Organize methods module structure
-- Enhance configuration system
 
 Phase 2: Advanced Processing (Months 4-6)  
 -----------------------------------------
+- Organize methods module structure
+- Enhance configuration system
 - Implement multi-site merging
 - Complete vertical gridding integration
 - Enhance calibration framework
-- Expand testing suite
 
-Phase 3: Analysis Tools (Months 7-9)
-------------------------------------
-- Implement transport calculations
-- Add MOC diagnostic tools  
+Phase 3: System Optimization (Months 7-9)
+-----------------------------------------
+- Improve data storage efficiency
+- Performance optimization and profiling
 - Create comprehensive documentation
-- Performance optimization
+- User experience improvements
 
 Technical Debt and Maintenance
 =============================
@@ -326,20 +399,19 @@ Key External Dependencies
 
 Integration Opportunities
 ------------------------
-- **ERDDAP**: Direct data ingestion capabilities
 - **Pangaea**: Data publication workflows  
 - **OceanSites**: Enhanced format compliance
-- **Cloud platforms**: Scalable processing deployment
+- **ERDDAP**: Direct data ingestion capabilities
 
 Community and Collaboration
 ===========================
 
 Contribution Priorities
 -----------------------
-1. Documentation of existing RAPID/OSNAP workflows
-2. Method validation with known datasets
-3. Cross-array compatibility testing
-4. Performance benchmarking
-5. User interface development
+1. Method validation with known datasets
+2. Cross-array compatibility testing
+3. Performance benchmarking
+4. User interface development
+5. Processing workflow documentation
 
 This roadmap provides a structured path toward completing the OceanArray processing framework while maintaining focus on documented requirements and practical implementation priorities.
