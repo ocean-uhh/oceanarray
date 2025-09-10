@@ -6,6 +6,9 @@ data/temp.nc
 
 logs/*log
 
+# Claude Code configuration
+.claude/
+
 # VSCode settings
 .vscode/*
 

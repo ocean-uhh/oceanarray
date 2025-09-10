@@ -8,7 +8,6 @@ This module handles:
 - Writing updated NetCDF files with '_use' suffix
 """
 
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -28,9 +27,10 @@ class Stage2Processor:
         self.log_file = None
 
     def _setup_logging(self, mooring_name: str, output_path: Path) -> None:
-        """Set up logging for the processing run."""
-        log_time = datetime.now().strftime("%Y%m%dT%H")
-        self.log_file = output_path / f"{mooring_name}_{log_time}_stage2.mooring.log"
+        """Set up logging for the processing run using global config."""
+        from .logger import setup_stage_logging
+
+        self.log_file = setup_stage_logging(mooring_name, "stage2", output_path)
 
     def _log_print(self, *args, **kwargs) -> None:
         """Print to both console and log file."""

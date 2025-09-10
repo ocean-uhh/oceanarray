@@ -21,7 +21,6 @@ Version: 1.1
 Last updated: 2025-09-07
 """
 
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -40,11 +39,10 @@ class TimeGriddingProcessor:
         self.log_file = None
 
     def _setup_logging(self, mooring_name: str, output_path: Path) -> None:
-        """Set up logging for the processing run."""
-        log_time = datetime.now().strftime("%Y%m%dT%H")
-        self.log_file = (
-            output_path / f"{mooring_name}_{log_time}_time_gridding.mooring.log"
-        )
+        """Set up logging for the processing run using global config."""
+        from .logger import setup_stage_logging
+
+        self.log_file = setup_stage_logging(mooring_name, "time_gridding", output_path)
 
     def _log_print(self, *args, **kwargs) -> None:
         """Print to both console and log file."""
@@ -453,9 +451,7 @@ class TimeGriddingProcessor:
         # Check for large differences in sampling rates
         interval_ratio = np.max(intervals_min) / np.min(intervals_min)
         if interval_ratio > 2.0:
-            self._log_print(
-                "   WARNING: Large differences in sampling rates detected!"
-            )
+            self._log_print("   WARNING: Large differences in sampling rates detected!")
             self._log_print(
                 f"   WARNING: Ratio of slowest to fastest: {interval_ratio:.1f}x"
             )

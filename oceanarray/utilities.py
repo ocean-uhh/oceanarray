@@ -113,7 +113,7 @@ def get_time_key(ds):
     # Fallback: look for any variable or coordinate with datetime dtype
     for name in ds.coords:
         if np.issubdtype(ds.coords[name].dtype, np.datetime64):
-            log_warning(
+            logger.log_warning(
                 "No standard time coordinate found. Using first datetime coordinate: %s",
                 name,
             )
@@ -121,7 +121,7 @@ def get_time_key(ds):
 
     for name in ds.variables:
         if np.issubdtype(ds.variables[name].dtype, np.datetime64):
-            log_warning(
+            logger.log_warning(
                 "No standard time coordinate found. Using first datetime coordinate: %s",
                 name,
             )

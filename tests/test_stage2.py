@@ -100,9 +100,9 @@ class TestStage2Processor:
         processor._setup_logging(mooring_name, output_path)
 
         assert processor.log_file is not None
-        assert processor.log_file.parent == output_path
+        assert processor.log_file.parent == output_path / "processing_logs"
         assert mooring_name in processor.log_file.name
-        assert "stage2.mooring.log" in processor.log_file.name
+        assert "stage2.log" in processor.log_file.name
 
     def test_read_yaml_time_valid(self, processor):
         """Test reading valid time from YAML."""
@@ -425,7 +425,7 @@ class TestRealDataProcessing:
         assert result is False
 
         # Check log file contains warning
-        log_files = list(setup["proc_dir"].glob("*_stage2.mooring.log"))
+        log_files = list(setup["proc_dir"].glob("processing_logs/*_stage2.log"))
         assert len(log_files) == 1
         log_content = log_files[0].read_text()
         assert "Raw file not found" in log_content
