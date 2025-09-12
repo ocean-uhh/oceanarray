@@ -68,7 +68,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../demo_instrument-output.html">Demo: instrument-level processing (Stage 1 and Stage 2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../demo_instrument-output.html">Demo: Instrument-Level Processing (Compact Workflow)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../demo_mooring-output.html">Demo: mooring-level processing (Step 1)</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Help and reference</span></p>
@@ -109,7 +109,6 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">log_info</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.read_rapid</span><span class="w"> </span><span class="kn">import</span> <span class="n">read_rapid</span>
 
 <span class="n">DUMMY_VALUES</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1e32</span><span class="p">,</span> <span class="o">-</span><span class="mf">9.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">9.9</span><span class="p">]</span>
 
@@ -234,36 +233,6 @@
     <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;source_file&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">ds</span></div>
 
-
-
-<span class="k">def</span><span class="w"> </span><span class="nf">_get_reader</span><span class="p">(</span><span class="n">array_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the reader function for the given array name.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    array_name : str</span>
-<span class="sd">        The name of the observing array.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    function</span>
-<span class="sd">        Reader function corresponding to the given array name.</span>
-
-<span class="sd">    Raises</span>
-<span class="sd">    ------</span>
-<span class="sd">    ValueError</span>
-<span class="sd">        If an unknown array name is provided.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">readers</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">&quot;rapid&quot;</span><span class="p">:</span> <span class="n">read_rapid</span><span class="p">,</span>
-    <span class="p">}</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">readers</span><span class="p">[</span><span class="n">array_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span>
-    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Unknown array name: </span><span class="si">{</span><span class="n">array_name</span><span class="si">}</span><span class="s2">. Valid options are: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">readers</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
 </pre></div>
 
            </div>

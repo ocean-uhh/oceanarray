@@ -70,7 +70,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="demo_instrument-output.html">Demo: instrument-level processing (Stage 1 and Stage 2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="demo_instrument-output.html">Demo: Instrument-Level Processing (Compact Workflow)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="demo_mooring-output.html">Demo: mooring-level processing (Step 1)</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Help and reference</span></p>
@@ -150,24 +150,17 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#general-tools-and-utilities">General Tools and Utilities</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#tools">tools</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.auto_filt"><code class="docutils literal notranslate"><span class="pre">auto_filt()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.calc_ds_difference"><code class="docutils literal notranslate"><span class="pre">calc_ds_difference()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.calc_psal"><code class="docutils literal notranslate"><span class="pre">calc_psal()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.downsample_to_sparse"><code class="docutils literal notranslate"><span class="pre">downsample_to_sparse()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.find_cold_entry_exit"><code class="docutils literal notranslate"><span class="pre">find_cold_entry_exit()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.find_deployment"><code class="docutils literal notranslate"><span class="pre">find_deployment()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.flag_salinity_outliers"><code class="docutils literal notranslate"><span class="pre">flag_salinity_outliers()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.flag_temporal_spikes"><code class="docutils literal notranslate"><span class="pre">flag_temporal_spikes()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.flag_vertical_inconsistencies"><code class="docutils literal notranslate"><span class="pre">flag_vertical_inconsistencies()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.lag_correlation"><code class="docutils literal notranslate"><span class="pre">lag_correlation()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.mean_of_middle_percent"><code class="docutils literal notranslate"><span class="pre">mean_of_middle_percent()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.middle_percent"><code class="docutils literal notranslate"><span class="pre">middle_percent()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.normalize_by_middle_percent"><code class="docutils literal notranslate"><span class="pre">normalize_by_middle_percent()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.normalize_dataset_by_middle_percent"><code class="docutils literal notranslate"><span class="pre">normalize_dataset_by_middle_percent()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.process_dataset"><code class="docutils literal notranslate"><span class="pre">process_dataset()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.run_qc"><code class="docutils literal notranslate"><span class="pre">run_qc()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.split_value"><code class="docutils literal notranslate"><span class="pre">split_value()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#oceanarray.tools.std_of_middle_percent"><code class="docutils literal notranslate"><span class="pre">std_of_middle_percent()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#utilities">utilities</a><ul>
@@ -833,29 +826,6 @@ Last updated: 2025-09-07</p>
 <h3>tools<a class="headerlink" href="#tools" title="Link to this heading"></a></h3>
 <p>Helper functions for unit conversion, time alignment, and quality control.</p>
 <dl class="py function" id="module-oceanarray.tools">
-<dt class="sig sig-object py" id="oceanarray.tools.auto_filt">
-<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">auto_filt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">co</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">typ</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'low'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#auto_filt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.auto_filt" title="Link to this definition"></a></dt>
-<dd><p>Apply a Butterworth digital filter to a data array.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>y</strong> (<em>array_like</em>) – Input data array (1D).</p></li>
-<li><p><strong>sr</strong> (<em>float</em>) – Sampling rate (Hz or 1/time units of your data).</p></li>
-<li><p><strong>co</strong> (<em>float</em><em> or </em><em>tuple</em><em> of </em><em>float</em>) – Cutoff frequency/frequencies. A scalar for ‘low’ or ‘high’, a 2-tuple for ‘bandstop’.</p></li>
-<li><p><strong>typ</strong> (<em>str</em><em>, </em><em>optional</em>) – Filter type: ‘low’, ‘high’, or ‘bandstop’. Default is ‘low’.</p></li>
-<li><p><strong>fo</strong> (<em>int</em><em>, </em><em>optional</em>) – Filter order. Default is 6.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>yf</strong> – Filtered data array.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>ndarray</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="oceanarray.tools.calc_ds_difference">
 <span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">calc_ds_difference</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ds2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#calc_ds_difference"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.calc_ds_difference" title="Link to this definition"></a></dt>
 <dd></dd></dl>
@@ -913,11 +883,6 @@ shape (n_profiles, 2 * n_pressures_sparse).
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="oceanarray.tools.find_deployment">
-<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">find_deployment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'temperature'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#find_deployment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.find_deployment" title="Link to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="oceanarray.tools.flag_salinity_outliers">
 <span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">flag_salinity_outliers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_std</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#flag_salinity_outliers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.flag_salinity_outliers" title="Link to this definition"></a></dt>
 <dd><p>Flags PSAL values that are more than n_std standard deviations from the mean,
@@ -956,88 +921,6 @@ threshold: max allowed difference between vertically adjacent sensors.</p>
 <dt class="sig sig-object py" id="oceanarray.tools.lag_correlation">
 <span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">lag_correlation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_lag</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_overlap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#lag_correlation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.lag_correlation" title="Link to this definition"></a></dt>
 <dd><p>Pearson correlation at integer lags in [-max_lag, max_lag].</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="oceanarray.tools.mean_of_middle_percent">
-<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">mean_of_middle_percent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">percent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">95</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#mean_of_middle_percent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.mean_of_middle_percent" title="Link to this definition"></a></dt>
-<dd><p>Compute the mean of values within the central <cite>percent</cite> of the data.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>values</strong> (<em>array-like</em>) – Input data (1D array). NaNs will be ignored.</p></li>
-<li><p><strong>percent</strong> (<em>float</em>) – Desired central percentage (e.g., 95 for middle 95%).</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Mean of values within the specified middle percentage.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="oceanarray.tools.middle_percent">
-<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">middle_percent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">percent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">95</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#middle_percent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.middle_percent" title="Link to this definition"></a></dt>
-<dd><p>Return the lower and upper bounds for the central <cite>percent</cite> of the data.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>values</strong> (<em>array-like</em>) – Input data (1D array). NaNs will be ignored.</p></li>
-<li><p><strong>percent</strong> (<em>float</em>) – Desired central percentage (e.g., 95 for middle 95%).</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>(lower_bound, upper_bound)</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>tuple</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="oceanarray.tools.normalize_by_middle_percent">
-<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">normalize_by_middle_percent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">percent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">95</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#normalize_by_middle_percent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.normalize_by_middle_percent" title="Link to this definition"></a></dt>
-<dd><p>Normalize a data series by the mean and standard deviation
-of its central <cite>percent</cite> range.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>values</strong> (<em>array-like</em>) – Input data (1D array). NaNs are ignored.</p></li>
-<li><p><strong>percent</strong> (<em>float</em>) – Central percentage to define the ‘middle’ of the distribution (e.g., 95).</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Normalized array with the same shape as input.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>array</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="oceanarray.tools.normalize_dataset_by_middle_percent">
-<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">normalize_dataset_by_middle_percent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">percent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">95</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#normalize_dataset_by_middle_percent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.normalize_dataset_by_middle_percent" title="Link to this definition"></a></dt>
-<dd><p>Normalize all 1D data variables in an xarray Dataset that match the length of TIME,
-using the mean and std over the central <cite>percent</cite> of each variable.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>ds</strong> (<em>xarray.Dataset</em>) – Input dataset with a ‘TIME’ coordinate.</p></li>
-<li><p><strong>percent</strong> (<em>float</em>) – Percentage of central values to define the middle (e.g., 95 for middle 95%).</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>New dataset with normalized data variables.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>xarray.Dataset</p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -1085,26 +968,6 @@ potential density anomaly for both resolutions.</p>
 <dt class="sig sig-object py" id="oceanarray.tools.split_value">
 <span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">split_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nbins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">30</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#split_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.split_value" title="Link to this definition"></a></dt>
 <dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="oceanarray.tools.std_of_middle_percent">
-<span class="sig-prename descclassname"><span class="pre">oceanarray.tools.</span></span><span class="sig-name descname"><span class="pre">std_of_middle_percent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">percent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">95</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/tools.html#std_of_middle_percent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.tools.std_of_middle_percent" title="Link to this definition"></a></dt>
-<dd><p>Compute the standard deviation of values within the central <cite>percent</cite> of the data.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>values</strong> (<em>array-like</em>) – Input data (1D array). NaNs will be ignored.</p></li>
-<li><p><strong>percent</strong> (<em>float</em>) – Desired central percentage (e.g., 95 for middle 95%).</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Standard deviation of values within the specified middle percentage.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>float</p>
-</dd>
-</dl>
-</dd></dl>
 
 </section>
 <section id="utilities">

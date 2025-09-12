@@ -68,7 +68,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../demo_instrument-output.html">Demo: instrument-level processing (Stage 1 and Stage 2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../demo_instrument-output.html">Demo: Instrument-Level Processing (Compact Workflow)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../demo_mooring-output.html">Demo: mooring-level processing (Step 1)</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Help and reference</span></p>
@@ -209,21 +209,116 @@
 
         <span class="k">return</span> <span class="n">dataset</span>
 
+    <span class="k">def</span><span class="w"> </span><span class="nf">_extract_metadata_from_filepath</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">filepath</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">mooring_name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract metadata from filepath when not available in YAML or dataset.</span>
+
+<span class="sd">        Expected pattern: {instrument_type}/{mooring_name}_{serial}_raw.nc</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">fallback_metadata</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># Extract instrument type from parent directory</span>
+        <span class="n">instrument_type</span> <span class="o">=</span> <span class="n">filepath</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">name</span>
+        <span class="n">fallback_metadata</span><span class="p">[</span><span class="s2">&quot;instrument&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">instrument_type</span>
+
+        <span class="c1"># Extract serial number from filename</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">filepath</span><span class="o">.</span><span class="n">stem</span>  <span class="c1"># Remove .nc extension</span>
+        <span class="k">if</span> <span class="n">filename</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_raw&quot;</span><span class="p">):</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span>  <span class="c1"># Remove _raw suffix</span>
+
+        <span class="c1"># Pattern: mooring_name_serial</span>
+        <span class="k">if</span> <span class="n">filename</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">mooring_name</span><span class="si">}</span><span class="s2">_&quot;</span><span class="p">):</span>
+            <span class="n">serial_str</span> <span class="o">=</span> <span class="n">filename</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">mooring_name</span><span class="si">}</span><span class="s2">_&quot;</span><span class="p">)</span> <span class="p">:]</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">serial</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">serial_str</span><span class="p">)</span>
+                <span class="n">fallback_metadata</span><span class="p">[</span><span class="s2">&quot;serial&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">serial</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_log_print</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Extracted from filename - instrument: </span><span class="si">{</span><span class="n">instrument_type</span><span class="si">}</span><span class="s2">, serial: </span><span class="si">{</span><span class="n">serial</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_log_print</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;WARNING: Could not parse serial number from filename: </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">fallback_metadata</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_figure_naming_info</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">mooring_name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get information needed for figure naming convention.</span>
+
+<span class="sd">        Returns dict with mooring_name, instrument, serial for creating</span>
+<span class="sd">        figure names like: dsE_1_2018_microcat_7518_ctd.png</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">instrument</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;instrument&quot;</span><span class="p">,</span> <span class="s2">&quot;unknown&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+        <span class="n">serial</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;serial_number&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;mooring_name&quot;</span><span class="p">:</span> <span class="n">mooring_name</span><span class="p">,</span>
+            <span class="s2">&quot;instrument&quot;</span><span class="p">:</span> <span class="n">instrument</span><span class="p">,</span>
+            <span class="s2">&quot;serial&quot;</span><span class="p">:</span> <span class="n">serial</span><span class="p">,</span>
+        <span class="p">}</span>
+
     <span class="k">def</span><span class="w"> </span><span class="nf">_add_missing_metadata</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">instrument_config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">dataset</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span>
+        <span class="n">instrument_config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="n">filepath</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span>
+        <span class="n">mooring_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add any missing metadata variables to dataset.&quot;&quot;&quot;</span>
-        <span class="c1"># Add instrument depth if missing</span>
-        <span class="k">if</span> <span class="s2">&quot;InstrDepth&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dataset</span><span class="o">.</span><span class="n">variables</span> <span class="ow">and</span> <span class="s2">&quot;depth&quot;</span> <span class="ow">in</span> <span class="n">instrument_config</span><span class="p">:</span>
-            <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;InstrDepth&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">instrument_config</span><span class="p">[</span><span class="s2">&quot;depth&quot;</span><span class="p">]</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add any missing metadata variables to dataset with fallback extraction.&quot;&quot;&quot;</span>
 
-        <span class="c1"># Add instrument type if missing</span>
-        <span class="k">if</span> <span class="s2">&quot;instrument&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dataset</span><span class="o">.</span><span class="n">variables</span> <span class="ow">and</span> <span class="s2">&quot;instrument&quot;</span> <span class="ow">in</span> <span class="n">instrument_config</span><span class="p">:</span>
-            <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;instrument&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">instrument_config</span><span class="p">[</span><span class="s2">&quot;instrument&quot;</span><span class="p">]</span>
+        <span class="c1"># Get metadata from YAML config (highest priority)</span>
+        <span class="n">yaml_instrument</span> <span class="o">=</span> <span class="n">instrument_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;instrument&quot;</span><span class="p">)</span>
+        <span class="n">yaml_serial</span> <span class="o">=</span> <span class="n">instrument_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;serial&quot;</span><span class="p">)</span>
+        <span class="n">yaml_depth</span> <span class="o">=</span> <span class="n">instrument_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;depth&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
-        <span class="c1"># Add serial number if missing</span>
-        <span class="k">if</span> <span class="s2">&quot;serial_number&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dataset</span><span class="o">.</span><span class="n">variables</span> <span class="ow">and</span> <span class="s2">&quot;serial&quot;</span> <span class="ow">in</span> <span class="n">instrument_config</span><span class="p">:</span>
-            <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;serial_number&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">instrument_config</span><span class="p">[</span><span class="s2">&quot;serial&quot;</span><span class="p">]</span>
+        <span class="c1"># Check if we need fallback for any missing fields</span>
+        <span class="n">needs_instrument_fallback</span> <span class="o">=</span> <span class="n">yaml_instrument</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="n">needs_serial_fallback</span> <span class="o">=</span> <span class="n">yaml_serial</span> <span class="ow">is</span> <span class="kc">None</span>
+
+        <span class="n">fallback_used</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">final_instrument</span> <span class="o">=</span> <span class="n">yaml_instrument</span>
+        <span class="n">final_serial</span> <span class="o">=</span> <span class="n">yaml_serial</span>
+
+        <span class="k">if</span> <span class="n">needs_instrument_fallback</span> <span class="ow">or</span> <span class="n">needs_serial_fallback</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log_print</span><span class="p">(</span>
+                <span class="s2">&quot;Some metadata missing from YAML, attempting extraction from filepath...&quot;</span>
+            <span class="p">)</span>
+            <span class="n">fallback_metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_metadata_from_filepath</span><span class="p">(</span>
+                <span class="n">filepath</span><span class="p">,</span> <span class="n">mooring_name</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Use fallback only for the missing fields</span>
+            <span class="k">if</span> <span class="n">needs_instrument_fallback</span> <span class="ow">and</span> <span class="s2">&quot;instrument&quot;</span> <span class="ow">in</span> <span class="n">fallback_metadata</span><span class="p">:</span>
+                <span class="n">final_instrument</span> <span class="o">=</span> <span class="n">fallback_metadata</span><span class="p">[</span><span class="s2">&quot;instrument&quot;</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_log_print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using fallback instrument type: </span><span class="si">{</span><span class="n">final_instrument</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">fallback_used</span> <span class="o">=</span> <span class="kc">True</span>
+
+            <span class="k">if</span> <span class="n">needs_serial_fallback</span> <span class="ow">and</span> <span class="s2">&quot;serial&quot;</span> <span class="ow">in</span> <span class="n">fallback_metadata</span><span class="p">:</span>
+                <span class="n">final_serial</span> <span class="o">=</span> <span class="n">fallback_metadata</span><span class="p">[</span><span class="s2">&quot;serial&quot;</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_log_print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using fallback serial number: </span><span class="si">{</span><span class="n">final_serial</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">fallback_used</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="c1"># Add metadata to dataset if missing</span>
+        <span class="k">if</span> <span class="s2">&quot;InstrDepth&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dataset</span><span class="o">.</span><span class="n">variables</span><span class="p">:</span>
+            <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;InstrDepth&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">yaml_depth</span>
+
+        <span class="k">if</span> <span class="s2">&quot;instrument&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dataset</span><span class="o">.</span><span class="n">variables</span> <span class="ow">and</span> <span class="n">final_instrument</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;instrument&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">final_instrument</span>
+
+        <span class="k">if</span> <span class="s2">&quot;serial_number&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dataset</span><span class="o">.</span><span class="n">variables</span> <span class="ow">and</span> <span class="n">final_serial</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dataset</span><span class="p">[</span><span class="s2">&quot;serial_number&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">final_serial</span>
+
+        <span class="c1"># Add history note if fallback was used</span>
+        <span class="k">if</span> <span class="n">fallback_used</span><span class="p">:</span>
+            <span class="n">history_note</span> <span class="o">=</span> <span class="s2">&quot;non-standard enrichment of metadata from filename patterns&quot;</span>
+            <span class="k">if</span> <span class="s2">&quot;history&quot;</span> <span class="ow">in</span> <span class="n">dataset</span><span class="o">.</span><span class="n">attrs</span><span class="p">:</span>
+                <span class="n">dataset</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;history&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;; </span><span class="si">{</span><span class="n">history_note</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">dataset</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;history&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">history_note</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log_print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Added history note: </span><span class="si">{</span><span class="n">history_note</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">dataset</span>
 
@@ -300,8 +395,10 @@
                 <span class="c1"># Create a copy to modify</span>
                 <span class="n">dataset</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
 
-            <span class="c1"># Add missing metadata</span>
-            <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_missing_metadata</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">instrument_config</span><span class="p">)</span>
+            <span class="c1"># Add missing metadata with fallback extraction</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_missing_metadata</span><span class="p">(</span>
+                <span class="n">dataset</span><span class="p">,</span> <span class="n">instrument_config</span><span class="p">,</span> <span class="n">raw_filepath</span><span class="p">,</span> <span class="n">mooring_name</span>
+            <span class="p">)</span>
 
             <span class="c1"># Clean unnecessary variables</span>
             <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_clean_unnecessary_variables</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>

@@ -71,7 +71,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="demo_instrument-output.html">Demo: instrument-level processing (Stage 1 and Stage 2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="demo_instrument-output.html">Demo: Instrument-Level Processing (Compact Workflow)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="demo_mooring-output.html">Demo: mooring-level processing (Step 1)</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Help and reference</span></p>
@@ -236,7 +236,7 @@
 </dd>
 <dt>🟡 <strong>Partially Implemented</strong></dt><dd><ul class="simple">
 <li><p>Stage 3: Auto QC - basic QARTOD functions exist (<code class="docutils literal notranslate"><span class="pre">tools.py</span></code>)</p></li>
-<li><p>Stage 4: Calibration - microcat calibration exists (<code class="docutils literal notranslate"><span class="pre">instrument.py</span></code>)</p></li>
+<li><p>Stage 4: Calibration - microcat calibration exists (<code class="docutils literal notranslate"><span class="pre">process_rodb.py</span></code>)</p></li>
 <li><p>Step 2: Vertical Gridding - physics-based interpolation exists (<code class="docutils literal notranslate"><span class="pre">rapid_interp.py</span></code>)</p></li>
 </ul>
 </dd>
@@ -441,7 +441,7 @@
 <section id="comprehensive-calibration-framework">
 <h3><a class="toc-backref" href="#id13" role="doc-backlink">9. Comprehensive Calibration Framework</a><a class="headerlink" href="#comprehensive-calibration-framework" title="Link to this heading"></a></h3>
 <p><strong>Documentation</strong>: <code class="docutils literal notranslate"><span class="pre">docs/source/methods/calibration.rst</span></code></p>
-<p><strong>Current State</strong>: Basic microcat calibration exists in <code class="docutils literal notranslate"><span class="pre">instrument.py</span></code>.</p>
+<p><strong>Current State</strong>: Basic microcat calibration exists in <code class="docutils literal notranslate"><span class="pre">process_rodb.py</span></code>.</p>
 <p><strong>Missing Implementation</strong>:
 - Multi-instrument calibration support (not just microcat)
 - Structured calibration metadata handling
@@ -451,7 +451,7 @@
 <p><strong>Estimated Effort</strong>: 2-3 weeks</p>
 <dl class="simple">
 <dt><strong>Implementation Plan</strong>:</dt><dd><ol class="arabic simple">
-<li><p>Expand <code class="docutils literal notranslate"><span class="pre">instrument.py</span></code> calibration functions</p></li>
+<li><p>Expand <code class="docutils literal notranslate"><span class="pre">process_rodb.py</span></code> calibration functions</p></li>
 <li><p>Create calibration configuration system</p></li>
 <li><p>Add uncertainty propagation</p></li>
 <li><p>Design calibration workflow automation</p></li>

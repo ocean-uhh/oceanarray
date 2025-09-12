@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Demo: instrument-level processing (Stage 1 and Stage 2) &mdash; oceanarray v0.0.0 documentation</title>
+  <title>Demo: Instrument-Level Processing (Compact Workflow) &mdash; oceanarray v0.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="_static/nbsphinx-code-cells.css?v=2aa19091" />
@@ -74,7 +74,16 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Demo: instrument-level processing (Stage 1 and Stage 2)</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Demo: Instrument-Level Processing (Compact Workflow)</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Processing-Overview">Processing Overview</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Stage-1:-Format-Conversion-(*_raw.nc)">Stage 1: Format Conversion (<code class="docutils literal notranslate"><span class="pre">*_raw.nc</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Stage-2:-Temporal-Corrections-&amp;-Trimming-(*_use.nc)">Stage 2: Temporal Corrections &amp; Trimming (<code class="docutils literal notranslate"><span class="pre">*_use.nc</span></code>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Stage-3:-Calibrations-&amp;-Corrections-(Optional)">Stage 3: Calibrations &amp; Corrections (Optional)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Stage-4:-Format-Conversion-(Optional)">Stage 4: Format Conversion (Optional)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#Key-Features">Key Features</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Comparison-with-Other-Notebooks">Comparison with Other Notebooks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#Configuration">Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#Stage-1:-Load-raw-instrument-files-and-convert-to-*_raw.nc">Stage 1: Load raw instrument files and convert to *_raw.nc</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#Stage-2:-Trim-to-deployment-period">Stage 2: Trim to deployment period</a></li>
@@ -105,7 +114,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">Demo: instrument-level processing (Stage 1 and Stage 2)</li>
+      <li class="breadcrumb-item active">Demo: Instrument-Level Processing (Compact Workflow)</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/demo_instrument-output.ipynb.txt" rel="nofollow"> View page source</a>
       </li>
@@ -115,9 +124,66 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="Demo:-instrument-level-processing-(Stage-1-and-Stage-2)">
-<h1>Demo: instrument-level processing (Stage 1 and Stage 2)<a class="headerlink" href="#Demo:-instrument-level-processing-(Stage-1-and-Stage-2)" title="Link to this heading"></a></h1>
-<p>This notebook walks through the instrument-level processing in the oceanarray code.</p>
+  <section id="Demo:-Instrument-Level-Processing-(Compact-Workflow)">
+<h1>Demo: Instrument-Level Processing (Compact Workflow)<a class="headerlink" href="#Demo:-Instrument-Level-Processing-(Compact-Workflow)" title="Link to this heading"></a></h1>
+<p>This notebook walks through the complete instrument-level processing pipeline in the oceanarray codebase, from raw files to science-ready datasets. It demonstrates the same processing steps as <code class="docutils literal notranslate"><span class="pre">demo_stage1.ipynb</span></code> and <code class="docutils literal notranslate"><span class="pre">demo_stage2.ipynb</span></code> but in a more compact, streamlined format.</p>
+<section id="Processing-Overview">
+<h2>Processing Overview<a class="headerlink" href="#Processing-Overview" title="Link to this heading"></a></h2>
+<section id="Stage-1:-Format-Conversion-(*_raw.nc)">
+<h3>Stage 1: Format Conversion (<code class="docutils literal notranslate"><span class="pre">*_raw.nc</span></code>)<a class="headerlink" href="#Stage-1:-Format-Conversion-(*_raw.nc)" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Purpose</strong>: Convert raw instrument files to standardized NetCDF format</p></li>
+<li><p><strong>Input</strong>: Raw instrument files (<code class="docutils literal notranslate"><span class="pre">.cnv</span></code>, <code class="docutils literal notranslate"><span class="pre">.rsk</span></code>, <code class="docutils literal notranslate"><span class="pre">.dat</span></code>, <code class="docutils literal notranslate"><span class="pre">.mat</span></code>)</p></li>
+<li><p><strong>Output</strong>: Standardized NetCDF files (<code class="docutils literal notranslate"><span class="pre">*_raw.nc</span></code>)</p></li>
+<li><p><strong>Processing</strong>: Uses <code class="docutils literal notranslate"><span class="pre">oceanarray.stage1.MooringProcessor</span></code> - same as <code class="docutils literal notranslate"><span class="pre">demo_stage1.ipynb</span></code></p></li>
+</ul>
+</section>
+<section id="Stage-2:-Temporal-Corrections-&amp;-Trimming-(*_use.nc)">
+<h3>Stage 2: Temporal Corrections &amp; Trimming (<code class="docutils literal notranslate"><span class="pre">*_use.nc</span></code>)<a class="headerlink" href="#Stage-2:-Temporal-Corrections-&-Trimming-(*_use.nc)" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Purpose</strong>: Apply clock corrections and trim to deployment periods</p></li>
+<li><p><strong>Input</strong>: Stage1 files (<code class="docutils literal notranslate"><span class="pre">*_raw.nc</span></code>) + updated YAML with clock offsets</p></li>
+<li><p><strong>Output</strong>: Time-corrected files (<code class="docutils literal notranslate"><span class="pre">*_use.nc</span></code>)</p></li>
+<li><p><strong>Processing</strong>: Uses <code class="docutils literal notranslate"><span class="pre">oceanarray.stage2.process_multiple_moorings_stage2</span></code> - same as <code class="docutils literal notranslate"><span class="pre">demo_stage2.ipynb</span></code></p></li>
+</ul>
+</section>
+<section id="Stage-3:-Calibrations-&amp;-Corrections-(Optional)">
+<h3>Stage 3: Calibrations &amp; Corrections (Optional)<a class="headerlink" href="#Stage-3:-Calibrations-&-Corrections-(Optional)" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Purpose</strong>: Apply sensor-specific calibrations and corrections</p></li>
+<li><p><strong>Status</strong>: Commented out sections showing how to apply additional calibrations</p></li>
+</ul>
+</section>
+<section id="Stage-4:-Format-Conversion-(Optional)">
+<h3>Stage 4: Format Conversion (Optional)<a class="headerlink" href="#Stage-4:-Format-Conversion-(Optional)" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p><strong>Purpose</strong>: Convert to OceanSites or other standardized formats</p></li>
+<li><p><strong>Status</strong>: Commented out sections for format conversion</p></li>
+</ul>
+</section>
+</section>
+<section id="Key-Features">
+<h2>Key Features<a class="headerlink" href="#Key-Features" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Compact Format</strong>: Covers the same ground as separate stage notebooks in one place</p></li>
+<li><p><strong>Instrument-Level Processing</strong>: Each instrument processed independently before mooring-level coordination</p></li>
+<li><p><strong>Multiple Instrument Types</strong>: Handles various instrument types with analysis functions</p></li>
+<li><p><strong>Visualization</strong>: Includes plotting and analysis of processed results</p></li>
+<li><p><strong>Metadata Management</strong>: YAML configuration files drive processing parameters</p></li>
+</ul>
+</section>
+<section id="Comparison-with-Other-Notebooks">
+<h2>Comparison with Other Notebooks<a class="headerlink" href="#Comparison-with-Other-Notebooks" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>vs demo_stage1.ipynb</strong>: Same Stage1 processing but more concise</p></li>
+<li><p><strong>vs demo_stage2.ipynb</strong>: Same Stage2 processing but integrated workflow</p></li>
+<li><p><strong>vs demo_step1.ipynb</strong>: Focuses on individual instruments rather than mooring-level time gridding</p></li>
+</ul>
+<p>Choose this notebook if you want a complete instrument processing workflow in one place, or use the separate stage notebooks for more detailed exploration of each processing step.</p>
+<div class="line-block">
+<div class="line">Version: 1.0</div>
+<div class="line">Date: 2025-01-15</div>
+</div>
 <div class="nbinput docutils container">
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
@@ -151,6 +217,7 @@
   import pkg_resources
 </pre></div></div>
 </div>
+</section>
 <section id="Configuration">
 <h2>Configuration<a class="headerlink" href="#Configuration" title="Link to this heading"></a></h2>
 <p>Set up the base directory and mooring lists for processing</p>
@@ -314,7 +381,7 @@ EXCEPT: Error reading file moor/raw/msm76_2018/rbrsolo/DSE18_101651_20180827_154
 EXCEPT: Error reading file moor/raw/msm76_2018/tr1050/DSE18_015580_20180827_1403.mat: Unknown file type: rbr-matlab
 --&gt;   Processing rbrsolo: moor/raw/msm76_2018/rbrsolo/DSE18_101647_20180827_1551.rsk
 Creating output file: moor/proc/dsE_1_2018/rbrsolo/dsE_1_2018_101647_raw.nc
-ERROR: Failed to process moor/raw/msm76_2018/rbrsolo/DSE18_101647_20180827_1551.rsk: Invalid value for attr &#39;processor_input_file_type&#39;: &lt;function RbrRskLegacyReader.format_name at 0x7fd2abc5b9c0&gt;. For serialization to netCDF files, its value must be of one of the following types: str, Number, ndarray, number, list, tuple, bytes
+ERROR: Failed to process moor/raw/msm76_2018/rbrsolo/DSE18_101647_20180827_1551.rsk: Invalid value for attr &#39;processor_input_file_type&#39;: &lt;function RbrRskLegacyReader.format_name at 0x7f259f29b9c0&gt;. For serialization to netCDF files, its value must be of one of the following types: str, Number, ndarray, number, list, tuple, bytes
 EXCEPT: Error reading file moor/raw/msm76_2018/tr1050/DSE18_013874_20180827_1410.mat: Unknown file type: rbr-matlab
 EXCEPT: Error reading file moor/raw/msm76_2018/rbrsolo/DSE18_101645_20180827_1553.rsk: no such table: dbInfo
 EXCEPT: Error reading file moor/raw/msm76_2018/tr1050/DSE18_015574_20180827_1407.mat: Unknown file type: rbr-matlab
@@ -557,9 +624,9 @@ Stage 2 completed: 1/23 instruments successful
 <div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#ds_cal = instrument.apply_microcat_calibration_from_txt(data_dir / &#39;wb1_12_2015_005.microcat.txt&#39;, data_dir / &#39;wb1_12_2015_6123.use&#39;)</span>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1">#ds_cal = process_rodb.apply_microcat_calibration_from_txt(data_dir / &#39;wb1_12_2015_005.microcat.txt&#39;, data_dir / &#39;wb1_12_2015_6123.use&#39;)</span>
 <span class="c1">#ds_cal</span>
-<br/></pre></div>
+</pre></div>
 </div>
 </div>
 <div class="nbinput nblast docutils container">

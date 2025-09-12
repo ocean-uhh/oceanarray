@@ -68,7 +68,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../demo_instrument-output.html">Demo: instrument-level processing (Stage 1 and Stage 2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../demo_instrument-output.html">Demo: Instrument-Level Processing (Compact Workflow)</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../demo_mooring-output.html">Demo: mooring-level processing (Step 1)</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Help and reference</span></p>
@@ -109,14 +109,12 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.signal</span><span class="w"> </span><span class="kn">import</span> <span class="n">butter</span><span class="p">,</span> <span class="n">filtfilt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.signal</span><span class="w"> </span><span class="kn">import</span> <span class="n">find_peaks</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray</span><span class="w"> </span><span class="kn">import</span> <span class="n">utilities</span>
 
 <span class="c1"># Initialize logging</span>
 <span class="n">_log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
-
-<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.signal</span><span class="w"> </span><span class="kn">import</span> <span class="n">find_peaks</span>
 
 
 <div class="viewcode-block" id="lag_correlation">
@@ -227,93 +225,6 @@
     <span class="n">s0</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">runs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">_</span><span class="p">,</span> <span class="n">eL</span> <span class="o">=</span> <span class="n">runs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">time</span><span class="p">[</span><span class="n">s0</span><span class="p">],</span> <span class="n">time</span><span class="p">[</span><span class="n">eL</span><span class="p">],</span> <span class="n">thr</span></div>
-
-
-
-<div class="viewcode-block" id="find_deployment">
-<a class="viewcode-back" href="../../oceanarray.html#oceanarray.tools.find_deployment">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">find_deployment</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">var_name</span><span class="o">=</span><span class="s2">&quot;temperature&quot;</span><span class="p">):</span>
-    <span class="n">pre_deploy_before</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">start_deployment</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">end_deployment</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">mooring_rising</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">split_vals</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">split_vals2</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">N_LEVELS</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;N_LEVELS&quot;</span><span class="p">]</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">N_LEVELS</span><span class="p">)):</span>
-        <span class="k">if</span> <span class="n">var_name</span> <span class="ow">in</span> <span class="n">ds</span> <span class="ow">and</span> <span class="n">ds</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span> <span class="o">==</span> <span class="p">(</span><span class="s2">&quot;time&quot;</span><span class="p">,</span> <span class="s2">&quot;N_LEVELS&quot;</span><span class="p">):</span>
-            <span class="n">data1</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="n">var_name</span><span class="p">][:,</span> <span class="n">i</span><span class="p">]</span>
-
-            <span class="n">splitter</span> <span class="o">=</span> <span class="n">split_value</span><span class="p">(</span><span class="n">data1</span><span class="p">)</span>
-            <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">split2</span> <span class="o">=</span> <span class="n">find_cold_entry_exit</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">],</span> <span class="n">data1</span><span class="p">)</span>
-
-            <span class="c1"># Assume the deployment data are below the threshold</span>
-            <span class="n">idx_less_than</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">data1</span> <span class="o">&lt;</span> <span class="n">splitter</span><span class="p">)</span>
-            <span class="n">idx_more_than</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">data1</span> <span class="o">&gt;</span> <span class="n">splitter</span><span class="p">)</span>
-
-            <span class="c1"># Find out whether idx_less_than or idx_more_than contains the first non-Nan value</span>
-            <span class="k">if</span> <span class="n">idx_less_than</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="p">(</span>
-                <span class="n">idx_more_than</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">idx_less_than</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">idx_more_than</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-            <span class="p">):</span>
-                <span class="c1"># idx_less_than starts sooner (i.e. contains the pre-deployment)</span>
-                <span class="n">idx</span> <span class="o">=</span> <span class="n">idx_more_than</span>
-                <span class="n">condition</span> <span class="o">=</span> <span class="s2">&quot;&gt;&quot;</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">idx</span> <span class="o">=</span> <span class="n">idx_less_than</span>
-                <span class="n">condition</span> <span class="o">=</span> <span class="s2">&quot;&lt;&quot;</span>
-
-            <span class="n">first_deep_time</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span>
-            <span class="n">time_before</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">values</span> <span class="k">if</span> <span class="n">idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span>
-            <span class="c1"># End of deployment + one after</span>
-            <span class="n">last_deep_time</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span>
-            <span class="n">time_after</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">][</span><span class="n">idx</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">values</span> <span class="k">if</span> <span class="n">idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">None</span>
-
-            <span class="n">pre_deploy_before</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">time_before</span><span class="p">)</span>
-            <span class="n">start_deployment</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">first_deep_time</span><span class="p">)</span>
-            <span class="n">end_deployment</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">last_deep_time</span><span class="p">)</span>
-            <span class="n">mooring_rising</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">time_after</span><span class="p">)</span>
-            <span class="n">split_vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">splitter</span><span class="p">)</span>
-            <span class="n">split_vals2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">split2</span><span class="p">)</span>
-
-            <span class="c1"># Initialise new variable in dataset ds, called start_time with same size as ds[var_name]</span>
-            <span class="k">if</span> <span class="s2">&quot;start_time&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">:</span>
-                <span class="c1"># Use proper datetime64 unit specification</span>
-                <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;start_time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="p">(</span><span class="s2">&quot;N_LEVELS&quot;</span><span class="p">),</span>
-                    <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;N_LEVELS&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">datetime64</span><span class="p">(</span><span class="s2">&quot;NaT&quot;</span><span class="p">,</span> <span class="s2">&quot;ns&quot;</span><span class="p">)),</span>
-                <span class="p">)</span>
-                <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;end_time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="p">(</span><span class="s2">&quot;N_LEVELS&quot;</span><span class="p">),</span>
-                    <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;N_LEVELS&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">datetime64</span><span class="p">(</span><span class="s2">&quot;NaT&quot;</span><span class="p">,</span> <span class="s2">&quot;ns&quot;</span><span class="p">)),</span>
-                <span class="p">)</span>
-            <span class="k">if</span> <span class="s2">&quot;split_value&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">:</span>
-                <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;split_value&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="p">(</span><span class="s2">&quot;N_LEVELS&quot;</span><span class="p">),</span>
-                    <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;N_LEVELS&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
-                <span class="p">)</span>
-            <span class="k">if</span> <span class="s2">&quot;split_value2&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">:</span>
-                <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;split_value2&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-                    <span class="p">(</span><span class="s2">&quot;N_LEVELS&quot;</span><span class="p">),</span>
-                    <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="s2">&quot;N_LEVELS&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">),</span>
-                <span class="p">)</span>
-            <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;start_time&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">first_deep_time</span>
-            <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;end_time&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">last_deep_time</span>
-            <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;split_value&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">splitter</span>
-            <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;split_value2&quot;</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">split2</span>
-
-            <span class="nb">print</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">data1</span><span class="p">[</span><span class="s1">&#39;serial_number&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">data1</span><span class="p">[</span><span class="s1">&#39;instrument&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="si">}</span><span class="s2">: Split at </span><span class="si">{</span><span class="n">splitter</span><span class="si">:</span><span class="s2">1.2f</span><span class="si">}</span><span class="s2">.  Start after </span><span class="si">{</span><span class="n">first_deep_time</span><span class="si">}</span><span class="s2">.  End with </span><span class="si">{</span><span class="n">last_deep_time</span><span class="si">}</span><span class="s2">.&quot;</span>
-            <span class="p">)</span>
-
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">pre_deploy_before</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">datetime64</span><span class="p">(</span><span class="s2">&quot;NaT&quot;</span><span class="p">,</span> <span class="s2">&quot;ns&quot;</span><span class="p">))</span>
-            <span class="n">start_deployment</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">datetime64</span><span class="p">(</span><span class="s2">&quot;NaT&quot;</span><span class="p">,</span> <span class="s2">&quot;ns&quot;</span><span class="p">))</span>
-            <span class="n">end_deployment</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">datetime64</span><span class="p">(</span><span class="s2">&quot;NaT&quot;</span><span class="p">,</span> <span class="s2">&quot;ns&quot;</span><span class="p">))</span>
-            <span class="n">mooring_rising</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">datetime64</span><span class="p">(</span><span class="s2">&quot;NaT&quot;</span><span class="p">,</span> <span class="s2">&quot;ns&quot;</span><span class="p">))</span>
-            <span class="n">split_vals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
-            <span class="n">split_vals2</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">ds</span></div>
 
 
 
@@ -569,206 +480,6 @@
     <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">ds_standard</span></div>
-
-
-
-<div class="viewcode-block" id="auto_filt">
-<a class="viewcode-back" href="../../oceanarray.html#oceanarray.tools.auto_filt">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">auto_filt</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">sr</span><span class="p">,</span> <span class="n">co</span><span class="p">,</span> <span class="n">typ</span><span class="o">=</span><span class="s2">&quot;low&quot;</span><span class="p">,</span> <span class="n">fo</span><span class="o">=</span><span class="mi">6</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Apply a Butterworth digital filter to a data array.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    y : array_like</span>
-<span class="sd">        Input data array (1D).</span>
-<span class="sd">    sr : float</span>
-<span class="sd">        Sampling rate (Hz or 1/time units of your data).</span>
-<span class="sd">    co : float or tuple of float</span>
-<span class="sd">        Cutoff frequency/frequencies. A scalar for &#39;low&#39; or &#39;high&#39;, a 2-tuple for &#39;bandstop&#39;.</span>
-<span class="sd">    typ : str, optional</span>
-<span class="sd">        Filter type: &#39;low&#39;, &#39;high&#39;, or &#39;bandstop&#39;. Default is &#39;low&#39;.</span>
-<span class="sd">    fo : int, optional</span>
-<span class="sd">        Filter order. Default is 6.</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    yf : ndarray</span>
-<span class="sd">        Filtered data array.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># Normalize cutoff frequency to the Nyquist rate</span>
-    <span class="n">nyquist</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">sr</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">co</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)):</span>
-        <span class="n">wh</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="o">/</span> <span class="n">nyquist</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">co</span><span class="p">]</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">wh</span> <span class="o">=</span> <span class="n">co</span> <span class="o">/</span> <span class="n">nyquist</span>
-
-    <span class="n">b</span><span class="p">,</span> <span class="n">a</span> <span class="o">=</span> <span class="n">butter</span><span class="p">(</span><span class="n">fo</span><span class="p">,</span> <span class="n">wh</span><span class="p">,</span> <span class="n">btype</span><span class="o">=</span><span class="n">typ</span><span class="p">)</span>
-    <span class="n">yf</span> <span class="o">=</span> <span class="n">filtfilt</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">yf</span></div>
-
-
-
-<div class="viewcode-block" id="normalize_dataset_by_middle_percent">
-<a class="viewcode-back" href="../../oceanarray.html#oceanarray.tools.normalize_dataset_by_middle_percent">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">normalize_dataset_by_middle_percent</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">percent</span><span class="o">=</span><span class="mi">95</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Normalize all 1D data variables in an xarray Dataset that match the length of TIME,</span>
-<span class="sd">    using the mean and std over the central `percent` of each variable.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    ds : xarray.Dataset</span>
-<span class="sd">        Input dataset with a &#39;TIME&#39; coordinate.</span>
-<span class="sd">    percent : float</span>
-<span class="sd">        Percentage of central values to define the middle (e.g., 95 for middle 95%).</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    xarray.Dataset</span>
-<span class="sd">        New dataset with normalized data variables.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">ds_norm</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="n">attrs</span><span class="o">=</span><span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">)</span>
-    <span class="n">time_shape</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;TIME&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
-
-    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">ds</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">time_shape</span><span class="p">:</span>
-            <span class="n">norm_values</span> <span class="o">=</span> <span class="n">normalize_by_middle_percent</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">percent</span><span class="p">)</span>
-            <span class="n">ds_norm</span><span class="p">[</span><span class="n">var</span><span class="p">]</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span>
-                <span class="n">norm_values</span><span class="p">,</span>
-                <span class="n">coords</span><span class="o">=</span><span class="n">ds</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">coords</span><span class="p">,</span>
-                <span class="n">dims</span><span class="o">=</span><span class="n">ds</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span><span class="p">,</span>
-                <span class="n">attrs</span><span class="o">=</span><span class="n">ds</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">,</span>
-            <span class="p">)</span>
-
-    <span class="c1"># Retain TIME coordinate</span>
-    <span class="n">ds_norm</span> <span class="o">=</span> <span class="n">ds_norm</span><span class="o">.</span><span class="n">assign_coords</span><span class="p">({</span><span class="s2">&quot;TIME&quot;</span><span class="p">:</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;TIME&quot;</span><span class="p">]})</span>
-    <span class="k">return</span> <span class="n">ds_norm</span></div>
-
-
-
-<div class="viewcode-block" id="normalize_by_middle_percent">
-<a class="viewcode-back" href="../../oceanarray.html#oceanarray.tools.normalize_by_middle_percent">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">normalize_by_middle_percent</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">percent</span><span class="o">=</span><span class="mi">95</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Normalize a data series by the mean and standard deviation</span>
-<span class="sd">    of its central `percent` range.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    values : array-like</span>
-<span class="sd">        Input data (1D array). NaNs are ignored.</span>
-<span class="sd">    percent : float</span>
-<span class="sd">        Central percentage to define the &#39;middle&#39; of the distribution (e.g., 95).</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    array</span>
-<span class="sd">        Normalized array with the same shape as input.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
-    <span class="n">mask</span> <span class="o">=</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
-    <span class="n">valid_values</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
-
-    <span class="k">if</span> <span class="n">valid_values</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">values</span>  <span class="c1"># return original if all NaNs</span>
-
-    <span class="n">lower</span><span class="p">,</span> <span class="n">upper</span> <span class="o">=</span> <span class="n">middle_percent</span><span class="p">(</span><span class="n">valid_values</span><span class="p">,</span> <span class="n">percent</span><span class="p">)</span>
-    <span class="n">middle_vals</span> <span class="o">=</span> <span class="n">valid_values</span><span class="p">[(</span><span class="n">valid_values</span> <span class="o">&gt;=</span> <span class="n">lower</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">valid_values</span> <span class="o">&lt;=</span> <span class="n">upper</span><span class="p">)]</span>
-
-    <span class="n">mean_mid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">middle_vals</span><span class="p">)</span>
-    <span class="n">std_mid</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">middle_vals</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">std_mid</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="s2">&quot;Standard deviation of middle percent is zero — normalization not possible.&quot;</span>
-        <span class="p">)</span>
-
-    <span class="n">normalized</span> <span class="o">=</span> <span class="p">(</span><span class="n">values</span> <span class="o">-</span> <span class="n">mean_mid</span><span class="p">)</span> <span class="o">/</span> <span class="n">std_mid</span>
-    <span class="k">return</span> <span class="n">normalized</span></div>
-
-
-
-<div class="viewcode-block" id="std_of_middle_percent">
-<a class="viewcode-back" href="../../oceanarray.html#oceanarray.tools.std_of_middle_percent">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">std_of_middle_percent</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">percent</span><span class="o">=</span><span class="mi">95</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Compute the standard deviation of values within the central `percent` of the data.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    values : array-like</span>
-<span class="sd">        Input data (1D array). NaNs will be ignored.</span>
-<span class="sd">    percent : float</span>
-<span class="sd">        Desired central percentage (e.g., 95 for middle 95%).</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    float</span>
-<span class="sd">        Standard deviation of values within the specified middle percentage.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
-    <span class="n">values</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">values</span><span class="p">)]</span>
-    <span class="n">lower</span><span class="p">,</span> <span class="n">upper</span> <span class="o">=</span> <span class="n">middle_percent</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">percent</span><span class="p">)</span>
-    <span class="n">filtered</span> <span class="o">=</span> <span class="n">values</span><span class="p">[(</span><span class="n">values</span> <span class="o">&gt;=</span> <span class="n">lower</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">values</span> <span class="o">&lt;=</span> <span class="n">upper</span><span class="p">)]</span>
-    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">filtered</span><span class="p">)</span></div>
-
-
-
-<div class="viewcode-block" id="mean_of_middle_percent">
-<a class="viewcode-back" href="../../oceanarray.html#oceanarray.tools.mean_of_middle_percent">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">mean_of_middle_percent</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">percent</span><span class="o">=</span><span class="mi">95</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Compute the mean of values within the central `percent` of the data.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    values : array-like</span>
-<span class="sd">        Input data (1D array). NaNs will be ignored.</span>
-<span class="sd">    percent : float</span>
-<span class="sd">        Desired central percentage (e.g., 95 for middle 95%).</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    float</span>
-<span class="sd">        Mean of values within the specified middle percentage.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
-    <span class="n">values</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">values</span><span class="p">)]</span>
-    <span class="n">lower</span><span class="p">,</span> <span class="n">upper</span> <span class="o">=</span> <span class="n">middle_percent</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">percent</span><span class="p">)</span>
-    <span class="n">filtered</span> <span class="o">=</span> <span class="n">values</span><span class="p">[(</span><span class="n">values</span> <span class="o">&gt;=</span> <span class="n">lower</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">values</span> <span class="o">&lt;=</span> <span class="n">upper</span><span class="p">)]</span>
-    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">filtered</span><span class="p">)</span></div>
-
-
-
-<div class="viewcode-block" id="middle_percent">
-<a class="viewcode-back" href="../../oceanarray.html#oceanarray.tools.middle_percent">[docs]</a>
-<span class="k">def</span><span class="w"> </span><span class="nf">middle_percent</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">percent</span><span class="o">=</span><span class="mi">95</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Return the lower and upper bounds for the central `percent` of the data.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    values : array-like</span>
-<span class="sd">        Input data (1D array). NaNs will be ignored.</span>
-<span class="sd">    percent : float</span>
-<span class="sd">        Desired central percentage (e.g., 95 for middle 95%).</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    tuple</span>
-<span class="sd">        (lower_bound, upper_bound)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
-    <span class="n">values</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">values</span><span class="p">)]</span>
-
-    <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="n">percent</span> <span class="o">&lt;</span> <span class="mi">100</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;percent must be between 0 and 100 (exclusive)&quot;</span><span class="p">)</span>
-
-    <span class="n">tail</span> <span class="o">=</span> <span class="p">(</span><span class="mi">100</span> <span class="o">-</span> <span class="n">percent</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
-    <span class="n">lower</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanpercentile</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">tail</span><span class="p">)</span>
-    <span class="n">upper</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nanpercentile</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="mi">100</span> <span class="o">-</span> <span class="n">tail</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">lower</span><span class="p">,</span> <span class="n">upper</span></div>
 
 
 

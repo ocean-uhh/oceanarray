@@ -26,7 +26,7 @@ The OceanArray framework currently provides a solid foundation for oceanographic
 
 🟡 **Partially Implemented**
   - Stage 3: Auto QC - basic QARTOD functions exist (``tools.py``)
-  - Stage 4: Calibration - microcat calibration exists (``instrument.py``) 
+  - Stage 4: Calibration - microcat calibration exists (``process_rodb.py``) 
   - Step 2: Vertical Gridding - physics-based interpolation exists (``rapid_interp.py``)
 
 ❌ **Documented but Not Implemented**
@@ -235,7 +235,7 @@ Priority 3: Enhanced Calibration System
 
 **Documentation**: ``docs/source/methods/calibration.rst``
 
-**Current State**: Basic microcat calibration exists in ``instrument.py``.
+**Current State**: Basic microcat calibration exists in ``process_rodb.py``.
 
 **Missing Implementation**:
 - Multi-instrument calibration support (not just microcat)
@@ -247,7 +247,7 @@ Priority 3: Enhanced Calibration System
 **Estimated Effort**: 2-3 weeks
 
 **Implementation Plan**:
-  1. Expand ``instrument.py`` calibration functions
+  1. Expand ``process_rodb.py`` calibration functions
   2. Create calibration configuration system
   3. Add uncertainty propagation
   4. Design calibration workflow automation
