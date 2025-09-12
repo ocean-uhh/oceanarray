@@ -21,9 +21,11 @@ import pytest
 import xarray as xr
 import yaml
 
-from oceanarray.stage2 import (Stage2Processor,
-                               process_multiple_moorings_stage2,
-                               stage2_mooring)
+from oceanarray.stage2 import (
+    Stage2Processor,
+    process_multiple_moorings_stage2,
+    stage2_mooring,
+)
 
 
 class TestStage2Processor:
@@ -246,7 +248,7 @@ class TestStage2Processor:
         # Should result in empty dataset
         assert len(result.time) == 0
 
-    def test_add_missing_metadata(self, processor, sample_raw_dataset):
+    def test_add_missing_metadata(self, processor, sample_raw_dataset, tmp_path):
         """Test adding missing metadata variables."""
         # Remove some metadata to test adding it back
         ds = sample_raw_dataset.copy()
@@ -254,13 +256,22 @@ class TestStage2Processor:
 
         instrument_config = {"depth": 150, "instrument": "new_microcat", "serial": 9999}
 
-        result = processor._add_missing_metadata(ds, instrument_config)
+        # Create a mock filepath for testing
+        mock_filepath = tmp_path / "microcat" / "test_mooring_7518_raw.nc"
+        mock_filepath.parent.mkdir(parents=True)
+        mock_filepath.touch()
+
+        result = processor._add_missing_metadata(
+            ds, instrument_config, mock_filepath, "test_mooring"
+        )
 
         assert result["InstrDepth"].values == 150
         assert result["instrument"].values == "new_microcat"
         assert result["serial_number"].values == 9999
 
-    def test_add_missing_metadata_no_overwrite(self, processor, sample_raw_dataset):
+    def test_add_missing_metadata_no_overwrite(
+        self, processor, sample_raw_dataset, tmp_path
+    ):
         """Test that existing metadata is not overwritten."""
         instrument_config = {
             "depth": 999,
@@ -268,12 +279,88 @@ class TestStage2Processor:
             "serial": 8888,
         }
 
-        result = processor._add_missing_metadata(sample_raw_dataset, instrument_config)
+        # Create a mock filepath for testing
+        mock_filepath = tmp_path / "microcat" / "test_mooring_7518_raw.nc"
+        mock_filepath.parent.mkdir(parents=True)
+        mock_filepath.touch()
+
+        result = processor._add_missing_metadata(
+            sample_raw_dataset, instrument_config, mock_filepath, "test_mooring"
+        )
 
         # Should keep original values
         assert result["InstrDepth"].values == 100
         assert result["instrument"].values == "microcat"
         assert result["serial_number"].values == 7518
+
+    def test_fallback_metadata_extraction(self, processor, tmp_path):
+        """Test fallback metadata extraction from filepath."""
+        # Create dataset missing metadata
+        import numpy as np
+        import xarray as xr
+
+        ds = xr.Dataset(
+            {
+                "temperature": (["time"], np.random.random(10)),
+            },
+            coords={"time": pd.date_range("2018-01-01", periods=10, freq="h")},
+        )
+
+        # YAML config is missing instrument and serial (None, not provided)
+        instrument_config = {"depth": 150}  # Only depth provided
+
+        # Create filepath that contains metadata
+        mock_filepath = tmp_path / "sbe56" / "dsE_1_2018_6363_raw.nc"
+        mock_filepath.parent.mkdir(parents=True)
+        mock_filepath.touch()
+
+        result = processor._add_missing_metadata(
+            ds, instrument_config, mock_filepath, "dsE_1_2018"
+        )
+
+        # Should extract from filepath
+        assert result["instrument"].values == "sbe56"
+        assert result["serial_number"].values == 6363
+        assert result["InstrDepth"].values == 150  # From YAML
+
+        # Should add history note about non-standard enrichment
+        assert (
+            "non-standard enrichment of metadata from filename patterns"
+            in result.attrs["history"]
+        )
+
+    def test_no_fallback_when_yaml_complete(self, processor, tmp_path):
+        """Test that fallback is not used when YAML provides complete metadata."""
+        # Create dataset missing metadata
+        import numpy as np
+        import xarray as xr
+
+        ds = xr.Dataset(
+            {
+                "temperature": (["time"], np.random.random(10)),
+            },
+            coords={"time": pd.date_range("2018-01-01", periods=10, freq="h")},
+        )
+
+        # YAML config has complete metadata
+        instrument_config = {"depth": 150, "instrument": "microcat", "serial": 7518}
+
+        # Create filepath with different metadata
+        mock_filepath = tmp_path / "sbe56" / "dsE_1_2018_6363_raw.nc"
+        mock_filepath.parent.mkdir(parents=True)
+        mock_filepath.touch()
+
+        result = processor._add_missing_metadata(
+            ds, instrument_config, mock_filepath, "dsE_1_2018"
+        )
+
+        # Should use YAML metadata, not filepath
+        assert result["instrument"].values == "microcat"  # From YAML
+        assert result["serial_number"].values == 7518  # From YAML
+        assert result["InstrDepth"].values == 150  # From YAML
+
+        # Should NOT add history note since no fallback was used
+        assert "history" not in result.attrs
 
     def test_clean_unnecessary_variables(self, processor, sample_raw_dataset):
         """Test removal of unnecessary variables."""

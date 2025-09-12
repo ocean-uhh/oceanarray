@@ -6,8 +6,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
-from ctd_tools.readers import (NortekAsciiReader, RbrAsciiReader,
-                               RbrRskAutoReader, SbeAsciiReader, SbeCnvReader)
+from ctd_tools.readers import (
+    NortekAsciiReader,
+    RbrAsciiReader,
+    RbrRskAutoReader,
+    SbeAsciiReader,
+    SbeCnvReader,
+)
 from ctd_tools.writers import NetCdfWriter
 
 

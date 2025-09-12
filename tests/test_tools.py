@@ -4,6 +4,14 @@ import xarray as xr
 
 from oceanarray import tools
 from oceanarray.tools import calc_ds_difference
+from oceanarray.process_rodb import (
+    middle_percent,
+    mean_of_middle_percent,
+    std_of_middle_percent,
+    normalize_by_middle_percent,
+    normalize_dataset_by_middle_percent,
+)
+from oceanarray.mooring_rodb import auto_filt
 
 
 @pytest.fixture
@@ -67,33 +75,33 @@ def test_downsample_to_sparse_shapes():
 
 def test_middle_percent():
     data = np.linspace(0, 100, 100)
-    lo, hi = tools.middle_percent(data, 80)
+    lo, hi = middle_percent(data, 80)
     assert lo > 0 and hi < 100 and hi > lo
 
 
 def test_middle_percent_bounds():
     data = np.linspace(0, 100, 1000)
-    lower, upper = tools.middle_percent(data, 90)
+    lower, upper = middle_percent(data, 90)
     assert np.isclose(lower, 5)
     assert np.isclose(upper, 95)
 
 
 def test_mean_of_middle_percent():
     data = np.concatenate([np.random.normal(10, 1, 1000), np.array([1000, -1000])])
-    mean = tools.mean_of_middle_percent(data, 95)
+    mean = mean_of_middle_percent(data, 95)
     assert abs(mean - 10) < 0.2
 
 
 def test_std_of_middle_percent():
     data = np.concatenate([np.random.normal(5, 2, 1000), np.array([999, -999])])
-    std = tools.std_of_middle_percent(data, 95)
+    std = std_of_middle_percent(data, 95)
     assert 1.5 < std < 2.5
 
 
 def test_mean_std_middle_percent():
     data = np.random.normal(0, 1, 1000)
-    mean = tools.mean_of_middle_percent(data, 90)
-    std = tools.std_of_middle_percent(data, 90)
+    mean = mean_of_middle_percent(data, 90)
+    std = std_of_middle_percent(data, 90)
     assert np.isfinite(mean)
     assert np.isfinite(std)
     assert std > 0
@@ -101,15 +109,15 @@ def test_mean_std_middle_percent():
 
 def test_normalize_by_middle_percent():
     data = np.random.normal(0, 1, 1000)
-    norm = tools.normalize_by_middle_percent(data, 90)
-    mid_std = tools.std_of_middle_percent(norm, 90)
+    norm = normalize_by_middle_percent(data, 90)
+    mid_std = std_of_middle_percent(norm, 90)
     assert 0.9 < mid_std < 1.1
 
 
 def test_normalize_dataset_by_middle_percent():
     time = np.arange(10)
     ds = xr.Dataset({"TEMP": ("TIME", np.random.rand(10) + 20)}, coords={"TIME": time})
-    ds_norm = tools.normalize_dataset_by_middle_percent(ds)
+    ds_norm = normalize_dataset_by_middle_percent(ds)
     assert "TEMP" in ds_norm
     assert np.allclose(ds_norm.TIME, time)
 
@@ -118,7 +126,7 @@ def test_auto_filt_low():
     sr = 1.0  # Hz
     t = np.linspace(0, 10, 500)
     signal = np.sin(2 * np.pi * 0.1 * t) + 0.5 * np.sin(2 * np.pi * 2 * t)
-    filtered = tools.auto_filt(signal, sr, co=0.2, typ="low")
+    filtered = auto_filt(signal, sr, co=0.2, typ="low")
     assert len(filtered) == len(signal)
     assert np.std(filtered) < np.std(signal)
 

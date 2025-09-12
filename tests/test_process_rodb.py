@@ -5,8 +5,11 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from oceanarray.instrument import (apply_microcat_calibration_from_txt,
-                                   stage2_trim, trim_suggestion)
+from oceanarray.process_rodb import (
+    apply_microcat_calibration_from_txt,
+    stage2_trim,
+    trim_suggestion,
+)
 from oceanarray.rodb import rodbload
 
 
@@ -65,9 +68,9 @@ Average pressure applied? n
     ds.to_netcdf(use_path)  # write as .nc, simulate reading in `rodbload`
 
     # Patch rodbload to return this dataset
-    from oceanarray import instrument
+    from oceanarray import process_rodb
 
-    instrument.rodb.rodbload = lambda _: ds
+    process_rodb.rodb.rodbload = lambda _: ds
 
     ds_cal = apply_microcat_calibration_from_txt(txt, use_path)
     assert "T" in ds_cal and np.allclose(

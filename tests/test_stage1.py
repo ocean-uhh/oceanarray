@@ -12,8 +12,11 @@ import pytest
 import xarray as xr
 import yaml
 
-from oceanarray.stage1 import (MooringProcessor, process_multiple_moorings,
-                               stage1_mooring)
+from oceanarray.stage1 import (
+    MooringProcessor,
+    process_multiple_moorings,
+    stage1_mooring,
+)
 
 
 class TestMooringProcessor:
@@ -144,6 +147,140 @@ class TestMooringProcessor:
         assert "float32_vars" in params
         assert params["chunk_time"] == 3600
         assert params["complevel"] == 5
+
+    def test_clean_dataset_variables_sbe_cnv(self, processor):
+        """Test cleaning dataset variables for SBE CNV files."""
+        # Create a mock dataset with variables that should be removed
+        import numpy as np
+        
+        ds = xr.Dataset({
+            "temperature": (["time"], [20.0, 21.0, 22.0]),
+            "pressure": (["time"], [100.0, 101.0, 102.0]),
+            "potential_temperature": (["time"], [19.8, 20.8, 21.8]),  # Should be removed
+            "density": (["time"], [1025.0, 1026.0, 1027.0]),  # Should be removed
+            "julian_days_offset": (["time"], [1, 2, 3]),  # Should be removed
+            "salinity": (["time"], [35.0, 35.1, 35.2]),  # Should be kept
+        }, coords={
+            "time": (["time"], np.arange(3)),
+            "depth": (["time"], [100.0, 100.0, 100.0]),  # Should be removed
+            "latitude": 60.0,  # Should be removed
+            "longitude": -30.0,  # Should be removed
+        })
+
+        # Clean the dataset
+        cleaned_ds = processor._clean_dataset_variables(ds, "sbe-cnv")
+
+        # Check that unwanted variables were removed
+        assert "potential_temperature" not in cleaned_ds.variables
+        assert "density" not in cleaned_ds.variables
+        assert "julian_days_offset" not in cleaned_ds.variables
+
+        # Check that wanted variables were kept
+        assert "temperature" in cleaned_ds.variables
+        assert "pressure" in cleaned_ds.variables
+        assert "salinity" in cleaned_ds.variables
+
+        # Check that unwanted coordinates were removed
+        assert "depth" not in cleaned_ds.coords
+        assert "latitude" not in cleaned_ds.coords
+        assert "longitude" not in cleaned_ds.coords
+
+        # Check that time coordinate was kept
+        assert "time" in cleaned_ds.coords
+
+    def test_clean_dataset_variables_unknown_type(self, processor):
+        """Test cleaning dataset variables for unknown file type."""
+        import numpy as np
+        
+        ds = xr.Dataset({
+            "temperature": (["time"], [20.0, 21.0, 22.0]),
+            "unwanted_var": (["time"], [1.0, 2.0, 3.0]),
+        }, coords={
+            "time": (["time"], np.arange(3)),
+            "unwanted_coord": (["time"], [100.0, 100.0, 100.0]),
+        })
+
+        # Clean with unknown file type (should not remove anything)
+        cleaned_ds = processor._clean_dataset_variables(ds, "unknown-type")
+
+        # Check that all variables and coordinates are preserved
+        assert "temperature" in cleaned_ds.variables
+        assert "unwanted_var" in cleaned_ds.variables
+        assert "time" in cleaned_ds.coords
+        assert "unwanted_coord" in cleaned_ds.coords
+
+    def test_add_global_attributes_complete(self, processor):
+        """Test adding global attributes with complete YAML data."""
+        import numpy as np
+        
+        # Create a simple dataset
+        ds = xr.Dataset({
+            "temperature": (["time"], [20.0, 21.0, 22.0])
+        }, coords={
+            "time": (["time"], np.arange(3))
+        })
+
+        yaml_data = {
+            "name": "test_mooring",
+            "waterdepth": 1000,
+            "longitude": -30.0,
+            "latitude": 60.0,
+            "deployment_latitude": "60 00.000 N",
+            "deployment_longitude": "030 00.000 W", 
+            "deployment_time": "2018-08-12T08:00:00",
+            "seabed_latitude": "59 59.500 N",
+            "seabed_longitude": "030 00.500 W",
+            "recovery_time": "2018-08-26T20:47:24",
+        }
+
+        # Add global attributes
+        updated_ds = processor._add_global_attributes(ds, yaml_data)
+
+        # Check that all attributes were added correctly
+        assert updated_ds.attrs["mooring_name"] == "test_mooring"
+        assert updated_ds.attrs["waterdepth"] == 1000
+        assert updated_ds.attrs["longitude"] == -30.0
+        assert updated_ds.attrs["latitude"] == 60.0
+        assert updated_ds.attrs["deployment_latitude"] == "60 00.000 N"
+        assert updated_ds.attrs["deployment_longitude"] == "030 00.000 W"
+        assert updated_ds.attrs["deployment_time"] == "2018-08-12T08:00:00"
+        assert updated_ds.attrs["seabed_latitude"] == "59 59.500 N"
+        assert updated_ds.attrs["seabed_longitude"] == "030 00.500 W"
+        assert updated_ds.attrs["recovery_time"] == "2018-08-26T20:47:24"
+
+    def test_add_global_attributes_minimal(self, processor):
+        """Test adding global attributes with minimal YAML data."""
+        import numpy as np
+        
+        # Create a simple dataset
+        ds = xr.Dataset({
+            "temperature": (["time"], [20.0, 21.0, 22.0])
+        }, coords={
+            "time": (["time"], np.arange(3))
+        })
+
+        # Minimal YAML data (only required fields)
+        yaml_data = {
+            "name": "minimal_mooring",
+            "waterdepth": 500,
+        }
+
+        # Add global attributes
+        updated_ds = processor._add_global_attributes(ds, yaml_data)
+
+        # Check that required attributes were added
+        assert updated_ds.attrs["mooring_name"] == "minimal_mooring"
+        assert updated_ds.attrs["waterdepth"] == 500
+
+        # Check that default values were used for missing fields
+        assert updated_ds.attrs["longitude"] == 0.0
+        assert updated_ds.attrs["latitude"] == 0.0
+        assert updated_ds.attrs["deployment_latitude"] == "00 00.000 N"
+        assert updated_ds.attrs["deployment_longitude"] == "000 00.000 W"
+        assert updated_ds.attrs["deployment_time"] == "YYYY-mm-ddTHH:MM:ss"
+        assert updated_ds.attrs["seabed_latitude"] == "00 00.000 N"
+        assert updated_ds.attrs["seabed_longitude"] == "000 00.000 W"
+        assert updated_ds.attrs["recovery_time"] == "YYYY-mm-ddTHH:MM:ss"
 
 
 class TestRealDataProcessing:

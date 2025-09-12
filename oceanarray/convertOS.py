@@ -7,8 +7,9 @@ import xarray as xr
 import yaml
 
 from oceanarray import utilities  # for any shared helpers like date parsing
-from oceanarray.utilities import \
-    iso8601_duration_from_seconds  # or wherever you store it
+from oceanarray.utilities import (
+    iso8601_duration_from_seconds,
+)  # or wherever you store it
 
 
 def convert_rodb_to_oceansites(

@@ -1,156 +1,191 @@
-# What’s in This Template Project?
+# OceanArray Project Structure
 
-> 🐍 This project is designed for a **Python-based code repository**. It includes features to help you manage, test, document, and share your code.
-
-Below is an overview of the files and folders you’ll find in the `template-project`, along with what they do and why they’re useful. If you're new to GitHub or Python packaging, this is your orientation.
+This document provides an overview of the oceanarray codebase structure and organization.
 
 ---
 
 ## 🔍 Project Structure Overview
 
-📷 *This is what the template looks like when you clone or fork it:*
-# 📁 `template-project` File Structure
-
-A minimal, modular Python project structure for collaborative research and reproducible workflows.
-
 ```
-template-project/
-├── template_project              # [core] Main Python package with scientific code
-│   ├── __init__.py               # [core] Makes this a Python package
-│   ├── plotters.py               # [core] Functions to plot data
-│   ├── readers.py                # [core] Functions to read raw data into xarray datasets
-│   ├── read_rapid.py             # [core] Example for a separate module for a specific dataset
-│   ├── writers.py                # [core] Functions to write data (e.g., to NetCDF)
-│   ├── tools.py                  # [core] Utilities for unit conversion, calculations, etc.
-│   ├── logger.py                 # [core] Structured logging configuration for reproducible runs
-│   ├── template_project.mplstyle # [core] Default plotting parameters
-│   └── utilities.py              # [core] Helper functions (e.g., file download or parsing)
+oceanarray/
+├── oceanarray/                    # [core] Main Python package for oceanographic processing
+│   ├── __init__.py                # [core] Makes this a Python package
+│   ├── stage1.py                  # [core] Stage1: Raw data conversion to NetCDF (modern workflow)
+│   ├── stage2.py                  # [core] Stage2: Clock corrections and trimming (modern workflow)
+│   ├── time_gridding.py           # [core] Time gridding and mooring-level processing (modern workflow)
+│   ├── clock_offset.py            # [core] Clock offset detection and correction analysis
+│   ├── find_deployment.py         # [core] Deployment detection from temperature profiles
+│   ├── readers.py                 # [core] Functions to read various oceanographic data formats
+│   ├── writers.py                 # [core] Functions to write processed data to NetCDF
+│   ├── rodb.py                    # [core] RODB format reader for legacy RAPID data
+│   ├── process_rodb.py            # [legacy] Legacy RODB instrument processing functions
+│   ├── mooring_rodb.py            # [legacy] Legacy RODB mooring-level processing functions
+│   ├── tools.py                   # [core] Core utilities (lag correlation, QC functions)
+│   ├── convertOS.py               # [format] OceanSites format conversion utilities
+│   ├── plotters.py                # [viz] Data visualization and plotting functions
+│   ├── rapid_interp.py            # [interp] Physics-based vertical interpolation
+│   ├── transports.py              # [analysis] Transport calculations (work in progress)
+│   ├── logger.py                  # [core] Structured logging configuration
+│   ├── utilities.py               # [core] General helper functions
+│   └── config/                    # [config] Configuration files for processing
+│       ├── OS1_var_names.yaml     # [config] OceanSites variable name mappings
+│       ├── OS1_vocab_attrs.yaml   # [config] OceanSites vocabulary attributes
+│       ├── OS1_sensor_attrs.yaml  # [config] OceanSites sensor attributes
+│       └── project_RAPID.yaml     # [config] RAPID project configuration
 │
-├── tests/                        # [test] Unit tests using pytest
-│   ├── test_readers.py           # [test] Test functions in readers.py
-│   ├── test_tools.py             # [test] Test functions in tools.py
-│   ├── test_utilities.py         # [test] Test functions in utilities.py
+├── tests/                         # [test] Unit tests using pytest
+│   ├── test_stage1.py             # [test] Test Stage1 processing
+│   ├── test_stage2.py             # [test] Test Stage2 processing
+│   ├── test_rodb.py               # [test] Test RODB data reading
+│   ├── test_process_rodb.py       # [test] Test legacy RODB processing functions
+│   ├── test_mooring_rodb.py       # [test] Test legacy RODB mooring functions
+│   ├── test_tools.py              # [test] Test core utility functions
+│   ├── test_convertOS.py          # [test] Test OceanSites conversion
 │   └── ...
 │
-├── docs/                         # [docs]
-│   ├── source/                   # [docs] Sphinx documentation source files
-│   │   ├── conf.py               # [docs] Setup for documentation
-│   │   ├── index.rst             # [docs] Main page with menus in *.rst
-│   │   ├── setup.md              # [docs] One of the documentation pages in *.md
-│   │   ├── template_project.rst  # [docs] The file to create the API based on docstrings
-│   │   ├── ...                   # [docs] More *.md or *.rst linked in index.rst
-│   │   └── _static               # [docs] Figures
-│   │       ├── css/custom.css    # [docs, style] Custom style sheet for docs
-│   │       └── logo.png          # [docs] logo for top left of docs/
-│   └── Makefile                  # [docs] Build the docs
+├── notebooks/                     # [demo] Processing demonstration notebooks
+│   ├── demo_stage1.ipynb          # [demo] Stage1 processing demo
+│   ├── demo_stage2.ipynb          # [demo] Stage2 processing demo
+│   ├── demo_step1.ipynb           # [demo] Time gridding (mooring-level) demo
+│   ├── demo_instrument.ipynb      # [demo] Compact instrument processing workflow
+│   ├── demo_clock_offset.ipynb    # [demo] Clock offset analysis (refactored)
+│   ├── demo_check_clock.ipynb     # [demo] Clock offset analysis (original)
+│   ├── demo_instrument_rdb.ipynb  # [demo] Legacy RODB instrument processing
+│   ├── demo_mooring_rdb.ipynb     # [demo] Legacy RODB mooring processing
+│   ├── demo_batch_instrument.ipynb # [demo] Batch processing and QC analysis
+│   └── demo_climatology.ipynb     # [demo] Climatological processing
 │
-├── notebooks/                    # [demo] Example notebooks
-│   ├── demo.ipynb                # [demo] Also run in docs.yml to appear in docs
-│   └── ...
+├── docs/                          # [docs] Sphinx documentation
+│   ├── source/                    # [docs] Documentation source files
+│   │   ├── conf.py                # [docs] Sphinx configuration
+│   │   ├── index.rst              # [docs] Main documentation page
+│   │   ├── processing_framework.rst # [docs] Processing workflow documentation
+│   │   ├── roadmap.rst            # [docs] Development roadmap
+│   │   ├── methods/               # [docs] Method documentation
+│   │   │   ├── standardisation.rst    # [docs] Stage1 standardization
+│   │   │   ├── trimming.rst           # [docs] Stage2 trimming
+│   │   │   ├── time_gridding.rst      # [docs] Time gridding methods
+│   │   │   ├── clock_offset.rst       # [docs] Clock offset analysis
+│   │   │   └── ...
+│   │   └── _static/               # [docs] Static files (images, CSS)
+│   └── Makefile                   # [docs] Build documentation
 │
-├── data/                         # [data]
-│   └── moc_transports.nc         # [data] Example data file used for the template.
+├── data/                          # [data] Sample and test data
+│   ├── moor/                      # [data] Mooring data directory structure
+│   │   ├── proc/                  # [data] Processed data
+│   │   └── raw/                   # [data] Raw instrument files
+│   └── climatology/               # [data] Climatological reference data
 │
-├── logs/                         # [core] Log output from structured logging
-│   └── amocarray_*.log           # [core]
-│
-├── .github/                      # [ci] GitHub-specific workflows (e.g., Actions)
+├── .github/                       # [ci] GitHub-specific workflows
 │   ├── workflows/
-│   │   ├── docs.yml              # [ci] Test build documents on *pull-request*
-│   │   ├── docs_deploy.yml       # [ci] Build and deploy documents on "merge"
-│   │   ├── pypi.yml              # [ci] Package and release on GitHub.com "release"
-│   │   └── test.yml              # [ci] Run pytest on tests/test_<name>.py on *pull-request*
-│   ├── ISSUE_TEMPLATE.md         # [ci, meta] Template for issues on Github
-│   └── PULL_REQUEST_TEMPLATE.md  # [ci, meta] Template for pull requests on Github
+│   │   ├── tests.yml              # [ci] Run pytest on pull requests
+│   │   └── docs.yml               # [ci] Build documentation
+│   └── ...
 │
-├── .gitignore                    # [meta] Exclude build files, logs, data, etc.
-├── requirements.txt              # [meta] Pip requirements
-├── requirements-dev.txt          # [meta] Pip requirements for development (docs, tests, linting)
-├── .pre-commit-config.yaml       # [style] Instructions for pre-commits to run (linting)
-├── pyproject.toml                # [ci, meta, style] Build system and config linters
-├── CITATION.cff                  # [meta] So Github can populate the "cite" button
-├── README.md                     # [meta] Project overview and getting started
-└── LICENSE                       # [meta] Open source license (e.g., MIT as default)
+├── CLAUDE.md                      # [meta] Claude Code guidance file
+├── .gitignore                     # [meta] Git ignore patterns
+├── requirements.txt               # [meta] Core dependencies
+├── requirements-dev.txt           # [meta] Development dependencies
+├── .pre-commit-config.yaml        # [style] Pre-commit hooks configuration
+├── pyproject.toml                 # [meta] Build system and project metadata
+├── README.md                      # [meta] Project overview
+└── LICENSE                        # [meta] MIT License
 ```
 
-The tags above give an indication of what parts of this template project are used for what purposes, where:
-- `# [core]` – Scientific core logic or core functions used across the project.
-<!--- `# [api]` – Public-facing functions or modules users are expected to import and use.-->
-- `# [docs]` – Documentation sources, configs, and assets for building project docs.
-- `# [test]` – Automated tests for validating functionality.
-- `# [demo]` – Notebooks and minimal working examples for demos or tutorials.
-- `# [data]` – Sample or test data files.
-- `# [ci]` – Continuous integration setup (GitHub Actions).
-- `# [style]` – Configuration for code style, linting, and formatting.
-- `# [meta]` – Project metadata (e.g., citation info, license, README).
+## 🔍 Architecture Overview
 
-**Note:** There are also files that you may end up generating but which don't necessarily appear in the project on GitHub.com (due to being ignored by your `.gitignore`).  These may include your environment (`venv/`, if you use pip and virtual environments), distribution files `dist/` for building packages to deploy on http://pypi.org, `htmlcov/` for coverage reports for tests, `template_project_efw.egg-info` for editable installs (e.g., `pip install -e .`).
+### Modern Processing Workflow
+The current recommended workflow uses:
+1. **Stage1** (`stage1.py`) - Format conversion from raw instrument files to CF-NetCDF
+2. **Stage2** (`stage2.py`) - Clock corrections and deployment period trimming
+3. **Time Gridding** (`time_gridding.py`) - Multi-instrument coordination and filtering
+4. **Clock Offset Analysis** (`clock_offset.py`) - Inter-instrument timing validation
 
-## 🔍 Notes
+### Legacy RODB Workflow  
+For RAPID/RODB format compatibility:
+- **`process_rodb.py`** - Individual instrument processing functions
+- **`mooring_rodb.py`** - Mooring-level stacking and filtering functions
+- **`rodb.py`** - RODB format data reader
 
-- **Modularity**: Code is split by function (reading, writing, tools).
-- **Logging**: All major functions support structured logging to `logs/`.
-- **Tests**: Pytest-compatible tests are in `tests/`, with one file per module.
-- **Docs**: Sphinx documentation is in `docs/`.
+### Key Design Principles
+- **CF-Compliant**: Uses CF conventions for metadata and variable naming
+- **xarray-Based**: Primary data structure throughout the pipeline
+- **Modular**: Independent processing stages that can be run separately
+- **Configurable**: YAML-driven configuration for processing parameters
+- **Reproducible**: Comprehensive logging and processing history tracking
 
-
----
-
-## 🔰 The Basics (Always Included)
-
-- **`README.md`** – The first thing people see when they visit your GitHub repo. Use this to explain what your project is, how to install it, and how to get started.
-- **`LICENSE`** – Explains what others are allowed to do with your code. This template uses the **MIT License**:
-  - ✅ Very permissive — allows commercial and private use, modification, and distribution.
-  - 🔗 More license info: [choosealicense.com](https://choosealicense.com/)
-- **`.gitignore`** – Tells Git which files/folders to ignore (e.g., system files, data outputs).
-- **`requirements.txt`** – Lists the Python packages your project needs to run.
-
----
-
-## 🧰 Python Packaging and Development
-
-- **`pyproject.toml`** – A modern configuration file for building, installing, and describing your package (e.g. name, author, dependencies).
-- **`requirements-dev.txt`** – Additional tools for developers (testing, linting, formatting, etc.).
-- **`template_project/`** – Your main code lives here. Python will treat this as an importable module.
-- **`pip install -e .`** – Lets you install your project locally in a way that updates as you edit files.
+### File Organization Tags
+- `[core]` - Essential processing functionality and utilities
+- `[legacy]` - RODB/RAPID legacy format compatibility functions  
+- `[demo]` - Example notebooks demonstrating workflows
+- `[test]` - Automated tests for functionality validation
+- `[docs]` - Documentation sources and configuration
+- `[config]` - Processing configuration and parameter files
+- `[data]` - Sample data and directory structure examples
+- `[ci]` - Continuous integration and automation
+- `[meta]` - Project metadata and development configuration
 
 ---
 
-## 🧪 Testing and Continuous Integration
+## 🔧 Processing Stages
 
-- **`tests/`** – Folder for test files. Use these to make sure your code works as expected.
-- **`.github/workflows/`** – GitHub Actions automation:
-  - `tests.yml` – Runs your tests automatically when you push changes.
-  - `docs.yml` – Builds your documentation to check for errors.
-  - `docs_deploy.yml` – Publishes documentation to GitHub Pages.
-  - `pypi.yml` – Builds and uploads a release to PyPI when you tag a new version.
+### Stage 1: Standardization
+- **Purpose**: Convert raw instrument files to standardized NetCDF format
+- **Input**: Raw files (`.cnv`, `.rsk`, `.dat`, `.mat`)
+- **Output**: CF-compliant NetCDF files (`*_raw.nc`)
+- **Module**: `stage1.py`
+
+### Stage 2: Temporal Corrections
+- **Purpose**: Apply clock corrections and trim to deployment periods
+- **Input**: Stage1 files + YAML with clock offsets
+- **Output**: Time-corrected files (`*_use.nc`)  
+- **Module**: `stage2.py`
+
+### Time Gridding: Mooring Coordination
+- **Purpose**: Combine instruments onto common time grids with optional filtering
+- **Input**: Stage2 files from multiple instruments
+- **Output**: Mooring-level combined datasets
+- **Module**: `time_gridding.py`
+
+### Clock Offset Analysis
+- **Purpose**: Detect timing errors between instruments on same mooring
+- **Input**: Stage1 files from multiple instruments
+- **Output**: Recommended clock offset corrections for YAML
+- **Module**: `clock_offset.py`
 
 ---
 
-## 📝 Documentation
+## 📊 Data Flow
 
-- **`docs/`** – Contains Sphinx and Markdown files to build your documentation site.
-  - Run `make html` or use GitHub Actions to generate a website.
-- **`.vscode/`** – Optional settings for Visual Studio Code (e.g., interpreter paths).
-- **`notebooks/`** – A place to keep example Jupyter notebooks.
+```
+Raw Files → Stage1 → Stage2 → Time Gridding → Array Analysis
+    ↓         ↓         ↓           ↓             ↓
+  Various   *_raw.nc  *_use.nc   Combined     Transports
+  Formats                        Mooring      & Products
+                                 Datasets
+```
 
----
-
-## 🧾 Metadata and Community
-
-- **`CITATION.cff`** – Machine-readable citation info. Lets GitHub generate a "Cite this repository" button.
-- **`CONTRIBUTING.md`** – Guidelines for contributing to the project. Useful if you welcome outside help.
-- **`.pre-commit-config.yaml`** – Configuration for running automated checks (e.g., code formatting) before each commit.
+**Clock Offset Loop**: Stage1 → Clock Analysis → Update YAML → Stage2
 
 ---
 
-## ✅ Summary
+## 🧪 Testing Structure
 
-This template is a starting point for research or open-source Python projects. It supports:
-- Clean project structure
-- Reproducible environments
-- Easy testing
-- Auto-publishing documentation
-- Optional packaging for PyPI
+Tests are organized by module with comprehensive coverage:
+- **Core workflow tests**: `test_stage*.py` 
+- **Legacy format tests**: `test_*_rodb.py`
+- **Utility tests**: `test_tools.py`, `test_convertOS.py`
+- **Integration tests**: Via demo notebooks in CI
 
-> 💡 Use what you need. Delete what you don’t. This is your scaffold for doing good, shareable science/code.
+---
+
+## 📚 Documentation Structure
+
+- **Methods documentation**: Detailed processing methodology
+- **API documentation**: Auto-generated from docstrings
+- **Demo notebooks**: Interactive examples and tutorials
+- **Development guides**: Roadmap and contribution guidelines
+
+---
+
+This structure supports both modern CF-compliant processing workflows and legacy RAPID/RODB format compatibility, providing a flexible framework for oceanographic mooring data processing.
