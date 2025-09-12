@@ -19,8 +19,9 @@ import numpy as np
 import xarray as xr
 import yaml
 
-from .convertOS import parse_rodb_metadata
 from oceanarray.logger import log_warning
+
+from .convertOS import parse_rodb_metadata
 
 REVERSE_KEYS = {
     "mooring": "Mooring",

@@ -5,8 +5,9 @@ from pathlib import Path
 import numpy as np
 import xarray as xr
 
-from . import rodb
 from oceanarray.logger import log_debug, log_info, log_warning
+
+from . import rodb
 
 DUMMY_VALUE = -9.99e-29  # adjust if needed
 
