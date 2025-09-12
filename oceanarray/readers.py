@@ -122,5 +122,3 @@ def rodbload_old(filepath: Path, variables: list[str]) -> xr.Dataset:
     ds = xr.Dataset(data_vars, coords=coords)
     ds.attrs["source_file"] = str(filepath)
     return ds
-
-

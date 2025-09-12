@@ -12,11 +12,8 @@ import pytest
 import xarray as xr
 import yaml
 
-from oceanarray.stage1 import (
-    MooringProcessor,
-    process_multiple_moorings,
-    stage1_mooring,
-)
+from oceanarray.stage1 import (MooringProcessor, process_multiple_moorings,
+                               stage1_mooring)
 
 
 class TestMooringProcessor:
@@ -152,20 +149,26 @@ class TestMooringProcessor:
         """Test cleaning dataset variables for SBE CNV files."""
         # Create a mock dataset with variables that should be removed
         import numpy as np
-        
-        ds = xr.Dataset({
-            "temperature": (["time"], [20.0, 21.0, 22.0]),
-            "pressure": (["time"], [100.0, 101.0, 102.0]),
-            "potential_temperature": (["time"], [19.8, 20.8, 21.8]),  # Should be removed
-            "density": (["time"], [1025.0, 1026.0, 1027.0]),  # Should be removed
-            "julian_days_offset": (["time"], [1, 2, 3]),  # Should be removed
-            "salinity": (["time"], [35.0, 35.1, 35.2]),  # Should be kept
-        }, coords={
-            "time": (["time"], np.arange(3)),
-            "depth": (["time"], [100.0, 100.0, 100.0]),  # Should be removed
-            "latitude": 60.0,  # Should be removed
-            "longitude": -30.0,  # Should be removed
-        })
+
+        ds = xr.Dataset(
+            {
+                "temperature": (["time"], [20.0, 21.0, 22.0]),
+                "pressure": (["time"], [100.0, 101.0, 102.0]),
+                "potential_temperature": (
+                    ["time"],
+                    [19.8, 20.8, 21.8],
+                ),  # Should be removed
+                "density": (["time"], [1025.0, 1026.0, 1027.0]),  # Should be removed
+                "julian_days_offset": (["time"], [1, 2, 3]),  # Should be removed
+                "salinity": (["time"], [35.0, 35.1, 35.2]),  # Should be kept
+            },
+            coords={
+                "time": (["time"], np.arange(3)),
+                "depth": (["time"], [100.0, 100.0, 100.0]),  # Should be removed
+                "latitude": 60.0,  # Should be removed
+                "longitude": -30.0,  # Should be removed
+            },
+        )
 
         # Clean the dataset
         cleaned_ds = processor._clean_dataset_variables(ds, "sbe-cnv")
@@ -191,14 +194,17 @@ class TestMooringProcessor:
     def test_clean_dataset_variables_unknown_type(self, processor):
         """Test cleaning dataset variables for unknown file type."""
         import numpy as np
-        
-        ds = xr.Dataset({
-            "temperature": (["time"], [20.0, 21.0, 22.0]),
-            "unwanted_var": (["time"], [1.0, 2.0, 3.0]),
-        }, coords={
-            "time": (["time"], np.arange(3)),
-            "unwanted_coord": (["time"], [100.0, 100.0, 100.0]),
-        })
+
+        ds = xr.Dataset(
+            {
+                "temperature": (["time"], [20.0, 21.0, 22.0]),
+                "unwanted_var": (["time"], [1.0, 2.0, 3.0]),
+            },
+            coords={
+                "time": (["time"], np.arange(3)),
+                "unwanted_coord": (["time"], [100.0, 100.0, 100.0]),
+            },
+        )
 
         # Clean with unknown file type (should not remove anything)
         cleaned_ds = processor._clean_dataset_variables(ds, "unknown-type")
@@ -212,13 +218,12 @@ class TestMooringProcessor:
     def test_add_global_attributes_complete(self, processor):
         """Test adding global attributes with complete YAML data."""
         import numpy as np
-        
+
         # Create a simple dataset
-        ds = xr.Dataset({
-            "temperature": (["time"], [20.0, 21.0, 22.0])
-        }, coords={
-            "time": (["time"], np.arange(3))
-        })
+        ds = xr.Dataset(
+            {"temperature": (["time"], [20.0, 21.0, 22.0])},
+            coords={"time": (["time"], np.arange(3))},
+        )
 
         yaml_data = {
             "name": "test_mooring",
@@ -226,7 +231,7 @@ class TestMooringProcessor:
             "longitude": -30.0,
             "latitude": 60.0,
             "deployment_latitude": "60 00.000 N",
-            "deployment_longitude": "030 00.000 W", 
+            "deployment_longitude": "030 00.000 W",
             "deployment_time": "2018-08-12T08:00:00",
             "seabed_latitude": "59 59.500 N",
             "seabed_longitude": "030 00.500 W",
@@ -251,13 +256,12 @@ class TestMooringProcessor:
     def test_add_global_attributes_minimal(self, processor):
         """Test adding global attributes with minimal YAML data."""
         import numpy as np
-        
+
         # Create a simple dataset
-        ds = xr.Dataset({
-            "temperature": (["time"], [20.0, 21.0, 22.0])
-        }, coords={
-            "time": (["time"], np.arange(3))
-        })
+        ds = xr.Dataset(
+            {"temperature": (["time"], [20.0, 21.0, 22.0])},
+            coords={"time": (["time"], np.arange(3))},
+        )
 
         # Minimal YAML data (only required fields)
         yaml_data = {

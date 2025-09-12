@@ -114,7 +114,6 @@ def find_cold_entry_exit(
     return time[s0], time[eL], thr
 
 
-
 def calc_psal(ds):
     if "PSAL" not in ds:
         SP = gsw.SP_from_C(ds["CNDC"], ds["TEMP"], ds["PRES"])
@@ -347,9 +346,6 @@ def process_dataset(
     )
 
     return ds_standard
-
-
-
 
 
 def calc_ds_difference(ds1, ds2):

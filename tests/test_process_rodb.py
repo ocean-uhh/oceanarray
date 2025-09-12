@@ -5,11 +5,8 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from oceanarray.process_rodb import (
-    apply_microcat_calibration_from_txt,
-    stage2_trim,
-    trim_suggestion,
-)
+from oceanarray.process_rodb import (apply_microcat_calibration_from_txt,
+                                     stage2_trim, trim_suggestion)
 from oceanarray.rodb import rodbload
 
 

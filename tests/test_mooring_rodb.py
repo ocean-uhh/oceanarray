@@ -5,13 +5,8 @@ import xarray as xr
 
 from oceanarray import mooring_rodb
 from oceanarray.mooring_rodb import (  # Adjust import as needed
-    filter_all_time_vars,
-    find_common_attributes,
-    find_time_vars,
-    get_12hourly_time_grid,
-    interp_to_12hour_grid,
-    stack_instruments,
-)
+    filter_all_time_vars, find_common_attributes, find_time_vars,
+    get_12hourly_time_grid, interp_to_12hour_grid, stack_instruments)
 
 
 def create_mock_os_dataset(depth, serial_number, source_file):

@@ -3,15 +3,12 @@ import pytest
 import xarray as xr
 
 from oceanarray import tools
-from oceanarray.tools import calc_ds_difference
-from oceanarray.process_rodb import (
-    middle_percent,
-    mean_of_middle_percent,
-    std_of_middle_percent,
-    normalize_by_middle_percent,
-    normalize_dataset_by_middle_percent,
-)
 from oceanarray.mooring_rodb import auto_filt
+from oceanarray.process_rodb import (mean_of_middle_percent, middle_percent,
+                                     normalize_by_middle_percent,
+                                     normalize_dataset_by_middle_percent,
+                                     std_of_middle_percent)
+from oceanarray.tools import calc_ds_difference
 
 
 @pytest.fixture
