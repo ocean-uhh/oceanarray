@@ -3,11 +3,11 @@ import pytest
 import xarray as xr
 import yaml
 
-from oceanarray import convertOS
-from oceanarray.convertOS import (add_fixed_coordinates,
-                                  add_variable_attributes,
-                                  convert_rodb_to_oceansites,
-                                  format_time_variable, parse_rodb_metadata)
+from oceanarray.legacy import convertOS
+from oceanarray.legacy.convertOS import (add_fixed_coordinates,
+                                          add_variable_attributes,
+                                          convert_rodb_to_oceansites,
+                                          format_time_variable, parse_rodb_metadata)
 
 
 @pytest.fixture

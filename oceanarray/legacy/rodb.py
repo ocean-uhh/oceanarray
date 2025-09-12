@@ -19,7 +19,7 @@ import numpy as np
 import xarray as xr
 import yaml
 
-from oceanarray.convertOS import parse_rodb_metadata
+from .convertOS import parse_rodb_metadata
 from oceanarray.logger import log_warning
 
 REVERSE_KEYS = {
@@ -95,7 +95,7 @@ if __name__ == "__main__":
 
 
 # Load full RODB key metadata from YAML file
-RODB_KEYS_PATH = Path(__file__).parent / "config" / "rodb_keys.yaml"
+RODB_KEYS_PATH = Path(__file__).parent.parent / "config" / "legacy" / "rodb_keys.yaml"
 with open(RODB_KEYS_PATH, "r") as f:
     RODB_KEYS = yaml.safe_load(f)
 

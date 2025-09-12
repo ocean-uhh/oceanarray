@@ -6,8 +6,8 @@ import numpy as np
 import xarray as xr
 import yaml
 
-from oceanarray import utilities  # for any shared helpers like date parsing
-from oceanarray.utilities import \
+from .. import utilities  # for any shared helpers like date parsing
+from ..utilities import \
     iso8601_duration_from_seconds  # or wherever you store it
 
 

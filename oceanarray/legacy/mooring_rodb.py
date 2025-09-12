@@ -4,7 +4,7 @@ import xarray as xr
 from scipy.interpolate import interp1d
 from scipy.signal import butter, filtfilt
 
-from oceanarray import utilities
+from .. import utilities
 
 
 def find_time_vars(ds_list, time_key="TIME"):

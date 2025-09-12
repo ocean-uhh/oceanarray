@@ -70,11 +70,13 @@ def convert_units_var(
 ## 🗂 Dataset & Metadata Conventions
 
 ### 🧬 Variable Names
-- **ALL CAPITALS** for variables and dimensions: `TRANSPORT`, `DEPTH`, `TIME`
-- Keep short and unambiguous
+- Variable naming conventions are currently inconsistent across the codebase
+- We need to verify and align with [OceanSites variable naming recommendations](https://www.ocean-ops.org/oceansites/data/index.html)
+- Mix of `ALL_CAPS` (`TIME`, `DEPTH`) and lowercase (`temperature`, `pressure`) currently in use
+- Keep names short and unambiguous
 
 ### 🧾 Attributes
-- Follow [OceanGliders OG1 format](https://oceangliderscommunity.github.io/OG-format-user-manual/OG_Format.html)
+- Follow [OceanSites format conventions](https://www.ocean-ops.org/oceansites/data/index.html)
 - Use `units`, `long_name`, `comment`
 - Avoid placing units in variable names — use attributes instead
 
@@ -84,11 +86,20 @@ def convert_units_var(
 
 ---
 
-## 🔁 Automating Formatting (Optional)
+## 🔁 Automating Formatting
 
-The project uses tools like `black`, `ruff`, and `pytest` to enforce style, linting, and test consistency. These are integrated into the workflow using [pre-commit hooks](precommit_guide.md).
+The project uses tools like `black`, `ruff`, and `pytest` to enforce style, linting, and test consistency. These are integrated into the workflow using pre-commit hooks.
 
-You don’t need to run them manually, but setting up pre-commit ensures your code follows project standards automatically.
+**Pre-commit tools used:**
+```bash
+black .                         # Format code with black
+ruff check .                    # Run ruff linter  
+ruff check . --fix              # Auto-fix issues where possible
+pre-commit run --all-files      # Run all pre-commit hooks
+codespell                       # Check for spelling errors
+```
+
+You don't need to run them manually, but setting up pre-commit ensures your code follows project standards automatically.
 
 ---
 
