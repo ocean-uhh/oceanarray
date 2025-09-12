@@ -4,7 +4,6 @@ import numpy as np
 import xarray as xr
 
 from oceanarray.logger import log_info
-from oceanarray.read_rapid import read_rapid
 
 DUMMY_VALUES = [1e32, -9.0, -9.9]
 
@@ -123,33 +122,3 @@ def rodbload_old(filepath: Path, variables: list[str]) -> xr.Dataset:
     ds = xr.Dataset(data_vars, coords=coords)
     ds.attrs["source_file"] = str(filepath)
     return ds
-
-
-def _get_reader(array_name: str):
-    """Return the reader function for the given array name.
-
-    Parameters
-    ----------
-    array_name : str
-        The name of the observing array.
-
-    Returns
-    -------
-    function
-        Reader function corresponding to the given array name.
-
-    Raises
-    ------
-    ValueError
-        If an unknown array name is provided.
-
-    """
-    readers = {
-        "rapid": read_rapid,
-    }
-    try:
-        return readers[array_name.lower()]
-    except KeyError:
-        raise ValueError(
-            f"Unknown array name: {array_name}. Valid options are: {list(readers.keys())}",
-        )

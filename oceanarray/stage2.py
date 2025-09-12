@@ -102,21 +102,116 @@ class Stage2Processor:
 
         return dataset
 
+    def _extract_metadata_from_filepath(
+        self, filepath: Path, mooring_name: str
+    ) -> Dict[str, Any]:
+        """Extract metadata from filepath when not available in YAML or dataset.
+
+        Expected pattern: {instrument_type}/{mooring_name}_{serial}_raw.nc
+        """
+        fallback_metadata = {}
+
+        # Extract instrument type from parent directory
+        instrument_type = filepath.parent.name
+        fallback_metadata["instrument"] = instrument_type
+
+        # Extract serial number from filename
+        filename = filepath.stem  # Remove .nc extension
+        if filename.endswith("_raw"):
+            filename = filename[:-4]  # Remove _raw suffix
+
+        # Pattern: mooring_name_serial
+        if filename.startswith(f"{mooring_name}_"):
+            serial_str = filename[len(f"{mooring_name}_") :]
+            try:
+                serial = int(serial_str)
+                fallback_metadata["serial"] = serial
+                self._log_print(
+                    f"Extracted from filename - instrument: {instrument_type}, serial: {serial}"
+                )
+            except ValueError:
+                self._log_print(
+                    f"WARNING: Could not parse serial number from filename: {filename}"
+                )
+
+        return fallback_metadata
+
+    def _get_figure_naming_info(
+        self, dataset: xr.Dataset, mooring_name: str
+    ) -> Dict[str, str]:
+        """Get information needed for figure naming convention.
+
+        Returns dict with mooring_name, instrument, serial for creating
+        figure names like: dsE_1_2018_microcat_7518_ctd.png
+        """
+        instrument = str(dataset.get("instrument", "unknown").values)
+        serial = str(int(dataset.get("serial_number", 0).values))
+
+        return {
+            "mooring_name": mooring_name,
+            "instrument": instrument,
+            "serial": serial,
+        }
+
     def _add_missing_metadata(
-        self, dataset: xr.Dataset, instrument_config: Dict[str, Any]
+        self,
+        dataset: xr.Dataset,
+        instrument_config: Dict[str, Any],
+        filepath: Path,
+        mooring_name: str,
     ) -> xr.Dataset:
-        """Add any missing metadata variables to dataset."""
-        # Add instrument depth if missing
-        if "InstrDepth" not in dataset.variables and "depth" in instrument_config:
-            dataset["InstrDepth"] = instrument_config["depth"]
+        """Add any missing metadata variables to dataset with fallback extraction."""
 
-        # Add instrument type if missing
-        if "instrument" not in dataset.variables and "instrument" in instrument_config:
-            dataset["instrument"] = instrument_config["instrument"]
+        # Get metadata from YAML config (highest priority)
+        yaml_instrument = instrument_config.get("instrument")
+        yaml_serial = instrument_config.get("serial")
+        yaml_depth = instrument_config.get("depth", 0)
 
-        # Add serial number if missing
-        if "serial_number" not in dataset.variables and "serial" in instrument_config:
-            dataset["serial_number"] = instrument_config["serial"]
+        # Check if we need fallback for any missing fields
+        needs_instrument_fallback = yaml_instrument is None
+        needs_serial_fallback = yaml_serial is None
+
+        fallback_used = False
+        final_instrument = yaml_instrument
+        final_serial = yaml_serial
+
+        if needs_instrument_fallback or needs_serial_fallback:
+            self._log_print(
+                "Some metadata missing from YAML, attempting extraction from filepath..."
+            )
+            fallback_metadata = self._extract_metadata_from_filepath(
+                filepath, mooring_name
+            )
+
+            # Use fallback only for the missing fields
+            if needs_instrument_fallback and "instrument" in fallback_metadata:
+                final_instrument = fallback_metadata["instrument"]
+                self._log_print(f"Using fallback instrument type: {final_instrument}")
+                fallback_used = True
+
+            if needs_serial_fallback and "serial" in fallback_metadata:
+                final_serial = fallback_metadata["serial"]
+                self._log_print(f"Using fallback serial number: {final_serial}")
+                fallback_used = True
+
+        # Add metadata to dataset if missing
+        if "InstrDepth" not in dataset.variables:
+            dataset["InstrDepth"] = yaml_depth
+
+        if "instrument" not in dataset.variables and final_instrument is not None:
+            dataset["instrument"] = final_instrument
+
+        if "serial_number" not in dataset.variables and final_serial is not None:
+            dataset["serial_number"] = final_serial
+
+        # Add history note if fallback was used
+        if fallback_used:
+            history_note = "non-standard enrichment of metadata from filename patterns"
+            if "history" in dataset.attrs:
+                dataset.attrs["history"] += f"; {history_note}"
+            else:
+                dataset.attrs["history"] = history_note
+            self._log_print(f"Added history note: {history_note}")
 
         return dataset
 
@@ -193,8 +288,10 @@ class Stage2Processor:
                 # Create a copy to modify
                 dataset = ds.load()
 
-            # Add missing metadata
-            dataset = self._add_missing_metadata(dataset, instrument_config)
+            # Add missing metadata with fallback extraction
+            dataset = self._add_missing_metadata(
+                dataset, instrument_config, raw_filepath, mooring_name
+            )
 
             # Clean unnecessary variables
             dataset = self._clean_unnecessary_variables(dataset)

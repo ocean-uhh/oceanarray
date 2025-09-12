@@ -3,8 +3,8 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-from oceanarray import mooring
-from oceanarray.mooring import (  # Adjust import as needed
+from oceanarray import mooring_rodb
+from oceanarray.mooring_rodb import (  # Adjust import as needed
     filter_all_time_vars, find_common_attributes, find_time_vars,
     get_12hourly_time_grid, interp_to_12hour_grid, stack_instruments)
 
@@ -39,7 +39,7 @@ def create_mock_os_dataset(depth, serial_number, source_file):
 def test_combine_mooring():
     ds1 = create_mock_os_dataset(100.0, "1234", "file1.nc")
     ds2 = create_mock_os_dataset(200.0, "5678", "file2.nc")
-    combined = mooring.combine_mooring_OS([ds1, ds2])
+    combined = mooring_rodb.combine_mooring_OS([ds1, ds2])
 
     assert "TEMP" in combined
     assert "serial_number" not in combined.attrs

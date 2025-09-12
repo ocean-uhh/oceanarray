@@ -2,8 +2,9 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 from scipy.interpolate import interp1d
+from scipy.signal import butter, filtfilt
 
-from oceanarray import tools, utilities
+from oceanarray import utilities
 
 
 def find_time_vars(ds_list, time_key="TIME"):
@@ -226,6 +227,40 @@ def combine_mooring_OS(ds_list):
     return ds_combined
 
 
+def auto_filt(y, sr, co, typ="low", fo=6):
+    """
+    Apply a Butterworth digital filter to a data array.
+
+    Parameters
+    ----------
+    y : array_like
+        Input data array (1D).
+    sr : float
+        Sampling rate (Hz or 1/time units of your data).
+    co : float or tuple of float
+        Cutoff frequency/frequencies. A scalar for 'low' or 'high', a 2-tuple for 'bandstop'.
+    typ : str, optional
+        Filter type: 'low', 'high', or 'bandstop'. Default is 'low'.
+    fo : int, optional
+        Filter order. Default is 6.
+
+    Returns
+    -------
+    yf : ndarray
+        Filtered data array.
+    """
+    # Normalize cutoff frequency to the Nyquist rate
+    nyquist = 0.5 * sr
+    if isinstance(co, (list, tuple, np.ndarray)):
+        wh = [c / nyquist for c in co]
+    else:
+        wh = co / nyquist
+
+    b, a = butter(fo, wh, btype=typ)
+    yf = filtfilt(b, a, y)
+    return yf
+
+
 def filter_all_time_vars(ds, cutoff_days=2, fo=6):
     """
     Apply a lowpass Butterworth filter to all data variables that depend on TIME.
@@ -270,7 +305,7 @@ def filter_all_time_vars(ds, cutoff_days=2, fo=6):
                     y_filt[:, i] = np.nan
                 else:
                     try:
-                        y_filt[:, i] = tools.auto_filt(y1d, sr, co, typ="low", fo=fo)
+                        y_filt[:, i] = auto_filt(y1d, sr, co, typ="low", fo=fo)
                     except ValueError:
                         y_filt[:, i] = np.nan  # fallback for rare failures
 

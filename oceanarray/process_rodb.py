@@ -5,10 +5,158 @@ from pathlib import Path
 import numpy as np
 import xarray as xr
 
-from oceanarray import rodb, tools
+from oceanarray import rodb
 from oceanarray.logger import log_debug, log_info, log_warning
 
 DUMMY_VALUE = -9.99e-29  # adjust if needed
+
+
+def middle_percent(values, percent=95):
+    """
+    Return the lower and upper bounds for the central `percent` of the data.
+
+    Parameters
+    ----------
+    values : array-like
+        Input data (1D array). NaNs will be ignored.
+    percent : float
+        Desired central percentage (e.g., 95 for middle 95%).
+
+    Returns
+    -------
+    tuple
+        (lower_bound, upper_bound)
+    """
+    values = np.asarray(values)
+    values = values[~np.isnan(values)]
+
+    if not 0 < percent < 100:
+        raise ValueError("percent must be between 0 and 100 (exclusive)")
+
+    tail = (100 - percent) / 2
+    lower = np.nanpercentile(values, tail)
+    upper = np.nanpercentile(values, 100 - tail)
+    return lower, upper
+
+
+def mean_of_middle_percent(values, percent=95):
+    """
+    Compute the mean of values within the central `percent` of the data.
+
+    Parameters
+    ----------
+    values : array-like
+        Input data (1D array). NaNs will be ignored.
+    percent : float
+        Desired central percentage (e.g., 95 for middle 95%).
+
+    Returns
+    -------
+    float
+        Mean of values within the specified middle percentage.
+    """
+    values = np.asarray(values)
+    values = values[~np.isnan(values)]
+    lower, upper = middle_percent(values, percent)
+    filtered = values[(values >= lower) & (values <= upper)]
+    return np.mean(filtered)
+
+
+def std_of_middle_percent(values, percent=95):
+    """
+    Compute the standard deviation of values within the central `percent` of the data.
+
+    Parameters
+    ----------
+    values : array-like
+        Input data (1D array). NaNs will be ignored.
+    percent : float
+        Desired central percentage (e.g., 95 for middle 95%).
+
+    Returns
+    -------
+    float
+        Standard deviation of values within the specified middle percentage.
+    """
+    values = np.asarray(values)
+    values = values[~np.isnan(values)]
+    lower, upper = middle_percent(values, percent)
+    filtered = values[(values >= lower) & (values <= upper)]
+    return np.std(filtered)
+
+
+def normalize_by_middle_percent(values, percent=95):
+    """
+    Normalize a data series by the mean and standard deviation
+    of its central `percent` range.
+
+    Parameters
+    ----------
+    values : array-like
+        Input data (1D array). NaNs are ignored.
+    percent : float
+        Central percentage to define the 'middle' of the distribution (e.g., 95).
+
+    Returns
+    -------
+    array
+        Normalized array with the same shape as input.
+    """
+    values = np.asarray(values)
+    mask = ~np.isnan(values)
+    valid_values = values[mask]
+
+    if valid_values.size == 0:
+        return values  # return original if all NaNs
+
+    lower, upper = middle_percent(valid_values, percent)
+    middle_vals = valid_values[(valid_values >= lower) & (valid_values <= upper)]
+
+    mean_mid = np.mean(middle_vals)
+    std_mid = np.std(middle_vals)
+
+    if std_mid == 0:
+        raise ValueError(
+            "Standard deviation of middle percent is zero — normalization not possible."
+        )
+
+    normalized = (values - mean_mid) / std_mid
+    return normalized
+
+
+def normalize_dataset_by_middle_percent(ds, percent=95):
+    """
+    Normalize all 1D data variables in an xarray Dataset that match the length of TIME,
+    using the mean and std over the central `percent` of each variable.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        Input dataset with a 'TIME' coordinate.
+    percent : float
+        Percentage of central values to define the middle (e.g., 95 for middle 95%).
+
+    Returns
+    -------
+    xarray.Dataset
+        New dataset with normalized data variables.
+    """
+    ds_norm = xr.Dataset(attrs=ds.attrs)
+    time_shape = ds["TIME"].shape
+
+    for var in ds.data_vars:
+        if ds[var].shape == time_shape:
+            norm_values = normalize_by_middle_percent(ds[var].values, percent)
+            ds_norm[var] = xr.DataArray(
+                norm_values,
+                coords=ds[var].coords,
+                dims=ds[var].dims,
+                attrs=ds[var].attrs,
+            )
+
+    # Retain TIME coordinate
+    ds_norm = ds_norm.assign_coords({"TIME": ds["TIME"]})
+    return ds_norm
 
 
 def trim_suggestion(ds, percent=95, threshold=6, vars_to_check=["T", "C", "P"]):
@@ -34,7 +182,7 @@ def trim_suggestion(ds, percent=95, threshold=6, vars_to_check=["T", "C", "P"]):
     end_time : np.datetime64 or None
         Suggested deployment end time.
     """
-    ds_norm = tools.normalize_dataset_by_middle_percent(ds, percent=percent)
+    ds_norm = normalize_dataset_by_middle_percent(ds, percent=percent)
 
     start_candidates = []
     end_candidates = []
