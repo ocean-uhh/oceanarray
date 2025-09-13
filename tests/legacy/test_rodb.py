@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import xarray as xr
 
-from oceanarray.rodb import (  # Replace with actual function names
+from oceanarray.legacy.rodb import (  # Replace with actual function names
     format_latlon, parse_rodb_keys_file, rodbload, rodbsave)
 
 
