@@ -1,25 +1,25 @@
 
 
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" data-content_root="../../">
+<html class="writer-html5" lang="en" data-content_root="../../../">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>oceanarray.convertOS &mdash; oceanarray v0.0.0 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=20758594" />
+  <title>oceanarray.legacy.convertOS &mdash; oceanarray v0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/custom.css?v=20758594" />
 
   
-      <script src="../../_static/jquery.js?v=5d32c60e"></script>
-      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=8b92e751"></script>
-      <script src="../../_static/doctools.js?v=9bcbadda"></script>
-      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8b92e751"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    <script src="../../_static/js/theme.js"></script>
-    <link rel="index" title="Index" href="../../genindex.html" />
-    <link rel="search" title="Search" href="../../search.html" /> 
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -30,12 +30,12 @@
 
           
           
-          <a href="../../index.html" class="icon icon-home">
+          <a href="../../../index.html" class="icon icon-home">
             oceanarray
-              <img src="../../_static/logo_template.png" class="logo" alt="Logo"/>
+              <img src="../../../_static/logo_template.png" class="logo" alt="Logo"/>
           </a>
 <div role="search">
-  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
@@ -44,38 +44,38 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Overview</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../processing_framework.html">OceanArray processing framework</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../processing_framework.html">OceanArray processing framework</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Instruments</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../methods/acquisition.html">Data Acquisition</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../methods/standardisation.html">Standardisation (Stage 1)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../clock_offset.html">Clock Offset Analysis</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../methods/trimming.html">Trim to Deployment (Stage 2)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../methods/auto_qc.html">Automatic QC (Stage 3)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../methods/calibration.html">Apply Calibration (Stage 4)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../methods/conversion.html">Convert to OceanSites</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/acquisition.html">Data Acquisition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/standardisation.html">Standardisation (Stage 1)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../clock_offset.html">Clock Offset Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/trimming.html">Trim to Deployment (Stage 2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/auto_qc.html">Automatic QC (Stage 3)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/calibration.html">Apply Calibration (Stage 4)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/conversion.html">Convert to OceanSites</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Moorings</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../methods/time_gridding.html">Grid in Time (Step 1)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../methods/vertical_gridding.html">Grid Vertically (Step 2)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../methods/concatenation.html">Combine Deployments (Step 3)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/time_gridding.html">Grid in Time (Step 1)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/vertical_gridding.html">Grid Vertically (Step 2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/concatenation.html">Combine Deployments (Step 3)</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Methods for Array</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../methods/multisite_merging.html">Multi-site Merging</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/multisite_merging.html">Multi-site Merging</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Examples</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../demo_instrument-output.html">Demo: Instrument-Level Processing (Compact Workflow)</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../demo_mooring-output.html">Demo: mooring-level processing (Step 1)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demo_instrument-output.html">Demo: Instrument-Level Processing (Compact Workflow)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demo_mooring-output.html">Demo: mooring-level processing (Step 1)</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Help and reference</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference external" href="http://github.com/eleanorfrajka/oceanarray">GitHub Repo</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../roadmap.html">Development Roadmap</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../oceanarray.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../roadmap.html">Development Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../oceanarray.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code></a></li>
 </ul>
 
         </div>
@@ -84,16 +84,16 @@
 
     <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../index.html">oceanarray</a>
+          <a href="../../../index.html">oceanarray</a>
       </nav>
 
       <div class="wy-nav-content">
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
-          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
-      <li class="breadcrumb-item active">oceanarray.convertOS</li>
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">oceanarray.legacy.convertOS</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -102,7 +102,7 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <h1>Source code for oceanarray.convertOS</h1><div class="highlight"><pre>
+  <h1>Source code for oceanarray.legacy.convertOS</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
@@ -111,13 +111,13 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray</span><span class="w"> </span><span class="kn">import</span> <span class="n">utilities</span>  <span class="c1"># for any shared helpers like date parsing</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.utilities</span><span class="w"> </span><span class="kn">import</span> \
+<span class="kn">from</span><span class="w"> </span><span class="nn">..</span><span class="w"> </span><span class="kn">import</span> <span class="n">utilities</span>  <span class="c1"># for any shared helpers like date parsing</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utilities</span><span class="w"> </span><span class="kn">import</span> \
     <span class="n">iso8601_duration_from_seconds</span>  <span class="c1"># or wherever you store it</span>
 
 
 <div class="viewcode-block" id="convert_rodb_to_oceansites">
-<a class="viewcode-back" href="../../oceanarray.html#oceanarray.convertOS.convert_rodb_to_oceansites">[docs]</a>
+<a class="viewcode-back" href="../../../legacy.html#oceanarray.legacy.convertOS.convert_rodb_to_oceansites">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">convert_rodb_to_oceansites</span><span class="p">(</span>
     <span class="n">ds</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span>
     <span class="n">metadata_txt</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
@@ -222,7 +222,7 @@
 
 
 <div class="viewcode-block" id="load_yaml">
-<a class="viewcode-back" href="../../oceanarray.html#oceanarray.convertOS.load_yaml">[docs]</a>
+<a class="viewcode-back" href="../../../legacy.html#oceanarray.legacy.convertOS.load_yaml">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">load_yaml</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span></div>
@@ -230,7 +230,7 @@
 
 
 <div class="viewcode-block" id="parse_rodb_metadata">
-<a class="viewcode-back" href="../../oceanarray.html#oceanarray.convertOS.parse_rodb_metadata">[docs]</a>
+<a class="viewcode-back" href="../../../legacy.html#oceanarray.legacy.convertOS.parse_rodb_metadata">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">parse_rodb_metadata</span><span class="p">(</span><span class="n">txt_path</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Parse RODB metadata from a .raw or .use file header.</span>
@@ -265,7 +265,7 @@
 
 
 <div class="viewcode-block" id="add_fixed_coordinates">
-<a class="viewcode-back" href="../../oceanarray.html#oceanarray.convertOS.add_fixed_coordinates">[docs]</a>
+<a class="viewcode-back" href="../../../legacy.html#oceanarray.legacy.convertOS.add_fixed_coordinates">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">add_fixed_coordinates</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">metadata</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Add fixed spatial coordinates LATITUDE, LONGITUDE, and DEPTH from metadata.</span>
@@ -340,7 +340,7 @@
 
 
 <div class="viewcode-block" id="add_variable_attributes">
-<a class="viewcode-back" href="../../oceanarray.html#oceanarray.convertOS.add_variable_attributes">[docs]</a>
+<a class="viewcode-back" href="../../../legacy.html#oceanarray.legacy.convertOS.add_variable_attributes">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">add_variable_attributes</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">vocab_attrs</span><span class="p">):</span>
     <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">vocab_attrs</span><span class="p">:</span>
@@ -350,7 +350,7 @@
 
 
 <div class="viewcode-block" id="add_global_attributes">
-<a class="viewcode-back" href="../../oceanarray.html#oceanarray.convertOS.add_global_attributes">[docs]</a>
+<a class="viewcode-back" href="../../../legacy.html#oceanarray.legacy.convertOS.add_global_attributes">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">add_global_attributes</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">metadata</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Add OceanSITES-compliant global attributes to the dataset.</span>
@@ -395,7 +395,7 @@
 
 
 <div class="viewcode-block" id="format_time_variable">
-<a class="viewcode-back" href="../../oceanarray.html#oceanarray.convertOS.format_time_variable">[docs]</a>
+<a class="viewcode-back" href="../../../legacy.html#oceanarray.legacy.convertOS.format_time_variable">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">format_time_variable</span><span class="p">(</span><span class="n">ds</span><span class="p">):</span>
     <span class="c1"># Ensure TIME is CF-compliant: units, calendar, etc.</span>
     <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;TIME&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
@@ -412,7 +412,7 @@
 
 
 <div class="viewcode-block" id="add_instrument_metadata">
-<a class="viewcode-back" href="../../oceanarray.html#oceanarray.convertOS.add_instrument_metadata">[docs]</a>
+<a class="viewcode-back" href="../../../legacy.html#oceanarray.legacy.convertOS.add_instrument_metadata">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">add_instrument_metadata</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">sensor_dict</span><span class="p">,</span> <span class="n">metadata</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Add centralized instrument metadata and link variables via the &#39;instrument&#39; attribute.</span>
@@ -467,7 +467,7 @@
 
 
 <div class="viewcode-block" id="infer_data_mode">
-<a class="viewcode-back" href="../../oceanarray.html#oceanarray.convertOS.infer_data_mode">[docs]</a>
+<a class="viewcode-back" href="../../../legacy.html#oceanarray.legacy.convertOS.infer_data_mode">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">infer_data_mode</span><span class="p">(</span><span class="n">source_filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">history</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Infer data_mode (D=delayed, R=real-time, P=provisional) from filename or processing history.</span>
@@ -508,7 +508,7 @@
 
 
 <div class="viewcode-block" id="add_project_attributes">
-<a class="viewcode-back" href="../../oceanarray.html#oceanarray.convertOS.add_project_attributes">[docs]</a>
+<a class="viewcode-back" href="../../../legacy.html#oceanarray.legacy.convertOS.add_project_attributes">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">add_project_attributes</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">project_attrs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Merge project-level attributes into dataset, with derived and dynamic values.</span>
@@ -660,7 +660,7 @@
 
 
 <div class="viewcode-block" id="sort_global_attributes">
-<a class="viewcode-back" href="../../oceanarray.html#oceanarray.convertOS.sort_global_attributes">[docs]</a>
+<a class="viewcode-back" href="../../../legacy.html#oceanarray.legacy.convertOS.sort_global_attributes">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">sort_global_attributes</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">attr_order</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">attr_order</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">attr_order</span> <span class="o">=</span> <span class="n">OCEANSITES_ATTR_ORDER</span>

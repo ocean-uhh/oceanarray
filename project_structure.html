@@ -119,30 +119,36 @@
 │   ├── find_deployment.py         # [core] Deployment detection from temperature profiles
 │   ├── readers.py                 # [core] Functions to read various oceanographic data formats
 │   ├── writers.py                 # [core] Functions to write processed data to NetCDF
-│   ├── rodb.py                    # [core] RODB format reader for legacy RAPID data
-│   ├── process_rodb.py            # [legacy] Legacy RODB instrument processing functions
-│   ├── mooring_rodb.py            # [legacy] Legacy RODB mooring-level processing functions
 │   ├── tools.py                   # [core] Core utilities (lag correlation, QC functions)
-│   ├── convertOS.py               # [format] OceanSites format conversion utilities
 │   ├── plotters.py                # [viz] Data visualization and plotting functions
 │   ├── rapid_interp.py            # [interp] Physics-based vertical interpolation
 │   ├── transports.py              # [analysis] Transport calculations (work in progress)
 │   ├── logger.py                  # [core] Structured logging configuration
 │   ├── utilities.py               # [core] General helper functions
+│   ├── legacy/                    # [legacy] Legacy RODB/RAPID format processing (deprecated)
+│   │   ├── __init__.py            # [legacy] Legacy module imports for backward compatibility
+│   │   ├── rodb.py                # [legacy] RODB format reader for legacy RAPID data
+│   │   ├── process_rodb.py        # [legacy] Legacy RODB instrument processing functions
+│   │   ├── mooring_rodb.py        # [legacy] Legacy RODB mooring-level processing functions
+│   │   └── convertOS.py           # [legacy] Legacy OceanSites format conversion utilities
 │   └── config/                    # [config] Configuration files for processing
 │       ├── OS1_var_names.yaml     # [config] OceanSites variable name mappings
 │       ├── OS1_vocab_attrs.yaml   # [config] OceanSites vocabulary attributes
 │       ├── OS1_sensor_attrs.yaml  # [config] OceanSites sensor attributes
-│       └── project_RAPID.yaml     # [config] RAPID project configuration
+│       └── legacy/                # [legacy] Legacy configuration files
+│           ├── project_RAPID.yaml # [legacy] RAPID project configuration
+│           ├── rodb_keys.yaml     # [legacy] RODB variable name mappings
+│           └── rodb_keys.txt      # [legacy] Text format RODB variable definitions
 │
 ├── tests/                         # [test] Unit tests using pytest
 │   ├── test_stage1.py             # [test] Test Stage1 processing
 │   ├── test_stage2.py             # [test] Test Stage2 processing
-│   ├── test_rodb.py               # [test] Test RODB data reading
-│   ├── test_process_rodb.py       # [test] Test legacy RODB processing functions
-│   ├── test_mooring_rodb.py       # [test] Test legacy RODB mooring functions
 │   ├── test_tools.py              # [test] Test core utility functions
-│   ├── test_convertOS.py          # [test] Test OceanSites conversion
+│   ├── legacy/                    # [legacy] Tests for legacy RODB/RAPID processing
+│   │   ├── test_rodb.py           # [legacy] Test RODB data reading
+│   │   ├── test_process_rodb.py   # [legacy] Test legacy RODB processing functions
+│   │   ├── test_mooring_rodb.py   # [legacy] Test legacy RODB mooring functions
+│   │   └── test_convertOS.py      # [legacy] Test legacy OceanSites conversion
 │   └── ...
 │
 ├── notebooks/                     # [demo] Processing demonstration notebooks
@@ -152,10 +158,12 @@
 │   ├── demo_instrument.ipynb      # [demo] Compact instrument processing workflow
 │   ├── demo_clock_offset.ipynb    # [demo] Clock offset analysis (refactored)
 │   ├── demo_check_clock.ipynb     # [demo] Clock offset analysis (original)
-│   ├── demo_instrument_rdb.ipynb  # [demo] Legacy RODB instrument processing
-│   ├── demo_mooring_rdb.ipynb     # [demo] Legacy RODB mooring processing
-│   ├── demo_batch_instrument.ipynb # [demo] Batch processing and QC analysis
-│   └── demo_climatology.ipynb     # [demo] Climatological processing
+│   ├── demo_climatology.ipynb     # [demo] Climatological processing
+│   └── legacy/                    # [legacy] Legacy RODB/RAPID demo notebooks
+│       ├── README.md              # [legacy] Legacy notebooks documentation
+│       ├── demo_instrument_rdb.ipynb  # [legacy] Legacy RODB instrument processing
+│       ├── demo_mooring_rdb.ipynb     # [legacy] Legacy RODB mooring processing
+│       └── demo_batch_instrument.ipynb # [legacy] Batch processing and QC analysis
 │
 ├── docs/                          # [docs] Sphinx documentation
 │   ├── source/                    # [docs] Documentation source files
@@ -207,14 +215,16 @@
 <li><p><strong>Clock Offset Analysis</strong> (<code class="docutils literal notranslate"><span class="pre">clock_offset.py</span></code>) - Inter-instrument timing validation</p></li>
 </ol>
 </section>
-<section id="legacy-rodb-workflow">
-<h3>Legacy RODB Workflow<a class="headerlink" href="#legacy-rodb-workflow" title="Link to this heading"></a></h3>
-<p>For RAPID/RODB format compatibility:</p>
+<section id="legacy-rodb-workflow-deprecated">
+<h3>Legacy RODB Workflow (Deprecated)<a class="headerlink" href="#legacy-rodb-workflow-deprecated" title="Link to this heading"></a></h3>
+<p>For backward compatibility with RAPID/RODB format datasets (located in <code class="docutils literal notranslate"><span class="pre">oceanarray.legacy</span></code>):</p>
 <ul class="simple">
-<li><p><strong><code class="docutils literal notranslate"><span class="pre">process_rodb.py</span></code></strong> - Individual instrument processing functions</p></li>
-<li><p><strong><code class="docutils literal notranslate"><span class="pre">mooring_rodb.py</span></code></strong> - Mooring-level stacking and filtering functions</p></li>
-<li><p><strong><code class="docutils literal notranslate"><span class="pre">rodb.py</span></code></strong> - RODB format data reader</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">legacy/process_rodb.py</span></code></strong> - Individual instrument processing functions</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">legacy/mooring_rodb.py</span></code></strong> - Mooring-level stacking and filtering functions</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">legacy/rodb.py</span></code></strong> - RODB format data reader</p></li>
+<li><p><strong><code class="docutils literal notranslate"><span class="pre">legacy/convertOS.py</span></code></strong> - Legacy OceanSites format conversion</p></li>
 </ul>
+<p><strong>⚠️ Note</strong>: Legacy modules are deprecated. Use modern workflow for new projects.</p>
 </section>
 <section id="key-design-principles">
 <h3>Key Design Principles<a class="headerlink" href="#key-design-principles" title="Link to this heading"></a></h3>

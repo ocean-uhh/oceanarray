@@ -1,0 +1,592 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>oceanarray.legacy.mooring_rodb &mdash; oceanarray v0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/custom.css?v=20758594" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8b92e751"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            oceanarray
+              <img src="../../../_static/logo_template.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Overview</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../processing_framework.html">OceanArray processing framework</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Instruments</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/acquisition.html">Data Acquisition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/standardisation.html">Standardisation (Stage 1)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../clock_offset.html">Clock Offset Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/trimming.html">Trim to Deployment (Stage 2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/auto_qc.html">Automatic QC (Stage 3)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/calibration.html">Apply Calibration (Stage 4)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/conversion.html">Convert to OceanSites</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Moorings</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/time_gridding.html">Grid in Time (Step 1)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/vertical_gridding.html">Grid Vertically (Step 2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/concatenation.html">Combine Deployments (Step 3)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Array</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/multisite_merging.html">Multi-site Merging</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../demo_instrument-output.html">Demo: Instrument-Level Processing (Compact Workflow)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demo_mooring-output.html">Demo: mooring-level processing (Step 1)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Help and reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="http://github.com/eleanorfrajka/oceanarray">GitHub Repo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../roadmap.html">Development Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../oceanarray.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code></a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">oceanarray</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">oceanarray.legacy.mooring_rodb</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for oceanarray.legacy.mooring_rodb</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.interpolate</span><span class="w"> </span><span class="kn">import</span> <span class="n">interp1d</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.signal</span><span class="w"> </span><span class="kn">import</span> <span class="n">butter</span><span class="p">,</span> <span class="n">filtfilt</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..</span><span class="w"> </span><span class="kn">import</span> <span class="n">utilities</span>
+
+
+<div class="viewcode-block" id="find_time_vars">
+<a class="viewcode-back" href="../../../legacy.html#oceanarray.legacy.mooring_rodb.find_time_vars">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">find_time_vars</span><span class="p">(</span><span class="n">ds_list</span><span class="p">,</span> <span class="n">time_key</span><span class="o">=</span><span class="s2">&quot;TIME&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return all variable names that have (time_key,) dimensions in any dataset.&quot;&quot;&quot;</span>
+    <span class="n">time_vars</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">ds</span> <span class="ow">in</span> <span class="n">ds_list</span><span class="p">:</span>
+        <span class="n">time_vars</span><span class="o">.</span><span class="n">update</span><span class="p">([</span><span class="n">var</span> <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span> <span class="k">if</span> <span class="n">ds</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span> <span class="o">==</span> <span class="p">(</span><span class="n">time_key</span><span class="p">,)])</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">time_vars</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="find_common_attributes">
+<a class="viewcode-back" href="../../../legacy.html#oceanarray.legacy.mooring_rodb.find_common_attributes">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">find_common_attributes</span><span class="p">(</span><span class="n">ds_list</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return attributes that are common across all datasets with the same value.&quot;&quot;&quot;</span>
+    <span class="n">common</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">shared_keys</span> <span class="o">=</span> <span class="nb">set</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="o">*</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">)</span> <span class="k">for</span> <span class="n">ds</span> <span class="ow">in</span> <span class="n">ds_list</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">shared_keys</span><span class="p">:</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="k">for</span> <span class="n">ds</span> <span class="ow">in</span> <span class="n">ds_list</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">val</span> <span class="o">==</span> <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">values</span><span class="p">):</span>
+            <span class="n">common</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">common</span></div>
+
+
+
+<div class="viewcode-block" id="stack_instruments">
+<a class="viewcode-back" href="../../../legacy.html#oceanarray.legacy.mooring_rodb.stack_instruments">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">stack_instruments</span><span class="p">(</span><span class="n">ds_list</span><span class="p">,</span> <span class="n">time_key</span><span class="o">=</span><span class="s2">&quot;TIME&quot;</span><span class="p">):</span>
+    <span class="n">ds_list</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">ds_list</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">ds</span><span class="p">:</span> <span class="n">ds</span><span class="o">.</span><span class="n">InstrDepth</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">time</span> <span class="o">=</span> <span class="n">ds_list</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">time_key</span><span class="p">]</span>
+    <span class="n">n_levels</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ds_list</span><span class="p">)</span>
+    <span class="n">n_time</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">time</span><span class="p">)</span>
+
+    <span class="c1"># Ensure all datasets have the same TIME dimension &amp; arrays are exactly equal</span>
+    <span class="k">for</span> <span class="n">ds</span> <span class="ow">in</span> <span class="n">ds_list</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="n">time_key</span><span class="p">],</span> <span class="n">time</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Not all datasets share the same TIME dimension.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Find all time variables across datasets</span>
+    <span class="n">time_vars</span> <span class="o">=</span> <span class="n">find_time_vars</span><span class="p">(</span><span class="n">ds_list</span><span class="p">,</span> <span class="n">time_key</span><span class="o">=</span><span class="n">time_key</span><span class="p">)</span>
+
+    <span class="c1"># Stack the time variables across datasets</span>
+    <span class="n">data_vars</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">time_vars</span><span class="p">:</span>
+        <span class="n">stacked</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">n_levels</span><span class="p">,</span> <span class="n">n_time</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ds</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ds_list</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">:</span>
+                <span class="n">stacked</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">data_vars</span><span class="p">[</span><span class="n">var</span><span class="p">]</span> <span class="o">=</span> <span class="p">((</span><span class="s2">&quot;N_LEVELS&quot;</span><span class="p">,</span> <span class="n">time_key</span><span class="p">),</span> <span class="n">stacked</span><span class="p">)</span>
+
+    <span class="c1"># Create a list of instrument depths</span>
+    <span class="n">instr_depths</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">ds</span><span class="o">.</span><span class="n">InstrDepth</span><span class="o">.</span><span class="n">values</span> <span class="k">for</span> <span class="n">ds</span> <span class="ow">in</span> <span class="n">ds_list</span><span class="p">])</span>
+
+    <span class="c1"># Verify that all datasets have the same latitude and longitude</span>
+    <span class="n">lats</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">ds</span><span class="o">.</span><span class="n">Latitude</span><span class="o">.</span><span class="n">values</span> <span class="k">for</span> <span class="n">ds</span> <span class="ow">in</span> <span class="n">ds_list</span><span class="p">])</span>
+    <span class="n">lons</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">ds</span><span class="o">.</span><span class="n">Longitude</span><span class="o">.</span><span class="n">values</span> <span class="k">for</span> <span class="n">ds</span> <span class="ow">in</span> <span class="n">ds_list</span><span class="p">])</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">lats</span><span class="p">,</span> <span class="n">lats</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Latitude values differ between datasets.&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">lons</span><span class="p">,</span> <span class="n">lons</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Longitude values differ between datasets.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Collect serial numbers and common attributes</span>
+    <span class="n">serial_numbers</span> <span class="o">=</span> <span class="p">[</span><span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;serial_number&quot;</span><span class="p">,</span> <span class="s2">&quot;unknown&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">ds</span> <span class="ow">in</span> <span class="n">ds_list</span><span class="p">]</span>
+    <span class="n">common_attrs</span> <span class="o">=</span> <span class="n">find_common_attributes</span><span class="p">(</span><span class="n">ds_list</span><span class="p">)</span>
+
+    <span class="n">ds_out</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span>
+        <span class="n">data_vars</span><span class="o">=</span><span class="n">data_vars</span><span class="p">,</span>
+        <span class="n">coords</span><span class="o">=</span><span class="p">{</span>
+            <span class="n">time_key</span><span class="p">:</span> <span class="n">time</span><span class="p">,</span>
+            <span class="s2">&quot;N_LEVELS&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_levels</span><span class="p">),</span>
+            <span class="s2">&quot;InstrDepth&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;N_LEVELS&quot;</span><span class="p">,</span> <span class="n">instr_depths</span><span class="p">),</span>
+        <span class="p">},</span>
+        <span class="n">attrs</span><span class="o">=</span><span class="p">{</span>
+            <span class="o">**</span><span class="n">common_attrs</span><span class="p">,</span>
+            <span class="s2">&quot;Latitude&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">lats</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+            <span class="s2">&quot;Longitude&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">lons</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+            <span class="s2">&quot;serial_numbers&quot;</span><span class="p">:</span> <span class="n">serial_numbers</span><span class="p">,</span>
+        <span class="p">},</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ds_out</span></div>
+
+
+
+<div class="viewcode-block" id="add_serial_and_sensor_info">
+<a class="viewcode-back" href="../../../legacy.html#oceanarray.legacy.mooring_rodb.add_serial_and_sensor_info">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_serial_and_sensor_info</span><span class="p">(</span><span class="n">ds_combined</span><span class="p">,</span> <span class="n">ds_list</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add serial number/depth mapping and sensor variable info to the combined dataset.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ds_combined : xarray.Dataset</span>
+<span class="sd">        The combined mooring-level dataset (with DEPTH coordinate).</span>
+<span class="sd">    ds_list : list of xarray.Dataset</span>
+<span class="sd">        List of instrument-level datasets used to create ds_combined.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    xarray.Dataset</span>
+<span class="sd">        The dataset with added attributes and SENSOR_VARS variable.</span>
+<span class="sd">    dict</span>
+<span class="sd">        The updated attributes dictionary.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Get the serial numbers and depths</span>
+    <span class="n">serial_numbers</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">depths</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">ds</span> <span class="ow">in</span> <span class="n">ds_list</span><span class="p">:</span>
+        <span class="n">serial_number</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;serial_number&quot;</span><span class="p">,</span> <span class="s2">&quot;unknown&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">serial_number</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">serial_numbers</span><span class="p">:</span>
+            <span class="n">serial_numbers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">serial_number</span><span class="p">)</span>
+        <span class="n">depth_val</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">float</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">InstrDepth</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">ndim</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">InstrDepth</span><span class="o">.</span><span class="n">values</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+            <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">InstrDepth</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="p">)</span>
+        <span class="n">depths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">depth_val</span><span class="p">)</span>
+    <span class="n">serial_depth_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">serial_numbers</span><span class="p">,</span> <span class="n">depths</span><span class="p">))</span>
+    <span class="n">attrs</span> <span class="o">=</span> <span class="n">ds_combined</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;serial_depth_dict&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">serial_depth_dict</span><span class="p">)</span>
+
+    <span class="c1"># Collect all variable names that match &quot;SENSOR_&quot; prefix</span>
+    <span class="n">sensor_vars</span> <span class="o">=</span> <span class="p">[</span><span class="n">var</span> <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">ds_combined</span><span class="o">.</span><span class="n">data_vars</span> <span class="k">if</span> <span class="n">var</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;SENSOR_&quot;</span><span class="p">)]</span>
+    <span class="n">sensor_depths</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">sensor_vars</span><span class="p">:</span>
+        <span class="n">vals</span> <span class="o">=</span> <span class="n">ds_combined</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+        <span class="k">if</span> <span class="n">vals</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">vals</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">depth</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">ds_combined</span><span class="p">[</span><span class="s2">&quot;DEPTH&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span> <span class="k">if</span> <span class="n">idx</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">vals</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">vals</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">vals</span><span class="o">.</span><span class="n">ndim</span><span class="p">)))))</span>
+            <span class="n">depth</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">float</span><span class="p">(</span><span class="n">ds_combined</span><span class="p">[</span><span class="s2">&quot;DEPTH&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="n">idx</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]])</span>
+                <span class="k">if</span> <span class="n">idx</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span>
+                <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">depth</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="n">sensor_depths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">depth</span><span class="p">)</span>
+    <span class="n">sensor_vars</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sensor_vars</span><span class="p">)</span>
+    <span class="n">sensor_depths</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sensor_depths</span><span class="p">)</span>
+    <span class="n">sensor_vars_at_depth</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">depth</span> <span class="ow">in</span> <span class="n">ds_combined</span><span class="p">[</span><span class="s2">&quot;DEPTH&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">:</span>
+        <span class="n">matching_vars</span> <span class="o">=</span> <span class="n">sensor_vars</span><span class="p">[</span><span class="n">sensor_depths</span> <span class="o">==</span> <span class="n">depth</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">matching_vars</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">sensor_vars_at_depth</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">matching_vars</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sensor_vars_at_depth</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">sensor_vars_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">sensor_vars_at_depth</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;object&quot;</span><span class="p">)</span>
+    <span class="n">ds_combined</span><span class="p">[</span><span class="s2">&quot;SENSOR_VARS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span>
+        <span class="n">sensor_vars_arr</span><span class="p">,</span>
+        <span class="n">dims</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;DEPTH&quot;</span><span class="p">,),</span>
+        <span class="n">coords</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;DEPTH&quot;</span><span class="p">:</span> <span class="n">ds_combined</span><span class="p">[</span><span class="s2">&quot;DEPTH&quot;</span><span class="p">]},</span>
+        <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;long_name&quot;</span><span class="p">:</span> <span class="s2">&quot;Sensor variable names&quot;</span><span class="p">,</span> <span class="s2">&quot;units&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">},</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">ds_combined</span><span class="p">,</span> <span class="n">attrs</span></div>
+
+
+
+<div class="viewcode-block" id="combine_mooring_OS">
+<a class="viewcode-back" href="../../../legacy.html#oceanarray.legacy.mooring_rodb.combine_mooring_OS">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">combine_mooring_OS</span><span class="p">(</span><span class="n">ds_list</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Combine a list of OceanSITES instrument-level datasets into a mooring-level dataset.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ds_list : list of xarray.Dataset</span>
+<span class="sd">        List of instrument-level datasets to concatenate along DEPTH.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    xarray.Dataset</span>
+<span class="sd">        Combined dataset with cleaned and updated global attributes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">ds_list</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Input list is empty. At least one dataset is required.&quot;</span><span class="p">)</span>
+
+    <span class="n">ds_combined</span> <span class="o">=</span> <span class="n">utilities</span><span class="o">.</span><span class="n">concat_with_scalar_vars</span><span class="p">(</span><span class="n">ds_list</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="s2">&quot;DEPTH&quot;</span><span class="p">)</span>
+    <span class="n">ds_combined</span> <span class="o">=</span> <span class="n">ds_combined</span><span class="o">.</span><span class="n">sortby</span><span class="p">(</span><span class="s2">&quot;DEPTH&quot;</span><span class="p">)</span>  <span class="c1"># Ensure DEPTH is sorted</span>
+
+    <span class="c1"># Start with a copy of attributes from the first dataset</span>
+    <span class="n">attrs</span> <span class="o">=</span> <span class="n">ds_combined</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="c1"># Remove instrument-specific attribute</span>
+    <span class="n">attrs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;serial_number&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="c1"># Merge all unique source_file entries</span>
+    <span class="n">source_files</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">ds</span> <span class="ow">in</span> <span class="n">ds_list</span><span class="p">:</span>
+        <span class="n">sf</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;source_file&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sf</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="n">source_files</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">sf</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sf</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="c1"># Split comma-separated strings if needed</span>
+            <span class="n">source_files</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">s</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)])</span>
+    <span class="n">unique_sorted</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">source_files</span><span class="p">))</span>
+    <span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;source_file&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">unique_sorted</span><span class="p">)</span>
+
+    <span class="c1"># Simplify id and title</span>
+    <span class="n">platform_code</span> <span class="o">=</span> <span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;platform_code&quot;</span><span class="p">,</span> <span class="s2">&quot;unknown&quot;</span><span class="p">)</span>
+    <span class="n">deployment_code</span> <span class="o">=</span> <span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;deployment_code&quot;</span><span class="p">,</span> <span class="s2">&quot;unknown&quot;</span><span class="p">)</span>
+    <span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;title&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Time series from </span><span class="si">{</span><span class="n">platform_code</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">deployment_code</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;OS_</span><span class="si">{</span><span class="n">platform_code</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">deployment_code</span><span class="si">}</span><span class="s2">_P&quot;</span>
+
+    <span class="c1"># Update geospatial vertical bounds from DEPTH coordinate</span>
+    <span class="k">if</span> <span class="s2">&quot;DEPTH&quot;</span> <span class="ow">in</span> <span class="n">ds_combined</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
+        <span class="n">depths</span> <span class="o">=</span> <span class="n">ds_combined</span><span class="p">[</span><span class="s2">&quot;DEPTH&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+        <span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;geospatial_vertical_min&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmin</span><span class="p">(</span><span class="n">depths</span><span class="p">))</span>
+        <span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;geospatial_vertical_max&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">depths</span><span class="p">))</span>
+
+    <span class="c1"># Re-order variables to put any scalar variables at the end, and if they have numeric values, then put them in order of low to high values</span>
+    <span class="n">scalar_vars</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">ds_combined</span><span class="o">.</span><span class="n">data_vars</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">ds_combined</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">scalar_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
+    <span class="n">scalar_vars</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span>
+        <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="p">(</span>
+            <span class="n">ds_combined</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+            <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">issubdtype</span><span class="p">(</span><span class="n">ds_combined</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">number</span><span class="p">)</span>
+            <span class="k">else</span> <span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">non_scalar_vars</span> <span class="o">=</span> <span class="p">[</span><span class="n">var</span> <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">ds_combined</span><span class="o">.</span><span class="n">data_vars</span> <span class="k">if</span> <span class="n">var</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">scalar_vars</span><span class="p">]</span>
+    <span class="n">ds_combined</span> <span class="o">=</span> <span class="n">ds_combined</span><span class="p">[</span><span class="n">non_scalar_vars</span> <span class="o">+</span> <span class="n">scalar_vars</span><span class="p">]</span>
+
+    <span class="c1"># Assign back updated attributes</span>
+    <span class="n">ds_combined</span><span class="o">.</span><span class="n">attrs</span> <span class="o">=</span> <span class="n">attrs</span>
+
+    <span class="k">return</span> <span class="n">ds_combined</span></div>
+
+
+
+<div class="viewcode-block" id="auto_filt">
+<a class="viewcode-back" href="../../../legacy.html#oceanarray.legacy.mooring_rodb.auto_filt">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">auto_filt</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">sr</span><span class="p">,</span> <span class="n">co</span><span class="p">,</span> <span class="n">typ</span><span class="o">=</span><span class="s2">&quot;low&quot;</span><span class="p">,</span> <span class="n">fo</span><span class="o">=</span><span class="mi">6</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Apply a Butterworth digital filter to a data array.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    y : array_like</span>
+<span class="sd">        Input data array (1D).</span>
+<span class="sd">    sr : float</span>
+<span class="sd">        Sampling rate (Hz or 1/time units of your data).</span>
+<span class="sd">    co : float or tuple of float</span>
+<span class="sd">        Cutoff frequency/frequencies. A scalar for &#39;low&#39; or &#39;high&#39;, a 2-tuple for &#39;bandstop&#39;.</span>
+<span class="sd">    typ : str, optional</span>
+<span class="sd">        Filter type: &#39;low&#39;, &#39;high&#39;, or &#39;bandstop&#39;. Default is &#39;low&#39;.</span>
+<span class="sd">    fo : int, optional</span>
+<span class="sd">        Filter order. Default is 6.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    yf : ndarray</span>
+<span class="sd">        Filtered data array.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Normalize cutoff frequency to the Nyquist rate</span>
+    <span class="n">nyquist</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">sr</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">co</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)):</span>
+        <span class="n">wh</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="o">/</span> <span class="n">nyquist</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">co</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">wh</span> <span class="o">=</span> <span class="n">co</span> <span class="o">/</span> <span class="n">nyquist</span>
+
+    <span class="n">b</span><span class="p">,</span> <span class="n">a</span> <span class="o">=</span> <span class="n">butter</span><span class="p">(</span><span class="n">fo</span><span class="p">,</span> <span class="n">wh</span><span class="p">,</span> <span class="n">btype</span><span class="o">=</span><span class="n">typ</span><span class="p">)</span>
+    <span class="n">yf</span> <span class="o">=</span> <span class="n">filtfilt</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">yf</span></div>
+
+
+
+<div class="viewcode-block" id="filter_all_time_vars">
+<a class="viewcode-back" href="../../../legacy.html#oceanarray.legacy.mooring_rodb.filter_all_time_vars">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">filter_all_time_vars</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">cutoff_days</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">fo</span><span class="o">=</span><span class="mi">6</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Apply a lowpass Butterworth filter to all data variables that depend on TIME.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ds : xarray.Dataset</span>
+<span class="sd">        Dataset containing time series variables.</span>
+<span class="sd">    cutoff_days : float, optional</span>
+<span class="sd">        Lowpass filter cutoff in days. Default is 2 days.</span>
+<span class="sd">    fo : int, optional</span>
+<span class="sd">        Filter order. Default is 6.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    xarray.Dataset</span>
+<span class="sd">        Dataset with filtered variables.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">time</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;TIME&quot;</span><span class="p">]</span>
+    <span class="n">dt</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">TIME</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">time</span><span class="o">.</span><span class="n">isel</span><span class="p">(</span><span class="n">TIME</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">timedelta64</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;s&quot;</span><span class="p">)</span>  <span class="c1"># seconds</span>
+    <span class="n">sr</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">dt</span>  <span class="c1"># Hz</span>
+    <span class="n">co</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="n">cutoff_days</span> <span class="o">*</span> <span class="mi">24</span> <span class="o">*</span> <span class="mi">3600</span><span class="p">)</span>  <span class="c1"># Hz</span>
+
+    <span class="n">ds_filt</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">deep</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">padlen</span> <span class="o">=</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">fo</span>
+
+    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span><span class="p">:</span>
+        <span class="n">da</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="n">var</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s2">&quot;TIME&quot;</span> <span class="ow">in</span> <span class="n">da</span><span class="o">.</span><span class="n">dims</span> <span class="ow">and</span> <span class="n">da</span><span class="o">.</span><span class="n">sizes</span><span class="p">[</span><span class="s2">&quot;TIME&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;TIME&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">values</span>
+
+            <span class="k">if</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">padlen</span><span class="p">:</span>
+                <span class="k">continue</span>  <span class="c1"># skip too-short series</span>
+
+            <span class="c1"># Reshape for filtering along TIME</span>
+            <span class="n">y_flat</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># (TIME, N)</span>
+            <span class="n">y_filt</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">y_flat</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">y_flat</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                <span class="n">y1d</span> <span class="o">=</span> <span class="n">y_flat</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">y1d</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                    <span class="n">y_filt</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">y_filt</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">auto_filt</span><span class="p">(</span><span class="n">y1d</span><span class="p">,</span> <span class="n">sr</span><span class="p">,</span> <span class="n">co</span><span class="p">,</span> <span class="n">typ</span><span class="o">=</span><span class="s2">&quot;low&quot;</span><span class="p">,</span> <span class="n">fo</span><span class="o">=</span><span class="n">fo</span><span class="p">)</span>
+                    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                        <span class="n">y_filt</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>  <span class="c1"># fallback for rare failures</span>
+
+            <span class="c1"># Reshape back to original</span>
+            <span class="n">ds_filt</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">values</span> <span class="o">=</span> <span class="n">y_filt</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ds_filt</span></div>
+
+
+
+<div class="viewcode-block" id="get_12hourly_time_grid">
+<a class="viewcode-back" href="../../../legacy.html#oceanarray.legacy.mooring_rodb.get_12hourly_time_grid">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_12hourly_time_grid</span><span class="p">(</span>
+    <span class="n">time_or_ds</span><span class="p">,</span>
+    <span class="n">freq</span><span class="o">=</span><span class="s2">&quot;12h&quot;</span><span class="p">,</span>
+    <span class="n">start_offset</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+    <span class="n">end_offset</span><span class="o">=</span><span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+    <span class="n">time_var</span><span class="o">=</span><span class="s2">&quot;TIME&quot;</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Given a pandas.DatetimeIndex, array of datetimes, or xarray.Dataset,</span>
+<span class="sd">    return a regular time grid (default: 12-hourly) from the first full day after the start</span>
+<span class="sd">    to the last full day before the end.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    time_or_ds : array-like of datetime64, pandas.DatetimeIndex, or xarray.Dataset</span>
+<span class="sd">        Input time array or dataset containing a time variable.</span>
+<span class="sd">    freq : str, optional</span>
+<span class="sd">        Frequency string for the output grid (default &#39;12h&#39;).</span>
+<span class="sd">    start_offset : pd.Timedelta, optional</span>
+<span class="sd">        Offset to add to the start time before normalizing (default 1 day).</span>
+<span class="sd">    end_offset : pd.Timedelta, optional</span>
+<span class="sd">        Offset to subtract from the end time after normalizing (default 0).</span>
+<span class="sd">    time_var : str, optional</span>
+<span class="sd">        Name of the time variable in the dataset (default &#39;TIME&#39;).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    pandas.DatetimeIndex</span>
+<span class="sd">        Regular time grid at the specified frequency.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">time_or_ds</span><span class="p">,</span> <span class="s2">&quot;dims&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">time_var</span> <span class="ow">in</span> <span class="n">time_or_ds</span><span class="p">:</span>
+        <span class="c1"># Assume xarray.Dataset or DataArray</span>
+        <span class="n">time</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">time_or_ds</span><span class="p">[</span><span class="n">time_var</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">time</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">time_or_ds</span><span class="p">)</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">stop</span> <span class="o">=</span> <span class="n">time</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">start_day</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="n">start</span> <span class="o">+</span> <span class="n">start_offset</span><span class="p">)</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">start</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">!=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timestamp</span><span class="p">(</span><span class="s2">&quot;00:00&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">else</span> <span class="n">start</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="n">stop_day</span> <span class="o">=</span> <span class="p">(</span><span class="n">stop</span> <span class="o">-</span> <span class="n">end_offset</span><span class="p">)</span><span class="o">.</span><span class="n">normalize</span><span class="p">()</span>
+    <span class="n">jd_grid</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="n">start_day</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="n">stop_day</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="n">freq</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">jd_grid</span></div>
+
+
+
+<div class="viewcode-block" id="interp_to_12hour_grid">
+<a class="viewcode-back" href="../../../legacy.html#oceanarray.legacy.mooring_rodb.interp_to_12hour_grid">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">interp_to_12hour_grid</span><span class="p">(</span><span class="n">ds1</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Interpolate all variables with a TIME dimension to a regular 12-hour grid.</span>
+
+<span class="sd">    Handles both 1D and multidimensional variables with TIME as the first dimension.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">jd_grid</span> <span class="o">=</span> <span class="n">get_12hourly_time_grid</span><span class="p">(</span><span class="n">ds1</span><span class="p">)</span>
+    <span class="n">time1</span> <span class="o">=</span> <span class="n">ds1</span><span class="p">[</span><span class="s2">&quot;TIME&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+    <span class="n">time1_float</span> <span class="o">=</span> <span class="n">time1</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;datetime64[s]&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">grid_float</span> <span class="o">=</span> <span class="n">jd_grid</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;datetime64[s]&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
+
+    <span class="n">interp_vars</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">ds1</span><span class="o">.</span><span class="n">data_vars</span><span class="p">:</span>
+        <span class="n">da</span> <span class="o">=</span> <span class="n">ds1</span><span class="p">[</span><span class="n">var</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s2">&quot;TIME&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">da</span><span class="o">.</span><span class="n">dims</span><span class="p">:</span>
+            <span class="k">continue</span>  <span class="c1"># skip non-time-dependent variables</span>
+
+        <span class="n">axis_time</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">get_axis_num</span><span class="p">(</span><span class="s2">&quot;TIME&quot;</span><span class="p">)</span>
+        <span class="n">other_dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">da</span><span class="o">.</span><span class="n">dims</span> <span class="k">if</span> <span class="n">d</span> <span class="o">!=</span> <span class="s2">&quot;TIME&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Reshape to (TIME, -1) to interpolate each column</span>
+        <span class="n">reshaped</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="s2">&quot;TIME&quot;</span><span class="p">,</span> <span class="o">*</span><span class="n">other_dims</span><span class="p">)</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">time1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">interpolated</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">grid_float</span><span class="p">),</span> <span class="n">reshaped</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">reshaped</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+            <span class="n">interp_func</span> <span class="o">=</span> <span class="n">interp1d</span><span class="p">(</span>
+                <span class="n">time1_float</span><span class="p">,</span>
+                <span class="n">reshaped</span><span class="p">[:,</span> <span class="n">i</span><span class="p">],</span>
+                <span class="n">bounds_error</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">fill_value</span><span class="o">=</span><span class="s2">&quot;extrapolate&quot;</span><span class="p">,</span>
+                <span class="n">assume_sorted</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">interpolated</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">interp_func</span><span class="p">(</span><span class="n">grid_float</span><span class="p">)</span>
+
+        <span class="c1"># Reshape back to (TIME, *other_dims)</span>
+        <span class="n">new_shape</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">grid_float</span><span class="p">),)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span>
+            <span class="n">da</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="s2">&quot;TIME&quot;</span><span class="p">,</span> <span class="o">*</span><span class="n">other_dims</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="p">)</span>
+        <span class="n">interp_data</span> <span class="o">=</span> <span class="n">interpolated</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">new_shape</span><span class="p">)</span>
+
+        <span class="c1"># Create new DataArray</span>
+        <span class="n">coords</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;TIME&quot;</span><span class="p">:</span> <span class="n">jd_grid</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">other_dims</span><span class="p">:</span>
+            <span class="n">coords</span><span class="p">[</span><span class="n">dim</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds1</span><span class="p">[</span><span class="n">dim</span><span class="p">]</span>
+
+        <span class="n">interp_vars</span><span class="p">[</span><span class="n">var</span><span class="p">]</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">(</span>
+            <span class="n">interp_data</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;TIME&quot;</span><span class="p">,</span> <span class="o">*</span><span class="n">other_dims</span><span class="p">),</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">,</span> <span class="n">attrs</span><span class="o">=</span><span class="n">da</span><span class="o">.</span><span class="n">attrs</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Build new dataset</span>
+    <span class="n">ds_interp</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="n">interp_vars</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;TIME&quot;</span><span class="p">:</span> <span class="n">jd_grid</span><span class="p">})</span>
+    <span class="n">ds_interp</span><span class="o">.</span><span class="n">attrs</span> <span class="o">=</span> <span class="n">ds1</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="c1"># Copy non-time-dependent variables</span>
+    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">ds1</span><span class="o">.</span><span class="n">data_vars</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s2">&quot;TIME&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds1</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span><span class="p">:</span>
+            <span class="n">ds_interp</span><span class="p">[</span><span class="n">var</span><span class="p">]</span> <span class="o">=</span> <span class="n">ds1</span><span class="p">[</span><span class="n">var</span><span class="p">]</span>
+
+    <span class="c1"># Also copy over coordinates that are not &#39;TIME&#39;</span>
+    <span class="k">for</span> <span class="n">coord</span> <span class="ow">in</span> <span class="n">ds1</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">coord</span> <span class="o">!=</span> <span class="s2">&quot;TIME&quot;</span> <span class="ow">and</span> <span class="n">coord</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds_interp</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
+            <span class="n">ds_interp</span> <span class="o">=</span> <span class="n">ds_interp</span><span class="o">.</span><span class="n">assign_coords</span><span class="p">({</span><span class="n">coord</span><span class="p">:</span> <span class="n">ds1</span><span class="p">[</span><span class="n">coord</span><span class="p">]})</span>
+
+    <span class="k">return</span> <span class="n">ds_interp</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Eleanor Frajka-Williams, FirstName LastName.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

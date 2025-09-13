@@ -184,14 +184,16 @@
 <section id="variable-names">
 <h3>🧬 Variable Names<a class="headerlink" href="#variable-names" title="Link to this heading"></a></h3>
 <ul class="simple">
-<li><p><strong>ALL CAPITALS</strong> for variables and dimensions: <code class="docutils literal notranslate"><span class="pre">TRANSPORT</span></code>, <code class="docutils literal notranslate"><span class="pre">DEPTH</span></code>, <code class="docutils literal notranslate"><span class="pre">TIME</span></code></p></li>
-<li><p>Keep short and unambiguous</p></li>
+<li><p>Variable naming conventions are currently inconsistent across the codebase</p></li>
+<li><p>We need to verify and align with <a class="reference external" href="https://www.ocean-ops.org/oceansites/data/index.html">OceanSites variable naming recommendations</a></p></li>
+<li><p>Mix of <code class="docutils literal notranslate"><span class="pre">ALL_CAPS</span></code> (<code class="docutils literal notranslate"><span class="pre">TIME</span></code>, <code class="docutils literal notranslate"><span class="pre">DEPTH</span></code>) and lowercase (<code class="docutils literal notranslate"><span class="pre">temperature</span></code>, <code class="docutils literal notranslate"><span class="pre">pressure</span></code>) currently in use</p></li>
+<li><p>Keep names short and unambiguous</p></li>
 </ul>
 </section>
 <section id="attributes">
 <h3>🧾 Attributes<a class="headerlink" href="#attributes" title="Link to this heading"></a></h3>
 <ul class="simple">
-<li><p>Follow <a class="reference external" href="https://oceangliderscommunity.github.io/OG-format-user-manual/OG_Format.html">OceanGliders OG1 format</a></p></li>
+<li><p>Follow <a class="reference external" href="https://www.ocean-ops.org/oceansites/data/index.html">OceanSites format conventions</a></p></li>
 <li><p>Use <code class="docutils literal notranslate"><span class="pre">units</span></code>, <code class="docutils literal notranslate"><span class="pre">long_name</span></code>, <code class="docutils literal notranslate"><span class="pre">comment</span></code></p></li>
 <li><p>Avoid placing units in variable names — use attributes instead</p></li>
 </ul>
@@ -205,9 +207,17 @@
 </section>
 </section>
 <hr class="docutils" />
-<section id="automating-formatting-optional">
-<h2>🔁 Automating Formatting (Optional)<a class="headerlink" href="#automating-formatting-optional" title="Link to this heading"></a></h2>
-<p>The project uses tools like <code class="docutils literal notranslate"><span class="pre">black</span></code>, <code class="docutils literal notranslate"><span class="pre">ruff</span></code>, and <code class="docutils literal notranslate"><span class="pre">pytest</span></code> to enforce style, linting, and test consistency. These are integrated into the workflow using <a class="reference internal" href="precommit_guide.html"><span class="std std-doc">pre-commit hooks</span></a>.</p>
+<section id="automating-formatting">
+<h2>🔁 Automating Formatting<a class="headerlink" href="#automating-formatting" title="Link to this heading"></a></h2>
+<p>The project uses tools like <code class="docutils literal notranslate"><span class="pre">black</span></code>, <code class="docutils literal notranslate"><span class="pre">ruff</span></code>, and <code class="docutils literal notranslate"><span class="pre">pytest</span></code> to enforce style, linting, and test consistency. These are integrated into the workflow using pre-commit hooks.</p>
+<p><strong>Pre-commit tools used:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>black<span class="w"> </span>.<span class="w">                         </span><span class="c1"># Format code with black</span>
+ruff<span class="w"> </span>check<span class="w"> </span>.<span class="w">                    </span><span class="c1"># Run ruff linter  </span>
+ruff<span class="w"> </span>check<span class="w"> </span>.<span class="w"> </span>--fix<span class="w">              </span><span class="c1"># Auto-fix issues where possible</span>
+pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files<span class="w">      </span><span class="c1"># Run all pre-commit hooks</span>
+codespell<span class="w">                       </span><span class="c1"># Check for spelling errors</span>
+</pre></div>
+</div>
 <p>You don’t need to run them manually, but setting up pre-commit ensures your code follows project standards automatically.</p>
 </section>
 <hr class="docutils" />

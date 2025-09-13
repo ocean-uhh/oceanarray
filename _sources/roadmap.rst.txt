@@ -25,66 +25,120 @@ The OceanArray framework currently provides a solid foundation for oceanographic
   - Configurable Logging System
 
 🟡 **Partially Implemented**
-  - Stage 3: Auto QC - basic QARTOD functions exist (``tools.py``)
-  - Stage 4: Calibration - microcat calibration exists (``process_rodb.py``) 
   - Step 2: Vertical Gridding - physics-based interpolation exists (``rapid_interp.py``)
 
 ❌ **Documented but Not Implemented**
-  - Stage 4: Conversion to OceanSites format
+  - Stage 3: Automatic Quality Control using QARTOD standards
+  - Stage 4: Calibration Information Integration (microcat focus)
+  - Stage 5: Conversion to OceanSites format
   - Step 3: Concatenation of deployments  
   - Multi-site merging for boundary profiles
-  - Comprehensive automatic QC framework
 
 Priority 1: Core Missing Features
 =================================
 
-1. Stage 3: Comprehensive Auto QC Framework
--------------------------------------------
+1. Stage 3: Automatic Quality Control using QARTOD Standards
+------------------------------------------------------------
 
 **Documentation**: ``docs/source/methods/auto_qc.rst``
 
-**Current State**: Basic QARTOD functions exist in ``tools.py:run_qc()`` and visualization in ``plotters.py:plot_qartod_summary()``.
+**Purpose**: Apply systematic quality control checks following QARTOD (Quality Assurance/Quality Control of Real-Time Oceanographic Data) standards to identify and flag suspect data.
+
+**Current State**: Basic QC functions exist in ``tools.py:run_qc()`` with salinity outlier detection, temporal spike detection, and visualization in ``plotters.py``.
 
 **Missing Implementation**:
-- Structured QC configuration system
-- Integration with ``ioos_qc`` package as documented
-- Complete flag value handling (0,1,2,3,4,7,8,9)
-- Automated QC report generation
-- QC metadata preservation in datasets
+- Complete ``stage3.py`` module implementing full QARTOD test suite
+- Integration with ``ioos_qc`` package for standardized tests
+- QARTOD-compliant flag value handling (0,1,2,3,4,7,8,9)
+- Configurable QC test parameters via YAML
+- Automated QC report generation with summary statistics
+- QC metadata preservation in NetCDF output
+
+**QARTOD Tests to Implement**:
+- Gross range test (min/max bounds)
+- Climatological test (seasonal expectations)
+- Spike test (temporal derivatives)
+- Rate of change test
+- Flat line test (stuck values)
+- Multi-variate tests (T-S relationships)
+- Neighbor test (spatial consistency)
 
 **Estimated Effort**: 2-3 weeks
 
 **Implementation Plan**:
-  1. Create ``oceanarray/auto_qc.py`` module
-  2. Design YAML-based QC configuration system
-  3. Implement comprehensive flag handling
-  4. Add QC validation and reporting
-  5. Integrate with existing Stage 2 workflow
+  1. Create ``oceanarray/stage3.py`` module with ``QCProcessor`` class
+  2. Design YAML-based QC configuration system for test parameters
+  3. Integrate ``ioos_qc`` package for standardized QARTOD implementations
+  4. Implement comprehensive QARTOD flag handling and metadata
+  5. Add QC validation and reporting with summary statistics
+  6. Integrate with Stage 2 → Stage 3 → Stage 4 pipeline
 
-2. Stage 4: OceanSites Format Conversion  
+2. Stage 4: Calibration Information Integration (Microcat Focus)
+----------------------------------------------------------------
+
+**Documentation**: ``docs/source/methods/calibration.rst``
+
+**Purpose**: Apply instrument calibration corrections, with initial focus on Sea-Bird MicroCAT conductivity-temperature sensors, incorporating pre- and post-deployment calibration information.
+
+**Current State**: Basic microcat calibration functions exist in ``process_rodb.py`` for legacy RODB workflows.
+
+**Missing Implementation**:
+- Complete ``stage4.py`` module for modern CF-compliant calibration workflow
+- Integration with Sea-Bird calibration certificate parsing
+- Pre/post-deployment calibration comparison and drift analysis
+- Conductivity cell thermal mass corrections
+- Calibration uncertainty propagation through processing chain
+- Calibration metadata preservation in NetCDF output
+- Support for multiple calibration coefficient sets
+
+**Calibration Features to Implement**:
+- Sea-Bird calibration certificate parsing (.xmlcon, .cal files)
+- Conductivity calibration equation application (frequency-based)
+- Temperature calibration with ITS-90 conversion
+- Pressure sensor calibration and atmospheric correction
+- Thermal mass correction for conductivity measurements
+- Calibration drift analysis between pre/post deployments
+- Uncertainty quantification and propagation
+
+**Estimated Effort**: 2-3 weeks
+
+**Implementation Plan**:
+  1. Create ``oceanarray/stage4.py`` module with ``CalibrationProcessor`` class
+  2. Design calibration configuration system for coefficient management
+  3. Implement Sea-Bird calibration certificate parsing
+  4. Add thermal mass correction algorithms
+  5. Create pre/post calibration comparison tools
+  6. Add uncertainty propagation and metadata preservation
+  7. Integrate with Stage 3 → Stage 4 → Stage 5 pipeline
+
+3. Stage 5: OceanSites Format Conversion  
 --------------------------------------------
 
 **Documentation**: ``docs/source/methods/conversion.rst``
 
-**Current State**: Some format conversion exists in ``convertOS.py``, but not the full OceanSites specification.
+**Purpose**: Convert processed and calibrated data to OceanSites format specification for community data sharing and archival.
+
+**Current State**: Some format conversion exists in ``convertOS.py``, but not the full OceanSites specification compliance.
 
 **Missing Implementation**:
-- Complete OceanSites format specification compliance
-- Global attribute validation and enforcement
-- CF-convention compliance checking
-- Variable attribute standardization  
-- Comprehensive metadata handling
+- Complete ``stage5.py`` module for OceanSites format conversion
+- Global attribute validation and enforcement per OceanSites standards
+- CF-convention compliance checking and validation
+- Variable attribute standardization according to OceanSites vocabulary
+- Comprehensive metadata template system
+- Quality flag conversion to OceanSites standards
 
 **Estimated Effort**: 2-3 weeks
 
 **Implementation Plan**:
-  1. Create ``oceanarray/conversion.py`` module
-  2. Implement OceanSites format validation
-  3. Add CF-compliance checking
-  4. Design metadata template system
-  5. Add format conversion pipeline
+  1. Create ``oceanarray/stage5.py`` module with ``OceanSitesProcessor`` class
+  2. Implement complete OceanSites format validation
+  3. Add CF-compliance checking and enforcement
+  4. Design metadata template system for OceanSites requirements
+  5. Add quality flag conversion from QARTOD to OceanSites standards
+  6. Integrate with Stage 4 → Stage 5 pipeline
 
-3. Step 3: Deployment Concatenation
+4. Step 3: Deployment Concatenation
 -----------------------------------
 
 **Documentation**: ``docs/source/methods/concatenation.rst``
@@ -107,7 +161,7 @@ Priority 1: Core Missing Features
   4. Add time-pressure grid standardization
   5. Create validation and QC checks
 
-4. Enhanced Visualization System
+5. Enhanced Visualization System
 --------------------------------
 
 **Current State**: Basic plotting functions exist in ``plotters.py``.
@@ -131,7 +185,7 @@ Priority 1: Core Missing Features
   5. Add customizable plotting templates
   6. Integrate with processing pipeline for automatic reporting
 
-5. Intelligent Metadata Fallback System
+6. Intelligent Metadata Fallback System
 ----------------------------------------
 
 **Current State**: Metadata extraction relies on explicit YAML configuration.
@@ -153,7 +207,7 @@ Priority 1: Core Missing Features
   5. Add logging and warnings for inferred metadata
   6. Integrate with Stage 1 processing pipeline
 
-6. Comprehensive Mooring Processing Reports
+7. Comprehensive Mooring Processing Reports
 -------------------------------------------
 
 **Current State**: No automated reporting system exists.
@@ -181,7 +235,7 @@ Priority 1: Core Missing Features
 Priority 2: Advanced Processing Features
 =======================================
 
-7. Multi-site Merging for Boundary Profiles
+8. Multi-site Merging for Boundary Profiles
 -------------------------------------------
 
 **Documentation**: ``docs/source/methods/multisite_merging.rst``
@@ -204,7 +258,7 @@ Priority 2: Advanced Processing Features
   4. Design site weighting strategies
   5. Create boundary profile outputs
 
-8. Complete Vertical Gridding Integration
+9. Complete Vertical Gridding Integration
 -----------------------------------------
 
 **Documentation**: ``docs/source/methods/vertical_gridding.rst``
@@ -230,7 +284,7 @@ Priority 2: Advanced Processing Features
 Priority 3: Enhanced Calibration System
 ======================================
 
-9. Comprehensive Calibration Framework
+10. Comprehensive Calibration Framework
 --------------------------------------
 
 **Documentation**: ``docs/source/methods/calibration.rst``
@@ -256,7 +310,7 @@ Priority 3: Enhanced Calibration System
 Priority 4: System Architecture Improvements
 ============================================
 
-10. Methods Module Organization
+11. Methods Module Organization
 ------------------------------
 
 **Current State**: Processing functions scattered across multiple modules.
@@ -276,7 +330,7 @@ Priority 4: System Architecture Improvements
 
 **Estimated Effort**: 1 week
 
-11. Enhanced Configuration System
+12. Enhanced Configuration System
 --------------------------------
 
 **Current State**: Basic logging configuration exists.
@@ -289,7 +343,7 @@ Priority 4: System Architecture Improvements
 
 **Estimated Effort**: 1-2 weeks
 
-12. Test Coverage Improvement
+13. Test Coverage Improvement
 -----------------------------
 
 **Current State**: Basic tests exist in ``tests/`` directory.
@@ -307,7 +361,7 @@ Priority 4: System Architecture Improvements
 Priority 5: Advanced Analysis Features
 =====================================
 
-13. Data Storage Efficiency Improvements
+14. Data Storage Efficiency Improvements
 -----------------------------------------
 
 **Current State**: Standard NetCDF output with basic compression.

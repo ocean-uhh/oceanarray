@@ -1,0 +1,710 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Legacy Modules &mdash; oceanarray v0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=20758594" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8b92e751"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            oceanarray
+              <img src="_static/logo_template.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Overview</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="processing_framework.html">OceanArray processing framework</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Instruments</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="methods/acquisition.html">Data Acquisition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/standardisation.html">Standardisation (Stage 1)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="clock_offset.html">Clock Offset Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/trimming.html">Trim to Deployment (Stage 2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/auto_qc.html">Automatic QC (Stage 3)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/calibration.html">Apply Calibration (Stage 4)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/conversion.html">Convert to OceanSites</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Moorings</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="methods/time_gridding.html">Grid in Time (Step 1)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/vertical_gridding.html">Grid Vertically (Step 2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/concatenation.html">Combine Deployments (Step 3)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Array</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="methods/multisite_merging.html">Multi-site Merging</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="demo_instrument-output.html">Demo: Instrument-Level Processing (Compact Workflow)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="demo_mooring-output.html">Demo: mooring-level processing (Step 1)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Help and reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="http://github.com/eleanorfrajka/oceanarray">GitHub Repo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="roadmap.html">Development Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="oceanarray.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code></a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">oceanarray</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Legacy Modules</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/legacy.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="legacy-modules">
+<h1>Legacy Modules<a class="headerlink" href="#legacy-modules" title="Link to this heading"></a></h1>
+<p>This section documents the legacy RODB/RAPID format processing modules that are maintained for backward compatibility with existing datasets.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><strong>These modules are deprecated and not recommended for new projects.</strong></p>
+<p>For new processing workflows, use the modern CF-compliant pipeline:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="methods/standardisation.html"><span class="doc">1. Standardisation (Internally-consistent format)</span></a> (Stage 1)</p></li>
+<li><p><a class="reference internal" href="methods/trimming.html"><span class="doc">2. Trimming to Deployed period</span></a> (Stage 2)</p></li>
+<li><p><a class="reference internal" href="methods/time_gridding.html"><span class="doc">Step 1: Time Gridding and Optional Filtering</span></a> (Time Gridding)</p></li>
+</ul>
+</div>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>The legacy modules are located in <code class="docutils literal notranslate"><span class="pre">oceanarray.legacy</span></code> and provide processing functions for RAPID/RODB format oceanographic data. These were the original processing functions developed for the RAPID-MOC array but have been superseded by the modern CF-compliant workflow.</p>
+</section>
+<section id="legacy-processing-workflow">
+<h2>Legacy Processing Workflow<a class="headerlink" href="#legacy-processing-workflow" title="Link to this heading"></a></h2>
+<p>The legacy workflow follows this pattern:</p>
+<ol class="arabic simple">
+<li><p><strong>Read RODB data</strong> using <code class="docutils literal notranslate"><span class="pre">RodbReader</span></code></p></li>
+<li><p><strong>Process individual instruments</strong> using <code class="docutils literal notranslate"><span class="pre">process_rodb</span></code> functions</p></li>
+<li><p><strong>Stack instruments into mooring</strong> using <code class="docutils literal notranslate"><span class="pre">mooring_rodb</span></code> functions</p></li>
+<li><p><strong>Convert to OceanSites format</strong> using <code class="docutils literal notranslate"><span class="pre">convertOS</span></code> functions</p></li>
+</ol>
+</section>
+<section id="id1">
+<h2>Legacy Modules<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<section id="oceanarray-legacy-rodb">
+<h3><code class="docutils literal notranslate"><span class="pre">oceanarray.legacy.rodb</span></code><a class="headerlink" href="#oceanarray-legacy-rodb" title="Link to this heading"></a></h3>
+<p>RODB format data reader for legacy RAPID datasets.</p>
+<p id="module-oceanarray.legacy.rodb">rodbhead.py - Decode RO database keywords.</p>
+<dl class="simple">
+<dt>Originally written in MATLAB by:</dt><dd><ul class="simple">
+<li><ol class="upperalpha simple" start="7">
+<li><p>Krahmann, IfM Kiel, Oct 1995 (v0.1.0)</p></li>
+</ol>
+</li>
+<li><p>Updated for EPIC conventions: Feb 1996 (v0.1.1)</p></li>
+<li><p>Optimized and extended by multiple contributors through 2005</p></li>
+<li><p>Last change noted in MATLAB: C. Mertens, May 1997 (v0.1.4)</p></li>
+<li><p>Extensive extensions by D. Kieke (2000) and T. Kanzow (2005)</p></li>
+</ul>
+</dd>
+</dl>
+<p>Ported to Python by E Frajka-Williams, 2025</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.rodb.format_latlon">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.rodb.</span></span><span class="sig-name descname"><span class="pre">format_latlon</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_lat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/rodb.html#format_latlon"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.rodb.format_latlon" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.rodb.is_rodb_file">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.rodb.</span></span><span class="sig-name descname"><span class="pre">is_rodb_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filepath</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Path</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/oceanarray/legacy/rodb.html#is_rodb_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.rodb.is_rodb_file" title="Link to this definition"></a></dt>
+<dd><p>Check whether a file is RODB-style based on filename and/or content.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.rodb.parse_rodb_keys_file">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.rodb.</span></span><span class="sig-name descname"><span class="pre">parse_rodb_keys_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filepath</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/rodb.html#parse_rodb_keys_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.rodb.parse_rodb_keys_file" title="Link to this definition"></a></dt>
+<dd><p>Parse a rodb_keys.txt file with MATLAB-style lines into structured dicts.</p>
+<p>Returns a dictionary with a list of entries under the ‘RODB_KEYS’ key.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.rodb.rodbload">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.rodb.</span></span><span class="sig-name descname"><span class="pre">rodbload</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filepath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variables</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dataset</span></span></span><a class="reference internal" href="_modules/oceanarray/legacy/rodb.html#rodbload"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.rodb.rodbload" title="Link to this definition"></a></dt>
+<dd><p>Read a RODB .use or .raw file into an xarray.Dataset.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.rodb.rodbsave">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.rodb.</span></span><span class="sig-name descname"><span class="pre">rodbsave</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filepath</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fmt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/rodb.html#rodbsave"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.rodb.rodbsave" title="Link to this definition"></a></dt>
+<dd><p>Save an xarray.Dataset to a RODB-style .use or .raw file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filepath</strong> (<em>str</em><em> or </em><em>Path</em>) – Output file path.</p></li>
+<li><p><strong>ds</strong> (<em>xarray.Dataset</em>) – Dataset to write. Expects time-series variables to be indexed by ‘obs’.</p></li>
+<li><p><strong>fmt</strong> (<em>str</em><em>, </em><em>optional</em>) – Format string passed to np.savetxt. If None, one is generated automatically.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="oceanarray-legacy-process-rodb">
+<h3><code class="docutils literal notranslate"><span class="pre">oceanarray.legacy.process_rodb</span></code><a class="headerlink" href="#oceanarray-legacy-process-rodb" title="Link to this heading"></a></h3>
+<p>Individual instrument processing functions for RODB data.</p>
+<dl class="py function" id="module-oceanarray.legacy.process_rodb">
+<dt class="sig sig-object py" id="oceanarray.legacy.process_rodb.apply_microcat_calibration_from_txt">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.process_rodb.</span></span><span class="sig-name descname"><span class="pre">apply_microcat_calibration_from_txt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">txt_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dataset</span></span></span><a class="reference internal" href="_modules/oceanarray/legacy/process_rodb.html#apply_microcat_calibration_from_txt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.process_rodb.apply_microcat_calibration_from_txt" title="Link to this definition"></a></dt>
+<dd><p>Apply calibration offsets from a <a href="#id2"><span class="problematic" id="id3">*</span></a>.microcat.txt file to the original .use data file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>txt_file</strong> (<em>str</em>) – Path to the calibration log file (e.g., ‘wb1_12_2015_005.microcat’).</p></li>
+<li><p><strong>use_file</strong> (<em>str</em>) – Path to the original ‘.use’ file.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ds</strong> – Dataset with calibrated temperature, conductivity, and pressure.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>xr.Dataset</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.process_rodb.mean_of_middle_percent">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.process_rodb.</span></span><span class="sig-name descname"><span class="pre">mean_of_middle_percent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">percent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">95</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/process_rodb.html#mean_of_middle_percent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.process_rodb.mean_of_middle_percent" title="Link to this definition"></a></dt>
+<dd><p>Compute the mean of values within the central <cite>percent</cite> of the data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>values</strong> (<em>array-like</em>) – Input data (1D array). NaNs will be ignored.</p></li>
+<li><p><strong>percent</strong> (<em>float</em>) – Desired central percentage (e.g., 95 for middle 95%).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Mean of values within the specified middle percentage.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.process_rodb.middle_percent">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.process_rodb.</span></span><span class="sig-name descname"><span class="pre">middle_percent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">percent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">95</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/process_rodb.html#middle_percent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.process_rodb.middle_percent" title="Link to this definition"></a></dt>
+<dd><p>Return the lower and upper bounds for the central <cite>percent</cite> of the data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>values</strong> (<em>array-like</em>) – Input data (1D array). NaNs will be ignored.</p></li>
+<li><p><strong>percent</strong> (<em>float</em>) – Desired central percentage (e.g., 95 for middle 95%).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(lower_bound, upper_bound)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.process_rodb.normalize_by_middle_percent">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.process_rodb.</span></span><span class="sig-name descname"><span class="pre">normalize_by_middle_percent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">percent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">95</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/process_rodb.html#normalize_by_middle_percent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.process_rodb.normalize_by_middle_percent" title="Link to this definition"></a></dt>
+<dd><p>Normalize a data series by the mean and standard deviation
+of its central <cite>percent</cite> range.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>values</strong> (<em>array-like</em>) – Input data (1D array). NaNs are ignored.</p></li>
+<li><p><strong>percent</strong> (<em>float</em>) – Central percentage to define the ‘middle’ of the distribution (e.g., 95).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Normalized array with the same shape as input.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>array</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.process_rodb.normalize_dataset_by_middle_percent">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.process_rodb.</span></span><span class="sig-name descname"><span class="pre">normalize_dataset_by_middle_percent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">percent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">95</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/process_rodb.html#normalize_dataset_by_middle_percent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.process_rodb.normalize_dataset_by_middle_percent" title="Link to this definition"></a></dt>
+<dd><p>Normalize all 1D data variables in an xarray Dataset that match the length of TIME,
+using the mean and std over the central <cite>percent</cite> of each variable.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ds</strong> (<em>xarray.Dataset</em>) – Input dataset with a ‘TIME’ coordinate.</p></li>
+<li><p><strong>percent</strong> (<em>float</em>) – Percentage of central values to define the middle (e.g., 95 for middle 95%).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>New dataset with normalized data variables.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>xarray.Dataset</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.process_rodb.stage2_trim">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.process_rodb.</span></span><span class="sig-name descname"><span class="pre">stage2_trim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deployment_start</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deployment_end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dataset</span></span></span><a class="reference internal" href="_modules/oceanarray/legacy/process_rodb.html#stage2_trim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.process_rodb.stage2_trim" title="Link to this definition"></a></dt>
+<dd><p>Trim dataset to deployment period and fill time gaps with NaN.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ds</strong> (<em>xarray.Dataset</em>) – Input dataset with ‘TIME’ coordinate and variables like ‘TEMP’, ‘CNDC’, optionally ‘PRES’.</p></li>
+<li><p><strong>deployment_start</strong> (<em>datetime</em><em>, </em><em>optional</em>) – Start of the valid deployment period. If None, uses first timestamp in ds.</p></li>
+<li><p><strong>deployment_end</strong> (<em>datetime</em><em>, </em><em>optional</em>) – End of the valid deployment period. If None, uses last timestamp in ds.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Trimmed and gap-filled dataset.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>xr.Dataset</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.process_rodb.std_of_middle_percent">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.process_rodb.</span></span><span class="sig-name descname"><span class="pre">std_of_middle_percent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">percent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">95</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/process_rodb.html#std_of_middle_percent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.process_rodb.std_of_middle_percent" title="Link to this definition"></a></dt>
+<dd><p>Compute the standard deviation of values within the central <cite>percent</cite> of the data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>values</strong> (<em>array-like</em>) – Input data (1D array). NaNs will be ignored.</p></li>
+<li><p><strong>percent</strong> (<em>float</em>) – Desired central percentage (e.g., 95 for middle 95%).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Standard deviation of values within the specified middle percentage.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.process_rodb.trim_suggestion">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.process_rodb.</span></span><span class="sig-name descname"><span class="pre">trim_suggestion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">percent</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">95</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vars_to_check</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['T',</span> <span class="pre">'C',</span> <span class="pre">'P']</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/process_rodb.html#trim_suggestion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.process_rodb.trim_suggestion" title="Link to this definition"></a></dt>
+<dd><p>Normalize dataset variables using the middle percentile and determine suggested
+deployment start and end times where the normalized values are below a given threshold.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ds</strong> (<em>xarray.Dataset</em>) – Input dataset with a ‘TIME’ coordinate and 1D data variables.</p></li>
+<li><p><strong>percent</strong> (<em>float</em>) – Percentage for middle-percent normalization (e.g., 95).</p></li>
+<li><p><strong>threshold</strong> (<em>float</em>) – Absolute threshold on normalized values to consider as stable.</p></li>
+<li><p><strong>vars_to_check</strong> (<em>list</em><em> of </em><em>str</em>) – List of variable names to consider for start/end detection.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>start_time</strong> (<em>np.datetime64 or None</em>) – Suggested deployment start time.</p></li>
+<li><p><strong>end_time</strong> (<em>np.datetime64 or None</em>) – Suggested deployment end time.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="oceanarray-legacy-mooring-rodb">
+<h3><code class="docutils literal notranslate"><span class="pre">oceanarray.legacy.mooring_rodb</span></code><a class="headerlink" href="#oceanarray-legacy-mooring-rodb" title="Link to this heading"></a></h3>
+<p>Mooring-level stacking and filtering functions for RODB data.</p>
+<dl class="py function" id="module-oceanarray.legacy.mooring_rodb">
+<dt class="sig sig-object py" id="oceanarray.legacy.mooring_rodb.add_serial_and_sensor_info">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.mooring_rodb.</span></span><span class="sig-name descname"><span class="pre">add_serial_and_sensor_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds_combined</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ds_list</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/mooring_rodb.html#add_serial_and_sensor_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.mooring_rodb.add_serial_and_sensor_info" title="Link to this definition"></a></dt>
+<dd><p>Add serial number/depth mapping and sensor variable info to the combined dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ds_combined</strong> (<em>xarray.Dataset</em>) – The combined mooring-level dataset (with DEPTH coordinate).</p></li>
+<li><p><strong>ds_list</strong> (<em>list</em><em> of </em><em>xarray.Dataset</em>) – List of instrument-level datasets used to create ds_combined.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><em>xarray.Dataset</em> – The dataset with added attributes and SENSOR_VARS variable.</p></li>
+<li><p><em>dict</em> – The updated attributes dictionary.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.mooring_rodb.auto_filt">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.mooring_rodb.</span></span><span class="sig-name descname"><span class="pre">auto_filt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">co</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">typ</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'low'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/mooring_rodb.html#auto_filt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.mooring_rodb.auto_filt" title="Link to this definition"></a></dt>
+<dd><p>Apply a Butterworth digital filter to a data array.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y</strong> (<em>array_like</em>) – Input data array (1D).</p></li>
+<li><p><strong>sr</strong> (<em>float</em>) – Sampling rate (Hz or 1/time units of your data).</p></li>
+<li><p><strong>co</strong> (<em>float</em><em> or </em><em>tuple</em><em> of </em><em>float</em>) – Cutoff frequency/frequencies. A scalar for ‘low’ or ‘high’, a 2-tuple for ‘bandstop’.</p></li>
+<li><p><strong>typ</strong> (<em>str</em><em>, </em><em>optional</em>) – Filter type: ‘low’, ‘high’, or ‘bandstop’. Default is ‘low’.</p></li>
+<li><p><strong>fo</strong> (<em>int</em><em>, </em><em>optional</em>) – Filter order. Default is 6.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>yf</strong> – Filtered data array.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.mooring_rodb.combine_mooring_OS">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.mooring_rodb.</span></span><span class="sig-name descname"><span class="pre">combine_mooring_OS</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds_list</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/mooring_rodb.html#combine_mooring_OS"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.mooring_rodb.combine_mooring_OS" title="Link to this definition"></a></dt>
+<dd><p>Combine a list of OceanSITES instrument-level datasets into a mooring-level dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ds_list</strong> (<em>list</em><em> of </em><em>xarray.Dataset</em>) – List of instrument-level datasets to concatenate along DEPTH.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Combined dataset with cleaned and updated global attributes.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>xarray.Dataset</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.mooring_rodb.filter_all_time_vars">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.mooring_rodb.</span></span><span class="sig-name descname"><span class="pre">filter_all_time_vars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cutoff_days</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fo</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">6</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/mooring_rodb.html#filter_all_time_vars"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.mooring_rodb.filter_all_time_vars" title="Link to this definition"></a></dt>
+<dd><p>Apply a lowpass Butterworth filter to all data variables that depend on TIME.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ds</strong> (<em>xarray.Dataset</em>) – Dataset containing time series variables.</p></li>
+<li><p><strong>cutoff_days</strong> (<em>float</em><em>, </em><em>optional</em>) – Lowpass filter cutoff in days. Default is 2 days.</p></li>
+<li><p><strong>fo</strong> (<em>int</em><em>, </em><em>optional</em>) – Filter order. Default is 6.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dataset with filtered variables.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>xarray.Dataset</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.mooring_rodb.find_common_attributes">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.mooring_rodb.</span></span><span class="sig-name descname"><span class="pre">find_common_attributes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds_list</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/mooring_rodb.html#find_common_attributes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.mooring_rodb.find_common_attributes" title="Link to this definition"></a></dt>
+<dd><p>Return attributes that are common across all datasets with the same value.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.mooring_rodb.find_time_vars">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.mooring_rodb.</span></span><span class="sig-name descname"><span class="pre">find_time_vars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'TIME'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/mooring_rodb.html#find_time_vars"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.mooring_rodb.find_time_vars" title="Link to this definition"></a></dt>
+<dd><p>Return all variable names that have (time_key,) dimensions in any dataset.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.mooring_rodb.get_12hourly_time_grid">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.mooring_rodb.</span></span><span class="sig-name descname"><span class="pre">get_12hourly_time_grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">time_or_ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'12h'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_offset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Timedelta('1</span> <span class="pre">days</span> <span class="pre">00:00:00')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end_offset</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">Timedelta('0</span> <span class="pre">days</span> <span class="pre">00:00:00')</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_var</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'TIME'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/mooring_rodb.html#get_12hourly_time_grid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.mooring_rodb.get_12hourly_time_grid" title="Link to this definition"></a></dt>
+<dd><p>Given a pandas.DatetimeIndex, array of datetimes, or xarray.Dataset,
+return a regular time grid (default: 12-hourly) from the first full day after the start
+to the last full day before the end.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>time_or_ds</strong> (<em>array-like</em><em> of </em><em>datetime64</em><em>, </em><em>pandas.DatetimeIndex</em><em>, or </em><em>xarray.Dataset</em>) – Input time array or dataset containing a time variable.</p></li>
+<li><p><strong>freq</strong> (<em>str</em><em>, </em><em>optional</em>) – Frequency string for the output grid (default ‘12h’).</p></li>
+<li><p><strong>start_offset</strong> (<em>pd.Timedelta</em><em>, </em><em>optional</em>) – Offset to add to the start time before normalizing (default 1 day).</p></li>
+<li><p><strong>end_offset</strong> (<em>pd.Timedelta</em><em>, </em><em>optional</em>) – Offset to subtract from the end time after normalizing (default 0).</p></li>
+<li><p><strong>time_var</strong> (<em>str</em><em>, </em><em>optional</em>) – Name of the time variable in the dataset (default ‘TIME’).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Regular time grid at the specified frequency.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pandas.DatetimeIndex</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.mooring_rodb.interp_to_12hour_grid">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.mooring_rodb.</span></span><span class="sig-name descname"><span class="pre">interp_to_12hour_grid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/mooring_rodb.html#interp_to_12hour_grid"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.mooring_rodb.interp_to_12hour_grid" title="Link to this definition"></a></dt>
+<dd><p>Interpolate all variables with a TIME dimension to a regular 12-hour grid.</p>
+<p>Handles both 1D and multidimensional variables with TIME as the first dimension.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.mooring_rodb.stack_instruments">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.mooring_rodb.</span></span><span class="sig-name descname"><span class="pre">stack_instruments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_key</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'TIME'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/mooring_rodb.html#stack_instruments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.mooring_rodb.stack_instruments" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="oceanarray-legacy-convertos">
+<h3><code class="docutils literal notranslate"><span class="pre">oceanarray.legacy.convertOS</span></code><a class="headerlink" href="#oceanarray-legacy-convertos" title="Link to this heading"></a></h3>
+<p>OceanSites format conversion functions for legacy RODB data.</p>
+<dl class="py function" id="module-oceanarray.legacy.convertOS">
+<dt class="sig sig-object py" id="oceanarray.legacy.convertOS.add_fixed_coordinates">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.convertOS.</span></span><span class="sig-name descname"><span class="pre">add_fixed_coordinates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/convertOS.html#add_fixed_coordinates"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.convertOS.add_fixed_coordinates" title="Link to this definition"></a></dt>
+<dd><p>Add fixed spatial coordinates LATITUDE, LONGITUDE, and DEPTH from metadata.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.convertOS.add_global_attributes">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.convertOS.</span></span><span class="sig-name descname"><span class="pre">add_global_attributes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/convertOS.html#add_global_attributes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.convertOS.add_global_attributes" title="Link to this definition"></a></dt>
+<dd><p>Add OceanSITES-compliant global attributes to the dataset.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.convertOS.add_instrument_metadata">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.convertOS.</span></span><span class="sig-name descname"><span class="pre">add_instrument_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sensor_dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/convertOS.html#add_instrument_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.convertOS.add_instrument_metadata" title="Link to this definition"></a></dt>
+<dd><p>Add centralized instrument metadata and link variables via the ‘instrument’ attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ds</strong> (<em>xarray.Dataset</em>) – The dataset to modify.</p></li>
+<li><p><strong>sensor_dict</strong> (<em>dict</em>) – Dictionary with ‘instrument_&lt;N&gt;’ keys and/or TOOL### templates, plus ‘variables’.</p></li>
+<li><p><strong>metadata</strong> (<em>dict</em>) – Header metadata to extract instrument-specific fields like serial and dates.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.convertOS.add_project_attributes">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.convertOS.</span></span><span class="sig-name descname"><span class="pre">add_project_attributes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project_attrs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/convertOS.html#add_project_attributes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.convertOS.add_project_attributes" title="Link to this definition"></a></dt>
+<dd><p>Merge project-level attributes into dataset, with derived and dynamic values.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.convertOS.add_variable_attributes">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.convertOS.</span></span><span class="sig-name descname"><span class="pre">add_variable_attributes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_attrs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/convertOS.html#add_variable_attributes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.convertOS.add_variable_attributes" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.convertOS.convert_rodb_to_oceansites">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.convertOS.</span></span><span class="sig-name descname"><span class="pre">convert_rodb_to_oceansites</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata_txt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_map_yaml</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_yaml</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sensor_yaml</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project_yaml</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dataset</span></span></span><a class="reference internal" href="_modules/oceanarray/legacy/convertOS.html#convert_rodb_to_oceansites"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.convertOS.convert_rodb_to_oceansites" title="Link to this definition"></a></dt>
+<dd><p>Convert a dataset loaded from RODB format into OceanSITES-compliant format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ds</strong> (<em>xarray.Dataset</em>) – Original dataset with RODB-style variables and TIME coordinate.</p></li>
+<li><p><strong>metadata_txt</strong> (<em>str</em><em> or </em><em>Path</em>) – Path to RODB metadata text file (header block with key=value lines).</p></li>
+<li><p><strong>var_map_yaml</strong> (<em>str</em><em> or </em><em>Path</em>) – YAML file mapping original variable names to OceanSITES names.</p></li>
+<li><p><strong>vocab_yaml</strong> (<em>str</em><em> or </em><em>Path</em>) – YAML file providing OceanSITES variable attributes.</p></li>
+<li><p><strong>sensor_yaml</strong> (<em>str</em><em> or </em><em>Path</em><em>, </em><em>optional</em>) – YAML file with instrument metadata and variable-instrument mapping.</p></li>
+<li><p><strong>project_yaml</strong> (<em>str</em><em> or </em><em>Path</em><em>, </em><em>optional</em>) – YAML file with project-level global attributes.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>OceanSITES-compliant dataset.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>xarray.Dataset</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.convertOS.format_time_variable">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.convertOS.</span></span><span class="sig-name descname"><span class="pre">format_time_variable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/convertOS.html#format_time_variable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.convertOS.format_time_variable" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.convertOS.infer_data_mode">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.convertOS.</span></span><span class="sig-name descname"><span class="pre">infer_data_mode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source_filename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">history</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/convertOS.html#infer_data_mode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.convertOS.infer_data_mode" title="Link to this definition"></a></dt>
+<dd><p>Infer data_mode (D=delayed, R=real-time, P=provisional) from filename or processing history.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_filename</strong> (<em>str</em><em> or </em><em>Path</em><em>, </em><em>optional</em>) – Original filename (e.g., ‘example.raw’, ‘data.microcat’).</p></li>
+<li><p><strong>history</strong> (<em>str</em><em>, </em><em>optional</em>) – Global attribute describing the file’s processing history.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>One of “D”, “R”, or “P”. Defaults to “D” (delayed mode) if no clear match found.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.convertOS.load_yaml">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.convertOS.</span></span><span class="sig-name descname"><span class="pre">load_yaml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/convertOS.html#load_yaml"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.convertOS.load_yaml" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.convertOS.parse_rodb_metadata">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.convertOS.</span></span><span class="sig-name descname"><span class="pre">parse_rodb_metadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">txt_path</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/convertOS.html#parse_rodb_metadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.convertOS.parse_rodb_metadata" title="Link to this definition"></a></dt>
+<dd><p>Parse RODB metadata from a .raw or .use file header.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>txt_path</strong> (<em>str</em><em> or </em><em>Path</em>) – Path to the RODB file.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(header_dict, data_start_index)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="oceanarray.legacy.convertOS.sort_global_attributes">
+<span class="sig-prename descclassname"><span class="pre">oceanarray.legacy.convertOS.</span></span><span class="sig-name descname"><span class="pre">sort_global_attributes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attr_order</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/oceanarray/legacy/convertOS.html#sort_global_attributes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#oceanarray.legacy.convertOS.sort_global_attributes" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+</section>
+<section id="legacy-configuration">
+<h2>Legacy Configuration<a class="headerlink" href="#legacy-configuration" title="Link to this heading"></a></h2>
+<p>Legacy configuration files are stored in <code class="docutils literal notranslate"><span class="pre">oceanarray/config/legacy/</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">rodb_keys.yaml</span></code> - RODB variable name mappings</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rodb_keys.txt</span></code> - Text format RODB variable definitions</p></li>
+</ul>
+</section>
+<section id="migration-guide">
+<h2>Migration Guide<a class="headerlink" href="#migration-guide" title="Link to this heading"></a></h2>
+<p>To migrate from legacy to modern processing:</p>
+<p><strong>Legacy Workflow:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.legacy</span><span class="w"> </span><span class="kn">import</span> <span class="n">process_instrument</span><span class="p">,</span> <span class="n">combine_mooring_OS</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.legacy.rodb</span><span class="w"> </span><span class="kn">import</span> <span class="n">RodbReader</span>
+
+<span class="c1"># Legacy processing</span>
+<span class="n">reader</span> <span class="o">=</span> <span class="n">RodbReader</span><span class="p">(</span><span class="s1">&#39;data.rodb&#39;</span><span class="p">)</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+<span class="n">processed</span> <span class="o">=</span> <span class="n">process_instrument</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="n">mooring</span> <span class="o">=</span> <span class="n">combine_mooring_OS</span><span class="p">([</span><span class="n">processed</span><span class="p">])</span>
+</pre></div>
+</div>
+<p><strong>Modern Workflow:</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.stage1</span><span class="w"> </span><span class="kn">import</span> <span class="n">MooringProcessor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.stage2</span><span class="w"> </span><span class="kn">import</span> <span class="n">Stage2Processor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.time_gridding</span><span class="w"> </span><span class="kn">import</span> <span class="n">TimeGridProcessor</span>
+
+<span class="c1"># Modern CF-compliant processing</span>
+<span class="n">stage1</span> <span class="o">=</span> <span class="n">MooringProcessor</span><span class="p">(</span><span class="s1">&#39;/data/path&#39;</span><span class="p">)</span>
+<span class="n">stage1</span><span class="o">.</span><span class="n">process_mooring</span><span class="p">(</span><span class="s1">&#39;mooring_name&#39;</span><span class="p">)</span>
+
+<span class="n">stage2</span> <span class="o">=</span> <span class="n">Stage2Processor</span><span class="p">(</span><span class="s1">&#39;/data/path&#39;</span><span class="p">)</span>
+<span class="n">stage2</span><span class="o">.</span><span class="n">process_mooring</span><span class="p">(</span><span class="s1">&#39;mooring_name&#39;</span><span class="p">)</span>
+
+<span class="n">gridder</span> <span class="o">=</span> <span class="n">TimeGridProcessor</span><span class="p">(</span><span class="s1">&#39;/data/path&#39;</span><span class="p">)</span>
+<span class="n">gridder</span><span class="o">.</span><span class="n">process_mooring</span><span class="p">(</span><span class="s1">&#39;mooring_name&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="key-differences">
+<h2>Key Differences<a class="headerlink" href="#key-differences" title="Link to this heading"></a></h2>
+</section>
+<section id="legacy-demo-notebooks">
+<h2>Legacy Demo Notebooks<a class="headerlink" href="#legacy-demo-notebooks" title="Link to this heading"></a></h2>
+<p>Legacy demo notebooks are available in <code class="docutils literal notranslate"><span class="pre">notebooks/legacy/</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">demo_instrument_rdb.ipynb</span></code> - Legacy RODB instrument processing</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">demo_mooring_rdb.ipynb</span></code> - Legacy RODB mooring processing</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">demo_batch_instrument.ipynb</span></code> - Batch processing and QC analysis</p></li>
+</ul>
+<p>These notebooks demonstrate the legacy workflow but are not recommended for new processing tasks.</p>
+</section>
+<section id="deprecation-timeline">
+<h2>Deprecation Timeline<a class="headerlink" href="#deprecation-timeline" title="Link to this heading"></a></h2>
+<p>The legacy modules will be maintained for backward compatibility but will not receive new features:</p>
+<ul class="simple">
+<li><p><strong>Current</strong>: Full backward compatibility maintained</p></li>
+<li><p><strong>Future</strong>: Bug fixes only, no new features</p></li>
+<li><p><strong>Long-term</strong>: May be moved to separate package or archived</p></li>
+</ul>
+<p>For all new processing workflows, please use the modern CF-compliant pipeline documented in the main methods section.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Eleanor Frajka-Williams, FirstName LastName.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

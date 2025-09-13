@@ -1,0 +1,484 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>oceanarray.legacy.rodb &mdash; oceanarray v0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/custom.css?v=20758594" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8b92e751"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            oceanarray
+              <img src="../../../_static/logo_template.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Overview</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../processing_framework.html">OceanArray processing framework</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Instruments</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/acquisition.html">Data Acquisition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/standardisation.html">Standardisation (Stage 1)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../clock_offset.html">Clock Offset Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/trimming.html">Trim to Deployment (Stage 2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/auto_qc.html">Automatic QC (Stage 3)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/calibration.html">Apply Calibration (Stage 4)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/conversion.html">Convert to OceanSites</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Moorings</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/time_gridding.html">Grid in Time (Step 1)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/vertical_gridding.html">Grid Vertically (Step 2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/concatenation.html">Combine Deployments (Step 3)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Array</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/multisite_merging.html">Multi-site Merging</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../demo_instrument-output.html">Demo: Instrument-Level Processing (Compact Workflow)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../demo_mooring-output.html">Demo: mooring-level processing (Step 1)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Help and reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="http://github.com/eleanorfrajka/oceanarray">GitHub Repo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../roadmap.html">Development Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../oceanarray.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code></a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">oceanarray</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">oceanarray.legacy.rodb</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for oceanarray.legacy.rodb</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">rodbhead.py - Decode RO database keywords.</span>
+
+<span class="sd">Originally written in MATLAB by:</span>
+<span class="sd">  - G. Krahmann, IfM Kiel, Oct 1995 (v0.1.0)</span>
+<span class="sd">  - Updated for EPIC conventions: Feb 1996 (v0.1.1)</span>
+<span class="sd">  - Optimized and extended by multiple contributors through 2005</span>
+<span class="sd">  - Last change noted in MATLAB: C. Mertens, May 1997 (v0.1.4)</span>
+<span class="sd">  - Extensive extensions by D. Kieke (2000) and T. Kanzow (2005)</span>
+
+<span class="sd">Ported to Python by E Frajka-Williams, 2025</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">log_warning</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.convertOS</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse_rodb_metadata</span>
+
+<span class="n">REVERSE_KEYS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;mooring&quot;</span><span class="p">:</span> <span class="s2">&quot;Mooring&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;serial_number&quot;</span><span class="p">:</span> <span class="s2">&quot;SerialNumber&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;water_depth&quot;</span><span class="p">:</span> <span class="s2">&quot;WaterDepth&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;instrdepth&quot;</span><span class="p">:</span> <span class="s2">&quot;InstrDepth&quot;</span><span class="p">,</span>  <span class="c1"># if present in attrs</span>
+    <span class="s2">&quot;latitude&quot;</span><span class="p">:</span> <span class="s2">&quot;Latitude&quot;</span><span class="p">,</span>  <span class="c1"># if present in attrs</span>
+    <span class="s2">&quot;longitude&quot;</span><span class="p">:</span> <span class="s2">&quot;Longitude&quot;</span><span class="p">,</span>  <span class="c1"># if present in attrs</span>
+    <span class="s2">&quot;start_time&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;Start_Date&quot;</span><span class="p">,</span> <span class="s2">&quot;Start_Time&quot;</span><span class="p">],</span>  <span class="c1"># split into date + time</span>
+    <span class="s2">&quot;end_time&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;End_Date&quot;</span><span class="p">,</span> <span class="s2">&quot;End_Time&quot;</span><span class="p">],</span>  <span class="c1"># split into date + time</span>
+    <span class="s2">&quot;columns&quot;</span><span class="p">:</span> <span class="s2">&quot;Columns&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<span class="c1"># in rodb.py</span>
+<div class="viewcode-block" id="is_rodb_file">
+<a class="viewcode-back" href="../../../legacy.html#oceanarray.legacy.rodb.is_rodb_file">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">is_rodb_file</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Check whether a file is RODB-style based on filename and/or content.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">filepath</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;.raw&quot;</span><span class="p">,</span> <span class="s2">&quot;.use&quot;</span><span class="p">,</span> <span class="s2">&quot;.microcat&quot;</span><span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="parse_rodb_keys_file">
+<a class="viewcode-back" href="../../../legacy.html#oceanarray.legacy.rodb.parse_rodb_keys_file">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">parse_rodb_keys_file</span><span class="p">(</span><span class="n">filepath</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parse a rodb_keys.txt file with MATLAB-style lines into structured dicts.</span>
+
+<span class="sd">    Returns a dictionary with a list of entries under the &#39;RODB_KEYS&#39; key.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">entries</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^\s*&#39;(?P&lt;line&gt;[^&#39;]+)&#39;;\s*\.\.\.\s*%?\s*(?P&lt;comment&gt;.*)?&quot;</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="n">match</span> <span class="o">=</span> <span class="n">pattern</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">match</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="c1"># Extract the line content and optional comment</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="n">raw_fields</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;line&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">raw_fields</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="k">continue</span>  <span class="c1"># not enough fields</span>
+
+            <span class="n">key</span> <span class="o">=</span> <span class="n">raw_fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">fmt</span> <span class="o">=</span> <span class="n">raw_fields</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">count</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw_fields</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">code</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">raw_fields</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+            <span class="n">comment</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;comment&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">if</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">&quot;comment&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+
+            <span class="n">entry</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;key&quot;</span><span class="p">:</span> <span class="n">key</span><span class="p">,</span>
+                <span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="n">fmt</span><span class="p">,</span>
+                <span class="s2">&quot;count&quot;</span><span class="p">:</span> <span class="n">count</span><span class="p">,</span>
+                <span class="s2">&quot;code&quot;</span><span class="p">:</span> <span class="n">code</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="n">comment</span><span class="p">:</span>
+                <span class="n">entry</span><span class="p">[</span><span class="s2">&quot;comment&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">comment</span>
+
+            <span class="n">entries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;RODB_KEYS&quot;</span><span class="p">:</span> <span class="n">entries</span><span class="p">}</span></div>
+
+
+
+<span class="c1"># Example usage</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">infile</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;rodb_keys.txt&quot;</span><span class="p">)</span>  <span class="c1"># Replace with your actual file path</span>
+    <span class="n">rodb_keys_data</span> <span class="o">=</span> <span class="n">parse_rodb_keys_file</span><span class="p">(</span><span class="n">infile</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;rodb_keys.yaml&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outfile</span><span class="p">:</span>
+        <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">rodb_keys_data</span><span class="p">,</span> <span class="n">outfile</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+
+<span class="c1"># Load full RODB key metadata from YAML file</span>
+<span class="n">RODB_KEYS_PATH</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;config&quot;</span> <span class="o">/</span> <span class="s2">&quot;legacy&quot;</span> <span class="o">/</span> <span class="s2">&quot;rodb_keys.yaml&quot;</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">RODB_KEYS_PATH</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">RODB_KEYS</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+<span class="c1"># Dummy placeholder values that indicate missing data</span>
+<span class="n">DUMMY_VALUES</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">9999</span><span class="p">,</span> <span class="o">-</span><span class="mf">99.999</span><span class="p">,</span> <span class="o">-</span><span class="mf">999.999</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="rodbload">
+<a class="viewcode-back" href="../../../legacy.html#oceanarray.legacy.rodb.rodbload">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">rodbload</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="n">variables</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read a RODB .use or .raw file into an xarray.Dataset.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">filepath</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+
+    <span class="n">header</span><span class="p">,</span> <span class="n">data_start_index</span> <span class="o">=</span> <span class="n">parse_rodb_metadata</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+
+    <span class="n">default_dim</span> <span class="o">=</span> <span class="s2">&quot;N_MEASUREMENTS&quot;</span>
+
+    <span class="c1"># Determine variables</span>
+    <span class="n">var_string</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;COLUMNS&quot;</span><span class="p">,</span> <span class="s2">&quot;YY:MM:DD:HH:T:C:P&quot;</span><span class="p">)</span>
+    <span class="n">file_variables</span> <span class="o">=</span> <span class="n">var_string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">variables</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">variables</span> <span class="o">=</span> <span class="n">file_variables</span>
+    <span class="n">col_indices</span> <span class="o">=</span> <span class="p">{</span><span class="n">var</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">var</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">file_variables</span><span class="p">)</span> <span class="k">if</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">}</span>
+
+    <span class="c1"># Load numeric data</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="n">lines</span><span class="p">[</span><span class="n">data_start_index</span><span class="p">:],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
+
+    <span class="k">for</span> <span class="n">dummy</span> <span class="ow">in</span> <span class="n">DUMMY_VALUES</span><span class="p">:</span>
+        <span class="n">data</span><span class="p">[</span><span class="n">data</span> <span class="o">==</span> <span class="n">dummy</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+    <span class="n">coords</span> <span class="o">=</span> <span class="p">{</span><span class="n">default_dim</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])}</span>
+    <span class="n">data_vars</span> <span class="o">=</span> <span class="p">{</span><span class="n">var</span><span class="p">:</span> <span class="p">(</span><span class="n">default_dim</span><span class="p">,</span> <span class="n">data</span><span class="p">[:,</span> <span class="n">col_indices</span><span class="p">[</span><span class="n">var</span><span class="p">]])</span> <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">}</span>
+
+    <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">var</span> <span class="ow">in</span> <span class="n">col_indices</span> <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;YY&quot;</span><span class="p">,</span> <span class="s2">&quot;MM&quot;</span><span class="p">,</span> <span class="s2">&quot;DD&quot;</span><span class="p">,</span> <span class="s2">&quot;HH&quot;</span><span class="p">]):</span>
+        <span class="n">y</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="p">(</span><span class="n">data</span><span class="p">[:,</span> <span class="n">col_indices</span><span class="p">[</span><span class="n">v</span><span class="p">]]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;YY&quot;</span><span class="p">,</span> <span class="s2">&quot;MM&quot;</span><span class="p">,</span> <span class="s2">&quot;DD&quot;</span><span class="p">,</span> <span class="s2">&quot;HH&quot;</span><span class="p">])</span>
+        <span class="n">time</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">datetime</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">yy</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">mm</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">dd</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">hh</span><span class="p">),</span> <span class="nb">int</span><span class="p">((</span><span class="n">hh</span> <span class="o">%</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">60</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">yy</span><span class="p">,</span> <span class="n">mm</span><span class="p">,</span> <span class="n">dd</span><span class="p">,</span> <span class="n">hh</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">coords</span><span class="p">[</span><span class="s2">&quot;TIME&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">default_dim</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">time</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;datetime64[s]&quot;</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Optional: warn if TIME can&#39;t be constructed</span>
+        <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;YY&quot;</span><span class="p">,</span> <span class="s2">&quot;MM&quot;</span><span class="p">,</span> <span class="s2">&quot;DD&quot;</span><span class="p">,</span> <span class="s2">&quot;HH&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">col_indices</span><span class="p">]</span>
+        <span class="n">log_warning</span><span class="p">(</span><span class="s2">&quot;Could not create TIME coordinate. Missing: </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">missing</span><span class="p">))</span>
+
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="n">data_vars</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">)</span>
+
+    <span class="c1"># Now convert header fields into attributes and variables</span>
+    <span class="n">attrs</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="c1"># Global metadata</span>
+    <span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;mooring&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;MOORING&quot;</span><span class="p">)</span>
+    <span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;serial_number&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">header</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;SERIALNUMBER&quot;</span><span class="p">)</span>
+    <span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;water_depth&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;WATERDEPTH&quot;</span><span class="p">])</span> <span class="k">if</span> <span class="s2">&quot;WATERDEPTH&quot;</span> <span class="ow">in</span> <span class="n">header</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="c1"># Combine start and end date+time into ISO strings</span>
+    <span class="k">if</span> <span class="s2">&quot;START_DATE&quot;</span> <span class="ow">in</span> <span class="n">header</span> <span class="ow">and</span> <span class="s2">&quot;START_TIME&quot;</span> <span class="ow">in</span> <span class="n">header</span><span class="p">:</span>
+        <span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;start_time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;START_DATE&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">T</span><span class="si">{</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;START_TIME&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">if</span> <span class="s2">&quot;END_DATE&quot;</span> <span class="ow">in</span> <span class="n">header</span> <span class="ow">and</span> <span class="s2">&quot;END_TIME&quot;</span> <span class="ow">in</span> <span class="n">header</span><span class="p">:</span>
+        <span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;end_time&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;END_DATE&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">T</span><span class="si">{</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;END_TIME&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+
+    <span class="c1"># Convert InstrDepth, Latitude, Longitude to variables</span>
+    <span class="k">if</span> <span class="s2">&quot;INSTRDEPTH&quot;</span> <span class="ow">in</span> <span class="n">header</span><span class="p">:</span>
+        <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;InstrDepth&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">header</span><span class="p">[</span><span class="s2">&quot;INSTRDEPTH&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">header</span><span class="p">[</span><span class="s2">&quot;INSTRDEPTH&quot;</span><span class="p">])</span>
+    <span class="k">if</span> <span class="s2">&quot;LATITUDE&quot;</span> <span class="ow">in</span> <span class="n">header</span><span class="p">:</span>
+        <span class="n">lat_str</span> <span class="o">=</span> <span class="n">header</span><span class="p">[</span><span class="s2">&quot;LATITUDE&quot;</span><span class="p">]</span>
+        <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;Latitude&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">lat_str</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">lat_str</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="mf">60.0</span>
+        <span class="k">if</span> <span class="s2">&quot;S&quot;</span> <span class="ow">in</span> <span class="n">lat_str</span><span class="p">:</span>
+            <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;Latitude&quot;</span><span class="p">]</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">if</span> <span class="s2">&quot;LONGITUDE&quot;</span> <span class="ow">in</span> <span class="n">header</span><span class="p">:</span>
+        <span class="n">lon_str</span> <span class="o">=</span> <span class="n">header</span><span class="p">[</span><span class="s2">&quot;LONGITUDE&quot;</span><span class="p">]</span>
+        <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;Longitude&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">lon_str</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">lon_str</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="mf">60.0</span>
+        <span class="k">if</span> <span class="s2">&quot;W&quot;</span> <span class="ow">in</span> <span class="n">lon_str</span><span class="p">:</span>
+            <span class="n">ds</span><span class="p">[</span><span class="s2">&quot;Longitude&quot;</span><span class="p">]</span> <span class="o">*=</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="c1"># Add file reference and inferred columns</span>
+    <span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;source_file&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+    <span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;columns&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">data_vars</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="c1"># Promote TIME to an index if available</span>
+    <span class="k">if</span> <span class="s2">&quot;TIME&quot;</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">coords</span><span class="p">:</span>
+        <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">swap_dims</span><span class="p">({</span><span class="n">default_dim</span><span class="p">:</span> <span class="s2">&quot;TIME&quot;</span><span class="p">})</span>
+
+    <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">attrs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">})</span>
+    <span class="k">return</span> <span class="n">ds</span></div>
+
+
+
+<span class="n">NOMINAL_HEADER_ORDER</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;Mooring&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;SerialNumber&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;WaterDepth&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;InstrDepth&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Start_Date&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Start_Time&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;End_Date&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;End_Time&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Latitude&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Longitude&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Columns&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+
+<span class="n">REVERSE_ATTR_KEYS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;Mooring&quot;</span><span class="p">:</span> <span class="s2">&quot;mooring&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;SerialNumber&quot;</span><span class="p">:</span> <span class="s2">&quot;serial_number&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;WaterDepth&quot;</span><span class="p">:</span> <span class="s2">&quot;water_depth&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;InstrDepth&quot;</span><span class="p">:</span> <span class="s2">&quot;instrdepth&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Start_Date&quot;</span><span class="p">:</span> <span class="s2">&quot;start_time&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Start_Time&quot;</span><span class="p">:</span> <span class="s2">&quot;start_time&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;End_Date&quot;</span><span class="p">:</span> <span class="s2">&quot;end_time&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;End_Time&quot;</span><span class="p">:</span> <span class="s2">&quot;end_time&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Latitude&quot;</span><span class="p">:</span> <span class="s2">&quot;latitude&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Longitude&quot;</span><span class="p">:</span> <span class="s2">&quot;longitude&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;Columns&quot;</span><span class="p">:</span> <span class="s2">&quot;columns&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="format_latlon">
+<a class="viewcode-back" href="../../../legacy.html#oceanarray.legacy.rodb.format_latlon">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">format_latlon</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">is_lat</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="n">deg</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+    <span class="n">minutes</span> <span class="o">=</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">-</span> <span class="n">deg</span><span class="p">)</span> <span class="o">*</span> <span class="mi">60</span>
+    <span class="n">width</span> <span class="o">=</span> <span class="mi">2</span> <span class="k">if</span> <span class="n">is_lat</span> <span class="k">else</span> <span class="mi">3</span>
+    <span class="n">hemi</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;N&quot;</span> <span class="k">if</span> <span class="n">value</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;S&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">is_lat</span> <span class="k">else</span> <span class="p">(</span><span class="s2">&quot;E&quot;</span> <span class="k">if</span> <span class="n">value</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;W&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">deg</span><span class="si">:</span><span class="s2">0</span><span class="si">{</span><span class="n">width</span><span class="si">}</span><span class="s2">d</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">minutes</span><span class="si">:</span><span class="s2">06.3f</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">hemi</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="rodbsave">
+<a class="viewcode-back" href="../../../legacy.html#oceanarray.legacy.rodb.rodbsave">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">rodbsave</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="n">ds</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Save an xarray.Dataset to a RODB-style .use or .raw file.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    filepath : str or Path</span>
+<span class="sd">        Output file path.</span>
+<span class="sd">    ds : xarray.Dataset</span>
+<span class="sd">        Dataset to write. Expects time-series variables to be indexed by &#39;obs&#39;.</span>
+<span class="sd">    fmt : str, optional</span>
+<span class="sd">        Format string passed to np.savetxt. If None, one is generated automatically.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">filepath</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+    <span class="n">attrs</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+    <span class="c1"># Select time-series variables</span>
+    <span class="n">timeseries_vars</span> <span class="o">=</span> <span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;columns&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">timeseries_vars</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">timeseries_vars</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span> <span class="k">if</span> <span class="s2">&quot;obs&quot;</span> <span class="ow">in</span> <span class="n">ds</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">.</span><span class="n">dims</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">fmt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">default_fmts</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;YY&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="si">%4d</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;MM&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="si">%4d</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;DD&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="si">%4d</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;HH&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="si">%10.5f</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;T&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="si">%9.4f</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;C&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="si">%9.4f</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;P&quot;</span><span class="p">:</span> <span class="s2">&quot;</span><span class="si">%7.1f</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">fmt_parts</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">timeseries_vars</span><span class="p">:</span>
+            <span class="n">fmt_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">default_fmts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="s2">&quot;</span><span class="si">%10.4f</span><span class="s2">&quot;</span><span class="p">))</span>
+        <span class="n">fmt</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fmt_parts</span><span class="p">)</span>
+    <span class="n">written_keys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">NOMINAL_HEADER_ORDER</span><span class="p">:</span>
+            <span class="n">attr_key</span> <span class="o">=</span> <span class="n">REVERSE_ATTR_KEYS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;Start_Date&quot;</span><span class="p">,</span> <span class="s2">&quot;Start_Time&quot;</span><span class="p">]</span>
+                <span class="ow">and</span> <span class="s2">&quot;start_time&quot;</span> <span class="ow">in</span> <span class="n">attrs</span>
+                <span class="ow">and</span> <span class="s2">&quot;Start_Date&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">written_keys</span>
+            <span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;start_time&quot;</span><span class="p">])</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;start_time&quot;</span><span class="p">],</span> <span class="s2">&quot;%Y/%m/</span><span class="si">%d</span><span class="s2">T%H:%M&quot;</span><span class="p">)</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;Start_Date&#39;</span><span class="si">:</span><span class="s2">&lt;22</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">dt</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y/%m/</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;Start_Time&#39;</span><span class="si">:</span><span class="s2">&lt;22</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">dt</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%H:%M&#39;</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">written_keys</span><span class="o">.</span><span class="n">update</span><span class="p">([</span><span class="s2">&quot;Start_Date&quot;</span><span class="p">,</span> <span class="s2">&quot;Start_Time&quot;</span><span class="p">])</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;End_Date&quot;</span><span class="p">,</span> <span class="s2">&quot;End_Time&quot;</span><span class="p">]</span>
+                <span class="ow">and</span> <span class="s2">&quot;end_time&quot;</span> <span class="ow">in</span> <span class="n">attrs</span>
+                <span class="ow">and</span> <span class="s2">&quot;End_Date&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">written_keys</span>
+            <span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;end_time&quot;</span><span class="p">])</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">attrs</span><span class="p">[</span><span class="s2">&quot;end_time&quot;</span><span class="p">],</span> <span class="s2">&quot;%Y/%m/</span><span class="si">%d</span><span class="s2">T%H:%M&quot;</span><span class="p">)</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;End_Date&#39;</span><span class="si">:</span><span class="s2">&lt;22</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">dt</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y/%m/</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;End_Time&#39;</span><span class="si">:</span><span class="s2">&lt;22</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">dt</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%H:%M&#39;</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">written_keys</span><span class="o">.</span><span class="n">update</span><span class="p">([</span><span class="s2">&quot;End_Date&quot;</span><span class="p">,</span> <span class="s2">&quot;End_Time&quot;</span><span class="p">])</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;Latitude&quot;</span> <span class="ow">and</span> <span class="s2">&quot;Latitude&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">written_keys</span><span class="p">:</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Latitude&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;Latitude&#39;</span><span class="si">:</span><span class="s2">&lt;22</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">format_latlon</span><span class="p">(</span><span class="n">val</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span><span class="w"> </span><span class="n">is_lat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+                    <span class="n">written_keys</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;Latitude&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;Longitude&quot;</span> <span class="ow">and</span> <span class="s2">&quot;Longitude&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">written_keys</span><span class="p">:</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;Longitude&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;Longitude&#39;</span><span class="si">:</span><span class="s2">&lt;22</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">format_latlon</span><span class="p">(</span><span class="n">val</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span><span class="w"> </span><span class="n">is_lat</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+                    <span class="n">written_keys</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;Longitude&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;Columns&quot;</span> <span class="ow">and</span> <span class="s2">&quot;Columns&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">written_keys</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;Columns&#39;</span><span class="si">:</span><span class="s2">&lt;22</span><span class="si">}</span><span class="s2"> = &quot;</span> <span class="o">+</span> <span class="s2">&quot;:&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">timeseries_vars</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">written_keys</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s2">&quot;Columns&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="n">attr_key</span> <span class="ow">in</span> <span class="n">attrs</span> <span class="ow">and</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">written_keys</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">:</span><span class="s2">&lt;22</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">attrs</span><span class="p">[</span><span class="n">attr_key</span><span class="p">]</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">written_keys</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+            <span class="k">elif</span> <span class="p">(</span>
+                <span class="n">key</span> <span class="ow">in</span> <span class="n">ds</span>
+                <span class="ow">and</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">written_keys</span>
+                <span class="ow">and</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isscalar</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span> <span class="ow">or</span> <span class="n">ds</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">:</span><span class="s2">&lt;22</span><span class="si">}</span><span class="s2"> = </span><span class="si">{</span><span class="n">val</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">written_keys</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+        <span class="c1"># Write the data block</span>
+        <span class="n">data_array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">([</span><span class="n">ds</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">values</span> <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">timeseries_vars</span><span class="p">])</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">data_array</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="n">fmt</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Eleanor Frajka-Williams, FirstName LastName.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

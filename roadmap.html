@@ -80,31 +80,32 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Development Roadmap</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#status-overview">Status Overview</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#priority-1-core-missing-features">Priority 1: Core Missing Features</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#stage-3-comprehensive-auto-qc-framework">1. Stage 3: Comprehensive Auto QC Framework</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#stage-4-oceansites-format-conversion">2. Stage 4: OceanSites Format Conversion</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#step-3-deployment-concatenation">3. Step 3: Deployment Concatenation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#enhanced-visualization-system">4. Enhanced Visualization System</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#intelligent-metadata-fallback-system">5. Intelligent Metadata Fallback System</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#comprehensive-mooring-processing-reports">6. Comprehensive Mooring Processing Reports</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stage-3-automatic-quality-control-using-qartod-standards">1. Stage 3: Automatic Quality Control using QARTOD Standards</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stage-4-calibration-information-integration-microcat-focus">2. Stage 4: Calibration Information Integration (Microcat Focus)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stage-5-oceansites-format-conversion">3. Stage 5: OceanSites Format Conversion</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#step-3-deployment-concatenation">4. Step 3: Deployment Concatenation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#enhanced-visualization-system">5. Enhanced Visualization System</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#intelligent-metadata-fallback-system">6. Intelligent Metadata Fallback System</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#comprehensive-mooring-processing-reports">7. Comprehensive Mooring Processing Reports</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#priority-2-advanced-processing-features">Priority 2: Advanced Processing Features</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#multi-site-merging-for-boundary-profiles">7. Multi-site Merging for Boundary Profiles</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#complete-vertical-gridding-integration">8. Complete Vertical Gridding Integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#multi-site-merging-for-boundary-profiles">8. Multi-site Merging for Boundary Profiles</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#complete-vertical-gridding-integration">9. Complete Vertical Gridding Integration</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#priority-3-enhanced-calibration-system">Priority 3: Enhanced Calibration System</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#comprehensive-calibration-framework">9. Comprehensive Calibration Framework</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#comprehensive-calibration-framework">10. Comprehensive Calibration Framework</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#priority-4-system-architecture-improvements">Priority 4: System Architecture Improvements</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#methods-module-organization">10. Methods Module Organization</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#enhanced-configuration-system">11. Enhanced Configuration System</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#test-coverage-improvement">12. Test Coverage Improvement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#methods-module-organization">11. Methods Module Organization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#enhanced-configuration-system">12. Enhanced Configuration System</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#test-coverage-improvement">13. Test Coverage Improvement</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#priority-5-advanced-analysis-features">Priority 5: Advanced Analysis Features</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#data-storage-efficiency-improvements">13. Data Storage Efficiency Improvements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#data-storage-efficiency-improvements">14. Data Storage Efficiency Improvements</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#development-milestones">Development Milestones</a><ul>
@@ -163,58 +164,59 @@
 <li><p><a class="reference internal" href="#status-overview" id="id1">Status Overview</a></p></li>
 <li><p><a class="reference internal" href="#priority-1-core-missing-features" id="id2">Priority 1: Core Missing Features</a></p>
 <ul>
-<li><p><a class="reference internal" href="#stage-3-comprehensive-auto-qc-framework" id="id3">1. Stage 3: Comprehensive Auto QC Framework</a></p></li>
-<li><p><a class="reference internal" href="#stage-4-oceansites-format-conversion" id="id4">2. Stage 4: OceanSites Format Conversion</a></p></li>
-<li><p><a class="reference internal" href="#step-3-deployment-concatenation" id="id5">3. Step 3: Deployment Concatenation</a></p></li>
-<li><p><a class="reference internal" href="#enhanced-visualization-system" id="id6">4. Enhanced Visualization System</a></p></li>
-<li><p><a class="reference internal" href="#intelligent-metadata-fallback-system" id="id7">5. Intelligent Metadata Fallback System</a></p></li>
-<li><p><a class="reference internal" href="#comprehensive-mooring-processing-reports" id="id8">6. Comprehensive Mooring Processing Reports</a></p></li>
+<li><p><a class="reference internal" href="#stage-3-automatic-quality-control-using-qartod-standards" id="id3">1. Stage 3: Automatic Quality Control using QARTOD Standards</a></p></li>
+<li><p><a class="reference internal" href="#stage-4-calibration-information-integration-microcat-focus" id="id4">2. Stage 4: Calibration Information Integration (Microcat Focus)</a></p></li>
+<li><p><a class="reference internal" href="#stage-5-oceansites-format-conversion" id="id5">3. Stage 5: OceanSites Format Conversion</a></p></li>
+<li><p><a class="reference internal" href="#step-3-deployment-concatenation" id="id6">4. Step 3: Deployment Concatenation</a></p></li>
+<li><p><a class="reference internal" href="#enhanced-visualization-system" id="id7">5. Enhanced Visualization System</a></p></li>
+<li><p><a class="reference internal" href="#intelligent-metadata-fallback-system" id="id8">6. Intelligent Metadata Fallback System</a></p></li>
+<li><p><a class="reference internal" href="#comprehensive-mooring-processing-reports" id="id9">7. Comprehensive Mooring Processing Reports</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#priority-2-advanced-processing-features" id="id9">Priority 2: Advanced Processing Features</a></p>
+<li><p><a class="reference internal" href="#priority-2-advanced-processing-features" id="id10">Priority 2: Advanced Processing Features</a></p>
 <ul>
-<li><p><a class="reference internal" href="#multi-site-merging-for-boundary-profiles" id="id10">7. Multi-site Merging for Boundary Profiles</a></p></li>
-<li><p><a class="reference internal" href="#complete-vertical-gridding-integration" id="id11">8. Complete Vertical Gridding Integration</a></p></li>
+<li><p><a class="reference internal" href="#multi-site-merging-for-boundary-profiles" id="id11">8. Multi-site Merging for Boundary Profiles</a></p></li>
+<li><p><a class="reference internal" href="#complete-vertical-gridding-integration" id="id12">9. Complete Vertical Gridding Integration</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#priority-3-enhanced-calibration-system" id="id12">Priority 3: Enhanced Calibration System</a></p>
+<li><p><a class="reference internal" href="#priority-3-enhanced-calibration-system" id="id13">Priority 3: Enhanced Calibration System</a></p>
 <ul>
-<li><p><a class="reference internal" href="#comprehensive-calibration-framework" id="id13">9. Comprehensive Calibration Framework</a></p></li>
+<li><p><a class="reference internal" href="#comprehensive-calibration-framework" id="id14">10. Comprehensive Calibration Framework</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#priority-4-system-architecture-improvements" id="id14">Priority 4: System Architecture Improvements</a></p>
+<li><p><a class="reference internal" href="#priority-4-system-architecture-improvements" id="id15">Priority 4: System Architecture Improvements</a></p>
 <ul>
-<li><p><a class="reference internal" href="#methods-module-organization" id="id15">10. Methods Module Organization</a></p></li>
-<li><p><a class="reference internal" href="#enhanced-configuration-system" id="id16">11. Enhanced Configuration System</a></p></li>
-<li><p><a class="reference internal" href="#test-coverage-improvement" id="id17">12. Test Coverage Improvement</a></p></li>
+<li><p><a class="reference internal" href="#methods-module-organization" id="id16">11. Methods Module Organization</a></p></li>
+<li><p><a class="reference internal" href="#enhanced-configuration-system" id="id17">12. Enhanced Configuration System</a></p></li>
+<li><p><a class="reference internal" href="#test-coverage-improvement" id="id18">13. Test Coverage Improvement</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#priority-5-advanced-analysis-features" id="id18">Priority 5: Advanced Analysis Features</a></p>
+<li><p><a class="reference internal" href="#priority-5-advanced-analysis-features" id="id19">Priority 5: Advanced Analysis Features</a></p>
 <ul>
-<li><p><a class="reference internal" href="#data-storage-efficiency-improvements" id="id19">13. Data Storage Efficiency Improvements</a></p></li>
+<li><p><a class="reference internal" href="#data-storage-efficiency-improvements" id="id20">14. Data Storage Efficiency Improvements</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#development-milestones" id="id20">Development Milestones</a></p>
+<li><p><a class="reference internal" href="#development-milestones" id="id21">Development Milestones</a></p>
 <ul>
-<li><p><a class="reference internal" href="#phase-1-core-framework-completion-months-1-3" id="id21">Phase 1: Core Framework Completion (Months 1-3)</a></p></li>
-<li><p><a class="reference internal" href="#phase-2-advanced-processing-months-4-6" id="id22">Phase 2: Advanced Processing (Months 4-6)</a></p></li>
-<li><p><a class="reference internal" href="#phase-3-system-optimization-months-7-9" id="id23">Phase 3: System Optimization (Months 7-9)</a></p></li>
+<li><p><a class="reference internal" href="#phase-1-core-framework-completion-months-1-3" id="id22">Phase 1: Core Framework Completion (Months 1-3)</a></p></li>
+<li><p><a class="reference internal" href="#phase-2-advanced-processing-months-4-6" id="id23">Phase 2: Advanced Processing (Months 4-6)</a></p></li>
+<li><p><a class="reference internal" href="#phase-3-system-optimization-months-7-9" id="id24">Phase 3: System Optimization (Months 7-9)</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#technical-debt-and-maintenance" id="id24">Technical Debt and Maintenance</a></p>
+<li><p><a class="reference internal" href="#technical-debt-and-maintenance" id="id25">Technical Debt and Maintenance</a></p>
 <ul>
-<li><p><a class="reference internal" href="#ongoing-improvements" id="id25">Ongoing Improvements</a></p></li>
+<li><p><a class="reference internal" href="#ongoing-improvements" id="id26">Ongoing Improvements</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#dependencies-and-external-integration" id="id26">Dependencies and External Integration</a></p>
+<li><p><a class="reference internal" href="#dependencies-and-external-integration" id="id27">Dependencies and External Integration</a></p>
 <ul>
-<li><p><a class="reference internal" href="#key-external-dependencies" id="id27">Key External Dependencies</a></p></li>
-<li><p><a class="reference internal" href="#integration-opportunities" id="id28">Integration Opportunities</a></p></li>
+<li><p><a class="reference internal" href="#key-external-dependencies" id="id28">Key External Dependencies</a></p></li>
+<li><p><a class="reference internal" href="#integration-opportunities" id="id29">Integration Opportunities</a></p></li>
 </ul>
 </li>
-<li><p><a class="reference internal" href="#community-and-collaboration" id="id29">Community and Collaboration</a></p>
+<li><p><a class="reference internal" href="#community-and-collaboration" id="id30">Community and Collaboration</a></p>
 <ul>
-<li><p><a class="reference internal" href="#contribution-priorities" id="id30">Contribution Priorities</a></p></li>
+<li><p><a class="reference internal" href="#contribution-priorities" id="id31">Contribution Priorities</a></p></li>
 </ul>
 </li>
 </ul>
@@ -235,68 +237,116 @@
 </ul>
 </dd>
 <dt>🟡 <strong>Partially Implemented</strong></dt><dd><ul class="simple">
-<li><p>Stage 3: Auto QC - basic QARTOD functions exist (<code class="docutils literal notranslate"><span class="pre">tools.py</span></code>)</p></li>
-<li><p>Stage 4: Calibration - microcat calibration exists (<code class="docutils literal notranslate"><span class="pre">process_rodb.py</span></code>)</p></li>
 <li><p>Step 2: Vertical Gridding - physics-based interpolation exists (<code class="docutils literal notranslate"><span class="pre">rapid_interp.py</span></code>)</p></li>
 </ul>
 </dd>
 <dt>❌ <strong>Documented but Not Implemented</strong></dt><dd><ul class="simple">
-<li><p>Stage 4: Conversion to OceanSites format</p></li>
+<li><p>Stage 3: Automatic Quality Control using QARTOD standards</p></li>
+<li><p>Stage 4: Calibration Information Integration (microcat focus)</p></li>
+<li><p>Stage 5: Conversion to OceanSites format</p></li>
 <li><p>Step 3: Concatenation of deployments</p></li>
 <li><p>Multi-site merging for boundary profiles</p></li>
-<li><p>Comprehensive automatic QC framework</p></li>
 </ul>
 </dd>
 </dl>
 </section>
 <section id="priority-1-core-missing-features">
 <h2><a class="toc-backref" href="#id2" role="doc-backlink">Priority 1: Core Missing Features</a><a class="headerlink" href="#priority-1-core-missing-features" title="Link to this heading"></a></h2>
-<section id="stage-3-comprehensive-auto-qc-framework">
-<h3><a class="toc-backref" href="#id3" role="doc-backlink">1. Stage 3: Comprehensive Auto QC Framework</a><a class="headerlink" href="#stage-3-comprehensive-auto-qc-framework" title="Link to this heading"></a></h3>
+<section id="stage-3-automatic-quality-control-using-qartod-standards">
+<h3><a class="toc-backref" href="#id3" role="doc-backlink">1. Stage 3: Automatic Quality Control using QARTOD Standards</a><a class="headerlink" href="#stage-3-automatic-quality-control-using-qartod-standards" title="Link to this heading"></a></h3>
 <p><strong>Documentation</strong>: <code class="docutils literal notranslate"><span class="pre">docs/source/methods/auto_qc.rst</span></code></p>
-<p><strong>Current State</strong>: Basic QARTOD functions exist in <code class="docutils literal notranslate"><span class="pre">tools.py:run_qc()</span></code> and visualization in <code class="docutils literal notranslate"><span class="pre">plotters.py:plot_qartod_summary()</span></code>.</p>
+<p><strong>Purpose</strong>: Apply systematic quality control checks following QARTOD (Quality Assurance/Quality Control of Real-Time Oceanographic Data) standards to identify and flag suspect data.</p>
+<p><strong>Current State</strong>: Basic QC functions exist in <code class="docutils literal notranslate"><span class="pre">tools.py:run_qc()</span></code> with salinity outlier detection, temporal spike detection, and visualization in <code class="docutils literal notranslate"><span class="pre">plotters.py</span></code>.</p>
 <p><strong>Missing Implementation</strong>:
-- Structured QC configuration system
-- Integration with <code class="docutils literal notranslate"><span class="pre">ioos_qc</span></code> package as documented
-- Complete flag value handling (0,1,2,3,4,7,8,9)
-- Automated QC report generation
-- QC metadata preservation in datasets</p>
+- Complete <code class="docutils literal notranslate"><span class="pre">stage3.py</span></code> module implementing full QARTOD test suite
+- Integration with <code class="docutils literal notranslate"><span class="pre">ioos_qc</span></code> package for standardized tests
+- QARTOD-compliant flag value handling (0,1,2,3,4,7,8,9)
+- Configurable QC test parameters via YAML
+- Automated QC report generation with summary statistics
+- QC metadata preservation in NetCDF output</p>
+<p><strong>QARTOD Tests to Implement</strong>:
+- Gross range test (min/max bounds)
+- Climatological test (seasonal expectations)
+- Spike test (temporal derivatives)
+- Rate of change test
+- Flat line test (stuck values)
+- Multi-variate tests (T-S relationships)
+- Neighbor test (spatial consistency)</p>
 <p><strong>Estimated Effort</strong>: 2-3 weeks</p>
 <dl class="simple">
 <dt><strong>Implementation Plan</strong>:</dt><dd><ol class="arabic simple">
-<li><p>Create <code class="docutils literal notranslate"><span class="pre">oceanarray/auto_qc.py</span></code> module</p></li>
-<li><p>Design YAML-based QC configuration system</p></li>
-<li><p>Implement comprehensive flag handling</p></li>
-<li><p>Add QC validation and reporting</p></li>
-<li><p>Integrate with existing Stage 2 workflow</p></li>
+<li><p>Create <code class="docutils literal notranslate"><span class="pre">oceanarray/stage3.py</span></code> module with <code class="docutils literal notranslate"><span class="pre">QCProcessor</span></code> class</p></li>
+<li><p>Design YAML-based QC configuration system for test parameters</p></li>
+<li><p>Integrate <code class="docutils literal notranslate"><span class="pre">ioos_qc</span></code> package for standardized QARTOD implementations</p></li>
+<li><p>Implement comprehensive QARTOD flag handling and metadata</p></li>
+<li><p>Add QC validation and reporting with summary statistics</p></li>
+<li><p>Integrate with Stage 2 → Stage 3 → Stage 4 pipeline</p></li>
 </ol>
 </dd>
 </dl>
 </section>
-<section id="stage-4-oceansites-format-conversion">
-<h3><a class="toc-backref" href="#id4" role="doc-backlink">2. Stage 4: OceanSites Format Conversion</a><a class="headerlink" href="#stage-4-oceansites-format-conversion" title="Link to this heading"></a></h3>
-<p><strong>Documentation</strong>: <code class="docutils literal notranslate"><span class="pre">docs/source/methods/conversion.rst</span></code></p>
-<p><strong>Current State</strong>: Some format conversion exists in <code class="docutils literal notranslate"><span class="pre">convertOS.py</span></code>, but not the full OceanSites specification.</p>
+<section id="stage-4-calibration-information-integration-microcat-focus">
+<h3><a class="toc-backref" href="#id4" role="doc-backlink">2. Stage 4: Calibration Information Integration (Microcat Focus)</a><a class="headerlink" href="#stage-4-calibration-information-integration-microcat-focus" title="Link to this heading"></a></h3>
+<p><strong>Documentation</strong>: <code class="docutils literal notranslate"><span class="pre">docs/source/methods/calibration.rst</span></code></p>
+<p><strong>Purpose</strong>: Apply instrument calibration corrections, with initial focus on Sea-Bird MicroCAT conductivity-temperature sensors, incorporating pre- and post-deployment calibration information.</p>
+<p><strong>Current State</strong>: Basic microcat calibration functions exist in <code class="docutils literal notranslate"><span class="pre">process_rodb.py</span></code> for legacy RODB workflows.</p>
 <p><strong>Missing Implementation</strong>:
-- Complete OceanSites format specification compliance
-- Global attribute validation and enforcement
-- CF-convention compliance checking
-- Variable attribute standardization
-- Comprehensive metadata handling</p>
+- Complete <code class="docutils literal notranslate"><span class="pre">stage4.py</span></code> module for modern CF-compliant calibration workflow
+- Integration with Sea-Bird calibration certificate parsing
+- Pre/post-deployment calibration comparison and drift analysis
+- Conductivity cell thermal mass corrections
+- Calibration uncertainty propagation through processing chain
+- Calibration metadata preservation in NetCDF output
+- Support for multiple calibration coefficient sets</p>
+<p><strong>Calibration Features to Implement</strong>:
+- Sea-Bird calibration certificate parsing (.xmlcon, .cal files)
+- Conductivity calibration equation application (frequency-based)
+- Temperature calibration with ITS-90 conversion
+- Pressure sensor calibration and atmospheric correction
+- Thermal mass correction for conductivity measurements
+- Calibration drift analysis between pre/post deployments
+- Uncertainty quantification and propagation</p>
 <p><strong>Estimated Effort</strong>: 2-3 weeks</p>
 <dl class="simple">
 <dt><strong>Implementation Plan</strong>:</dt><dd><ol class="arabic simple">
-<li><p>Create <code class="docutils literal notranslate"><span class="pre">oceanarray/conversion.py</span></code> module</p></li>
-<li><p>Implement OceanSites format validation</p></li>
-<li><p>Add CF-compliance checking</p></li>
-<li><p>Design metadata template system</p></li>
-<li><p>Add format conversion pipeline</p></li>
+<li><p>Create <code class="docutils literal notranslate"><span class="pre">oceanarray/stage4.py</span></code> module with <code class="docutils literal notranslate"><span class="pre">CalibrationProcessor</span></code> class</p></li>
+<li><p>Design calibration configuration system for coefficient management</p></li>
+<li><p>Implement Sea-Bird calibration certificate parsing</p></li>
+<li><p>Add thermal mass correction algorithms</p></li>
+<li><p>Create pre/post calibration comparison tools</p></li>
+<li><p>Add uncertainty propagation and metadata preservation</p></li>
+<li><p>Integrate with Stage 3 → Stage 4 → Stage 5 pipeline</p></li>
+</ol>
+</dd>
+</dl>
+</section>
+<section id="stage-5-oceansites-format-conversion">
+<h3><a class="toc-backref" href="#id5" role="doc-backlink">3. Stage 5: OceanSites Format Conversion</a><a class="headerlink" href="#stage-5-oceansites-format-conversion" title="Link to this heading"></a></h3>
+<p><strong>Documentation</strong>: <code class="docutils literal notranslate"><span class="pre">docs/source/methods/conversion.rst</span></code></p>
+<p><strong>Purpose</strong>: Convert processed and calibrated data to OceanSites format specification for community data sharing and archival.</p>
+<p><strong>Current State</strong>: Some format conversion exists in <code class="docutils literal notranslate"><span class="pre">convertOS.py</span></code>, but not the full OceanSites specification compliance.</p>
+<p><strong>Missing Implementation</strong>:
+- Complete <code class="docutils literal notranslate"><span class="pre">stage5.py</span></code> module for OceanSites format conversion
+- Global attribute validation and enforcement per OceanSites standards
+- CF-convention compliance checking and validation
+- Variable attribute standardization according to OceanSites vocabulary
+- Comprehensive metadata template system
+- Quality flag conversion to OceanSites standards</p>
+<p><strong>Estimated Effort</strong>: 2-3 weeks</p>
+<dl class="simple">
+<dt><strong>Implementation Plan</strong>:</dt><dd><ol class="arabic simple">
+<li><p>Create <code class="docutils literal notranslate"><span class="pre">oceanarray/stage5.py</span></code> module with <code class="docutils literal notranslate"><span class="pre">OceanSitesProcessor</span></code> class</p></li>
+<li><p>Implement complete OceanSites format validation</p></li>
+<li><p>Add CF-compliance checking and enforcement</p></li>
+<li><p>Design metadata template system for OceanSites requirements</p></li>
+<li><p>Add quality flag conversion from QARTOD to OceanSites standards</p></li>
+<li><p>Integrate with Stage 4 → Stage 5 pipeline</p></li>
 </ol>
 </dd>
 </dl>
 </section>
 <section id="step-3-deployment-concatenation">
-<h3><a class="toc-backref" href="#id5" role="doc-backlink">3. Step 3: Deployment Concatenation</a><a class="headerlink" href="#step-3-deployment-concatenation" title="Link to this heading"></a></h3>
+<h3><a class="toc-backref" href="#id6" role="doc-backlink">4. Step 3: Deployment Concatenation</a><a class="headerlink" href="#step-3-deployment-concatenation" title="Link to this heading"></a></h3>
 <p><strong>Documentation</strong>: <code class="docutils literal notranslate"><span class="pre">docs/source/methods/concatenation.rst</span></code></p>
 <p><strong>Current State</strong>: No implementation found.</p>
 <p><strong>Missing Implementation</strong>:
@@ -318,7 +368,7 @@
 </dl>
 </section>
 <section id="enhanced-visualization-system">
-<h3><a class="toc-backref" href="#id6" role="doc-backlink">4. Enhanced Visualization System</a><a class="headerlink" href="#enhanced-visualization-system" title="Link to this heading"></a></h3>
+<h3><a class="toc-backref" href="#id7" role="doc-backlink">5. Enhanced Visualization System</a><a class="headerlink" href="#enhanced-visualization-system" title="Link to this heading"></a></h3>
 <p><strong>Current State</strong>: Basic plotting functions exist in <code class="docutils literal notranslate"><span class="pre">plotters.py</span></code>.</p>
 <p><strong>Missing Implementation</strong>:
 - Interactive plotting capabilities
@@ -342,7 +392,7 @@
 </dl>
 </section>
 <section id="intelligent-metadata-fallback-system">
-<h3><a class="toc-backref" href="#id7" role="doc-backlink">5. Intelligent Metadata Fallback System</a><a class="headerlink" href="#intelligent-metadata-fallback-system" title="Link to this heading"></a></h3>
+<h3><a class="toc-backref" href="#id8" role="doc-backlink">6. Intelligent Metadata Fallback System</a><a class="headerlink" href="#intelligent-metadata-fallback-system" title="Link to this heading"></a></h3>
 <p><strong>Current State</strong>: Metadata extraction relies on explicit YAML configuration.</p>
 <p><strong>Missing Implementation</strong>:
 - Filename pattern parsing for instrument type and serial number
@@ -364,7 +414,7 @@
 </dl>
 </section>
 <section id="comprehensive-mooring-processing-reports">
-<h3><a class="toc-backref" href="#id8" role="doc-backlink">6. Comprehensive Mooring Processing Reports</a><a class="headerlink" href="#comprehensive-mooring-processing-reports" title="Link to this heading"></a></h3>
+<h3><a class="toc-backref" href="#id9" role="doc-backlink">7. Comprehensive Mooring Processing Reports</a><a class="headerlink" href="#comprehensive-mooring-processing-reports" title="Link to this heading"></a></h3>
 <p><strong>Current State</strong>: No automated reporting system exists.</p>
 <p><strong>Missing Implementation</strong>:
 - HTML report generation for each mooring
@@ -390,9 +440,9 @@
 </section>
 </section>
 <section id="priority-2-advanced-processing-features">
-<h2><a class="toc-backref" href="#id9" role="doc-backlink">Priority 2: Advanced Processing Features</a><a class="headerlink" href="#priority-2-advanced-processing-features" title="Link to this heading"></a></h2>
+<h2><a class="toc-backref" href="#id10" role="doc-backlink">Priority 2: Advanced Processing Features</a><a class="headerlink" href="#priority-2-advanced-processing-features" title="Link to this heading"></a></h2>
 <section id="multi-site-merging-for-boundary-profiles">
-<h3><a class="toc-backref" href="#id10" role="doc-backlink">7. Multi-site Merging for Boundary Profiles</a><a class="headerlink" href="#multi-site-merging-for-boundary-profiles" title="Link to this heading"></a></h3>
+<h3><a class="toc-backref" href="#id11" role="doc-backlink">8. Multi-site Merging for Boundary Profiles</a><a class="headerlink" href="#multi-site-merging-for-boundary-profiles" title="Link to this heading"></a></h3>
 <p><strong>Documentation</strong>: <code class="docutils literal notranslate"><span class="pre">docs/source/methods/multisite_merging.rst</span></code></p>
 <p><strong>Current State</strong>: No implementation found.</p>
 <p><strong>Missing Implementation</strong>:
@@ -414,7 +464,7 @@
 </dl>
 </section>
 <section id="complete-vertical-gridding-integration">
-<h3><a class="toc-backref" href="#id11" role="doc-backlink">8. Complete Vertical Gridding Integration</a><a class="headerlink" href="#complete-vertical-gridding-integration" title="Link to this heading"></a></h3>
+<h3><a class="toc-backref" href="#id12" role="doc-backlink">9. Complete Vertical Gridding Integration</a><a class="headerlink" href="#complete-vertical-gridding-integration" title="Link to this heading"></a></h3>
 <p><strong>Documentation</strong>: <code class="docutils literal notranslate"><span class="pre">docs/source/methods/vertical_gridding.rst</span></code></p>
 <p><strong>Current State</strong>: Physics-based interpolation exists in <code class="docutils literal notranslate"><span class="pre">rapid_interp.py</span></code> but needs integration.</p>
 <p><strong>Missing Implementation</strong>:
@@ -437,9 +487,9 @@
 </section>
 </section>
 <section id="priority-3-enhanced-calibration-system">
-<h2><a class="toc-backref" href="#id12" role="doc-backlink">Priority 3: Enhanced Calibration System</a><a class="headerlink" href="#priority-3-enhanced-calibration-system" title="Link to this heading"></a></h2>
+<h2><a class="toc-backref" href="#id13" role="doc-backlink">Priority 3: Enhanced Calibration System</a><a class="headerlink" href="#priority-3-enhanced-calibration-system" title="Link to this heading"></a></h2>
 <section id="comprehensive-calibration-framework">
-<h3><a class="toc-backref" href="#id13" role="doc-backlink">9. Comprehensive Calibration Framework</a><a class="headerlink" href="#comprehensive-calibration-framework" title="Link to this heading"></a></h3>
+<h3><a class="toc-backref" href="#id14" role="doc-backlink">10. Comprehensive Calibration Framework</a><a class="headerlink" href="#comprehensive-calibration-framework" title="Link to this heading"></a></h3>
 <p><strong>Documentation</strong>: <code class="docutils literal notranslate"><span class="pre">docs/source/methods/calibration.rst</span></code></p>
 <p><strong>Current State</strong>: Basic microcat calibration exists in <code class="docutils literal notranslate"><span class="pre">process_rodb.py</span></code>.</p>
 <p><strong>Missing Implementation</strong>:
@@ -462,9 +512,9 @@
 </section>
 </section>
 <section id="priority-4-system-architecture-improvements">
-<h2><a class="toc-backref" href="#id14" role="doc-backlink">Priority 4: System Architecture Improvements</a><a class="headerlink" href="#priority-4-system-architecture-improvements" title="Link to this heading"></a></h2>
+<h2><a class="toc-backref" href="#id15" role="doc-backlink">Priority 4: System Architecture Improvements</a><a class="headerlink" href="#priority-4-system-architecture-improvements" title="Link to this heading"></a></h2>
 <section id="methods-module-organization">
-<h3><a class="toc-backref" href="#id15" role="doc-backlink">10. Methods Module Organization</a><a class="headerlink" href="#methods-module-organization" title="Link to this heading"></a></h3>
+<h3><a class="toc-backref" href="#id16" role="doc-backlink">11. Methods Module Organization</a><a class="headerlink" href="#methods-module-organization" title="Link to this heading"></a></h3>
 <p><strong>Current State</strong>: Processing functions scattered across multiple modules.</p>
 <p><strong>Improvement</strong>: Create organized <code class="docutils literal notranslate"><span class="pre">methods/</span></code> directory structure:</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>oceanarray/methods/
@@ -480,7 +530,7 @@
 <p><strong>Estimated Effort</strong>: 1 week</p>
 </section>
 <section id="enhanced-configuration-system">
-<h3><a class="toc-backref" href="#id16" role="doc-backlink">11. Enhanced Configuration System</a><a class="headerlink" href="#enhanced-configuration-system" title="Link to this heading"></a></h3>
+<h3><a class="toc-backref" href="#id17" role="doc-backlink">12. Enhanced Configuration System</a><a class="headerlink" href="#enhanced-configuration-system" title="Link to this heading"></a></h3>
 <p><strong>Current State</strong>: Basic logging configuration exists.</p>
 <p><strong>Missing Features</strong>:
 - Global processing configuration
@@ -490,7 +540,7 @@
 <p><strong>Estimated Effort</strong>: 1-2 weeks</p>
 </section>
 <section id="test-coverage-improvement">
-<h3><a class="toc-backref" href="#id17" role="doc-backlink">12. Test Coverage Improvement</a><a class="headerlink" href="#test-coverage-improvement" title="Link to this heading"></a></h3>
+<h3><a class="toc-backref" href="#id18" role="doc-backlink">13. Test Coverage Improvement</a><a class="headerlink" href="#test-coverage-improvement" title="Link to this heading"></a></h3>
 <p><strong>Current State</strong>: Basic tests exist in <code class="docutils literal notranslate"><span class="pre">tests/</span></code> directory.</p>
 <p><strong>Missing Features</strong>:
 - End-to-end pipeline testing
@@ -502,9 +552,9 @@
 </section>
 </section>
 <section id="priority-5-advanced-analysis-features">
-<h2><a class="toc-backref" href="#id18" role="doc-backlink">Priority 5: Advanced Analysis Features</a><a class="headerlink" href="#priority-5-advanced-analysis-features" title="Link to this heading"></a></h2>
+<h2><a class="toc-backref" href="#id19" role="doc-backlink">Priority 5: Advanced Analysis Features</a><a class="headerlink" href="#priority-5-advanced-analysis-features" title="Link to this heading"></a></h2>
 <section id="data-storage-efficiency-improvements">
-<h3><a class="toc-backref" href="#id19" role="doc-backlink">13. Data Storage Efficiency Improvements</a><a class="headerlink" href="#data-storage-efficiency-improvements" title="Link to this heading"></a></h3>
+<h3><a class="toc-backref" href="#id20" role="doc-backlink">14. Data Storage Efficiency Improvements</a><a class="headerlink" href="#data-storage-efficiency-improvements" title="Link to this heading"></a></h3>
 <p><strong>Current State</strong>: Standard NetCDF output with basic compression.</p>
 <p><strong>Missing Implementation</strong>:
 - Optimized chunking strategies
@@ -526,9 +576,9 @@
 </section>
 </section>
 <section id="development-milestones">
-<h2><a class="toc-backref" href="#id20" role="doc-backlink">Development Milestones</a><a class="headerlink" href="#development-milestones" title="Link to this heading"></a></h2>
+<h2><a class="toc-backref" href="#id21" role="doc-backlink">Development Milestones</a><a class="headerlink" href="#development-milestones" title="Link to this heading"></a></h2>
 <section id="phase-1-core-framework-completion-months-1-3">
-<h3><a class="toc-backref" href="#id21" role="doc-backlink">Phase 1: Core Framework Completion (Months 1-3)</a><a class="headerlink" href="#phase-1-core-framework-completion-months-1-3" title="Link to this heading"></a></h3>
+<h3><a class="toc-backref" href="#id22" role="doc-backlink">Phase 1: Core Framework Completion (Months 1-3)</a><a class="headerlink" href="#phase-1-core-framework-completion-months-1-3" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p>Improve test coverage (address technical debt)</p></li>
 <li><p>Implement intelligent metadata fallback system</p></li>
@@ -540,7 +590,7 @@
 </ul>
 </section>
 <section id="phase-2-advanced-processing-months-4-6">
-<h3><a class="toc-backref" href="#id22" role="doc-backlink">Phase 2: Advanced Processing (Months 4-6)</a><a class="headerlink" href="#phase-2-advanced-processing-months-4-6" title="Link to this heading"></a></h3>
+<h3><a class="toc-backref" href="#id23" role="doc-backlink">Phase 2: Advanced Processing (Months 4-6)</a><a class="headerlink" href="#phase-2-advanced-processing-months-4-6" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p>Organize methods module structure</p></li>
 <li><p>Enhance configuration system</p></li>
@@ -550,7 +600,7 @@
 </ul>
 </section>
 <section id="phase-3-system-optimization-months-7-9">
-<h3><a class="toc-backref" href="#id23" role="doc-backlink">Phase 3: System Optimization (Months 7-9)</a><a class="headerlink" href="#phase-3-system-optimization-months-7-9" title="Link to this heading"></a></h3>
+<h3><a class="toc-backref" href="#id24" role="doc-backlink">Phase 3: System Optimization (Months 7-9)</a><a class="headerlink" href="#phase-3-system-optimization-months-7-9" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p>Improve data storage efficiency</p></li>
 <li><p>Performance optimization and profiling</p></li>
@@ -560,9 +610,9 @@
 </section>
 </section>
 <section id="technical-debt-and-maintenance">
-<h2><a class="toc-backref" href="#id24" role="doc-backlink">Technical Debt and Maintenance</a><a class="headerlink" href="#technical-debt-and-maintenance" title="Link to this heading"></a></h2>
+<h2><a class="toc-backref" href="#id25" role="doc-backlink">Technical Debt and Maintenance</a><a class="headerlink" href="#technical-debt-and-maintenance" title="Link to this heading"></a></h2>
 <section id="ongoing-improvements">
-<h3><a class="toc-backref" href="#id25" role="doc-backlink">Ongoing Improvements</a><a class="headerlink" href="#ongoing-improvements" title="Link to this heading"></a></h3>
+<h3><a class="toc-backref" href="#id26" role="doc-backlink">Ongoing Improvements</a><a class="headerlink" href="#ongoing-improvements" title="Link to this heading"></a></h3>
 <ol class="arabic simple">
 <li><p><strong>Code Quality</strong>
 - Add type hints throughout codebase
@@ -588,9 +638,9 @@
 </section>
 </section>
 <section id="dependencies-and-external-integration">
-<h2><a class="toc-backref" href="#id26" role="doc-backlink">Dependencies and External Integration</a><a class="headerlink" href="#dependencies-and-external-integration" title="Link to this heading"></a></h2>
+<h2><a class="toc-backref" href="#id27" role="doc-backlink">Dependencies and External Integration</a><a class="headerlink" href="#dependencies-and-external-integration" title="Link to this heading"></a></h2>
 <section id="key-external-dependencies">
-<h3><a class="toc-backref" href="#id27" role="doc-backlink">Key External Dependencies</a><a class="headerlink" href="#key-external-dependencies" title="Link to this heading"></a></h3>
+<h3><a class="toc-backref" href="#id28" role="doc-backlink">Key External Dependencies</a><a class="headerlink" href="#key-external-dependencies" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">ioos_qc</span></code>: For comprehensive QC implementation</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">gsw</span></code> (TEOS-10): For seawater property calculations</p></li>
@@ -600,7 +650,7 @@
 </ul>
 </section>
 <section id="integration-opportunities">
-<h3><a class="toc-backref" href="#id28" role="doc-backlink">Integration Opportunities</a><a class="headerlink" href="#integration-opportunities" title="Link to this heading"></a></h3>
+<h3><a class="toc-backref" href="#id29" role="doc-backlink">Integration Opportunities</a><a class="headerlink" href="#integration-opportunities" title="Link to this heading"></a></h3>
 <ul class="simple">
 <li><p><strong>Pangaea</strong>: Data publication workflows</p></li>
 <li><p><strong>OceanSites</strong>: Enhanced format compliance</p></li>
@@ -609,9 +659,9 @@
 </section>
 </section>
 <section id="community-and-collaboration">
-<h2><a class="toc-backref" href="#id29" role="doc-backlink">Community and Collaboration</a><a class="headerlink" href="#community-and-collaboration" title="Link to this heading"></a></h2>
+<h2><a class="toc-backref" href="#id30" role="doc-backlink">Community and Collaboration</a><a class="headerlink" href="#community-and-collaboration" title="Link to this heading"></a></h2>
 <section id="contribution-priorities">
-<h3><a class="toc-backref" href="#id30" role="doc-backlink">Contribution Priorities</a><a class="headerlink" href="#contribution-priorities" title="Link to this heading"></a></h3>
+<h3><a class="toc-backref" href="#id31" role="doc-backlink">Contribution Priorities</a><a class="headerlink" href="#contribution-priorities" title="Link to this heading"></a></h3>
 <ol class="arabic simple">
 <li><p>Method validation with known datasets</p></li>
 <li><p>Cross-array compatibility testing</p></li>
