@@ -851,7 +851,7 @@ class TimeGriddingProcessor:
             self._log_print(
                 f"Successfully wrote time-gridded dataset: {output_filepath}"
             )
-            self._log_print(f"Combined dataset shape: {dict(ds_to_save.dims)}")
+            self._log_print(f"Combined dataset shape: {dict(ds_to_save.sizes)}")
             self._log_print(f"Variables: {list(ds_to_save.data_vars)}")
 
             return True
