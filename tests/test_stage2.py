@@ -384,7 +384,10 @@ class TestRealDataProcessing:
 
         if not raw_data_file.exists() or not yaml_config_file.exists():
             pytest.skip(
-                "Real test data files not found. Expected files: data/test_data_raw.nc, data/test_mooring.yaml"
+                (
+                    "Real test data files not found. Expected files: "
+                    "data/test_data_raw.nc, data/test_mooring.yaml"
+                )
             )
 
         # Set up test directory structure
