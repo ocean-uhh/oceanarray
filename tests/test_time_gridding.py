@@ -438,7 +438,7 @@ class TestTimeGriddingIntegration:
             # Check dimensions
             assert "time" in ds.dims
             assert "N_LEVELS" in ds.dims
-            assert ds.dims["N_LEVELS"] == 2  # Two instruments
+            assert ds.sizes["N_LEVELS"] == 2  # Two instruments
 
             # Check variables
             assert "temperature" in ds.data_vars

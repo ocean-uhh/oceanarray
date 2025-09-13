@@ -14,7 +14,7 @@ Initial examples are built from the RAPID project, which is a well-established m
 - **Reproducible**: Every transformation step should be traceable, with logs, versioning, and metadata.
 - **Incremental**: Intermediate outputs should be storable and reloadable for downstream processing.
 
-Final datasets are intended to be stored in a common format (e.g., CF-netCDF following OceanSITES_) with consistent metadata, ready for further analysis or transport diagnostics.
+Final datasets are stored in a common format (CF-netCDF following OceanSITES_) with consistent metadata for analysis or transport diagnostics.
 
 .. _OceanSITES: https://www.ocean-ops.org/oceansites/data/index.html
 
