@@ -3,10 +3,11 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pytest
 import xarray as xr
 
-from oceanarray.legacy.process_rodb import (apply_microcat_calibration_from_txt,
-                                     stage2_trim, trim_suggestion)
+from oceanarray.legacy.process_rodb import (
+    apply_microcat_calibration_from_txt, stage2_trim, trim_suggestion)
 from oceanarray.legacy.rodb import rodbload
 
 
@@ -65,8 +66,7 @@ Average pressure applied? n
     ds.to_netcdf(use_path)  # write as .nc, simulate reading in `rodbload`
 
     # Patch rodbload to return this dataset
-    from oceanarray import process_rodb
-
+    import oceanarray.legacy.process_rodb as process_rodb
     process_rodb.rodb.rodbload = lambda _: ds
 
     ds_cal = apply_microcat_calibration_from_txt(txt, use_path)
@@ -85,6 +85,9 @@ def test_apply_microcat_calibration_from_txt(tmp_path):
     data_dir = Path(__file__).parent.parent / "data"
     txt_file = data_dir / "wb1_12_2015_005.microcat.txt"
     use_file = data_dir / "wb1_12_2015_6123.use"
+    
+    if not txt_file.exists() or not use_file.exists():
+        pytest.skip("Legacy test data files not available")
 
     # Output path
     corrected_file = tmp_path / "wb1_12_2015_005.microcat"
@@ -100,6 +103,9 @@ def test_apply_microcat_calibration_from_txt(tmp_path):
 def test_stage2_trim_from_raw(tmp_path):
     data_dir = Path(__file__).parent.parent / "data"
     raw_file = data_dir / "wb1_12_2015_6123.raw"
+    
+    if not raw_file.exists():
+        pytest.skip("Legacy test data files not available")
 
     # Fake deployment end time for now
     deployment_start = pd.Timestamp("2015-11-30T19:00:00")
