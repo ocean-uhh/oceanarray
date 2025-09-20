@@ -26,9 +26,9 @@ dynamic = [
   "dependencies",
   "version",
 ]
-urls.documentation = "https://github.com/eleanorfrajka/oceanarray"
-urls.homepage = "https://github.com/eleanorfrajka/oceanarray"
-urls.repository = "https://github.com/eleanorfrajka/oceanarray"
+urls.documentation = "https://github.com/ocean-uhh/oceanarray"
+urls.homepage = "https://github.com/ocean-uhh/oceanarray"
+urls.repository = "https://github.com/ocean-uhh/oceanarray"
 
 
 [tool.setuptools.packages.find]

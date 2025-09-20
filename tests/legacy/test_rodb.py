@@ -38,10 +38,10 @@ def test_rodbload_missing_time(tmp_path, caplog):
 
 def test_rodbload_raw_file():
     file_path = Path(__file__).parent.parent / "data" / "wb1_12_2015_6123.raw"
-    
+
     if not file_path.exists():
         pytest.skip("Legacy test data files not available")
-    
+
     variables = ["YY", "MM", "DD", "HH", "T", "C", "P"]
     ds = rodbload(file_path, variables)
 
@@ -83,7 +83,7 @@ def test_format_latlon():
 
 def test_rodb_read_write_roundtrip():
     infile = Path(__file__).parent.parent / "data" / "wb1_12_2015_6123_head10.use"
-    
+
     if not infile.exists():
         pytest.skip("Legacy test data files not available")
 
