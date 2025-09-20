@@ -57,7 +57,7 @@ Contents
    :maxdepth: 2
    :caption: Help and reference
 
-   GitHub Repo <http://github.com/ocean-uhh/oceanarray>
+   GitHub Repo <https://github.com/ocean-uhh/oceanarray>
    roadmap
    oceanarray
    faq
