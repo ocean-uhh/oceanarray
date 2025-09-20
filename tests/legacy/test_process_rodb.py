@@ -67,6 +67,7 @@ Average pressure applied? n
 
     # Patch rodbload to return this dataset
     import oceanarray.legacy.process_rodb as process_rodb
+
     process_rodb.rodb.rodbload = lambda _: ds
 
     ds_cal = apply_microcat_calibration_from_txt(txt, use_path)
@@ -85,7 +86,7 @@ def test_apply_microcat_calibration_from_txt(tmp_path):
     data_dir = Path(__file__).parent.parent / "data"
     txt_file = data_dir / "wb1_12_2015_005.microcat.txt"
     use_file = data_dir / "wb1_12_2015_6123.use"
-    
+
     if not txt_file.exists() or not use_file.exists():
         pytest.skip("Legacy test data files not available")
 
@@ -103,7 +104,7 @@ def test_apply_microcat_calibration_from_txt(tmp_path):
 def test_stage2_trim_from_raw(tmp_path):
     data_dir = Path(__file__).parent.parent / "data"
     raw_file = data_dir / "wb1_12_2015_6123.raw"
-    
+
     if not raw_file.exists():
         pytest.skip("Legacy test data files not available")
 

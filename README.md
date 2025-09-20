@@ -18,7 +18,7 @@ OceanArray processes raw oceanographic instrument data following CF conventions.
 ### Installation
 
 ```bash
-git clone https://github.com/eleanorfrajka/oceanarray.git
+git clone https://github.com/ocean-uhh/oceanarray.git
 cd oceanarray
 pip install -r requirements-dev.txt
 pip install -e .
@@ -48,7 +48,7 @@ stage2.process_mooring('mooring_name')
 - Preserve all original data with standardized variable names and metadata
 - No quality control applied - pure format conversion
 
-**Stage 2: Temporal Corrections** (`stage2.py`)  
+**Stage 2: Temporal Corrections** (`stage2.py`)
 - Apply clock offset corrections between instruments
 - Trim data to deployment period (start_time to end_time)
 - Add deployment metadata and processing provenance
@@ -160,7 +160,7 @@ make html
 
 The documentation includes:
 - **Processing Methods**: Methodology for each stage
-- **API Reference**: Function and class documentation  
+- **API Reference**: Function and class documentation
 - **Demo Notebooks**: Tutorials and examples
 - **Development Guide**: Roadmap and contribution guidelines
 
@@ -170,7 +170,7 @@ The documentation includes:
 
 ### Current Support
 - **Sea-Bird SBE**: CNV and ASCII formats (`.cnv`, `.asc`)
-- **RBR**: RSK and ASCII formats (`.rsk`, `.dat`)  
+- **RBR**: RSK and ASCII formats (`.rsk`, `.dat`)
 - **Nortek**: ASCII format with header files (`.aqd`)
 
 ### Planned Support
@@ -189,7 +189,7 @@ pytest
 # With coverage
 pytest --cov=oceanarray
 
-# Specific test categories  
+# Specific test categories
 pytest tests/test_stage1.py tests/test_stage2.py
 ```
 
@@ -256,7 +256,7 @@ If you use OceanArray in your research, please cite:
 @software{oceanarray,
   title = {{OceanArray}: A Python framework for oceanographic mooring array processing},
   author = {Frajka-Williams, Eleanor},
-  url = {https://github.com/eleanorfrajka/oceanarray},
+  url = {https://github.com/ocean-uhh/oceanarray},
   year = {2025}
 }
 ```

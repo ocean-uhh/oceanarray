@@ -19,7 +19,7 @@ creator_url: "https://www.noc.ac.uk"
 creator_institution: "National Oceanography Centre"
 creator_id: https://edmo.seadatanet.org/report/17
 array: RAPID
-comment: Data file in OS format produced using http://github.com/eleanorfrajka/oceanarray
+comment: Data file in OS format produced using https://github.com/ocean-uhh/oceanarray
 sea_area: North Atlantic Ocean
 sea_area_vocabulary: https://vocab.nerc.ac.uk/collection/C19/current/
 #geospatial_lat_min:
