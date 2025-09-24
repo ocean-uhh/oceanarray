@@ -1,0 +1,1913 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OceanArray Data Format Specification &mdash; oceanarray v0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=20758594" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8b92e751"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="oceanarray API" href="oceanarray.html" />
+    <link rel="prev" title="Development Roadmap" href="roadmap.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            oceanarray
+              <img src="_static/logo_template.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Overview</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="processing_framework.html">OceanArray processing framework</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Instruments</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="methods/acquisition.html">Data Acquisition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/standardisation.html">Standardisation (Stage 1)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="clock_offset.html">Clock Offset Analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/trimming.html">Trim to Deployment (Stage 2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/auto_qc.html">Automatic QC (Stage 3)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/calibration.html">Apply Calibration (Stage 4)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/conversion.html">Convert to OceanSites</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Moorings</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="methods/time_gridding.html">Grid in Time (Step 1)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/vertical_gridding.html">Grid Vertically (Step 2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/concatenation.html">Combine Deployments (Step 3)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods for Array</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="methods/multisite_merging.html">Multi-site Merging</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Examples</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="demo_instrument-output.html">Demo: Instrument-Level Processing (Compact Workflow)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="demo_mooring-output.html">Demo: mooring-level processing (Step 1)</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Help and reference</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference external" href="https://github.com/ocean-uhh/oceanarray">GitHub Repo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="roadmap.html">Development Roadmap</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">OceanArray Data Format Specification</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#overview">1. Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#key-design-decisions">2. Key Design Decisions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#deviations-from-oceansites-standard">2.1. Deviations from OceanSITES Standard</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#dimensions">3. Dimensions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#required-dimensions">3.1. Required Dimensions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#optional-dimensions">3.2. Optional Dimensions</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#coordinate-variables">4. Coordinate Variables</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#time-coordinate">4.1. Time Coordinate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#spatial-coordinates">4.2. Spatial Coordinates</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#data-variables">5. Data Variables</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#required-attributes">5.1. Required Attributes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#quality-control-variables">6. Quality Control Variables</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#qc-flag-system">6.1. QC Flag System</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#comparison-with-ioc-standards">6.2. Comparison with IOC Standards</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#global-attributes">7. Global Attributes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#dataset-identification">7.1. Dataset Identification</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#contributor-information">7.2. Contributor Information</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#temporal-attributes">7.3. Temporal Attributes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#geospatial-and-temporal-coverage">7.4. Geospatial and Temporal Coverage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#publication-and-attribution">7.5. Publication and Attribution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#conventions-and-standards">7.6. Conventions and Standards</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#units-convention">8. Units Convention</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#physical-units">8.1. Physical Units</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#file-naming-convention">9. File Naming Convention</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#individual-instrument-files">9.1. Individual Instrument Files</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#higher-level-products">9.2. Higher-Level Products</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#processing-level-vs-content-type">9.3. Processing Level vs Content Type</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#temporal-resolution-codes">9.4. Temporal Resolution Codes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#oceansites-compatibility">9.5. OceanSITES Compatibility</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#validation-rules">9.6. Validation Rules</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#implementation-guidelines">10. Implementation Guidelines</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#data-type-recommendations">10.1. Data Type Recommendations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#compression-settings">10.2. Compression Settings</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#validation-tools">11. Validation Tools</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#compliance-checklist">11.1. Compliance Checklist</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#future-considerations">12. Future Considerations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#standards-evolution">12.1. Standards Evolution</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#references">13. References</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="oceanarray.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code></a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">oceanarray</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">OceanArray Data Format Specification</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/data_format_specification.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="oceanarray-data-format-specification">
+<h1>OceanArray Data Format Specification<a class="headerlink" href="#oceanarray-data-format-specification" title="Link to this heading"></a></h1>
+<p>This specification defines the preferred final format for data output from the oceanarray processing pipeline. It builds upon the OceanSITES data format while incorporating elements from the OG1 (OceanGliders) format and making specific choices for oceanographic mooring data.</p>
+<nav class="contents local" id="table-of-contents">
+<p class="topic-title">Table of Contents</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#overview" id="id31">1. Overview</a></p></li>
+<li><p><a class="reference internal" href="#key-design-decisions" id="id32">2. Key Design Decisions</a></p>
+<ul>
+<li><p><a class="reference internal" href="#deviations-from-oceansites-standard" id="id33">2.1. Deviations from OceanSITES Standard</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#dimensions" id="id34">3. Dimensions</a></p>
+<ul>
+<li><p><a class="reference internal" href="#required-dimensions" id="id35">3.1. Required Dimensions</a></p></li>
+<li><p><a class="reference internal" href="#optional-dimensions" id="id36">3.2. Optional Dimensions</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#coordinate-variables" id="id37">4. Coordinate Variables</a></p>
+<ul>
+<li><p><a class="reference internal" href="#time-coordinate" id="id38">4.1. Time Coordinate</a></p></li>
+<li><p><a class="reference internal" href="#spatial-coordinates" id="id39">4.2. Spatial Coordinates</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#data-variables" id="id40">5. Data Variables</a></p>
+<ul>
+<li><p><a class="reference internal" href="#required-attributes" id="id41">5.1. Required Attributes</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#quality-control-variables" id="id42">6. Quality Control Variables</a></p>
+<ul>
+<li><p><a class="reference internal" href="#qc-flag-system" id="id43">6.1. QC Flag System</a></p></li>
+<li><p><a class="reference internal" href="#comparison-with-ioc-standards" id="id44">6.2. Comparison with IOC Standards</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#global-attributes" id="id45">7. Global Attributes</a></p>
+<ul>
+<li><p><a class="reference internal" href="#dataset-identification" id="id46">7.1. Dataset Identification</a></p></li>
+<li><p><a class="reference internal" href="#contributor-information" id="id47">7.2. Contributor Information</a></p></li>
+<li><p><a class="reference internal" href="#temporal-attributes" id="id48">7.3. Temporal Attributes</a></p></li>
+<li><p><a class="reference internal" href="#geospatial-and-temporal-coverage" id="id49">7.4. Geospatial and Temporal Coverage</a></p></li>
+<li><p><a class="reference internal" href="#publication-and-attribution" id="id50">7.5. Publication and Attribution</a></p></li>
+<li><p><a class="reference internal" href="#conventions-and-standards" id="id51">7.6. Conventions and Standards</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#units-convention" id="id52">8. Units Convention</a></p>
+<ul>
+<li><p><a class="reference internal" href="#physical-units" id="id53">8.1. Physical Units</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#file-naming-convention" id="id54">9. File Naming Convention</a></p>
+<ul>
+<li><p><a class="reference internal" href="#individual-instrument-files" id="id55">9.1. Individual Instrument Files</a></p></li>
+<li><p><a class="reference internal" href="#higher-level-products" id="id56">9.2. Higher-Level Products</a></p></li>
+<li><p><a class="reference internal" href="#processing-level-vs-content-type" id="id57">9.3. Processing Level vs Content Type</a></p></li>
+<li><p><a class="reference internal" href="#temporal-resolution-codes" id="id58">9.4. Temporal Resolution Codes</a></p></li>
+<li><p><a class="reference internal" href="#oceansites-compatibility" id="id59">9.5. OceanSITES Compatibility</a></p></li>
+<li><p><a class="reference internal" href="#validation-rules" id="id60">9.6. Validation Rules</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#implementation-guidelines" id="id61">10. Implementation Guidelines</a></p>
+<ul>
+<li><p><a class="reference internal" href="#data-type-recommendations" id="id62">10.1. Data Type Recommendations</a></p></li>
+<li><p><a class="reference internal" href="#compression-settings" id="id63">10.2. Compression Settings</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#validation-tools" id="id64">11. Validation Tools</a></p>
+<ul>
+<li><p><a class="reference internal" href="#compliance-checklist" id="id65">11.1. Compliance Checklist</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#future-considerations" id="id66">12. Future Considerations</a></p>
+<ul>
+<li><p><a class="reference internal" href="#standards-evolution" id="id67">12.1. Standards Evolution</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#references" id="id68">13. References</a></p></li>
+</ul>
+</nav>
+<section id="overview">
+<h2><a class="toc-backref" href="#id31" role="doc-backlink">1. Overview</a><a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>The oceanarray format follows NetCDF-4 conventions with CF (Climate and Forecast) metadata standards. This format ensures interoperability while optimizing for oceanographic time series data from moored instruments.</p>
+</section>
+<section id="key-design-decisions">
+<h2><a class="toc-backref" href="#id32" role="doc-backlink">2. Key Design Decisions</a><a class="headerlink" href="#key-design-decisions" title="Link to this heading"></a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The following choices differ from referenced standards and may need future revision based on community feedback.</p>
+</div>
+<section id="deviations-from-oceansites-standard">
+<h3><a class="toc-backref" href="#id33" role="doc-backlink">2.1. Deviations from OceanSITES Standard</a><a class="headerlink" href="#deviations-from-oceansites-standard" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id2">
+<caption><span class="caption-text">Format Deviations Summary</span><a class="headerlink" href="#id2" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 35.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Aspect</p></th>
+<th class="head"><p>OceanSITES Standard</p></th>
+<th class="head"><p>OceanArray Choice</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Vertical Dimension</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">DEPTH</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">N_LEVELS</span></code> (follows CCHDO)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Units Format</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">degrees_north</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">degree_north</span></code> (UDUNITS)</p></td>
+</tr>
+<tr class="row-even"><td><p>Time Format</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">YYYY-MM-DDThh:mm:ssZ</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">YYYYmmddTHHMMss</span></code> (OG1 style)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Vocabulary Requirements</p></td>
+<td><p>Optional for most attributes</p></td>
+<td><p>Mandatory where applicable</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rationale for N_LEVELS</strong>: The CCHDO community uses <code class="docutils literal notranslate"><span class="pre">N_LEVELS</span></code> as the standard vertical dimension name, providing better alignment with hydrographic data processing workflows.</p>
+<p><strong>Rationale for UDUNITS</strong>: Strict adherence to UDUNITS ensures compatibility with scientific software packages and avoids ambiguity in unit interpretation.</p>
+<p><strong>Rationale for Time Format</strong>: The OG1 time format provides a more compact representation suitable for attribute strings while maintaining ISO 8601 compatibility.</p>
+</section>
+</section>
+<section id="dimensions">
+<h2><a class="toc-backref" href="#id34" role="doc-backlink">3. Dimensions</a><a class="headerlink" href="#dimensions" title="Link to this heading"></a></h2>
+<section id="required-dimensions">
+<h3><a class="toc-backref" href="#id35" role="doc-backlink">3.1. Required Dimensions</a><a class="headerlink" href="#required-dimensions" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-text">Dimension Specifications</span><a class="headerlink" href="#id3" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 15.0%" />
+<col style="width: 15.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Name</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">TIME</span></code></p></td>
+<td><p>Unlimited</p></td>
+<td><p>Temporal coordinate, unlimited for time series data</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">N_LEVELS</span></code></p></td>
+<td><p>Fixed</p></td>
+<td><p>Vertical coordinate (depth/pressure levels)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">STRING_LENGTH</span></code></p></td>
+<td><p>Fixed</p></td>
+<td><p>Maximum string length for text variables (typically 64 or 128)</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="optional-dimensions">
+<h3><a class="toc-backref" href="#id36" role="doc-backlink">3.2. Optional Dimensions</a><a class="headerlink" href="#optional-dimensions" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id4">
+<caption><span class="caption-text">Optional Dimension Specifications</span><a class="headerlink" href="#id4" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 15.0%" />
+<col style="width: 15.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Name</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">N_INSTRUMENTS</span></code></p></td>
+<td><p>Fixed</p></td>
+<td><p>Number of distinct instruments when applicable</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">N_SAMPLES</span></code></p></td>
+<td><p>Fixed</p></td>
+<td><p>Raw sample dimension for burst-mode instruments</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Dimension Ordering</strong>: Following OceanSITES convention, dimensions should be ordered as <code class="docutils literal notranslate"><span class="pre">(TIME,</span> <span class="pre">Z,</span> <span class="pre">Y,</span> <span class="pre">X)</span></code>. CF recommends T,Z,Y,X order in variable definitions.</p>
+<p><strong>OceanSITES Standard Dimensions</strong>:
+- <code class="docutils literal notranslate"><span class="pre">TIME</span></code> = unlimited (number of time steps)
+- <code class="docutils literal notranslate"><span class="pre">DEPTH</span></code> = fixed (number of depth levels) <strong>[OceanSITES standard]</strong>
+- <code class="docutils literal notranslate"><span class="pre">LATITUDE</span></code> = 1 (dimension of LATITUDE coordinate)
+- <code class="docutils literal notranslate"><span class="pre">LONGITUDE</span></code> = 1 (dimension of LONGITUDE coordinate)</p>
+<p><strong>OceanArray Choice</strong>: We use <code class="docutils literal notranslate"><span class="pre">N_LEVELS</span></code> instead of <code class="docutils literal notranslate"><span class="pre">DEPTH</span></code> to align with CCHDO conventions, while maintaining the same T,Z,Y,X ordering principle.</p>
+</section>
+</section>
+<section id="coordinate-variables">
+<h2><a class="toc-backref" href="#id37" role="doc-backlink">4. Coordinate Variables</a><a class="headerlink" href="#coordinate-variables" title="Link to this heading"></a></h2>
+<section id="time-coordinate">
+<h3><a class="toc-backref" href="#id38" role="doc-backlink">4.1. Time Coordinate</a><a class="headerlink" href="#time-coordinate" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id5">
+<caption><span class="caption-text">TIME Variable Attributes</span><a class="headerlink" href="#id5" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Attribute</p></th>
+<th class="head"><p>Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">standard_name</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;time&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">long_name</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;time&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">units</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;seconds</span> <span class="pre">since</span> <span class="pre">1970-01-01T00:00:00Z&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">calendar</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;gregorian&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">axis</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;T&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">_FillValue</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&lt;appropriate</span> <span class="pre">fill</span> <span class="pre">value&gt;</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Time Encoding</strong>: Time values are stored as double precision seconds since the Unix epoch, providing microsecond precision suitable for high-frequency oceanographic measurements.</p>
+</section>
+<section id="spatial-coordinates">
+<h3><a class="toc-backref" href="#id39" role="doc-backlink">4.2. Spatial Coordinates</a><a class="headerlink" href="#spatial-coordinates" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id6">
+<caption><span class="caption-text">Spatial Coordinate Attributes</span><a class="headerlink" href="#id6" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 15.0%" />
+<col style="width: 25.0%" />
+<col style="width: 60.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable</p></th>
+<th class="head"><p>Required Attributes</p></th>
+<th class="head"><p>Example Values</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">LATITUDE</span></code></p></td>
+<td><div class="line-block">
+<div class="line"><code class="docutils literal notranslate"><span class="pre">standard_name</span> <span class="pre">=</span> <span class="pre">&quot;latitude&quot;</span></code></div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">units</span> <span class="pre">=</span> <span class="pre">&quot;degree_north&quot;</span></code></div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">axis</span> <span class="pre">=</span> <span class="pre">&quot;Y&quot;</span></code></div>
+</div>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">valid_range</span> <span class="pre">=</span> <span class="pre">[-90.0,</span> <span class="pre">90.0]</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LONGITUDE</span></code></p></td>
+<td><div class="line-block">
+<div class="line"><code class="docutils literal notranslate"><span class="pre">standard_name</span> <span class="pre">=</span> <span class="pre">&quot;longitude&quot;</span></code></div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">units</span> <span class="pre">=</span> <span class="pre">&quot;degree_east&quot;</span></code></div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">axis</span> <span class="pre">=</span> <span class="pre">&quot;X&quot;</span></code></div>
+</div>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">valid_range</span> <span class="pre">=</span> <span class="pre">[-180.0,</span> <span class="pre">180.0]</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">DEPTH</span></code> or <code class="docutils literal notranslate"><span class="pre">PRESSURE</span></code></p></td>
+<td><div class="line-block">
+<div class="line"><code class="docutils literal notranslate"><span class="pre">standard_name</span> <span class="pre">=</span> <span class="pre">&quot;depth&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;sea_water_pressure&quot;</span></code></div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">units</span> <span class="pre">=</span> <span class="pre">&quot;meter&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;decibar&quot;</span></code></div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">axis</span> <span class="pre">=</span> <span class="pre">&quot;Z&quot;</span></code></div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">positive</span> <span class="pre">=</span> <span class="pre">&quot;down&quot;</span></code></div>
+</div>
+</td>
+<td><p><code class="docutils literal notranslate"><span class="pre">valid_min</span> <span class="pre">=</span> <span class="pre">0.0</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="data-variables">
+<h2><a class="toc-backref" href="#id40" role="doc-backlink">5. Data Variables</a><a class="headerlink" href="#data-variables" title="Link to this heading"></a></h2>
+<section id="required-attributes">
+<h3><a class="toc-backref" href="#id41" role="doc-backlink">5.1. Required Attributes</a><a class="headerlink" href="#required-attributes" title="Link to this heading"></a></h3>
+<p>All scientific data variables must include the following attributes:</p>
+<table class="docutils align-default" id="id7">
+<caption><span class="caption-text">Mandatory Data Variable Attributes</span><a class="headerlink" href="#id7" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Attribute</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">long_name</span></code></p></td>
+<td><p>Human-readable descriptive name</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">standard_name</span></code></p></td>
+<td><p>CF standard name (when applicable)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vocabulary</span></code></p></td>
+<td><p>URL or identifier for controlled vocabulary <strong>[OceanArray Enhancement]</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">units</span></code></p></td>
+<td><p>Physical units following UDUNITS standard</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">_FillValue</span></code></p></td>
+<td><p>Fill value with same data type as variable, outside valid range</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">valid_range</span></code> or <code class="docutils literal notranslate"><span class="pre">valid_min/max</span></code></p></td>
+<td><p>Physically meaningful data range</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ancillary_variables</span></code></p></td>
+<td><p>Associated QC variable name (e.g., <code class="docutils literal notranslate"><span class="pre">&quot;&lt;PARAM&gt;_QC&quot;</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">coordinates</span></code></p></td>
+<td><p>Space-separated list of coordinate variables</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sensor</span></code></p></td>
+<td><p>Sensor identifier: <code class="docutils literal notranslate"><span class="pre">&quot;SENSOR_&lt;type&gt;_&lt;serial_number&gt;&quot;</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example Data Variable</strong>:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>TEMP:long_name = &quot;Sea Water Temperature&quot;;
+TEMP:standard_name = &quot;sea_water_temperature&quot;;
+TEMP:vocabulary = &quot;https://vocab.nerc.ac.uk/collection/P07/current/&quot;;
+TEMP:units = &quot;degree_Celsius&quot;;
+TEMP:_FillValue = -999.0f;
+TEMP:valid_range = -2.0f, 40.0f;
+TEMP:ancillary_variables = &quot;TEMP_QC&quot;;
+TEMP:coordinates = &quot;TIME LONGITUDE LATITUDE DEPTH&quot;;
+TEMP:sensor = &quot;SENSOR_CTD_12345&quot;;
+</pre></div>
+</div>
+<p><strong>Vocabulary Enhancement</strong>: Unlike base OceanSITES, oceanarray format mandates vocabulary specification to ensure semantic interoperability and automated data discovery.</p>
+</section>
+</section>
+<section id="quality-control-variables">
+<h2><a class="toc-backref" href="#id42" role="doc-backlink">6. Quality Control Variables</a><a class="headerlink" href="#quality-control-variables" title="Link to this heading"></a></h2>
+<section id="qc-flag-system">
+<h3><a class="toc-backref" href="#id43" role="doc-backlink">6.1. QC Flag System</a><a class="headerlink" href="#qc-flag-system" title="Link to this heading"></a></h3>
+<p>Following the OceanSITES quality control flag system:</p>
+<table class="docutils align-default" id="id8">
+<caption><span class="caption-text">QC Flag Values and Meanings</span><a class="headerlink" href="#id8" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 10.0%" />
+<col style="width: 30.0%" />
+<col style="width: 60.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Flag</p></th>
+<th class="head"><p>OceanSITES Meaning</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">unknown</span></code></p></td>
+<td><p>Quality not evaluated or unknown</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">good_data</span></code></p></td>
+<td><p>Data passed all quality tests</p></td>
+</tr>
+<tr class="row-even"><td><p>2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">probably_good_data</span></code></p></td>
+<td><p>Data likely good but not fully verified</p></td>
+</tr>
+<tr class="row-odd"><td><p>3</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">potentially_correctable_bad_data</span></code></p></td>
+<td><p>Bad data that might be correctable</p></td>
+</tr>
+<tr class="row-even"><td><p>4</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">bad_data</span></code></p></td>
+<td><p>Data failed critical quality tests</p></td>
+</tr>
+<tr class="row-odd"><td><p>7</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">nominal_value</span></code></p></td>
+<td><p>Constant or reference value</p></td>
+</tr>
+<tr class="row-even"><td><p>8</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">interpolated_value</span></code></p></td>
+<td><p>Gap-filled or estimated data</p></td>
+</tr>
+<tr class="row-odd"><td><p>9</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">missing_value</span></code></p></td>
+<td><p>Data point is missing</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>QC Variable Attributes</strong>:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>&lt;PARAM&gt;_QC:long_name = &quot;&lt;PARAM&gt; Quality Flag&quot;;
+&lt;PARAM&gt;_QC:flag_values = 0, 1, 2, 3, 4, 7, 8, 9;
+&lt;PARAM&gt;_QC:flag_meanings = &quot;unknown good_data probably_good_data potentially_correctable_bad_data bad_data nominal_value interpolated_value missing_value&quot;;
+&lt;PARAM&gt;_QC:valid_range = 0, 9;
+</pre></div>
+</div>
+</section>
+<section id="comparison-with-ioc-standards">
+<h3><a class="toc-backref" href="#id44" role="doc-backlink">6.2. Comparison with IOC Standards</a><a class="headerlink" href="#comparison-with-ioc-standards" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id9">
+<caption><span class="caption-text">QC Flag Comparison: OceanSITES vs IOC</span><a class="headerlink" href="#id9" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 10.0%" />
+<col style="width: 40.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Flag</p></th>
+<th class="head"><p>OceanSITES Interpretation</p></th>
+<th class="head"><p>IOC Interpretation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">probably_good_data</span></code> (assumes quality)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Test</span> <span class="pre">was</span> <span class="pre">not</span> <span class="pre">evaluated</span></code> (no assumption)</p></td>
+</tr>
+<tr class="row-odd"><td><p>3</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">potentially_correctable_bad_data</span></code> (implies fixable)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">Suspect</span> <span class="pre">data</span></code> (subjective failure)</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>OceanArray Choice</strong>: We follow the OceanSITES interpretation as it better aligns with time series oceanographic data practices where data quality assessment is often probabilistic rather than binary.</p>
+</section>
+</section>
+<section id="global-attributes">
+<h2><a class="toc-backref" href="#id45" role="doc-backlink">7. Global Attributes</a><a class="headerlink" href="#global-attributes" title="Link to this heading"></a></h2>
+<section id="dataset-identification">
+<h3><a class="toc-backref" href="#id46" role="doc-backlink">7.1. Dataset Identification</a><a class="headerlink" href="#dataset-identification" title="Link to this heading"></a></h3>
+<p><strong>Core OceanSITES Discovery Attributes</strong></p>
+<table class="docutils align-default" id="id10">
+<caption><span class="caption-text">OceanSITES Dataset Identification</span><a class="headerlink" href="#id10" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 15.0%" />
+<col style="width: 65.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Attribute</p></th>
+<th class="head"><p>Requirement</p></th>
+<th class="head"><p>Description / Example</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">site_code</span></code></p></td>
+<td><p>Required (GDAC)</p></td>
+<td><div class="line-block">
+<div class="line">OceanSITES site name where platform installed</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">site_code=&quot;CIS&quot;</span></code> <strong>[OceanArray: adapt to local naming]</strong></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">platform_code</span></code></p></td>
+<td><p>Required (GDAC)</p></td>
+<td><div class="line-block">
+<div class="line">Unique platform identifier assigned by PI or provider</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">platform_code=&quot;CIS-1&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">data_mode</span></code></p></td>
+<td><p>Required (GDAC)</p></td>
+<td><div class="line-block">
+<div class="line">Data quality mode: R (real-time), P (provisional), D (delayed)</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">data_mode=&quot;D&quot;</span></code> <strong>[OceanArray: typically “D” for processed data]</strong></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">title</span></code></p></td>
+<td><p>Required</p></td>
+<td><div class="line-block">
+<div class="line">Free-format dataset description for human readers</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">title=&quot;Processed</span> <span class="pre">CIS-1</span> <span class="pre">Mooring</span> <span class="pre">Time</span> <span class="pre">Series</span> <span class="pre">Data&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">summary</span></code></p></td>
+<td><p>Required</p></td>
+<td><div class="line-block">
+<div class="line">Detailed description (up to 100 words) for data discovery</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">summary=&quot;Oceanographic</span> <span class="pre">mooring</span> <span class="pre">data</span> <span class="pre">processed</span> <span class="pre">through</span> <span class="pre">oceanarray</span> <span class="pre">pipeline...&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">id</span></code></p></td>
+<td><p>Required</p></td>
+<td><div class="line-block">
+<div class="line">Unique dataset identifier (often filename without .nc)</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">id=&quot;OA_CIS-1_L2_200502_TS&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">naming_authority</span></code></p></td>
+<td><p>Required</p></td>
+<td><div class="line-block">
+<div class="line">Organization managing dataset names</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">naming_authority=&quot;oceanarray&quot;</span></code> <strong>[OceanArray: not “OceanSITES”]</strong></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">wmo_platform_code</span></code></p></td>
+<td><p>Optional</p></td>
+<td><div class="line-block">
+<div class="line">WMO identifier unique within OceanSITES project</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">wmo_platform_code=&quot;48409&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">source</span></code></p></td>
+<td><p>Required</p></td>
+<td><div class="line-block">
+<div class="line">Platform type from SeaVoX L06 vocabulary</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">source=&quot;subsurface</span> <span class="pre">mooring&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">theme</span></code></p></td>
+<td><p>Optional</p></td>
+<td><div class="line-block">
+<div class="line">OceanSITES theme areas (comma-separated)</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">theme=&quot;Air/sea</span> <span class="pre">flux</span> <span class="pre">reference,</span> <span class="pre">Global</span> <span class="pre">Ocean</span> <span class="pre">Watch&quot;</span></code></div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>OceanArray Adaptations</strong>:
+- Use <code class="docutils literal notranslate"><span class="pre">naming_authority=&quot;oceanarray&quot;</span></code> to distinguish processed datasets
+- <code class="docutils literal notranslate"><span class="pre">data_mode</span></code> typically “D” (delayed-mode) for quality-controlled processed data
+- Adapt <code class="docutils literal notranslate"><span class="pre">site_code</span></code> and <code class="docutils literal notranslate"><span class="pre">platform_code</span></code> to local deployment naming conventions</p>
+<p><strong>Additional Processing Attributes</strong></p>
+<table class="docutils align-default" id="id11">
+<caption><span class="caption-text">OceanArray Processing Attributes</span><a class="headerlink" href="#id11" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Attribute</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">processing_level</span></code></p></td>
+<td><p>Processing level from OceanSITES reference table 3</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">QC_indicator</span></code></p></td>
+<td><p>Overall dataset quality: “excellent”, “probably good”, “mixed”, “unknown”</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">format_version</span></code></p></td>
+<td><p>OceanArray format version (e.g., “OceanArray-1.0”)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">data_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;OceanSITES</span> <span class="pre">time-series</span> <span class="pre">data&quot;</span></code> (maintains compatibility)</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="contributor-information">
+<h3><a class="toc-backref" href="#id47" role="doc-backlink">7.2. Contributor Information</a><a class="headerlink" href="#contributor-information" title="Link to this heading"></a></h3>
+<p>Following OG1 pattern, consolidating OceanSITES <code class="docutils literal notranslate"><span class="pre">creator_*</span></code> and <code class="docutils literal notranslate"><span class="pre">principal_investigator_*</span></code> fields into comprehensive <code class="docutils literal notranslate"><span class="pre">contributor_*</span></code> attributes that support multiple contributors.</p>
+<table class="docutils align-default" id="id12">
+<caption><span class="caption-text">Contributor Attributes (OceanArray Format)</span><a class="headerlink" href="#id12" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 15.0%" />
+<col style="width: 60.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Attribute</p></th>
+<th class="head"><p>Requirement</p></th>
+<th class="head"><p>Description / Example</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">contributor_name</span></code></p></td>
+<td><p>Required</p></td>
+<td><div class="line-block">
+<div class="line">Semi-colon separated list of contributor full names</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">contributor_name</span> <span class="pre">=</span> <span class="pre">&quot;Dr.</span> <span class="pre">Jane</span> <span class="pre">Smith;</span> <span class="pre">Dr.</span> <span class="pre">John</span> <span class="pre">Doe;</span> <span class="pre">Prof.</span> <span class="pre">Alice</span> <span class="pre">Johnson&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">contributor_email</span></code></p></td>
+<td><p>Required</p></td>
+<td><div class="line-block">
+<div class="line">Semi-colon separated list of contact email addresses</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">contributor_email</span> <span class="pre">=</span> <span class="pre">&quot;jane.smith&#64;whoi.edu;</span> <span class="pre">john.doe&#64;noc.ac.uk;</span> <span class="pre">alice.johnson&#64;uni.edu&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">contributor_role</span></code></p></td>
+<td><p>Required</p></td>
+<td><div class="line-block">
+<div class="line">Semi-colon separated list of roles (controlled vocabulary)</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">contributor_role</span> <span class="pre">=</span> <span class="pre">&quot;principalInvestigator;</span> <span class="pre">coInvestigator;</span> <span class="pre">dataManager&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">contributor_role_vocabulary</span></code></p></td>
+<td><p>Required</p></td>
+<td><div class="line-block">
+<div class="line">URL for role vocabulary <strong>[OceanArray Enhancement]</strong></div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">contributor_role_vocabulary</span> <span class="pre">=</span> <span class="pre">&quot;http://vocab.nerc.ac.uk/collection/W08/&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">contributor_institution</span></code></p></td>
+<td><p>Required</p></td>
+<td><div class="line-block">
+<div class="line">Semi-colon separated list of institutional affiliations</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">contributor_institution</span> <span class="pre">=</span> <span class="pre">&quot;WHOI;</span> <span class="pre">NOC;</span> <span class="pre">University</span> <span class="pre">of</span> <span class="pre">Ocean</span> <span class="pre">Sciences&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">contributor_institution_vocabulary</span></code></p></td>
+<td><p>Optional</p></td>
+<td><div class="line-block">
+<div class="line">URL for institution vocabulary <strong>[OceanArray Enhancement]</strong></div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">contributor_institution_vocabulary</span> <span class="pre">=</span> <span class="pre">&quot;https://edmo.seadatanet.org/&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">contributor_orcid</span></code></p></td>
+<td><p>Recommended</p></td>
+<td><div class="line-block">
+<div class="line">Semi-colon separated list of ORCID identifiers</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">contributor_orcid</span> <span class="pre">=</span> <span class="pre">&quot;https://orcid.org/0000-0001-2345-6789;</span> <span class="pre">https://orcid.org/0000-0002-3456-7890;</span> <span class="pre">https://orcid.org/0000-0003-4567-8901&quot;</span></code></div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Multiple Contributors Example</strong>:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>contributor_name = &quot;Dr. Jane Smith; Dr. John Doe; Prof. Alice Johnson&quot;;
+contributor_email = &quot;jane.smith@whoi.edu; john.doe@noc.ac.uk; alice.johnson@uni.edu&quot;;
+contributor_role = &quot;principalInvestigator; coInvestigator; dataManager&quot;;
+contributor_role_vocabulary = &quot;http://vocab.nerc.ac.uk/collection/W08/&quot;;
+contributor_institution = &quot;Woods Hole Oceanographic Institution; National Oceanography Centre; University of Ocean Sciences&quot;;
+contributor_institution_vocabulary = &quot;https://edmo.seadatanet.org/&quot;;
+contributor_orcid = &quot;https://orcid.org/0000-0001-2345-6789; https://orcid.org/0000-0002-3456-7890; https://orcid.org/0000-0003-4567-8901&quot;;
+</pre></div>
+</div>
+<p><strong>Single Contributor Example</strong>:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>contributor_name = &quot;Dr. Jane Smith&quot;;
+contributor_email = &quot;jane.smith@whoi.edu&quot;;
+contributor_role = &quot;principalInvestigator&quot;;
+contributor_role_vocabulary = &quot;http://vocab.nerc.ac.uk/collection/W08/&quot;;
+contributor_institution = &quot;Woods Hole Oceanographic Institution&quot;;
+contributor_institution_vocabulary = &quot;https://edmo.seadatanet.org/&quot;;
+contributor_orcid = &quot;https://orcid.org/0000-0001-2345-6789&quot;;
+</pre></div>
+</div>
+<p><strong>Controlled Vocabulary for Roles</strong>:</p>
+<table class="docutils align-default" id="id13">
+<caption><span class="caption-text">Standard Contributor Roles</span><a class="headerlink" href="#id13" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Role Value</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">principalInvestigator</span></code></p></td>
+<td><p>Lead scientist responsible for the project</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">coInvestigator</span></code></p></td>
+<td><p>Co-lead or significant contributor to project science</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dataManager</span></code></p></td>
+<td><p>Responsible for data processing, quality control, and management</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">technician</span></code></p></td>
+<td><p>Technical support for instrument deployment and maintenance</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">student</span></code></p></td>
+<td><p>Graduate or undergraduate student contributor</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">postdoc</span></code></p></td>
+<td><p>Postdoctoral researcher contributor</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">collaborator</span></code></p></td>
+<td><p>External collaborator or visiting scientist</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>OceanSITES Field Mapping</strong>:</p>
+<table class="docutils align-default" id="id14">
+<caption><span class="caption-text">OceanSITES to OceanArray Field Consolidation</span><a class="headerlink" href="#id14" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 40.0%" />
+<col style="width: 60.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>OceanSITES Fields (Multiple)</p></th>
+<th class="head"><p>OceanArray Consolidated Field</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">principal_investigator</span></code></p></td>
+<td><div class="line-block">
+<div class="line"><code class="docutils literal notranslate"><span class="pre">contributor_name</span></code> (role: principalInvestigator)</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">principal_investigator_email</span></code></p></td>
+<td><div class="line-block">
+<div class="line"><code class="docutils literal notranslate"><span class="pre">contributor_email</span></code> (role: principalInvestigator)</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">principal_investigator_url</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Use ORCID in <code class="docutils literal notranslate"><span class="pre">contributor_orcid</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">principal_investigator_id</span></code></p></td>
+<td><div class="line-block">
+<div class="line"><code class="docutils literal notranslate"><span class="pre">contributor_orcid</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">creator_name</span></code></p></td>
+<td><div class="line-block">
+<div class="line"><code class="docutils literal notranslate"><span class="pre">contributor_name</span></code> (role: dataManager)</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">creator_email</span></code></p></td>
+<td><div class="line-block">
+<div class="line"><code class="docutils literal notranslate"><span class="pre">contributor_email</span></code> (role: dataManager)</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">creator_url</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Use ORCID in <code class="docutils literal notranslate"><span class="pre">contributor_orcid</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">creator_id</span></code></p></td>
+<td><div class="line-block">
+<div class="line"><code class="docutils literal notranslate"><span class="pre">contributor_orcid</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">creator_institution</span></code></p></td>
+<td><div class="line-block">
+<div class="line"><code class="docutils literal notranslate"><span class="pre">contributor_institution</span></code></div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Implementation Notes</strong>:</p>
+<ol class="arabic simple">
+<li><p><strong>Ordering</strong>: Contributors should be listed in order of contribution significance</p></li>
+<li><p><strong>Separator</strong>: Use semi-colon (<cite>;</cite>) separation for multiple values, consistent with ACDD</p></li>
+<li><p><strong>Consistency</strong>: All contributor attribute lists must have the same number of entries</p></li>
+<li><p><strong>ORCID Priority</strong>: Prefer ORCID identifiers over URLs for persistent identification</p></li>
+<li><p><strong>Vocabulary Enhancement</strong>: Unlike base OceanSITES, vocabulary URLs are required for semantic clarity</p></li>
+</ol>
+<p><strong>Validation Example</strong>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Valid: 3 contributors, all attributes have 3 entries</span>
+<span class="n">contributor_name</span> <span class="o">=</span> <span class="s2">&quot;A; B; C&quot;</span>
+<span class="n">contributor_email</span> <span class="o">=</span> <span class="s2">&quot;a@x.edu; b@y.edu; c@z.edu&quot;</span>
+<span class="n">contributor_role</span> <span class="o">=</span> <span class="s2">&quot;principalInvestigator; coInvestigator; dataManager&quot;</span>
+
+<span class="c1"># Invalid: mismatched count</span>
+<span class="n">contributor_name</span> <span class="o">=</span> <span class="s2">&quot;A; B; C&quot;</span>
+<span class="n">contributor_email</span> <span class="o">=</span> <span class="s2">&quot;a@x.edu; b@y.edu&quot;</span>  <span class="c1"># Missing third email</span>
+</pre></div>
+</div>
+<p><strong>OceanArray Enhancement</strong>: This consolidation reduces metadata redundancy while maintaining full attribution information and supporting multiple contributors per dataset, following OG1 best practices.</p>
+</section>
+<section id="temporal-attributes">
+<h3><a class="toc-backref" href="#id48" role="doc-backlink">7.3. Temporal Attributes</a><a class="headerlink" href="#temporal-attributes" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id15">
+<caption><span class="caption-text">Time-related Global Attributes</span><a class="headerlink" href="#id15" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Attribute</p></th>
+<th class="head"><p>Description / Format</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">time_coverage_start</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">YYYYmmddTHHMMss</span></code> (OG1 format)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">time_coverage_end</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">YYYYmmddTHHMMss</span></code> (OG1 format)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">time_coverage_duration</span></code></p></td>
+<td><p>ISO 8601 duration format</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">date_created</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">YYYYmmddTHHMMss</span></code> (creation timestamp)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">date_modified</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">YYYYmmddTHHMMss</span></code> (last modification)</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Time Format Rationale</strong>: The compact <code class="docutils literal notranslate"><span class="pre">YYYYmmddTHHMMss</span></code> format reduces attribute string length while maintaining human readability and ISO 8601 compatibility.</p>
+</section>
+<section id="geospatial-and-temporal-coverage">
+<h3><a class="toc-backref" href="#id49" role="doc-backlink">7.4. Geospatial and Temporal Coverage</a><a class="headerlink" href="#geospatial-and-temporal-coverage" title="Link to this heading"></a></h3>
+<p><strong>7.4.1. Geospatial Coverage Attributes</strong></p>
+<table class="docutils align-default" id="id16">
+<caption><span class="caption-text">Geospatial Coverage (OceanSITES + ACDD)</span><a class="headerlink" href="#id16" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Attribute</p></th>
+<th class="head"><p>Description / Example</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sea_area</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Geographical coverage using SeaVoX Water Body Gazetteer (C19)</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">sea_area=&quot;North</span> <span class="pre">Atlantic</span> <span class="pre">Ocean&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">geospatial_lat_min</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Southernmost latitude (-90 to 90)</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">geospatial_lat_min=59.8</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">geospatial_lat_max</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Northernmost latitude (-90 to 90)</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">geospatial_lat_max=59.8</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">geospatial_lat_units</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Must conform to UDUNITS</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">geospatial_lat_units=&quot;degree_north&quot;</span></code> <strong>[OceanArray: UDUNITS format]</strong></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">geospatial_lon_min</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Westernmost longitude (-180 to 180)</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">geospatial_lon_min=-41.2</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">geospatial_lon_max</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Easternmost longitude (-180 to 180)</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">geospatial_lon_max=-41.2</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">geospatial_lon_units</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Must conform to UDUNITS</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">geospatial_lon_units=&quot;degree_east&quot;</span></code> <strong>[OceanArray: UDUNITS format]</strong></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">geospatial_vertical_min</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Minimum depth/height of measurements</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">geospatial_vertical_min=10.0</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">geospatial_vertical_max</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Maximum depth/height of measurements</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">geospatial_vertical_max=2000.0</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">geospatial_vertical_positive</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Direction convention: “up” or “down”</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">geospatial_vertical_positive=&quot;down&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">geospatial_vertical_units</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Units of depth/pressure/height</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">geospatial_vertical_units=&quot;meter&quot;</span></code></div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7.4.2. Temporal Coverage Attributes</strong></p>
+<table class="docutils align-default" id="id17">
+<caption><span class="caption-text">Temporal Coverage (OceanSITES + ACDD)</span><a class="headerlink" href="#id17" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Attribute</p></th>
+<th class="head"><p>Description / Example</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">time_coverage_start</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Start date in OG1 format <strong>[OceanArray: not ISO8601]</strong></div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">time_coverage_start=&quot;20060301T000000&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">time_coverage_end</span></code></p></td>
+<td><div class="line-block">
+<div class="line">End date in OG1 format <strong>[OceanArray: not ISO8601]</strong></div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">time_coverage_end=&quot;20060305T235929&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">time_coverage_duration</span></code></p></td>
+<td><div class="line-block">
+<div class="line">ISO 8601 duration format</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">time_coverage_duration=&quot;P415D&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;P1Y1M3D&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">time_coverage_resolution</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Sampling interval in ISO 8601 format</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">time_coverage_resolution=&quot;PT30M&quot;</span></code> (30 minutes)</div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7.4.3. Platform Deployment Information</strong></p>
+<table class="docutils align-default" id="id18">
+<caption><span class="caption-text">Platform Deployment Attributes (JCOMMOPS)</span><a class="headerlink" href="#id18" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 35.0%" />
+<col style="width: 65.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Attribute</p></th>
+<th class="head"><p>Description / Example</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">platform_deployment_date</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Deployment date in OG1 format <strong>[OceanArray: not ISO8601]</strong></div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">platform_deployment_date=&quot;20100220T000000&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">platform_deployment_ship_name</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Deployment vessel name</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">platform_deployment_ship_name=&quot;R/V</span> <span class="pre">Melville&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">platform_deployment_cruise_name</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Deployment cruise identifier</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">platform_deployment_cruise_name=&quot;MV1406&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">platform_deployment_ship_ICES_code</span></code></p></td>
+<td><div class="line-block">
+<div class="line">ICES ship code for deployment vessel</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">platform_deployment_ship_ICES_code=&quot;318M&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">platform_deployment_cruise_ExpoCode</span></code></p></td>
+<td><div class="line-block">
+<div class="line">ICES ship code + cruise start date</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">platform_deployment_cruise_ExpoCode=&quot;318M20100220&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">platform_recovery_date</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Recovery date in OG1 format <strong>[OceanArray: not ISO8601]</strong></div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">platform_recovery_date=&quot;20120113T000000&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">platform_recovery_ship_name</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Recovery vessel name</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">platform_recovery_ship_name=&quot;R/V</span> <span class="pre">Endeavor&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">platform_recovery_cruise_name</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Recovery cruise identifier</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">platform_recovery_cruise_name=&quot;EN472&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">platform_recovery_ship_ICES_code</span></code></p></td>
+<td><div class="line-block">
+<div class="line">ICES ship code for recovery vessel</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">platform_recovery_ship_ICES_code=&quot;32EV&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">platform_recovery_cruise_ExpoCode</span></code></p></td>
+<td><div class="line-block">
+<div class="line">ICES ship code + cruise start date</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">platform_recovery_cruise_ExpoCode=&quot;32EV20120113&quot;</span></code></div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Time Format Choice</strong>: OceanArray uses the OG1 compact format (<code class="docutils literal notranslate"><span class="pre">YYYYmmddTHHMMss</span></code>) instead of OceanSITES ISO8601 format (<code class="docutils literal notranslate"><span class="pre">YYYY-MM-DDThh:mm:ssZ</span></code>) for temporal attributes.</p>
+</section>
+<section id="publication-and-attribution">
+<h3><a class="toc-backref" href="#id50" role="doc-backlink">7.5. Publication and Attribution</a><a class="headerlink" href="#publication-and-attribution" title="Link to this heading"></a></h3>
+<p><strong>7.5.1. Publisher Information</strong></p>
+<table class="docutils align-default" id="id19">
+<caption><span class="caption-text">Publisher Attributes (ACDD)</span><a class="headerlink" href="#id19" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Attribute</p></th>
+<th class="head"><p>Description / Example</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">publisher_name</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Name of person responsible for metadata and formatting</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">publisher_name=&quot;Al</span> <span class="pre">Plueddemann&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">publisher_email</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Email of person responsible for file formatting</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">publisher_email=&quot;aplueddemann</span> <span class="pre">at</span> <span class="pre">whoi.edu&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">publisher_url</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Web address of institution or data publisher</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">publisher_url=&quot;http://www.whoi.edu/profile/aplueddemann/&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">publisher_id</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Unique ID (ORCID) of person responsible for publication</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">publisher_id=&quot;https://orcid.org/0000-0001-5044-7079&quot;</span></code></div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7.5.2. References and Citation</strong></p>
+<table class="docutils align-default" id="id20">
+<caption><span class="caption-text">Citation and Reference Attributes</span><a class="headerlink" href="#id20" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Attribute</p></th>
+<th class="head"><p>Description / Example</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">references</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Published references describing data or methods</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">references=&quot;http://www.oceansites.org,</span> <span class="pre">http://oceanarray.org&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">citation</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Citation for use in publications</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">citation=&quot;These</span> <span class="pre">data</span> <span class="pre">were</span> <span class="pre">processed</span> <span class="pre">by</span> <span class="pre">oceanarray</span> <span class="pre">and</span> <span class="pre">made</span> <span class="pre">available...&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">license</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Data distribution policy statement</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">license=&quot;Data</span> <span class="pre">available</span> <span class="pre">free</span> <span class="pre">of</span> <span class="pre">charge</span> <span class="pre">under</span> <span class="pre">OceanArray</span> <span class="pre">terms...&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">acknowledgement</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Support acknowledgment text</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">acknowledgement=&quot;Principal</span> <span class="pre">funding</span> <span class="pre">provided</span> <span class="pre">by...&quot;</span></code></div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7.5.3. Data Assembly and Updates</strong></p>
+<table class="docutils align-default" id="id21">
+<caption><span class="caption-text">Data Management Attributes (OceanSITES)</span><a class="headerlink" href="#id21" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Attribute</p></th>
+<th class="head"><p>Description / Example</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">data_assembly_center</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Data Assembly Center responsible for file</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">data_assembly_center=&quot;OceanArray&quot;</span></code> <strong>[OceanArray: not OceanSITES DAC]</strong></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">update_interval</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Update schedule in ISO 8601 format or “void”</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">update_interval=&quot;void&quot;</span></code> (for final processed datasets)</div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7.5.4. Provenance and Quality</strong></p>
+<table class="docutils align-default" id="id22">
+<caption><span class="caption-text">Provenance Attributes</span><a class="headerlink" href="#id22" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Attribute</p></th>
+<th class="head"><p>Description / Example</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">date_created</span></code></p></td>
+<td><div class="line-block">
+<div class="line">File creation date in OG1 format <strong>[OceanArray: not ISO8601]</strong></div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">date_created=&quot;20160411T083500&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">date_modified</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Last modification date in OG1 format <strong>[OceanArray: not ISO8601]</strong></div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">date_modified=&quot;20170301T150000&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">history</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Audit trail of data modifications (one line per modification)</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">history=&quot;2024-01-15T10:30:00Z:</span> <span class="pre">oceanarray</span> <span class="pre">stage1</span> <span class="pre">processing,</span> <span class="pre">J.Smith&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">processing_level</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Processing level from OceanSITES reference table 3</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">processing_level=&quot;Data</span> <span class="pre">verified</span> <span class="pre">against</span> <span class="pre">model</span> <span class="pre">or</span> <span class="pre">other</span> <span class="pre">contextual</span> <span class="pre">information&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">QC_indicator</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Overall dataset quality assessment</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">QC_indicator=&quot;excellent&quot;</span></code> (excellent/probably good/mixed/unknown)</div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>7.5.5. Keywords and Discovery</strong></p>
+<table class="docutils align-default" id="id23">
+<caption><span class="caption-text">Keyword Attributes (ACDD)</span><a class="headerlink" href="#id23" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 75.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Attribute</p></th>
+<th class="head"><p>Description / Example</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">keywords_vocabulary</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Controlled vocabulary used for keywords</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">keywords_vocabulary=&quot;GCMD</span> <span class="pre">Science</span> <span class="pre">Keywords&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">keywords</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Comma-separated discovery terms</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">keywords=&quot;EARTH</span> <span class="pre">SCIENCE&gt;Oceans&gt;Ocean</span> <span class="pre">Temperature&quot;</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">comment</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Miscellaneous information about data or methods</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">comment=&quot;Data</span> <span class="pre">processed</span> <span class="pre">through</span> <span class="pre">oceanarray</span> <span class="pre">pipeline</span> <span class="pre">version</span> <span class="pre">1.0&quot;</span></code></div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="conventions-and-standards">
+<h3><a class="toc-backref" href="#id51" role="doc-backlink">7.6. Conventions and Standards</a><a class="headerlink" href="#conventions-and-standards" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id24">
+<caption><span class="caption-text">Metadata Conventions</span><a class="headerlink" href="#id24" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 30.0%" />
+<col style="width: 70.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Attribute</p></th>
+<th class="head"><p>Required Value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Conventions</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;CF-1.8,</span> <span class="pre">OceanSITES-1.4,</span> <span class="pre">OceanArray-1.0&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">format_version</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;OceanArray-1.0&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">netcdf_version</span></code></p></td>
+<td><p>NetCDF version used (e.g., <code class="docutils literal notranslate"><span class="pre">&quot;4.8.1&quot;</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">data_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;OceanSITES</span> <span class="pre">time-series</span> <span class="pre">data&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cdm_data_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;Station&quot;</span></code> (for THREDDS/CDM)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">featureType</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;timeSeries&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;timeSeriesProfile&quot;</span></code> (CF-1.5+ DSG)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">array</span></code></p></td>
+<td><p>Optional: array grouping (e.g., <code class="docutils literal notranslate"><span class="pre">&quot;WHOTS&quot;</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">network</span></code></p></td>
+<td><p>Optional: network grouping based on logistics/infrastructure</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="units-convention">
+<h2><a class="toc-backref" href="#id52" role="doc-backlink">8. Units Convention</a><a class="headerlink" href="#units-convention" title="Link to this heading"></a></h2>
+<section id="physical-units">
+<h3><a class="toc-backref" href="#id53" role="doc-backlink">8.1. Physical Units</a><a class="headerlink" href="#physical-units" title="Link to this heading"></a></h3>
+<p>All units must follow the UDUNITS-2 standard:</p>
+<table class="docutils align-default" id="id25">
+<caption><span class="caption-text">Common Unit Specifications</span><a class="headerlink" href="#id25" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 25.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Quantity</p></th>
+<th class="head"><p>UDUNITS Format</p></th>
+<th class="head"><p>Notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Latitude</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">degree_north</span></code></p></td>
+<td><p>Not <code class="docutils literal notranslate"><span class="pre">degrees_north</span></code> (OceanSITES)</p></td>
+</tr>
+<tr class="row-odd"><td><p>Longitude</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">degree_east</span></code></p></td>
+<td><p>Not <code class="docutils literal notranslate"><span class="pre">degrees_east</span></code> (OceanSITES)</p></td>
+</tr>
+<tr class="row-even"><td><p>Temperature</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">degree_Celsius</span></code></p></td>
+<td><p>Preferred over <code class="docutils literal notranslate"><span class="pre">degC</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Pressure</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">decibar</span></code></p></td>
+<td><p>Standard oceanographic unit</p></td>
+</tr>
+<tr class="row-even"><td><p>Depth</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">meter</span></code></p></td>
+<td><p>Standard SI unit</p></td>
+</tr>
+<tr class="row-odd"><td><p>Salinity</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1</span></code> or <code class="docutils literal notranslate"><span class="pre">psu</span></code></p></td>
+<td><p>Dimensionless or practical salinity units</p></td>
+</tr>
+<tr class="row-even"><td><p>Current Speed</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">meter</span> <span class="pre">second-1</span></code></p></td>
+<td><p>SI derived unit</p></td>
+</tr>
+<tr class="row-odd"><td><p>Current Direction</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">degree</span></code></p></td>
+<td><p>Angular measurement</p></td>
+</tr>
+<tr class="row-even"><td><p>Ocean Transport</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sverdrup</span></code></p></td>
+<td><p>1 Sv = 10^6 m³/s (note: not <code class="docutils literal notranslate"><span class="pre">sv</span></code> to avoid conflict with sievert)</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>UDUNITS Compliance</strong>: Strict adherence to <a class="reference external" href="https://docs.unidata.ucar.edu/udunits/current/">UDUNITS-2</a> ensures compatibility with analysis tools like Python’s cf_units, NCO, and CDO. See the <a class="reference external" href="https://docs.unidata.ucar.edu/udunits/current/udunits2-base.xml">UDUNITS-2 base unit definitions</a> for canonical unit specifications.</p>
+<p><strong>Oceanographic Unit Notes</strong>:
+- <strong>Sverdrup</strong>: Use full name <code class="docutils literal notranslate"><span class="pre">&quot;sverdrup&quot;</span></code> to avoid conflict with <code class="docutils literal notranslate"><span class="pre">&quot;sv&quot;</span></code> (sievert, radiation dose unit)
+- <strong>Standard Value</strong>: 1 sverdrup = 1 × 10⁶ m³/s (one million cubic meters per second)
+- <strong>Typical Usage</strong>: Ocean volume transport, meridional overturning circulation measurements</p>
+</section>
+</section>
+<section id="file-naming-convention">
+<h2><a class="toc-backref" href="#id54" role="doc-backlink">9. File Naming Convention</a><a class="headerlink" href="#file-naming-convention" title="Link to this heading"></a></h2>
+<p>The oceanarray format adapts OceanSITES naming conventions for processed oceanographic data, following patterns established by the amocarray project for large-scale ocean arrays.</p>
+<section id="individual-instrument-files">
+<h3><a class="toc-backref" href="#id55" role="doc-backlink">9.1. Individual Instrument Files</a><a class="headerlink" href="#individual-instrument-files" title="Link to this heading"></a></h3>
+<p><strong>OceanArray Individual File Convention</strong>:</p>
+<p><code class="docutils literal notranslate"><span class="pre">OS_[PlatformCode]_[DeploymentCode]_[ProcessingLevel]_[InstrumentType].nc</span></code></p>
+<p><strong>Component Definitions</strong>:</p>
+<table class="docutils align-default" id="id26">
+<caption><span class="caption-text">Individual File Name Components</span><a class="headerlink" href="#id26" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 80.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Component</p></th>
+<th class="head"><p>Description / Example</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">OS</span></code></p></td>
+<td><p>OceanSITES prefix (maintains compatibility)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">[PlatformCode]</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Platform identifier from deployment metadata</div>
+<div class="line">Example: <code class="docutils literal notranslate"><span class="pre">WHOTS-1</span></code>, <code class="docutils literal notranslate"><span class="pre">CIS-1</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">[DeploymentCode]</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Deployment identifier (date-based or sequential)</div>
+<div class="line">Example: <code class="docutils literal notranslate"><span class="pre">202401</span></code> (January 2024), <code class="docutils literal notranslate"><span class="pre">D01</span></code> (deployment 1)</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">[ProcessingLevel]</span></code></p></td>
+<td><div class="line-block">
+<div class="line">OceanArray processing stage</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">L1</span></code> - Stage 1 processed (CF-compliant, calibrated)</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">L2</span></code> - Stage 2 processed (quality controlled)</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">L3</span></code> - Time-gridded data</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">[InstrumentType]</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Instrument/parameter type identifier</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">CTD</span></code>, <code class="docutils literal notranslate"><span class="pre">ADCP</span></code>, <code class="docutils literal notranslate"><span class="pre">MET</span></code></div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Examples</strong>:
+- <code class="docutils literal notranslate"><span class="pre">OS_WHOTS-1_202401_L2_CTD.nc</span></code>
+- <code class="docutils literal notranslate"><span class="pre">OS_CIS-1_D05_L1_ADCP.nc</span></code></p>
+</section>
+<section id="higher-level-products">
+<h3><a class="toc-backref" href="#id56" role="doc-backlink">9.2. Higher-Level Products</a><a class="headerlink" href="#higher-level-products" title="Link to this heading"></a></h3>
+<p><strong>OceanArray follows OceanSITES higher-level convention</strong>:</p>
+<p><code class="docutils literal notranslate"><span class="pre">OS_[PSPANCode]_[StartEndCode]_[ContentType]_[PARTX].nc</span></code></p>
+<p><strong>Component Definitions</strong>:</p>
+<table class="docutils align-default" id="id27">
+<caption><span class="caption-text">Higher-Level File Name Components</span><a class="headerlink" href="#id27" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 80.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Component</p></th>
+<th class="head"><p>Description / Example</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">OS</span></code></p></td>
+<td><p>OceanSITES prefix (maintains compatibility)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">[PSPANCode]</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Platform/Site/Project/Array/Network code</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">WHOTS</span></code> (site), <code class="docutils literal notranslate"><span class="pre">RAPIDMOC</span></code> (array), <code class="docutils literal notranslate"><span class="pre">OSNAP</span></code> (array)</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">[StartEndCode]</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Time range: <code class="docutils literal notranslate"><span class="pre">YYYYMMDD-YYYYMMDD</span></code> format</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">20240101-20241231</span></code>, <code class="docutils literal notranslate"><span class="pre">20040401-20230211</span></code></div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">[ContentType]</span></code></p></td>
+<td><div class="line-block">
+<div class="line"><strong>LTS</strong> - Long time series (native resolution)</div>
+<div class="line"><strong>GRD</strong> - Gridded data (averaged/interpolated)</div>
+<div class="line"><strong>DPR</strong> - Derived products (transports, fluxes)</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">[PARTX]</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Optional: data type and temporal resolution</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">transports_T10D</span></code> (10-day transports)</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">sections_T1M</span></code> (monthly sections)</div>
+<div class="line"><code class="docutils literal notranslate"><span class="pre">gridded_mooring</span></code> (gridded mooring data)</div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Higher-Level Examples</strong> (following amocarray patterns):
+- <code class="docutils literal notranslate"><span class="pre">OS_RAPID_20040401-20230211_DPR_transports_T10D.nc</span></code> - 10-day RAPID transport time series
+- <code class="docutils literal notranslate"><span class="pre">OS_WHOTS_20240101-20241231_GRD_sections_T1M.nc</span></code> - Monthly WHOTS section data
+- <code class="docutils literal notranslate"><span class="pre">OS_OSNAP_20140801-20200601_LTS_gridded_mooring.nc</span></code> - OSNAP long time series</p>
+</section>
+<section id="processing-level-vs-content-type">
+<h3><a class="toc-backref" href="#id57" role="doc-backlink">9.3. Processing Level vs Content Type</a><a class="headerlink" href="#processing-level-vs-content-type" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id28">
+<caption><span class="caption-text">Individual vs Higher-Level File Distinctions</span><a class="headerlink" href="#id28" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 35.0%" />
+<col style="width: 40.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>File Category</p></th>
+<th class="head"><p>Naming Pattern</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Individual Instruments</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">OS_[Platform]_[Deploy]_L[1-3]_[Instrument].nc</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Single instrument processing</div>
+<div class="line">oceanarray stages 1-3</div>
+</div>
+</td>
+</tr>
+<tr class="row-odd"><td><p><strong>Mooring-Level</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">OS_[Platform]_[TimeRange]_LTS_mooring.nc</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Multiple instruments from same mooring</div>
+<div class="line">Native temporal resolution</div>
+</div>
+</td>
+</tr>
+<tr class="row-even"><td><p><strong>Site/Array Products</strong></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">OS_[Array]_[TimeRange]_[GRD/DPR]_[Product].nc</span></code></p></td>
+<td><div class="line-block">
+<div class="line">Cross-mooring calculations</div>
+<div class="line">Scientific products</div>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="temporal-resolution-codes">
+<h3><a class="toc-backref" href="#id58" role="doc-backlink">9.4. Temporal Resolution Codes</a><a class="headerlink" href="#temporal-resolution-codes" title="Link to this heading"></a></h3>
+<p><strong>Following ISO 8601 duration format in PARTX field</strong>:</p>
+<table class="docutils align-default" id="id29">
+<caption><span class="caption-text">Temporal Resolution Examples</span><a class="headerlink" href="#id29" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 15.0%" />
+<col style="width: 85.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Code</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">T30M</span></code></p></td>
+<td><p>30-minute data</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">T1H</span></code></p></td>
+<td><p>Hourly data</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">T6H</span></code></p></td>
+<td><p>6-hourly data</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">T12H</span></code></p></td>
+<td><p>12-hourly data (twice daily)</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">P1D</span></code></p></td>
+<td><p>Daily data</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">T10D</span></code></p></td>
+<td><p>10-day data</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">P1M</span></code></p></td>
+<td><p>Monthly data</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">P1Y</span></code></p></td>
+<td><p>Annual data</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="oceansites-compatibility">
+<h3><a class="toc-backref" href="#id59" role="doc-backlink">9.5. OceanSITES Compatibility</a><a class="headerlink" href="#oceansites-compatibility" title="Link to this heading"></a></h3>
+<p><strong>Maintaining OceanSITES Standards</strong>:
+- Field separator: <code class="docutils literal notranslate"><span class="pre">_</span></code> (underscore only)
+- Time format: <code class="docutils literal notranslate"><span class="pre">YYYYMMDD-YYYYMMDD</span></code> for ranges
+- Content type codes: <code class="docutils literal notranslate"><span class="pre">LTS</span></code>, <code class="docutils literal notranslate"><span class="pre">GRD</span></code>, <code class="docutils literal notranslate"><span class="pre">DPR</span></code>
+- ISO 8601 temporal resolution codes</p>
+<p><strong>OceanArray Adaptations</strong>:
+- Processing levels: <code class="docutils literal notranslate"><span class="pre">L1/L2/L3</span></code> for individual files (replaces data mode R/P/D/M)
+- Explicit instrument types: <code class="docutils literal notranslate"><span class="pre">CTD</span></code>, <code class="docutils literal notranslate"><span class="pre">ADCP</span></code>, <code class="docutils literal notranslate"><span class="pre">MET</span></code> for individual files</p>
+<p><strong>amocarray Alignment</strong>:
+- Follows established patterns for large ocean arrays
+- Uses descriptive PARTX fields (<code class="docutils literal notranslate"><span class="pre">transports_T10D</span></code>, <code class="docutils literal notranslate"><span class="pre">sections_T1M</span></code>)
+- Maintains OceanSITES higher-level product structure</p>
+</section>
+<section id="validation-rules">
+<h3><a class="toc-backref" href="#id60" role="doc-backlink">9.6. Validation Rules</a><a class="headerlink" href="#validation-rules" title="Link to this heading"></a></h3>
+<p><strong>Required Elements</strong>:
+- Files must start with <code class="docutils literal notranslate"><span class="pre">OS_</span></code> prefix
+- Time ranges must be valid dates in <code class="docutils literal notranslate"><span class="pre">YYYYMMDD</span></code> format
+- Processing levels must match content (L1/L2/L3 or LTS/GRD/DPR)
+- No underscores within individual field components</p>
+<p><strong>Valid Examples</strong>:
+- ✅ <code class="docutils literal notranslate"><span class="pre">OS_WHOTS-1_202401_L2_CTD.nc</span></code>
+- ✅ <code class="docutils literal notranslate"><span class="pre">OS_RAPID_20040401-20230211_DPR_transports_T10D.nc</span></code>
+- ❌ <code class="docutils literal notranslate"><span class="pre">WHOTS_L2_CTD.nc</span></code> (missing OS prefix)
+- ❌ <code class="docutils literal notranslate"><span class="pre">OS_WHOTS_2024_01_L2_CTD.nc</span></code> (underscores in date)</p>
+</section>
+</section>
+<section id="implementation-guidelines">
+<h2><a class="toc-backref" href="#id61" role="doc-backlink">10. Implementation Guidelines</a><a class="headerlink" href="#implementation-guidelines" title="Link to this heading"></a></h2>
+<section id="data-type-recommendations">
+<h3><a class="toc-backref" href="#id62" role="doc-backlink">10.1. Data Type Recommendations</a><a class="headerlink" href="#data-type-recommendations" title="Link to this heading"></a></h3>
+<table class="docutils align-default" id="id30">
+<caption><span class="caption-text">Recommended Data Types</span><a class="headerlink" href="#id30" title="Link to this table"></a></caption>
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 25.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Variable Type</p></th>
+<th class="head"><p>NetCDF Type</p></th>
+<th class="head"><p>Rationale</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Time coordinates</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">double</span></code></p></td>
+<td><p>Microsecond precision</p></td>
+</tr>
+<tr class="row-odd"><td><p>Spatial coordinates</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">double</span></code></p></td>
+<td><p>High precision positioning</p></td>
+</tr>
+<tr class="row-even"><td><p>Scientific measurements</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">float</span></code></p></td>
+<td><p>Balance of precision and file size</p></td>
+</tr>
+<tr class="row-odd"><td><p>QC flags</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">byte</span></code></p></td>
+<td><p>Memory efficient</p></td>
+</tr>
+<tr class="row-even"><td><p>String attributes</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">string</span></code> or <code class="docutils literal notranslate"><span class="pre">char</span></code></p></td>
+<td><p>UTF-8 compatible</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="compression-settings">
+<h3><a class="toc-backref" href="#id63" role="doc-backlink">10.2. Compression Settings</a><a class="headerlink" href="#compression-settings" title="Link to this heading"></a></h3>
+<p>Recommended NetCDF-4 compression for time series data:
+- <strong>Compression</strong>: <code class="docutils literal notranslate"><span class="pre">zlib=True,</span> <span class="pre">complevel=6</span></code>
+- <strong>Chunking</strong>: <code class="docutils literal notranslate"><span class="pre">(time_chunk_size,</span> <span class="pre">1,</span> <span class="pre">1,</span> <span class="pre">...)</span></code> where <code class="docutils literal notranslate"><span class="pre">time_chunk_size</span> <span class="pre">≈</span> <span class="pre">1000</span></code>
+- <strong>Fill values</strong>: Use appropriate type-specific fill values</p>
+<p><strong>Performance Note</strong>: These settings typically achieve 70-90% compression for oceanographic time series while maintaining fast read access.</p>
+</section>
+</section>
+<section id="validation-tools">
+<h2><a class="toc-backref" href="#id64" role="doc-backlink">11. Validation Tools</a><a class="headerlink" href="#validation-tools" title="Link to this heading"></a></h2>
+<p>The oceanarray package will provide validation utilities:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">oceanarray.validation</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">oav</span>
+
+<span class="c1"># Validate format compliance</span>
+<span class="n">oav</span><span class="o">.</span><span class="n">validate_format</span><span class="p">(</span><span class="n">dataset_path</span><span class="p">)</span>
+
+<span class="c1"># Check attribute completeness</span>
+<span class="n">oav</span><span class="o">.</span><span class="n">validate_attributes</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+
+<span class="c1"># Verify QC flag consistency</span>
+<span class="n">oav</span><span class="o">.</span><span class="n">validate_qc_flags</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>Development Status</strong>: The validation module is planned for future development. See the <a class="reference internal" href="roadmap.html"><span class="doc">Development Roadmap</span></a> for implementation timeline and current development priorities.</p>
+</div>
+<section id="compliance-checklist">
+<h3><a class="toc-backref" href="#id65" role="doc-backlink">11.1. Compliance Checklist</a><a class="headerlink" href="#compliance-checklist" title="Link to this heading"></a></h3>
+<ul class="simple">
+<li><p>[ ] All required dimensions present</p></li>
+<li><p>[ ] Coordinate variables properly attributed</p></li>
+<li><p>[ ] Data variables include mandatory attributes</p></li>
+<li><p>[ ] QC variables follow flag specification</p></li>
+<li><p>[ ] Global attributes complete</p></li>
+<li><p>[ ] Units follow UDUNITS standard</p></li>
+<li><p>[ ] Time format consistent</p></li>
+<li><p>[ ] Vocabulary URLs accessible</p></li>
+</ul>
+</section>
+</section>
+<section id="future-considerations">
+<h2><a class="toc-backref" href="#id66" role="doc-backlink">12. Future Considerations</a><a class="headerlink" href="#future-considerations" title="Link to this heading"></a></h2>
+<section id="standards-evolution">
+<h3><a class="toc-backref" href="#id67" role="doc-backlink">12.1. Standards Evolution</a><a class="headerlink" href="#standards-evolution" title="Link to this heading"></a></h3>
+<p>This specification may be updated to maintain alignment with:</p>
+<ul class="simple">
+<li><p><strong>OceanSITES</strong>: Future versions may require reconciliation of dimension names</p></li>
+<li><p><strong>CF Conventions</strong>: Updates to standard names and attribute requirements</p></li>
+<li><p><strong>Community Feedback</strong>: Practical usage may reveal needed adjustments</p></li>
+</ul>
+<p><strong>Version Control</strong>: Format changes will be tracked through semantic versioning (<code class="docutils literal notranslate"><span class="pre">OceanArray-X.Y.Z</span></code>) with clear migration guidance.</p>
+</section>
+</section>
+<section id="references">
+<h2><a class="toc-backref" href="#id68" role="doc-backlink">13. References</a><a class="headerlink" href="#references" title="Link to this heading"></a></h2>
+<p><strong>Format Standards</strong>
+- <a class="reference external" href="https://www.ocean-ops.org/oceansites/docs/oceansites_data_format_reference_manual.pdf">OceanSITES Data Format Reference Manual</a> (Version 1.4)
+- <a class="reference external" href="https://oceangliderscommunity.github.io/OG-format-user-manual/OG_Format.html">OG1 Format Specification</a> (OceanGliders)
+- <a class="reference external" href="http://cfconventions.org/">CF Conventions</a> (Climate and Forecast)
+- <a class="reference external" href="https://wiki.esipfed.org/Attribute_Convention_for_Data_Discovery">ACDD Conventions</a> (Attribute Convention for Data Discovery)</p>
+<p><strong>Technical Standards</strong>
+- <a class="reference external" href="https://docs.unidata.ucar.edu/udunits/current/">UDUNITS-2</a> (Units specification)
+- <a class="reference external" href="https://docs.unidata.ucar.edu/udunits/current/udunits2-base.xml">UDUNITS-2 Base Units</a> (Canonical unit definitions)
+- <a class="reference external" href="https://www.unidata.ucar.edu/software/netcdf/">NetCDF-4</a> (File format)
+- <a class="reference external" href="https://en.wikipedia.org/wiki/ISO_8601">ISO 8601</a> (Date and time format)</p>
+<p><strong>Vocabulary Resources</strong>
+- <a class="reference external" href="https://www.bodc.ac.uk/resources/vocabularies/vocabulary_search/L06/">SeaVoX Platform Categories (L06)</a> (for <code class="docutils literal notranslate"><span class="pre">source</span></code> attribute)
+- <a class="reference external" href="https://www.bodc.ac.uk/resources/vocabularies/vocabulary_search/C19/">SeaVoX Water Body Gazetteer (C19)</a> (for <code class="docutils literal notranslate"><span class="pre">sea_area</span></code> attribute)
+- <a class="reference external" href="https://www.bodc.ac.uk/resources/vocabularies/vocabulary_search/L22/">SeaVoX Device Catalogue (L22)</a> (for sensors and instruments)
+- <a class="reference external" href="https://ocean.ices.dk/codes/ShipCodes.aspx">ICES Ship Codes (C17)</a> (for deployment/recovery ship codes)
+- <a class="reference external" href="https://www.bodc.ac.uk/resources/vocabularies/vocabulary_search/C17/">BODC Ship Codes</a> (alternative ICES ship code source)
+- <a class="reference external" href="https://cfconventions.org/standard-names.html">CF Standard Names</a>
+- <a class="reference external" href="https://gcmd.earthdata.nasa.gov/kms/">GCMD Science Keywords</a></p>
+<p><strong>Additional Resources</strong>
+- <a class="reference external" href="http://www.oceansites.org">OceanSITES Website</a> (project information)
+- <a class="reference external" href="http://www.epsg.org/">EPSG Coordinate Reference Systems</a> (for coordinate reference frames)
+- <a class="reference external" href="http://wmo.int/pages/prog/amp/mmop/wmo-number-rules.html">WMO Platform IDs</a> (for <code class="docutils literal notranslate"><span class="pre">wmo_platform_code</span></code>)
+- <a class="reference external" href="https://unidata.ucar.edu/software/netcdf/docs/user_guide.html">NetCDF User Guide</a>
+- <a class="reference external" href="https://unidata.ucar.edu/software/netcdf/docs/BestPractices.html">NetCDF Best Practices</a>
+- <a class="reference external" href="http://www.nodc.noaa.gov/data/formats/netcdf/">NOAA-NCEI NetCDF Templates</a></p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="roadmap.html" class="btn btn-neutral float-left" title="Development Roadmap" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="oceanarray.html" class="btn btn-neutral float-right" title="oceanarray API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Eleanor Frajka-Williams, FirstName LastName.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
