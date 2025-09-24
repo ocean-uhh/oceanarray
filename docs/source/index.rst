@@ -59,6 +59,7 @@ Contents
 
    GitHub Repo <https://github.com/ocean-uhh/oceanarray>
    roadmap
+   data_format_specification
    oceanarray
    faq
 
