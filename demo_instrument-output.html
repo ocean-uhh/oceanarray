@@ -97,7 +97,8 @@
 <ul>
 <li class="toctree-l1"><a class="reference external" href="https://github.com/ocean-uhh/oceanarray">GitHub Repo</a></li>
 <li class="toctree-l1"><a class="reference internal" href="roadmap.html">Development Roadmap</a></li>
-<li class="toctree-l1"><a class="reference internal" href="data_format_specification.html">OceanArray Data Format Specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="oceanarray_format.html">OceanArray Data Format Specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="oceanSITES_manual.html">OceanSITES Data Format Reference Manual</a></li>
 <li class="toctree-l1"><a class="reference internal" href="oceanarray.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code></a></li>
 </ul>
 
@@ -214,6 +215,7 @@
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
+Matplotlib is building the font cache; this may take a moment.
 /home/runner/micromamba/envs/TEST/lib/python3.13/site-packages/pycnv/pycnv.py:7: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools&lt;81.
   import pkg_resources
 </pre></div></div>
@@ -379,15 +381,15 @@ EXCEPT: Error reading file moor/raw/msm76_2018/sbe16/DSE18_sbe16_2418.hex: Unkno
 EXCEPT: Error reading file moor/raw/msm76_2018/tr1050/DSE18_013889_20180827_1349.mat: Unknown file type: rbr-matlab
 --&gt;   Processing rbrsolo: moor/raw/msm76_2018/rbrsolo/DSE18_101651_20180827_1541.rsk
 Creating output file: moor/proc/dsE_1_2018/rbrsolo/dsE_1_2018_101651_raw.nc
-ERROR: Failed to process moor/raw/msm76_2018/rbrsolo/DSE18_101651_20180827_1541.rsk: Invalid value for attr &#39;processor_input_file_type&#39;: &lt;function RbrRskLegacyReader.format_name at 0x7fc5cc049da0&gt;. For serialization to netCDF files, its value must be of one of the following types: str, Number, ndarray, number, list, tuple, bytes
+ERROR: Failed to process moor/raw/msm76_2018/rbrsolo/DSE18_101651_20180827_1541.rsk: Invalid value for attr &#39;processor_input_file_type&#39;: &lt;function RbrRskLegacyReader.format_name at 0x7fab57442020&gt;. For serialization to netCDF files, its value must be of one of the following types: str, Number, ndarray, number, list, tuple, bytes
 EXCEPT: Error reading file moor/raw/msm76_2018/tr1050/DSE18_015580_20180827_1403.mat: Unknown file type: rbr-matlab
 --&gt;   Processing rbrsolo: moor/raw/msm76_2018/rbrsolo/DSE18_101647_20180827_1551.rsk
 Creating output file: moor/proc/dsE_1_2018/rbrsolo/dsE_1_2018_101647_raw.nc
-ERROR: Failed to process moor/raw/msm76_2018/rbrsolo/DSE18_101647_20180827_1551.rsk: Invalid value for attr &#39;processor_input_file_type&#39;: &lt;function RbrRskLegacyReader.format_name at 0x7fc5cc049da0&gt;. For serialization to netCDF files, its value must be of one of the following types: str, Number, ndarray, number, list, tuple, bytes
+ERROR: Failed to process moor/raw/msm76_2018/rbrsolo/DSE18_101647_20180827_1551.rsk: Invalid value for attr &#39;processor_input_file_type&#39;: &lt;function RbrRskLegacyReader.format_name at 0x7fab57442020&gt;. For serialization to netCDF files, its value must be of one of the following types: str, Number, ndarray, number, list, tuple, bytes
 EXCEPT: Error reading file moor/raw/msm76_2018/tr1050/DSE18_013874_20180827_1410.mat: Unknown file type: rbr-matlab
 --&gt;   Processing rbrsolo: moor/raw/msm76_2018/rbrsolo/DSE18_101645_20180827_1553.rsk
 Creating output file: moor/proc/dsE_1_2018/rbrsolo/dsE_1_2018_101645_raw.nc
-ERROR: Failed to process moor/raw/msm76_2018/rbrsolo/DSE18_101645_20180827_1553.rsk: Invalid value for attr &#39;processor_input_file_type&#39;: &lt;function RbrRskLegacyReader.format_name at 0x7fc5cc049da0&gt;. For serialization to netCDF files, its value must be of one of the following types: str, Number, ndarray, number, list, tuple, bytes
+ERROR: Failed to process moor/raw/msm76_2018/rbrsolo/DSE18_101645_20180827_1553.rsk: Invalid value for attr &#39;processor_input_file_type&#39;: &lt;function RbrRskLegacyReader.format_name at 0x7fab57442020&gt;. For serialization to netCDF files, its value must be of one of the following types: str, Number, ndarray, number, list, tuple, bytes
 EXCEPT: Error reading file moor/raw/msm76_2018/tr1050/DSE18_015574_20180827_1407.mat: Unknown file type: rbr-matlab
 </pre></div></div>
 </div>
@@ -406,7 +408,7 @@ INFO:pycnv: Opening file: ../data/moor/raw/msm76_2018/microcat/DSE18_SBE37SM_RS2
 <div class="highlight"><pre>
 --&gt;   Processing rbrsolo: moor/raw/msm76_2018/rbrsolo/DSE18_101646_20180827_1548.rsk
 Creating output file: moor/proc/dsE_1_2018/rbrsolo/dsE_1_2018_101646_raw.nc
-ERROR: Failed to process moor/raw/msm76_2018/rbrsolo/DSE18_101646_20180827_1548.rsk: Invalid value for attr &#39;processor_input_file_type&#39;: &lt;function RbrRskLegacyReader.format_name at 0x7fc5cc049da0&gt;. For serialization to netCDF files, its value must be of one of the following types: str, Number, ndarray, number, list, tuple, bytes
+ERROR: Failed to process moor/raw/msm76_2018/rbrsolo/DSE18_101646_20180827_1548.rsk: Invalid value for attr &#39;processor_input_file_type&#39;: &lt;function RbrRskLegacyReader.format_name at 0x7fab57442020&gt;. For serialization to netCDF files, its value must be of one of the following types: str, Number, ndarray, number, list, tuple, bytes
 EXCEPT: Error reading file moor/raw/msm76_2018/tr1050/DSE18_015577_20180827_1338.mat: Unknown file type: rbr-matlab
 </pre></div></div>
 </div>

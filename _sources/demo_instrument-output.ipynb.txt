@@ -57,13 +57,20 @@
    "id": "6a1920f3",
    "metadata": {
     "execution": {
-     "iopub.execute_input": "2025-09-24T15:53:29.945464Z",
-     "iopub.status.busy": "2025-09-24T15:53:29.945310Z",
-     "iopub.status.idle": "2025-09-24T15:53:31.456203Z",
-     "shell.execute_reply": "2025-09-24T15:53:31.455609Z"
+     "iopub.execute_input": "2025-09-25T06:33:11.445684Z",
+     "iopub.status.busy": "2025-09-25T06:33:11.445437Z",
+     "iopub.status.idle": "2025-09-25T06:33:20.047129Z",
+     "shell.execute_reply": "2025-09-25T06:33:20.046538Z"
     }
    },
    "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "Matplotlib is building the font cache; this may take a moment.\n"
+     ]
+    },
     {
      "name": "stderr",
      "output_type": "stream",
@@ -109,10 +116,10 @@
    "id": "dff9ed08",
    "metadata": {
     "execution": {
-     "iopub.execute_input": "2025-09-24T15:53:31.458008Z",
-     "iopub.status.busy": "2025-09-24T15:53:31.457727Z",
-     "iopub.status.idle": "2025-09-24T15:53:31.460693Z",
-     "shell.execute_reply": "2025-09-24T15:53:31.460246Z"
+     "iopub.execute_input": "2025-09-25T06:33:20.049018Z",
+     "iopub.status.busy": "2025-09-25T06:33:20.048709Z",
+     "iopub.status.idle": "2025-09-25T06:33:20.052119Z",
+     "shell.execute_reply": "2025-09-25T06:33:20.051634Z"
     }
    },
    "outputs": [
@@ -153,10 +160,10 @@
    "id": "ed615f11",
    "metadata": {
     "execution": {
-     "iopub.execute_input": "2025-09-24T15:53:31.462258Z",
-     "iopub.status.busy": "2025-09-24T15:53:31.462089Z",
-     "iopub.status.idle": "2025-09-24T15:53:33.225176Z",
-     "shell.execute_reply": "2025-09-24T15:53:33.224636Z"
+     "iopub.execute_input": "2025-09-25T06:33:20.053773Z",
+     "iopub.status.busy": "2025-09-25T06:33:20.053574Z",
+     "iopub.status.idle": "2025-09-25T06:33:21.840196Z",
+     "shell.execute_reply": "2025-09-25T06:33:21.839691Z"
     }
    },
    "outputs": [
@@ -403,7 +410,7 @@
       "EXCEPT: Error reading file moor/raw/msm76_2018/tr1050/DSE18_013889_20180827_1349.mat: Unknown file type: rbr-matlab\n",
       "-->   Processing rbrsolo: moor/raw/msm76_2018/rbrsolo/DSE18_101651_20180827_1541.rsk\n",
       "Creating output file: moor/proc/dsE_1_2018/rbrsolo/dsE_1_2018_101651_raw.nc\n",
-      "ERROR: Failed to process moor/raw/msm76_2018/rbrsolo/DSE18_101651_20180827_1541.rsk: Invalid value for attr 'processor_input_file_type': <function RbrRskLegacyReader.format_name at 0x7fc5cc049da0>. For serialization to netCDF files, its value must be of one of the following types: str, Number, ndarray, number, list, tuple, bytes\n",
+      "ERROR: Failed to process moor/raw/msm76_2018/rbrsolo/DSE18_101651_20180827_1541.rsk: Invalid value for attr 'processor_input_file_type': <function RbrRskLegacyReader.format_name at 0x7fab57442020>. For serialization to netCDF files, its value must be of one of the following types: str, Number, ndarray, number, list, tuple, bytes\n",
       "EXCEPT: Error reading file moor/raw/msm76_2018/tr1050/DSE18_015580_20180827_1403.mat: Unknown file type: rbr-matlab\n"
      ]
     },
@@ -413,11 +420,11 @@
      "text": [
       "-->   Processing rbrsolo: moor/raw/msm76_2018/rbrsolo/DSE18_101647_20180827_1551.rsk\n",
       "Creating output file: moor/proc/dsE_1_2018/rbrsolo/dsE_1_2018_101647_raw.nc\n",
-      "ERROR: Failed to process moor/raw/msm76_2018/rbrsolo/DSE18_101647_20180827_1551.rsk: Invalid value for attr 'processor_input_file_type': <function RbrRskLegacyReader.format_name at 0x7fc5cc049da0>. For serialization to netCDF files, its value must be of one of the following types: str, Number, ndarray, number, list, tuple, bytes\n",
+      "ERROR: Failed to process moor/raw/msm76_2018/rbrsolo/DSE18_101647_20180827_1551.rsk: Invalid value for attr 'processor_input_file_type': <function RbrRskLegacyReader.format_name at 0x7fab57442020>. For serialization to netCDF files, its value must be of one of the following types: str, Number, ndarray, number, list, tuple, bytes\n",
       "EXCEPT: Error reading file moor/raw/msm76_2018/tr1050/DSE18_013874_20180827_1410.mat: Unknown file type: rbr-matlab\n",
       "-->   Processing rbrsolo: moor/raw/msm76_2018/rbrsolo/DSE18_101645_20180827_1553.rsk\n",
       "Creating output file: moor/proc/dsE_1_2018/rbrsolo/dsE_1_2018_101645_raw.nc\n",
-      "ERROR: Failed to process moor/raw/msm76_2018/rbrsolo/DSE18_101645_20180827_1553.rsk: Invalid value for attr 'processor_input_file_type': <function RbrRskLegacyReader.format_name at 0x7fc5cc049da0>. For serialization to netCDF files, its value must be of one of the following types: str, Number, ndarray, number, list, tuple, bytes\n",
+      "ERROR: Failed to process moor/raw/msm76_2018/rbrsolo/DSE18_101645_20180827_1553.rsk: Invalid value for attr 'processor_input_file_type': <function RbrRskLegacyReader.format_name at 0x7fab57442020>. For serialization to netCDF files, its value must be of one of the following types: str, Number, ndarray, number, list, tuple, bytes\n",
       "EXCEPT: Error reading file moor/raw/msm76_2018/tr1050/DSE18_015574_20180827_1407.mat: Unknown file type: rbr-matlab\n"
      ]
     },
@@ -434,7 +441,7 @@
      "text": [
       "-->   Processing rbrsolo: moor/raw/msm76_2018/rbrsolo/DSE18_101646_20180827_1548.rsk\n",
       "Creating output file: moor/proc/dsE_1_2018/rbrsolo/dsE_1_2018_101646_raw.nc\n",
-      "ERROR: Failed to process moor/raw/msm76_2018/rbrsolo/DSE18_101646_20180827_1548.rsk: Invalid value for attr 'processor_input_file_type': <function RbrRskLegacyReader.format_name at 0x7fc5cc049da0>. For serialization to netCDF files, its value must be of one of the following types: str, Number, ndarray, number, list, tuple, bytes\n",
+      "ERROR: Failed to process moor/raw/msm76_2018/rbrsolo/DSE18_101646_20180827_1548.rsk: Invalid value for attr 'processor_input_file_type': <function RbrRskLegacyReader.format_name at 0x7fab57442020>. For serialization to netCDF files, its value must be of one of the following types: str, Number, ndarray, number, list, tuple, bytes\n",
       "EXCEPT: Error reading file moor/raw/msm76_2018/tr1050/DSE18_015577_20180827_1338.mat: Unknown file type: rbr-matlab\n"
      ]
     },
@@ -542,10 +549,10 @@
    "id": "6b1ecfad",
    "metadata": {
     "execution": {
-     "iopub.execute_input": "2025-09-24T15:53:33.226891Z",
-     "iopub.status.busy": "2025-09-24T15:53:33.226733Z",
-     "iopub.status.idle": "2025-09-24T15:53:33.552788Z",
-     "shell.execute_reply": "2025-09-24T15:53:33.552241Z"
+     "iopub.execute_input": "2025-09-25T06:33:21.841828Z",
+     "iopub.status.busy": "2025-09-25T06:33:21.841667Z",
+     "iopub.status.idle": "2025-09-25T06:33:22.175275Z",
+     "shell.execute_reply": "2025-09-25T06:33:22.174771Z"
     }
    },
    "outputs": [
@@ -679,10 +686,10 @@
    "id": "0847e657",
    "metadata": {
     "execution": {
-     "iopub.execute_input": "2025-09-24T15:53:33.554445Z",
-     "iopub.status.busy": "2025-09-24T15:53:33.554278Z",
-     "iopub.status.idle": "2025-09-24T15:53:33.603485Z",
-     "shell.execute_reply": "2025-09-24T15:53:33.602973Z"
+     "iopub.execute_input": "2025-09-25T06:33:22.176946Z",
+     "iopub.status.busy": "2025-09-25T06:33:22.176773Z",
+     "iopub.status.idle": "2025-09-25T06:33:22.227415Z",
+     "shell.execute_reply": "2025-09-25T06:33:22.226930Z"
     }
    },
    "outputs": [
@@ -750,10 +757,10 @@
    "id": "60fab40c",
    "metadata": {
     "execution": {
-     "iopub.execute_input": "2025-09-24T15:53:33.605244Z",
-     "iopub.status.busy": "2025-09-24T15:53:33.605072Z",
-     "iopub.status.idle": "2025-09-24T15:53:33.607369Z",
-     "shell.execute_reply": "2025-09-24T15:53:33.606950Z"
+     "iopub.execute_input": "2025-09-25T06:33:22.229013Z",
+     "iopub.status.busy": "2025-09-25T06:33:22.228851Z",
+     "iopub.status.idle": "2025-09-25T06:33:22.231156Z",
+     "shell.execute_reply": "2025-09-25T06:33:22.230754Z"
     }
    },
    "outputs": [],
@@ -768,10 +775,10 @@
    "id": "2e19689c",
    "metadata": {
     "execution": {
-     "iopub.execute_input": "2025-09-24T15:53:33.608763Z",
-     "iopub.status.busy": "2025-09-24T15:53:33.608597Z",
-     "iopub.status.idle": "2025-09-24T15:53:33.610739Z",
-     "shell.execute_reply": "2025-09-24T15:53:33.610338Z"
+     "iopub.execute_input": "2025-09-25T06:33:22.232529Z",
+     "iopub.status.busy": "2025-09-25T06:33:22.232376Z",
+     "iopub.status.idle": "2025-09-25T06:33:22.234656Z",
+     "shell.execute_reply": "2025-09-25T06:33:22.234229Z"
     }
    },
    "outputs": [],
@@ -785,10 +792,10 @@
    "id": "1e1b7d98",
    "metadata": {
     "execution": {
-     "iopub.execute_input": "2025-09-24T15:53:33.612135Z",
-     "iopub.status.busy": "2025-09-24T15:53:33.611975Z",
-     "iopub.status.idle": "2025-09-24T15:53:33.614173Z",
-     "shell.execute_reply": "2025-09-24T15:53:33.613702Z"
+     "iopub.execute_input": "2025-09-25T06:33:22.235993Z",
+     "iopub.status.busy": "2025-09-25T06:33:22.235849Z",
+     "iopub.status.idle": "2025-09-25T06:33:22.237886Z",
+     "shell.execute_reply": "2025-09-25T06:33:22.237498Z"
     }
    },
    "outputs": [],
@@ -812,10 +819,10 @@
    "id": "42ff46bc",
    "metadata": {
     "execution": {
-     "iopub.execute_input": "2025-09-24T15:53:33.615611Z",
-     "iopub.status.busy": "2025-09-24T15:53:33.615455Z",
-     "iopub.status.idle": "2025-09-24T15:53:33.618223Z",
-     "shell.execute_reply": "2025-09-24T15:53:33.617745Z"
+     "iopub.execute_input": "2025-09-25T06:33:22.239282Z",
+     "iopub.status.busy": "2025-09-25T06:33:22.239137Z",
+     "iopub.status.idle": "2025-09-25T06:33:22.241702Z",
+     "shell.execute_reply": "2025-09-25T06:33:22.241314Z"
     }
    },
    "outputs": [],
@@ -838,10 +845,10 @@
    "id": "dee6bcea",
    "metadata": {
     "execution": {
-     "iopub.execute_input": "2025-09-24T15:53:33.619766Z",
-     "iopub.status.busy": "2025-09-24T15:53:33.619590Z",
-     "iopub.status.idle": "2025-09-24T15:53:33.622001Z",
-     "shell.execute_reply": "2025-09-24T15:53:33.621488Z"
+     "iopub.execute_input": "2025-09-25T06:33:22.243034Z",
+     "iopub.status.busy": "2025-09-25T06:33:22.242888Z",
+     "iopub.status.idle": "2025-09-25T06:33:22.245039Z",
+     "shell.execute_reply": "2025-09-25T06:33:22.244672Z"
     }
    },
    "outputs": [],

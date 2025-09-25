@@ -20,9 +20,7 @@
       <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="oceanarray API" href="oceanarray.html" />
-    <link rel="prev" title="Development Roadmap" href="roadmap.html" /> 
+    <link rel="search" title="Search" href="search.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -75,72 +73,11 @@
 <li class="toctree-l1"><a class="reference internal" href="demo_mooring-output.html">Demo: mooring-level processing (Step 1)</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Help and reference</span></p>
-<ul class="current">
+<ul>
 <li class="toctree-l1"><a class="reference external" href="https://github.com/ocean-uhh/oceanarray">GitHub Repo</a></li>
 <li class="toctree-l1"><a class="reference internal" href="roadmap.html">Development Roadmap</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">OceanArray Data Format Specification</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#overview">1. Overview</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#key-design-decisions">2. Key Design Decisions</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#deviations-from-oceansites-standard">2.1. Deviations from OceanSITES Standard</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#dimensions">3. Dimensions</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#required-dimensions">3.1. Required Dimensions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#optional-dimensions">3.2. Optional Dimensions</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#coordinate-variables">4. Coordinate Variables</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#time-coordinate">4.1. Time Coordinate</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#spatial-coordinates">4.2. Spatial Coordinates</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#data-variables">5. Data Variables</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#required-attributes">5.1. Required Attributes</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#quality-control-variables">6. Quality Control Variables</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#qc-flag-system">6.1. QC Flag System</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#comparison-with-ioc-standards">6.2. Comparison with IOC Standards</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#global-attributes">7. Global Attributes</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#dataset-identification">7.1. Dataset Identification</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#contributor-information">7.2. Contributor Information</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#temporal-attributes">7.3. Temporal Attributes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#geospatial-and-temporal-coverage">7.4. Geospatial and Temporal Coverage</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#publication-and-attribution">7.5. Publication and Attribution</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#conventions-and-standards">7.6. Conventions and Standards</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#units-convention">8. Units Convention</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#physical-units">8.1. Physical Units</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#file-naming-convention">9. File Naming Convention</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#individual-instrument-files">9.1. Individual Instrument Files</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#higher-level-products">9.2. Higher-Level Products</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#processing-level-vs-content-type">9.3. Processing Level vs Content Type</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#temporal-resolution-codes">9.4. Temporal Resolution Codes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#oceansites-compatibility">9.5. OceanSITES Compatibility</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#validation-rules">9.6. Validation Rules</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#implementation-guidelines">10. Implementation Guidelines</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#data-type-recommendations">10.1. Data Type Recommendations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#compression-settings">10.2. Compression Settings</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#validation-tools">11. Validation Tools</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#compliance-checklist">11.1. Compliance Checklist</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#future-considerations">12. Future Considerations</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#standards-evolution">12.1. Standards Evolution</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="#references">13. References</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="oceanarray_format.html">OceanArray Data Format Specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="oceanSITES_manual.html">OceanSITES Data Format Reference Manual</a></li>
 <li class="toctree-l1"><a class="reference internal" href="oceanarray.html"><code class="xref py py-mod docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">API</span></code></a></li>
 </ul>
 
@@ -1882,10 +1819,7 @@ contributor_orcid = &quot;https://orcid.org/0000-0001-2345-6789&quot;;
 
            </div>
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="roadmap.html" class="btn btn-neutral float-left" title="Development Roadmap" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="oceanarray.html" class="btn btn-neutral float-right" title="oceanarray API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
-    </div>
+          <footer>
 
   <hr/>
 
