@@ -15,4 +15,4 @@ ioos_qc
 
 
 # Pip-only (or dev-only) extras
-ctd_tools
+seasenselib

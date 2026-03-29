@@ -1,6 +1,6 @@
-=======================================
-OceanArray Data Format Specification
-=======================================
+============================
+OceanArray Data Format (old)
+============================
 
 This specification defines the preferred final format for data output from the oceanarray processing pipeline. It builds upon the OceanSITES data format while incorporating elements from the OG1 (OceanGliders) format and making specific choices for oceanographic mooring data.
 
@@ -51,155 +51,146 @@ The oceanarray format follows NetCDF-4 conventions with CF (Climate and Forecast
 3. Dimensions
 =============
 
-3.1. Required Dimensions
-------------------------
+3.1. OceanSITES Standard Dimensions
+------------------------------------
 
-.. list-table:: Dimension Specifications
-   :widths: 15 15 70
+NetCDF dimensions provide information on the size of the data variables, and additionally tie coordinate variables to data. CF recommends that if any or all of the dimensions of a variable have the interpretations of "date or time" (T), "height or depth" (Z), "latitude" (Y), or "longitude" (X) then those dimensions should appear in the relative order T, Z, Y, X in the variable's definition (in the CDL).
+
+.. list-table:: OceanSITES Standard Dimensions
+   :widths: 20 20 50 10
    :header-rows: 1
 
    * - Name
      - Type
-     - Description
+     - Definition
+     - RS
    * - ``TIME``
      - Unlimited
-     - Temporal coordinate, unlimited for time series data
-   * - ``N_LEVELS``
+     - Number of time steps. Example: for a mooring with one value per day and a mission length of one year, TIME contains 365 time steps.
+     - M
+   * - ``DEPTH``
      - Fixed
-     - Vertical coordinate (depth/pressure levels)
-   * - ``STRING_LENGTH``
-     - Fixed
-     - Maximum string length for text variables (typically 64 or 128)
+     - Number of depth levels. Example: for a mooring with measurements at nominal depths of 0.25, 10, 50, 100 and 200 meters, DEPTH=5.
+     - M
+   * - ``LATITUDE``
+     - Fixed (=1)
+     - Dimension of the LATITUDE coordinate variable.
+     - M
+   * - ``LONGITUDE``
+     - Fixed (=1)
+     - Dimension of the LONGITUDE coordinate variable.
+     - M
 
-3.2. Optional Dimensions
-------------------------
+3.2. OceanArray Deviations from OceanSITES
+-------------------------------------------
 
-.. list-table:: Optional Dimension Specifications
-   :widths: 15 15 70
+.. warning::
+   The following dimensions deviate from the OceanSITES standard and represent OceanArray-specific choices.
+
+.. list-table:: OceanArray Additional Dimensions
+   :widths: 20 20 50 10
    :header-rows: 1
 
    * - Name
      - Type
-     - Description
-   * - ``N_INSTRUMENTS``
+     - Definition
+     - RS
+   * - ``N_LEVELS``
      - Fixed
-     - Number of distinct instruments when applicable
-   * - ``N_SAMPLES``
-     - Fixed
-     - Raw sample dimension for burst-mode instruments
+     - **[DEVIATION]** Vertical coordinate (depth/pressure levels). Used instead of OceanSITES ``DEPTH`` to align with CCHDO conventions.
+     - M
+
+**Notes on OceanArray Dimensions:**
+
+* **N_LEVELS vs DEPTH**: OceanArray uses ``N_LEVELS`` instead of the OceanSITES standard ``DEPTH`` dimension to align with CCHDO (CLIVAR and Carbon Hydrographic Data Office) conventions used in hydrographic data processing workflows.
 
 **Dimension Ordering**: Following OceanSITES convention, dimensions should be ordered as ``(TIME, Z, Y, X)``. CF recommends T,Z,Y,X order in variable definitions.
-
-**OceanSITES Standard Dimensions**:
-- ``TIME`` = unlimited (number of time steps)
-- ``DEPTH`` = fixed (number of depth levels) **[OceanSITES standard]**  
-- ``LATITUDE`` = 1 (dimension of LATITUDE coordinate)
-- ``LONGITUDE`` = 1 (dimension of LONGITUDE coordinate)
-
-**OceanArray Choice**: We use ``N_LEVELS`` instead of ``DEPTH`` to align with CCHDO conventions, while maintaining the same T,Z,Y,X ordering principle.
 
 4. Coordinate Variables
 =======================
 
-4.1. Time Coordinate
---------------------
-
-.. list-table:: TIME Variable Attributes
-   :widths: 25 75
-   :header-rows: 1
-
-   * - Attribute
-     - Value
-   * - ``standard_name``
-     - ``"time"``
-   * - ``long_name``
-     - ``"time"``
-   * - ``units``
-     - ``"seconds since 1970-01-01T00:00:00Z"``
-   * - ``calendar``
-     - ``"gregorian"``
-   * - ``axis``
-     - ``"T"``
-   * - ``_FillValue``
-     - ``<appropriate fill value>``
-
-**Time Encoding**: Time values are stored as double precision seconds since the Unix epoch, providing microsecond precision suitable for high-frequency oceanographic measurements.
-
-4.2. Spatial Coordinates
+4.1. Coordinate Variables
 -------------------------
 
-.. list-table:: Spatial Coordinate Attributes
-   :widths: 15 25 60
+.. list-table:: Required Coordinate Variable Attributes
+   :widths: 15 25 50 10
    :header-rows: 1
 
    * - Variable
-     - Required Attributes
-     - Example Values
+     - Standard Name
+     - Key Attributes
+     - RS
+   * - ``TIME``
+     - ``time``
+     - ``units = "seconds since 1970-01-01T00:00:00Z"; axis = "T"``
+     - M
    * - ``LATITUDE``
-     - | ``standard_name = "latitude"``
-       | ``units = "degree_north"``
-       | ``axis = "Y"``
-     - ``valid_range = [-90.0, 90.0]``
+     - ``latitude``
+     - ``units = "degree_north"; axis = "Y"; valid_range = [-90.0, 90.0]``
+     - M
    * - ``LONGITUDE``
-     - | ``standard_name = "longitude"``
-       | ``units = "degree_east"``
-       | ``axis = "X"``
-     - ``valid_range = [-180.0, 180.0]``
-   * - ``DEPTH`` or ``PRESSURE``
-     - | ``standard_name = "depth"`` or ``"sea_water_pressure"``
-       | ``units = "meter"`` or ``"decibar"``
-       | ``axis = "Z"``
-       | ``positive = "down"``
-     - ``valid_min = 0.0``
+     - ``longitude``
+     - ``units = "degree_east"; axis = "X"; valid_range = [-180.0, 180.0]``
+     - M
+   * - ``DEPTH``
+     - ``depth``
+     - ``units = "meter"; axis = "Z"; positive = "down"; valid_min = 0.0``
+     - M
+   * - ``PRESSURE``
+     - ``sea_water_pressure``
+     - ``units = "decibar"; axis = "Z"; positive = "down"; valid_min = 0.0``
+     - M
 
 5. Data Variables
 =================
 
-5.1. Required Attributes
-------------------------
+5.1. Data Variable Attributes
+-----------------------------
 
-All scientific data variables must include the following attributes:
-
-.. list-table:: Mandatory Data Variable Attributes
-   :widths: 25 75
+.. list-table:: Required Data Variable Attributes
+   :widths: 20 50 20 10
    :header-rows: 1
 
    * - Attribute
-     - Description
+     - Definition
+     - Example
+     - RS
    * - ``long_name``
      - Human-readable descriptive name
+     - ``"Sea Water Temperature"``
+     - M
    * - ``standard_name``
      - CF standard name (when applicable)
+     - ``"sea_water_temperature"``
+     - M
    * - ``vocabulary``
-     - URL or identifier for controlled vocabulary **[OceanArray Enhancement]**
+     - URL for controlled vocabulary
+     - ``"https://vocab.nerc.ac.uk/collection/P07/"``
+     - M
    * - ``units``
-     - Physical units following UDUNITS standard
+     - Physical units (UDUNITS standard)
+     - ``"degree_Celsius"``
+     - M
    * - ``_FillValue``
-     - Fill value with same data type as variable, outside valid range
-   * - ``valid_range`` or ``valid_min/max``
+     - Fill value (same data type, outside valid range)
+     - ``-999.0f``
+     - M
+   * - ``valid_range``
      - Physically meaningful data range
+     - ``[-2.0f, 40.0f]``
+     - M
    * - ``ancillary_variables``
-     - Associated QC variable name (e.g., ``"<PARAM>_QC"``)
+     - Associated QC variable name
+     - ``"TEMP_QC"``
+     - M
    * - ``coordinates``
-     - Space-separated list of coordinate variables
+     - Space-separated coordinate variable list
+     - ``"TIME LONGITUDE LATITUDE DEPTH"``
+     - M
    * - ``sensor``
-     - Sensor identifier: ``"SENSOR_<type>_<serial_number>"``
-
-**Example Data Variable**:
-
-.. code-block:: none
-
-   TEMP:long_name = "Sea Water Temperature";
-   TEMP:standard_name = "sea_water_temperature";
-   TEMP:vocabulary = "https://vocab.nerc.ac.uk/collection/P07/current/";
-   TEMP:units = "degree_Celsius";
-   TEMP:_FillValue = -999.0f;
-   TEMP:valid_range = -2.0f, 40.0f;
-   TEMP:ancillary_variables = "TEMP_QC";
-   TEMP:coordinates = "TIME LONGITUDE LATITUDE DEPTH";
-   TEMP:sensor = "SENSOR_CTD_12345";
-
-**Vocabulary Enhancement**: Unlike base OceanSITES, oceanarray format mandates vocabulary specification to ensure semantic interoperability and automated data discovery.
+     - Sensor identifier format
+     - ``"SENSOR_CTD_12345"``
+     - HD
 
 6. Quality Control Variables
 ============================
@@ -207,48 +198,49 @@ All scientific data variables must include the following attributes:
 6.1. QC Flag System
 -------------------
 
-Following the OceanSITES quality control flag system:
-
-.. list-table:: QC Flag Values and Meanings
-   :widths: 10 30 60
+.. list-table:: OceanSITES Quality Control Flags
+   :widths: 10 25 55 10
    :header-rows: 1
 
    * - Flag
-     - OceanSITES Meaning
-     - Description
+     - Flag Meaning
+     - Definition
+     - Use
    * - 0
      - ``unknown``
      - Quality not evaluated or unknown
+     - M
    * - 1
      - ``good_data``
      - Data passed all quality tests
+     - M
    * - 2
      - ``probably_good_data``
      - Data likely good but not fully verified
+     - M
    * - 3
      - ``potentially_correctable_bad_data``
      - Bad data that might be correctable
+     - M
    * - 4
      - ``bad_data``
      - Data failed critical quality tests
+     - M
    * - 7
      - ``nominal_value``
      - Constant or reference value
+     - HD
    * - 8
      - ``interpolated_value``
      - Gap-filled or estimated data
+     - HD
    * - 9
      - ``missing_value``
      - Data point is missing
+     - M
 
-**QC Variable Attributes**:
-
-.. code-block:: none
-
-   <PARAM>_QC:long_name = "<PARAM> Quality Flag";
-   <PARAM>_QC:flag_values = 0, 1, 2, 3, 4, 7, 8, 9;
-   <PARAM>_QC:flag_meanings = "unknown good_data probably_good_data potentially_correctable_bad_data bad_data nominal_value interpolated_value missing_value";
-   <PARAM>_QC:valid_range = 0, 9;
+**QC Variable Standard Attributes**:
+``<PARAM>_QC:flag_values = 0, 1, 2, 3, 4, 7, 8, 9; <PARAM>_QC:flag_meanings = "unknown good_data probably_good_data potentially_correctable_bad_data bad_data nominal_value interpolated_value missing_value";``
 
 6.2. Comparison with IOC Standards
 ----------------------------------
@@ -275,215 +267,127 @@ Following the OceanSITES quality control flag system:
 7.1. Dataset Identification
 ----------------------------
 
-**Core OceanSITES Discovery Attributes**
-
-.. list-table:: OceanSITES Dataset Identification
-   :widths: 20 15 65
+.. list-table:: Discovery and Identification Attributes
+   :widths: 25 45 20 10
    :header-rows: 1
 
    * - Attribute
-     - Requirement
-     - Description / Example
+     - Definition
+     - Example
+     - RS
    * - ``site_code``
-     - Required (GDAC)
-     - | OceanSITES site name where platform installed
-       | ``site_code="CIS"`` **[OceanArray: adapt to local naming]**
+     - OceanSITES site name where platform installed
+     - ``"CIS"``
+     - M
    * - ``platform_code``
-     - Required (GDAC)
-     - | Unique platform identifier assigned by PI or provider  
-       | ``platform_code="CIS-1"``
+     - Unique platform identifier
+     - ``"CIS-1"``
+     - M
    * - ``data_mode``
-     - Required (GDAC)
-     - | Data quality mode: R (real-time), P (provisional), D (delayed)
-       | ``data_mode="D"`` **[OceanArray: typically "D" for processed data]**
+     - Data quality mode: R/P/D (typically D for oceanarray)
+     - ``"D"``
+     - M
    * - ``title``
-     - Required
-     - | Free-format dataset description for human readers
-       | ``title="Processed CIS-1 Mooring Time Series Data"``
+     - Free-format dataset description
+     - ``"Processed CIS-1 Mooring Time Series Data"``
+     - M
    * - ``summary``
-     - Required
-     - | Detailed description (up to 100 words) for data discovery
-       | ``summary="Oceanographic mooring data processed through oceanarray pipeline..."``
+     - Detailed description (up to 100 words) for data discovery
+     - ``"Oceanographic mooring data processed through oceanarray pipeline..."``
+     - M
    * - ``id``
-     - Required
-     - | Unique dataset identifier (often filename without .nc)
-       | ``id="OA_CIS-1_L2_200502_TS"``
+     - Unique dataset identifier (often filename without .nc)
+     - ``"OS_CIS-1_L2_200502_TS"``
+     - M
    * - ``naming_authority``
-     - Required
-     - | Organization managing dataset names
-       | ``naming_authority="oceanarray"`` **[OceanArray: not "OceanSITES"]**
+     - Organization managing dataset names
+     - ``"OceanSITES"``
+     - M
    * - ``wmo_platform_code``
-     - Optional
-     - | WMO identifier unique within OceanSITES project
-       | ``wmo_platform_code="48409"``
+     - WMO identifier unique within OceanSITES project
+     - ``"48409"``
+     - HD
    * - ``source``
-     - Required
-     - | Platform type from SeaVoX L06 vocabulary
-       | ``source="subsurface mooring"``
+     - Platform type from SeaVoX L06 vocabulary
+     - ``"subsurface mooring"``
+     - M
    * - ``theme``
-     - Optional
-     - | OceanSITES theme areas (comma-separated)
-       | ``theme="Air/sea flux reference, Global Ocean Watch"``
-
-**OceanArray Adaptations**: 
-- Use ``naming_authority="oceanarray"`` to distinguish processed datasets
-- ``data_mode`` typically "D" (delayed-mode) for quality-controlled processed data  
-- Adapt ``site_code`` and ``platform_code`` to local deployment naming conventions
-
-**Additional Processing Attributes**
-
-.. list-table:: OceanArray Processing Attributes
-   :widths: 25 75
-   :header-rows: 1
-
-   * - Attribute
-     - Description
+     - OceanSITES theme areas (comma-separated)
+     - ``"Air/sea flux reference, Global Ocean Watch"``
+     - HD
    * - ``processing_level``
      - Processing level from OceanSITES reference table 3
+     - ``"Data verified against model or other contextual information"``
+     - M
    * - ``QC_indicator``
-     - Overall dataset quality: "excellent", "probably good", "mixed", "unknown"
+     - Overall dataset quality assessment
+     - ``"excellent"``
+     - M
    * - ``format_version``
-     - OceanArray format version (e.g., "OceanArray-1.0")
+     - OceanArray format version
+     - ``"OceanArray-1.0"``
+     - M
    * - ``data_type``
-     - ``"OceanSITES time-series data"`` (maintains compatibility)
+     - OceanSITES data type (maintains compatibility)
+     - ``"OceanSITES time-series data"``
+     - M
+
+**Requirement Status (RS)**: M = Mandatory, HD = Highly Desired
+
+**OceanArray Notes**:
+- Use ``naming_authority="OceanSITES"`` following standard convention
+- ``data_mode`` typically "D" (delayed-mode) for quality-controlled processed data
+- Adapt ``site_code`` and ``platform_code`` to local deployment naming conventions
 
 7.2. Contributor Information
 ----------------------------
 
-Following OG1 pattern, consolidating OceanSITES ``creator_*`` and ``principal_investigator_*`` fields into comprehensive ``contributor_*`` attributes that support multiple contributors.
+Consolidates OceanSITES ``creator_*`` and ``principal_investigator_*`` fields into unified ``contributor_*`` attributes supporting multiple contributors.
 
-.. list-table:: Contributor Attributes (OceanArray Format)
-   :widths: 25 15 60
+.. list-table:: Contributor Attributes
+   :widths: 25 45 20 10
    :header-rows: 1
 
    * - Attribute
-     - Requirement
-     - Description / Example
+     - Definition
+     - Example
+     - RS
    * - ``contributor_name``
-     - Required
-     - | Semi-colon separated list of contributor full names
-       | ``contributor_name = "Dr. Jane Smith; Dr. John Doe; Prof. Alice Johnson"``
+     - Semi-colon separated list of contributor full names
+     - ``"Dr. Jane Smith; Dr. John Doe"``
+     - M
    * - ``contributor_email``
-     - Required
-     - | Semi-colon separated list of contact email addresses
-       | ``contributor_email = "jane.smith@whoi.edu; john.doe@noc.ac.uk; alice.johnson@uni.edu"``
+     - Semi-colon separated list of contact email addresses
+     - ``"jane.smith@whoi.edu; john.doe@noc.ac.uk"``
+     - M
    * - ``contributor_role``
-     - Required
-     - | Semi-colon separated list of roles (controlled vocabulary)
-       | ``contributor_role = "principalInvestigator; coInvestigator; dataManager"``
+     - Semi-colon separated list of roles (controlled vocabulary)
+     - ``"principalInvestigator; coInvestigator"``
+     - M
    * - ``contributor_role_vocabulary``
-     - Required
-     - | URL for role vocabulary **[OceanArray Enhancement]**
-       | ``contributor_role_vocabulary = "http://vocab.nerc.ac.uk/collection/W08/"``
+     - URL for role vocabulary
+     - ``"http://vocab.nerc.ac.uk/collection/W08/"``
+     - M
    * - ``contributor_institution``
-     - Required
-     - | Semi-colon separated list of institutional affiliations
-       | ``contributor_institution = "WHOI; NOC; University of Ocean Sciences"``
+     - Semi-colon separated list of institutional affiliations
+     - ``"WHOI; NOC"``
+     - M
    * - ``contributor_institution_vocabulary``
-     - Optional
-     - | URL for institution vocabulary **[OceanArray Enhancement]**
-       | ``contributor_institution_vocabulary = "https://edmo.seadatanet.org/"``
+     - URL for institution vocabulary
+     - ``"https://edmo.seadatanet.org/"``
+     - HD
    * - ``contributor_orcid``
-     - Recommended
-     - | Semi-colon separated list of ORCID identifiers
-       | ``contributor_orcid = "https://orcid.org/0000-0001-2345-6789; https://orcid.org/0000-0002-3456-7890; https://orcid.org/0000-0003-4567-8901"``
+     - Semi-colon separated list of ORCID identifiers
+     - ``"https://orcid.org/0000-0001-2345-6789; https://orcid.org/0000-0002-3456-7890"``
+     - HD
 
-**Multiple Contributors Example**:
-
-.. code-block:: none
-
-   contributor_name = "Dr. Jane Smith; Dr. John Doe; Prof. Alice Johnson";
-   contributor_email = "jane.smith@whoi.edu; john.doe@noc.ac.uk; alice.johnson@uni.edu";
-   contributor_role = "principalInvestigator; coInvestigator; dataManager";
-   contributor_role_vocabulary = "http://vocab.nerc.ac.uk/collection/W08/";
-   contributor_institution = "Woods Hole Oceanographic Institution; National Oceanography Centre; University of Ocean Sciences";
-   contributor_institution_vocabulary = "https://edmo.seadatanet.org/";
-   contributor_orcid = "https://orcid.org/0000-0001-2345-6789; https://orcid.org/0000-0002-3456-7890; https://orcid.org/0000-0003-4567-8901";
-
-**Single Contributor Example**:
-
-.. code-block:: none
-
-   contributor_name = "Dr. Jane Smith";
-   contributor_email = "jane.smith@whoi.edu";
-   contributor_role = "principalInvestigator";
-   contributor_role_vocabulary = "http://vocab.nerc.ac.uk/collection/W08/";
-   contributor_institution = "Woods Hole Oceanographic Institution";
-   contributor_institution_vocabulary = "https://edmo.seadatanet.org/";
-   contributor_orcid = "https://orcid.org/0000-0001-2345-6789";
-
-**Controlled Vocabulary for Roles**:
-
-.. list-table:: Standard Contributor Roles
-   :widths: 25 75
-   :header-rows: 1
-
-   * - Role Value
-     - Description
-   * - ``principalInvestigator``
-     - Lead scientist responsible for the project
-   * - ``coInvestigator``
-     - Co-lead or significant contributor to project science
-   * - ``dataManager``
-     - Responsible for data processing, quality control, and management
-   * - ``technician``
-     - Technical support for instrument deployment and maintenance
-   * - ``student``
-     - Graduate or undergraduate student contributor
-   * - ``postdoc``
-     - Postdoctoral researcher contributor
-   * - ``collaborator``
-     - External collaborator or visiting scientist
-
-**OceanSITES Field Mapping**:
-
-.. list-table:: OceanSITES to OceanArray Field Consolidation
-   :widths: 40 60
-   :header-rows: 1
-
-   * - OceanSITES Fields (Multiple)
-     - OceanArray Consolidated Field
-   * - ``principal_investigator``
-     - | ``contributor_name`` (role: principalInvestigator)
-   * - ``principal_investigator_email``
-     - | ``contributor_email`` (role: principalInvestigator)
-   * - ``principal_investigator_url``
-     - | Use ORCID in ``contributor_orcid``
-   * - ``principal_investigator_id``
-     - | ``contributor_orcid``
-   * - ``creator_name``
-     - | ``contributor_name`` (role: dataManager)
-   * - ``creator_email``
-     - | ``contributor_email`` (role: dataManager)
-   * - ``creator_url``
-     - | Use ORCID in ``contributor_orcid``
-   * - ``creator_id``
-     - | ``contributor_orcid``
-   * - ``creator_institution``
-     - | ``contributor_institution``
+**Standard Contributor Roles**: ``principalInvestigator``, ``coInvestigator``, ``dataManager``, ``technician``, ``student``, ``postdoc``, ``collaborator``
 
 **Implementation Notes**:
-
-1. **Ordering**: Contributors should be listed in order of contribution significance
-2. **Separator**: Use semi-colon (`;`) separation for multiple values, consistent with ACDD
-3. **Consistency**: All contributor attribute lists must have the same number of entries
-4. **ORCID Priority**: Prefer ORCID identifiers over URLs for persistent identification
-5. **Vocabulary Enhancement**: Unlike base OceanSITES, vocabulary URLs are required for semantic clarity
-
-**Validation Example**:
-
-.. code-block:: python
-
-   # Valid: 3 contributors, all attributes have 3 entries
-   contributor_name = "A; B; C"
-   contributor_email = "a@x.edu; b@y.edu; c@z.edu" 
-   contributor_role = "principalInvestigator; coInvestigator; dataManager"
-   
-   # Invalid: mismatched count
-   contributor_name = "A; B; C"
-   contributor_email = "a@x.edu; b@y.edu"  # Missing third email
-
-**OceanArray Enhancement**: This consolidation reduces metadata redundancy while maintaining full attribution information and supporting multiple contributors per dataset, following OG1 best practices.
+- Use semi-colon (`;`) separation for multiple values (ACDD compliant)
+- All contributor attribute lists must have the same number of entries
+- List contributors in order of contribution significance
+- Prefer ORCID identifiers for persistent identification
 
 7.3. Temporal Attributes
 ------------------------
@@ -534,7 +438,7 @@ Following OG1 pattern, consolidating OceanSITES ``creator_*`` and ``principal_in
      - | Westernmost longitude (-180 to 180)
        | ``geospatial_lon_min=-41.2``
    * - ``geospatial_lon_max``
-     - | Easternmost longitude (-180 to 180) 
+     - | Easternmost longitude (-180 to 180)
        | ``geospatial_lon_max=-41.2``
    * - ``geospatial_lon_units``
      - | Must conform to UDUNITS
@@ -603,13 +507,13 @@ Following OG1 pattern, consolidating OceanSITES ``creator_*`` and ``principal_in
      - | Recovery vessel name
        | ``platform_recovery_ship_name="R/V Endeavor"``
    * - ``platform_recovery_cruise_name``
-     - | Recovery cruise identifier  
+     - | Recovery cruise identifier
        | ``platform_recovery_cruise_name="EN472"``
    * - ``platform_recovery_ship_ICES_code``
      - | ICES ship code for recovery vessel
        | ``platform_recovery_ship_ICES_code="32EV"``
    * - ``platform_recovery_cruise_ExpoCode``
-     - | ICES ship code + cruise start date  
+     - | ICES ship code + cruise start date
        | ``platform_recovery_cruise_ExpoCode="32EV20120113"``
 
 **Time Format Choice**: OceanArray uses the OG1 compact format (``YYYYmmddTHHMMss``) instead of OceanSITES ISO8601 format (``YYYY-MM-DDThh:mm:ssZ``) for temporal attributes.
@@ -680,7 +584,7 @@ Following OG1 pattern, consolidating OceanSITES ``creator_*`` and ``principal_in
    :widths: 25 75
    :header-rows: 1
 
-   * - Attribute  
+   * - Attribute
      - Description / Example
    * - ``date_created``
      - | File creation date in OG1 format **[OceanArray: not ISO8601]**
@@ -739,7 +643,7 @@ Following OG1 pattern, consolidating OceanSITES ``creator_*`` and ``principal_in
      - ``"timeSeries"`` or ``"timeSeriesProfile"`` (CF-1.5+ DSG)
    * - ``array``
      - Optional: array grouping (e.g., ``"WHOTS"``)
-   * - ``network``  
+   * - ``network``
      - Optional: network grouping based on logistics/infrastructure
 
 8. Units Convention
@@ -759,10 +663,10 @@ All units must follow the UDUNITS-2 standard:
      - Notes
    * - Latitude
      - ``degree_north``
-     - Not ``degrees_north`` (OceanSITES)
+     - **[DEVIATION]** OceanSITES uses ``degrees_north`` (plural)
    * - Longitude
      - ``degree_east``
-     - Not ``degrees_east`` (OceanSITES)
+     - **[DEVIATION]** OceanSITES uses ``degrees_east`` (plural)
    * - Temperature
      - ``degree_Celsius``
      - Preferred over ``degC``
@@ -842,7 +746,7 @@ The oceanarray format adapts OceanSITES naming conventions for processed oceanog
 
 **Component Definitions**:
 
-.. list-table:: Higher-Level File Name Components  
+.. list-table:: Higher-Level File Name Components
    :widths: 20 80
    :header-rows: 1
 
@@ -858,7 +762,7 @@ The oceanarray format adapts OceanSITES naming conventions for processed oceanog
        | ``20240101-20241231``, ``20040401-20230211``
    * - ``[ContentType]``
      - | **LTS** - Long time series (native resolution)
-       | **GRD** - Gridded data (averaged/interpolated) 
+       | **GRD** - Gridded data (averaged/interpolated)
        | **DPR** - Derived products (transports, fluxes)
    * - ``[PARTX]``
      - | Optional: data type and temporal resolution
@@ -945,7 +849,7 @@ The oceanarray format adapts OceanSITES naming conventions for processed oceanog
 
 **Required Elements**:
 - Files must start with ``OS_`` prefix
-- Time ranges must be valid dates in ``YYYYMMDD`` format  
+- Time ranges must be valid dates in ``YYYYMMDD`` format
 - Processing levels must match content (L1/L2/L3 or LTS/GRD/DPR)
 - No underscores within individual field components
 
@@ -1002,13 +906,13 @@ The oceanarray package will provide validation utilities:
 .. code-block:: python
 
    import oceanarray.validation as oav
-   
+
    # Validate format compliance
    oav.validate_format(dataset_path)
-   
+
    # Check attribute completeness
    oav.validate_attributes(dataset)
-   
+
    # Verify QC flag consistency
    oav.validate_qc_flags(dataset)
 
@@ -1036,7 +940,7 @@ The oceanarray package will provide validation utilities:
 This specification may be updated to maintain alignment with:
 
 - **OceanSITES**: Future versions may require reconciliation of dimension names
-- **CF Conventions**: Updates to standard names and attribute requirements  
+- **CF Conventions**: Updates to standard names and attribute requirements
 - **Community Feedback**: Practical usage may reveal needed adjustments
 
 **Version Control**: Format changes will be tracked through semantic versioning (``OceanArray-X.Y.Z``) with clear migration guidance.
@@ -1058,7 +962,7 @@ This specification may be updated to maintain alignment with:
 
 **Vocabulary Resources**
 - `SeaVoX Platform Categories (L06) <https://www.bodc.ac.uk/resources/vocabularies/vocabulary_search/L06/>`_ (for ``source`` attribute)
-- `SeaVoX Water Body Gazetteer (C19) <https://www.bodc.ac.uk/resources/vocabularies/vocabulary_search/C19/>`_ (for ``sea_area`` attribute)  
+- `SeaVoX Water Body Gazetteer (C19) <https://www.bodc.ac.uk/resources/vocabularies/vocabulary_search/C19/>`_ (for ``sea_area`` attribute)
 - `SeaVoX Device Catalogue (L22) <https://www.bodc.ac.uk/resources/vocabularies/vocabulary_search/L22/>`_ (for sensors and instruments)
 - `ICES Ship Codes (C17) <https://ocean.ices.dk/codes/ShipCodes.aspx>`_ (for deployment/recovery ship codes)
 - `BODC Ship Codes <https://www.bodc.ac.uk/resources/vocabularies/vocabulary_search/C17/>`_ (alternative ICES ship code source)
