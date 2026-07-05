@@ -1,5 +1,4 @@
-"""
-Step 1 processing for mooring data: Time gridding and optional filtering.
+"""Step 1 processing for mooring data: Time gridding and optional filtering.
 
 This module handles:
 - Loading processed Stage 2 NetCDF files (_use.nc) from multiple instruments
@@ -27,7 +26,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import xarray as xr
 import yaml
-from ctd_tools.writers import NetCdfWriter
+from seasenselib.writers import NetCdfWriter
 
 
 class TimeGriddingProcessor:
@@ -155,8 +154,7 @@ class TimeGriddingProcessor:
         filter_type: Optional[str] = None,
         filter_params: Optional[Dict[str, Any]] = None,
     ) -> xr.Dataset:
-        """
-        Apply time-domain filtering to a single instrument dataset.
+        """Apply time-domain filtering to a single instrument dataset.
 
         This method applies filtering to the original instrument time grid
         BEFORE interpolation to preserve data integrity.
@@ -168,6 +166,7 @@ class TimeGriddingProcessor:
 
         Returns:
             Filtered dataset on the same time grid
+
         """
         if filter_type is None:
             # No filtering requested
@@ -201,8 +200,7 @@ class TimeGriddingProcessor:
     def _apply_lowpass_filter(
         self, dataset: xr.Dataset, filter_params: Optional[Dict[str, Any]] = None
     ) -> xr.Dataset:
-        """
-        Apply low-pass Butterworth filter (e.g., for de-tiding).
+        """Apply low-pass Butterworth filter (e.g., for de-tiding).
 
         Default parameters match RAPID array processing:
         - Cutoff: 2 days (removes tidal and inertial signals)
@@ -746,8 +744,7 @@ class TimeGriddingProcessor:
         filter_type: Optional[str] = None,
         filter_params: Optional[Dict[str, Any]] = None,
     ) -> bool:
-        """
-        Process Step 1 for a single mooring: time gridding and optional filtering.
+        """Process Step 1 for a single mooring: time gridding and optional filtering.
 
         Args:
             mooring_name: Name of the mooring to process
@@ -759,6 +756,7 @@ class TimeGriddingProcessor:
 
         Returns:
             bool: True if processing completed successfully
+
         """
         # Set up paths
         if output_path is None:
@@ -869,8 +867,7 @@ def time_gridding_mooring(
     filter_type: Optional[str] = None,
     filter_params: Optional[Dict[str, Any]] = None,
 ) -> bool:
-    """
-    Process Step 1 for a single mooring (convenience function).
+    """Process Step 1 for a single mooring (convenience function).
 
     Args:
         mooring_name: Name of the mooring to process
@@ -882,6 +879,7 @@ def time_gridding_mooring(
 
     Returns:
         bool: True if processing completed successfully
+
     """
     processor = TimeGriddingProcessor(basedir)
     return processor.process_mooring(
@@ -900,8 +898,7 @@ def process_multiple_moorings_time_gridding(
     filter_type: Optional[str] = None,
     filter_params: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, bool]:
-    """
-    Process Step 1 for multiple moorings.
+    """Process Step 1 for multiple moorings.
 
     Args:
         mooring_list: List of mooring names to process
@@ -912,6 +909,7 @@ def process_multiple_moorings_time_gridding(
 
     Returns:
         Dict mapping mooring names to success status
+
     """
     processor = TimeGriddingProcessor(basedir)
     results = {}

@@ -7,8 +7,7 @@ import xarray as xr
 import yaml
 
 from .. import utilities  # for any shared helpers like date parsing
-from ..utilities import \
-    iso8601_duration_from_seconds  # or wherever you store it
+from ..utilities import iso8601_duration_from_seconds  # or wherever you store it
 
 
 def convert_rodb_to_oceansites(
@@ -19,8 +18,7 @@ def convert_rodb_to_oceansites(
     sensor_yaml: Optional[Union[str, Path]] = None,
     project_yaml: Optional[Union[str, Path]] = None,
 ) -> xr.Dataset:
-    """
-    Convert a dataset loaded from RODB format into OceanSITES-compliant format.
+    """Convert a dataset loaded from RODB format into OceanSITES-compliant format.
 
     Parameters
     ----------
@@ -41,6 +39,7 @@ def convert_rodb_to_oceansites(
     -------
     xarray.Dataset
         OceanSITES-compliant dataset.
+
     """
     metadata, _ = parse_rodb_metadata(metadata_txt)
     var_map = load_yaml(var_map_yaml)
@@ -119,8 +118,7 @@ def load_yaml(path):
 
 
 def parse_rodb_metadata(txt_path):
-    """
-    Parse RODB metadata from a .raw or .use file header.
+    """Parse RODB metadata from a .raw or .use file header.
 
     Parameters
     ----------
@@ -131,6 +129,7 @@ def parse_rodb_metadata(txt_path):
     -------
     tuple
         (header_dict, data_start_index)
+
     """
     txt_path = Path(txt_path)
     with open(txt_path, "r") as f:
@@ -151,9 +150,7 @@ def parse_rodb_metadata(txt_path):
 
 
 def add_fixed_coordinates(ds, metadata):
-    """
-    Add fixed spatial coordinates LATITUDE, LONGITUDE, and DEPTH from metadata.
-    """
+    """Add fixed spatial coordinates LATITUDE, LONGITUDE, and DEPTH from metadata."""
 
     def dms_to_decimal(coord_str):
         parts = coord_str.split()
@@ -230,9 +227,7 @@ def add_variable_attributes(ds, vocab_attrs):
 
 
 def add_global_attributes(ds, metadata):
-    """
-    Add OceanSITES-compliant global attributes to the dataset.
-    """
+    """Add OceanSITES-compliant global attributes to the dataset."""
     start = f"{metadata['START_DATE']}T{metadata['START_TIME']}:00Z"
     end = f"{metadata['END_DATE']}T{metadata['END_TIME']}:00Z"
     start = start.replace("/", "-")
@@ -286,8 +281,7 @@ def format_time_variable(ds):
 
 
 def add_instrument_metadata(ds, sensor_dict, metadata):
-    """
-    Add centralized instrument metadata and link variables via the 'instrument' attribute.
+    """Add centralized instrument metadata and link variables via the 'instrument' attribute.
 
     Parameters
     ----------
@@ -297,6 +291,7 @@ def add_instrument_metadata(ds, sensor_dict, metadata):
         Dictionary with 'instrument_<N>' keys and/or TOOL### templates, plus 'variables'.
     metadata : dict
         Header metadata to extract instrument-specific fields like serial and dates.
+
     """
     variables = sensor_dict.get("variables", {})
     templates = {k: v for k, v in sensor_dict.items() if k.startswith("TOOL")}
@@ -338,8 +333,7 @@ def add_instrument_metadata(ds, sensor_dict, metadata):
 
 
 def infer_data_mode(source_filename=None, history=None):
-    """
-    Infer data_mode (D=delayed, R=real-time, P=provisional) from filename or processing history.
+    """Infer data_mode (D=delayed, R=real-time, P=provisional) from filename or processing history.
 
     Parameters
     ----------
@@ -352,6 +346,7 @@ def infer_data_mode(source_filename=None, history=None):
     -------
     str
         One of "D", "R", or "P". Defaults to "D" (delayed mode) if no clear match found.
+
     """
     # Priority 1: filename extension
     if source_filename:
@@ -376,9 +371,7 @@ def infer_data_mode(source_filename=None, history=None):
 
 
 def add_project_attributes(ds, project_attrs=None, metadata=None):
-    """
-    Merge project-level attributes into dataset, with derived and dynamic values.
-    """
+    """Merge project-level attributes into dataset, with derived and dynamic values."""
     if project_attrs is None:
         project_attrs = {}
     if metadata is None:

@@ -11,8 +11,7 @@ import xarray as xr
 
 
 def concat_with_scalar_vars(datasets, dim, scalar_vars=None):
-    """
-    Concatenate a list of xarray Datasets along a given dimension,
+    """Concatenate a list of xarray Datasets along a given dimension,
     preserving scalar variables (0-D DataArrays) as scalars (not broadcast).
 
     Parameters
@@ -29,6 +28,7 @@ def concat_with_scalar_vars(datasets, dim, scalar_vars=None):
     -------
     xarray.Dataset
         Concatenated dataset with scalar variables re-attached as 0-D DataArrays.
+
     """
     scalar_storage = {}
 
@@ -60,8 +60,7 @@ def concat_with_scalar_vars(datasets, dim, scalar_vars=None):
 
 
 def _check_necessary_variables(ds: xr.Dataset, vars: list):
-    """
-    Checks that all of a list of variables are present in a dataset.
+    """Checks that all of a list of variables are present in a dataset.
 
     Parameters
     ----------
@@ -78,6 +77,7 @@ def _check_necessary_variables(ds: xr.Dataset, vars: list):
     Notes
     -----
     Original Author: Callum Rollo
+
     """
     missing_vars = set(vars).difference(set(ds.variables))
     if missing_vars:
@@ -86,8 +86,7 @@ def _check_necessary_variables(ds: xr.Dataset, vars: list):
 
 
 def get_time_key(ds):
-    """
-    Return the name of the time coordinate or variable in an xarray.Dataset.
+    """Return the name of the time coordinate or variable in an xarray.Dataset.
 
     Parameters
     ----------
@@ -103,6 +102,7 @@ def get_time_key(ds):
     ------
     ValueError
         If no time dimension or coordinate is found.
+
     """
     # Common time names to check
     time_candidates = ["TIME", "time", "Time", "DATETIME", "datetime", "date"]
@@ -131,8 +131,7 @@ def get_time_key(ds):
 
 
 def get_dims(ds_gridded):
-    """
-    Helper function to extract pressure key, time key, and their respective dimensions from a dataset.
+    """Helper function to extract pressure key, time key, and their respective dimensions from a dataset.
 
     Parameters
     ----------
@@ -149,6 +148,7 @@ def get_dims(ds_gridded):
         Dimension associated with the pressure variable.
     time_dim : str
         Dimension associated with the time variable.
+
     """
     if isinstance(ds_gridded, xr.DataArray):
         ds_gridded = ds_gridded.to_dataset()
@@ -204,8 +204,7 @@ def get_dims(ds_gridded):
 
 
 def iso8601_duration_from_seconds(seconds):
-    """
-    Convert a duration in seconds to an ISO 8601 duration string.
+    """Convert a duration in seconds to an ISO 8601 duration string.
 
     Parameters
     ----------
@@ -216,6 +215,7 @@ def iso8601_duration_from_seconds(seconds):
     -------
     str
         ISO 8601 duration string, e.g., 'PT1H', 'PT30M', 'PT15S'.
+
     """
     seconds = int(round(seconds))
     if seconds >= 86400:
@@ -229,8 +229,7 @@ def iso8601_duration_from_seconds(seconds):
 
 
 def is_iso8601_utc(timestr):
-    """
-    Validate whether a string is in ISO8601 UTC format: YYYY-MM-DDTHH:MM:SSZ
+    """Validate whether a string is in ISO8601 UTC format: YYYY-MM-DDTHH:MM:SSZ
 
     Parameters
     ----------
@@ -241,6 +240,7 @@ def is_iso8601_utc(timestr):
     -------
     bool
         True if valid ISO8601 UTC format, False otherwise.
+
     """
     try:
         datetime.strptime(timestr, "%Y/%m/%dT%H:%M:%SZ")  # RODB-style

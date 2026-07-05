@@ -1,5 +1,4 @@
-"""
-Legacy RODB/RAPID format processing functions.
+"""Legacy RODB/RAPID format processing functions.
 
 This module contains legacy code for processing RAPID/RODB format data.
 For new projects, use the modern CF-compliant workflow:
@@ -13,6 +12,7 @@ Legacy modules:
 
 from .convertOS import *
 from .mooring_rodb import *
+
 # Import all legacy functionality for backward compatibility
 from .process_rodb import *
 from .rodb import *

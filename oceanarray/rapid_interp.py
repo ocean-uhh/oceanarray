@@ -1,5 +1,4 @@
-"""
-Physics-informed vertical interpolation scheme for sparse ocean profiles.
+"""Physics-informed vertical interpolation scheme for sparse ocean profiles.
 
 This module implements the core algorithm used in the RAPID array, which
 reconstructs full-depth temperature and salinity profiles using climatological
@@ -17,6 +16,7 @@ References
 ----------
 - Vertical interpolation based on climatological gradients (Johns et al., 2001).
 - Adapted and translated from Matlab routines by T. Kanzow (2000).
+
 """
 
 import pathlib
@@ -35,8 +35,7 @@ from oceanarray.logger import log_info
 
 
 def spacing(p_start: float, p_end: float, step: float) -> np.ndarray:
-    """
-    Create an array of pressures from `p_start` to `p_end` using approximately uniform spacing.
+    """Create an array of pressures from `p_start` to `p_end` using approximately uniform spacing.
 
     This helper function generates a 1D pressure array using either increasing or decreasing
     steps depending on the ordering of `p_start` and `p_end`. It ensures that the end point
@@ -64,6 +63,7 @@ def spacing(p_start: float, p_end: float, step: float) -> np.ndarray:
     See Also
     --------
     verticalnn.rapid_interp.interpolate_internal : Uses this function to build vertical grids.
+
     """
     if p_start < p_end:
         return np.arange(p_start, p_end + step, step)
@@ -74,8 +74,7 @@ def spacing(p_start: float, p_end: float, step: float) -> np.ndarray:
 def save_climatology(
     clim_ds: xr.Dataset, output_path: Union[str, pathlib.Path]
 ) -> None:
-    """
-    Save a climatology dataset containing vertical gradients to a NetCDF file.
+    """Save a climatology dataset containing vertical gradients to a NetCDF file.
 
     This function writes the input dataset—typically containing monthly fields
     of dT/dP and dS/dP as a function of temperature—to disk, adding metadata.
@@ -99,6 +98,7 @@ def save_climatology(
     --------
     verticalnn.rapid_interp.smooth_climatology : Smooths this dataset along the temperature axis.
     verticalnn.rapid_interp.build_climatology : Creates the dataset to be saved.
+
     """
     output_path = pathlib.Path(output_path)
 
@@ -121,8 +121,7 @@ def save_climatology(
 
 
 def smooth_climatology(clim_ds: xr.Dataset, window: int = 3) -> xr.Dataset:
-    """
-    Apply rolling smoothing to vertical gradient climatology along the temperature axis.
+    """Apply rolling smoothing to vertical gradient climatology along the temperature axis.
 
     This function smooths the dT/dP and dS/dP climatology fields using a centered
     moving average along the temperature bins, applied independently for each month.
@@ -147,6 +146,7 @@ def smooth_climatology(clim_ds: xr.Dataset, window: int = 3) -> xr.Dataset:
     See Also
     --------
     verticalnn.rapid_interp.save_climatology : saves smoothed output to disk.
+
     """
     dTdp_smoothed = (
         clim_ds["dTdp"].rolling(TEMP=window, center=True, min_periods=1).mean()
@@ -177,8 +177,7 @@ def build_climatology(
     min_profiles_per_bin: int = 5,
     temp_bins: np.ndarray | None = None,
 ) -> xr.Dataset:
-    """
-    Build a seasonal climatology of dT/dP and dS/dP as a function of temperature.
+    """Build a seasonal climatology of dT/dP and dS/dP as a function of temperature.
 
     This function processes hydrographic profiles to compute monthly climatologies
     of temperature and salinity vertical gradients. It bins gradients by temperature
@@ -220,6 +219,7 @@ def build_climatology(
     verticalnn.rapid_interp.smooth_climatology : Applies smoothing to output climatology.
     verticalnn.rapid_interp.save_climatology : Saves climatology dataset to disk.
     verticalnn.rapid_interp.interpolate_profiles : Uses this climatology for profile interpolation.
+
     """
     if temp_bins is None:
         temp_bins = np.arange(-2, 35.5, 0.5)  # typical ocean range
@@ -315,8 +315,7 @@ def extrapolate_boundary(
     dsdp_func,
     int_step: float = 20.0,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Extrapolate temperature and salinity profiles from a boundary point using climatological gradients.
+    """Extrapolate temperature and salinity profiles from a boundary point using climatological gradients.
 
     This function integrates vertical gradients of temperature (dT/dP) and salinity (dS/dP)
     downward or upward from a single observed point to reach a specified pressure boundary.
@@ -359,6 +358,7 @@ def extrapolate_boundary(
     --------
     verticalnn.rapid_interp.interpolate_internal : Used for interpolation between data points.
     verticalnn.rapid_interp.interpolate_profiles : Combines extrapolation and interpolation.
+
     """
     # Handle degenerate case early
     if P == p_bound:
@@ -412,8 +412,7 @@ def interpolate_internal(
     dsdp_func,
     int_step: float = 20.0,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """
-    Interpolate between observed data points using climatological vertical gradients.
+    """Interpolate between observed data points using climatological vertical gradients.
 
     This function fills gaps between observed pressure levels by integrating temperature
     and salinity gradients from both the upper and lower sensors and blending the results.
@@ -457,6 +456,7 @@ def interpolate_internal(
     --------
     verticalnn.rapid_interp.extrapolate_boundary : For extrapolation above or below the data range.
     verticalnn.rapid_interp.interpolate_profiles : Applies this interpolation to all profiles in a dataset.
+
     """
     innerT = []
     innerS = []
@@ -552,8 +552,7 @@ def interpolate_profiles(
     int_step: float = 20.0,
     extrapolate: bool = True,
 ) -> xr.Dataset:
-    """
-    Interpolate sparse moored profiles onto a regular vertical grid using climatological gradients.
+    """Interpolate sparse moored profiles onto a regular vertical grid using climatological gradients.
 
     This function performs both interpolation between observed levels and extrapolation
     beyond observed bounds using seasonal climatologies of dT/dP and dS/dP, following
@@ -597,6 +596,7 @@ def interpolate_profiles(
     verticalnn.rapid_interp.build_climatology : Generates the dT/dP and dS/dP climatology.
     verticalnn.rapid_interp.interpolate_internal : Fills gaps between sensors.
     verticalnn.rapid_interp.extrapolate_boundary : Fills above/below observed range.
+
     """
     # Check if the climatology dataset has the required variables
     utilities._check_necessary_variables(clim_ds, vars=["dTdp", "dSdp"])

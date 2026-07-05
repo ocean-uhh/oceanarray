@@ -1,28 +1,23 @@
-"""
-Refactored stage1 processing for mooring data with improved readability.
-"""
+"""Refactored stage1 processing for mooring data with improved readability."""
 
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
-from ctd_tools.readers import (NortekAsciiReader, RbrAsciiReader,
-                               RbrRskAutoReader, SbeAsciiReader, SbeCnvReader)
-from ctd_tools.writers import NetCdfWriter
+import seasenselib
+from seasenselib.writers import NetCdfWriter
 
 
 class MooringProcessor:
     """Handles stage1 processing of mooring data."""
 
-    # File type to reader mapping
-    READER_MAP = {
-        "sbe-cnv": SbeCnvReader,
-        "nortek-aqd": NortekAsciiReader,
-        "sbe-asc": SbeAsciiReader,
-        "rbr-rsk": RbrRskAutoReader,
-        # "rbr-matlab": RbrMatlabReader,
-        "rbr-dat": RbrAsciiReader,
-        # "adcp-matlab": AdcpMatlabReader,
+    # Supported format keys for seasenselib.read()
+    SUPPORTED_FILE_TYPES = {
+        "sbe-cnv",
+        "nortek-aqd",
+        "sbe-asc",
+        "rbr-rsk",
+        "rbr-dat",
     }
 
     # Variables to remove for specific file types
@@ -60,20 +55,18 @@ class MooringProcessor:
         with open(config_path, "r") as f:
             return yaml.safe_load(f)
 
-    def _get_reader_for_file_type(
+    def _read_file(
         self, file_type: str, file_path: str, header_path: Optional[str] = None
     ):
-        """Get appropriate reader instance for file type."""
-        if file_type not in self.READER_MAP:
+        """Read a data file using seasenselib.read()."""
+        if file_type not in self.SUPPORTED_FILE_TYPES:
             raise ValueError(f"Unknown file type: {file_type}")
 
-        reader_class = self.READER_MAP[file_type]
-
-        # Handle special cases that need additional parameters
+        kwargs = {}
         if file_type == "nortek-aqd" and header_path:
-            return reader_class(file_path, header_file_path=header_path)
-        else:
-            return reader_class(file_path)
+            kwargs["header_file"] = header_path
+
+        return seasenselib.read(file_path, file_format=file_type, **kwargs)
 
     def _clean_dataset_variables(self, dataset, file_type: str):
         """Remove unwanted variables and coordinates from dataset."""
@@ -262,12 +255,9 @@ class MooringProcessor:
             instrument_name = instrument_config.get("instrument", "unknown")
             header_file = str(input_dir / instrument_name / instrument_config["header"])
 
-        # Create reader and read data
+        # Read data
         try:
-            reader = self._get_reader_for_file_type(
-                file_type, str(input_file), header_file
-            )
-            dataset = reader.get_data()
+            dataset = self._read_file(file_type, str(input_file), header_file)
         except Exception as e:
             relative_path = input_file.relative_to(self.base_dir)
             self._log_print(f"EXCEPT: Error reading file {relative_path}: {e}")
@@ -297,8 +287,7 @@ class MooringProcessor:
     def process_mooring(
         self, mooring_name: str, output_path: Optional[str] = None
     ) -> bool:
-        """
-        Process a single mooring's data.
+        """Process a single mooring's data.
 
         Args:
             mooring_name: Name of the mooring to process
@@ -306,6 +295,7 @@ class MooringProcessor:
 
         Returns:
             bool: True if processing completed successfully, False otherwise
+
         """
         # Set up paths
         if output_path is None:
@@ -357,8 +347,7 @@ class MooringProcessor:
 def stage1_mooring(
     mooring_name: str, basedir: str, output_path: Optional[str] = None
 ) -> bool:
-    """
-    Process a single mooring's data (backwards compatibility function).
+    """Process a single mooring's data (backwards compatibility function).
 
     Args:
         mooring_name: Name of the mooring to process
@@ -367,14 +356,14 @@ def stage1_mooring(
 
     Returns:
         bool: True if processing completed successfully
+
     """
     processor = MooringProcessor(basedir)
     return processor.process_mooring(mooring_name, output_path)
 
 
 def process_multiple_moorings(mooring_list: List[str], basedir: str) -> Dict[str, bool]:
-    """
-    Process multiple moorings.
+    """Process multiple moorings.
 
     Args:
         mooring_list: List of mooring names to process
@@ -382,6 +371,7 @@ def process_multiple_moorings(mooring_list: List[str], basedir: str) -> Dict[str
 
     Returns:
         Dict mapping mooring names to success status
+
     """
     processor = MooringProcessor(basedir)
     results = {}

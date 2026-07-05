@@ -7,7 +7,10 @@ import pytest
 import xarray as xr
 
 from oceanarray.legacy.process_rodb import (
-    apply_microcat_calibration_from_txt, stage2_trim, trim_suggestion)
+    apply_microcat_calibration_from_txt,
+    stage2_trim,
+    trim_suggestion,
+)
 from oceanarray.legacy.rodb import rodbload
 
 

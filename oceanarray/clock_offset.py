@@ -1,5 +1,4 @@
-"""
-Clock offset analysis functions for oceanographic instrument data.
+"""Clock offset analysis functions for oceanographic instrument data.
 
 This module provides functions to analyze and detect clock offsets between
 different instruments on the same mooring by comparing deployment timing
@@ -17,8 +16,7 @@ from oceanarray import find_deployment, tools
 
 
 def load_mooring_instruments(mooring_name, base_dir, output_path, file_suffix="_raw"):
-    """
-    Load all instruments for a mooring from netCDF files and enrich with YAML metadata.
+    """Load all instruments for a mooring from netCDF files and enrich with YAML metadata.
 
     Parameters
     ----------
@@ -37,6 +35,7 @@ def load_mooring_instruments(mooring_name, base_dir, output_path, file_suffix="_
         List of datasets for each instrument
     dict
         YAML metadata for the mooring
+
     """
     proc_dir = output_path + mooring_name
     moor_yaml = proc_dir + "/" + mooring_name + ".mooring.yaml"
@@ -69,8 +68,7 @@ def load_mooring_instruments(mooring_name, base_dir, output_path, file_suffix="_
 
 
 def create_common_time_grid(datasets):
-    """
-    Create a common time grid for interpolation based on all datasets.
+    """Create a common time grid for interpolation based on all datasets.
 
     Parameters
     ----------
@@ -81,6 +79,7 @@ def create_common_time_grid(datasets):
     -------
     numpy.ndarray
         Common time grid as datetime64 array
+
     """
     intervals_min = []
     start_times = []
@@ -110,8 +109,7 @@ def create_common_time_grid(datasets):
 
 
 def interpolate_datasets_to_grid(datasets, time_grid):
-    """
-    Interpolate all datasets to a common time grid.
+    """Interpolate all datasets to a common time grid.
 
     Parameters
     ----------
@@ -124,6 +122,7 @@ def interpolate_datasets_to_grid(datasets, time_grid):
     -------
     list of xarray.Dataset
         List of interpolated datasets
+
     """
     datasets_interp = []
 
@@ -170,8 +169,7 @@ def interpolate_datasets_to_grid(datasets, time_grid):
 
 
 def combine_interpolated_datasets(datasets_interp):
-    """
-    Combine interpolated datasets into a single multi-level dataset.
+    """Combine interpolated datasets into a single multi-level dataset.
 
     Parameters
     ----------
@@ -182,6 +180,7 @@ def combine_interpolated_datasets(datasets_interp):
     -------
     xarray.Dataset
         Combined dataset with N_LEVELS dimension
+
     """
     vars_to_keep = [
         "temperature",
@@ -248,8 +247,7 @@ def combine_interpolated_datasets(datasets_interp):
 
 
 def analyze_deployment_timing(combined_ds):
-    """
-    Analyze deployment timing using temperature-based detection of deployment periods.
+    """Analyze deployment timing using temperature-based detection of deployment periods.
 
     Parameters
     ----------
@@ -260,6 +258,7 @@ def analyze_deployment_timing(combined_ds):
     -------
     xarray.Dataset
         Dataset enriched with deployment timing information
+
     """
     return find_deployment.find_deployment(
         combined_ds, bottom_strategy="deployment_bounds"
@@ -267,8 +266,7 @@ def analyze_deployment_timing(combined_ds):
 
 
 def calculate_timing_offsets(combined_ds, bin_width_sec=60):
-    """
-    Calculate timing offsets between instruments based on deployment start/end times.
+    """Calculate timing offsets between instruments based on deployment start/end times.
 
     Parameters
     ----------
@@ -281,6 +279,7 @@ def calculate_timing_offsets(combined_ds, bin_width_sec=60):
     -------
     dict
         Dictionary containing offset analysis results
+
     """
     start_times = pd.to_datetime(combined_ds["start_time"].values)
     end_times = pd.to_datetime(combined_ds["end_time"].values)
@@ -342,8 +341,7 @@ def calculate_timing_offsets(combined_ds, bin_width_sec=60):
 
 
 def perform_lag_correlation_analysis(combined_ds, ref_index=0, sub_sample=5):
-    """
-    Perform lag correlation analysis between instruments to detect clock offsets.
+    """Perform lag correlation analysis between instruments to detect clock offsets.
 
     Parameters
     ----------
@@ -358,6 +356,7 @@ def perform_lag_correlation_analysis(combined_ds, ref_index=0, sub_sample=5):
     -------
     dict
         Dictionary containing correlation analysis results
+
     """
     time_interval = np.nanmedian(
         np.diff(combined_ds["time"].values) / np.timedelta64(1, "s")
@@ -403,8 +402,7 @@ def perform_lag_correlation_analysis(combined_ds, ref_index=0, sub_sample=5):
 
 
 def print_timing_offset_summary(combined_ds, offset_results):
-    """
-    Print a summary table of timing offsets for all instruments.
+    """Print a summary table of timing offsets for all instruments.
 
     Parameters
     ----------
@@ -412,6 +410,7 @@ def print_timing_offset_summary(combined_ds, offset_results):
         Combined dataset with instrument metadata
     offset_results : dict
         Results from calculate_timing_offsets()
+
     """
     N = combined_ds.sizes["N_LEVELS"]
     labels = combined_ds["instrument"].values
@@ -442,8 +441,7 @@ def print_timing_offset_summary(combined_ds, offset_results):
 
 
 def suggest_reference_instrument(combined_ds, offset_results):
-    """
-    Suggest the best reference instrument for lag correlation analysis.
+    """Suggest the best reference instrument for lag correlation analysis.
 
     This function recommends the instrument with the smallest average timing offset
     from the temperature threshold method, making it the most likely to have
@@ -460,6 +458,7 @@ def suggest_reference_instrument(combined_ds, offset_results):
     -------
     dict
         Dictionary with recommendation details including suggested index
+
     """
     avg_offsets = offset_results["avg_offsets"]
     abs_offsets = np.abs(avg_offsets)
@@ -500,8 +499,7 @@ def suggest_reference_instrument(combined_ds, offset_results):
 
 
 def print_correlation_summary(combined_ds, correlation_results):
-    """
-    Print a summary of lag correlation analysis results.
+    """Print a summary of lag correlation analysis results.
 
     Parameters
     ----------
@@ -509,6 +507,7 @@ def print_correlation_summary(combined_ds, correlation_results):
         Combined dataset with instrument metadata
     correlation_results : dict
         Results from perform_lag_correlation_analysis()
+
     """
     serial = combined_ds["serial_number"].values
     depths = combined_ds["nominal_depth"].values
@@ -532,8 +531,7 @@ def print_correlation_summary(combined_ds, correlation_results):
 def plot_deployment_boundaries(
     original_datasets, combined_ds, n_samples=10, figsize=(12, 4)
 ):
-    """
-    Plot detailed view of deployment boundaries showing individual measurements.
+    """Plot detailed view of deployment boundaries showing individual measurements.
 
     This function creates plots showing the exact transition points where instruments
     move from surface to deployment conditions, with individual data points highlighted
@@ -549,6 +547,7 @@ def plot_deployment_boundaries(
         Number of samples to show before/after predicted boundaries, default 10
     figsize : tuple, optional
         Figure size for each plot, default (12, 4)
+
     """
     import matplotlib.pyplot as plt
 

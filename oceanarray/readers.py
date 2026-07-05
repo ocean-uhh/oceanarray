@@ -15,10 +15,9 @@ from oceanarray import rodb
 
 
 def load_dataset(
-    source: Union[str, Path, List[Union[str, Path]]]
+    source: Union[str, Path, List[Union[str, Path]]],
 ) -> Union[xr.Dataset, List[xr.Dataset]]:
-    """
-    Load one or more observational data files and return as xarray Datasets.
+    """Load one or more observational data files and return as xarray Datasets.
     Dispatches based on file extension or known formats.
 
     Parameters
@@ -36,6 +35,7 @@ def load_dataset(
     ------
     ValueError
         If file type is unrecognized.
+
     """
     if isinstance(source, (str, Path)):
         source = [Path(source)]
@@ -56,8 +56,7 @@ def load_dataset(
 
 
 def rodbload_old(filepath: Path, variables: list[str]) -> xr.Dataset:
-    """
-    Load a RODB-style file into an xarray.Dataset.
+    """Load a RODB-style file into an xarray.Dataset.
 
     Parameters
     ----------
@@ -70,6 +69,7 @@ def rodbload_old(filepath: Path, variables: list[str]) -> xr.Dataset:
     -------
     ds : xr.Dataset
         Dataset containing requested variables
+
     """
     with open(filepath, "r") as f:
         lines = f.readlines()

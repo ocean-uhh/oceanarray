@@ -6,7 +6,11 @@ import pytest
 import xarray as xr
 
 from oceanarray.legacy.rodb import (  # Replace with actual function names
-    format_latlon, parse_rodb_keys_file, rodbload, rodbsave)
+    format_latlon,
+    parse_rodb_keys_file,
+    rodbload,
+    rodbsave,
+)
 
 
 def test_parse_rodb_keys_file(tmp_path):

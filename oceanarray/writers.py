@@ -58,8 +58,7 @@ def save_dataset(ds: xr.Dataset, output_file: str = "../test.nc") -> bool:
 
 
 def save_OS_instrument(ds: xr.Dataset, data_dir: Path):
-    """
-    Save OceanSITES dataset to netCDF using the 'id' global attribute as filename.
+    """Save OceanSITES dataset to netCDF using the 'id' global attribute as filename.
 
     Parameters
     ----------
@@ -72,6 +71,7 @@ def save_OS_instrument(ds: xr.Dataset, data_dir: Path):
     -------
     Path
         Full path to the saved NetCDF file.
+
     """
     if "id" not in ds.attrs:
         raise ValueError(

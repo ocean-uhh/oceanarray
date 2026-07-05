@@ -60,8 +60,7 @@ def split_value(data, nbins=30):
 def find_cold_entry_exit(
     time, temp, quantile=0.95, dwell_seconds=1800, smooth_window=5
 ):
-    """
-    Identify first sustained entry into 'cold' regime and last sustained exit.
+    """Identify first sustained entry into 'cold' regime and last sustained exit.
 
     Parameters
     ----------
@@ -77,6 +76,7 @@ def find_cold_entry_exit(
     Returns
     -------
     t_start, t_end, threshold : tuple of (Timestamp or None, Timestamp or None, float)
+
     """
     time = pd.to_datetime(time)
     temp = np.asarray(temp, dtype=float)
@@ -124,8 +124,7 @@ def calc_psal(ds):
 
 
 def flag_salinity_outliers(ds, n_std=4):
-    """
-    Flags PSAL values that are more than n_std standard deviations from the mean,
+    """Flags PSAL values that are more than n_std standard deviations from the mean,
     computed separately for each depth level.
 
     Parameters
@@ -139,6 +138,7 @@ def flag_salinity_outliers(ds, n_std=4):
     -------
     xarray.DataArray (bool)
         Boolean array with True where salinity is flagged as an outlier.
+
     """
     if "CNDC_QC" in ds:
         mask = ds["CNDC_QC"] == 0
@@ -157,8 +157,7 @@ def flag_salinity_outliers(ds, n_std=4):
 
 
 def flag_temporal_spikes(ds, var="CNDC", threshold=5):
-    """
-    Flags large absolute differences in time for each depth.
+    """Flags large absolute differences in time for each depth.
     threshold: maximum allowed difference in units of the variable
     """
     diff = np.abs(ds[var].diff("TIME", label="upper"))
@@ -170,8 +169,7 @@ def flag_temporal_spikes(ds, var="CNDC", threshold=5):
 
 
 def flag_vertical_inconsistencies(ds, var="CNDC", threshold=2):
-    """
-    Flags points that are very different from vertical neighbors.
+    """Flags points that are very different from vertical neighbors.
     threshold: max allowed difference between vertically adjacent sensors.
     """
     # Central difference approximation in depth
@@ -204,8 +202,7 @@ def run_qc(ds):
 def downsample_to_sparse(
     temp_profiles, salt_profiles, full_pressures, sparse_pressures
 ):
-    """
-    Downsample full T/S profiles to sparse pressure levels.
+    """Downsample full T/S profiles to sparse pressure levels.
 
     Parameters
     ----------
@@ -224,6 +221,7 @@ def downsample_to_sparse(
         Concatenated sparse temperature and salinity features,
         shape (n_profiles, 2 * n_pressures_sparse).
         (temp_sparse followed by salt_sparse)
+
     """
     n_profiles = temp_profiles.shape[0]
     all_temp = []
@@ -256,8 +254,7 @@ def process_dataset(
     lonlim: tuple[float, float] = (-77.0, -76.5),
     pgrid: np.ndarray = None,
 ) -> tuple[xr.Dataset, xr.Dataset]:
-    """
-    Filter and process a hydrographic dataset for use in training.
+    """Filter and process a hydrographic dataset for use in training.
 
     This function selects a region of interest, extracts and downsamples profiles of
     temperature and salinity onto both standard and sparse pressure grids. It also computes
@@ -284,6 +281,7 @@ def process_dataset(
     verticalnn.data_utils.downsample_to_sparse : Used to interpolate to target pressure levels.
     verticalnn.config.STANDARD_PRESSURES : Standard pressure grid.
     verticalnn.config.SPARSE_PRESSURES : Sparse pressure grid.
+
     """
     pres_key, time_key, pres_dim, time_dim = utilities.get_dims(ds)
 

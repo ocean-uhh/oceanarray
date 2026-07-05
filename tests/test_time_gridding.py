@@ -1,5 +1,4 @@
-"""
-Tests for oceanarray.time_gridding module.
+"""Tests for oceanarray.time_gridding module.
 
 Tests cover Step 1: time gridding and optional filtering of multiple instruments.
 
@@ -21,9 +20,11 @@ import pytest
 import xarray as xr
 import yaml
 
-from oceanarray.time_gridding import (TimeGriddingProcessor,
-                                      process_multiple_moorings_time_gridding,
-                                      time_gridding_mooring)
+from oceanarray.time_gridding import (
+    TimeGriddingProcessor,
+    process_multiple_moorings_time_gridding,
+    time_gridding_mooring,
+)
 
 
 def create_mock_instrument_dataset(

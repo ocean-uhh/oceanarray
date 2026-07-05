@@ -83,8 +83,7 @@ def stack_instruments(ds_list, time_key="TIME"):
 
 
 def add_serial_and_sensor_info(ds_combined, ds_list):
-    """
-    Add serial number/depth mapping and sensor variable info to the combined dataset.
+    """Add serial number/depth mapping and sensor variable info to the combined dataset.
 
     Parameters
     ----------
@@ -99,6 +98,7 @@ def add_serial_and_sensor_info(ds_combined, ds_list):
         The dataset with added attributes and SENSOR_VARS variable.
     dict
         The updated attributes dictionary.
+
     """
     # Get the serial numbers and depths
     serial_numbers = []
@@ -157,8 +157,7 @@ def add_serial_and_sensor_info(ds_combined, ds_list):
 
 
 def combine_mooring_OS(ds_list):
-    """
-    Combine a list of OceanSITES instrument-level datasets into a mooring-level dataset.
+    """Combine a list of OceanSITES instrument-level datasets into a mooring-level dataset.
 
     Parameters
     ----------
@@ -169,6 +168,7 @@ def combine_mooring_OS(ds_list):
     -------
     xarray.Dataset
         Combined dataset with cleaned and updated global attributes.
+
     """
     if not ds_list:
         raise ValueError("Input list is empty. At least one dataset is required.")
@@ -228,8 +228,7 @@ def combine_mooring_OS(ds_list):
 
 
 def auto_filt(y, sr, co, typ="low", fo=6):
-    """
-    Apply a Butterworth digital filter to a data array.
+    """Apply a Butterworth digital filter to a data array.
 
     Parameters
     ----------
@@ -248,6 +247,7 @@ def auto_filt(y, sr, co, typ="low", fo=6):
     -------
     yf : ndarray
         Filtered data array.
+
     """
     # Normalize cutoff frequency to the Nyquist rate
     nyquist = 0.5 * sr
@@ -262,8 +262,7 @@ def auto_filt(y, sr, co, typ="low", fo=6):
 
 
 def filter_all_time_vars(ds, cutoff_days=2, fo=6):
-    """
-    Apply a lowpass Butterworth filter to all data variables that depend on TIME.
+    """Apply a lowpass Butterworth filter to all data variables that depend on TIME.
 
     Parameters
     ----------
@@ -278,6 +277,7 @@ def filter_all_time_vars(ds, cutoff_days=2, fo=6):
     -------
     xarray.Dataset
         Dataset with filtered variables.
+
     """
     time = ds["TIME"]
     dt = (time.isel(TIME=1) - time.isel(TIME=0)) / np.timedelta64(1, "s")  # seconds
@@ -322,8 +322,7 @@ def get_12hourly_time_grid(
     end_offset=pd.Timedelta(0),
     time_var="TIME",
 ):
-    """
-    Given a pandas.DatetimeIndex, array of datetimes, or xarray.Dataset,
+    """Given a pandas.DatetimeIndex, array of datetimes, or xarray.Dataset,
     return a regular time grid (default: 12-hourly) from the first full day after the start
     to the last full day before the end.
 
@@ -344,6 +343,7 @@ def get_12hourly_time_grid(
     -------
     pandas.DatetimeIndex
         Regular time grid at the specified frequency.
+
     """
     if hasattr(time_or_ds, "dims") and time_var in time_or_ds:
         # Assume xarray.Dataset or DataArray
@@ -363,8 +363,7 @@ def get_12hourly_time_grid(
 
 
 def interp_to_12hour_grid(ds1):
-    """
-    Interpolate all variables with a TIME dimension to a regular 12-hour grid.
+    """Interpolate all variables with a TIME dimension to a regular 12-hour grid.
 
     Handles both 1D and multidimensional variables with TIME as the first dimension.
     """

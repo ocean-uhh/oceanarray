@@ -1,5 +1,4 @@
-"""
-Stage 2 processing for mooring data: Apply clock offsets and trim to deployment period.
+"""Stage 2 processing for mooring data: Apply clock offsets and trim to deployment period.
 
 This module handles:
 - Loading processed Stage 1 NetCDF files
@@ -15,7 +14,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import yaml
-from ctd_tools.writers import NetCdfWriter
+from seasenselib.writers import NetCdfWriter
 
 
 class Stage2Processor:
@@ -161,7 +160,6 @@ class Stage2Processor:
         mooring_name: str,
     ) -> xr.Dataset:
         """Add any missing metadata variables to dataset with fallback extraction."""
-
         # Get metadata from YAML config (highest priority)
         yaml_instrument = instrument_config.get("instrument")
         yaml_serial = instrument_config.get("serial")
@@ -336,8 +334,7 @@ class Stage2Processor:
     def process_mooring(
         self, mooring_name: str, output_path: Optional[str] = None
     ) -> bool:
-        """
-        Process Stage 2 for a single mooring.
+        """Process Stage 2 for a single mooring.
 
         Args:
             mooring_name: Name of the mooring to process
@@ -345,6 +342,7 @@ class Stage2Processor:
 
         Returns:
             bool: True if processing completed successfully
+
         """
         # Set up paths
         if output_path is None:
@@ -404,8 +402,7 @@ class Stage2Processor:
 def stage2_mooring(
     mooring_name: str, basedir: str, output_path: Optional[str] = None
 ) -> bool:
-    """
-    Process Stage 2 for a single mooring (backwards compatibility function).
+    """Process Stage 2 for a single mooring (backwards compatibility function).
 
     Args:
         mooring_name: Name of the mooring to process
@@ -414,6 +411,7 @@ def stage2_mooring(
 
     Returns:
         bool: True if processing completed successfully
+
     """
     processor = Stage2Processor(basedir)
     return processor.process_mooring(mooring_name, output_path)
@@ -422,8 +420,7 @@ def stage2_mooring(
 def process_multiple_moorings_stage2(
     mooring_list: List[str], basedir: str
 ) -> Dict[str, bool]:
-    """
-    Process Stage 2 for multiple moorings.
+    """Process Stage 2 for multiple moorings.
 
     Args:
         mooring_list: List of mooring names to process
@@ -431,6 +428,7 @@ def process_multiple_moorings_stage2(
 
     Returns:
         Dict mapping mooring names to success status
+
     """
     processor = Stage2Processor(basedir)
     results = {}

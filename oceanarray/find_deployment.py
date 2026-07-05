@@ -45,8 +45,7 @@ def _runs_of_true(mask: np.ndarray) -> list[tuple[int, int]]:
 
 
 def _best_step_change(y: np.ndarray, min_seg: int = 1) -> tuple[int, float, float]:
-    """
-    One change-point (piecewise constant) via SSE minimization.
+    """One change-point (piecewise constant) via SSE minimization.
     Returns (k, mu_left, mu_right) with 0 < k < n (split after k-1).
     Enforces min_seg samples on each side.
     """
@@ -100,8 +99,7 @@ def likely_at_bottom_window(
     recovery_time: np.datetime64 | None = None,
     deployment_margin_hours: float = 2.0,
 ) -> tuple[np.datetime64, np.datetime64]:
-    """
-    Return (bot_start, bot_end): the window where the instrument is almost surely at depth.
+    """Return (bot_start, bot_end): the window where the instrument is almost surely at depth.
     Strategies:
       - 'fixed_hours': [tmin+margin, tmax-margin]
       - 'percent_span': [tmin+f, tmax-f] using inner fraction (e.g. 25%)
@@ -157,8 +155,7 @@ def compute_threshold_sigma_band(
     smooth_window=9,
     warm_percentile=90,
 ):
-    """
-    Decide a single threshold using sigma-band logic.
+    """Decide a single threshold using sigma-band logic.
 
     - Band half-width = max(band_sigma*sea_std, min_band_halfwidth).
     - If warm_side == "high": threshold = sea_mean + half_width  (deep is below threshold)
@@ -170,6 +167,7 @@ def compute_threshold_sigma_band(
     threshold : float
     deep_is_below : bool
         True if 'deep' should be considered <= threshold, False if >= threshold.
+
     """
     halfw = max(float(band_sigma) * float(sea_std), float(min_band_halfwidth))
 
@@ -214,8 +212,7 @@ def compute_threshold_sigma_band(
 def determine_sea_values(
     time: np.ndarray, temp: np.ndarray, bot_start: np.datetime64, bot_end: np.datetime64
 ) -> tuple[float, float]:
-    """
-    Return (sea_mean, sea_std) computed over the bottom window [bot_start, bot_end].
+    """Return (sea_mean, sea_std) computed over the bottom window [bot_start, bot_end].
     If the mask is empty, fall back to whole-series robust stats.
     """
     t = pd.to_datetime(time)
@@ -250,8 +247,7 @@ def likely_at_surface(
     dwell_seconds: int = 1800,
     tol_sigma: float = 2.0,
 ) -> tuple[np.datetime64 | None, np.datetime64 | None, float]:
-    """
-    Return (sink_time, float_time, threshold).
+    """Return (sink_time, float_time, threshold).
     - sink_time: first sustained entry into 'sea' regime found in the early window.
     - float_time: last sustained exit from 'sea' regime found in the late window.
     - threshold: separator between warm and sea (midpoint between sea_mean and estimated warm_mean).
@@ -358,8 +354,7 @@ def likely_at_surface(
 
 
 def find_entry_exit_from_threshold(time, temp, threshold):
-    """
-    Return (sink_time, float_time) where temp is below threshold.
+    """Return (sink_time, float_time) where temp is below threshold.
     No smoothing, no dwell time — just first/last index where condition holds.
     """
     t = pd.to_datetime(time).to_numpy()  # datetime64[ns] array
@@ -398,8 +393,7 @@ def find_deployment(
     band_sigma=3.0,  # NEW: used when method='sigma_band'
     dwell_seconds=1800,
 ):
-    """
-    Populate ds with:
+    """Populate ds with:
       - start_time (N_LEVELS) : first deep time (when temps settle cold)
       - end_time   (N_LEVELS) : last deep time (before temps warm)
       - split_value(N_LEVELS) : threshold separating surface vs sea regimes

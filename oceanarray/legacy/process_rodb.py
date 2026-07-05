@@ -13,8 +13,7 @@ DUMMY_VALUE = -9.99e-29  # adjust if needed
 
 
 def middle_percent(values, percent=95):
-    """
-    Return the lower and upper bounds for the central `percent` of the data.
+    """Return the lower and upper bounds for the central `percent` of the data.
 
     Parameters
     ----------
@@ -27,6 +26,7 @@ def middle_percent(values, percent=95):
     -------
     tuple
         (lower_bound, upper_bound)
+
     """
     values = np.asarray(values)
     values = values[~np.isnan(values)]
@@ -41,8 +41,7 @@ def middle_percent(values, percent=95):
 
 
 def mean_of_middle_percent(values, percent=95):
-    """
-    Compute the mean of values within the central `percent` of the data.
+    """Compute the mean of values within the central `percent` of the data.
 
     Parameters
     ----------
@@ -55,6 +54,7 @@ def mean_of_middle_percent(values, percent=95):
     -------
     float
         Mean of values within the specified middle percentage.
+
     """
     values = np.asarray(values)
     values = values[~np.isnan(values)]
@@ -64,8 +64,7 @@ def mean_of_middle_percent(values, percent=95):
 
 
 def std_of_middle_percent(values, percent=95):
-    """
-    Compute the standard deviation of values within the central `percent` of the data.
+    """Compute the standard deviation of values within the central `percent` of the data.
 
     Parameters
     ----------
@@ -78,6 +77,7 @@ def std_of_middle_percent(values, percent=95):
     -------
     float
         Standard deviation of values within the specified middle percentage.
+
     """
     values = np.asarray(values)
     values = values[~np.isnan(values)]
@@ -87,8 +87,7 @@ def std_of_middle_percent(values, percent=95):
 
 
 def normalize_by_middle_percent(values, percent=95):
-    """
-    Normalize a data series by the mean and standard deviation
+    """Normalize a data series by the mean and standard deviation
     of its central `percent` range.
 
     Parameters
@@ -102,6 +101,7 @@ def normalize_by_middle_percent(values, percent=95):
     -------
     array
         Normalized array with the same shape as input.
+
     """
     values = np.asarray(values)
     mask = ~np.isnan(values)
@@ -126,8 +126,7 @@ def normalize_by_middle_percent(values, percent=95):
 
 
 def normalize_dataset_by_middle_percent(ds, percent=95):
-    """
-    Normalize all 1D data variables in an xarray Dataset that match the length of TIME,
+    """Normalize all 1D data variables in an xarray Dataset that match the length of TIME,
     using the mean and std over the central `percent` of each variable.
 
     Parameters
@@ -141,6 +140,7 @@ def normalize_dataset_by_middle_percent(ds, percent=95):
     -------
     xarray.Dataset
         New dataset with normalized data variables.
+
     """
     ds_norm = xr.Dataset(attrs=ds.attrs)
     time_shape = ds["TIME"].shape
@@ -161,8 +161,7 @@ def normalize_dataset_by_middle_percent(ds, percent=95):
 
 
 def trim_suggestion(ds, percent=95, threshold=6, vars_to_check=["T", "C", "P"]):
-    """
-    Normalize dataset variables using the middle percentile and determine suggested
+    """Normalize dataset variables using the middle percentile and determine suggested
     deployment start and end times where the normalized values are below a given threshold.
 
     Parameters
@@ -182,6 +181,7 @@ def trim_suggestion(ds, percent=95, threshold=6, vars_to_check=["T", "C", "P"]):
         Suggested deployment start time.
     end_time : np.datetime64 or None
         Suggested deployment end time.
+
     """
     ds_norm = normalize_dataset_by_middle_percent(ds, percent=percent)
 
@@ -222,8 +222,7 @@ def stage2_trim(
     deployment_start: datetime = None,
     deployment_end: datetime = None,
 ) -> xr.Dataset:
-    """
-    Trim dataset to deployment period and fill time gaps with NaN.
+    """Trim dataset to deployment period and fill time gaps with NaN.
 
     Parameters
     ----------
@@ -238,6 +237,7 @@ def stage2_trim(
     -------
     xr.Dataset
         Trimmed and gap-filled dataset.
+
     """
     if "TIME" not in ds:
         raise ValueError("Dataset must contain 'TIME' coordinate")
@@ -293,8 +293,7 @@ def stage2_trim(
 
 
 def apply_microcat_calibration_from_txt(txt_file: str, use_file: str) -> xr.Dataset:
-    """
-    Apply calibration offsets from a *.microcat.txt file to the original .use data file.
+    """Apply calibration offsets from a *.microcat.txt file to the original .use data file.
 
     Parameters
     ----------
@@ -307,6 +306,7 @@ def apply_microcat_calibration_from_txt(txt_file: str, use_file: str) -> xr.Data
     -------
     ds : xr.Dataset
         Dataset with calibrated temperature, conductivity, and pressure.
+
     """
     txt_file = Path(txt_file)
     use_file = Path(use_file)

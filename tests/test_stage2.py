@@ -1,5 +1,4 @@
-"""
-Tests for oceanarray.stage2 module.
+"""Tests for oceanarray.stage2 module.
 
 Tests use real data files generated from Stage 1 processing.
 
@@ -21,9 +20,11 @@ import pytest
 import xarray as xr
 import yaml
 
-from oceanarray.stage2 import (Stage2Processor,
-                               process_multiple_moorings_stage2,
-                               stage2_mooring)
+from oceanarray.stage2 import (
+    Stage2Processor,
+    process_multiple_moorings_stage2,
+    stage2_mooring,
+)
 
 
 class TestStage2Processor:

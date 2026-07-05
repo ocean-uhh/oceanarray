@@ -1,5 +1,4 @@
-"""
-Tests for oceanarray.stage1 module.
+"""Tests for oceanarray.stage1 module.
 
 Tests use real data files for reliable integration testing.
 """
@@ -12,8 +11,11 @@ import pytest
 import xarray as xr
 import yaml
 
-from oceanarray.stage1 import (MooringProcessor, process_multiple_moorings,
-                               stage1_mooring)
+from oceanarray.stage1 import (
+    MooringProcessor,
+    process_multiple_moorings,
+    stage1_mooring,
+)
 
 
 class TestMooringProcessor:
@@ -65,16 +67,14 @@ class TestMooringProcessor:
         assert processor.base_dir == temp_dir
         assert processor.log_file is None
 
-    def test_reader_map_completeness(self):
-        """Test that READER_MAP contains expected file types that are available in PyPI ctd_tools."""
+    def test_supported_file_types_completeness(self):
+        """Test that SUPPORTED_FILE_TYPES contains expected format keys for seasenselib.read()."""
         processor = MooringProcessor("/tmp")
-        # Only test for readers that are available in the PyPI version
         expected_types = ["sbe-cnv", "nortek-aqd", "sbe-asc", "rbr-rsk", "rbr-dat"]
         for file_type in expected_types:
-            assert file_type in processor.READER_MAP
+            assert file_type in processor.SUPPORTED_FILE_TYPES
 
-        # Test that we have at least the core readers
-        assert len(processor.READER_MAP) >= 5
+        assert len(processor.SUPPORTED_FILE_TYPES) >= 5
 
     def test_setup_logging(self, processor, temp_dir):
         """Test logging setup."""
@@ -474,7 +474,7 @@ class TestErrorHandling:
         processor = MooringProcessor(str(tmp_path))
 
         with pytest.raises(ValueError, match="Unknown file type"):
-            processor._get_reader_for_file_type("invalid-type", "test.dat")
+            processor._read_file("invalid-type", "test.dat")
 
     def test_yaml_parsing_error(self, tmp_path):
         """Test handling of invalid YAML file."""

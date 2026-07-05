@@ -96,8 +96,7 @@ def setup_logger(array_name: str, output_dir: str = "logs") -> None:
 
 
 def load_logging_config():
-    """
-    Load the global logging configuration from config/logging.yaml.
+    """Load the global logging configuration from config/logging.yaml.
 
     Returns
     -------
@@ -110,6 +109,7 @@ def load_logging_config():
         If logging.yaml is not found
     yaml.YAMLError
         If logging.yaml cannot be parsed
+
     """
     import yaml
 
@@ -125,8 +125,7 @@ def load_logging_config():
 
 
 def setup_stage_logging(mooring_name: str, stage_name: str, proc_dir: Path) -> Path:
-    """
-    Set up logging for a processing stage using global configuration.
+    """Set up logging for a processing stage using global configuration.
 
     This creates simple file-based logging for processing stages (stage1, stage2, etc.)
     using the configuration from config/logging.yaml.
@@ -149,6 +148,7 @@ def setup_stage_logging(mooring_name: str, stage_name: str, proc_dir: Path) -> P
     ------
     FileNotFoundError
         If logging config cannot be loaded
+
     """
     import yaml
 

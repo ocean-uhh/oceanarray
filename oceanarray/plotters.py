@@ -9,8 +9,7 @@ from pandas import DataFrame
 
 
 def plot_qartod_summary(ds, var="TEMP", qc_var="QC_ROLLUP"):
-    """
-    Plot QARTOD rollup flags and flagged data points for a given variable.
+    """Plot QARTOD rollup flags and flagged data points for a given variable.
 
     Parameters
     ----------
@@ -20,6 +19,7 @@ def plot_qartod_summary(ds, var="TEMP", qc_var="QC_ROLLUP"):
         Name of the variable to plot (default is "TEMP").
     qc_var : str, optional
         Name of the QC rollup flag variable (default is "QC_ROLLUP").
+
     """
     style_path = Path(__file__).parent.parent / "oceanarray" / "oceanarray.mplstyle"
     plt.style.use(str(style_path))
@@ -88,6 +88,7 @@ def plot_climatology(
     -----
     If smoothed climatology is provided, the raw climatology is shown in grey.
     Otherwise, only the provided climatology is shown in color.
+
     """
     style_path = Path(__file__).parent.parent / "oceanarray" / "oceanarray.mplstyle"
     plt.style.use(str(style_path))
@@ -208,8 +209,7 @@ def pcolor_timeseries_by_depth(ds_interp, var="SA"):
 
 
 def plot_timeseries_by_depth(ds, var="TEMP"):
-    """
-    Plot individual time series for each depth level.
+    """Plot individual time series for each depth level.
 
     Parameters
     ----------
@@ -217,6 +217,7 @@ def plot_timeseries_by_depth(ds, var="TEMP"):
         Dataset containing the variable to plot.
     var : str
         Variable name (default is "TEMP").
+
     """
     style_path = Path(__file__).parent.parent / "oceanarray" / "oceanarray.mplstyle"
     plt.style.use(str(style_path))
@@ -241,8 +242,7 @@ def plot_timeseries_by_depth(ds, var="TEMP"):
 
 
 def plot_trim_windows(ds, dstart, dend, NN=np.timedelta64(12, "h")):
-    """
-    Plot start and end windows for variables T, C, P in the dataset,
+    """Plot start and end windows for variables T, C, P in the dataset,
     highlighting data before/after dstart/dend.
 
     Parameters
@@ -255,6 +255,7 @@ def plot_trim_windows(ds, dstart, dend, NN=np.timedelta64(12, "h")):
         Deployment end time.
     NN : np.timedelta64, optional
         Window size (default: 12 hours).
+
     """
     style_path = Path(__file__).parent.parent / "oceanarray" / "oceanarray.mplstyle"
     plt.style.use(str(style_path))
@@ -360,21 +361,22 @@ def plot_microcat(ds):
 
 
 def show_variables(data):
-    """
-    Processes an xarray Dataset or a netCDF file, extracts variable information,
+    """Processes an xarray Dataset or a netCDF file, extracts variable information,
     and returns a styled DataFrame with details about the variables.
 
-    Parameters:
+    Parameters
+    ----------
     data (str or xr.Dataset): The input data, either a file path to a netCDF file or an xarray Dataset.
 
-    Returns:
+    Returns
+    -------
     pandas.io.formats.style.Styler: A styled DataFrame containing the following columns:
         - dims: The dimension of the variable (or "string" if it is a string type).
         - name: The name of the variable.
         - units: The units of the variable (if available).
         - comment: Any additional comments about the variable (if available).
-    """
 
+    """
     if isinstance(data, str):
         print("information is based on file: {}".format(data))
         dataset = xr.Dataset(data)
@@ -424,17 +426,19 @@ def show_variables(data):
 
 
 def show_attributes(data):
-    """
-    Processes an xarray Dataset or a netCDF file, extracts attribute information,
+    """Processes an xarray Dataset or a netCDF file, extracts attribute information,
     and returns a DataFrame with details about the attributes.
 
-    Parameters:
+    Parameters
+    ----------
     data (str or xr.Dataset): The input data, either a file path to a netCDF file or an xarray Dataset.
 
-    Returns:
+    Returns
+    -------
     pandas.DataFrame: A DataFrame containing the following columns:
         - Attribute: The name of the attribute.
         - Value: The value of the attribute.
+
     """
     from netCDF4 import Dataset
 

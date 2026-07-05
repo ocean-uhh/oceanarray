@@ -1,5 +1,4 @@
-"""
-rodbhead.py - Decode RO database keywords.
+"""rodbhead.py - Decode RO database keywords.
 
 Originally written in MATLAB by:
   - G. Krahmann, IfM Kiel, Oct 1995 (v0.1.0)
@@ -43,8 +42,7 @@ def is_rodb_file(filepath: Path) -> bool:
 
 
 def parse_rodb_keys_file(filepath):
-    """
-    Parse a rodb_keys.txt file with MATLAB-style lines into structured dicts.
+    """Parse a rodb_keys.txt file with MATLAB-style lines into structured dicts.
 
     Returns a dictionary with a list of entries under the 'RODB_KEYS' key.
     """
@@ -105,9 +103,7 @@ DUMMY_VALUES = [-9999, -99.999, -999.999]
 
 
 def rodbload(filepath, variables: list[str] = None) -> xr.Dataset:
-    """
-    Read a RODB .use or .raw file into an xarray.Dataset.
-    """
+    """Read a RODB .use or .raw file into an xarray.Dataset."""
     filepath = Path(filepath)
     with open(filepath, "r") as f:
         lines = f.readlines()
@@ -225,8 +221,7 @@ def format_latlon(value, is_lat=True):
 
 
 def rodbsave(filepath, ds: xr.Dataset, fmt=None):
-    """
-    Save an xarray.Dataset to a RODB-style .use or .raw file.
+    """Save an xarray.Dataset to a RODB-style .use or .raw file.
 
     Parameters
     ----------
@@ -236,6 +231,7 @@ def rodbsave(filepath, ds: xr.Dataset, fmt=None):
         Dataset to write. Expects time-series variables to be indexed by 'obs'.
     fmt : str, optional
         Format string passed to np.savetxt. If None, one is generated automatically.
+
     """
     filepath = Path(filepath)
     attrs = ds.attrs.copy()

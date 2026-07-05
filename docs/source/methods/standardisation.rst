@@ -41,7 +41,7 @@ The :class:`oceanarray.stage1.MooringProcessor` class supports multiple instrume
 - **RBR RSK files** (`rbr-rsk`): RBR logger binary format
 - **RBR ASCII files** (`rbr-dat`): RBR text output
 
-Each format is handled by specialized readers from the `ctd_tools` library that parse instrument-specific headers and data structures.
+Each format is handled by specialized readers from the `seasenselib` library that parse instrument-specific headers and data structures.
 
 3.2. Processing Workflow
 ^^^^^^^^^^^^^^^^^^^^^^^^^

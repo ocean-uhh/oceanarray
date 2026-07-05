@@ -1,5 +1,4 @@
-"""
-Oceanarray: Tools for processing oceanographic mooring data.
+"""Oceanarray: Tools for processing oceanographic mooring data.
 
 This package provides functions for processing, quality control, and analysis
 of oceanographic time series data from moorings and instruments.
@@ -14,7 +13,7 @@ __all__ = [
     "stage2",
     "time_gridding",
     "tools",
-    "transports", 
+    "transports",
     "utilities",
     "writers",
 ]
