@@ -19,6 +19,6 @@ Within this 3 minute window for EACH bottle stop, determine the offset (dt) betw
 
 For microCATs without pressure, use the CTD pressure to correct the conductivity.
 
-These are based on matlab files: cp_mc_bot.m to compare data at bottle stops, and read_botfile.m to read SeaBird CTD bottle files (though this latter can perhaps be replaced by installing the seabird manufacturer's python package: seabirdscientific.)
+Calibration dip processing is handled by the `caldip <https://github.com/ocean-uhh/caldip>`_ package, which implements this workflow in Python.  Install it with ``pip install git+https://github.com/ocean-uhh/caldip.git`` and add it as a dependency before running Stage 4.  The ``caldip`` package provides functions for water impact detection, bottle stop identification, offset calculation, and diagnostic plots.
 
 While running the processing, a figure is produced which allows for zooming in.  The figure should show in the top panel: CTD 911 pressure (black and thick), and then microCAT pressure (thin, colored, with a legend that identifies the microCAT serial number).  In the middle panel: CTD 911 temperature and microCAT temperature, and in the bottom panel: CTD 911 conductivity and microCAT conductivity.

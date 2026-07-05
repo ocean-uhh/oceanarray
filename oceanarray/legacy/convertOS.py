@@ -102,8 +102,8 @@ def convert_rodb_to_oceansites(
         ds.attrs["internal_identifier"] = ds.attrs.pop("mooring")
     ds = sort_global_attributes(ds)
 
-    lat = float(ds["LATITUDE"].values)
-    lon = float(ds["LONGITUDE"].values)
+    lat = float(ds["LATITUDE"].values.flat[0])
+    lon = float(ds["LONGITUDE"].values.flat[0])
 
     ds = ds.squeeze(dim=["LATITUDE", "LONGITUDE"], drop=True)
     ds = ds.assign_coords(LATITUDE=("TIME", [lat] * ds.sizes["TIME"]))
