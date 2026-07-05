@@ -4,6 +4,19 @@ data/temp.nc
 *_use.nc
 *_raw.nc
 
+# Caldip prototype and dev scripts (superseded by ../caldip/ package)
+oceanarray/caldip.py
+debug_caldip.py
+example_caldip_usage.py
+simple_caldip_plot.py
+plot_calibration_data.py
+test_caldip.py
+test_caldip_simple.py
+data/moor/proc_calib/
+calibration_data_plot.png
+calibration_dip_comparison.png
+matlab_calibration/
+
 logs/*log
 
 # Claude Code configuration
