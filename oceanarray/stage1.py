@@ -12,9 +12,7 @@ import yaml
 import seasenselib
 from seasenselib.writers import NetCdfWriter
 
-# seasenselib logs expected-but-noisy INFO/WARNING messages when an instrument
-# lacks salinity (derivations skipped) or when latitude is defaulted for depth.
-# Raise those loggers to ERROR so only genuine problems surface.
+# Suppress noisy INFO/WARNING messages from seasenselib/pycnv.
 logging.getLogger("seasenselib").setLevel(logging.WARNING)
 logging.getLogger("seasenselib.pipeline.derivation").setLevel(logging.ERROR)
 logging.getLogger("pycnv").setLevel(logging.WARNING)

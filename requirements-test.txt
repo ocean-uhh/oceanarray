@@ -1,0 +1,5 @@
+# CI test requirements — installs the PyPI release of seasenselib.
+# Local development uses a custom edited install instead; do not add
+# this file to your local pip install chain.
+-r requirements-dev.txt
+seasenselib

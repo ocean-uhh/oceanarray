@@ -45,7 +45,6 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import yaml
-from seasenselib.writers import NetCdfWriter
 
 
 def _parse_clock_str(s: str) -> Optional[pd.Timestamp]:
