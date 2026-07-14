@@ -1,7 +1,7 @@
 """Step 1 processing for mooring data: Time gridding and optional filtering.
 
 This module handles:
-- Loading processed Stage 2 NetCDF files (_use.nc) from multiple instruments
+- Loading processed Stage 2 NetCDF files (_stage2.nc) from multiple instruments
 - Optional time-domain filtering applied to individual instrument records
 - Interpolating all instruments onto a common time grid
 - Combining instruments into a single dataset with N_LEVELS dimension
@@ -56,7 +56,10 @@ class TimeGriddingProcessor:
             return yaml.safe_load(f)
 
     def _load_instrument_datasets(
-        self, mooring_config: Dict[str, Any], proc_dir: Path, file_suffix: str = "_use"
+        self,
+        mooring_config: Dict[str, Any],
+        proc_dir: Path,
+        file_suffix: str = "_stage2",
     ) -> List[xr.Dataset]:
         """Load all instrument datasets for a mooring."""
         datasets = []
@@ -739,7 +742,7 @@ class TimeGriddingProcessor:
         self,
         mooring_name: str,
         output_path: Optional[str] = None,
-        file_suffix: str = "_use",
+        file_suffix: str = "_stage2",
         vars_to_keep: List[str] = None,
         filter_type: Optional[str] = None,
         filter_params: Optional[Dict[str, Any]] = None,
@@ -749,7 +752,7 @@ class TimeGriddingProcessor:
         Args:
             mooring_name: Name of the mooring to process
             output_path: Optional custom output path
-            file_suffix: Suffix for input files ('_use' or '_raw')
+            file_suffix: Suffix for input files ('_stage2' or '_raw')
             vars_to_keep: List of variables to include in combined dataset
             filter_type: Type of time filtering to apply ('lowpass', 'detide', 'bandpass')
             filter_params: Parameters for filtering
@@ -863,7 +866,7 @@ def time_gridding_mooring(
     mooring_name: str,
     basedir: str,
     output_path: Optional[str] = None,
-    file_suffix: str = "_use",
+    file_suffix: str = "_stage2",
     filter_type: Optional[str] = None,
     filter_params: Optional[Dict[str, Any]] = None,
 ) -> bool:
@@ -873,7 +876,7 @@ def time_gridding_mooring(
         mooring_name: Name of the mooring to process
         basedir: Base directory containing the data
         output_path: Optional output path override
-        file_suffix: Suffix for input files ('_use' or '_raw')
+        file_suffix: Suffix for input files ('_stage2' or '_raw')
         filter_type: Optional time filtering to apply ('lowpass', 'detide', 'bandpass')
         filter_params: Optional parameters for filtering
 
@@ -894,7 +897,7 @@ def time_gridding_mooring(
 def process_multiple_moorings_time_gridding(
     mooring_list: List[str],
     basedir: str,
-    file_suffix: str = "_use",
+    file_suffix: str = "_stage2",
     filter_type: Optional[str] = None,
     filter_params: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, bool]:
@@ -903,7 +906,7 @@ def process_multiple_moorings_time_gridding(
     Args:
         mooring_list: List of mooring names to process
         basedir: Base directory containing the data
-        file_suffix: Suffix for input files ('_use' or '_raw')
+        file_suffix: Suffix for input files ('_stage2' or '_raw')
         filter_type: Optional time filtering to apply ('lowpass', 'detide', 'bandpass')
         filter_params: Optional parameters for filtering
 
@@ -915,9 +918,9 @@ def process_multiple_moorings_time_gridding(
     results = {}
 
     for mooring_name in mooring_list:
-        print(f"\n{'='*50}")
+        print(f"\n{'=' * 50}")
         print(f"Processing Step 1 (time gridding) for mooring {mooring_name}")
-        print(f"{'='*50}")
+        print(f"{'=' * 50}")
 
         results[mooring_name] = processor.process_mooring(
             mooring_name,
@@ -947,9 +950,9 @@ if __name__ == "__main__":
     # )
 
     # Print summary
-    print(f"\n{'='*50}")
+    print(f"\n{'=' * 50}")
     print("STEP 1 (TIME GRIDDING) PROCESSING SUMMARY")
-    print(f"{'='*50}")
+    print(f"{'=' * 50}")
     for mooring, success in results.items():
         status = "SUCCESS" if success else "FAILED"
         print(f"{mooring}: {status}")

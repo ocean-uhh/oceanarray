@@ -71,7 +71,7 @@ def test_rodbload_lat_lon_parsing(tmp_path):
 def test_rodbload_time_dim_swap(tmp_path):
     use_file = tmp_path / "test.use"
     use_file.write_text(
-        "COLUMNS = YY:MM:DD:HH:T\n\n" "2020 01 01 00 10.0\n2020 01 01 01 11.0\n"
+        "COLUMNS = YY:MM:DD:HH:T\n\n2020 01 01 00 10.0\n2020 01 01 01 11.0\n"
     )
     ds = rodbload(use_file)
     assert "TIME" in ds.dims

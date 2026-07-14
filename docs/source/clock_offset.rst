@@ -84,9 +84,50 @@ The analysis produces:
 - **Visualizations**: Time series plots showing deployment periods and timing relationships
 - **Summary Tables**: Tabular results comparing both analysis methods
 
-**Important**: The calculated offsets should be entered as **negative values** in the YAML configuration file, as they represent the correction needed to align instrument times with UTC.
+**Important**: The sign convention for YAML clock fields is: **positive = instrument was slow (behind UTC), negative = instrument was fast (ahead of UTC)**. The value is *added* to the raw instrument time. For example, if an instrument was 15 seconds behind UTC, set ``clock_offset: 15``.
 
-After updating the YAML file with clock_offset values, Stage 2 processing applies these corrections to create ``*_use.nc`` files. The clock offset analysis can then be re-run using the corrected data to verify that timing discrepancies have been resolved.
+``clock_offset`` and ``clock_drift_seconds`` describe the **total correction** at two points in time:
+
+- ``clock_offset`` — correction needed at the **start** of the deployment (instrument clock error when deployed).
+- ``clock_drift_seconds`` — correction needed at the **end** of the deployment (instrument clock error at recovery).
+
+Stage 2 applies a linear ramp between these two values, so every timestamp receives the
+appropriate interpolated correction.  All values are **added** to instrument time
+(positive = instrument was slow/behind UTC).
+
+.. list-table::
+   :header-rows: 1
+
+   * - Fields set
+     - Behaviour
+   * - ``clock_offset`` only
+     - Uniform constant shift throughout the record.
+   * - ``clock_drift_seconds`` only
+     - Ramps from 0 at deployment to ``clock_drift_seconds`` at recovery.
+   * - Both
+     - Ramps from ``clock_offset`` at deployment to ``clock_drift_seconds`` at recovery.
+
+.. code-block:: yaml
+
+   # Example: clock was 5 s slow at deployment and 8 s slow at recovery.
+   # Stage 2 applies +5 s at deployment time, +8 s at recovery, linearly in between.
+   clock_offset: 5
+   clock_drift_seconds: 8
+
+   # Alternative — two timestamps read off at recovery (preferred; avoids sign errors).
+   # Compact YYYYMMDDTHH:MM:SS, full ISO-8601 datetime, or time-only HH:MM:SS are all accepted.
+   computer_clock_at_recovery:    '20260711T10:23:30'   # or '2026-07-11T10:23:30' or '10:23:30'
+   instrument_clock_at_recovery:  '20260711T10:23:22'
+   # computer − instrument = +8 s → used as clock_drift_seconds (total correction at recovery)
+   # clock_offset (if also set) remains the correction at deployment.
+
+.. note::
+
+   The two-timestamp method measures ``computer − instrument`` at **recovery only**.
+   If the clock was also set incorrectly at deployment, set ``clock_offset`` for that
+   initial error and let the two timestamps capture the total at recovery.
+
+After updating the YAML file with clock correction values, Stage 2 processing applies these corrections (before trimming) and writes ``*_stage2.nc`` files. The original, uncorrected time is preserved as ``time_orig``, and the ``history`` attribute records what was applied. The clock offset analysis can then be re-run using the corrected data to verify that timing discrepancies have been resolved.
 
 Best Practices
 --------------

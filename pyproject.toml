@@ -31,6 +31,9 @@ urls.homepage = "https://github.com/ocean-uhh/oceanarray"
 urls.repository = "https://github.com/ocean-uhh/oceanarray"
 
 
+[project.scripts]
+oceanarray = "oceanarray.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["oceanarray"]

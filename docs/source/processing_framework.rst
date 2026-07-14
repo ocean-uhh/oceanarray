@@ -30,14 +30,14 @@ Instrument-level processing
 
   Instrument-level processing workflow.
 
-The instrument-level processing carries out 2 main steps:
+The instrument-level processing carries out the following steps:
 
 - **Stage 0:** Downloading raw instrument files (e.g., `.cnv`, `.asc`).
-- **Stage 1:** Converting data files to a consistent (internal) format.
-- **Stage 2:** Trimming the record to the deployment period (i.e., removing the launch and recovery periods) and applying clock corrections.
-- **Stage 3:** Applying automatic QC, i.e. global range tests and spike tests from ioos_qc QARTOD.
-- **Stage 3.5:** Apply calibrations to the moored instrument and create a traceable log of the calibration process.
-- **Stage 4:** Convert data to a common format for onward use with rich metadata.
+- **Stage 1:** Converting data files to CF-compliant NetCDF (``_stage1.nc``).  Unit normalisation is applied at this stage: pressure is standardised to ``dbar`` (SeaBird CNV files use ``db``), conductivity is renamed and where necessary converted to ``mS/cm``, and SeaBird ASCII files receive a ``scale = "ITS-90"`` attribute on the temperature variable.
+- **Stage 2:** Trimming the record to the deployment period and applying clock corrections (``_stage2.nc``).
+- **Stage 3:** Unit normalisation (conductivity ``S/m`` → ``mS/cm`` for instruments where stage 1 did not convert); derivation of practical salinity via ``gsw.SP_from_C(C, T, p)``; pressure interpolation for instruments lacking a pressure sensor; QARTOD gross-range and spike QC tests on temperature, conductivity, salinity, and pressure; tilt QC for Aquadopps (velocity variables flagged suspect when ``|roll| ≥ 20°``, bad when ``|roll| ≥ 30°``, configurable via ``tilt_qc`` in YAML) (``_stage3.nc``).  Stage 3 output files are written for **all** instruments.  Applied QC thresholds are stored as attributes on each ``*_qc`` variable so the report histogram can show exactly what was applied.
+- **Stage 3.5 (planned):** Apply calibrations (e.g., from caldip casts) and create a traceable log of the calibration process.
+- **Stage 4 (planned):** Convert to OceanSITES format with rich metadata for community sharing.
 
 The first step step is downloading data from instruments.  This is typically using manufacturers' software and some of the downloaded files may be in proprietary formats (e.g., SeaBird `.cnv` format).  Formats can also change over time or depending on settings used when downloading the data, hence the need for the "standardisation" step.  Stage 0 is typically performed at sea as soon as a mooring is recovered and instruments are available.
 
@@ -48,7 +48,7 @@ The first step step is downloading data from instruments.  This is typically usi
 
 .. note::
 
-  Stage 3 only involves *applying* calibration corrections.  The corrections should be determined in a separate step, e.g., by comparing the instrument data with the CTD during a calibration cast (pre- and post-deployment) or with laboratory calibrations (pre- and/or post-deployment).
+  Stage 3.5 only involves *applying* calibration corrections.  The corrections should be determined in a separate step, e.g., by comparing the instrument data with the CTD during a calibration cast (pre- and post-deployment) or with laboratory calibrations (pre- and/or post-deployment).
 
 .. admonition:: RAPID Analogy
   :class: hint
@@ -78,11 +78,11 @@ Mooring-level processing
 
   Mooring-level processing workflow.
 
-The previous steps (stage 0 to stage 3) are applied per instrument, per deployment. When multiple instruments are deployed on the same tall mooring, the next steps can be applied to produce a vertical profile of data.
+The previous steps (stage 0 to stage 3) are applied per instrument, per deployment.  When multiple instruments are deployed on the same tall mooring, the following steps combine them:
 
-- **Step 1:** Time gridding onto a consistent time axis for all instruments on a mooring.  Low-pass filtering or other de-tiding procedures can also be applied.
-- **Step 2:** Vertical gridding onto a standard pressure grid, combining measurements from multiple instruments on the same mooring
-- **Step 3:** Concatenating (in time) the data from multiple mooring deployments at a single x/y location.
+- **Stack** (``oceanarray stack``): Resample all instruments onto a common time axis (default 60 s) and stack into a single NetCDF file with an ``N_LEVELS`` dimension ordered deep-first (``{mooring}_stack.nc``).  Fast-sampling instruments (Δt ≤ 60 s) are subsampled by nearest-neighbour; slower instruments are linearly interpolated.  Scalar sensor metadata is preserved as (N_LEVELS,) coordinate arrays.
+- **Grid** (``oceanarray grid``): Linearly interpolate the stacked file onto a regular pressure grid (``{mooring}_grid.nc``).  Values outside the range of available instruments at each time step are set to NaN.  Note: the grid step interpolates data values directly and does not consult QC flags — data flagged suspect or bad in stage 3 are treated the same as good data unless they are already NaN.
+- **Step 3 (planned):** Concatenating (in time) the data from multiple mooring deployments at a single x/y location.
 
 Outputs can be stored in updated OceanSites format file(s) which include details of processing steps in the metadata.
 
@@ -223,12 +223,16 @@ Summary Table
      - Convert raw files to CF-netCDF with metadata
      - Stage 1 (RDB conversion)
    * - 2
-     - Trimming & QC
-     - Restrict to deployment period, apply initial QC
-     - Stage 2 (`*.use`)
+     - Trimming & clock corrections
+     - Restrict to deployment period; apply clock offset and drift corrections (``*_stage2.nc``)
+     - Stage 2 (``*.use``)
    * - 3
+     - Automatic QC
+     - Apply QARTOD global range and spike tests; write QC flag variables (``*_stage3.nc``)
+     - (post-cruise)
+   * - 3.5
      - Calibration
-     - Apply CTD/lab-based corrections (salinity, pressure)
+     - Apply CTD/lab-based corrections (salinity, pressure); traceable calibration log
      - Post-cruise
    * - **A**
      - Time Filtering

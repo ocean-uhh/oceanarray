@@ -1,8 +1,16 @@
 setup.sh
 */_version.py
+
+# Data files — not stored in the repository
+data/
+outputs/
+
+# Legacy individual exclusions (superseded by data/ above)
 data/temp.nc
 *_use.nc
 *_raw.nc
+data/moor/raw/odb_2026/*
+
 
 # Caldip prototype and dev scripts (superseded by ../caldip/ package)
 oceanarray/caldip.py

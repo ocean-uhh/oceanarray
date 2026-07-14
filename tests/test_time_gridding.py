@@ -408,7 +408,7 @@ class TestTimeGriddingIntegration:
             )
 
             # Save as NetCDF
-            filename = f"test_mooring_{serial}_use.nc"
+            filename = f"test_mooring_{serial}_stage2.nc"
             filepath = inst_dir / filename
             ds.to_netcdf(filepath)
 
@@ -431,7 +431,7 @@ class TestTimeGriddingIntegration:
         assert result is True
 
         # Check that output file was created
-        output_file = setup["proc_dir"] / "test_mooring_mooring_use.nc"
+        output_file = setup["proc_dir"] / "test_mooring_mooring_stage2.nc"
         assert output_file.exists()
 
         # Load and validate the combined dataset
@@ -551,7 +551,7 @@ class TestTimeGriddingIntegration:
         assert result is True
 
         # Check output only has temperature
-        output_file = setup["proc_dir"] / "test_mooring_mooring_use.nc"
+        output_file = setup["proc_dir"] / "test_mooring_mooring_stage2.nc"
         with xr.open_dataset(output_file) as ds:
             assert "temperature" in ds.data_vars
             assert "salinity" not in ds.data_vars

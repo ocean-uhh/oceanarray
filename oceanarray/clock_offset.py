@@ -524,7 +524,7 @@ def print_correlation_summary(combined_ds, correlation_results):
         )
     ):
         print(
-            f"Level {i+1} (#{serial[i]}): max corr = {corr:.3f} @lag {lag} --> clock_offset: {offset:.0f}s"
+            f"Level {i + 1} (#{serial[i]}): max corr = {corr:.3f} @lag {lag} --> clock_offset: {offset:.0f}s"
         )
 
 

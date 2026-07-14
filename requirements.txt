@@ -14,5 +14,4 @@ gsw>=3.6.16
 ioos_qc
 
 
-# Pip-only (or dev-only) extras
-seasenselib
+# seasenselib is installed separately: pip install -e seasenselib

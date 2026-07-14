@@ -22,6 +22,7 @@ import yaml
 
 from oceanarray.stage2 import (
     Stage2Processor,
+    _parse_clock_str,
     process_multiple_moorings_stage2,
     stage2_mooring,
 )
@@ -256,7 +257,7 @@ class TestStage2Processor:
         instrument_config = {"depth": 150, "instrument": "new_microcat", "serial": 9999}
 
         # Create a mock filepath for testing
-        mock_filepath = tmp_path / "microcat" / "test_mooring_7518_raw.nc"
+        mock_filepath = tmp_path / "microcat" / "test_mooring_7518_stage1.nc"
         mock_filepath.parent.mkdir(parents=True)
         mock_filepath.touch()
 
@@ -279,7 +280,7 @@ class TestStage2Processor:
         }
 
         # Create a mock filepath for testing
-        mock_filepath = tmp_path / "microcat" / "test_mooring_7518_raw.nc"
+        mock_filepath = tmp_path / "microcat" / "test_mooring_7518_stage1.nc"
         mock_filepath.parent.mkdir(parents=True)
         mock_filepath.touch()
 
@@ -309,7 +310,7 @@ class TestStage2Processor:
         instrument_config = {"depth": 150}  # Only depth provided
 
         # Create filepath that contains metadata
-        mock_filepath = tmp_path / "sbe56" / "dsE_1_2018_6363_raw.nc"
+        mock_filepath = tmp_path / "sbe56" / "dsE_1_2018_6363_stage1.nc"
         mock_filepath.parent.mkdir(parents=True)
         mock_filepath.touch()
 
@@ -345,7 +346,7 @@ class TestStage2Processor:
         instrument_config = {"depth": 150, "instrument": "microcat", "serial": 7518}
 
         # Create filepath with different metadata
-        mock_filepath = tmp_path / "sbe56" / "dsE_1_2018_6363_raw.nc"
+        mock_filepath = tmp_path / "sbe56" / "dsE_1_2018_6363_stage1.nc"
         mock_filepath.parent.mkdir(parents=True)
         mock_filepath.touch()
 
@@ -380,14 +381,14 @@ class TestRealDataProcessing:
     def test_data_setup(self, tmp_path):
         """Set up test environment with real processed data."""
         # Check for real test data files
-        raw_data_file = Path("data/test_data_raw.nc")
+        raw_data_file = Path("data/test_data_stage1.nc")
         yaml_config_file = Path("data/test_mooring.yaml")
 
         if not raw_data_file.exists() or not yaml_config_file.exists():
             pytest.skip(
                 (
                     "Real test data files not found. Expected files: "
-                    "data/test_data_raw.nc, data/test_mooring.yaml"
+                    "data/test_data_stage1.nc, data/test_mooring.yaml"
                 )
             )
 
@@ -398,7 +399,7 @@ class TestRealDataProcessing:
         microcat_dir.mkdir(parents=True)
 
         # Copy real files to test location
-        test_raw_file = microcat_dir / "test_mooring_7518_raw.nc"
+        test_raw_file = microcat_dir / "test_mooring_7518_stage1.nc"
         test_yaml_file = proc_dir / "test_mooring.mooring.yaml"
 
         test_raw_file.write_bytes(raw_data_file.read_bytes())
@@ -423,7 +424,7 @@ class TestRealDataProcessing:
         assert result is True
 
         # Check that output file was created
-        use_file = setup["proc_dir"] / "microcat" / "test_mooring_7518_use.nc"
+        use_file = setup["proc_dir"] / "microcat" / "test_mooring_7518_stage2.nc"
         assert use_file.exists()
 
         # Load and validate the processed file
@@ -485,7 +486,7 @@ class TestRealDataProcessing:
         assert result is True
 
         # Check that the processed file has limited data
-        use_file = setup["proc_dir"] / "microcat" / "test_mooring_7518_use.nc"
+        use_file = setup["proc_dir"] / "microcat" / "test_mooring_7518_stage2.nc"
         with xr.open_dataset(use_file) as ds:
             # Should have much less data due to restrictive time window
             with xr.open_dataset(setup["raw_file"]) as raw_ds:
@@ -584,6 +585,133 @@ class TestErrorHandling:
         processor = Stage2Processor(str(tmp_path))
         result = processor.process_mooring("nonexistent_mooring")
         assert result is False
+
+
+class TestParseClockStr:
+    """Tests for _parse_clock_str — the clock timestamp parser."""
+
+    def test_time_only_hh_mm_ss(self):
+        t = _parse_clock_str("18:43:30")
+        assert t.hour == 18
+        assert t.minute == 43
+        assert t.second == 30
+
+    def test_compact_yyyymmdd(self):
+        t = _parse_clock_str("20260710T18:43:30")
+        assert t.year == 2026
+        assert t.month == 7
+        assert t.day == 10
+        assert t.hour == 18
+        assert t.minute == 43
+        assert t.second == 30
+
+    def test_standard_iso(self):
+        t = _parse_clock_str("2026-07-10T18:43:30")
+        assert t.year == 2026
+        assert t.month == 7
+        assert t.day == 10
+        assert t.hour == 18
+        assert t.minute == 43
+        assert t.second == 30
+
+    def test_compact_and_standard_agree(self):
+        assert _parse_clock_str("20260710T18:43:30") == _parse_clock_str(
+            "2026-07-10T18:43:30"
+        )
+
+    def test_drift_time_only_instrument_slow(self):
+        """Instrument 33 s behind computer → drift = +33 s."""
+        comp = _parse_clock_str("18:44:03")
+        inst = _parse_clock_str("18:43:30")
+        assert (comp - inst).total_seconds() == 33.0
+
+    def test_drift_time_only_instrument_fast(self):
+        """Instrument 7 s ahead of computer → drift = −7 s."""
+        comp = _parse_clock_str("21:03:00")
+        inst = _parse_clock_str("21:03:07")
+        assert (comp - inst).total_seconds() == -7.0
+
+    def test_drift_compact_matches_time_only(self):
+        """All formats give identical drift."""
+        drift_compact = (
+            _parse_clock_str("20260710T19:12:30")
+            - _parse_clock_str("20260710T19:12:39")
+        ).total_seconds()
+        drift_time = (
+            _parse_clock_str("19:12:30") - _parse_clock_str("19:12:39")
+        ).total_seconds()
+        assert drift_compact == drift_time == -9.0
+
+
+class TestResolveClockDrift:
+    """Tests for Stage2Processor._resolve_clock_drift with real YAML field names."""
+
+    @pytest.fixture
+    def processor(self, tmp_path):
+        return Stage2Processor(str(tmp_path))
+
+    def test_option_b_standard_iso_instrument_slow(self, processor):
+        cfg = {
+            "computer_clock_at_recovery": "2026-07-10T19:12:39",
+            "instrument_clock_at_recovery": "2026-07-10T19:12:30",
+        }
+        drift_s, note = processor._resolve_clock_drift(cfg)
+        assert drift_s == 9.0
+        assert "clock_drift=+9.0s" in note
+
+    def test_option_b_standard_iso_instrument_fast(self, processor):
+        cfg = {
+            "computer_clock_at_recovery": "2026-07-10T21:03:00",
+            "instrument_clock_at_recovery": "2026-07-10T21:03:07",
+        }
+        drift_s, note = processor._resolve_clock_drift(cfg)
+        assert drift_s == -7.0
+        assert "clock_drift=-7.0s" in note
+
+    def test_option_b_time_only(self, processor):
+        cfg = {
+            "computer_clock_at_recovery": "19:12:39",
+            "instrument_clock_at_recovery": "19:12:30",
+        }
+        drift_s, note = processor._resolve_clock_drift(cfg)
+        assert drift_s == 9.0
+
+    def test_option_b_compact_datetime(self, processor):
+        cfg = {
+            "computer_clock_at_recovery": "20260710T19:12:39",
+            "instrument_clock_at_recovery": "20260710T19:12:30",
+        }
+        drift_s, note = processor._resolve_clock_drift(cfg)
+        assert drift_s == 9.0
+
+    def test_option_b_takes_priority_over_option_a(self, processor):
+        cfg = {
+            "clock_drift_seconds": 999,
+            "computer_clock_at_recovery": "2026-07-10T19:12:39",
+            "instrument_clock_at_recovery": "2026-07-10T19:12:30",
+        }
+        drift_s, _ = processor._resolve_clock_drift(cfg)
+        assert drift_s == 9.0  # Option B wins
+
+    def test_option_a_drift_seconds(self, processor):
+        cfg = {"clock_drift_seconds": 33}
+        drift_s, note = processor._resolve_clock_drift(cfg)
+        assert drift_s == 33.0
+        assert "33.0s" in note
+
+    def test_no_clock_info_returns_zero(self, processor):
+        drift_s, _ = processor._resolve_clock_drift({})
+        assert drift_s == 0.0
+
+    def test_unknown_string_ignored(self, processor):
+        """'unknown' in YAML should be treated as no correction."""
+        cfg = {
+            "computer_clock_at_recovery": "unknown",
+            "instrument_clock_at_recovery": "unknown",
+        }
+        # Should not raise; 'unknown' is falsy after parsing fails or is empty
+        drift_s, _ = processor._resolve_clock_drift(cfg)
+        assert drift_s == 0.0
 
 
 if __name__ == "__main__":
