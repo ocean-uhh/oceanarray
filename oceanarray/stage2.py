@@ -212,8 +212,15 @@ class Stage2Processor:
         )
 
         total_duration_s = (recover_time - deploy_time) / np.timedelta64(1, "s")
-        time_since_deploy_s = (dataset["time"].values - deploy_time) / np.timedelta64(
-            1, "s"
+        if total_duration_s <= 0:
+            self._log_print(
+                "WARNING: deploy_time >= recover_time; skipping clock drift ramp"
+            )
+            return dataset
+        time_since_deploy_s = np.clip(
+            (dataset["time"].values - deploy_time) / np.timedelta64(1, "s"),
+            0.0,
+            total_duration_s,
         )
         correction_ns = (
             clock_drift_seconds * time_since_deploy_s / total_duration_s * 1e9
@@ -389,7 +396,7 @@ class Stage2Processor:
                 dataset = dataset.drop_vars(var)
 
         if "flag" in dataset.variables:
-            flag_vals = dataset["flag"].values
+            flag_vals = np.asarray(dataset["flag"].values, dtype="float64")
             if np.all((flag_vals == 0) | np.isnan(flag_vals)):
                 self._log_print(
                     "Removing 'flag': all values are zero (no SeaBird scan flags set)"
@@ -400,7 +407,7 @@ class Stage2Processor:
                     "dropped SeaBird 'flag' column: all values were 0 (good data)",
                 )
             else:
-                n_flagged = int(np.sum(flag_vals != 0))
+                n_flagged = int(np.sum(np.isfinite(flag_vals) & (flag_vals != 0)))
                 self._log_print(
                     f"Keeping 'flag': {n_flagged} non-zero scan flag(s) from SeaBird CNV"
                 )

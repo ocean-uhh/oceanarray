@@ -175,7 +175,7 @@ def cmd_process(args: argparse.Namespace) -> int:
             plot_microcat_raw(ds, save_path=nc.with_suffix(".png"))
             print(f"Saved: {nc.with_suffix('.png')}")
 
-        for nc in sorted((proc_dir / "nortek").glob("*_stage2.nc")):
+        for nc in sorted((proc_dir / "aquadopp").glob("*_stage2.nc")):
             ds = xr.open_dataset(nc, decode_timedelta=False)
             plot_aquadopp_raw(ds, save_path=nc.with_suffix(".png"))
             print(f"Saved: {nc.with_suffix('.png')}")

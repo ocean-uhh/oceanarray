@@ -30,7 +30,18 @@ class TestMooringProcessor:
     @pytest.fixture
     def processor(self, temp_dir):
         """Create a MooringProcessor instance for testing."""
-        return MooringProcessor(str(temp_dir))
+        import logging
+
+        p = MooringProcessor(str(temp_dir))
+        yield p
+        # Close any FileHandlers added to library loggers by _setup_logging so
+        # Windows can delete the temp directory when the fixture tears down.
+        for name in ("seasenselib", "pycnv"):
+            log = logging.getLogger(name)
+            for h in list(log.handlers):
+                if isinstance(h, logging.FileHandler):
+                    h.close()
+                    log.removeHandler(h)
 
     @pytest.fixture
     def sample_yaml_data(self):

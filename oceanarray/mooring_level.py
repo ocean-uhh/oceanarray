@@ -81,6 +81,7 @@ def _nearest_subsample(
     n = len(common_time)
     half_ns = half_window_s * 1e9  # ns
 
+    idx = np.searchsorted(src_t, tgt_t)
     result: Dict[str, np.ndarray] = {}
     for vname in STACK_VARS:
         if vname not in ds.data_vars:
@@ -88,7 +89,6 @@ def _nearest_subsample(
             continue
         src_v = ds[vname].values.astype(np.float64)
         out = np.full(n, np.nan)
-        idx = np.searchsorted(src_t, tgt_t)
         for i, (t_tgt, k) in enumerate(zip(tgt_t, idx)):
             # Check candidates at k-1 and k
             best_dt = np.inf

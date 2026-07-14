@@ -694,7 +694,7 @@ def plot_mooring_timeseries(
                 step = max(1, round(dt_s / median_dt))
             else:
                 step = 1
-            ds_small = ds[keep].isel(time=slice(None, None, step))
+            ds_small = ds[keep].isel(time=slice(None, None, step)).load()
         except Exception:
             ds.close()
             continue

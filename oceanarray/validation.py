@@ -119,6 +119,7 @@ KNOWN_ALIASES: Dict[str, str] = {
 
 VALID_FILE_TYPES = {
     "sbe-cnv",
+    "sbe-asc",
     "sbe-ascii",
     "sbe-hex",
     "nortek-aqd",
@@ -265,20 +266,20 @@ def validate_mooring_yaml(yaml_path: str) -> List[ValidationIssue]:
             )
 
         # Clock correction field checks
-        has_comp = "clock_computer_at_recovery" in entry
-        has_inst = "clock_instrument_at_recovery" in entry
+        has_comp = "computer_clock_at_recovery" in entry
+        has_inst = "instrument_clock_at_recovery" in entry
         if has_comp != has_inst:
             issues.append(
                 ValidationIssue(
                     "ERROR",
-                    f"{prefix} clock_computer_at_recovery and clock_instrument_at_recovery "
+                    f"{prefix} computer_clock_at_recovery and instrument_clock_at_recovery "
                     f"must both be present or both absent",
                 )
             )
         elif has_comp and has_inst:
             for ts_key in (
-                "clock_computer_at_recovery",
-                "clock_instrument_at_recovery",
+                "computer_clock_at_recovery",
+                "instrument_clock_at_recovery",
             ):
                 try:
                     import pandas as _pd
@@ -295,8 +296,8 @@ def validate_mooring_yaml(yaml_path: str) -> List[ValidationIssue]:
                 try:
                     import pandas as _pd
 
-                    comp_t = _pd.Timestamp(entry["clock_computer_at_recovery"])
-                    inst_t = _pd.Timestamp(entry["clock_instrument_at_recovery"])
+                    comp_t = _pd.Timestamp(entry["computer_clock_at_recovery"])
+                    inst_t = _pd.Timestamp(entry["instrument_clock_at_recovery"])
                     computed_drift = (comp_t - inst_t).total_seconds()
                     stated_drift = float(entry["clock_drift_seconds"])
                     if abs(computed_drift - stated_drift) > 1.0:
