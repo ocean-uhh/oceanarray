@@ -59,6 +59,80 @@ def _parse_nortek_coord_system(hdr_path: Path) -> str:
     return "ENU"
 
 
+def _parse_nortek_T_matrix_hdr(hdr_path: Path) -> Optional[Dict[str, float]]:
+    """Parse the 3×3 Nortek transformation matrix from a .hdr file.
+
+    Reads the "Transformation matrix" block (first line has 3 values, next two
+    continuation lines have 3 values each).  Returns a dict of M11..M33 floats,
+    or None if the block is not found or has fewer than 9 values.
+    """
+    try:
+        floats: list = []
+        in_matrix = False
+        with open(hdr_path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                if "Data file format" in line:
+                    break
+                stripped = line.rstrip()
+                if re.search(r"Transformation matrix", stripped, re.IGNORECASE):
+                    tail = re.split(r"matrix", stripped, flags=re.IGNORECASE)[-1]
+                    floats.extend(
+                        float(v)
+                        for v in re.findall(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", tail)
+                    )
+                    in_matrix = True
+                    continue
+                if in_matrix:
+                    vals = re.findall(r"[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?", stripped)
+                    if vals:
+                        floats.extend(float(v) for v in vals)
+                    elif not stripped.strip() or (
+                        stripped and not stripped[0].isspace()
+                    ):
+                        break
+                if len(floats) >= 9:
+                    break
+        if len(floats) >= 9:
+            keys = ["M11", "M12", "M13", "M21", "M22", "M23", "M31", "M32", "M33"]
+            return {k: floats[i] for i, k in enumerate(keys)}
+    except Exception:
+        pass
+    return None
+
+
+def _parse_nortek_T_matrix_csv(csv_path: Path) -> Optional[Dict[str, float]]:
+    """Parse the 3×3 Nortek transformation matrix from a String Data.csv file.
+
+    Searches for a ``GETXFAVG`` or ``GETXFBURST`` command with
+    ``ROWS=3,COLS=3,M11=...,M33=...`` parameters (pipe-separated field format).
+    Returns a dict of M11..M33 floats, or None if not found.
+    """
+    try:
+        with open(csv_path, encoding="utf-8", errors="replace") as f:
+            content = f.read()
+        for prefix in ("GETXFAVG", "GETXFBURST"):
+            m = re.search(rf"{prefix},ROWS=3,COLS=3,([^|\n]+)", content, re.IGNORECASE)
+            if not m:
+                continue
+            params_str = m.group(1)
+            result: Dict[str, float] = {}
+            for i in range(1, 4):
+                for j in range(1, 4):
+                    key = f"M{i}{j}"
+                    km = re.search(
+                        key + r"=([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)",
+                        params_str,
+                        re.IGNORECASE,
+                    )
+                    if km:
+                        result[key] = float(km.group(1))
+            if len(result) == 9:
+                return result
+    except Exception:
+        pass
+    return None
+
+
 def _parse_nortek_pressure_cal(hdr_path: Path) -> dict:
     """Return pressure sensor calibration key-value pairs from a Nortek .hdr file.
 
@@ -808,6 +882,17 @@ class MooringProcessor:
             pcal = _parse_nortek_pressure_cal(Path(header_file))
             for k, v in pcal.items():
                 dataset.attrs[f"nortek_pressure_cal_{k}"] = v
+
+        # Store Nortek transformation matrix (BEAM→XYZ) from header as attrs.
+        # Old-format .hdr files use a "Transformation matrix" text block;
+        # new-format .hdr and String Data.csv use GETXFAVG/GETXFBURST fields.
+        if file_type in ("nortek-aqd", "nortek-ascii", "nortek-csv") and header_file:
+            T_mat = _parse_nortek_T_matrix_hdr(Path(header_file))
+            if T_mat is None:
+                T_mat = _parse_nortek_T_matrix_csv(Path(header_file))
+            if T_mat:
+                for k, v in T_mat.items():
+                    dataset.attrs[f"nortek_T_{k}"] = v
 
         # Inject calibration metadata for sbe-ascii (seasenselib discards the header)
         if file_type == "sbe-ascii":

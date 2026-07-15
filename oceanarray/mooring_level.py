@@ -29,6 +29,9 @@ STACK_VARS = [
     "east_velocity",
     "north_velocity",
     "up_velocity",
+    "east_velocity_qc",
+    "north_velocity_qc",
+    "up_velocity_qc",
     "velocity_beam1",
     "velocity_beam2",
     "velocity_beam3",
@@ -480,10 +483,26 @@ class MooringStacker:
                 ),
             },
         )
+        _lat_str = (
+            mooring_config.get("seabed_latitude")
+            or mooring_config.get("deployment_latitude")
+            or mooring_config.get("planned_latitude")
+            or mooring_config.get("latitude")
+            or ""
+        )
+        _lon_str = (
+            mooring_config.get("seabed_longitude")
+            or mooring_config.get("deployment_longitude")
+            or mooring_config.get("planned_longitude")
+            or mooring_config.get("longitude")
+            or ""
+        )
         ds_out.attrs.update(
             {
                 "mooring_name": mooring_name,
                 "waterdepth": str(mooring_config.get("waterdepth", "")),
+                "latitude": str(_lat_str),
+                "longitude": str(_lon_str),
                 "deployment_time": str(deploy_time),
                 "recovery_time": str(recover_time),
                 "dt_seconds": dt_seconds,
