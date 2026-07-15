@@ -45,6 +45,9 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import yaml
+from seasenselib.writers import NetCdfWriter
+
+from .utilities import _status
 
 
 def _parse_clock_str(s: str) -> Optional[pd.Timestamp]:
@@ -472,15 +475,14 @@ class Stage2Processor:
                 self._log_print(f"WARNING: Raw file not found: {raw_filepath}")
             return False
 
+        _status("instr", f"{instrument_type} {serial}")
+
         if use_filepath.exists() and not force:
-            relative = use_filepath.relative_to(proc_dir.parent)
-            self._log_print(f"OUTFILE EXISTS: Skipping {relative}")
+            relative = use_filepath.relative_to(self.base_dir)
+            _status("skip", str(relative))
             return True
 
         try:
-            relative_raw = raw_filepath.relative_to(self.base_dir)
-            self._log_print(f"-->   Processing {instrument_type}: {relative_raw}")
-
             # Load the raw dataset
             with xr.open_dataset(raw_filepath, decode_timedelta=False) as ds:
                 # Create a copy to modify
@@ -541,7 +543,7 @@ class Stage2Processor:
             writer.write(str(use_filepath), **writer_params)
 
             relative_use = use_filepath.relative_to(self.base_dir)
-            self._log_print(f"Creating output file: {relative_use}")
+            _status("file", str(relative_use))
             return True
 
         except Exception as e:

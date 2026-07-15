@@ -1,11 +1,14 @@
 from pathlib import Path
 
+import matplotlib.colors as mcolors
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 from matplotlib.colors import LinearSegmentedColormap
 from pandas import DataFrame
+
+from .utilities import _nice_colorbar_bounds
 
 
 def plot_qartod_summary(ds, var="TEMP", qc_var="QC_ROLLUP"):
@@ -776,3 +779,155 @@ def plot_mooring_timeseries(
         plt.close(fig)
 
     return fig
+
+
+def plot_grid(
+    grid_path: Path,
+    save_dir: Path = None,
+    show: bool = False,
+) -> list:
+    """Plot temperature and salinity from a mooring grid file as pcolormesh.
+
+    Salinity is computed from conductivity and temperature using GSW
+    (``gsw.SP_from_C``) if a ``salinity`` variable is not already present.
+
+    Parameters
+    ----------
+    grid_path : Path
+        Path to a ``*_grid.nc`` file produced by ``oceanarray grid``.
+    save_dir : Path, optional
+        Directory in which to save the figure.  Defaults to the directory
+        containing *grid_path*.
+    show : bool
+        If True, call ``plt.show()`` interactively.
+
+    Returns
+    -------
+    list of Path
+        Paths of the saved PNG files (one per variable plotted).
+
+    """
+    from . import parameters as P
+
+    grid_path = Path(grid_path)
+    save_dir = Path(save_dir) if save_dir else grid_path.parent
+    stem = grid_path.stem  # e.g. "dsG3_1_2026_grid"
+
+    plt.style.use(str(P.MPLSTYLE))
+
+    ds = xr.open_dataset(grid_path).load()
+    time = ds["time"].values
+    pressure = ds["pressure"].values
+
+    def _panel(fig, ax, da, title, units, cmap, style="pcolormesh"):
+        """Draw one T/S panel; style is 'pcolormesh' or 'contourf'."""
+        data = da.transpose("pressure", "time").values
+        vmin = float(np.nanpercentile(data, P.COLORBAR_PLOW))
+        vmax = float(np.nanpercentile(data, P.COLORBAR_PHIGH))
+        bounds = _nice_colorbar_bounds(vmin, vmax, n=20)
+        norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+        if style == "contourf":
+            pc = ax.contourf(
+                time, pressure, data, levels=bounds, cmap=cmap, extend="both"
+            )
+        else:
+            pc = ax.pcolormesh(
+                time, pressure, data, shading="nearest", cmap=cmap, norm=norm
+            )
+        cb = fig.colorbar(pc, ax=ax, pad=0.02)
+        cb.set_label(f"{title} ({units})" if units else title)
+        ax.invert_yaxis()
+        ax.set_ylabel("Pressure (dbar)")
+        locator = mdates.AutoDateLocator()
+        ax.xaxis.set_major_locator(locator)
+        ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+        ax.set_title(f"{title} [{style}]")
+
+    # ------------------------------------------------------------------ #
+    # Derive salinity DataArray if not stored                              #
+    # ------------------------------------------------------------------ #
+    sal_da = sal_label = sal_units = None
+    if "salinity" in ds:
+        sal_da = ds["salinity"]
+        sal_label = sal_da.attrs.get("long_name", "Salinity")
+        sal_units = sal_da.attrs.get("units", "1")
+    elif "conductivity" in ds and "temperature" in ds:
+        import gsw
+
+        T_tp = ds["temperature"].transpose("time", "pressure").values
+        C_tp = ds["conductivity"].transpose("time", "pressure").values
+        SP_vals = gsw.SP_from_C(C_tp, T_tp, pressure[np.newaxis, :])
+        sal_da = xr.DataArray(
+            SP_vals,
+            dims=("time", "pressure"),
+            coords={"time": ds["time"], "pressure": ds["pressure"]},
+        )
+        sal_label = "Practical Salinity"
+        sal_units = "1"
+
+    saved: list = []
+
+    # ------------------------------------------------------------------ #
+    # Temperature                                                          #
+    # ------------------------------------------------------------------ #
+    if "temperature" in ds:
+        T_units = ds["temperature"].attrs.get("units", "degC")
+        for style in ("pcolormesh", "contourf"):
+            fig, ax = plt.subplots(figsize=(12, 4))
+            _panel(
+                fig, ax, ds["temperature"], "Temperature", T_units, "RdYlBu_r", style
+            )
+            ax.set_xlabel("Time")
+            fig.suptitle(stem, fontsize=10, y=1.01)
+            plt.tight_layout()
+            out = save_dir / f"{stem}_temperature_{style}.png"
+            fig.savefig(out, bbox_inches="tight", dpi=150)
+            saved.append(out)
+            if show:
+                plt.show()
+            plt.close(fig)
+
+    # ------------------------------------------------------------------ #
+    # Salinity                                                             #
+    # ------------------------------------------------------------------ #
+    if sal_da is not None:
+        for style in ("pcolormesh", "contourf"):
+            fig, ax = plt.subplots(figsize=(12, 4))
+            _panel(fig, ax, sal_da, sal_label, sal_units, "YlGnBu_r", style)
+            ax.set_xlabel("Time")
+            fig.suptitle(stem, fontsize=10, y=1.01)
+            plt.tight_layout()
+            out = save_dir / f"{stem}_salinity_{style}.png"
+            fig.savefig(out, bbox_inches="tight", dpi=150)
+            saved.append(out)
+            if show:
+                plt.show()
+            plt.close(fig)
+
+    # ------------------------------------------------------------------ #
+    # Potential density (sigma0, sigma2, …)                               #
+    # ------------------------------------------------------------------ #
+    sigma_vars = [
+        v
+        for v in ds.data_vars
+        if v.startswith("sigma") and ds[v].dims == ("time", "pressure")
+    ]
+    for sv in sigma_vars:
+        da = ds[sv]
+        label = da.attrs.get("long_name", sv)
+        units = da.attrs.get("units", "kg m-3")
+        for style in ("pcolormesh", "contourf"):
+            fig, ax = plt.subplots(figsize=(12, 4))
+            _panel(fig, ax, da, label, units, P.DENSITY_COLORMAP, style)
+            ax.set_xlabel("Time")
+            fig.suptitle(stem, fontsize=10, y=1.01)
+            plt.tight_layout()
+            out = save_dir / f"{stem}_{sv}_{style}.png"
+            fig.savefig(out, bbox_inches="tight", dpi=150)
+            saved.append(out)
+            if show:
+                plt.show()
+            plt.close(fig)
+
+    ds.close()
+    return saved

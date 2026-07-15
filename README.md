@@ -37,8 +37,20 @@ oceanarray stack dsG3_1_2026 --basedir /path/to/data
 # Mooring-level: vertically interpolate onto pressure grid
 oceanarray grid dsG3_1_2026 --basedir /path/to/data
 
-# Generate HTML mooring recovery report
+# Generate main HTML mooring report (fast — no per-instrument pages)
 oceanarray report dsG3_1_2026 --basedir /path/to/data -o outputs/
+
+# Also generate per-instrument pages (slow)
+oceanarray report dsG3_1_2026 --basedir /path/to/data --instruments
+
+# Also generate gridded-data report page (T/S pcolormesh; requires _grid.nc)
+oceanarray report dsG3_1_2026 --basedir /path/to/data --grid
+
+# Also generate stacked-data report (pressure and T time series; requires _stack.nc)
+oceanarray report dsG3_1_2026 --basedir /path/to/data --stack
+
+# One specific instrument page only
+oceanarray report dsG3_1_2026 --basedir /path/to/data --serial 7507
 
 # Validate mooring YAML configuration
 oceanarray validate dsG3_1_2026 --basedir /path/to/data
@@ -65,22 +77,44 @@ Thresholds applied during stage 3 are stored as attributes on each `*_qc` variab
 
 | Command | Output | What it does |
 |---------|--------|--------------|
-| `oceanarray stack` | `{mooring}_stack.nc` | Resample all instruments to a common time axis (default 60 s); stack into a single file with an `N_LEVELS` dimension ordered deep-first |
+| `oceanarray stack` | `{mooring}_stack.nc` | Resample all instruments to a common time axis (default 60 s); stack into a single file with an `N_LEVELS` dimension ordered deep-first; compute potential density (sigma0 by default, or sigma2 etc. via `density_reference` YAML key) |
 | `oceanarray grid` | `{mooring}_grid.nc` | Linearly interpolate stacked data onto a regular pressure grid |
 
 ### Report
 
-`oceanarray report` generates a self-contained HTML mooring summary **and one HTML page per instrument**, all in the same directory.  Each file embeds figures as base64 PNGs — no external dependencies, open offline, printable via Ctrl+P.
+`oceanarray report` generates self-contained HTML pages (all figures embedded as base64 PNGs — no external dependencies, open offline, printable via Ctrl+P).
+
+By default only the main mooring summary is generated (fast).  Use flags to opt in to the slower pages:
+
+| Flag | Page generated | Speed |
+|------|---------------|-------|
+| *(none)* | `{mooring}_report.html` — mooring summary | fast |
+| `--instruments` | `{mooring}_{serial}_report.html` per instrument | slow |
+| `--grid` | `{mooring}_grid_report.html` — T/S pcolormesh | moderate |
+| `--stack` | `{mooring}_stack_report.html` — pressure & T time series | moderate |
+| `--serial SN [SN ...]` | per-instrument page(s) for listed serial(s) only | moderate |
 
 **Mooring summary** (`{mooring}_report.html`):
 1. Header card (cruise, ship, deployment/recovery times, location, water depth)
-2. Processing pipeline badges per instrument (Raw → Read → Stage 1 → 2 → 3 → Stack)
+2. Processing pipeline badges per instrument (Raw → Read → Stage 1 → 2 → 3 → Stack → Grid)
 3. Instrument summary table (first/last sample, N records, YAML Δt, observed Δt, variable presence) — S/N links to per-instrument page
 4. Clock correction table
 5. Sensor calibration metadata (from `SENSOR_*` variables in stage 2 NC files)
 6. QC flag summary — per-instrument × per-variable percentage breakdown with colour-coded stacked bars (OceanSITES flag colours)
 
-**Per-instrument pages** (`{mooring}_{serial}_report.html`):
+**Gridded data report** (`{mooring}_grid_report.html`, requires `--grid`):
+- Variable coverage table
+- Temperature pcolormesh and contourf (20 discrete levels, RdYlBu_r)
+- Practical salinity pcolormesh and contourf (20 discrete levels, YlGnBu_r; blue = fresh)
+- Potential density pcolormesh and contourf (BuPu) with iso-density contour lines (default 27.7 and 27.8 kg m⁻³)
+
+**Stacked data report** (`{mooring}_stack_report.html`, requires `--stack`):
+- Instrument table (type, serial, HAB, approximate depth, stage used)
+- Variable coverage table (name, units, % non-NaN)
+- Pressure time series: all instruments on one plot, inverted y-axis, colored by instrument type
+- Temperature time series: all instruments, colored by instrument type
+
+**Per-instrument pages** (`{mooring}_{serial}_report.html`, requires `--instruments` or `--serial`):
 - Processing history (the NC `history` attribute, one row per stage)
 - Full deployment time series with QC flag markers (× suspect/bad, + interpolated)
 - First 48 h and last 48 h window zooms
@@ -242,7 +276,7 @@ Stage2Processor(base).process_mooring(mooring)
 Stage3Processor(base).process_mooring(mooring)
 MooringStacker(base).stack(mooring)
 MooringGridder(base).grid(mooring)
-MooringReport(base).generate(mooring, outdir='outputs/')
+MooringReport(base).generate(mooring, outdir='outputs/')          # add stack=True or grid=True for optional pages
 ```
 
 ## Project structure

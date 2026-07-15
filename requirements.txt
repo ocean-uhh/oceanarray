@@ -9,6 +9,7 @@ matplotlib>=3.7
 
 # Oceanographic tools
 gsw>=3.6.16
+ppigrf  # IGRF magnetic declination (used in stage3 for Nortek BEAM→ENU correction)
 
 # QC
 ioos_qc

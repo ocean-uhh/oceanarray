@@ -45,6 +45,29 @@ COLORBAR_PLOW = 5  # lower percentile for vmin
 COLORBAR_PHIGH = 95  # upper percentile for vmax
 
 # ---------------------------------------------------------------------------
+# Density reference pressure (dbar) for potential density anomaly at stack step.
+# 0 → sigma-0 (suitable for shallow moorings < ~1000 m)
+# 2000 → sigma-2 (suitable for deep moorings)
+# Override per mooring in YAML: density_reference: 2000
+# ---------------------------------------------------------------------------
+DENSITY_REFERENCE = 0
+DENSITY_COLORMAP = "BuPu"  # ColorBrewer sequential: light-cyan → dark-purple
+# Iso-density contour lines overlaid on sigma pcolormesh plots.
+# Set to [] to suppress.  Values are in kg m-3 (above 1000).
+SIGMA_CONTOUR_LEVELS = [27.7, 27.8]
+
+# Colors for instrument types in stack-level time series plots.
+# Keys match the 'instrument' field in the mooring YAML.
+INSTRUMENT_COLORS = {
+    "microcat": "#1f77b4",  # blue
+    "aquadopp": "#d62728",  # red
+    "rbr": "#2ca02c",  # green
+    "rbr-solo": "#2ca02c",
+    "rbr-duet": "#17becf",  # teal
+    "default": "#7f7f7f",  # gray for unknown types
+}
+
+# ---------------------------------------------------------------------------
 # Instrument abbreviations  (instrument directory name → short label prefix)
 #
 # Used to build labels like "MC2942 868m" in multi-instrument plots.

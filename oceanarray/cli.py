@@ -3,6 +3,7 @@
 import argparse
 import sys
 from pathlib import Path
+from .utilities import _status
 
 
 def _resolve_basedir(basedir: str) -> str:
@@ -123,7 +124,7 @@ def cmd_process(args: argparse.Namespace) -> int:
     serials = args.serial or None
 
     if 1 in stages:
-        print(f"\n=== Stage 1: {args.mooring} ===")
+        _status("section", f"Stage 1: {args.mooring}")
         ok = MooringProcessor(basedir).process_mooring(
             args.mooring, serials=serials, force=args.force
         )
@@ -132,7 +133,7 @@ def cmd_process(args: argparse.Namespace) -> int:
             overall_success = False
 
     if 2 in stages:
-        print(f"\n=== Stage 2: {args.mooring} ===")
+        _status("section", f"Stage 2: {args.mooring}")
         ok = Stage2Processor(basedir).process_mooring(
             args.mooring, serials=serials, force=args.force
         )
@@ -155,7 +156,7 @@ def cmd_process(args: argparse.Namespace) -> int:
             overall_success = False
 
     if args.report:
-        print(f"\n=== Record Summary: {args.mooring} ===")
+        _status("section", f"Record Summary: {args.mooring}")
         _print_report(basedir, args.mooring)
 
     if args.plot:
@@ -167,7 +168,7 @@ def cmd_process(args: argparse.Namespace) -> int:
 
         from .plotters import plot_aquadopp_raw
 
-        print(f"\n=== Plotting: {args.mooring} ===")
+        _status("section", f"Plotting: {args.mooring}")
         proc_dir = _get_proc_root(basedir) / args.mooring
 
         for nc in sorted((proc_dir / "microcat").glob("*_stage2.nc")):
@@ -230,11 +231,16 @@ def cmd_report(args: argparse.Namespace) -> int:
     from .report import MooringReport
 
     basedir = _resolve_basedir(args.basedir)
+    _status("section", f"Report: {args.mooring}")
+    serials = getattr(args, "serial", None)
     result = MooringReport(basedir).generate(
         args.mooring,
         force=args.force,
         outdir=getattr(args, "outdir", None),
-        serials=getattr(args, "serial", None),
+        serials=serials,
+        instruments=args.instruments or bool(serials),
+        grid=args.grid,
+        stack=args.stack,
     )
     return 0 if result else 1
 
@@ -244,7 +250,7 @@ def cmd_stack(args: argparse.Namespace) -> int:
     from .mooring_level import MooringStacker
 
     basedir = _resolve_basedir(args.basedir)
-    print(f"\n=== Stack: {args.mooring} ===")
+    _status("section", f"Stack: {args.mooring}")
     ok = MooringStacker(basedir).stack(
         args.mooring,
         dt_seconds=args.dt,
@@ -258,6 +264,7 @@ def cmd_grid(args: argparse.Namespace) -> int:
     from .mooring_level import MooringGridder
 
     basedir = _resolve_basedir(args.basedir)
+    _status("section", f"Grid: {args.mooring}")
     ok = MooringGridder(basedir).grid(
         args.mooring,
         p_start=args.p_start,
@@ -355,12 +362,33 @@ def build_parser() -> argparse.ArgumentParser:
         "--force", action="store_true", help="Overwrite existing report"
     )
     p_report.add_argument(
+        "--instruments",
+        "-i",
+        action="store_true",
+        default=False,
+        help="Also generate per-instrument HTML pages (slow; skipped by default)",
+    )
+    p_report.add_argument(
+        "--grid",
+        "-g",
+        action="store_true",
+        default=False,
+        help="Also generate the gridded-data report page (requires _grid.nc)",
+    )
+    p_report.add_argument(
+        "--stack",
+        "-s",
+        action="store_true",
+        default=False,
+        help="Also generate the stacked-data report page with pressure and T time series (requires _stack.nc)",
+    )
+    p_report.add_argument(
         "--serial",
         nargs="+",
         metavar="SN",
         default=None,
-        help="Regenerate only per-instrument page(s) for these serial number(s); "
-        "the mooring summary is always regenerated",
+        help="Generate per-instrument page(s) for these serial number(s) only "
+        "(implies --instruments for the listed serials)",
     )
     p_report.set_defaults(func=cmd_report)
 

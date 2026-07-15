@@ -11,11 +11,84 @@ import logging
 import yaml
 import seasenselib
 from seasenselib.writers import NetCdfWriter
+from .utilities import _status
 
 # Suppress noisy INFO/WARNING messages from seasenselib/pycnv.
 logging.getLogger("seasenselib").setLevel(logging.WARNING)
 logging.getLogger("seasenselib.pipeline.derivation").setLevel(logging.ERROR)
 logging.getLogger("pycnv").setLevel(logging.WARNING)
+
+
+def _dms_str_to_decimal(s: str) -> Optional[float]:
+    """Convert 'DD MM.mmm N/S/E/W' or a plain float string to decimal degrees."""
+    s = str(s).strip()
+    try:
+        return float(s)
+    except ValueError:
+        pass
+    parts = s.upper().split()
+    if not parts:
+        return None
+    hemi = parts[-1] if parts[-1] in ("N", "S", "E", "W") else None
+    nums = parts[:-1] if hemi else parts
+    try:
+        val = sum(float(x) / 60.0**i for i, x in enumerate(nums))
+    except (ValueError, ZeroDivisionError):
+        return None
+    if hemi in ("S", "W"):
+        val = -val
+    return val
+
+
+def _parse_nortek_coord_system(hdr_path: Path) -> str:
+    """Return the coordinate system string from a Nortek .hdr file (BEAM/XYZ/ENU).
+
+    Reads the instrument settings block (above "Data file format") looking for a
+    line matching ``Coordinate system   <value>``.  Returns "ENU" if not found.
+    """
+    try:
+        with open(hdr_path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                if "Data file format" in line:
+                    break
+                m = re.match(r"^\s*Coordinate system\s{2,}(\S+)", line, re.IGNORECASE)
+                if m:
+                    return m.group(1).strip().upper()
+    except Exception:
+        pass
+    return "ENU"
+
+
+def _parse_nortek_pressure_cal(hdr_path: Path) -> dict:
+    """Return pressure sensor calibration key-value pairs from a Nortek .hdr file.
+
+    Reads the block starting at a line matching "Pressure.*calibration" (case-insensitive)
+    and ending at the next blank line or top-level section header (line starting without
+    leading whitespace and not a key-value pair).  Returns an empty dict if not found.
+    """
+    cal: dict = {}
+    in_section = False
+    try:
+        with open(hdr_path, encoding="utf-8", errors="replace") as f:
+            for line in f:
+                if "Data file format" in line:
+                    break
+                stripped = line.rstrip()
+                if re.search(r"pressure.{0,10}calibration", stripped, re.IGNORECASE):
+                    in_section = True
+                    continue
+                if not in_section:
+                    continue
+                if stripped == "":
+                    break  # blank line ends the section
+                # Key-value lines have ≥2 spaces between key and value
+                m = re.match(r"^\s*(.+?)\s{2,}(.+?)\s*$", stripped)
+                if m:
+                    key = re.sub(r"\W+", "_", m.group(1).strip().lower()).strip("_")
+                    cal[key] = m.group(2).strip()
+    except Exception:
+        pass
+    return cal
 
 
 class MooringProcessor:
@@ -122,7 +195,15 @@ class MooringProcessor:
         if file_type == "nortek-csv":
             from .readers import load_nortek_csv
 
-            return load_nortek_csv(file_path, header_file=header_path)
+            ds = load_nortek_csv(file_path, header_file=header_path)
+            coord_system = ds.attrs.get("coordinate_system")
+            if coord_system is None:
+                print(
+                    f"WARNING: nortek-csv file {file_path} has no coordinate_system "
+                    "attribute — coordinate system unknown (UNK); velocities not renamed."
+                )
+                coord_system = "UNK"
+            return self._normalize_nortek_variables(ds, coord_system=coord_system)
 
         kwargs = {}
         if file_type in ("nortek-aqd", "nortek-ascii") and header_path:
@@ -135,22 +216,39 @@ class MooringProcessor:
             **kwargs,
         )
         if file_type in ("nortek-ascii", "nortek-aqd"):
-            ds = self._normalize_nortek_variables(ds)
+            if header_path:
+                coord_system = _parse_nortek_coord_system(Path(header_path))
+            else:
+                print(
+                    f"WARNING: no header file for {file_path} — "
+                    "coordinate system unknown (UNK); velocities not renamed."
+                )
+                coord_system = "UNK"
+            ds = self._normalize_nortek_variables(ds, coord_system=coord_system)
         return ds
 
-    def _normalize_nortek_variables(self, dataset):
+    def _normalize_nortek_variables(self, dataset, coord_system: str = "ENU"):
         """Normalise variable names produced by the seasenselib nortek readers.
 
-        The Nortek DAT/AQD format has two columns both labelled 'Pressure':
-        column 21 in dbar (the sensor reading) and column 22 in m (computed
-        depth).  seasenselib renames them pressure_1 and pressure_2.  We:
-          - rename pressure_1 → pressure  (dbar, the measurement we want)
-          - rename pressure_2 → depth     (m, a derived quantity)
-          - drop pressure_3, pressure_4 if all-NaN
-          - rename temperature_1 → temperature if temperature is absent
+        The Nortek .hdr file describes columns for both the main .dat file and the
+        diagnostics .dia file in the same "Data file format" block.  seasenselib's
+        header reader captures all of them, causing the pipeline's smart-numbering
+        logic to produce phantom _1 / _2 / … duplicates for every variable (the _1
+        columns are always NaN because the .dat file only has the plain columns).
+
+        This method:
+          1. Rescues pressure_1 → pressure and pressure_2 → depth (Nortek has two
+             pressure columns: dbar and m).
+          2. Drops ALL _{n} phantom duplicates of known physics variables.
+          3. Renames velocity variables to reflect the instrument's coordinate system:
+               BEAM → velocity_beam1 / velocity_beam2 / velocity_beam3
+               XYZ  → x_velocity    / y_velocity    / z_velocity
+               ENU  → east_velocity / north_velocity / up_velocity  (no rename)
+          4. Stores ``nortek_coordinate_system`` as a dataset attribute.
         """
         import numpy as np
 
+        # ── 1. Pressure: first occurrence is dbar, second is metres ──────────
         if "pressure_1" in dataset.data_vars and "pressure" not in dataset.data_vars:
             dataset = dataset.rename_vars({"pressure_1": "pressure"})
 
@@ -160,21 +258,154 @@ class MooringProcessor:
                 dataset = dataset.drop_vars("pressure_2")
             else:
                 attrs = dict(p2.attrs)
-                attrs["units"] = "m"
-                attrs["long_name"] = "Depth"
+                attrs.update({"units": "m", "long_name": "Depth"})
                 dataset = dataset.drop_vars("pressure_2")
                 dataset["depth"] = p2.assign_attrs(attrs)
 
-        for extra in ("pressure_3", "pressure_4"):
-            if extra in dataset.data_vars:
-                if np.all(np.isnan(dataset[extra].values)):
-                    dataset = dataset.drop_vars(extra)
+        # ── 2. Drop all _{n} phantom duplicates ───────────────────────────────
+        # seasenselib reads both .dat and .dia column definitions from the .hdr,
+        # producing phantom _1 duplicates for every variable (all NaN because
+        # the .dat file only has the plain columns).  Match on any {base}_{digits}
+        # suffix — drop if the plain base exists OR if the column is entirely NaN.
+        import re as _re
 
-        if (
-            "temperature_1" in dataset.data_vars
-            and "temperature" not in dataset.data_vars
-        ):
-            dataset = dataset.rename_vars({"temperature_1": "temperature"})
+        _suffix_re = _re.compile(r"^(.+)_\d+$")
+        _to_drop = []
+        for _vname in list(dataset.data_vars):
+            _m = _suffix_re.match(_vname)
+            if not _m:
+                continue
+            _base = _m.group(1)
+            if _base in dataset.data_vars:
+                _to_drop.append(_vname)
+            elif (
+                dataset[_vname].dtype.kind == "f"
+                and dataset[_vname].size > 0
+                and bool(np.all(np.isnan(dataset[_vname].values)))
+            ):
+                _to_drop.append(_vname)
+        if _to_drop:
+            dataset = dataset.drop_vars(_to_drop)
+
+        # Drop redundant datetime component columns — the time coordinate suffices.
+        _dt_cols = ["Year", "Month", "Day", "Hour", "Minute", "Second"]
+        _dt_drop = [c for c in _dt_cols if c in dataset.data_vars]
+        if _dt_drop:
+            dataset = dataset.drop_vars(_dt_drop)
+
+        # ── 3. Velocity renaming based on coordinate system ───────────────────
+        cs = coord_system.strip().upper()
+        dataset.attrs["nortek_coordinate_system"] = cs
+
+        _vel_src = ["east_velocity", "north_velocity", "up_velocity"]
+        if cs == "BEAM":
+            _vel_dst = ["velocity_beam1", "velocity_beam2", "velocity_beam3"]
+        elif cs == "XYZ":
+            _vel_dst = ["x_velocity", "y_velocity", "z_velocity"]
+        elif cs == "UNK":
+            _vel_dst = (
+                _vel_src  # leave as-is; nortek_coordinate_system=UNK signals unknown
+            )
+        else:  # ENU — names are already correct
+            _vel_dst = _vel_src
+
+        if _vel_src != _vel_dst:
+            rename_map = {
+                src: dst
+                for src, dst in zip(_vel_src, _vel_dst)
+                if src in dataset.data_vars
+            }
+            if rename_map:
+                dataset = dataset.rename_vars(rename_map)
+
+        # ── 4. Amplitude renaming — always beam-based, not ENU ───────────────
+        _amp_rename = {
+            s: d
+            for s, d in [
+                ("east_amplitude", "amplitude_beam1"),
+                ("north_amplitude", "amplitude_beam2"),
+                ("up_amplitude", "amplitude_beam3"),
+            ]
+            if s in dataset.data_vars
+        }
+        if _amp_rename:
+            dataset = dataset.rename_vars(_amp_rename)
+            for _aname in _amp_rename.values():
+                if _aname in dataset.data_vars:
+                    dataset[_aname].attrs.setdefault("units", "counts")
+                    dataset[_aname].attrs.setdefault(
+                        "long_name", f"Acoustic signal amplitude {_aname[-1]}"
+                    )
+
+        # ── 5. Normalize remaining Nortek column names to snake_case ─────────
+        # seasenselib normalises some names (battery_voltage, speed_of_sound, …)
+        # but leaves others verbatim from the .hdr column headers.
+        _NORTEK_RENAME = {
+            "Heading": "heading",
+            "Pitch": "pitch",
+            "Roll": "roll",
+            "Direction": "direction",
+            "Speed": "speed",
+            "Error code": "error_code",
+            "Status code": "status_code",
+            "Analog input 1": "analog_input_1",
+            "Analog input 2": "analog_input_2",
+            # seasenselib maps this to speed_of_sound but also keeps the original
+            "Soundspeed used": "speed_of_sound",
+        }
+        _norm_rename: dict = {}
+        _norm_drop: list = []
+        for _old, _new in _NORTEK_RENAME.items():
+            if _old not in dataset.data_vars:
+                continue
+            if _new in dataset.data_vars:
+                _norm_drop.append(_old)  # canonical already exists; drop the duplicate
+            else:
+                _norm_rename[_old] = _new
+        if _norm_rename:
+            dataset = dataset.rename_vars(_norm_rename)
+        if _norm_drop:
+            dataset = dataset.drop_vars(_norm_drop)
+
+        # ── 6. CSV format: demote constant time-series to attrs; drop scaffolding ──
+        # The nortek-csv reader stores deployment-config columns as full time series
+        # even though they never change.  Promote them to global attrs and drop.
+        _CSV_TO_ATTR = {
+            "coordinatesystem": "nortek_coordinate_system",
+            "blanking": "nortek_blanking_m",
+            "cellsize": "nortek_cellsize_m",
+            "nbeams": "nortek_nbeams",
+            "ncells": "nortek_ncells",
+        }
+        for _cv, _ca in _CSV_TO_ATTR.items():
+            if _cv not in dataset.data_vars:
+                continue
+            _arr = dataset[_cv].values
+            if _arr.dtype.kind in ("U", "S", "O"):
+                _unique = list({str(x) for x in _arr.flat})
+                if len(_unique) == 1:
+                    dataset.attrs.setdefault(_ca, _unique[0])
+                    dataset = dataset.drop_vars(_cv)
+            else:
+                try:
+                    _farr = _arr.astype(float)
+                    _uv = np.unique(_farr[np.isfinite(_farr)])
+                    if len(_uv) == 1:
+                        dataset.attrs.setdefault(_ca, float(_uv[0]))
+                        dataset = dataset.drop_vars(_cv)
+                except Exception:
+                    pass
+
+        # Drop pure scaffolding columns with no scientific value
+        _CSV_DROP = [
+            "serialnumber",
+            "statuspreviouswakeupstate",
+            "idx",
+            "ensemblecounter",
+        ]
+        _csv_drop = [v for v in _CSV_DROP if v in dataset.data_vars]
+        if _csv_drop:
+            dataset = dataset.drop_vars(_csv_drop)
 
         return dataset
 
@@ -500,6 +731,8 @@ class MooringProcessor:
         filename = instrument_config["filename"]
         file_type = instrument_config.get("file_type", "")
         instrument_name = instrument_config.get("instrument", "unknown")
+        serial = str(instrument_config.get("serial", "unknown"))
+        _status("instr", f"{instrument_name} {serial}")
 
         input_file = input_dir / instrument_name / mooring_name / filename
 
@@ -517,7 +750,7 @@ class MooringProcessor:
         # Skip if output file already exists (unless forced)
         if output_file.exists() and not force:
             relative_path = output_file.relative_to(self.base_dir)
-            self._log_print(f"OUTFILE EXISTS: Skipping {relative_path}")
+            _status("skip", str(relative_path))
             return True
 
         # Process the file
@@ -568,11 +801,13 @@ class MooringProcessor:
             self._log_print(f"EXCEPT: Error reading file {relative_path}: {e}")
             return False
 
-        # Log processing start
-        relative_input = input_file.relative_to(self.base_dir)
         relative_output = output_file.relative_to(self.base_dir)
-        instrument_name = instrument_config.get("instrument", "unknown")
-        self._log_print(f"-->   Processing {instrument_name}: {relative_input}")
+
+        # Store Nortek pressure sensor calibration coefficients from .hdr as attrs
+        if file_type in ("nortek-aqd", "nortek-ascii") and header_file:
+            pcal = _parse_nortek_pressure_cal(Path(header_file))
+            for k, v in pcal.items():
+                dataset.attrs[f"nortek_pressure_cal_{k}"] = v
 
         # Inject calibration metadata for sbe-ascii (seasenselib discards the header)
         if file_type == "sbe-ascii":
@@ -606,7 +841,7 @@ class MooringProcessor:
         dataset = self._add_instrument_metadata(dataset, instrument_config, yaml_data)
 
         # Write to NetCDF
-        self._log_print(f"Creating output file: {relative_output}")
+        _status("file", str(relative_output))
         writer = NetCdfWriter(dataset)
         writer_params = self._get_netcdf_writer_params()
         writer.write(str(output_file), **writer_params)

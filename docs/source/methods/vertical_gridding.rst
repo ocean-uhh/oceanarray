@@ -1,59 +1,112 @@
+Grid: Vertical Pressure Grid
+=============================
 
-Step 2: Vertical Gridding
-==========================
+The ``oceanarray grid`` command linearly interpolates the stacked ``(N_LEVELS, time)``
+dataset onto a regular pressure grid, producing ``(time, pressure)`` output suitable for
+T-S section plots and density diagnostics.
 
-For a tall mooring with multiple instruments at different depths, vertical gridding can be used to create an evenly spaced (in pressure or depth coordinates) profile of measured properties.
+Command
+-------
 
-The method below describes the interpolation used by the RAPID array which was in the `hydro_grid.m` script and calling subfunctions for the interpolation and extrapolation.  This has been adapted into the Python module `verticalnn.rapid_interp`.
+.. code-block:: bash
 
-**Note:** This method requires a monthly climatology of vertical gradients in temperature and salinity, which is computed from hydrographic (ship-based CTD profiles). The gradients are used to fill gaps between sensors and extrapolate above the shallowest and below the deepest sensor.
+   oceanarray grid {mooring} --basedir /path/to/data [--p-start 200] [--p-end 1000] [--dp 20] [--force]
 
-Overview
---------
+Python API
+----------
 
-Sparse vertical profiles (e.g., from tall moorings with gaps) are interpolated and extrapolated using monthly climatologies of dT/dP and dS/dP, binned by temperature. This provides a fast, interpretable, and physically grounded estimate of full-depth profiles.
+.. code-block:: python
+
+   from oceanarray.mooring_level import MooringGridder
+
+   MooringGridder(base_dir).grid(mooring_name, p_start=200.0, p_end=1000.0, dp=20.0, force=False)
 
 Purpose
 -------
 
-- Fill gaps between sensors
-- Extrapolate above the shallowest and below the deepest sensor
+Grid reads the stacked ``{mooring}_stack.nc`` file and interpolates each variable from the
+sparse instrument levels onto a uniform pressure axis. The result is a
+``(time, pressure)`` dataset convenient for section plots, density cross-sections, and
+further analysis.
 
-Input
------
+Run ``oceanarray stack`` first; the grid step requires a ``{mooring}_stack.nc`` file
+containing a ``pressure`` variable.
 
-- `xarray.Dataset` containing sparse profiles of:
-  - Conservative Temperature (CT)
-  - Absolute Salinity (SA)
-  - Pressure (PRES)
-  - LATITUDE, LONGITUDE, TIME
+Input files
+-----------
 
-- Monthly climatology of vertical gradients:
-  - `dTdp(TEMP, month)`
-  - `dSdp(TEMP, month)`
+``proc/{mooring}/{mooring}_stack.nc``
 
-- Target pressure grid (e.g., 0 to 5000 dbar in 20 dbar steps)
+Algorithm
+---------
+
+At each time step, the ``N_LEVELS`` pressure values and each variable are gathered. Only
+levels with both a finite pressure value and a finite variable value contribute to the
+interpolation. The available points are sorted by pressure and passed to
+``numpy.interp`` onto the target pressure grid. Values at pressures outside the range of
+finite instruments at that time step are set to NaN; there is no extrapolation.
+
+Note on QC flags
+^^^^^^^^^^^^^^^^
+
+The grid step operates directly on data values. Stage-3 QC flags are not consulted:
+data flagged as suspect (3) or bad (4) in stage 3 pass through the gridding step unless
+the corresponding values are already NaN. Users who wish to exclude suspect or bad data
+should null out those values before running the grid step.
+
+Pressure grid axis
+------------------
+
+.. code-block:: python
+
+   p_grid = numpy.arange(p_start, p_end + dp / 2, dp)   # dbar
+
+Default: 200 to 1000 dbar in 20 dbar steps.
 
 Output
 ------
 
-- Full-depth interpolated profiles:
-  - CT(PRES), SA(PRES), SIGMA0(PRES)
-- On a common vertical grid, for all time steps
-- Includes vertical extrapolation if enabled
+Dimensions
+^^^^^^^^^^
 
-Implementation Notes
---------------------
+``(time, pressure)`` — OceanSITES convention with TIME as the first dimension.
 
-- Internal gaps are filled by dual integration from top and bottom sensors using climatological gradients and blended by linear weights
-- Extrapolation at the top/bottom uses gradient-following integration from the nearest observed point
-- SIGMA0 is computed using TEOS-10 from CT and SA
-- Handles arbitrary tall moorings, not just RAPID
+Variables gridded
+^^^^^^^^^^^^^^^^^
 
-References
-----------
+All ``(N_LEVELS, time)`` variables present in the stack file, except ``pressure`` itself,
+are interpolated onto the pressure axis. This includes derived quantities such as
+``sigma0`` or ``sigma2`` computed at the stack step.
 
-- Johns et al. (2001): "The Kuroshio east of Taiwan: Moored transport observations from the WOCE PCM-1 Array."
-- Original implementation in Matlab by T. Kanzow (2000): `hydro_grid.m`, `t_bound0.m`, `t_int0.m`
-- Offline (i.e., not RAPID production scripts) in Python: `verticalnn.rapid_interp.interpolate_profiles`
+Output file
+^^^^^^^^^^^
 
+``proc/{mooring}/{mooring}_grid.nc``
+
+Global attributes are inherited from the stack file. The following attributes are added:
+``p_start_dbar``, ``p_end_dbar``, ``dp_dbar``. The ``history`` attribute is extended.
+Each gridded variable carries a ``vertical_interpolation`` note in its attributes.
+
+Grid report
+-----------
+
+The command ``oceanarray report {mooring} --grid`` generates
+``{mooring}_grid_report.html`` containing:
+
+- Variable coverage table (name, long name, units, percentage non-NaN).
+- Temperature pcolormesh and contourf (colormap ``RdYlBu_r``, 20 discrete levels).
+- Practical salinity pcolormesh and contourf (colormap ``YlGnBu_r``, reversed so that
+  low salinity maps to blue).
+- Potential density (sigma0 or sigma2) pcolormesh and contourf (colormap BuPu) with
+  iso-density contour lines overlaid (default 27.7 and 27.8 kg m\ :sup:`-3`,
+  configurable via ``parameters.SIGMA_CONTOUR_LEVELS``).
+
+All figures use 20 human-readable discrete colorbar levels computed by
+``utilities._nice_colorbar_bounds(vmin, vmax, n=20)``, which rounds the step to one
+significant figure and centres the range on the data midpoint.
+
+See also
+--------
+
+- :doc:`time_gridding` — stack all instruments onto a common time axis first
+- :doc:`../oceanarray` — full command reference

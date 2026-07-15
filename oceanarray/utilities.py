@@ -2,6 +2,7 @@ from oceanarray import logger
 
 log = logger.log
 
+import math
 from datetime import datetime
 from functools import wraps
 from typing import Callable, List, Optional
@@ -287,3 +288,60 @@ def apply_defaults(default_source: str, default_files: List[str]) -> Callable:
         return wrapper
 
     return decorator
+
+
+def _status(kind: str, msg: str, *, char: str = "=") -> None:
+    """Print a formatted status line to stdout.
+
+    kind     msg                        char (optional)
+    -------  -------------------------  ---------------
+    section  "Stage 1: dsG3_1_2026"    border char, default "="  → "=== Stage 1: dsG3_1_2026 ==="
+    instr    "<type> <serial>"          ignored  → "--- microcat 7507 ---"
+    file     relative path             ignored  → "Creating output file: proc/..."
+    skip     relative path             ignored  → "  OUTFILE EXISTS: proc/...  (use --force to overwrite)"
+    error    message                   ignored  → "ERROR: ..."
+
+    Pass ``char`` to ``section`` calls to distinguish mooring runs in a multi-mooring
+    script, e.g. ``char="*"`` gives ``"*** Stage 1: dsG3_2_2026 ***"``.
+    """
+    if kind == "section":
+        border = char * 3
+        print(f"\n{border} {msg} {border}")
+    elif kind == "instr":
+        print(f"\n--- {msg} ---")
+    elif kind == "file":
+        print(f"Creating output file: {msg}")
+    elif kind == "skip":
+        print(f"  OUTFILE EXISTS: {msg}  (use --force to overwrite)")
+    elif kind == "error":
+        print(f"ERROR: {msg}")
+
+
+def _nice_colorbar_bounds(vmin: float, vmax: float, n: int = 20) -> np.ndarray:
+    """Return a boundary array for a discrete colorbar with approximately *n* levels.
+
+    The step is rounded to 1 significant figure so tick labels land on clean values.
+    The range is centered on the midpoint of [vmin, vmax].
+
+    Examples
+    --------
+    Temperature  vmin=0.87, vmax=7.23 → step=0.3,  bounds 1.2–7.2  (20 levels)
+    Salinity     vmin=34.782, vmax=35.139 → step=0.02, bounds 34.76–35.16 (20 levels)
+
+    """
+    span = vmax - vmin
+    if span <= 0:
+        return np.linspace(vmin - 1, vmin + 1, n + 1)
+    raw_step = span / n
+    mag = 10.0 ** math.floor(math.log10(raw_step))
+    rounded = round(raw_step / mag)
+    if rounded == 0:
+        rounded = 1
+    elif rounded >= 10:
+        mag *= 10
+        rounded = 1
+    nice_step = rounded * mag
+    mid = (vmin + vmax) / 2
+    mid_aligned = round(mid / nice_step) * nice_step
+    lo = mid_aligned - (n / 2) * nice_step
+    return np.array([lo + i * nice_step for i in range(n + 1)])

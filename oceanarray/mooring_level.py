@@ -17,15 +17,27 @@ import re
 import numpy as np
 import xarray as xr
 import yaml
+from . import parameters as P
+from .utilities import _status
 
 
 STACK_VARS = [
     "temperature",
+    "salinity",
     "conductivity",
     "pressure",
     "east_velocity",
     "north_velocity",
     "up_velocity",
+    "velocity_beam1",
+    "velocity_beam2",
+    "velocity_beam3",
+    "amplitude_beam1",
+    "amplitude_beam2",
+    "amplitude_beam3",
+    "correlation_beam1",
+    "correlation_beam2",
+    "correlation_beam3",
     "heading",
     "pitch",
     "roll",
@@ -34,6 +46,89 @@ STACK_VARS = [
 
 def _safe_serial(serial: Any) -> str:
     return re.sub(r"[^\w\-]", "", str(serial))
+
+
+def _dms_to_deg(s: str) -> float:
+    """Parse 'DD MM.mmm N/S/E/W' or a plain float string to decimal degrees."""
+    s = s.strip()
+    try:
+        return float(s)
+    except ValueError:
+        pass
+    parts = s.upper().split()
+    hemi = parts[-1] if parts[-1] in ("N", "S", "E", "W") else None
+    nums = parts[:-1] if hemi else parts
+    val = sum(float(x) / 60.0**i for i, x in enumerate(nums))
+    if hemi in ("S", "W"):
+        val = -val
+    return val
+
+
+def _parse_latlon(cfg: dict):
+    """Return (lat, lon) in decimal degrees from a mooring config dict."""
+    for lat_key, lon_key in [
+        ("seabed_latitude", "seabed_longitude"),
+        ("deployment_latitude", "deployment_longitude"),
+        ("planned_latitude", "planned_longitude"),
+        ("latitude", "longitude"),
+    ]:
+        lat_s = cfg.get(lat_key)
+        lon_s = cfg.get(lon_key)
+        if lat_s is not None and lon_s is not None:
+            return _dms_to_deg(str(lat_s)), _dms_to_deg(str(lon_s))
+    return 0.0, 0.0
+
+
+_SIGMA_META = {
+    0: (
+        "sigma0",
+        "Potential density anomaly referenced to surface (sigma-0)",
+        "sea_water_sigma_t",
+    ),
+    1000: (
+        "sigma1",
+        "Potential density anomaly referenced to 1000 dbar (sigma-1)",
+        "sea_water_sigma_1",
+    ),
+    2000: (
+        "sigma2",
+        "Potential density anomaly referenced to 2000 dbar (sigma-2)",
+        "sea_water_sigma_2",
+    ),
+    3000: (
+        "sigma3",
+        "Potential density anomaly referenced to 3000 dbar (sigma-3)",
+        "sea_water_sigma_3",
+    ),
+    4000: (
+        "sigma4",
+        "Potential density anomaly referenced to 4000 dbar (sigma-4)",
+        "sea_water_sigma_4",
+    ),
+}
+
+
+def _apply_qc_mask(src_v: np.ndarray, ds: "xr.Dataset", vname: str) -> np.ndarray:
+    """Return src_v with flagged values replaced by NaN.
+
+    Flags kept as valid:
+      0 (no QC performed), 1 (good), 2 (probably good)
+      + flag 8 (interpolated) for pressure only.
+    Flags masked (→ NaN):
+      3 (suspect), 4 (bad), 9 (missing value).
+    If no companion *_qc* variable exists the array is returned unchanged.
+    """
+    qc_name = f"{vname}_qc"
+    if qc_name not in ds.data_vars:
+        return src_v
+    qc = ds[qc_name].values
+    if vname == "pressure":
+        keep = np.isin(qc, [0, 1, 2, 8])
+    else:
+        keep = np.isin(qc, [0, 1, 2])
+    out = src_v.copy()
+    out[~keep] = np.nan
+    return out
 
 
 def _times_to_float(t: np.ndarray) -> np.ndarray:
@@ -88,6 +183,7 @@ def _nearest_subsample(
             result[vname] = np.full(n, np.nan)
             continue
         src_v = ds[vname].values.astype(np.float64)
+        src_v = _apply_qc_mask(src_v, ds, vname)
         out = np.full(n, np.nan)
         for i, (t_tgt, k) in enumerate(zip(tgt_t, idx)):
             # Check candidates at k-1 and k
@@ -117,6 +213,7 @@ def _linear_interp(
             result[vname] = np.full(len(common_time), np.nan)
             continue
         src_v = ds[vname].values.astype(np.float64)
+        src_v = _apply_qc_mask(src_v, ds, vname)
         valid = np.isfinite(src_v)
         if valid.sum() < 2:
             result[vname] = np.full(len(common_time), np.nan)
@@ -140,13 +237,21 @@ class MooringStacker:
         force: bool = False,
     ) -> bool:
         proc_dir = _get_proc_dir(self.base_dir, mooring_name)
-        if not proc_dir.exists():
+        try:
+            proc_dir_exists = proc_dir.exists()
+        except (TimeoutError, OSError) as exc:
+            print("ERROR: Cannot access data drive — is it connected?")
+            print(f"       Path: {proc_dir}")
+            print(f"       ({type(exc).__name__}: {exc})")
+            return False
+
+        if not proc_dir_exists:
             print(f"ERROR: Processing directory not found: {proc_dir}")
             return False
 
         output_path = proc_dir / f"{mooring_name}_stack.nc"
         if output_path.exists() and not force:
-            print(f"OUTFILE EXISTS: {output_path.name}")
+            _status("skip", str(output_path.relative_to(self.base_dir)))
             return True
 
         config_file = proc_dir / f"{mooring_name}.mooring.yaml"
@@ -283,6 +388,55 @@ class MooringStacker:
                     ("N_LEVELS", "time"), stacked[vname], attrs=var_attrs[vname]
                 )
 
+        # Compute potential density from stacked T, S, P
+        ref_p = int(mooring_config.get("density_reference", P.DENSITY_REFERENCE))
+        if (
+            "temperature" in data_vars
+            and "salinity" in data_vars
+            and "pressure" in data_vars
+        ):
+            try:
+                import gsw
+
+                lat, lon = _parse_latlon(mooring_config)
+                T_arr = stacked["temperature"]
+                SP_arr = stacked["salinity"]
+                P_arr = stacked["pressure"]
+                SA = gsw.SA_from_SP(SP_arr, P_arr, lon, lat)
+                CT = gsw.CT_from_t(SA, T_arr, P_arr)
+                _sigma_fn = {
+                    0: gsw.sigma0,
+                    1000: gsw.sigma1,
+                    2000: gsw.sigma2,
+                    3000: gsw.sigma3,
+                    4000: gsw.sigma4,
+                }
+                if ref_p in _sigma_fn:
+                    sigma_vals = _sigma_fn[ref_p](SA, CT)
+                else:
+                    sigma_vals = gsw.pot_rho_t_exact(SA, T_arr, P_arr, ref_p) - 1000.0
+                if not np.all(np.isnan(sigma_vals)):
+                    vname, long_name, std_name = _SIGMA_META.get(
+                        ref_p,
+                        (
+                            f"sigma_{ref_p}",
+                            f"Potential density anomaly referenced to {ref_p} dbar",
+                            "",
+                        ),
+                    )
+                    data_vars[vname] = xr.Variable(
+                        ("N_LEVELS", "time"),
+                        sigma_vals,
+                        {
+                            "units": "kg m-3",
+                            "long_name": long_name,
+                            "standard_name": std_name,
+                            "reference_pressure_dbar": ref_p,
+                        },
+                    )
+            except Exception as exc:
+                print(f"  WARNING: could not compute potential density: {exc}")
+
         # Coordinate names — exclude these from scalar metadata to avoid name conflicts
         _coord_names = {"serial", "hab", "instrument_type", "instrument", "time"}
 
@@ -345,7 +499,7 @@ class MooringStacker:
         if output_path.exists():
             output_path.unlink()
         ds_out.to_netcdf(output_path)
-        print(f"Creating output file: {output_path.relative_to(self.base_dir)}")
+        _status("file", str(output_path.relative_to(self.base_dir)))
         return True
 
 
@@ -367,19 +521,33 @@ class MooringGridder:
         merge_path = proc_dir / f"{mooring_name}_stack.nc"
         output_path = proc_dir / f"{mooring_name}_grid.nc"
 
-        if not merge_path.exists():
+        try:
+            stack_found = merge_path.exists()
+            output_found = output_path.exists()
+        except (TimeoutError, OSError) as exc:
+            print("ERROR: Cannot access data drive — is it connected?")
+            print(f"       Path: {merge_path.parent}")
+            print(f"       ({type(exc).__name__}: {exc})")
+            return False
+
+        if not stack_found:
             print(f"ERROR: Stack file not found: {merge_path}")
             print("       Run 'oceanarray stack' first.")
             return False
 
-        if output_path.exists() and not force:
-            print(f"OUTFILE EXISTS: {output_path.name}")
+        if output_found and not force:
+            _status("skip", str(output_path.relative_to(self.base_dir)))
             return True
 
         p_grid = np.arange(p_start, p_end + dp * 0.5, dp)
         n_p = len(p_grid)
 
-        ds = xr.open_dataset(merge_path).load()
+        try:
+            ds = xr.open_dataset(merge_path).load()
+        except (TimeoutError, OSError) as exc:
+            print("ERROR: Cannot read stack file — is the data drive connected?")
+            print(f"       ({type(exc).__name__}: {exc})")
+            return False
         n_time = ds.sizes["time"]
         n_instr = ds.sizes["N_LEVELS"]
 
@@ -394,12 +562,34 @@ class MooringGridder:
             return False
 
         pressure = ds["pressure"].values.astype(np.float64)  # (N_LEVELS, time)
-        grid_vars = [v for v in STACK_VARS if v != "pressure" and v in ds.data_vars]
+        grid_vars = [
+            v
+            for v in ds.data_vars
+            if v != "pressure" and ds[v].dims == ("N_LEVELS", "time")
+        ]
 
         stacked: Dict[str, np.ndarray] = {
             v: np.full((n_p, n_time), np.nan) for v in grid_vars
         }
         var_data = {v: ds[v].values.astype(np.float64) for v in grid_vars}
+
+        # Explicit QC masking: NaN any non-finite values for physics variables
+        # so vertical interpolation cannot bridge across bad or flagged data.
+        # Bad-flagged samples were already NaN'd at the stack step via _apply_qc_mask;
+        # this gate is the authoritative explicit check in the gridder.
+        # Velocity is included here; differentiated treatment can be added later.
+        _GRIDDER_QC_VARS = {
+            "temperature",
+            "conductivity",
+            "salinity",
+            "east_velocity",
+            "north_velocity",
+            "up_velocity",
+        }
+        for _v in grid_vars:
+            if _v in _GRIDDER_QC_VARS:
+                _d = var_data[_v]
+                _d[~np.isfinite(_d)] = np.nan
 
         for t in range(n_time):
             p_col = pressure[:, t]
@@ -432,7 +622,7 @@ class MooringGridder:
                     f"linear in pressure; no extrapolation outside {p_start:.0f}–{p_end:.0f} dbar"
                 )
                 data_vars[vname] = xr.Variable(
-                    ("pressure", "time"), stacked[vname], attrs=a
+                    ("time", "pressure"), stacked[vname].T, attrs=a
                 )
 
         ds_out = xr.Dataset(
@@ -472,5 +662,5 @@ class MooringGridder:
         if output_path.exists():
             output_path.unlink()
         ds_out.to_netcdf(output_path)
-        print(f"Creating output file: {output_path.relative_to(self.base_dir)}")
+        _status("file", str(output_path.relative_to(self.base_dir)))
         return True

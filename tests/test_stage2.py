@@ -490,9 +490,9 @@ class TestRealDataProcessing:
         with xr.open_dataset(use_file) as ds:
             # Should have much less data due to restrictive time window
             with xr.open_dataset(setup["raw_file"]) as raw_ds:
-                assert len(ds.time) < len(
-                    raw_ds.time
-                ), f"Expected trimmed data, got {len(ds.time)} vs {len(raw_ds.time)}"
+                assert len(ds.time) < len(raw_ds.time), (
+                    f"Expected trimmed data, got {len(ds.time)} vs {len(raw_ds.time)}"
+                )
 
             # All data should be within the specified window (accounting for clock offset)
             deploy_time = pd.to_datetime("2018-08-13T08:05:00")
