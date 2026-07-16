@@ -383,14 +383,14 @@ class MooringStacker:
             # Must come BEFORE the fill-None loop so the length is already i+1 when
             # the loop checks.
             if "magnetic_declination" not in scalar_meta:
-                scalar_meta["magnetic_declination"] = [None] * i
+                scalar_meta["magnetic_declination"] = [np.nan] * i
                 scalar_attrs["magnetic_declination"] = {
                     "units": "degrees_east",
                     "long_name": "Magnetic declination (IGRF)",
                 }
             decl_val = ds.attrs.get("magnetic_declination")
             scalar_meta["magnetic_declination"].append(
-                float(decl_val) if decl_val is not None else None
+                float(decl_val) if decl_val is not None else np.nan
             )
 
             # Fill None for variables not present in this instrument
@@ -599,7 +599,9 @@ class MooringGridder:
         grid_vars = [
             v
             for v in ds.data_vars
-            if v != "pressure" and ds[v].dims == ("N_LEVELS", "time")
+            if v != "pressure"
+            and ds[v].dims == ("N_LEVELS", "time")
+            and not v.endswith("_qc")
         ]
 
         stacked: Dict[str, np.ndarray] = {

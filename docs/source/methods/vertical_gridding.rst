@@ -49,10 +49,10 @@ finite instruments at that time step are set to NaN; there is no extrapolation.
 Note on QC flags
 ^^^^^^^^^^^^^^^^
 
-The grid step operates directly on data values. Stage-3 QC flags are not consulted:
-data flagged as suspect (3) or bad (4) in stage 3 pass through the gridding step unless
-the corresponding values are already NaN. Users who wish to exclude suspect or bad data
-should null out those values before running the grid step.
+The stack step applies QC masking before gridding: when a companion ``*_qc`` variable
+exists, samples flagged suspect (3), bad (4), or missing (9) are replaced with NaN so
+they do not contribute to the vertical interpolation.  QC flag variables themselves are
+not gridded.
 
 Pressure grid axis
 ------------------

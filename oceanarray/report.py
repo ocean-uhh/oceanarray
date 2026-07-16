@@ -272,10 +272,10 @@ _CANONICAL_PANELS: List[Tuple] = [
     ("velocity_beam1", "Beam 1 vel. [m/s]", "tab:blue", False),
     ("velocity_beam2", "Beam 2 vel. [m/s]", "tab:orange", False),
     ("velocity_beam3", "Beam 3 vel. [m/s]", "tab:cyan", False),
+    ("tilt", "Tilt [°]", "tab:red", False),
     ("pitch", "Pitch [°]", "tab:purple", False),
     ("roll", "Roll [°]", "#8B4513", False),
     ("heading", "Heading [°]", "tab:gray", False),
-    ("tilt", "Tilt [°]", "tab:red", False),
     ("speed_of_sound", "Sound speed [m/s]", "tab:olive", False),
     ("battery_voltage", "Battery [V]", "tab:pink", False),
 ]
