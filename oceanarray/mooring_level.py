@@ -23,15 +23,20 @@ from .utilities import _status
 
 STACK_VARS = [
     "temperature",
+    "temperature_qc",
     "salinity",
+    "salinity_qc",
     "conductivity",
     "pressure",
+    "pressure_qc",
     "east_velocity",
     "north_velocity",
     "up_velocity",
     "east_velocity_qc",
     "north_velocity_qc",
     "up_velocity_qc",
+    "pitch_qc",
+    "roll_qc",
     "velocity_beam1",
     "velocity_beam2",
     "velocity_beam3",
@@ -45,6 +50,35 @@ STACK_VARS = [
     "pitch",
     "roll",
 ]
+
+# Variables passed through without QC masking at the stack step.
+# Velocity and orientation are kept at full precision so downstream users
+# (grid step, analysis) can apply their own masking via velocity_flag.
+# QC flag arrays never need masking (there is no companion *_qc_qc* variable).
+_STACK_RAW: frozenset = frozenset(
+    {
+        "east_velocity",
+        "north_velocity",
+        "up_velocity",
+        "velocity_beam1",
+        "velocity_beam2",
+        "velocity_beam3",
+        "amplitude_beam1",
+        "amplitude_beam2",
+        "amplitude_beam3",
+        "correlation_beam1",
+        "correlation_beam2",
+        "correlation_beam3",
+        "heading",
+        "pitch",
+        "roll",
+        "east_velocity_qc",
+        "north_velocity_qc",
+        "up_velocity_qc",
+        "pitch_qc",
+        "roll_qc",
+    }
+)
 
 
 def _safe_serial(serial: Any) -> str:
@@ -134,6 +168,18 @@ def _apply_qc_mask(src_v: np.ndarray, ds: "xr.Dataset", vname: str) -> np.ndarra
     return out
 
 
+def _worst_flag(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """Element-wise worst QC flag (9 > 4 > 3 > 8 > 2 > 1 > 0)."""
+    # rank[flag_value] gives priority; higher rank = worse flag
+    _rank = np.array([0, 1, 2, 4, 5, 6, 6, 6, 3, 7], dtype=np.int8)
+    ai = np.clip(np.round(a).astype(np.int8), 0, 9)
+    bi = np.clip(np.round(b).astype(np.int8), 0, 9)
+    take_b = _rank[bi] > _rank[ai]
+    out = ai.copy()
+    out[take_b] = bi[take_b]
+    return out
+
+
 def _times_to_float(t: np.ndarray) -> np.ndarray:
     return t.astype("datetime64[ns]").astype(np.float64)
 
@@ -186,7 +232,8 @@ def _nearest_subsample(
             result[vname] = np.full(n, np.nan)
             continue
         src_v = ds[vname].values.astype(np.float64)
-        src_v = _apply_qc_mask(src_v, ds, vname)
+        if vname not in _STACK_RAW:
+            src_v = _apply_qc_mask(src_v, ds, vname)
         out = np.full(n, np.nan)
         for i, (t_tgt, k) in enumerate(zip(tgt_t, idx)):
             # Check candidates at k-1 and k
@@ -216,14 +263,22 @@ def _linear_interp(
             result[vname] = np.full(len(common_time), np.nan)
             continue
         src_v = ds[vname].values.astype(np.float64)
-        src_v = _apply_qc_mask(src_v, ds, vname)
+        if vname not in _STACK_RAW:
+            src_v = _apply_qc_mask(src_v, ds, vname)
         valid = np.isfinite(src_v)
         if valid.sum() < 2:
             result[vname] = np.full(len(common_time), np.nan)
             continue
-        result[vname] = np.interp(
-            tgt_t, src_t[valid], src_v[valid], left=np.nan, right=np.nan
-        )
+        if vname.endswith("_qc"):
+            # QC flag arrays must not be linearly interpolated — use nearest valid
+            src_t_v = src_t[valid]
+            src_v_v = src_v[valid]
+            nn_idx = np.clip(np.searchsorted(src_t_v, tgt_t), 0, len(src_t_v) - 1)
+            result[vname] = src_v_v[nn_idx]
+        else:
+            result[vname] = np.interp(
+                tgt_t, src_t[valid], src_v[valid], left=np.nan, right=np.nan
+            )
     return result
 
 
@@ -455,6 +510,117 @@ class MooringStacker:
             except Exception as exc:
                 print(f"  WARNING: could not compute potential density: {exc}")
 
+        # velocity_flag: element-wise worst QC flag across east/north/up velocity.
+        # Velocity is stored unmasked in the stack; this combined flag is what the
+        # grid step (and users) should apply before using velocity values.
+        _vel_qc_keys = [
+            v
+            for v in ("east_velocity_qc", "north_velocity_qc", "up_velocity_qc")
+            if v in data_vars
+        ]
+        if _vel_qc_keys:
+            n_lev_v, n_t_v = (
+                stacked["east_velocity_qc"].shape
+                if "east_velocity_qc" in stacked
+                else (0, 0)
+            )
+            if n_lev_v > 0:
+                vel_flag = np.ones((n_lev_v, n_t_v), dtype=np.float64)  # 1 = good
+                for _qk in _vel_qc_keys:
+                    vel_flag = _worst_flag(vel_flag, stacked[_qk]).astype(np.float64)
+                data_vars["velocity_flag"] = xr.Variable(
+                    ("N_LEVELS", "time"),
+                    vel_flag,
+                    {
+                        "long_name": "Combined velocity QC flag (worst of east/north/up)",
+                        "comment": (
+                            "OceanSITES flag: 1=good, 2=prob_good, 3=suspect, 4=bad, "
+                            "9=missing.  Apply to east/north/up_velocity before use."
+                        ),
+                        "flag_values": "0 1 2 3 4 9",
+                        "flag_meanings": (
+                            "no_qc_performed good_data probably_good_data "
+                            "probably_bad_data bad_data missing_value"
+                        ),
+                    },
+                )
+
+        # Tilt estimated from pressure difference between two instrument levels.
+        # For each level i, find the nearest level j above it that is ≥10 m away
+        # in hab AND has at least some finite pressure data.  Instruments close
+        # together (e.g. a microcat strapped to an Aquadopp frame) are skipped.
+        #   rope_length = hab[j] - hab[i]            (m, from YAML)
+        #   ΔP          = pressure[i,:] - pressure[j,:]   (dbar ≈ m, >0 when upright)
+        #   tilt        = arccos(ΔP / rope_length)   (degrees from vertical; 0 = upright)
+        _MIN_HAB_SEP = 10.0  # minimum hab separation (m) to use as reference
+        if "pressure" in data_vars and len(habs) > 1:
+            try:
+                p_arr = stacked["pressure"]  # (N_LEVELS, time) numpy array
+                n_lev = len(habs)
+                tilt_p = np.full_like(p_arr, np.nan)
+                ref_hab_arr = np.full(n_lev, np.nan)  # hab of the reference level
+                ref_serial_arr = np.array([""] * n_lev, dtype=object)
+                # pre-compute which levels have any valid pressure
+                _has_p = np.array(
+                    [np.any(np.isfinite(p_arr[k, :])) for k in range(n_lev)]
+                )
+                for i in range(n_lev):
+                    if not _has_p[i]:
+                        continue
+                    # Find nearest level above i that is ≥_MIN_HAB_SEP away with pressure
+                    ref_j = None
+                    for j in range(i + 1, n_lev):
+                        if float(habs[j]) - float(habs[i]) < _MIN_HAB_SEP:
+                            continue
+                        if not _has_p[j]:
+                            continue
+                        ref_j = j
+                        break  # first valid j = nearest ≥10 m above
+                    if ref_j is None:
+                        continue
+                    rope = float(habs[ref_j]) - float(habs[i])
+                    ref_hab_arr[i] = float(habs[ref_j])
+                    ref_serial_arr[i] = str(serials[ref_j])
+                    delta_p = p_arr[i, :] - p_arr[ref_j, :]
+                    ratio = np.clip(delta_p / rope, 0.0, 1.0)
+                    tilt_p[i, :] = np.degrees(np.arccos(ratio))
+                    tilt_p[i, ~np.isfinite(delta_p)] = np.nan
+                    print(
+                        f"  tilt_from_pressure[{i}] s/n {serials[i]} ({habs[i]:.0f} m): "
+                        f"ref s/n {serials[ref_j]} ({habs[ref_j]:.0f} m, "
+                        f"rope={rope:.0f} m)"
+                    )
+                data_vars["tilt_from_pressure"] = xr.Variable(
+                    ("N_LEVELS", "time"),
+                    tilt_p,
+                    {
+                        "units": "degrees",
+                        "long_name": "Tilt estimated from pressure difference",
+                        "comment": (
+                            "arccos(ΔP / rope_length) where ΔP = pressure[i] - pressure[ref] "
+                            "and rope_length = hab[ref] - hab[i] from mooring YAML; "
+                            "ref is the nearest instrument ≥10 m above i with valid pressure."
+                        ),
+                    },
+                )
+                data_vars["tilt_pressure_ref_hab"] = xr.Variable(
+                    ("N_LEVELS",),
+                    ref_hab_arr,
+                    {
+                        "units": "m",
+                        "long_name": "Height above bottom of the pressure reference instrument used for tilt",
+                    },
+                )
+                data_vars["tilt_pressure_ref_serial"] = xr.Variable(
+                    ("N_LEVELS",),
+                    ref_serial_arr,
+                    {
+                        "long_name": "Serial number of the pressure reference instrument used for tilt"
+                    },
+                )
+            except Exception as exc:
+                print(f"  WARNING: could not compute tilt_from_pressure: {exc}")
+
         # Coordinate names — exclude these from scalar metadata to avoid name conflicts
         _coord_names = {"serial", "hab", "instrument_type", "instrument", "time"}
 
@@ -596,12 +762,40 @@ class MooringGridder:
             return False
 
         pressure = ds["pressure"].values.astype(np.float64)  # (N_LEVELS, time)
+        # Variables that are meaningful at the stacked per-instrument level but
+        # should not be interpolated onto the pressure grid.  Instrument-frame
+        # and beam-frame velocities are excluded because the XYZ→ENU rotation
+        # has already been applied; gridding the pre-rotation components would
+        # be misleading.  Diagnostic quantities (amplitude, correlation,
+        # battery) are per-sensor and do not have a physical meaning on a
+        # spatially-interpolated grid.
+        _GRID_EXCLUDE: frozenset = frozenset(
+            {
+                "velocity_x",
+                "velocity_y",
+                "velocity_z",
+                "velocity_beam1",
+                "velocity_beam2",
+                "velocity_beam3",
+                "amplitude_beam1",
+                "amplitude_beam2",
+                "amplitude_beam3",
+                "correlation_beam1",
+                "correlation_beam2",
+                "correlation_beam3",
+                "battery_voltage",
+                "velocity_flag",  # flag array, not a gridded physics variable
+                "tilt_from_pressure",  # per-instrument diagnostic, not gridded
+                "tilt_pressure_ref_hab",
+            }
+        )
         grid_vars = [
             v
             for v in ds.data_vars
             if v != "pressure"
             and ds[v].dims == ("N_LEVELS", "time")
             and not v.endswith("_qc")
+            and v not in _GRID_EXCLUDE
         ]
 
         stacked: Dict[str, np.ndarray] = {
@@ -609,23 +803,26 @@ class MooringGridder:
         }
         var_data = {v: ds[v].values.astype(np.float64) for v in grid_vars}
 
-        # Explicit QC masking: NaN any non-finite values for physics variables
-        # so vertical interpolation cannot bridge across bad or flagged data.
-        # Bad-flagged samples were already NaN'd at the stack step via _apply_qc_mask;
-        # this gate is the authoritative explicit check in the gridder.
-        # Velocity is included here; differentiated treatment can be added later.
-        _GRIDDER_QC_VARS = {
-            "temperature",
-            "conductivity",
-            "salinity",
-            "east_velocity",
-            "north_velocity",
-            "up_velocity",
-        }
+        # QC masking before vertical interpolation.
+        # T/S/P: NaN any non-finite values (already masked at stack time).
+        # Velocity: use velocity_flag from the stack to NaN suspect/bad samples.
+        #   Flag 3 (suspect), 4 (bad), 9 (missing) → NaN before interpolation.
+        _GRIDDER_TSQC = {"temperature", "conductivity", "salinity"}
         for _v in grid_vars:
-            if _v in _GRIDDER_QC_VARS:
-                _d = var_data[_v]
-                _d[~np.isfinite(_d)] = np.nan
+            if _v in _GRIDDER_TSQC:
+                var_data[_v][~np.isfinite(var_data[_v])] = np.nan
+
+        _vel_vars = {"east_velocity", "north_velocity", "up_velocity"}
+        if "velocity_flag" in ds.data_vars:
+            _vflag = ds["velocity_flag"].values.astype(np.float64)
+            _bad_vel = np.isin(np.round(_vflag).astype(np.int8), [3, 4, 9])
+            for _v in _vel_vars:
+                if _v in var_data:
+                    var_data[_v][_bad_vel] = np.nan
+        else:
+            for _v in _vel_vars:
+                if _v in var_data:
+                    var_data[_v][~np.isfinite(var_data[_v])] = np.nan
 
         for t in range(n_time):
             p_col = pressure[:, t]

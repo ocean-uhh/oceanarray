@@ -176,20 +176,23 @@ def _apply_beam_to_enu(
             "header file so the T matrix can be extracted and velocity_x/y/z produced."
         )
         return ds
-    else:  # XYZ — BEAM→XYZ already applied by stage1 (velocity_x/y/z) or natively XYZ
-        T_source = "N/A (already XYZ)"
+
+    else:  # XYZ — stage3 only needs to do XYZ→ENU
         if "velocity_x" in ds.data_vars:
-            # New path: stage1 applied T matrix and stored instrument-frame XYZ
+            # stage1 applied the T matrix (BEAM→XYZ) and stored instrument-frame XYZ
+            T_source = "applied in stage1 (BEAM→XYZ)"
             vx = ds["velocity_x"].values.astype(float)
             vy = ds["velocity_y"].values.astype(float)
             vz = ds["velocity_z"].values.astype(float)
         elif "x_velocity" in ds.data_vars:
-            # Seasenselib naming for instruments that natively report XYZ
+            # Instrument natively reports XYZ; T matrix applied in firmware
+            T_source = "not applicable (instrument-native XYZ)"
             vx = ds["x_velocity"].values.astype(float)
             vy = ds["y_velocity"].values.astype(float)
             vz = ds["z_velocity"].values.astype(float)
         else:
             # Legacy fallback: XYZ stored in beam variable slots
+            T_source = "not applicable (legacy XYZ fallback)"
             vx = ds["velocity_beam1"].values.astype(float)
             vy = ds["velocity_beam2"].values.astype(float)
             vz = ds["velocity_beam3"].values.astype(float)
@@ -274,10 +277,9 @@ def _apply_beam_to_enu(
     ds.attrs["nortek_coordinate_system_source"] = (
         f"rotated from {coord_sys} by oceanarray stage3"
     )
-    _t_str = T_source if coord_sys == "BEAM" else "N/A (XYZ mode)"
     _warn(
         f"  BEAM→ENU: produced east/north/up_velocity, current_speed, current_direction "
-        f"(coord_sys was {coord_sys}, T matrix: {_t_str})"
+        f"(coord_sys was {coord_sys}, T matrix: {T_source})"
     )
     return ds
 
@@ -443,15 +445,22 @@ def _apply_tilt_qc(
     tilt_cfg: Dict[str, Any],
     qc_attrs: Dict[str, Any],
 ) -> tuple[xr.Dataset, int, int]:
-    """Flag velocity variables when instrument tilt exceeds thresholds.
+    """Flag velocity variables when pitch or roll exceeds QC thresholds.
 
-    Tilt is computed from pitch and roll as:
-        tilt = arccos(cos(pitch) × cos(roll))
-    which collapses to |roll| when pitch=0 and |pitch| when roll=0.
+    Primary path — pitch_qc / roll_qc already exist (created by the gross-range
+    QC step when pitch and/or roll appear in ``qc_ranges`` in the YAML):
+      The two flag arrays are merged element-wise (worst flag wins) and the
+      result is propagated to every velocity variable.  Any time step where
+      pitch OR roll is flagged suspect (3) or bad (4) will flag the velocities
+      with the same severity.
 
-    Flag 3 (suspect) for suspect_threshold ≤ tilt < fail_threshold.
-    Flag 4 (bad)     for tilt ≥ fail_threshold.
-    Flag 9 (missing) when pitch or roll is NaN.
+    Fallback path — neither pitch_qc nor roll_qc exist:
+      tilt is computed as max(|pitch|, |roll|) and compared against
+      tilt_cfg thresholds (``suspect_threshold`` / ``fail_threshold``).
+
+    In both paths ``tilt_suspect_threshold`` and ``tilt_fail_threshold`` are
+    written to global attrs so the report can draw reference lines on the tilt
+    time-series panel.
 
     Returns (ds, n_suspect, n_bad).  No-ops when both pitch and roll are absent.
     """
@@ -460,37 +469,58 @@ def _apply_tilt_qc(
     if not has_pitch and not has_roll:
         return ds, 0, 0
 
-    n_time = ds["time"].size
-    pitch = ds["pitch"].values.astype(float) if has_pitch else np.zeros(n_time)
-    roll = ds["roll"].values.astype(float) if has_roll else np.zeros(n_time)
+    has_pitch_qc = "pitch_qc" in ds.data_vars
+    has_roll_qc = "roll_qc" in ds.data_vars
 
-    cos_tilt = np.cos(np.radians(pitch)) * np.cos(np.radians(roll))
-    tilt = np.degrees(np.arccos(np.clip(cos_tilt, -1.0, 1.0)))
-    # Propagate NaN from either sensor
-    tilt[~np.isfinite(pitch) | ~np.isfinite(roll)] = np.nan
+    if has_pitch_qc or has_roll_qc:
+        # Primary path: merge already-computed pitch/roll QC flags.
+        n_time = ds["time"].size
+        combined = np.ones(n_time, dtype=np.int8)
+        if has_pitch_qc:
+            combined = _merge_flags(combined, ds["pitch_qc"].values.astype(np.int8))
+        if has_roll_qc:
+            combined = _merge_flags(combined, ds["roll_qc"].values.astype(np.int8))
+        tilt_flags = combined
 
-    suspect_thresh = float(tilt_cfg.get("suspect_threshold", 20.0))
-    fail_thresh = float(tilt_cfg.get("fail_threshold", 30.0))
+        # Read thresholds from whichever QC variable is available so the
+        # report can draw consistent reference lines on the tilt panel.
+        ref_attrs = ds["pitch_qc" if has_pitch_qc else "roll_qc"].attrs
+        suspect_thresh = float(
+            ref_attrs.get(
+                "qc_gross_range_suspect_max", tilt_cfg.get("suspect_threshold", 20.0)
+            )
+        )
+        fail_thresh = float(
+            ref_attrs.get(
+                "qc_gross_range_fail_max", tilt_cfg.get("fail_threshold", 30.0)
+            )
+        )
+    else:
+        # Fallback: compute from raw pitch/roll values.
+        n_time = ds["time"].size
+        pitch = ds["pitch"].values.astype(float) if has_pitch else np.zeros(n_time)
+        roll = ds["roll"].values.astype(float) if has_roll else np.zeros(n_time)
 
-    # If either axis exceeds ±90° the instrument is beyond horizontal.
-    # The arccos formula can give misleadingly small tilt in this case
-    # (both cosines negative → positive product → small angle), so force flag 4.
-    beyond_horizontal = (np.abs(pitch) > 90.0) | (np.abs(roll) > 90.0)
+        tilt = np.maximum(np.abs(pitch), np.abs(roll))
+        tilt[~np.isfinite(pitch) | ~np.isfinite(roll)] = np.nan
 
-    tilt_flags = np.where(
-        ~np.isfinite(tilt),
-        np.int8(9),
-        np.where(
-            beyond_horizontal | (tilt >= fail_thresh),
-            np.int8(4),
-            np.where(tilt >= suspect_thresh, np.int8(3), np.int8(1)),
-        ),
-    ).astype(np.int8)
+        suspect_thresh = float(tilt_cfg.get("suspect_threshold", 20.0))
+        fail_thresh = float(tilt_cfg.get("fail_threshold", 30.0))
+
+        tilt_flags = np.where(
+            ~np.isfinite(tilt),
+            np.int8(9),
+            np.where(
+                tilt >= fail_thresh,
+                np.int8(4),
+                np.where(tilt >= suspect_thresh, np.int8(3), np.int8(1)),
+            ),
+        ).astype(np.int8)
 
     n_suspect = int(np.sum(tilt_flags == 3))
     n_bad = int(np.sum(tilt_flags == 4))
 
-    # Persist thresholds in global attrs so the report can draw correct lines.
+    # Persist thresholds so the report can draw reference lines on the tilt panel.
     ds.attrs["tilt_suspect_threshold"] = suspect_thresh
     ds.attrs["tilt_fail_threshold"] = fail_thresh
 

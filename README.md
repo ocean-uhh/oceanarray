@@ -65,19 +65,31 @@ oceanarray plot dsG3_1_2026 --basedir /path/to/data
 
 | Stage | Module | Input | Output | What it does |
 |-------|--------|-------|--------|--------------|
-| 1 | `stage1.py` | raw instrument file | `_stage1.nc` | Format conversion to CF-NetCDF; normalises pressure units (`db` → `dbar`), conductivity names, ITS-90 temperature scale annotation |
+| 1 | `stage1.py` | raw instrument file | `_stage1.nc` | Format conversion to CF-NetCDF; normalises pressure units (`db` → `dbar`), conductivity names, ITS-90 temperature scale annotation; for Nortek Aquadopps: reads BEAM→XYZ transformation matrix from header and stores it as `nortek_transformation_matrix`; applies T-matrix to produce instrument-frame XYZ velocities |
 | 2 | `stage2.py` | `_stage1.nc` | `_stage2.nc` | Clock corrections; trim to deployment window |
-| 3 | `stage3.py` | `_stage2.nc` | `_stage3.nc` | Normalises conductivity to mS/cm; derives practical salinity via `gsw.SP_from_C`; pressure interpolation for instruments without a sensor; QARTOD gross-range + spike QC on T, C, S, P; tilt/roll QC for Aquadopp velocities |
+| 3 | `stage3.py` | `_stage2.nc` | `_stage3.nc` | Normalises conductivity to mS/cm; derives practical salinity via `gsw.SP_from_C`; pressure interpolation for instruments without a sensor; QARTOD gross-range + spike QC on T, C, S, P; **Aquadopp only**: XYZ → ENU rotation using heading/pitch/roll + magnetic declination (via `ppigrf`), producing `east_velocity`, `north_velocity`, `up_velocity`, `current_speed`, `current_direction`; tilt QC on velocity |
 
 Stage 3 writes `_stage3.nc` for **all** instruments. Instruments that already have pressure receive QC flags only; those lacking pressure additionally receive interpolated pressure (flagged `pressure_qc = 8`).
 
 Thresholds applied during stage 3 are stored as attributes on each `*_qc` variable (e.g. `qc_gross_range_fail_min`) so the report can display exactly what was used without re-reading the YAML.
 
+**Aquadopp coordinate transformation (stage 1 → stage 3):**
+
+Stage 1 reads the instrument-specific BEAM→XYZ transformation matrix `T` from the Nortek header and stores it as a scalar variable `nortek_transformation_matrix` (shape 3×3, flattened). It applies `T` to the raw beam velocities to produce `velocity_x/y/z` in the instrument frame (XYZ).
+
+Stage 3 then rotates XYZ → ENU using the per-sample heading, pitch, and roll recorded by the instrument:
+
+```
+ENU = H(heading, declination) @ P(pitch) @ XYZ
+```
+
+where `H` is the horizontal rotation matrix (heading − 90° + magnetic declination) and `P` is the pitch tilt matrix. Magnetic declination is computed by `ppigrf` at the deployment midpoint (lat/lon/date from YAML) and stored in `magnetic_declination` as a global attribute. If `ppigrf` is unavailable or the position is unknown, declination defaults to 0° with a warning. The resulting `east_velocity` and `north_velocity` are in true geographic (ENU) coordinates. The attribute `nortek_coordinate_system` tracks the current frame (`BEAM` → `XYZ` → `ENU`).
+
 ### Mooring-level
 
 | Command | Output | What it does |
 |---------|--------|--------------|
-| `oceanarray stack` | `{mooring}_stack.nc` | Resample all instruments to a common time axis (default 60 s); stack into a single file with an `N_LEVELS` dimension ordered deep-first; compute potential density (sigma0 by default, or sigma2 etc. via `density_reference` YAML key) |
+| `oceanarray stack` | `{mooring}_stack.nc` | Resample all instruments to a common time axis (default 60 s); stack into a single file with an `N_LEVELS` dimension ordered deep-first; compute potential density; Aquadopp velocity/orientation stored unmasked with `velocity_flag` (worst of east/north/up QC); `tilt_from_pressure` computed for each Aquadopp from the nearest reference instrument ≥10 m above |
 | `oceanarray grid` | `{mooring}_grid.nc` | Linearly interpolate stacked data onto a regular pressure grid |
 
 ### Report
@@ -96,33 +108,44 @@ By default only the main mooring summary is generated (fast).  Use flags to opt 
 
 **Mooring summary** (`{mooring}_report.html`):
 1. Header card (cruise, ship, deployment/recovery times, location, water depth)
-2. Processing pipeline badges per instrument (Raw → Read → Stage 1 → 2 → 3 → Stack → Grid)
-3. Instrument summary table (first/last sample, N records, YAML Δt, observed Δt, variable presence) — S/N links to per-instrument page
-4. Clock correction table
-5. Sensor calibration metadata (from `SENSOR_*` variables in stage 2 NC files)
-6. QC flag summary — per-instrument × per-variable percentage breakdown with colour-coded stacked bars (OceanSITES flag colours)
+2. Mooring diagram — embedded inline if `{mooring}_diagram.pdf` is found alongside the YAML
+3. Processing pipeline badges per instrument (Raw → Read → Stage 1 → 2 → 3 → Stack → Grid)
+4. Instrument summary table (first/last sample, N records, YAML Δt, observed Δt, variable presence) — S/N links to per-instrument page
+5. Clock correction table
+6. Sensor calibration metadata (from `SENSOR_*` variables in stage 2 NC files)
+7. QC flag summary — per-instrument × per-variable percentage breakdown with colour-coded stacked bars (OceanSITES flag colours)
 
 **Gridded data report** (`{mooring}_grid_report.html`, requires `--grid`):
 - Variable coverage table
-- Temperature pcolormesh and contourf (20 discrete levels, RdYlBu_r)
-- Practical salinity pcolormesh and contourf (20 discrete levels, YlGnBu_r; blue = fresh)
-- Potential density pcolormesh and contourf (BuPu) with iso-density contour lines (default 27.7 and 27.8 kg m⁻³)
+- Temperature pcolormesh (20 discrete levels, RdYlBu_r)
+- Practical salinity pcolormesh (20 discrete levels, YlGnBu_r; blue = fresh)
+- Potential density pcolormesh and contourf (BuPu) with iso-density contour lines (default 27.7 and 27.8 kg m⁻³); depth of isopycnals over the full deployment and a 3-day zoom
+- Current speed pcolormesh (plasma) and current direction (0–360° true, hsv colormap) — requires Aquadopp ENU data from stage 3
+- Up velocity pcolormesh (RdBu_r, symmetric)
+- N² buoyancy frequency squared (log₁₀ scale)
+- T-S heat map (log₁₀ count per bin, half-page width)
+- Temperature power spectrum (Welch PSD, one line per depth level)
 
 **Stacked data report** (`{mooring}_stack_report.html`, requires `--stack`):
-- Instrument table (type, serial, HAB, approximate depth, stage used)
-- Variable coverage table (name, units, % non-NaN)
-- Pressure time series: all instruments on one plot, inverted y-axis, colored by instrument type
-- Temperature time series: all instruments, colored by instrument type
+- Instrument table (type, serial [linked to per-instrument page], HAB, approximate depth)
+- Pressure, temperature, salinity time series (all instruments overlaid)
+- East, north, and up velocity time series (Aquadopp instruments; velocities stored unmasked; `velocity_flag` = worst of east/north/up QC)
+- Aquadopp tilt panels — one panel per Aquadopp: time series of |pitch|, |roll|, and pressure-derived tilt (`arccos(ΔP / rope_length)` using the nearest instrument ≥10 m above with valid pressure); scatter plot of |pitch|/|roll| vs. pressure tilt with 1:1 line and 20°/30° threshold lines
+- T-S diagram (two panels: scatter coloured by pressure + 2-D count heatmap)
+- Current rose diagrams (ENU, good/suspect/bad QC split)
+- Adjacent instrument spacing histogram
+- Variable coverage table (at page end)
 
 **Per-instrument pages** (`{mooring}_{serial}_report.html`, requires `--instruments` or `--serial`):
 - Processing history (the NC `history` attribute, one row per stage)
-- Full deployment time series with QC flag markers (× suspect/bad, + interpolated)
+- Full deployment time series with QC flag markers (+ suspect/bad, · interpolated); velocity panels centred on zero
 - First 48 h and last 48 h window zooms
-- T-S diagram (temperature vs. practical salinity, coloured by pressure; suspect/bad points overlaid — for instruments with both variables after stage 3)
-- Data value histograms — one panel per variable; x-axis spans tighter of data range or fail thresholds; suspect and fail threshold lines shown when within the visible range; bad-flagged points excluded from histogram
+- T-S diagram (two panels: scatter coloured by pressure with QC overlays, and 2-D count heatmap)
+- Current rose diagrams (ENU frame; good/suspect/bad split by QARTOD flag)
+- Data value histograms — one panel per variable; heading fixed to 0–360°; velocity panels centred on zero; battery excluded
 - QC flag breakdown table with stacked bars
 - NetCDF variable table (all time-series variables: dims, N, units, long name, standard name, QC companion flag)
-- Scalar metadata table (InstrDepth, serial_number, coordinate system, etc.)
+- Scalar metadata table (InstrDepth, serial_number, coordinate system, transformation matrix, etc.)
 - Global attributes table
 
 ## Supported instrument types
@@ -248,14 +271,14 @@ Instrument-level values override mooring-level values for that instrument only; 
 | `pressure` | 10.0 dbar | 50.0 dbar | |
 | velocity | — | — | omitted: burst-mode Aquadopps produce false positives at burst boundaries |
 
-**Tilt QC (Aquadopp):** stage 3 flags all velocity variables (`velocity_beam1/2/3` or `east/north/up_velocity`) when `|roll|` exceeds the tilt thresholds. Default: suspect at 20°, bad at 30°. Override example:
+**Tilt QC (Aquadopp):** stage 3 flags all velocity variables (`east/north/up_velocity`) when pitch or roll exceeds the tilt thresholds. The primary path uses `pitch_qc` and `roll_qc` already computed by the gross-range step and merges them (worst flag wins). The fallback path (when neither `_qc` flag exists) computes `max(|pitch|, |roll|)` and compares against the thresholds. Default: suspect at 20°, bad at 30°. Override example:
 
 ```yaml
   - instrument: aquadopp
     serial: 14321
     hab: 26.5
     tilt_qc:
-      suspect_threshold: 15   # degrees roll
+      suspect_threshold: 15   # degrees (applied to pitch and roll)
       fail_threshold: 25
 ```
 

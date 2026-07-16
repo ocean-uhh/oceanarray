@@ -15,6 +15,4 @@ lines.markersize : 10
 xtick.labelsize : 12
 xtick.alignment: center
 ytick.labelsize : 12
-axes.grid : True
-grid.color : grey
-grid.linestyle : :
+axes.grid : False
