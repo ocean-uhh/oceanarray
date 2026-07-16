@@ -378,6 +378,21 @@ class MooringStacker:
                     scalar_meta[vname] = [None] * i
                     scalar_attrs[vname] = dict(da.attrs)
                 scalar_meta[vname].append(da.values.item())
+
+            # Collect magnetic_declination from global attrs (set by stage3 BEAM→ENU).
+            # Must come BEFORE the fill-None loop so the length is already i+1 when
+            # the loop checks.
+            if "magnetic_declination" not in scalar_meta:
+                scalar_meta["magnetic_declination"] = [None] * i
+                scalar_attrs["magnetic_declination"] = {
+                    "units": "degrees_east",
+                    "long_name": "Magnetic declination (IGRF)",
+                }
+            decl_val = ds.attrs.get("magnetic_declination")
+            scalar_meta["magnetic_declination"].append(
+                float(decl_val) if decl_val is not None else None
+            )
+
             # Fill None for variables not present in this instrument
             for vname in scalar_meta:
                 if len(scalar_meta[vname]) < i + 1:

@@ -296,9 +296,19 @@ def _instrument_panels(ds) -> List[Tuple]:
     import re as _re
 
     time_vars = {v for v in ds.data_vars if ds[v].dims == ("time",)}
+
+    # Suppress raw beam velocities when ENU velocities are present — the
+    # transformed components are more useful and the beams are redundant.
+    has_enu = any(
+        v in time_vars for v in ("east_velocity", "north_velocity", "up_velocity")
+    )
+    beam_vars = {"velocity_beam1", "velocity_beam2", "velocity_beam3"}
+
     out = []
     for vname, label, color, invert in _CANONICAL_PANELS:
         if vname not in time_vars:
+            continue
+        if has_enu and vname in beam_vars:
             continue
         actual_units = ds[vname].attrs.get("units", "")
         if actual_units:
@@ -379,11 +389,23 @@ def _build_fig_from_ds(
         if "velocity" in vname and not invert:
             ax.axhline(0, color="k", linewidth=0.4, linestyle="--", zorder=0)
         if vname == "tilt":
+            _suspect_t = float(ds.attrs.get("tilt_suspect_threshold", 20.0))
+            _fail_t = float(ds.attrs.get("tilt_fail_threshold", 30.0))
             ax.axhline(
-                20.0, color="tab:orange", lw=0.9, ls="--", label="suspect 20°", zorder=2
+                _suspect_t,
+                color="tab:orange",
+                lw=0.9,
+                ls="--",
+                label=f"suspect {_suspect_t:.0f}°",
+                zorder=2,
             )
             ax.axhline(
-                30.0, color="tab:red", lw=0.9, ls="--", label="fail 30°", zorder=2
+                _fail_t,
+                color="tab:red",
+                lw=0.9,
+                ls="--",
+                label=f"fail {_fail_t:.0f}°",
+                zorder=2,
             )
             ax.legend(fontsize=7, loc="upper right", framealpha=0.8)
         ax.set_ylabel(label, fontsize=9)
@@ -1761,11 +1783,12 @@ def _rose_ax(
     north: np.ndarray,
     title: str = "",
     n_dir: int = 16,
+    cmap: str = "Blues",
 ) -> None:
     """Draw a current rose on a polar Axes (compass convention, N up, CW).
 
     Bars show fraction of time flowing toward each direction, coloured by
-    speed in 5 quantile bands (Blues colormap, light = slow, dark = fast).
+    speed in 5 quantile bands (light = slow, dark = fast).
     """
     import matplotlib.pyplot as plt
 
@@ -1785,7 +1808,7 @@ def _rose_ax(
     max_speed = max(float(np.nanpercentile(speed, 99)), 1e-9)
     n_spd = 5
     spd_edges = np.linspace(0, max_speed, n_spd + 1)
-    colors = plt.cm.Blues(np.linspace(0.25, 1.0, n_spd))
+    colors = getattr(plt.cm, cmap)(np.linspace(0.25, 1.0, n_spd))
 
     total = len(speed)
     freqs = np.zeros((n_dir, n_spd))
@@ -1817,11 +1840,140 @@ def _rose_ax(
     ax.set_title(title, fontsize=7, pad=2)
 
 
+def _xyz_to_enu_2d(
+    vx: np.ndarray,
+    vy: np.ndarray,
+    vz: np.ndarray,
+    heading_deg: np.ndarray,
+    pitch_deg: np.ndarray,
+    roll_deg: np.ndarray,
+    declination_deg: float = 0.0,
+) -> "tuple[np.ndarray, np.ndarray]":
+    """Rotate XYZ → ENU using the Nortek heading convention (vectorised).
+
+    Returns (east, north) arrays.  NaN propagates from any input.
+    """
+    h = np.radians(heading_deg - 90.0 + declination_deg)
+    p = np.radians(pitch_deg)
+    r = np.radians(roll_deg)
+    ch, sh = np.cos(h), np.sin(h)
+    cp, sp = np.cos(p), np.sin(p)
+    cr, sr = np.cos(r), np.sin(r)
+    east = (
+        ch * cp * vx + (-ch * sp * sr + sh * cr) * vy + (-ch * sp * cr - sh * sr) * vz
+    )
+    north = (
+        -sh * cp * vx + (sh * sp * sr + ch * cr) * vy + (sh * sp * cr - ch * sr) * vz
+    )
+    return east, north
+
+
+def _make_instrument_rose_b64(nc_path: Path) -> Optional[str]:
+    """Rose diagram grid for a single Aquadopp instrument.
+
+    Panels (left to right, only shown when data exist):
+      1. XYZ frame       — velocity_x / velocity_y (instrument frame, Greens)
+      2. ENU magnetic    — ENU computed with declination=0 (Purples); only when
+                           heading/pitch/roll and magnetic_declination are present
+      3. ENU true        — stored east/north_velocity (declination applied, Blues)
+         ENU good        — flag ≤ 2 subset of ENU true
+      4. ENU suspect/fail  — flag 3/4 subsets when present (Oranges / Reds)
+
+    Returns None if the file has no velocity data.
+    """
+    try:
+        import matplotlib.pyplot as plt
+        import xarray as xr
+        from . import parameters as P
+
+        ds = xr.open_dataset(nc_path, decode_timedelta=False).load()
+        ds.close()
+
+        panels = []  # list of (east, north, title, cmap)
+
+        # ── Panel 1: XYZ frame ────────────────────────────────────────
+        if "velocity_x" in ds.data_vars and "velocity_y" in ds.data_vars:
+            vx = ds["velocity_x"].values.astype(float)
+            vy = ds["velocity_y"].values.astype(float)
+            if np.any(np.isfinite(vx) & np.isfinite(vy)):
+                panels.append((vx, vy, "XYZ frame\n(instrument)", "Greens"))
+
+        # ── Panel 2: ENU magnetic (diagnostic, decl=0) ───────────────
+        has_xyz = all(f"velocity_{c}" in ds.data_vars for c in ("x", "y", "z"))
+        has_orientation = all(v in ds.data_vars for v in ("heading", "pitch", "roll"))
+        decl = ds.attrs.get("magnetic_declination")
+        if has_xyz and has_orientation and decl is not None:
+            vx_r = ds["velocity_x"].values.astype(float)
+            vy_r = ds["velocity_y"].values.astype(float)
+            vz_r = ds["velocity_z"].values.astype(float)
+            hdg = ds["heading"].values.astype(float)
+            pch = ds["pitch"].values.astype(float)
+            rll = ds["roll"].values.astype(float)
+            e_mag, n_mag = _xyz_to_enu_2d(vx_r, vy_r, vz_r, hdg, pch, rll, 0.0)
+            if np.any(np.isfinite(e_mag)):
+                panels.append((e_mag, n_mag, "ENU magnetic\n(decl = 0°)", "Purples"))
+
+        # ── Panels 3+: ENU true (with declination) — split by QC ─────
+        if "east_velocity" in ds.data_vars and "north_velocity" in ds.data_vars:
+            e_all = ds["east_velocity"].values.astype(float)
+            n_all = ds["north_velocity"].values.astype(float)
+            qc = (
+                ds["east_velocity_qc"].values.astype(int)
+                if "east_velocity_qc" in ds.data_vars
+                else np.ones(len(e_all), dtype=int)
+            )
+
+            def _masked(flag_mask):
+                e = e_all.copy()
+                n = n_all.copy()
+                e[~flag_mask] = np.nan
+                n[~flag_mask] = np.nan
+                return e, n
+
+            good_mask = qc <= 2
+            susp_mask = qc == 3
+            fail_mask = qc == 4
+
+            # Title for the good panel shows the actual declination applied
+            decl_str = f"{float(decl):+.1f}°" if decl is not None else "?"
+            enu_title = f"ENU true (decl = {decl_str})\nflag ≤ 2 (good)"
+            if np.any(np.isfinite(e_all[good_mask])):
+                panels.append((*_masked(good_mask), enu_title, "Blues"))
+            if np.any(np.isfinite(e_all[susp_mask])):
+                panels.append(
+                    (*_masked(susp_mask), "ENU — suspect\n(flag 3)", "Oranges")
+                )
+            if np.any(np.isfinite(e_all[fail_mask])):
+                panels.append((*_masked(fail_mask), "ENU — fail\n(flag 4)", "Reds"))
+
+        if not panels:
+            return None
+
+        plt.style.use(str(P.MPLSTYLE))
+        ncols = len(panels)
+        fig, axs = plt.subplots(
+            1,
+            ncols,
+            figsize=(ncols * 3.0, 3.2),
+            subplot_kw={"projection": "polar"},
+            squeeze=False,
+        )
+        for ax, (east, north, title, cmap) in zip(axs[0], panels):
+            _rose_ax(ax, east, north, title=title, cmap=cmap)
+
+        plt.tight_layout()
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception:
+        return None
+
+
 def _make_rose_grid_b64(
     ds: "xr.Dataset",
     serial_list: list,
 ) -> Optional[str]:
-    """2-row grid of current roses for instruments with ENU velocity data."""
+    """Grid of current roses (max 4 per row) for instruments with ENU velocity data."""
     import math
     import matplotlib.pyplot as plt
     from . import parameters as P
@@ -1843,8 +1995,10 @@ def _make_rose_grid_b64(
     if n == 0:
         return None
 
-    ncols = max(1, math.ceil(n / 2))
-    nrows = 2 if n > ncols else 1
+    hab_vals = ds.coords["hab"].values if "hab" in ds.coords else None
+
+    ncols = min(n, 4)
+    nrows = math.ceil(n / ncols)
 
     plt.style.use(str(P.MPLSTYLE))
     fig, axs = plt.subplots(
@@ -1858,9 +2012,11 @@ def _make_rose_grid_b64(
 
     for plot_i, instr_i in enumerate(aqd_idx):
         serial = serial_list[instr_i] if instr_i < len(serial_list) else "?"
-        _rose_ax(
-            axs_flat[plot_i], east_all[instr_i], north_all[instr_i], title=str(serial)
-        )
+        if hab_vals is not None and instr_i < len(hab_vals):
+            title = f"{serial} ({hab_vals[instr_i]:.0f} m)"
+        else:
+            title = str(serial)
+        _rose_ax(axs_flat[plot_i], east_all[instr_i], north_all[instr_i], title=title)
 
     for k in range(n, len(axs_flat)):
         axs_flat[k].set_visible(False)
@@ -2225,7 +2381,8 @@ _STACK_HTML_TEMPLATE = """\
 
 {% if fig_rose_grid_b64 %}
 <h2>Current rose diagrams</h2>
-<p class="note">Direction the current flows toward (oceanographic convention, 0°=N). Speed coloured light→dark blue (slow→fast). QC-flagged samples excluded. Empty cells = no velocity data.</p>
+<p class="note">Direction the current flows toward (oceanographic convention, 0°=N). Speed coloured light→dark blue (slow→fast). QC-flagged samples excluded. Title shows serial number and height above bottom (m).</p>
+{% if rose_declination_note %}<p class="note">{{ rose_declination_note }}</p>{% endif %}
 <img class="fig" src="data:image/png;base64,{{ fig_rose_grid_b64 }}" alt="Current rose grid">
 {% endif %}
 
@@ -2373,6 +2530,17 @@ _INSTRUMENT_HTML_TEMPLATE = """\
   Coloured by pressure (or sample index). &times; = suspect &nbsp;|&nbsp; &times; = bad (QC flags).
 </p>
 <img class="fig" src="data:image/png;base64,{{ fig_tsd_b64 }}">
+{% endif %}
+
+<!-- ══ Current roses ══ -->
+{% if fig_rose_b64 %}
+<h2>Current rose diagrams</h2>
+<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+  XYZ: instrument-frame velocities (before geographic rotation).
+  ENU panels split by QARTOD flag: good (flag&nbsp;≤&nbsp;2, Blues), suspect (flag&nbsp;3, Oranges), fail (flag&nbsp;4, Reds).
+  Direction toward which the current flows; 0°&nbsp;=&nbsp;N, clockwise.
+</p>
+<img class="fig" src="data:image/png;base64,{{ fig_rose_b64 }}">
 {% endif %}
 
 <!-- ══ Data distributions ══ -->
@@ -2980,6 +3148,18 @@ class MooringReport:
 
             # Current rose grid (instruments with ENU velocity)
             fig_rose_grid_b64 = _make_rose_grid_b64(ds, _serial_list)
+            # Magnetic declination note for rose section: collect unique non-None values
+            _decl_vals = []
+            if "magnetic_declination" in ds.data_vars:
+                _dv = ds["magnetic_declination"].values
+                _decl_vals = sorted(
+                    {round(float(v), 2) for v in _dv if np.isfinite(float(v))}
+                )
+            rose_declination_note = (
+                f"Magnetic declination applied: {', '.join(f'{v:+.2f}°' for v in _decl_vals)}"
+                if _decl_vals
+                else None
+            )
 
             # Instrument spacing histogram
             fig_spacing_b64: Optional[str] = None
@@ -3037,6 +3217,7 @@ class MooringReport:
                 fig_north_vel_b64=fig_north_vel_b64,
                 fig_up_vel_b64=fig_up_vel_b64,
                 fig_rose_grid_b64=fig_rose_grid_b64,
+                rose_declination_note=rose_declination_note,
                 fig_spacing_b64=fig_spacing_b64,
                 generated=ctx["generated"],
             )
@@ -3285,6 +3466,7 @@ class MooringReport:
                     _make_window_fig(best_nc, instr_type, "end") if best_nc else None
                 ),
                 "fig_tsd_b64": _make_ts_diagram(best_nc) if best_nc else None,
+                "fig_rose_b64": _make_instrument_rose_b64(best_nc) if best_nc else None,
                 "fig_dt_b64": _make_data_histogram(best_nc) if best_nc else None,
                 "qc_summary": _read_qc_summary(stage3_nc) if stage3_nc else [],
                 "nc_meta": _read_nc_metadata(best_nc) if best_nc else {},

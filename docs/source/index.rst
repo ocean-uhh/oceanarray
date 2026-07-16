@@ -29,6 +29,7 @@ Contents
    Automatic QC (Stage 3) <methods/auto_qc>
    Apply Calibration (Stage 4) <methods/calibration>
    Convert to OceanSites <methods/conversion>
+   Nortek Coordinate Transform <methods/nortek_coordinate_transform>
 
 .. toctree::
    :maxdepth: 1

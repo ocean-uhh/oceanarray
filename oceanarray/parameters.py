@@ -109,7 +109,7 @@ QC_GROSS_RANGE: dict = {
     "pressure": {"fail_span": (-5.0, 7000.0), "suspect_span": (-0.5, 7000.0)},  # dbar
     "east_velocity": {"fail_span": (-5.0, 5.0), "suspect_span": (-3.0, 3.0)},  # m/s
     "north_velocity": {"fail_span": (-5.0, 5.0), "suspect_span": (-3.0, 3.0)},  # m/s
-    "up_velocity": {"fail_span": (-2.0, 2.0), "suspect_span": (-1, 1)},  # m/s
+    "up_velocity": {"fail_span": (-1.0, 1.0), "suspect_span": (-0.5, 0.5)},  # m/s
 }
 
 # ---------------------------------------------------------------------------

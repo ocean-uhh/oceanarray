@@ -883,7 +883,8 @@ class MooringProcessor:
             for k, v in pcal.items():
                 dataset.attrs[f"nortek_pressure_cal_{k}"] = v
 
-        # Store Nortek transformation matrix (BEAM→XYZ) from header as attrs.
+        # Store Nortek transformation matrix (BEAM→XYZ) from header as attrs,
+        # then apply it to produce velocity_x/y/z (keeping beam vars for verification).
         # Old-format .hdr files use a "Transformation matrix" text block;
         # new-format .hdr and String Data.csv use GETXFAVG/GETXFBURST fields.
         if file_type in ("nortek-aqd", "nortek-ascii", "nortek-csv") and header_file:
@@ -893,6 +894,57 @@ class MooringProcessor:
             if T_mat:
                 for k, v in T_mat.items():
                     dataset.attrs[f"nortek_T_{k}"] = v
+
+            # Apply BEAM→XYZ in stage1 when T matrix is available and instrument
+            # reports in BEAM coordinates.  XYZ velocities are added as velocity_x/y/z;
+            # the original beam velocities are kept for post-hoc verification.
+            # stage3 will read velocity_x/y/z and skip the BEAM→XYZ step.
+            pointing_down = bool(instrument_config.get("pointing_down", False))
+            if (
+                T_mat is not None
+                and dataset.attrs.get("nortek_coordinate_system") == "BEAM"
+                and "velocity_beam1" in dataset.data_vars
+            ):
+                import numpy as _np
+                import xarray as _xr
+
+                _T = _np.array(
+                    [[T_mat[f"M{r}{c}"] for c in range(1, 4)] for r in range(1, 4)],
+                    dtype=float,
+                )
+                if pointing_down:
+                    _T[1, :] = -_T[1, :]
+                    _T[2, :] = -_T[2, :]
+                _b1 = dataset["velocity_beam1"].values.astype(float)
+                _b2 = dataset["velocity_beam2"].values.astype(float)
+                _b3 = dataset["velocity_beam3"].values.astype(float)
+                _valid = _np.isfinite(_b1) & _np.isfinite(_b2) & _np.isfinite(_b3)
+                _vx = _np.full_like(_b1, _np.nan)
+                _vy = _np.full_like(_b1, _np.nan)
+                _vz = _np.full_like(_b1, _np.nan)
+                if _valid.any():
+                    _xyz = _T @ _np.stack([_b1[_valid], _b2[_valid], _b3[_valid]])
+                    _vx[_valid], _vy[_valid], _vz[_valid] = _xyz[0], _xyz[1], _xyz[2]
+                _tdim = dataset["velocity_beam1"].dims[0]
+                _vel_attrs = {"units": "m s-1"}
+                dataset["velocity_x"] = _xr.Variable(
+                    _tdim,
+                    _vx,
+                    {**_vel_attrs, "long_name": "X velocity (instrument XYZ frame)"},
+                )
+                dataset["velocity_y"] = _xr.Variable(
+                    _tdim,
+                    _vy,
+                    {**_vel_attrs, "long_name": "Y velocity (instrument XYZ frame)"},
+                )
+                dataset["velocity_z"] = _xr.Variable(
+                    _tdim,
+                    _vz,
+                    {**_vel_attrs, "long_name": "Z velocity (instrument XYZ frame)"},
+                )
+                dataset.attrs["nortek_coordinate_system"] = "XYZ"
+
+            dataset.attrs["nortek_pointing_down"] = str(pointing_down)
 
         # Inject calibration metadata for sbe-ascii (seasenselib discards the header)
         if file_type == "sbe-ascii":
