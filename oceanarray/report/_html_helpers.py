@@ -249,7 +249,7 @@ def _read_nc_metadata(nc_path: Path) -> Dict[str, Any]:
                 scalar_vars.append(info)
             else:
                 info["dims"] = ", ".join(str(d) for d in v.dims)
-                info["n"] = v.shape[0] if v.shape else 0
+                info["n"] = int(np.prod(v.shape)) if v.shape else 0
                 arr = v.values
                 if arr.dtype.kind in ("f", "c"):
                     info["n_valid"] = int(np.sum(np.isfinite(arr)))

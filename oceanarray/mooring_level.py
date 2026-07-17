@@ -32,6 +32,8 @@ STACK_VARS = [
     "east_velocity",
     "north_velocity",
     "up_velocity",
+    "current_speed",
+    "current_direction",
     "east_velocity_qc",
     "north_velocity_qc",
     "up_velocity_qc",
@@ -60,6 +62,8 @@ _STACK_RAW: frozenset = frozenset(
         "east_velocity",
         "north_velocity",
         "up_velocity",
+        "current_speed",
+        "current_direction",
         "velocity_beam1",
         "velocity_beam2",
         "velocity_beam3",
@@ -821,7 +825,13 @@ class MooringGridder:
             if _v in _GRIDDER_TSQC:
                 var_data[_v][~np.isfinite(var_data[_v])] = np.nan
 
-        _vel_vars = {"east_velocity", "north_velocity", "up_velocity"}
+        _vel_vars = {
+            "east_velocity",
+            "north_velocity",
+            "up_velocity",
+            "current_speed",
+            "current_direction",
+        }
         if "velocity_flag" in ds.data_vars:
             _vflag = ds["velocity_flag"].values.astype(np.float64)
             _bad_vel = np.isin(np.round(_vflag).astype(np.int8), [3, 4, 9])
