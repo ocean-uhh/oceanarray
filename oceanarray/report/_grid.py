@@ -210,7 +210,7 @@ def generate_grid_page(
     """Generate a grid report HTML page with T/S pcolormesh figures."""
     out_path = out_dir / f"{mooring_name}_grid_report.html"
     if out_path.exists() and not force:
-        print(f"  OUTFILE EXISTS: {out_path.name}  (use --force to overwrite)")
+        _status("skip", str(out_path.relative_to(base_dir)))
         return
 
     try:

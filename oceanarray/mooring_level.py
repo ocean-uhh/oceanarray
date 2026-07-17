@@ -169,9 +169,15 @@ def _apply_qc_mask(src_v: np.ndarray, ds: "xr.Dataset", vname: str) -> np.ndarra
 
 
 def _worst_flag(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    """Element-wise worst QC flag (9 > 4 > 3 > 8 > 2 > 1 > 0)."""
+    """Element-wise worst QC flag (9 > 4 > 3 > 8 > 2 > 1 > 0).
+
+    NaN inputs are treated as flag 9 (missing value) so that levels with no
+    data are never silently promoted to flag 0 ("no QC performed").
+    """
     # rank[flag_value] gives priority; higher rank = worse flag
     _rank = np.array([0, 1, 2, 4, 5, 6, 6, 6, 3, 7], dtype=np.int8)
+    a = np.where(np.isfinite(a), a, 9.0)
+    b = np.where(np.isfinite(b), b, 9.0)
     ai = np.clip(np.round(a).astype(np.int8), 0, 9)
     bi = np.clip(np.round(b).astype(np.int8), 0, 9)
     take_b = _rank[bi] > _rank[ai]
@@ -787,6 +793,9 @@ class MooringGridder:
                 "velocity_flag",  # flag array, not a gridded physics variable
                 "tilt_from_pressure",  # per-instrument diagnostic, not gridded
                 "tilt_pressure_ref_hab",
+                "heading",  # instrument-frame orientation — not meaningful on a pressure grid
+                "pitch",
+                "roll",
             }
         )
         grid_vars = [

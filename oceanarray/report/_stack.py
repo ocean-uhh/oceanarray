@@ -121,37 +121,40 @@ _STACK_HTML_TEMPLATE = """\
 <!-- Pressure time series -->
 {% if fig_pressure_b64 %}
 <h2 id="pressure">Pressure records (all instruments)</h2>
+<p class="note">Values with QC flag &ge; 3 (suspect/bad) masked to NaN before plotting. Stack file stores unmasked data alongside QC flags.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_pressure_b64 }}" alt="Pressure time series">
 {% endif %}
 
 <!-- Temperature time series -->
 {% if fig_temp_b64 %}
 <h2 id="temp">Temperature (all instruments)</h2>
+<p class="note">Values with QC flag &ge; 3 (suspect/bad) masked to NaN before plotting. Stack file stores unmasked data alongside QC flags.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_temp_b64 }}" alt="Temperature time series">
 {% endif %}
 
 <!-- Salinity time series -->
 {% if fig_sal_b64 %}
 <h2 id="sal">Salinity (all instruments)</h2>
+<p class="note">Values with QC flag &ge; 3 (suspect/bad) masked to NaN before plotting. Stack file stores unmasked data alongside QC flags.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_sal_b64 }}" alt="Salinity time series">
 {% endif %}
 
-<!-- Instrument spacing histogram -->
+<!-- Velocity time series -->
 {% if fig_east_vel_b64 %}
 <h2 id="vel">East velocity (U)</h2>
-<p class="note">East component of velocity (ENU frame) for all instruments. Instruments without velocity data are omitted.</p>
+<p class="note">ENU frame. Values with <code>velocity_flag</code> &ge; 3 masked to NaN before plotting. Stack file stores unmasked velocity alongside QC flags. Instruments without velocity data omitted.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_east_vel_b64 }}" alt="East velocity time series">
 {% endif %}
 
 {% if fig_north_vel_b64 %}
 <h2>North velocity (V)</h2>
-<p class="note">North component of velocity (ENU frame) for all instruments.</p>
+<p class="note">ENU frame. Values with <code>velocity_flag</code> &ge; 3 masked to NaN before plotting.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_north_vel_b64 }}" alt="North velocity time series">
 {% endif %}
 
 {% if fig_up_vel_b64 %}
 <h2>Vertical velocity (W)</h2>
-<p class="note">Up component of velocity (ENU frame) for all instruments.</p>
+<p class="note">ENU frame. Values with <code>velocity_flag</code> &ge; 3 masked to NaN before plotting.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_up_vel_b64 }}" alt="Vertical velocity time series">
 {% endif %}
 
@@ -161,8 +164,9 @@ _STACK_HTML_TEMPLATE = """\
   One panel per Aquadopp (deep-first). Blue = |pitch|, green = |roll|, orange dashed = tilt
   estimated from pressure difference between the Aquadopp and the nearest instrument &ge;10 m above
   with valid pressure (arccos(&Delta;P / rope length)).  All curves are non-negative.
-  Horizontal lines: orange dashed = 20&deg; (suspect), red dotted = 30&deg; (fail).
-  Pitch and roll in the stack file have already had bad/suspect QC flags masked to NaN.
+  Horizontal lines: orange dashed = suspect threshold, red dotted = fail threshold (read from file attrs).
+  Pitch and roll are stored <em>unmasked</em> in the stack file; use <code>pitch_qc</code> /
+  <code>roll_qc</code> to filter. Plots show all available values.
 </p>
 <img class="fig" src="data:image/png;base64,{{ fig_aquadopp_tilt_b64 }}" alt="Aquadopp tilt panels">
 {% endif %}
@@ -226,13 +230,17 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
     """One subplot per Aquadopp showing pitch, roll, and tilt_from_pressure.
 
     All three curves share the same y-axis so they can be compared directly.
-    Horizontal reference lines are drawn at the default suspect (20°) and
-    fail (30°) thresholds.  Returns None if no Aquadopp levels are found or
-    none of the relevant variables exist.
+    Horizontal reference lines are drawn at the suspect and fail thresholds
+    read from ds.attrs (falling back to 20° / 30° if absent).
+    Returns None if no Aquadopp levels are found or none of the relevant
+    variables exist.
     """
     try:
         import matplotlib.pyplot as plt
         import matplotlib.dates as mdates
+
+        tilt_suspect = float(ds.attrs.get("tilt_suspect_threshold", 20.0))
+        tilt_fail = float(ds.attrs.get("tilt_fail_threshold", 30.0))
 
         instr_types = ds["instrument_type"].values
         serials = ds["serial"].values
@@ -300,8 +308,8 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
                         label="tilt (pressure)",
                     )
 
-            ax_ts.axhline(20.0, color="tab:orange", lw=0.8, ls="--", zorder=0)
-            ax_ts.axhline(30.0, color="tab:red", lw=0.8, ls=":", zorder=0)
+            ax_ts.axhline(tilt_suspect, color="tab:orange", lw=0.8, ls="--", zorder=0)
+            ax_ts.axhline(tilt_fail, color="tab:red", lw=0.8, ls=":", zorder=0)
             ax_ts.set_ylim(bottom=0.0)
             ax_ts.set_ylabel("Degrees (°)")
 
@@ -350,10 +358,14 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
                     label="1:1",
                     zorder=2,
                 )
-                ax_sc.axvline(20.0, color="tab:orange", lw=0.7, ls="--", zorder=0)
-                ax_sc.axvline(30.0, color="tab:red", lw=0.7, ls=":", zorder=0)
-                ax_sc.axhline(20.0, color="tab:orange", lw=0.7, ls="--", zorder=0)
-                ax_sc.axhline(30.0, color="tab:red", lw=0.7, ls=":", zorder=0)
+                ax_sc.axvline(
+                    tilt_suspect, color="tab:orange", lw=0.7, ls="--", zorder=0
+                )
+                ax_sc.axvline(tilt_fail, color="tab:red", lw=0.7, ls=":", zorder=0)
+                ax_sc.axhline(
+                    tilt_suspect, color="tab:orange", lw=0.7, ls="--", zorder=0
+                )
+                ax_sc.axhline(tilt_fail, color="tab:red", lw=0.7, ls=":", zorder=0)
                 ax_sc.set_xlim(left=0.0)
                 ax_sc.set_ylim(bottom=0.0)
                 ax_sc.set_xlabel("tilt (pressure) [°]")

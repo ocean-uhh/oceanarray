@@ -1018,7 +1018,7 @@ def _make_grid_fig_b64(
                 alpha=0.75,
             )
             ax.clabel(ct, fmt="%.1f", fontsize=7, inline=True)
-        cb = fig.colorbar(pc, ax=ax, pad=0.02)
+        cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=bounds)
         cb.set_label(f"{title} ({units})" if units else title)
         ax.invert_yaxis()
         ax.set_ylabel("Pressure (dbar)")
@@ -1359,7 +1359,7 @@ def _make_grid_n2_b64(ds: "xr.Dataset", lat: float = 0.0) -> Optional[str]:
             cmap="plasma_r",
             norm=norm,
         )
-        cb = fig.colorbar(pc, ax=ax, pad=0.02)
+        cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=bounds)
         cb.set_label("log₁₀(N²) [s⁻²]")
         ax.invert_yaxis()
         ax.set_ylabel("Pressure (dbar)")
