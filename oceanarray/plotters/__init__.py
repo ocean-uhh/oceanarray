@@ -37,6 +37,8 @@ May eventually be split into a separate oceanvis package.
 from oceanarray.plotters._current import (  # noqa: F401
     plot_temperature_trajectory,
     plot_speed_boxplot,
+    plot_multi_aquadopp_trajectories,
+    plot_aquadopp_speed_profile,
 )
 
 # ---------------------------------------------------------------------------
@@ -64,6 +66,8 @@ __all__ = [
     # New (pre-OdB)
     "plot_temperature_trajectory",
     "plot_speed_boxplot",
+    "plot_multi_aquadopp_trajectories",
+    "plot_aquadopp_speed_profile",
     # Legacy shim
     "plot_qartod_summary",
     "plot_climatology",

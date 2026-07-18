@@ -1572,3 +1572,42 @@ def _make_speed_boxplot(nc_path: str) -> Optional[str]:
         return b64
     except Exception:  # noqa: BLE001  — plot is optional; bad data or missing vars → skip
         return None
+
+
+def _make_multi_aquadopp_trajectories(ds: "xr.Dataset") -> Optional[str]:
+    """Multi-instrument Aquadopp trajectory plot coloured by temperature, for stack page.
+
+    Takes an already-loaded xarray.Dataset (not a path) since the stack report
+    has the dataset in memory when it calls this function.
+    """
+    try:
+        import matplotlib.pyplot as plt
+        from oceanarray.plotters._current import plot_multi_aquadopp_trajectories
+
+        fig = plot_multi_aquadopp_trajectories(ds)
+        if fig is None:
+            return None
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception:  # noqa: BLE001  — plot is optional; no aquadopps or missing vars → skip
+        return None
+
+
+def _make_aquadopp_speed_profile(ds: "xr.Dataset") -> Optional[str]:
+    """Horizontal speed boxplots per Aquadopp positioned by HAB, for stack page.
+
+    Takes an already-loaded xarray.Dataset (not a path).
+    """
+    try:
+        import matplotlib.pyplot as plt
+        from oceanarray.plotters._current import plot_aquadopp_speed_profile
+
+        fig = plot_aquadopp_speed_profile(ds)
+        if fig is None:
+            return None
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception:  # noqa: BLE001  — plot is optional; no aquadopps or missing vars → skip
+        return None

@@ -8,7 +8,12 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 
 from ._html_helpers import _fig_to_base64, _parse_history, _read_nc_metadata, _status
-from ._plots import _make_rose_grid_b64, _make_stack_ts_diagram
+from ._plots import (
+    _make_rose_grid_b64,
+    _make_stack_ts_diagram,
+    _make_multi_aquadopp_trajectories,
+    _make_aquadopp_speed_profile,
+)
 from .. import parameters as P
 
 
@@ -86,6 +91,8 @@ _STACK_HTML_TEMPLATE = """\
   {% if fig_sal_b64 %}<a href="#sal">Salinity</a>{% endif %}
   {% if fig_east_vel_b64 or fig_north_vel_b64 or fig_up_vel_b64 %}<a href="#vel">Velocity</a>{% endif %}
   {% if fig_aquadopp_tilt_b64 %}<a href="#tilt">Tilt</a>{% endif %}
+  {% if fig_trajectories_b64 %}<a href="#trajectories">Trajectories</a>{% endif %}
+  {% if fig_speed_profile_b64 %}<a href="#speed-profile">Speed profile</a>{% endif %}
   {% if fig_ts_stack_b64 %}<a href="#ts">T-S diagram</a>{% endif %}
   {% if fig_rose_grid_b64 %}<a href="#roses">Current roses</a>{% endif %}
   {% if fig_spacing_b64 %}<a href="#spacing">Spacing</a>{% endif %}
@@ -173,6 +180,27 @@ _STACK_HTML_TEMPLATE = """\
   <code>roll_qc</code> to filter. Plots show all available values.
 </p>
 <img class="fig" src="data:image/png;base64,{{ fig_aquadopp_tilt_b64 }}" alt="Aquadopp tilt panels">
+{% endif %}
+
+{% if fig_trajectories_b64 %}
+<h2 id="trajectories">Aquadopp particle trajectories</h2>
+<p class="note">
+  Pseudo-Lagrangian displacement for each Aquadopp: east/north velocity integrated over time
+  (Euler forward; NaN velocities set to zero).  All trajectories share a common origin (0,&nbsp;0).
+  Colour shows temperature along each path (shared scale). End points labelled with serial number
+  and height above bottom.
+</p>
+<img class="fig" src="data:image/png;base64,{{ fig_trajectories_b64 }}" alt="Aquadopp trajectories">
+{% endif %}
+
+{% if fig_speed_profile_b64 %}
+<h2 id="speed-profile">Aquadopp speed profile</h2>
+<p class="note">
+  Horizontal boxplot per Aquadopp, positioned at its height above bottom.
+  Box = interquartile range; line = median; whiskers = 1.5&times;IQR; dots = outliers.
+  Computed from east/north velocity components if <code>current_speed</code> is not stored.
+</p>
+<img class="fig" src="data:image/png;base64,{{ fig_speed_profile_b64 }}" alt="Aquadopp speed profile">
 {% endif %}
 
 {% if fig_ts_stack_b64 %}
@@ -624,6 +652,8 @@ def generate_stack_page(
 
         fig_ts_stack_b64 = _make_stack_ts_diagram(ds)
         fig_aquadopp_tilt_b64 = _make_aquadopp_tilt_panels(ds, step=step)
+        fig_trajectories_b64 = _make_multi_aquadopp_trajectories(ds)
+        fig_speed_profile_b64 = _make_aquadopp_speed_profile(ds)
 
         ds.close()
 
@@ -657,6 +687,8 @@ def generate_stack_page(
             fig_spacing_b64=fig_spacing_b64,
             fig_ts_stack_b64=fig_ts_stack_b64,
             fig_aquadopp_tilt_b64=fig_aquadopp_tilt_b64,
+            fig_trajectories_b64=fig_trajectories_b64,
+            fig_speed_profile_b64=fig_speed_profile_b64,
             generated=ctx["generated"],
         )
         out_path.write_text(html, encoding="utf-8")
