@@ -124,16 +124,15 @@ VALID_FILE_TYPES = {
     "sbe-hex",
     "nortek-aqd",
     "nortek-ascii",
-    "nortek-csv",
+    "nortek-csv",  # seasenselib reader (future)
+    "nortek-csv-oa",  # DEPRECATED: internal oceanarray CSV reader
     "rbr-rsk",
     "rbr-dat",
     "rbr-matlab",
     "adcp-matlab",
 }
 
-UNSUPPORTED_FILE_TYPES: Dict[str, str] = {
-    "sbe-hex": "SBE hex format — not yet implemented in seasenselib",
-}
+UNSUPPORTED_FILE_TYPES: Dict[str, str] = {}
 
 REQUIRED_MOORING_KEYS = ["name", "waterdepth", "deployment_time", "recovery_time"]
 
@@ -285,7 +284,7 @@ def validate_mooring_yaml(yaml_path: str) -> List[ValidationIssue]:
                     import pandas as _pd
 
                     _pd.Timestamp(entry[ts_key])
-                except Exception:
+                except Exception:  # noqa: BLE001  — report issue and continue; Timestamp parse errors vary
                     issues.append(
                         ValidationIssue(
                             "ERROR",
@@ -317,8 +316,8 @@ def validate_mooring_yaml(yaml_path: str) -> List[ValidationIssue]:
                                 f"timestamp pair will be used (they agree to <1 s)",
                             )
                         )
-                except Exception:
-                    pass  # timestamp parse errors already reported above
+                except Exception:  # noqa: BLE001  — parse errors already reported above; skip silently
+                    pass
 
     return issues
 

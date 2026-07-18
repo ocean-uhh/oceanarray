@@ -66,7 +66,11 @@ line-length = 88
 target-version = ['py39']
 
 [tool.ruff]
-# …any other top‑level settings you use (extend, cache-dir, line-length, exclude, etc.)…
+exclude = [
+  "oceanarray/legacy",   # legacy modules — not maintained to current standards
+  "notebooks",           # notebooks are exploratory; not held to production lint standards
+  "docs",                # Sphinx conf and vendored third-party code
+]
 
 [tool.ruff.lint]
 select = [
@@ -90,4 +94,29 @@ ignore = [
   "E501",    # line‑length
   "PLR0913", # too many arguments
   "C901",    # complexity
+  "ANN401",  # typing.Any is allowed — common in dataset/xarray helper signatures
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ANN", "D"]   # tests don't need type annotations or docstrings
+# tools.py is being reorganised into analysis/ post-OdB; ANN/D deferred until then
+"oceanarray/tools.py" = ["ANN", "D205"]
+# The following files move to tools/ or pipeline/ post-OdB; ANN/D deferred until then
+"oceanarray/clock_offset.py" = ["ANN", "D"]
+"oceanarray/find_deployment.py" = ["ANN", "D"]
+"oceanarray/plotters.py" = ["ANN", "D"]
+"oceanarray/readers.py" = ["ANN", "D"]
+"oceanarray/writers.py" = ["ANN", "D"]
+# rapid_interp.py moves to legacy/ post-OdB; suppress everything until then
+"oceanarray/rapid_interp.py" = ["ANN", "D", "F841", "SLF001", "TRY003", "BLE001"]
+# Report generators: every function wraps rendering in try/except → None on failure.
+# This is the established pattern for keeping HTML reports partially working on bad data.
+"oceanarray/report/_plots.py" = ["BLE001", "TRY300"]
+"oceanarray/report/_html_helpers.py" = ["BLE001", "TRY300"]
+"oceanarray/report/_grid.py" = ["BLE001", "TRY300"]
+"oceanarray/report/_instrument.py" = ["BLE001", "TRY300", "ARG001"]
+"oceanarray/report/_mooring.py" = ["BLE001", "TRY003", "TRY300"]
+"oceanarray/report/_stack.py" = ["BLE001", "TRY300", "ARG001", "F841"]
+# Nortek header parsers use except Exception: pass to handle malformed/missing files.
+# Stage1 also has TRY003 for a single ValueError with a descriptive message.
+"oceanarray/stage1.py" = ["BLE001", "TRY003"]

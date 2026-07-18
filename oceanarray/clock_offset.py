@@ -15,7 +15,7 @@ import yaml
 from oceanarray import find_deployment, tools
 
 
-def load_mooring_instruments(mooring_name, base_dir, output_path, file_suffix="_raw"):
+def load_mooring_instruments(mooring_name, base_dir, output_path, file_suffix="_raw"):  # noqa: ARG001
     """Load all instruments for a mooring from netCDF files and enrich with YAML metadata.
 
     Parameters
@@ -161,7 +161,7 @@ def interpolate_datasets_to_grid(datasets, time_grid):
             else:
                 print(f"  No time-dependent variables found in dataset {idx}")
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  — log and continue; one bad dataset must not abort mooring
             print(f"  ERROR interpolating dataset {idx}: {e}")
             continue
 
@@ -299,7 +299,7 @@ def calculate_timing_offsets(combined_ds, bin_width_sec=60):
     # Find consensus group
     vals = start_off0[np.isfinite(start_off0)]
     if vals.size == 0:
-        raise RuntimeError("No finite start offsets to form consensus.")
+        raise RuntimeError("No finite start offsets to form consensus.")  # noqa: TRY003
 
     vmin, vmax = vals.min(), vals.max()
     bins = np.arange(vmin - bin_width_sec, vmax + 2 * bin_width_sec, bin_width_sec)
@@ -362,7 +362,6 @@ def perform_lag_correlation_analysis(combined_ds, ref_index=0, sub_sample=5):
         np.diff(combined_ds["time"].values) / np.timedelta64(1, "s")
     )
 
-    n_full = len(combined_ds["temperature"][:, ref_index].values)
     ref_temp_sub = combined_ds["temperature"][:, ref_index].values[::sub_sample]
     n_sub = len(ref_temp_sub)
 
@@ -510,7 +509,6 @@ def print_correlation_summary(combined_ds, correlation_results):
 
     """
     serial = combined_ds["serial_number"].values
-    depths = combined_ds["nominal_depth"].values
 
     print("Lag Correlation Analysis Results:")
     print("(Enter the summed value, no sign change, in the yaml as clock_offset)")

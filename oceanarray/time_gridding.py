@@ -32,7 +32,7 @@ from seasenselib.writers import NetCdfWriter
 class TimeGriddingProcessor:
     """Handles Step 1 processing: time gridding and optional filtering of mooring instruments."""
 
-    def __init__(self, base_dir: str):
+    def __init__(self, base_dir: str) -> None:
         """Initialize processor with base directory."""
         self.base_dir = Path(base_dir)
         self.log_file = None
@@ -43,7 +43,7 @@ class TimeGriddingProcessor:
 
         self.log_file = setup_stage_logging(mooring_name, "time_gridding", output_path)
 
-    def _log_print(self, *args, **kwargs) -> None:
+    def _log_print(self, *args: Any, **kwargs: Any) -> None:
         """Print to both console and log file."""
         print(*args, **kwargs)
         if self.log_file:
@@ -96,7 +96,7 @@ class TimeGriddingProcessor:
                 datasets.append(ds)
                 found_instruments.append(f"{instrument_type}:{serial}")
 
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001  — skip unreadable file; mooring continues
                 self._log_print(f"ERROR loading {filepath}: {e}")
                 missing_instruments.append(f"{instrument_type}:{serial}")
                 continue
@@ -308,14 +308,14 @@ class TimeGriddingProcessor:
             )
 
             self._log_print("    Successfully applied low-pass filter")
-            return ds_filtered
 
         except ImportError:
             self._log_print("    ERROR: scipy not available for filtering")
             return dataset
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  — filter failure must not abort processing
             self._log_print(f"    ERROR applying filter: {e}")
             return dataset
+        return ds_filtered
 
     def _filter_with_gaps(
         self, data: np.ndarray, sos: np.ndarray, valid_mask: np.ndarray
@@ -339,8 +339,7 @@ class TimeGriddingProcessor:
                 try:
                     filtered_segment = signal.sosfiltfilt(sos, segment_data)
                     filtered_data[start:end] = filtered_segment
-                except:
-                    # If filtering fails, keep original data
+                except Exception:  # noqa: BLE001  — segment filter failure; keep original
                     filtered_data[start:end] = segment_data
             else:
                 # Keep short segments unfiltered
@@ -359,7 +358,9 @@ class TimeGriddingProcessor:
         return self._apply_lowpass_filter(dataset, filter_params)
 
     def _apply_bandpass_filter(
-        self, dataset: xr.Dataset, filter_params: Optional[Dict[str, Any]] = None
+        self,
+        dataset: xr.Dataset,
+        filter_params: Optional[Dict[str, Any]] = None,  # noqa: ARG002
     ) -> xr.Dataset:
         """Apply band-pass filter (future implementation)."""
         self._log_print("    WARNING: Band-pass filtering not yet implemented")
@@ -435,7 +436,7 @@ class TimeGriddingProcessor:
             end_times.append(end_time)
 
         if not start_times:
-            raise ValueError("No valid datasets with time information found")
+            raise ValueError("No valid datasets with time information found")  # noqa: TRY003
 
         earliest_start = min(start_times)
         latest_end = max(end_times)
@@ -538,7 +539,7 @@ class TimeGriddingProcessor:
                     datasets_interp.append(ds_i)
                     self._log_print(f"Successfully interpolated dataset {idx}")
 
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001  — skip one bad instrument; interpolation continues
                     self._log_print(f"ERROR interpolating dataset {idx}: {e}")
                     continue
 
@@ -575,7 +576,7 @@ class TimeGriddingProcessor:
     def _create_combined_dataset(
         self,
         datasets_interp: List[xr.Dataset],
-        time_grid: np.ndarray,
+        time_grid: np.ndarray,  # noqa: ARG002  — reserved for future use (currently inferred from datasets_interp)
         vars_to_keep: List[str] = None,
     ) -> xr.Dataset:
         """Combine interpolated datasets into single dataset with N_LEVELS dimension."""
@@ -590,13 +591,13 @@ class TimeGriddingProcessor:
             ]
 
         if not datasets_interp:
-            raise ValueError("No interpolated datasets provided")
+            raise ValueError("No interpolated datasets provided")  # noqa: TRY003
 
         time_coord = datasets_interp[0]["time"]
         n_levels = len(datasets_interp)
 
         # Helper functions
-        def stacked_or_nan(var):
+        def stacked_or_nan(var: str) -> np.ndarray:
             """Stack variable across all datasets, filling with NaN if missing."""
             arrs = []
             for ds in datasets_interp:
@@ -791,7 +792,7 @@ class TimeGriddingProcessor:
 
         try:
             mooring_config = self._load_mooring_config(config_file)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  — config parse failure must not crash mooring
             self._log_print(f"ERROR: Failed to load configuration: {e}")
             return False
 
@@ -855,11 +856,10 @@ class TimeGriddingProcessor:
             self._log_print(f"Combined dataset shape: {dict(ds_to_save.sizes)}")
             self._log_print(f"Variables: {list(ds_to_save.data_vars)}")
 
-            return True
-
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  — log and report False; mooring run continues
             self._log_print(f"ERROR during time gridding processing: {e}")
             return False
+        return True
 
 
 def time_gridding_mooring(

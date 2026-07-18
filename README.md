@@ -15,6 +15,8 @@ OceanArray implements a multi-stage processing pipeline for mooring data, contro
 ```bash
 git clone https://github.com/ocean-uhh/oceanarray.git
 cd oceanarray
+python -m venv venv
+source venv/bin/activate
 pip install -r requirements-dev.txt
 pip install -e .
 ```
