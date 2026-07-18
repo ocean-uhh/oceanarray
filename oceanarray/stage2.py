@@ -68,7 +68,7 @@ def _parse_clock_str(s: str) -> Optional[pd.Timestamp]:
         s = f"{s[:4]}-{s[4:6]}-{s[6:8]}T{s[9:]}"
     try:
         return pd.Timestamp(s)
-    except Exception:
+    except Exception:  # noqa: BLE001  — returns None for any unparseable timestamp string
         return None
 
 
@@ -85,7 +85,7 @@ def _append_history(dataset: xr.Dataset, note: str) -> None:
 class Stage2Processor:
     """Handles Stage 2 processing: clock correction and temporal trimming."""
 
-    def __init__(self, base_dir: str):
+    def __init__(self, base_dir: str) -> None:
         """Initialize processor with base directory."""
         self.base_dir = Path(base_dir)
         self.log_file = None
@@ -96,7 +96,7 @@ class Stage2Processor:
 
         self.log_file = setup_stage_logging(mooring_name, "stage2", output_path)
 
-    def _log_print(self, *args, **kwargs) -> None:
+    def _log_print(self, *args: Any, **kwargs: Any) -> None:
         """Print to both console and log file."""
         print(*args, **kwargs)
         if self.log_file:
@@ -115,7 +115,7 @@ class Stage2Processor:
             return np.datetime64("NaT", "ns")
         try:
             return pd.to_datetime(val).to_datetime64()
-        except Exception:
+        except Exception:  # noqa: BLE001  — returns NaT for any unparseable value
             return np.datetime64("NaT", "ns")
 
     def _preserve_time_orig(self, dataset: xr.Dataset) -> xr.Dataset:
@@ -450,14 +450,26 @@ class Stage2Processor:
     def _process_instrument(
         self,
         instrument_config: Dict[str, Any],
-        mooring_config: Dict[str, Any],
+        mooring_config: Dict[str, Any],  # noqa: ARG002  — reserved for future per-mooring overrides
         proc_dir: Path,
         mooring_name: str,
         deploy_time: np.datetime64,
         recover_time: np.datetime64,
         force: bool = False,
     ) -> bool:
-        """Process a single instrument's Stage 1 output."""
+        """Apply clock corrections and deployment trimming to one instrument.
+
+        Reads the Stage 1 NetCDF for *instrument_config*, applies (in order):
+        constant clock offset, linear clock drift, and trimming to the
+        deployment window [*deploy_time*, *recover_time*].  Writes the result
+        as ``{mooring}_{serial}_stage2.nc`` in the same directory.
+
+        Skips silently if the Stage 1 file does not exist (not yet staged) or
+        if the Stage 2 output already exists and *force* is False.
+
+        Returns True on success or skip, False if the Stage 1 file is missing
+        or an error occurs.
+        """
         import re
 
         serial = re.sub(r"[^\w\-]", "", str(instrument_config.get("serial", "unknown")))
@@ -544,11 +556,11 @@ class Stage2Processor:
 
             relative_use = use_filepath.relative_to(self.base_dir)
             _status("file", str(relative_use))
-            return True
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  — intentional broad catch at I/O boundary
             self._log_print(f"ERROR processing {instrument_type} {serial}: {e}")
             return False
+        return True
 
     def process_mooring(
         self,
@@ -563,6 +575,7 @@ class Stage2Processor:
             mooring_name: Name of the mooring to process
             output_path: Optional custom output path
             serials: Optional list of serial numbers to process; if None, process all.
+            force: Re-process even if Stage 2 output already exists.
 
         Returns:
             bool: True if processing completed successfully
@@ -594,7 +607,7 @@ class Stage2Processor:
 
         try:
             mooring_config = self._load_mooring_config(config_file)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  — intentional broad catch at I/O boundary
             self._log_print(f"ERROR: Failed to load configuration: {e}")
             return False
 

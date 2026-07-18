@@ -46,7 +46,7 @@ def load_dataset(
         elif rodb.is_rodb_file(f):
             ds = rodb.rodbload(f)
         else:
-            raise ValueError(f"Unknown file type: {f}")
+            raise ValueError(f"Unknown file type: {f}")  # noqa: TRY003
         datasets.append(ds)
 
     return datasets if len(datasets) > 1 else datasets[0]
@@ -85,12 +85,12 @@ def rodbload_old(filepath: Path, variables: list[str]) -> xr.Dataset:
             break
 
     if data_start_index is None:
-        raise ValueError("Could not locate data block in file")
+        raise ValueError("Could not locate data block in file")  # noqa: TRY003
 
     # Extract columns
-    col_line = next((l for l in header_lines if "columns" in l.lower()), None)
+    col_line = next((line for line in header_lines if "columns" in line.lower()), None)
     if col_line is None:
-        raise ValueError("No 'columns=' line found in header")
+        raise ValueError("No 'columns=' line found in header")  # noqa: TRY003
 
     columns = col_line.split("=")[-1].strip().split(":")
     print(columns)
@@ -99,7 +99,7 @@ def rodbload_old(filepath: Path, variables: list[str]) -> xr.Dataset:
     # Validate requested variables
     missing = [v for v in variables if v not in columns]
     if missing:
-        raise ValueError(f"Variables not found in file: {missing}")
+        raise ValueError(f"Variables not found in file: {missing}")  # noqa: TRY003
 
     col_indices = {v: i for i, v in enumerate(columns) if v in variables}
 
@@ -255,7 +255,8 @@ def _add_nortek_csv_attributes(ds: xr.Dataset) -> xr.Dataset:
 
 
 def load_nortek_csv(
-    file_path: Union[str, Path], header_file: Optional[str] = None
+    file_path: Union[str, Path],
+    header_file: Optional[str] = None,  # noqa: ARG001
 ) -> xr.Dataset:
     """Load Nortek CSV data exported from AquaPro software.
 
@@ -275,7 +276,7 @@ def load_nortek_csv(
     """
     file_path = Path(file_path)
     if not file_path.exists():
-        raise FileNotFoundError(f"Nortek CSV file not found: {file_path}")
+        raise FileNotFoundError(f"Nortek CSV file not found: {file_path}")  # noqa: TRY003
 
     df = pd.read_csv(file_path, delimiter=";")
     df["datetime"] = pd.to_datetime(df["dateTime"])

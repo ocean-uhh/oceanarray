@@ -7,7 +7,7 @@ from typing import Any, Dict
 
 import numpy as np
 
-from ._html_helpers import _parse_history, _status
+from ._html_helpers import _parse_history, _read_nc_metadata, _status
 from ._plots import (
     _make_grid_fig_b64,
     _make_grid_ts_diagram,
@@ -65,6 +65,10 @@ _GRID_HTML_TEMPLATE = """\
   .history-list li:last-child { border-bottom:none; }
   .history-ts { color:var(--muted); white-space:nowrap; font-size:0.76rem; min-width:11rem; }
   .history-text { flex:1; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  td.mono { font-family:monospace; font-size:0.8rem; }
+  .none-note { color:var(--muted); font-style:italic; }
+  .var-qc { color:var(--good); font-size:0.78rem; }
   @media print { .masthead { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
 </style>
 </head>
@@ -89,7 +93,7 @@ _GRID_HTML_TEMPLATE = """\
   {% if fig_n2_b64 %}<a href="#n2">N²</a>{% endif %}
   {% if fig_ts_grid_b64 %}<a href="#ts">T-S diagram</a>{% endif %}
   {% if fig_spectrum_b64 %}<a href="#spectrum">Power spectrum</a>{% endif %}
-  {% if var_table %}<a href="#vars">Variables</a>{% endif %}
+  <a href="#vars">Variables</a>
 </nav>
 
 {% if history_entries %}
@@ -169,16 +173,69 @@ _GRID_HTML_TEMPLATE = """\
 <img class="fig" src="data:image/png;base64,{{ fig_spectrum_b64 }}" alt="Temperature power spectrum">
 {% endif %}
 
-{% if var_table %}
-<h2 id="vars">Variables in file</h2>
-<table class="var-table">
-  <thead><tr><th>Variable</th><th>Long name</th><th>Units</th><th>Coverage</th></tr></thead>
+<!-- ══ NetCDF variables ══ -->
+<h2 id="vars">NetCDF variables &mdash; {{ nc_file }}</h2>
+{% if nc_meta.get("error") %}
+<p class="none-note">Could not read file: {{ nc_meta.error }}</p>
+{% else %}
+
+<h3 style="font-size:0.88rem;color:var(--ocean);margin:1rem 0 0.4rem;">Variables</h3>
+<table>
+  <thead>
+    <tr><th>Variable</th><th>Dims</th><th class="num">N</th><th class="num">Valid</th><th>Units</th><th>Long name</th><th>Standard name</th><th>QC&nbsp;flag</th></tr>
+  </thead>
   <tbody>
-  {% for v in var_table %}
-  <tr><td><code>{{ v.name }}</code></td><td>{{ v.long_name }}</td><td>{{ v.units }}</td><td>{{ v.coverage }}</td></tr>
-  {% endfor %}
+    {% for v in nc_meta.time_vars %}
+    {% if not v.is_qc %}
+    <tr>
+      <td class="mono">{{ v.name }}</td>
+      <td class="mono" style="font-size:0.75rem">{{ v.dims }}</td>
+      <td class="num">{{ "{:,}".format(v.n) }}</td>
+      <td class="num" {% if v.n_valid is defined and v.n_valid < v.n %}style="color:#c0392b;font-weight:600"{% endif %}>{{ "{:,}".format(v.n_valid) if v.n_valid is defined else "&mdash;" }}</td>
+      <td>{{ v.units }}</td>
+      <td>{{ v.long_name }}</td>
+      <td style="font-size:0.78rem;color:var(--muted)">{{ v.standard_name }}</td>
+      <td style="text-align:center">{% if v.has_qc %}<span class="var-qc">✓</span>{% else %}&ndash;{% endif %}</td>
+    </tr>
+    {% endif %}
+    {% endfor %}
   </tbody>
 </table>
+
+{% if nc_meta.scalar_vars %}
+<h3 style="font-size:0.88rem;color:var(--ocean);margin:1.4rem 0 0.4rem;">Scalar metadata variables</h3>
+<table>
+  <thead>
+    <tr><th>Variable</th><th>Value</th><th>Units</th><th>Long name</th></tr>
+  </thead>
+  <tbody>
+    {% for v in nc_meta.scalar_vars %}
+    <tr>
+      <td class="mono">{{ v.name }}</td>
+      <td class="mono" style="font-size:0.78rem;word-break:break-all">{{ v.value }}</td>
+      <td>{{ v.units }}</td>
+      <td>{{ v.long_name }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if nc_meta.global_attrs %}
+<h3 style="font-size:0.88rem;color:var(--ocean);margin:1.4rem 0 0.4rem;">Global attributes</h3>
+<table>
+  <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+  <tbody>
+    {% for k, v in nc_meta.global_attrs.items() %}
+    <tr>
+      <td class="mono">{{ k }}</td>
+      <td style="font-size:0.8rem;word-break:break-all">{{ v }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
 {% endif %}
 
 <div class="report-footer">
@@ -360,23 +417,6 @@ def generate_grid_page(
                     pass
         fig_n2_b64 = _make_grid_n2_b64(ds, lat=_lat_n2)
 
-        var_table = []
-        for vname in ds.data_vars:
-            da_v = ds[vname]
-            if "time" not in da_v.dims:
-                continue
-            n_total = da_v.size
-            n_valid = int(np.sum(np.isfinite(da_v.values)))
-            pct = f"{100 * n_valid / n_total:.0f}%" if n_total > 0 else "—"
-            var_table.append(
-                {
-                    "name": vname,
-                    "long_name": da_v.attrs.get("long_name", ""),
-                    "units": da_v.attrs.get("units", ""),
-                    "coverage": pct,
-                }
-            )
-
         sigma_sections = []
         for sv in [
             v
@@ -443,6 +483,7 @@ def generate_grid_page(
 
         ds.close()
 
+        nc_meta = _read_nc_metadata(grid_path)
         stack_exists = (grid_path.parent / f"{mooring_name}_stack.nc").exists()
 
         from jinja2 import Environment
@@ -458,7 +499,8 @@ def generate_grid_page(
             mooring_report_link=f"{mooring_name}_report.html",
             stack_exists=stack_exists,
             history_entries=grid_history,
-            var_table=var_table,
+            nc_meta=nc_meta,
+            nc_file=grid_path.name,
             fig_temp_b64=fig_temp_b64,
             fig_temp_cf_b64=fig_temp_cf_b64,
             temp_plow=temp_plow,

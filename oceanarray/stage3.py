@@ -110,7 +110,8 @@ def _apply_beam_to_enu(
     entry: Dict[str, Any],
     lat: float,
     lon: float,
-    log_fn=None,
+    latlon_source: str = "unknown",
+    log_fn: Any = None,
 ) -> "xr.Dataset":
     """Transform BEAM or XYZ Nortek velocities to ENU geographic coordinates.
 
@@ -121,7 +122,7 @@ def _apply_beam_to_enu(
     if these are absent.
     """
 
-    def _warn(msg):
+    def _warn(msg: str) -> None:
         if log_fn:
             log_fn(msg)
         else:
@@ -163,8 +164,13 @@ def _apply_beam_to_enu(
         ds.attrs["magnetic_declination"] = declination
         ds.attrs["magnetic_declination_units"] = "degrees_east"
         ds.attrs["magnetic_declination_method"] = "ppigrf IGRF at deployment midpoint"
+        ds.attrs["magnetic_declination_lat"] = lat
+        ds.attrs["magnetic_declination_lon"] = lon
+        ds.attrs["magnetic_declination_latlon_source"] = (
+            f"mooring YAML ({latlon_source})"
+        )
         _warn(f"  BEAM→ENU: magnetic declination = {declination:.2f}°")
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001  — ppigrf optional; proceed with 0° declination
         _warn(f"  WARNING: magnetic declination unavailable ({e}) — using 0°")
 
     if coord_sys == "BEAM":
@@ -546,7 +552,7 @@ def _apply_tilt_qc(
 
 def _ensure_conductivity_units(
     ds: xr.Dataset,
-    log_fn=None,
+    log_fn: Any = None,
 ) -> xr.Dataset:
     """Convert conductivity from S/m → mS/cm if needed.
 
@@ -571,7 +577,7 @@ def _ensure_conductivity_units(
 
 def _compute_salinity_data(
     ds: xr.Dataset,
-    log_fn=None,
+    log_fn: Any = None,
 ) -> xr.Dataset:
     """Compute Practical Salinity (SP) data values only — no QC flags yet.
 
@@ -789,7 +795,7 @@ def _apply_enu_velocity_qc(
 class Stage3Processor:
     """Pressure interpolation + QARTOD QC for all mooring instruments."""
 
-    def __init__(self, base_dir: str):
+    def __init__(self, base_dir: str) -> None:
         self.base_dir = Path(base_dir)
         self.log_file = None
 
@@ -798,7 +804,7 @@ class Stage3Processor:
 
         self.log_file = setup_stage_logging(mooring_name, "stage3", output_path)
 
-    def _log(self, *args, **kwargs) -> None:
+    def _log(self, *args: Any, **kwargs: Any) -> None:
         print(*args, **kwargs)
         if self.log_file:
             try:
@@ -822,6 +828,7 @@ class Stage3Processor:
         force: bool = False,
         dry_run: bool = False,
     ) -> bool:
+        """Run Stage 3 QC and pressure interpolation for all instruments on a mooring."""
         proc_dir = self._get_proc_dir(mooring_name)
         if not proc_dir.exists():
             print(f"ERROR: Processing directory not found: {proc_dir}")
@@ -844,9 +851,11 @@ class Stage3Processor:
         )
 
         # ── Mooring location for BEAM→ENU declination ──────────────────
-        from .mooring_level import _parse_latlon
+        from .mooring_level import _parse_latlon_with_source
 
-        _mooring_lat, _mooring_lon = _parse_latlon(mooring_config)
+        _mooring_lat, _mooring_lon, _latlon_source = _parse_latlon_with_source(
+            mooring_config
+        )
 
         # ── Build instrument table ──────────────────────────────────────
         instruments: List[Dict[str, Any]] = []
@@ -881,6 +890,7 @@ class Stage3Processor:
                     "entry": entry,
                     "lat": _mooring_lat,
                     "lon": _mooring_lon,
+                    "latlon_source": _latlon_source,
                 }
             )
 
@@ -914,7 +924,7 @@ class Stage3Processor:
             try:
                 with xr.open_dataset(info["nc_path"], decode_timedelta=False) as _ds:
                     info["data_vars"] = set(_ds.data_vars)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001  — missing file skipped; mooring continues
                 self._log(f"  WARNING: Could not open {info['nc_path'].name}: {e}")
                 info["data_vars"] = set()
             info["pressure_var"] = _find_pressure_var(info["data_vars"])
@@ -929,7 +939,9 @@ class Stage3Processor:
                         f"not found in {info['nc_path'].name} — ignored"
                     )
 
-        pressure_bad = lambda info: info["qc_flags"].get("pressure", 0) >= 3
+        def pressure_bad(info: Dict[str, Any]) -> bool:
+            return info["qc_flags"].get("pressure", 0) >= 3
+
         sources = [i for i in instruments if i["has_pressure"] and not pressure_bad(i)]
         targets = [i for i in instruments if not i["has_pressure"] or pressure_bad(i)]
 
@@ -977,7 +989,7 @@ class Stage3Processor:
                 src["ds"] = xr.open_dataset(
                     src["nc_path"], decode_timedelta=False
                 ).load()
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001  — one bad source must not abort pressure interp
                 self._log(
                     f"  WARNING: Could not load source {src['nc_path'].name}: {e}"
                 )
@@ -1018,6 +1030,26 @@ class Stage3Processor:
         qc_attrs: Dict[str, Any],
         force: bool = False,
     ) -> bool:
+        """Apply Stage 3 processing to one instrument's Stage 2 NetCDF.
+
+        Steps applied (where applicable to the instrument type):
+
+        1. Pressure interpolation — targets without a reliable pressure sensor
+           have pressure interpolated from *sources* (neighbours on the mooring).
+        2. Conductivity unit normalisation and practical salinity computation
+           (CTD/microcat instruments only).
+        3. QARTOD QC tests (gross-range, spike) using thresholds from *qc_attrs*.
+        4. BEAM→ENU or XYZ→ENU coordinate transformation with magnetic declination
+           correction (current meters / Aquadopp).
+        5. Tilt QC — velocity flagged suspect/bad when pitch or roll exceed
+           configured thresholds.
+        6. History attribute updated with all processing steps applied.
+
+        Writes ``{mooring}_{serial}_stage3.nc`` alongside the Stage 2 file.
+        Skips if the output already exists and *force* is False.
+
+        Returns True on success or skip, False on error.
+        """
         nc_path = info["nc_path"]
         serial = info["serial"]
         l3_path = nc_path.with_name(nc_path.name.replace("_stage2.nc", "_stage3.nc"))
@@ -1071,7 +1103,12 @@ class Stage3Processor:
             # Must run before tilt QC so east/north/up_velocity exist to be flagged.
             coord_sys_before = ds.attrs.get("nortek_coordinate_system", "ENU")
             ds = _apply_beam_to_enu(
-                ds, info["entry"], info["lat"], info["lon"], log_fn=self._log
+                ds,
+                info["entry"],
+                info["lat"],
+                info["lon"],
+                latlon_source=info.get("latlon_source", "unknown"),
+                log_fn=self._log,
             )
 
             # ── ENU velocity QC + up→east/north flag propagation ──────
@@ -1144,14 +1181,14 @@ class Stage3Processor:
             self._log(
                 f"  Creating output file: {l3_path.name}  ({'; '.join(qc_summary)})"
             )
-            return True
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  — log and continue; one instrument must not abort mooring
             self._log(f"  ERROR processing {serial}: {e}")
             import traceback
 
             self._log(traceback.format_exc())
             return False
+        return True
 
     # ------------------------------------------------------------------
     def _interpolate_pressure(

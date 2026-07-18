@@ -83,7 +83,6 @@ class TestMooringProcessor:
         processor = MooringProcessor("/tmp")
         expected_types = [
             "sbe-cnv",
-            "sbe-asc",
             "sbe-ascii",
             "nortek-aqd",
             "rbr-rsk",

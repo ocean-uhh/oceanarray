@@ -387,11 +387,11 @@ def find_deployment(
     deployment_time=None,
     recovery_time=None,
     deployment_margin_hours=2.0,
-    surface_window_hours=24.0,
-    smooth_window=9,
-    method="sigma_band",  # NEW: 'changepoint' or 'sigma_band'
-    band_sigma=3.0,  # NEW: used when method='sigma_band'
-    dwell_seconds=1800,
+    surface_window_hours=24.0,  # noqa: ARG001  — reserved for future surface-window logic
+    smooth_window=9,  # noqa: ARG001  — reserved for future smoothing step
+    method="sigma_band",  # noqa: ARG001  — reserved for future method dispatch
+    band_sigma=3.0,  # noqa: ARG001  — reserved for future sigma_band method
+    dwell_seconds=1800,  # noqa: ARG001  — reserved for future dwell filter
 ):
     """Populate ds with:
       - start_time (N_LEVELS) : first deep time (when temps settle cold)
@@ -401,15 +401,15 @@ def find_deployment(
     Returns ds with the variables added/updated.
     """
     if var_name not in ds:
-        raise ValueError(f"{var_name!r} not found in dataset.")
+        raise ValueError(f"{var_name!r} not found in dataset.")  # noqa: TRY003
     if ds[var_name].dims != ("time", "N_LEVELS"):
-        raise ValueError(
+        raise ValueError(  # noqa: TRY003
             f"{var_name!r} must have dims ('time','N_LEVELS'). Got {ds[var_name].dims}"
         )
 
     nlev = ds.sizes.get("N_LEVELS", None)
     if nlev is None:
-        raise ValueError("Dimension 'N_LEVELS' not found in dataset.")
+        raise ValueError("Dimension 'N_LEVELS' not found in dataset.")  # noqa: TRY003
 
     # ensure outputs exist with correct dtype/shape
     if "start_time" not in ds:

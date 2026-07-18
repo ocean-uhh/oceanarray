@@ -94,7 +94,7 @@ def _print_report(basedir: str, mooring: str) -> None:
                         counts = f"{n_raw:>7} raw → {n_rec:>7} {stage_label}"
                     else:
                         counts = f"{'?':>7} raw → {n_rec:>7} {stage_label}"
-                except Exception:
+                except Exception:  # noqa: BLE001  — intentional broad catch at I/O boundary
                     counts = f"{'HDF ERR':>7} raw → {n_rec:>7} {stage_label}"
 
                 mtime = datetime.datetime.fromtimestamp(
@@ -103,7 +103,7 @@ def _print_report(basedir: str, mooring: str) -> None:
                 print(
                     f"    s/n {serial:<8}  {counts}  {t0} → {t1}  depth: {depth}  dt: {interval}  processed: {mtime}  vars: {', '.join(vars_present)}"
                 )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001  — display helper; must not crash status output
                 print(f"    {nc.name}: ERROR — {e}")
 
 
@@ -290,6 +290,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build and return the top-level argument parser for the oceanarray CLI."""
     parser = argparse.ArgumentParser(
         prog="oceanarray",
         description="Oceanographic mooring data processing.",
@@ -511,6 +512,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """Entry point for the ``oceanarray`` command-line tool."""
     parser = build_parser()
     args = parser.parse_args()
     sys.exit(args.func(args))

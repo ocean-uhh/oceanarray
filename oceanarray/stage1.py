@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import logging
 
+import xarray as xr
 import yaml
 import seasenselib
 from seasenselib.writers import NetCdfWriter
@@ -54,7 +55,7 @@ def _parse_nortek_coord_system(hdr_path: Path) -> str:
                 m = re.match(r"^\s*Coordinate system\s{2,}(\S+)", line, re.IGNORECASE)
                 if m:
                     return m.group(1).strip().upper()
-    except Exception:
+    except Exception:  # noqa: BLE001  — intentional broad catch at I/O boundary
         pass
     return "ENU"
 
@@ -95,7 +96,7 @@ def _parse_nortek_T_matrix_hdr(hdr_path: Path) -> Optional[Dict[str, float]]:
         if len(floats) >= 9:
             keys = ["M11", "M12", "M13", "M21", "M22", "M23", "M31", "M32", "M33"]
             return {k: floats[i] for i, k in enumerate(keys)}
-    except Exception:
+    except Exception:  # noqa: BLE001  — intentional broad catch at I/O boundary
         pass
     return None
 
@@ -171,13 +172,15 @@ class MooringProcessor:
     # Supported format keys for seasenselib.read() or internal readers
     SUPPORTED_FILE_TYPES = {
         "sbe-cnv",
-        "sbe-asc",  # legacy seasenselib ASCII reader
         "sbe-ascii",  # newer seasenselib ASCII reader (with date normalisation)
         "nortek-aqd",
         "nortek-ascii",
-        "nortek-csv",
+        "nortek-csv",  # seasenselib reader (future; not yet implemented)
+        "nortek-csv-oa",  # DEPRECATED: internal oceanarray CSV reader; use nortek-csv once seasenselib supports it
         "rbr-rsk",
+        "rbr-matlab-legacy",
         "rbr-dat",
+        "sbe-hex",
     }
 
     # Variables to remove for specific file types
@@ -194,7 +197,7 @@ class MooringProcessor:
         "sbe-ascii": ["depth", "latitude", "longitude"],
     }
 
-    def __init__(self, base_dir: str):
+    def __init__(self, base_dir: str) -> None:
         """Initialize processor with base directory."""
         self.base_dir = Path(base_dir)
         self.log_file = None
@@ -219,7 +222,7 @@ class MooringProcessor:
                 fh.setFormatter(logging.Formatter("%(name)s %(levelname)s %(message)s"))
                 lib_log.addHandler(fh)
 
-    def _log_print(self, *args, **kwargs) -> None:
+    def _log_print(self, *args: Any, **kwargs: Any) -> None:
         """Print to both console and log file."""
         print(*args, **kwargs)
         if self.log_file:
@@ -247,7 +250,7 @@ class MooringProcessor:
         if not needs_fix:
             return file_path
 
-        def _replace_date(m):
+        def _replace_date(m: re.Match) -> str:
             mm, dd, yyyy = m.group(1), m.group(2), m.group(3)
             return f"{dd} {MONTHS[mm]} {yyyy}"
 
@@ -261,19 +264,49 @@ class MooringProcessor:
 
     def _read_file(
         self, file_type: str, file_path: str, header_path: Optional[str] = None
-    ):
-        """Read a data file via seasenselib or an internal reader."""
+    ) -> xr.Dataset:
+        """Read a raw instrument file and return a normalised xarray Dataset.
+
+        Routes to the deprecated internal reader for ``nortek-csv-oa`` (with a
+        deprecation warning), or to ``seasenselib.read`` for all other types.
+        For Nortek formats the coordinate system is parsed from *header_path* and
+        ``_normalize_nortek_variables`` is called.  For ``sbe-hex``, the seasenselib
+        output variable ``press`` is renamed to ``pressure`` for consistency.
+
+        Parameters
+        ----------
+        file_type:
+            One of ``SUPPORTED_FILE_TYPES`` (e.g. ``"nortek-aqd"``, ``"sbe-cnv"``).
+        file_path:
+            Path to the raw instrument file.
+        header_path:
+            Path to the companion header file (required for Nortek formats to read
+            the coordinate system and transformation matrix).
+
+        Returns
+        -------
+        xarray.Dataset
+
+        """
         if file_type not in self.SUPPORTED_FILE_TYPES:
             raise ValueError(f"Unknown file type: {file_type}")
 
-        if file_type == "nortek-csv":
+        if file_type == "nortek-csv-oa":
+            import warnings
+
+            warnings.warn(
+                "file_type 'nortek-csv-oa' is deprecated. "
+                "Use 'nortek-csv' once seasenselib supports Nortek CSV export files.",
+                DeprecationWarning,
+                stacklevel=4,
+            )
             from .readers import load_nortek_csv
 
             ds = load_nortek_csv(file_path, header_file=header_path)
             coord_system = ds.attrs.get("coordinate_system")
             if coord_system is None:
                 print(
-                    f"WARNING: nortek-csv file {file_path} has no coordinate_system "
+                    f"WARNING: nortek-csv-oa file {file_path} has no coordinate_system "
                     "attribute — coordinate system unknown (UNK); velocities not renamed."
                 )
                 coord_system = "UNK"
@@ -299,9 +332,17 @@ class MooringProcessor:
                 )
                 coord_system = "UNK"
             ds = self._normalize_nortek_variables(ds, coord_system=coord_system)
+        if (
+            file_type == "sbe-hex"
+            and "press" in ds.data_vars
+            and "pressure" not in ds.data_vars
+        ):
+            ds = ds.rename_vars({"press": "pressure"})
         return ds
 
-    def _normalize_nortek_variables(self, dataset, coord_system: str = "ENU"):
+    def _normalize_nortek_variables(
+        self, dataset: xr.Dataset, coord_system: str = "ENU"
+    ) -> xr.Dataset:
         """Normalise variable names produced by the seasenselib nortek readers.
 
         The Nortek .hdr file describes columns for both the main .dat file and the
@@ -442,7 +483,7 @@ class MooringProcessor:
             dataset = dataset.drop_vars(_norm_drop)
 
         # ── 6. CSV format: demote constant time-series to attrs; drop scaffolding ──
-        # The nortek-csv reader stores deployment-config columns as full time series
+        # The nortek-csv-oa reader stores deployment-config columns as full time series
         # even though they never change.  Promote them to global attrs and drop.
         _CSV_TO_ATTR = {
             "coordinatesystem": "nortek_coordinate_system",
@@ -484,8 +525,8 @@ class MooringProcessor:
         return dataset
 
     def _add_sbe_ascii_sensor_vars(
-        self, dataset, file_path: Path, instrument_config: Dict[str, Any]
-    ):
+        self, dataset: xr.Dataset, file_path: Path, instrument_config: Dict[str, Any]
+    ) -> xr.Dataset:
         """Parse calibration coefficients from an SBE ASCII header and add SENSOR_* vars.
 
         seasenselib's sbe-ascii reader discards the ``* TA0 = …`` header lines.
@@ -543,7 +584,7 @@ class MooringProcessor:
         def _coeff_str(d: Dict[str, str]) -> str:
             return ", ".join(f"{k}={v}" for k, v in d.items())
 
-        def _make_sensor_var(name: str, attrs: Dict[str, Any]) -> xr.Variable:
+        def _make_sensor_var(name: str, attrs: Dict[str, Any]) -> xr.Variable:  # noqa: ARG001
             return xr.Variable((), np.array(b"", dtype="|S1"), attrs=attrs)
 
         # Temperature
@@ -620,7 +661,7 @@ class MooringProcessor:
 
         return dataset
 
-    def _normalize_conductivity(self, dataset):
+    def _normalize_conductivity(self, dataset: xr.Dataset) -> xr.Dataset:
         """Convert conductivity to mS/cm and rename to 'conductivity' if needed."""
         if "cond0S/m" in dataset:
             # S/m → mS/cm: multiply by 10
@@ -633,7 +674,48 @@ class MooringProcessor:
             dataset = dataset.rename({"cond0mS/cm": "conductivity"})
         return dataset
 
-    def _normalize_sensor_var_names(self, dataset, instrument_config: Dict[str, Any]):
+    # Known SBE CNV variable names containing '/' and their CF-compatible replacements.
+    # Keys that are already handled by _normalize_conductivity are excluded.
+    _CNV_SLASH_RENAMES: Dict[str, str] = {
+        "sbeopoxMm/Kg": "dissolved_oxygen",  # SBE63 optode O2 in mmol/kg
+        "sbeox0Mm/Kg": "dissolved_oxygen",  # SBE43 electrochemical O2 mmol/kg
+        "sbeox0ML/L": "dissolved_oxygen",  # SBE43 electrochemical O2 mL/L
+        "sbeox1Mm/Kg": "dissolved_oxygen_2",
+        "sbeox1ML/L": "dissolved_oxygen_2",
+        "oxsatMm/Kg": "oxygen_saturation",
+        "oxsatML/L": "oxygen_saturation",
+    }
+
+    def _sanitize_slash_vars(self, dataset: xr.Dataset) -> xr.Dataset:
+        """Rename known SBE slash-named variables and warn about any remaining ones."""
+        rename_map: Dict[str, str] = {}
+        for old, new in self._CNV_SLASH_RENAMES.items():
+            if old in dataset.data_vars:
+                # Avoid clobbering a variable that already exists with the target name
+                target = new
+                if target in dataset.data_vars:
+                    target = f"{new}_raw"
+                rename_map[old] = target
+
+        if rename_map:
+            dataset = dataset.rename_vars(rename_map)
+
+        # Fallback: any remaining vars with '/' are not safe for NetCDF — replace with '_per_'
+        remaining = [v for v in dataset.data_vars if "/" in v]
+        if remaining:
+            fallback = {v: v.replace("/", "_per_") for v in remaining}
+            self._log_print(
+                f"WARNING: Unrecognised variable name(s) containing '/': "
+                f"{', '.join(remaining)} — sanitising to: "
+                f"{', '.join(fallback.values())}"
+            )
+            dataset = dataset.rename_vars(fallback)
+
+        return dataset
+
+    def _normalize_sensor_var_names(
+        self, dataset: xr.Dataset, instrument_config: Dict[str, Any]
+    ) -> xr.Dataset:
         """Rename SENSOR_PRES_{sensor_serial} to SENSOR_PRES_{instrument_serial}.
 
         seasenselib names the pressure sensor variable after the pressure sensor's
@@ -654,7 +736,9 @@ class MooringProcessor:
             dataset = dataset.rename_vars(to_rename)
         return dataset
 
-    def _clean_dataset_variables(self, dataset, file_type: str):
+    def _clean_dataset_variables(
+        self, dataset: xr.Dataset, file_type: str
+    ) -> xr.Dataset:
         """Remove unwanted variables and coordinates from dataset."""
         # Remove variables
         vars_to_remove = self.VARS_TO_REMOVE.get(file_type, [])
@@ -672,7 +756,9 @@ class MooringProcessor:
 
         return dataset
 
-    def _add_global_attributes(self, dataset, yaml_data: Dict[str, Any]):
+    def _add_global_attributes(
+        self, dataset: xr.Dataset, yaml_data: Dict[str, Any]
+    ) -> xr.Dataset:
         """Add global attributes from YAML configuration."""
         global_attrs = {
             "mooring_name": yaml_data["name"],
@@ -695,15 +781,19 @@ class MooringProcessor:
         return dataset
 
     def _add_instrument_metadata(
-        self, dataset, instrument_config: Dict[str, Any], yaml_data: Dict[str, Any]
-    ):
+        self,
+        dataset: xr.Dataset,
+        instrument_config: Dict[str, Any],
+        yaml_data: Dict[str, Any],
+    ) -> xr.Dataset:
         """Add instrument-specific metadata to dataset."""
         dataset["serial_number"] = instrument_config.get("serial", 0)
         # Support both 'depth' (absolute) and 'hab' (height above bottom)
         if "depth" in instrument_config:
             depth = instrument_config["depth"]
         elif "hab" in instrument_config:
-            depth = yaml_data.get("waterdepth", 0) - instrument_config["hab"]
+            waterdepth = yaml_data.get("waterdepth") or 0
+            depth = waterdepth - instrument_config["hab"]
         else:
             depth = 0
         dataset["InstrDepth"] = depth
@@ -791,7 +881,15 @@ class MooringProcessor:
         mooring_name: str,
         force: bool = False,
     ) -> bool:
-        """Process a single instrument's data."""
+        """Process one instrument entry from the mooring YAML.
+
+        Resolves input and output file paths, skips silently if the output
+        already exists and *force* is False, then delegates to
+        ``_read_and_write_file``.  Catches all exceptions and logs them so
+        that one failed instrument does not abort the whole mooring.
+
+        Returns True on success or skip, False on error or missing filename.
+        """
         if "filename" not in instrument_config:
             instrument_name = instrument_config.get("instrument", "unknown")
             serial = instrument_config.get("serial", "unknown")
@@ -851,7 +949,28 @@ class MooringProcessor:
         yaml_data: Dict[str, Any],
         input_dir: Path,
     ) -> bool:
-        """Read data file and write to NetCDF."""
+        """Read one raw instrument file, enrich the dataset, and write Stage 1 NetCDF.
+
+        Steps applied in order:
+
+        1. Resolve Nortek header path (``header_file`` / ``header`` YAML key).
+        2. Pre-normalise ``sbe-ascii`` date format if required.
+        3. Read data via ``_read_file``.
+        4. For Nortek: store pressure-calibration coefficients and T-matrix as
+           global attributes; if T-matrix is available and instrument reports in
+           BEAM coordinates, apply BEAM→XYZ in stage1 (velocity_x/y/z added;
+           beam velocities retained for verification).
+        5. For ``sbe-ascii``: inject SENSOR_* calibration variables from the CNV
+           header (seasenselib discards the header section).
+        6. Normalise conductivity units; sanitise slash characters in variable
+           names (NetCDF-illegal); fix ``"db"`` → ``"dbar"`` pressure units.
+        7. Annotate ITS-90 temperature scale for ``sbe-ascii`` and ``sbe-hex``.
+        8. Normalise SENSOR_PRES variable naming; clean dataset variables.
+        9. Add global attributes and per-instrument metadata (depth, serial, etc.).
+        10. Write to NetCDF via ``NetCdfWriter``.
+
+        Returns True on success, False if the file could not be read.
+        """
         # Get header file for Nortek instruments ('header_file' preferred, 'header' accepted)
         header_file = None
         header_key = instrument_config.get("header_file") or instrument_config.get(
@@ -955,6 +1074,9 @@ class MooringProcessor:
         # Normalize conductivity units and name before cleaning
         dataset = self._normalize_conductivity(dataset)
 
+        # Rename any remaining SBE CNV variable names that contain '/' (NetCDF-illegal)
+        dataset = self._sanitize_slash_vars(dataset)
+
         # SeaBird CNV files use "db" (decibars) instead of the CF-standard "dbar".
         for pvar in [
             v for v in dataset.data_vars if v == "pressure" or v.startswith("pressure")
@@ -964,7 +1086,7 @@ class MooringProcessor:
 
         # sbe-ascii outputs ITS-90 temperature; seasenselib CNV files preserve
         # this in cnv_original_unit, but the ASCII reader doesn't — add it here.
-        if file_type == "sbe-ascii" and "temperature" in dataset.data_vars:
+        if file_type in ("sbe-ascii", "sbe-hex") and "temperature" in dataset.data_vars:
             dataset["temperature"].attrs.setdefault("scale", "ITS-90")
 
         # Rename SENSOR_PRES_{sensor_serial} → SENSOR_PRES_{instrument_serial}

@@ -1,19 +1,26 @@
-from oceanarray import logger
-
-log = logger.log
+"""Shared utility helpers used across the oceanarray processing pipeline."""
 
 import math
 from datetime import datetime
 from functools import wraps
-from typing import Callable, List, Optional
+from typing import Any, Callable, List, Optional
 
 import numpy as np
 import xarray as xr
 
+from oceanarray import logger
 
-def concat_with_scalar_vars(datasets, dim, scalar_vars=None):
-    """Concatenate a list of xarray Datasets along a given dimension,
-    preserving scalar variables (0-D DataArrays) as scalars (not broadcast).
+
+def concat_with_scalar_vars(
+    datasets: List[xr.Dataset],
+    dim: str,
+    scalar_vars: Optional[List[str]] = None,
+) -> xr.Dataset:
+    """Concatenate datasets along a dimension, preserving scalar variables.
+
+    Scalar (0-D) variables would normally be broadcast to the concatenation
+    dimension by ``xr.concat``; this helper strips them beforehand and
+    re-attaches the first occurrence after the concat so they remain 0-D.
 
     Parameters
     ----------
@@ -42,11 +49,11 @@ def concat_with_scalar_vars(datasets, dim, scalar_vars=None):
 
     # Strip scalar variables and store them
     cleaned = []
-    for i, ds in enumerate(datasets):
+    for _i, ds in enumerate(datasets):
         ds_copy = ds.copy()
         for var in scalar_vars:
             if var in ds_copy and ds_copy[var].ndim == 0:
-                scalar_storage[(i, var)] = ds_copy[var]
+                scalar_storage[(_i, var)] = ds_copy[var]
                 del ds_copy[var]
         cleaned.append(ds_copy)
 
@@ -54,14 +61,14 @@ def concat_with_scalar_vars(datasets, dim, scalar_vars=None):
     combined = xr.concat(cleaned, dim=dim)
 
     # Re-attach scalar variables as 0-D DataArrays
-    for (i, var), da in scalar_storage.items():
+    for (_i, var), da in scalar_storage.items():
         combined[var] = da  # safe: 0-D, no coords
 
     return combined
 
 
-def _check_necessary_variables(ds: xr.Dataset, vars: list):
-    """Checks that all of a list of variables are present in a dataset.
+def _check_necessary_variables(ds: xr.Dataset, vars: list) -> None:
+    """Check that all required variables are present in a dataset.
 
     Parameters
     ----------
@@ -86,7 +93,7 @@ def _check_necessary_variables(ds: xr.Dataset, vars: list):
         raise KeyError(msg)
 
 
-def get_time_key(ds):
+def get_time_key(ds: xr.Dataset) -> str:
     """Return the name of the time coordinate or variable in an xarray.Dataset.
 
     Parameters
@@ -128,11 +135,13 @@ def get_time_key(ds):
             )
             return name
 
-    raise ValueError("No valid time coordinate found in dataset.")
+    raise ValueError("No valid time coordinate found in dataset.")  # noqa: TRY003
 
 
-def get_dims(ds_gridded):
-    """Helper function to extract pressure key, time key, and their respective dimensions from a dataset.
+def get_dims(
+    ds_gridded: xr.Dataset,
+) -> tuple:
+    """Extract pressure key, time key, and their dimensions from a dataset.
 
     Parameters
     ----------
@@ -141,13 +150,13 @@ def get_dims(ds_gridded):
 
     Returns
     -------
-    pres_key : str
-        Key for the pressure variable.
+    pres_key : str or None
+        Key for the pressure (or depth) variable; None if not found.
     time_key : str
         Key for the time variable.
-    pres_dim : str
-        Dimension associated with the pressure variable.
-    time_dim : str
+    pres_dim : str or None
+        Dimension associated with the pressure variable; None if not found.
+    time_dim : str or None
         Dimension associated with the time variable.
 
     """
@@ -168,6 +177,8 @@ def get_dims(ds_gridded):
             pres_key = name
             break
 
+    # Fall back to depth if no pressure variable found
+    dpth_key = None
     if pres_key is None:
         depth_candidates = [
             "DEPTH_ADJUSTED",
@@ -178,7 +189,7 @@ def get_dims(ds_gridded):
         ]
         for name in depth_candidates:
             if name in ds_gridded.coords or name in ds_gridded.variables:
-                pres_key = name
+                dpth_key = name
                 break
 
     # Get time key using helper
@@ -186,7 +197,7 @@ def get_dims(ds_gridded):
 
     # Determine dimensions
     time_dim = ds_gridded[time_key].dims[0] if ds_gridded[time_key].dims else None
-    # Find pres_dim as the dimension of pres_key that is not the same as time_dim
+    pres_dim = None
     if pres_key is None and dpth_key is not None:
         pres_dims = ds_gridded[dpth_key].dims
         if len(pres_dims) > 1:
@@ -201,10 +212,10 @@ def get_dims(ds_gridded):
         else:
             pres_dim = pres_dims[0]
 
-    return pres_key, time_key, pres_dim, time_dim
+    return pres_key or dpth_key, time_key, pres_dim, time_dim
 
 
-def iso8601_duration_from_seconds(seconds):
+def iso8601_duration_from_seconds(seconds: float) -> str:
     """Convert a duration in seconds to an ISO 8601 duration string.
 
     Parameters
@@ -229,8 +240,8 @@ def iso8601_duration_from_seconds(seconds):
         return f"PT{seconds}S"
 
 
-def is_iso8601_utc(timestr):
-    """Validate whether a string is in ISO8601 UTC format: YYYY-MM-DDTHH:MM:SSZ
+def is_iso8601_utc(timestr: str) -> bool:
+    """Validate whether a string is in ISO8601 UTC format: YYYY-MM-DDTHH:MM:SSZ.
 
     Parameters
     ----------
@@ -245,17 +256,16 @@ def is_iso8601_utc(timestr):
     """
     try:
         datetime.strptime(timestr, "%Y/%m/%dT%H:%M:%SZ")  # RODB-style
-        return True
     except ValueError:
         try:
             datetime.strptime(timestr, "%Y-%m-%dT%H:%M:%SZ")  # ISO8601 style
-            return True
         except ValueError:
             return False
+    return True
 
 
 def apply_defaults(default_source: str, default_files: List[str]) -> Callable:
-    """Decorator to apply default values for 'source' and 'file_list' parameters if they are None.
+    """Decorate a function to apply default values for source and file_list parameters.
 
     Parameters
     ----------
@@ -276,14 +286,14 @@ def apply_defaults(default_source: str, default_files: List[str]) -> Callable:
         def wrapper(
             source: Optional[str] = None,
             file_list: Optional[List[str]] = None,
-            *args,
-            **kwargs,
-        ) -> Callable:
+            *args: Any,
+            **kwargs: Any,
+        ) -> Any:
             if source is None:
                 source = default_source
             if file_list is None:
                 file_list = default_files
-            return func(source=source, file_list=file_list, *args, **kwargs)
+            return func(source=source, file_list=file_list, *args, **kwargs)  # noqa: B026
 
         return wrapper
 

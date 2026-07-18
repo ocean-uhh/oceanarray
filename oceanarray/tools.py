@@ -1,3 +1,5 @@
+"""Science utility functions for oceanographic data analysis."""
+
 import logging
 
 import gsw
@@ -17,8 +19,7 @@ def lag_correlation(x, y, max_lag, min_overlap=10):
     x = np.asarray(x, float)
     y = np.asarray(y, float)
     if x.shape != y.shape:
-        raise ValueError("x and y must have same length (subsample both).")
-    n = len(x)
+        raise ValueError("x and y must have same length (subsample both).")  # noqa: TRY003
     corrs = np.full(2 * max_lag + 1, np.nan)
     for k, lag in enumerate(range(-max_lag, max_lag + 1)):
         if lag < 0:
@@ -40,7 +41,7 @@ def lag_correlation(x, y, max_lag, min_overlap=10):
 
 
 def split_value(data, nbins=30):
-    # Example: Your 1D data array
+    """Find a histogram-based split value between two data modes."""
     data = data[~np.isnan(data)]  # Remove NaNs for histogram
     # Step 1: Create histogram
     counts, bins = np.histogram(data, bins=nbins)
@@ -65,7 +66,9 @@ def find_cold_entry_exit(
     Parameters
     ----------
     time : array-like of datetime64
+        Time coordinate array.
     temp : array-like of float
+        Temperature values aligned with *time*.
     quantile : float
         Percentile for threshold (e.g. 0.1 ~ 10th percentile).
     dwell_seconds : int
@@ -181,6 +184,7 @@ def flag_vertical_inconsistencies(ds, var="CNDC", threshold=2):
 
 
 def run_qc(ds):
+    """Apply a sequence of QC tests and write combined CNDC_QC flag variable."""
     if "PSAL" not in ds:
         ds = calc_psal(ds)
 
@@ -324,9 +328,6 @@ def process_dataset(
     )
     standard_pressures = pgrid.flatten()
 
-    # Tile standard pressures
-    pressure_array = np.tile(standard_pressures, (temp_standard.shape[0], 1))
-
     # Create ds_standard
     ds_standard = xr.Dataset(
         {
@@ -347,9 +348,9 @@ def process_dataset(
 
 
 def calc_ds_difference(ds1, ds2):
-    # Check that the time grids are the same
+    """Compute the variable-by-variable difference between two time-matched datasets."""
     if not np.array_equal(ds1["TIME"].values, ds2["TIME"].values):
-        raise ValueError("TIME grids do not match between datasets.")
+        raise ValueError("TIME grids do not match between datasets.")  # noqa: TRY003
 
     # Variables to exclude from differencing
     exclude_vars = {"YY", "MM", "DD", "HH"}

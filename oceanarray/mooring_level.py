@@ -32,6 +32,8 @@ STACK_VARS = [
     "east_velocity",
     "north_velocity",
     "up_velocity",
+    "current_speed",
+    "current_direction",
     "east_velocity_qc",
     "north_velocity_qc",
     "up_velocity_qc",
@@ -60,6 +62,8 @@ _STACK_RAW: frozenset = frozenset(
         "east_velocity",
         "north_velocity",
         "up_velocity",
+        "current_speed",
+        "current_direction",
         "velocity_beam1",
         "velocity_beam2",
         "velocity_beam3",
@@ -101,8 +105,18 @@ def _dms_to_deg(s: str) -> float:
     return val
 
 
-def _parse_latlon(cfg: dict):
+def _parse_latlon(cfg: dict) -> tuple[float, float]:
     """Return (lat, lon) in decimal degrees from a mooring config dict."""
+    lat, lon, _ = _parse_latlon_with_source(cfg)
+    return lat, lon
+
+
+def _parse_latlon_with_source(cfg: dict) -> tuple[float, float, str]:
+    """Return (lat, lon, source_key) from a mooring config dict.
+
+    source_key is the YAML key pair used, e.g. 'seabed_latitude/seabed_longitude',
+    or 'unknown (defaulting to 0, 0)' if none found.
+    """
     for lat_key, lon_key in [
         ("seabed_latitude", "seabed_longitude"),
         ("deployment_latitude", "deployment_longitude"),
@@ -112,8 +126,12 @@ def _parse_latlon(cfg: dict):
         lat_s = cfg.get(lat_key)
         lon_s = cfg.get(lon_key)
         if lat_s is not None and lon_s is not None:
-            return _dms_to_deg(str(lat_s)), _dms_to_deg(str(lon_s))
-    return 0.0, 0.0
+            return (
+                _dms_to_deg(str(lat_s)),
+                _dms_to_deg(str(lon_s)),
+                f"{lat_key}/{lon_key}",
+            )
+    return 0.0, 0.0, "unknown (defaulting to 0, 0)"
 
 
 _SIGMA_META = {
@@ -291,7 +309,7 @@ def _linear_interp(
 class MooringStacker:
     """Step 1: stack all instruments onto a common time axis → ``_stack.nc``."""
 
-    def __init__(self, base_dir: str):
+    def __init__(self, base_dir: str) -> None:
         self.base_dir = Path(base_dir)
 
     def stack(
@@ -300,6 +318,15 @@ class MooringStacker:
         dt_seconds: int = 60,
         force: bool = False,
     ) -> bool:
+        """Stack all processed instruments for *mooring_name* onto a common time grid.
+
+        Reads ``_stage3.nc`` (falling back to ``_stage2.nc``) for every instrument
+        listed in the mooring YAML, resamples each to *dt_seconds* resolution, and
+        writes ``{mooring}_stack.nc`` under the mooring proc directory.
+
+        Returns True on success, False if no instruments could be loaded or an
+        unrecoverable error occurs.
+        """
         proc_dir = _get_proc_dir(self.base_dir, mooring_name)
         try:
             proc_dir_exists = proc_dir.exists()
@@ -399,7 +426,7 @@ class MooringStacker:
             try:
                 ds = xr.open_dataset(info["nc_path"], decode_timedelta=False).load()
                 ds.close()
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001  — one bad instrument must not abort the stack
                 print(f"  WARNING: Could not load {info['nc_path'].name}: {e}")
                 # Ensure scalar_meta lists stay length-consistent
                 for lst in scalar_meta.values():
@@ -513,7 +540,7 @@ class MooringStacker:
                             "reference_pressure_dbar": ref_p,
                         },
                     )
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001  — gsw failure must not abort stack
                 print(f"  WARNING: could not compute potential density: {exc}")
 
         # velocity_flag: element-wise worst QC flag across east/north/up velocity.
@@ -624,7 +651,7 @@ class MooringStacker:
                         "long_name": "Serial number of the pressure reference instrument used for tilt"
                     },
                 )
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001  — optional derived var; must not abort stack
                 print(f"  WARNING: could not compute tilt_from_pressure: {exc}")
 
         # Coordinate names — exclude these from scalar metadata to avoid name conflicts
@@ -712,7 +739,7 @@ class MooringStacker:
 class MooringGridder:
     """Step 2: vertically interpolate stacked instruments onto a pressure grid → ``_grid.nc``."""
 
-    def __init__(self, base_dir: str):
+    def __init__(self, base_dir: str) -> None:
         self.base_dir = Path(base_dir)
 
     def grid(
@@ -723,6 +750,14 @@ class MooringGridder:
         dp: float = 20.0,
         force: bool = False,
     ) -> bool:
+        """Interpolate the stacked mooring dataset onto a regular pressure grid.
+
+        Reads ``{mooring}_stack.nc``, interpolates all variables onto a pressure
+        axis from *p_start* to *p_end* in steps of *dp* dbar, and writes
+        ``{mooring}_grid.nc``.
+
+        Returns True on success, False on error.
+        """
         proc_dir = _get_proc_dir(self.base_dir, mooring_name)
         merge_path = proc_dir / f"{mooring_name}_stack.nc"
         output_path = proc_dir / f"{mooring_name}_grid.nc"
@@ -821,7 +856,13 @@ class MooringGridder:
             if _v in _GRIDDER_TSQC:
                 var_data[_v][~np.isfinite(var_data[_v])] = np.nan
 
-        _vel_vars = {"east_velocity", "north_velocity", "up_velocity"}
+        _vel_vars = {
+            "east_velocity",
+            "north_velocity",
+            "up_velocity",
+            "current_speed",
+            "current_direction",
+        }
         if "velocity_flag" in ds.data_vars:
             _vflag = ds["velocity_flag"].values.astype(np.float64)
             _bad_vel = np.isin(np.round(_vflag).astype(np.int8), [3, 4, 9])

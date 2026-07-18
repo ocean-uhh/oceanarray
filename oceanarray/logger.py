@@ -1,7 +1,9 @@
-# oceanarray/logger.py
+"""Logging configuration and helpers for the oceanarray processing pipeline."""
+
 import datetime
 import logging
 from pathlib import Path
+from typing import Any
 
 # Global logger instance (will be configured by setup_logger)
 log = logging.getLogger("oceanarray")
@@ -12,37 +14,37 @@ log.setLevel(logging.DEBUG)  # capture everything; handlers filter later
 LOGGING_ENABLED = True
 
 
-def enable_logging():
+def enable_logging() -> None:
     """Enable logging globally."""
     global LOGGING_ENABLED
     LOGGING_ENABLED = True
 
 
-def disable_logging():
+def disable_logging() -> None:
     """Disable logging globally."""
     global LOGGING_ENABLED
     LOGGING_ENABLED = False
 
 
-def log_info(message, *args):
+def log_info(message: str, *args: Any) -> None:
     """Log an info message, if logging is enabled."""
     if LOGGING_ENABLED:
         log.info(message, *args, stacklevel=2)
 
 
-def log_warning(message, *args):
+def log_warning(message: str, *args: Any) -> None:
     """Log a warning message, if logging is enabled."""
     if LOGGING_ENABLED:
         log.warning(message, *args, stacklevel=2)
 
 
-def log_error(message, *args):
+def log_error(message: str, *args: Any) -> None:
     """Log an error message, if logging is enabled."""
     if LOGGING_ENABLED:
         log.error(message, *args, stacklevel=2)
 
 
-def log_debug(message, *args):
+def log_debug(message: str, *args: Any) -> None:
     """Log a debug message, if logging is enabled."""
     if LOGGING_ENABLED:
         log.debug(message, *args, stacklevel=2)
@@ -95,7 +97,7 @@ def setup_logger(array_name: str, output_dir: str = "logs") -> None:
         log.info(f"Logger initialized for array: {array_name}, writing to {log_path}")
 
 
-def load_logging_config():
+def load_logging_config() -> dict:
     """Load the global logging configuration from config/logging.yaml.
 
     Returns
@@ -116,7 +118,7 @@ def load_logging_config():
     config_path = Path(__file__).parent / "config" / "logging.yaml"
 
     if not config_path.exists():
-        raise FileNotFoundError(f"Logging config not found: {config_path}")
+        raise FileNotFoundError(f"Logging config not found: {config_path}")  # noqa: TRY003
 
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)

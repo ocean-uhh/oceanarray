@@ -31,7 +31,6 @@ def save_dataset(ds: xr.Dataset, output_file: str = "../test.nc") -> bool:
     valid_types = (str, Number, np.ndarray, np.number, list, tuple)
     try:
         ds.to_netcdf(output_file, format="NETCDF4_CLASSIC")
-        return True
     except TypeError as e:
         print(e.__class__.__name__, e)
         for varname, variable in ds.variables.items():
@@ -43,8 +42,7 @@ def save_dataset(ds: xr.Dataset, output_file: str = "../test.nc") -> bool:
                     variable.attrs[k] = str(v)
         try:
             ds.to_netcdf(output_file, format="NETCDF4_CLASSIC")
-            return True
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001  — log failure details and report False; write errors vary
             print("Failed to save dataset:", e)
             datetime_vars = [
                 var for var in ds.variables if ds[var].dtype == "datetime64[ns]"
@@ -55,6 +53,7 @@ def save_dataset(ds: xr.Dataset, output_file: str = "../test.nc") -> bool:
             ]
             print("Attributes with dtype float64:", float_attrs)
             return False
+    return True
 
 
 def save_OS_instrument(ds: xr.Dataset, data_dir: Path):
@@ -74,7 +73,7 @@ def save_OS_instrument(ds: xr.Dataset, data_dir: Path):
 
     """
     if "id" not in ds.attrs:
-        raise ValueError(
+        raise ValueError(  # noqa: TRY003
             "Global attribute 'id' not found. Cannot determine output filename."
         )
 

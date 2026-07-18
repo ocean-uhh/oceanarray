@@ -96,7 +96,7 @@ def plot_climatology(
     style_path = Path(__file__).parent.parent / "oceanarray" / "oceanarray.mplstyle"
     plt.style.use(str(style_path))
     if var not in clim_ds:
-        raise ValueError(f"{var} not found in climatology dataset.")
+        raise ValueError(f"{var} not found in climatology dataset.")  # noqa: TRY003
 
     if fig is None or ax is None:
         fig, ax = plt.subplots(figsize=(10, 6))
@@ -260,7 +260,10 @@ def plot_timeseries_by_depth(ds, var="TEMP"):
     plt.show()
 
 
-def plot_trim_windows(ds, dstart, dend, NN=np.timedelta64(12, "h")):
+_DEFAULT_NN = np.timedelta64(12, "h")
+
+
+def plot_trim_windows(ds, dstart, dend, NN=_DEFAULT_NN):
     """Plot start and end windows for variables T, C, P in the dataset,
     highlighting data before/after dstart/dend.
 
@@ -502,7 +505,7 @@ def show_variables(data):
         print("information is based on xarray Dataset")
         variables = data.variables
     else:
-        raise TypeError("Input data must be a file path (str) or an xarray Dataset")
+        raise TypeError("Input data must be a file path (str) or an xarray Dataset")  # noqa: TRY003
 
     info = {}
     for i, key in enumerate(variables):
@@ -563,13 +566,19 @@ def show_attributes(data):
         print("information is based on file: {}".format(data))
         rootgrp = Dataset(data, "r", format="NETCDF4")
         attributes = rootgrp.ncattrs()
-        get_attr = lambda key: getattr(rootgrp, key)
+
+        def get_attr(key):
+            return getattr(rootgrp, key)
+
     elif isinstance(data, xr.Dataset):
         print("information is based on xarray Dataset")
         attributes = data.attrs.keys()
-        get_attr = lambda key: data.attrs[key]
+
+        def get_attr(key):  # type: ignore[no-redef]
+            return data.attrs[key]
+
     else:
-        raise TypeError("Input data must be a file path (str) or an xarray Dataset")
+        raise TypeError("Input data must be a file path (str) or an xarray Dataset")  # noqa: TRY003
 
     info = {}
     for i, key in enumerate(attributes):
@@ -659,7 +668,7 @@ def plot_mooring_timeseries(
     use_files = sorted(mooring_proc.rglob("*_stage2.nc"))
 
     if not use_files:
-        raise FileNotFoundError(f"No _stage2.nc files found under {mooring_proc}")
+        raise FileNotFoundError(f"No _stage2.nc files found under {mooring_proc}")  # noqa: TRY003
 
     scatter_mode = var_color is not None
 
@@ -671,7 +680,7 @@ def plot_mooring_timeseries(
     for nc in use_files:
         try:
             ds = xr.open_dataset(nc, decode_timedelta=False)
-        except Exception:
+        except Exception:  # noqa: BLE001  — skip unreadable NC; one bad file must not abort plot
             continue
 
         has_y = var_y in ds.data_vars
@@ -698,7 +707,7 @@ def plot_mooring_timeseries(
             else:
                 step = 1
             ds_small = ds[keep].isel(time=slice(None, None, step)).load()
-        except Exception:
+        except Exception:  # noqa: BLE001  — skip instruments that fail to subsample
             ds.close()
             continue
 

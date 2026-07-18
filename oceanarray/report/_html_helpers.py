@@ -129,7 +129,7 @@ def _check_readable(file_path: Path, file_type: str) -> Tuple[bool, str]:
                     return True, "ok (no .hdr found; may fail)"
             return True, "ok"
 
-        elif file_type == "nortek-csv":
+        elif file_type == "nortek-csv-oa":
             with open(file_path, "r", errors="ignore") as f:
                 first = f.readline()
             if ";" in first:
@@ -187,7 +187,7 @@ _QC_MARKER: Dict[int, dict] = {
 }
 
 
-def _fig_to_base64(fig) -> str:
+def _fig_to_base64(fig: Any) -> str:
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=110, bbox_inches="tight")
     buf.seek(0)
@@ -249,7 +249,7 @@ def _read_nc_metadata(nc_path: Path) -> Dict[str, Any]:
                 scalar_vars.append(info)
             else:
                 info["dims"] = ", ".join(str(d) for d in v.dims)
-                info["n"] = v.shape[0] if v.shape else 0
+                info["n"] = int(np.prod(v.shape)) if v.shape else 0
                 arr = v.values
                 if arr.dtype.kind in ("f", "c"):
                     info["n_valid"] = int(np.sum(np.isfinite(arr)))
