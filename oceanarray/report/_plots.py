@@ -1534,3 +1534,41 @@ def _make_isopycnal_fig_b64(
         return b64
     except Exception:
         return None
+
+
+# ---------------------------------------------------------------------------
+# Aquadopp trajectory and speed distribution (Tier-3 wrappers)
+# Delegates to oceanarray.plotters._current (Tier-2 domain wrappers).
+# ---------------------------------------------------------------------------
+
+
+def _make_temperature_trajectory(nc_path: str) -> Optional[str]:
+    """Lagrangian trajectory coloured by temperature, for Aquadopp instrument page."""
+    try:
+        import xarray as xr
+        import matplotlib.pyplot as plt
+        from oceanarray.plotters._current import plot_temperature_trajectory
+
+        with xr.open_dataset(nc_path) as ds:
+            fig = plot_temperature_trajectory(ds)
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception:  # noqa: BLE001  — plot is optional; bad data or missing vars → skip
+        return None
+
+
+def _make_speed_boxplot(nc_path: str) -> Optional[str]:
+    """Speed boxplot with percentile statistics, for Aquadopp instrument page."""
+    try:
+        import xarray as xr
+        import matplotlib.pyplot as plt
+        from oceanarray.plotters._current import plot_speed_boxplot
+
+        with xr.open_dataset(nc_path) as ds:
+            fig = plot_speed_boxplot(ds)
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception:  # noqa: BLE001  — plot is optional; bad data or missing vars → skip
+        return None

@@ -19,6 +19,8 @@ from ._plots import (
     _make_ts_diagram,
     _make_instrument_rose_b64,
     _make_data_histogram,
+    _make_temperature_trajectory,
+    _make_speed_boxplot,
 )
 
 
@@ -123,6 +125,8 @@ _INSTRUMENT_HTML_TEMPLATE = """\
   <a href="#start">Start/end windows</a>
   {% if fig_tsd_b64 %}<a href="#ts">T-S diagram</a>{% endif %}
   {% if fig_rose_b64 %}<a href="#rose">Current roses</a>{% endif %}
+  {% if fig_trajectory_b64 %}<a href="#trajectory">Trajectory</a>{% endif %}
+  {% if fig_speed_boxplot_b64 %}<a href="#speed">Speed distribution</a>{% endif %}
   <a href="#dist">Distributions</a>
   {% if qc_summary %}<a href="#qc">QC flags</a>{% endif %}
   <a href="#vars">Variables</a>
@@ -179,6 +183,23 @@ _INSTRUMENT_HTML_TEMPLATE = """\
   Direction toward which the current flows; 0°&nbsp;=&nbsp;N, clockwise.
 </p>
 <img class="fig" src="data:image/png;base64,{{ fig_rose_b64 }}">
+{% endif %}
+
+<!-- ══ Lagrangian trajectory ══ -->
+{% if fig_trajectory_b64 %}
+<h2 id="trajectory">Particle trajectory</h2>
+<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+  Pseudo-Lagrangian displacement obtained by integrating east/north velocity over time
+  (Euler forward; NaN velocities set to zero).  Coloured by temperature.
+  Origin (0,&nbsp;0) = deployment position; axes in metres.
+</p>
+<img class="fig" src="data:image/png;base64,{{ fig_trajectory_b64 }}" style="max-width:600px;">
+{% endif %}
+
+<!-- ══ Speed distribution ══ -->
+{% if fig_speed_boxplot_b64 %}
+<h2 id="speed">Current speed distribution</h2>
+<img class="fig" src="data:image/png;base64,{{ fig_speed_boxplot_b64 }}" style="max-width:300px;">
 {% endif %}
 
 <!-- ══ Data distributions ══ -->
@@ -404,6 +425,16 @@ def generate_instrument_pages(
             ),
             "fig_tsd_b64": _make_ts_diagram(best_nc) if best_nc else None,
             "fig_rose_b64": _make_instrument_rose_b64(best_nc) if best_nc else None,
+            "fig_trajectory_b64": (
+                _make_temperature_trajectory(best_nc)
+                if best_nc and instr_type == "aquadopp"
+                else None
+            ),
+            "fig_speed_boxplot_b64": (
+                _make_speed_boxplot(best_nc)
+                if best_nc and instr_type == "aquadopp"
+                else None
+            ),
             "fig_dt_b64": _make_data_histogram(best_nc) if best_nc else None,
             "qc_summary": _read_qc_summary(stage3_nc) if stage3_nc else [],
             "nc_meta": _read_nc_metadata(best_nc) if best_nc else {},
