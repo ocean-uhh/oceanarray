@@ -223,6 +223,16 @@ def _parse_history(history_str: str) -> List[Dict[str, str]]:
     return entries
 
 
+def _fmt_minmax(v: float) -> str:
+    """Format a min/max value for display in the variables table."""
+    if v == 0.0:
+        return "0"
+    av = abs(v)
+    if av < 0.001 or av >= 100000:
+        return f"{v:.3g}"
+    return f"{v:.4g}"
+
+
 def _read_nc_metadata(nc_path: Path) -> Dict[str, Any]:
     """Return variable lists, scalar metadata, and global attrs from a NC file."""
     try:
@@ -231,6 +241,7 @@ def _read_nc_metadata(nc_path: Path) -> Dict[str, Any]:
         ds = xr.open_dataset(nc_path, decode_timedelta=False)
         qc_vars = {v for v in ds.data_vars if v.endswith("_qc")}
         time_vars, scalar_vars = [], []
+        analog_vars: List[str] = []
 
         for vname in sorted(ds.data_vars):
             v = ds[vname]
@@ -239,6 +250,8 @@ def _read_nc_metadata(nc_path: Path) -> Dict[str, Any]:
                 "units": v.attrs.get("units", ""),
                 "long_name": v.attrs.get("long_name", ""),
                 "standard_name": v.attrs.get("standard_name", ""),
+                "v_min": None,
+                "v_max": None,
             }
             if v.dims == ():
                 try:
@@ -252,7 +265,13 @@ def _read_nc_metadata(nc_path: Path) -> Dict[str, Any]:
                 info["n"] = int(np.prod(v.shape)) if v.shape else 0
                 arr = v.values
                 if arr.dtype.kind in ("f", "c"):
-                    info["n_valid"] = int(np.sum(np.isfinite(arr)))
+                    finite = arr[np.isfinite(arr)]
+                    info["n_valid"] = int(finite.size)
+                    if finite.size > 0:
+                        info["v_min"] = _fmt_minmax(float(np.min(finite)))
+                        info["v_max"] = _fmt_minmax(float(np.max(finite)))
+                        if "analog" in vname.lower() and not np.all(finite == 0.0):
+                            analog_vars.append(vname)
                 else:
                     info["n_valid"] = int(arr.size)
                 info["has_qc"] = f"{vname}_qc" in qc_vars
@@ -265,6 +284,7 @@ def _read_nc_metadata(nc_path: Path) -> Dict[str, Any]:
             "time_vars": time_vars,
             "scalar_vars": scalar_vars,
             "global_attrs": global_attrs,
+            "analog_vars": analog_vars,
         }
     except Exception as exc:
         return {
@@ -272,6 +292,7 @@ def _read_nc_metadata(nc_path: Path) -> Dict[str, Any]:
             "time_vars": [],
             "scalar_vars": [],
             "global_attrs": {},
+            "analog_vars": [],
         }
 
 

@@ -212,11 +212,13 @@ def plot_multi_aquadopp_trajectories(
     cmap = plt.get_cmap("coolwarm")
     if has_temp and all_temps:
         flat = np.concatenate(all_temps)
-        norm: plt.Normalize = plt.Normalize(vmin=float(np.nanmin(flat)), vmax=float(np.nanmax(flat)))
+        norm: plt.Normalize = plt.Normalize(
+            vmin=float(np.nanmin(flat)), vmax=float(np.nanmax(flat))
+        )
     else:
         norm = plt.Normalize(vmin=0, vmax=1)
 
-    fig, ax = plt.subplots(figsize=(10, 8))
+    fig, ax = plt.subplots(figsize=(6, 5))
 
     for instr_i, x, y, temp in trajs:
         serial = str(serials[instr_i])
@@ -225,17 +227,29 @@ def plot_multi_aquadopp_trajectories(
         if has_temp and temp is not None:
             points = np.array([x, y]).T.reshape(-1, 1, 2)
             segments = np.concatenate([points[:-1], points[1:]], axis=1)
-            lc = LineCollection(segments, cmap=cmap, norm=norm, linewidth=1.5, alpha=0.85)
+            lc = LineCollection(
+                segments, cmap=cmap, norm=norm, linewidth=1.5, alpha=0.85
+            )
             lc.set_array(temp)
             ax.add_collection(lc)
-            end_color = cmap(norm(float(np.nanmedian(temp[-max(1, len(temp) // 20):]))))
+            end_color = cmap(
+                norm(float(np.nanmedian(temp[-max(1, len(temp) // 20) :])))
+            )
         else:
             ax.plot(x, y, linewidth=1.5, alpha=0.85)
             end_color = "steelblue"
 
         # End-point marker and label
-        ax.plot(x[-1], y[-1], "s", color=end_color, markersize=6, zorder=5,
-                markeredgecolor="white", markeredgewidth=0.5)
+        ax.plot(
+            x[-1],
+            y[-1],
+            "s",
+            color=end_color,
+            markersize=6,
+            zorder=5,
+            markeredgecolor="white",
+            markeredgewidth=0.5,
+        )
         ax.annotate(
             f"s/n {serial}  {hab:.0f} m hab",
             xy=(x[-1], y[-1]),
@@ -324,7 +338,7 @@ def plot_aquadopp_speed_profile(
         elif u_var in ds.data_vars and v_var in ds.data_vars:
             u = ds[u_var].values[i]
             v = ds[v_var].values[i]
-            spd = np.sqrt(u ** 2 + v ** 2)
+            spd = np.sqrt(u**2 + v**2)
         else:
             continue
         spd_clean = spd[np.isfinite(spd)]
@@ -337,7 +351,7 @@ def plot_aquadopp_speed_profile(
     hab_range = max(hab_vals) - min(hab_vals) if len(hab_vals) > 1 else 10.0
     box_width = max(2.0, hab_range * 0.06)
 
-    fig, ax = plt.subplots(figsize=(8, max(4, len(records) * 0.8 + 1)))
+    fig, ax = plt.subplots(figsize=(5, max(3, len(records) * 0.7 + 1)))
 
     for hab, serial, spd_clean in records:
         bp = ax.boxplot(
@@ -366,7 +380,9 @@ def plot_aquadopp_speed_profile(
             color="#333",
         )
 
-    units = ds[speed_var].attrs.get("units", "m/s") if speed_var in ds.data_vars else "m/s"
+    units = (
+        ds[speed_var].attrs.get("units", "m/s") if speed_var in ds.data_vars else "m/s"
+    )
     ax.set_xlabel(f"Current speed ({units})")
     ax.set_ylabel("Height above bottom (m)")
     ax.set_xlim(left=0)

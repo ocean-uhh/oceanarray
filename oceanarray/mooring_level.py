@@ -51,6 +51,8 @@ STACK_VARS = [
     "heading",
     "pitch",
     "roll",
+    "analog_input_1",
+    "analog_input_2",
 ]
 
 # Variables passed through without QC masking at the stack step.
@@ -116,6 +118,11 @@ def _parse_latlon_with_source(cfg: dict) -> tuple[float, float, str]:
 
     source_key is the YAML key pair used, e.g. 'seabed_latitude/seabed_longitude',
     or 'unknown (defaulting to 0, 0)' if none found.
+
+    Zero values (lat == 0 and lon == 0) are treated as unfilled placeholders and
+    skipped so that a later key with a real location is used instead.  This handles
+    YAML templates where fields like ``seabed_latitude: 00 00.000 N`` are present
+    but not yet populated.
     """
     for lat_key, lon_key in [
         ("seabed_latitude", "seabed_longitude"),
@@ -126,11 +133,14 @@ def _parse_latlon_with_source(cfg: dict) -> tuple[float, float, str]:
         lat_s = cfg.get(lat_key)
         lon_s = cfg.get(lon_key)
         if lat_s is not None and lon_s is not None:
-            return (
-                _dms_to_deg(str(lat_s)),
-                _dms_to_deg(str(lon_s)),
-                f"{lat_key}/{lon_key}",
-            )
+            try:
+                lat_v = _dms_to_deg(str(lat_s))
+                lon_v = _dms_to_deg(str(lon_s))
+            except Exception:  # noqa: BLE001  — _dms_to_deg parse failure; try next key
+                continue
+            if lat_v == 0.0 and lon_v == 0.0:
+                continue  # treat (0, 0) as an unfilled placeholder
+            return lat_v, lon_v, f"{lat_key}/{lon_key}"
     return 0.0, 0.0, "unknown (defaulting to 0, 0)"
 
 

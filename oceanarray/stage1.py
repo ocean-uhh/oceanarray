@@ -44,17 +44,30 @@ def _dms_str_to_decimal(s: str) -> Optional[float]:
 def _parse_nortek_coord_system(hdr_path: Path) -> str:
     """Return the coordinate system string from a Nortek .hdr file (BEAM/XYZ/ENU).
 
-    Reads the instrument settings block (above "Data file format") looking for a
-    line matching ``Coordinate system   <value>``.  Returns "ENU" if not found.
+    Handles two header formats:
+
+    * Old text format — looks for ``Coordinate system   BEAM`` (2+ spaces separator)
+      in the instrument-settings block above the "Data file format" line.
+    * New CSV format — looks for ``CY="BEAM"`` in a ``GETAVG,`` line anywhere in
+      the file (e.g. ``GETAVG,...,CY="BEAM",...``).
+
+    Returns "ENU" if neither pattern is found (safe default: no rename / no
+    BEAM→ENU transform in stage3).
     """
     try:
         with open(hdr_path, encoding="utf-8", errors="replace") as f:
             for line in f:
+                # Old text-format header block (ends at "Data file format")
                 if "Data file format" in line:
                     break
                 m = re.match(r"^\s*Coordinate system\s{2,}(\S+)", line, re.IGNORECASE)
                 if m:
                     return m.group(1).strip().upper()
+                # New CSV-format: GETAVG,...,CY="BEAM",...
+                if line.startswith("GETAVG,"):
+                    cy = re.search(r'\bCY="([^"]+)"', line)
+                    if cy:
+                        return cy.group(1).strip().upper()
     except Exception:  # noqa: BLE001  — intentional broad catch at I/O boundary
         pass
     return "ENU"
@@ -463,8 +476,8 @@ class MooringProcessor:
             "Speed": "speed",
             "Error code": "error_code",
             "Status code": "status_code",
-            "Analog input 1": "analog_input_1",
-            "Analog input 2": "analog_input_2",
+            # "Analog input 1" and "Analog input 2" come through as analog_input_1/2
+            # from seasenselib already — no rename needed here.
             # seasenselib maps this to speed_of_sound but also keeps the original
             "Soundspeed used": "speed_of_sound",
         }
@@ -658,6 +671,99 @@ class MooringProcessor:
                     "coverage_content_type": "auxiliaryInformation",
                 },
             )
+
+        return dataset
+
+    def _add_sbe_hex_sensor_vars(
+        self, dataset: xr.Dataset, file_path: Path, instrument_config: Dict[str, Any]
+    ) -> xr.Dataset:
+        """Parse calibration coefficients from an SBE hex header and add SENSOR_* vars.
+
+        Uses seasenselib's ``parse_hex_header_sensors`` which extracts calibration XML
+        embedded in the hex file header.  Creates the same SENSOR_* scalar variables as
+        ``_add_sbe_ascii_sensor_vars`` so the report calibration table is populated.
+        """
+        import numpy as np
+        import xarray as xr
+
+        try:
+            from seasenselib.readers.sbe_hex_reader import parse_hex_header_sensors
+
+            sensor_info = parse_hex_header_sensors(file_path)
+        except Exception:  # noqa: BLE001  — optional; don't break stage1 if unavailable
+            return dataset
+
+        cal_coeffs = sensor_info.get("calibration_coefficients", {})
+        if not cal_coeffs:
+            return dataset
+
+        instr_serial = re.sub(r"[^\w]", "", str(instrument_config.get("serial", "")))
+
+        def _coeff_str(coeffs: Dict[str, Any]) -> str:
+            return ", ".join(
+                f"{k}={v}" for k, v in coeffs.items()
+                if k not in ("serialnum", "caldate")
+            )
+
+        def _make_sensor_var(attrs: Dict[str, Any]) -> "xr.Variable":
+            return xr.Variable((), np.array(b"", dtype="|S1"), attrs=attrs)
+
+        def _iso_date(raw: str) -> str:
+            import datetime
+            for fmt in ("%d-%b-%y", "%d-%b-%Y"):
+                try:
+                    return datetime.datetime.strptime(raw, fmt).strftime("%Y-%m-%d")
+                except ValueError:
+                    pass
+            return raw
+
+        # Temperature
+        if "temperature" in cal_coeffs:
+            tc = cal_coeffs["temperature"]["coefficients"]
+            sn = tc.get("serialnum", instr_serial)
+            cal_date = _iso_date(tc.get("caldate", "—"))
+            dataset[f"SENSOR_TEMP_{instr_serial}"] = _make_sensor_var({
+                "long_name": "Sea-Bird SBE temperature sensor metadata",
+                "sensor_type": "TEMPERATURE",
+                "sensor_serial_number": sn,
+                "sensor_model": "Sea-Bird SBE temperature sensor",
+                "sensor_calibration_date": cal_date,
+                "TEMPERATURE_calibration_coefficients": _coeff_str(tc),
+                "cf_role": "sensor_id",
+                "coverage_content_type": "auxiliaryInformation",
+            })
+
+        # Conductivity
+        if "conductivity" in cal_coeffs:
+            cc = cal_coeffs["conductivity"]["coefficients"]
+            sn = cc.get("serialnum", instr_serial)
+            cal_date = _iso_date(cc.get("caldate", "—"))
+            dataset[f"SENSOR_CNDC_{instr_serial}"] = _make_sensor_var({
+                "long_name": "Sea-Bird SBE conductivity sensor metadata",
+                "sensor_type": "CONDUCTIVITY",
+                "sensor_serial_number": sn,
+                "sensor_model": "Sea-Bird SBE conductivity sensor",
+                "sensor_calibration_date": cal_date,
+                "CONDUCTIVITY_calibration_coefficients": _coeff_str(cc),
+                "cf_role": "sensor_id",
+                "coverage_content_type": "auxiliaryInformation",
+            })
+
+        # Pressure
+        if "pressure" in cal_coeffs:
+            pc = cal_coeffs["pressure"]["coefficients"]
+            sn = pc.get("serialnum", instr_serial)
+            cal_date = _iso_date(pc.get("caldate", "—"))
+            dataset[f"SENSOR_PRES_{instr_serial}"] = _make_sensor_var({
+                "long_name": "Sea-Bird pressure sensor metadata",
+                "sensor_type": "PRESSURE",
+                "sensor_serial_number": sn,
+                "sensor_model": "Sea-Bird pressure sensor",
+                "sensor_calibration_date": cal_date,
+                "PRESSURE_calibration_coefficients": _coeff_str(pc),
+                "cf_role": "sensor_id",
+                "coverage_content_type": "auxiliaryInformation",
+            })
 
         return dataset
 
@@ -1065,9 +1171,13 @@ class MooringProcessor:
 
             dataset.attrs["nortek_pointing_down"] = str(pointing_down)
 
-        # Inject calibration metadata for sbe-ascii (seasenselib discards the header)
+        # Inject calibration metadata from file headers (seasenselib discards these)
         if file_type == "sbe-ascii":
             dataset = self._add_sbe_ascii_sensor_vars(
+                dataset, input_file, instrument_config
+            )
+        elif file_type == "sbe-hex":
+            dataset = self._add_sbe_hex_sensor_vars(
                 dataset, input_file, instrument_config
             )
 
@@ -1098,6 +1208,26 @@ class MooringProcessor:
         # Add metadata
         dataset = self._add_global_attributes(dataset, yaml_data)
         dataset = self._add_instrument_metadata(dataset, instrument_config, yaml_data)
+
+        # Enrich analog channel attributes from YAML analog_input_N / analog_input_N_units keys.
+        # seasenselib outputs these as "analog_input_1" / "analog_input_2".
+        for _n in (1, 2):
+            _vname = f"analog_input_{_n}"
+            if _vname not in dataset.data_vars:
+                continue
+            _long = instrument_config.get(f"analog_input_{_n}")
+            _units = instrument_config.get(f"analog_input_{_n}_units")
+            _sn = instrument_config.get(f"analog_input_{_n}_serial_number")
+            if _long:
+                dataset[_vname].attrs["long_name"] = str(_long)
+            if _units:
+                dataset[_vname].attrs["units"] = str(_units)
+            if _sn:
+                dataset[_vname].attrs["sensor_serial_number"] = str(_sn)
+
+        # Remove redundant seasenselib attrs that duplicate our own provenance fields
+        for _redundant_attr in ("processor_level", "source_format_name"):
+            dataset.attrs.pop(_redundant_attr, None)
 
         # Write to NetCDF
         _status("file", str(relative_output))

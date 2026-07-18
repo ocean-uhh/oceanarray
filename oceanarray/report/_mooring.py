@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import socket
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -804,6 +805,7 @@ class MooringReport:
             "grid_exists": grid_exists,
             "any_clock_correction": any_clock,
             "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+            "proc_machine": socket.gethostname().split(".")[0],
             "yaml_path": str(yaml_path.relative_to(self.base_dir)),
             "diagram_b64": _load_pdf_b64(proc_dir / f"{mooring_name}_diagram.pdf"),
         }

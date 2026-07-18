@@ -1611,3 +1611,77 @@ def _make_aquadopp_speed_profile(ds: "xr.Dataset") -> Optional[str]:
         return b64
     except Exception:  # noqa: BLE001  — plot is optional; no aquadopps or missing vars → skip
         return None
+
+
+def _make_analog_timeseries(nc_path: "Path", analog_vars: "List[str]") -> Optional[str]:
+    """Full-record time series for analog channel variables, one panel per variable.
+
+    Only generates a plot when *analog_vars* is non-empty (caller should check
+    via nc_meta['analog_vars'] before calling).  Returns None on any error or if
+    the dataset lacks a time dimension.
+    """
+    if not analog_vars:
+        return None
+    try:
+        import matplotlib.pyplot as plt
+        import xarray as xr
+        from .. import parameters as P
+
+        plt.style.use(str(P.MPLSTYLE))
+        ds = xr.open_dataset(nc_path, decode_timedelta=False).load()
+
+        if "time" not in ds.dims:
+            ds.close()
+            return None
+
+        time = ds["time"].values
+        n_vars = len(analog_vars)
+        fig, axes = plt.subplots(
+            n_vars,
+            1,
+            figsize=(10, max(2.5, n_vars * 2.0)),
+            sharex=True,
+            squeeze=False,
+        )
+
+        colors = ["steelblue", "darkorange", "seagreen", "crimson"]
+        for row, vname in enumerate(analog_vars):
+            ax = axes[row][0]
+            raw = ds[vname].values
+            units = ds[vname].attrs.get("units", "")
+            long_name = ds[vname].attrs.get("long_name", vname)
+            ylabel = f"{long_name} ({units})" if units else long_name
+
+            # Stack NC: shape (N_LEVELS, time) — plot each level with finite data
+            if raw.ndim == 2:
+                n_plotted = 0
+                for lvl_i in range(raw.shape[0]):
+                    row_data = raw[lvl_i]
+                    if np.any(np.isfinite(row_data)):
+                        label = None
+                        if "serial" in ds.coords:
+                            label = str(ds["serial"].values[lvl_i])
+                        ax.plot(
+                            time, row_data,
+                            linewidth=0.8,
+                            color=colors[n_plotted % len(colors)],
+                            label=label,
+                        )
+                        n_plotted += 1
+                if n_plotted > 1 and "serial" in ds.coords:
+                    ax.legend(fontsize=6, loc="upper right")
+            else:
+                ax.plot(time, raw, linewidth=0.8, color="steelblue")
+
+            ax.set_ylabel(ylabel, fontsize=7)
+            ax.tick_params(axis="both", labelsize=7)
+            ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.5)
+
+        fig.autofmt_xdate(rotation=30, ha="right")
+        fig.tight_layout()
+        ds.close()
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception:  # noqa: BLE001
+        return None

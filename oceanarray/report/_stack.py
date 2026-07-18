@@ -13,6 +13,7 @@ from ._plots import (
     _make_stack_ts_diagram,
     _make_multi_aquadopp_trajectories,
     _make_aquadopp_speed_profile,
+    _make_analog_timeseries,
 )
 from .. import parameters as P
 
@@ -51,7 +52,8 @@ _STACK_HTML_TEMPLATE = """\
   .var-table th, .instr-table th { background:var(--seafoam); text-align:left;
        padding:0.4rem 0.6rem; border-bottom:2px solid #cde; }
   .var-table td, .instr-table td { padding:0.3rem 0.6rem; border-bottom:1px solid #eef; vertical-align:top; }
-  .var-table tr:hover td, .instr-table tr:hover td { background:#f8fcff; }
+  .var-table tr:nth-child(even) td, .instr-table tr:nth-child(even) td { background:#f4f9fc; }
+  .var-table tr:hover td, .instr-table tr:hover td { background:#e8f4f8; }
   .report-footer { margin-top:3rem; font-size:0.76rem; color:var(--muted); border-top:1px solid #eee; padding-top:0.8rem; }
   .jump-nav { background:var(--seafoam); padding:0.55rem 1rem; border-radius:6px;
               margin-bottom:1.5rem; font-size:0.8rem; line-height:2.2; }
@@ -93,6 +95,7 @@ _STACK_HTML_TEMPLATE = """\
   {% if fig_aquadopp_tilt_b64 %}<a href="#tilt">Tilt</a>{% endif %}
   {% if fig_trajectories_b64 %}<a href="#trajectories">Trajectories</a>{% endif %}
   {% if fig_speed_profile_b64 %}<a href="#speed-profile">Speed profile</a>{% endif %}
+  {% if fig_analog_b64 %}<a href="#analog">Analog channels</a>{% endif %}
   {% if fig_ts_stack_b64 %}<a href="#ts">T-S diagram</a>{% endif %}
   {% if fig_rose_grid_b64 %}<a href="#roses">Current roses</a>{% endif %}
   {% if fig_spacing_b64 %}<a href="#spacing">Spacing</a>{% endif %}
@@ -132,40 +135,40 @@ _STACK_HTML_TEMPLATE = """\
 <!-- Pressure time series -->
 {% if fig_pressure_b64 %}
 <h2 id="pressure">Pressure records (all instruments)</h2>
-<p class="note">Values with QC flag &ge; 3 (suspect/bad) masked to NaN before plotting. Stack file stores unmasked data alongside QC flags.</p>
+<p class="note">Values with QC flag &ge; 3 (suspect/bad) masked to NaN before plotting. All data values are in <code>{{ nc_file }}</code> without masking.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_pressure_b64 }}" alt="Pressure time series">
 {% endif %}
 
 <!-- Temperature time series -->
 {% if fig_temp_b64 %}
 <h2 id="temp">Temperature (all instruments)</h2>
-<p class="note">Values with QC flag &ge; 3 (suspect/bad) masked to NaN before plotting. Stack file stores unmasked data alongside QC flags.</p>
+<p class="note">Values with QC flag &ge; 3 (suspect/bad) masked to NaN before plotting. All data values are in <code>{{ nc_file }}</code> without masking.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_temp_b64 }}" alt="Temperature time series">
 {% endif %}
 
 <!-- Salinity time series -->
 {% if fig_sal_b64 %}
 <h2 id="sal">Salinity (all instruments)</h2>
-<p class="note">Values with QC flag &ge; 3 (suspect/bad) masked to NaN before plotting. Stack file stores unmasked data alongside QC flags.</p>
+<p class="note">Values with QC flag &ge; 3 (suspect/bad) masked to NaN before plotting. All data values are in <code>{{ nc_file }}</code> without masking.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_sal_b64 }}" alt="Salinity time series">
 {% endif %}
 
 <!-- Velocity time series -->
 {% if fig_east_vel_b64 %}
 <h2 id="vel">East velocity (U)</h2>
-<p class="note">ENU frame. Values with <code>velocity_flag</code> &ge; 3 masked to NaN before plotting. Stack file stores unmasked velocity alongside QC flags. Instruments without velocity data omitted.</p>
+<p class="note">ENU frame. Values with <code>velocity_flag</code> &ge; 3 masked to NaN before plotting. All data values are in <code>{{ nc_file }}</code> without masking. Instruments without velocity data omitted.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_east_vel_b64 }}" alt="East velocity time series">
 {% endif %}
 
 {% if fig_north_vel_b64 %}
 <h2>North velocity (V)</h2>
-<p class="note">ENU frame. Values with <code>velocity_flag</code> &ge; 3 masked to NaN before plotting.</p>
+<p class="note">ENU frame. Values with <code>velocity_flag</code> &ge; 3 masked to NaN before plotting. All data values are in <code>{{ nc_file }}</code> without masking.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_north_vel_b64 }}" alt="North velocity time series">
 {% endif %}
 
 {% if fig_up_vel_b64 %}
 <h2>Vertical velocity (W)</h2>
-<p class="note">ENU frame. Values with <code>velocity_flag</code> &ge; 3 masked to NaN before plotting.</p>
+<p class="note">ENU frame. Values with <code>velocity_flag</code> &ge; 3 masked to NaN before plotting. All data values are in <code>{{ nc_file }}</code> without masking.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_up_vel_b64 }}" alt="Vertical velocity time series">
 {% endif %}
 
@@ -190,17 +193,27 @@ _STACK_HTML_TEMPLATE = """\
   Colour shows temperature along each path (shared scale). End points labelled with serial number
   and height above bottom.
 </p>
-<img class="fig" src="data:image/png;base64,{{ fig_trajectories_b64 }}" alt="Aquadopp trajectories">
+<img class="fig" style="max-width:50%" src="data:image/png;base64,{{ fig_trajectories_b64 }}" alt="Aquadopp trajectories">
 {% endif %}
 
 {% if fig_speed_profile_b64 %}
 <h2 id="speed-profile">Aquadopp speed profile</h2>
 <p class="note">
-  Horizontal boxplot per Aquadopp, positioned at its height above bottom.
+  Horizontal boxplot per Aquadopp, positioned at its nominal height above bottom
+  (per-instrument design value; does not account for mooring knockdown).
   Box = interquartile range; line = median; whiskers = 1.5&times;IQR; dots = outliers.
   Computed from east/north velocity components if <code>current_speed</code> is not stored.
 </p>
-<img class="fig" src="data:image/png;base64,{{ fig_speed_profile_b64 }}" alt="Aquadopp speed profile">
+<img class="fig" style="max-width:50%" src="data:image/png;base64,{{ fig_speed_profile_b64 }}" alt="Aquadopp speed profile">
+{% endif %}
+
+{% if fig_analog_b64 %}
+<h2 id="analog">Analog channels</h2>
+<p class="note">
+  Full-record time series of analog channel variables containing non-zero, non-NaN data.
+  One panel per channel.
+</p>
+<img class="fig" src="data:image/png;base64,{{ fig_analog_b64 }}" alt="Analog channels">
 {% endif %}
 
 {% if fig_ts_stack_b64 %}
@@ -212,8 +225,14 @@ _STACK_HTML_TEMPLATE = """\
 {% if fig_rose_grid_b64 %}
 <h2 id="roses">Current rose diagrams</h2>
 <p class="note">Direction the current flows toward (oceanographic convention, 0&deg;=N). Speed coloured light&rarr;dark blue (slow&rarr;fast). QC-flagged samples excluded. Title shows serial number and height above bottom (m).</p>
+{% if rose_declination_warn %}
+<p style="font-size:0.82rem;background:#fff8e1;border-left:4px solid #f9a825;padding:0.5rem 0.8rem;margin-bottom:0.6rem;">
+  ⚠ Magnetic declination could not be applied to one or more Aquadopps — latitude/longitude are missing or all-zero in the mooring YAML (check <code>seabed_latitude</code>, <code>deployment_latitude</code>, or <code>latitude</code>/<code>longitude</code>).
+  Affected ENU velocities use 0° declination (magnetic north, not true north).
+</p>
+{% endif %}
 {% if rose_declination_note %}<p class="note">{{ rose_declination_note }}</p>{% endif %}
-<img class="fig" src="data:image/png;base64,{{ fig_rose_grid_b64 }}" alt="Current rose grid">
+<img class="fig" style="max-width:{{ rose_img_width }}%" src="data:image/png;base64,{{ fig_rose_grid_b64 }}" alt="Current rose grid">
 {% endif %}
 
 {% if fig_spacing_b64 %}
@@ -229,9 +248,9 @@ _STACK_HTML_TEMPLATE = """\
 {% else %}
 
 <h3 style="font-size:0.88rem;color:var(--ocean);margin:1rem 0 0.4rem;">Variables</h3>
-<table>
+<table class="var-table">
   <thead>
-    <tr><th>Variable</th><th>Dims</th><th class="num">N</th><th class="num">Valid</th><th>Units</th><th>Long name</th><th>Standard name</th><th>QC&nbsp;flag</th></tr>
+    <tr><th>Variable</th><th>Dims</th><th class="num">N</th><th class="num">Valid</th><th class="num">Min / Max</th><th>Units</th><th>Long name</th><th>Standard name</th><th>QC&nbsp;flag</th></tr>
   </thead>
   <tbody>
     {% for v in nc_meta.time_vars %}
@@ -241,6 +260,7 @@ _STACK_HTML_TEMPLATE = """\
       <td class="mono" style="font-size:0.75rem">{{ v.dims }}</td>
       <td class="num">{{ "{:,}".format(v.n) }}</td>
       <td class="num" {% if v.n_valid is defined and v.n_valid < v.n %}style="color:#c0392b;font-weight:600"{% endif %}>{{ "{:,}".format(v.n_valid) if v.n_valid is defined else "&mdash;" }}</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">{% if v.v_min is not none %}{{ v.v_min }} / {{ v.v_max }}{% else %}&mdash;{% endif %}</td>
       <td>{{ v.units }}</td>
       <td>{{ v.long_name }}</td>
       <td style="font-size:0.78rem;color:var(--muted)">{{ v.standard_name }}</td>
@@ -253,7 +273,7 @@ _STACK_HTML_TEMPLATE = """\
 
 {% if nc_meta.scalar_vars %}
 <h3 style="font-size:0.88rem;color:var(--ocean);margin:1.4rem 0 0.4rem;">Scalar metadata variables</h3>
-<table>
+<table class="var-table">
   <thead>
     <tr><th>Variable</th><th>Value</th><th>Units</th><th>Long name</th></tr>
   </thead>
@@ -272,7 +292,7 @@ _STACK_HTML_TEMPLATE = """\
 
 {% if nc_meta.global_attrs %}
 <h3 style="font-size:0.88rem;color:var(--ocean);margin:1.4rem 0 0.4rem;">Global attributes</h3>
-<table>
+<table class="var-table">
   <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
   <tbody>
     {% for k, v in nc_meta.global_attrs.items() %}
@@ -288,7 +308,7 @@ _STACK_HTML_TEMPLATE = """\
 {% endif %}
 
 <div class="report-footer">
-  Generated by <strong>oceanarray</strong> on {{ generated }}
+  Generated by <strong>oceanarray</strong> on {{ generated }}{% if proc_machine %} &bull; {{ proc_machine }}{% endif %}
 </div>
 <script>
   document.querySelectorAll('h2').forEach(h => {
@@ -336,7 +356,7 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
         )
 
         aq_indices = [
-            i for i, t in enumerate(instr_types) if str(t).lower() == "aquadopp"
+            i for i, t in enumerate(instr_types) if "nortek" in str(t).lower()
         ]
         if not aq_indices:
             return None
@@ -612,17 +632,41 @@ def generate_stack_page(
         )
 
         fig_rose_grid_b64 = _make_rose_grid_b64(ds, _serial_list)
+        # Width cap: 33% for 1 panel, 50% for 2, 66% for 3, 83% for 4, 100% for 5+
+        _n_rose = 0
+        if "east_velocity" in ds.data_vars:
+            _ev = ds["east_velocity"].values
+            _n_rose = sum(np.any(np.isfinite(_ev[i])) for i in range(_ev.shape[0]))
+        _rose_w_map = {1: "33", 2: "50", 3: "66", 4: "83"}
+        rose_img_width = _rose_w_map.get(_n_rose, "100")
+
         _decl_vals = []
+        _decl_missing = False
         if "magnetic_declination" in ds.data_vars:
             _dv = ds["magnetic_declination"].values
             _decl_vals = sorted(
                 {round(float(v), 2) for v in _dv if np.isfinite(float(v))}
             )
+            if "instrument_type" in ds:
+                # instrument_type is a coord (N_LEVELS); YAML key is "nortek-aqd"
+                _aqd_mask = np.array(
+                    ["nortek" in str(t).lower() for t in ds["instrument_type"].values]
+                )
+                _decl_missing = bool(
+                    _aqd_mask.any() and np.any(~np.isfinite(_dv[_aqd_mask]))
+                )
+            # no else — if instrument_type absent, don't warn (can't identify Aquadopps)
+        elif "instrument_type" in ds:
+            _aqd_mask = np.array(
+                ["nortek" in str(t).lower() for t in ds["instrument_type"].values]
+            )
+            _decl_missing = bool(_aqd_mask.any())
         rose_declination_note = (
             f"Magnetic declination applied: {', '.join(f'{v:+.2f}°' for v in _decl_vals)}"
             if _decl_vals
             else None
         )
+        rose_declination_warn = _decl_missing
 
         fig_spacing_b64: Optional[str] = None
         if "pressure" in ds.data_vars and n_instr > 1:
@@ -658,6 +702,10 @@ def generate_stack_page(
         ds.close()
 
         nc_meta = _read_nc_metadata(stack_path)
+        analog_vars = nc_meta.get("analog_vars", [])
+        fig_analog_b64 = (
+            _make_analog_timeseries(stack_path, analog_vars) if analog_vars else None
+        )
         grid_exists = (stack_path.parent / f"{mooring_name}_grid.nc").exists()
 
         from jinja2 import Environment
@@ -683,13 +731,17 @@ def generate_stack_page(
             fig_north_vel_b64=fig_north_vel_b64,
             fig_up_vel_b64=fig_up_vel_b64,
             fig_rose_grid_b64=fig_rose_grid_b64,
+            rose_img_width=rose_img_width,
             rose_declination_note=rose_declination_note,
+            rose_declination_warn=rose_declination_warn,
             fig_spacing_b64=fig_spacing_b64,
             fig_ts_stack_b64=fig_ts_stack_b64,
             fig_aquadopp_tilt_b64=fig_aquadopp_tilt_b64,
             fig_trajectories_b64=fig_trajectories_b64,
             fig_speed_profile_b64=fig_speed_profile_b64,
+            fig_analog_b64=fig_analog_b64,
             generated=ctx["generated"],
+            proc_machine=ctx.get("proc_machine", ""),
         )
         out_path.write_text(html, encoding="utf-8")
         _status("file", str(out_path.relative_to(base_dir)))

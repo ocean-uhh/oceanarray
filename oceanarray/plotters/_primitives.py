@@ -69,10 +69,14 @@ def plot_trajectory(
         lc.set_array(color_data)
         ax.add_collection(lc)
         fig.colorbar(lc, ax=ax, label=colorbar_label, shrink=0.8)
-        ax.set_xlim(np.nanmin(x) - 0.05 * (np.nanmax(x) - np.nanmin(x) + 1),
-                    np.nanmax(x) + 0.05 * (np.nanmax(x) - np.nanmin(x) + 1))
-        ax.set_ylim(np.nanmin(y) - 0.05 * (np.nanmax(y) - np.nanmin(y) + 1),
-                    np.nanmax(y) + 0.05 * (np.nanmax(y) - np.nanmin(y) + 1))
+        ax.set_xlim(
+            np.nanmin(x) - 0.05 * (np.nanmax(x) - np.nanmin(x) + 1),
+            np.nanmax(x) + 0.05 * (np.nanmax(x) - np.nanmin(x) + 1),
+        )
+        ax.set_ylim(
+            np.nanmin(y) - 0.05 * (np.nanmax(y) - np.nanmin(y) + 1),
+            np.nanmax(y) + 0.05 * (np.nanmax(y) - np.nanmin(y) + 1),
+        )
     else:
         ax.plot(x, y, color="steelblue", linewidth=1.5)
 
