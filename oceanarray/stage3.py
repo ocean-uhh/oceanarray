@@ -51,6 +51,8 @@ import numpy as np
 import xarray as xr
 import yaml
 
+from .utilities import cast_output_dtypes, drop_all_zero_vars
+
 
 HAB_THRESHOLD = 2.0  # metres — use near-neighbour below this Δhab
 
@@ -1262,7 +1264,8 @@ class Stage3Processor:
             existing = ds.attrs.get("history", "")
             ds.attrs["history"] = f"{existing}; {entry}" if existing else entry
 
-            ds.to_netcdf(l3_path)
+            ds = drop_all_zero_vars(ds, ["amplitude_beam", "analog_input_"])
+            cast_output_dtypes(ds).to_netcdf(l3_path)
             ds.close()
             self._log(
                 f"  Creating output file: {l3_path.name}  ({'; '.join(qc_summary)})"

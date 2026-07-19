@@ -18,8 +18,11 @@ import numpy as np
 import xarray as xr
 import yaml
 from . import parameters as P
-from .utilities import _status
+from .utilities import _status, cast_output_dtypes, drop_all_zero_vars
 
+# Canonical allowed values for the ``instrument:`` field in mooring YAML files.
+# Defined in parameters.py alongside the instrument→file_type mapping.
+KNOWN_INSTRUMENT_TYPES: frozenset = P.KNOWN_INSTRUMENT_TYPES
 
 STACK_VARS = [
     "temperature",
@@ -384,6 +387,13 @@ class MooringStacker:
                 continue
             serial = _safe_serial(entry.get("serial", ""))
             instr_type = entry.get("instrument", "unknown")
+            if instr_type not in KNOWN_INSTRUMENT_TYPES:
+                print(
+                    f"  WARNING: instrument '{instr_type}' (s/n {serial}) is not in "
+                    f"KNOWN_INSTRUMENT_TYPES {sorted(KNOWN_INSTRUMENT_TYPES)}. "
+                    "Aquadopp-specific plots and processing will be skipped. "
+                    "Allowed values: microcat, aquadopp."
+                )
             hab = entry.get("hab")
             if hab is None:
                 continue
@@ -741,7 +751,16 @@ class MooringStacker:
 
         if output_path.exists():
             output_path.unlink()
-        ds_out.to_netcdf(output_path)
+        # Beam velocities are superseded by ENU components in the stacked file.
+        beam_vel_vars = [v for v in ds_out.data_vars if v.startswith("velocity_beam")]
+        if beam_vel_vars:
+            ds_out = ds_out.drop_vars(beam_vel_vars)
+        ds_out = drop_all_zero_vars(ds_out, ["amplitude_beam", "analog_input_"])
+        # OceanSITES convention: time is the unlimited (first) dimension.
+        ds_out = ds_out.transpose("time", "N_LEVELS")
+        ds_out = cast_output_dtypes(ds_out)
+        _enc = {v: {"zlib": True, "complevel": 5} for v in ds_out.data_vars}
+        ds_out.to_netcdf(output_path, encoding=_enc)
         _status("file", str(output_path.relative_to(self.base_dir)))
         return True
 
@@ -812,7 +831,7 @@ class MooringGridder:
             ds.close()
             return False
 
-        pressure = ds["pressure"].values.astype(np.float64)  # (N_LEVELS, time)
+        pressure = ds["pressure"].values.astype(np.float64)  # (time, N_LEVELS)
         # Variables that are meaningful at the stacked per-instrument level but
         # should not be interpolated onto the pressure grid.  Instrument-frame
         # and beam-frame velocities are excluded because the XYZ→ENU rotation
@@ -847,7 +866,7 @@ class MooringGridder:
             v
             for v in ds.data_vars
             if v != "pressure"
-            and ds[v].dims == ("N_LEVELS", "time")
+            and ds[v].dims == ("time", "N_LEVELS")
             and not v.endswith("_qc")
             and v not in _GRID_EXCLUDE
         ]
@@ -885,13 +904,13 @@ class MooringGridder:
                     var_data[_v][~np.isfinite(var_data[_v])] = np.nan
 
         for t in range(n_time):
-            p_col = pressure[:, t]
+            p_col = pressure[t, :]
             p_valid_mask = np.isfinite(p_col)
             if p_valid_mask.sum() < 2:
                 continue
 
             for vname in grid_vars:
-                v_col = var_data[vname][:, t]
+                v_col = var_data[vname][t, :]
                 both_valid = p_valid_mask & np.isfinite(v_col)
                 if both_valid.sum() < 2:
                     continue
@@ -954,6 +973,8 @@ class MooringGridder:
         ds.close()
         if output_path.exists():
             output_path.unlink()
-        ds_out.to_netcdf(output_path)
+        ds_out = cast_output_dtypes(ds_out)
+        _enc = {v: {"zlib": True, "complevel": 5} for v in ds_out.data_vars}
+        ds_out.to_netcdf(output_path, encoding=_enc)
         _status("file", str(output_path.relative_to(self.base_dir)))
         return True

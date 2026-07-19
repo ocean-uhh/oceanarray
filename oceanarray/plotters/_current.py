@@ -163,7 +163,7 @@ def plot_multi_aquadopp_trajectories(
     Parameters
     ----------
     ds : xr.Dataset
-        Stacked mooring dataset with shape (N_LEVELS, time).  Must contain
+        Stacked mooring dataset with shape (time, N_LEVELS).  Must contain
         *instr_type_var*, *serial_var*, *hab_var*, *u_var*, *v_var*.
     u_var, v_var : str
         Eastward and northward velocity variables (m s⁻¹).
@@ -178,6 +178,11 @@ def plot_multi_aquadopp_trajectories(
     -------
     matplotlib.figure.Figure or None
         None if no Aquadopp instruments are found in the dataset.
+
+    Notes
+    -----
+    Adapted from ``02_aqdp_ploter.py`` by L. Moscatel (lmoscat),
+    Universitat de Barcelona.
 
     """
     instr_types = ds[instr_type_var].values
@@ -200,11 +205,11 @@ def plot_multi_aquadopp_trajectories(
     trajs = []
     all_temps: list = []
     for i in aqd_idx:
-        u = np.nan_to_num(ds[u_var].values[i], nan=0.0)
-        v = np.nan_to_num(ds[v_var].values[i], nan=0.0)
+        u = np.nan_to_num(ds[u_var].values[:, i], nan=0.0)
+        v = np.nan_to_num(ds[v_var].values[:, i], nan=0.0)
         x = np.concatenate([[0.0], np.cumsum(u[:-1] * dt)])
         y = np.concatenate([[0.0], np.cumsum(v[:-1] * dt)])
-        temp = ds[temp_var].values[i] if has_temp else None
+        temp = ds[temp_var].values[:, i] if has_temp else None
         trajs.append((i, x, y, temp))
         if temp is not None:
             all_temps.append(temp[np.isfinite(temp)])
@@ -308,7 +313,7 @@ def plot_aquadopp_speed_profile(
     Parameters
     ----------
     ds : xr.Dataset
-        Stacked mooring dataset with shape (N_LEVELS, time).
+        Stacked mooring dataset with shape (time, N_LEVELS).
     speed_var : str
         Preferred speed variable name; computed from u/v if absent.
     u_var, v_var : str
@@ -320,6 +325,11 @@ def plot_aquadopp_speed_profile(
     -------
     matplotlib.figure.Figure or None
         None if no Aquadopp instruments are found.
+
+    Notes
+    -----
+    Adapted from ``02_aqdp_ploter.py`` by L. Moscatel (lmoscat),
+    Universitat de Barcelona.
 
     """
     instr_types = ds[instr_type_var].values
@@ -334,10 +344,10 @@ def plot_aquadopp_speed_profile(
     records = []
     for i in aqd_idx:
         if speed_var in ds.data_vars:
-            spd = ds[speed_var].values[i].ravel()
+            spd = ds[speed_var].values[:, i].ravel()
         elif u_var in ds.data_vars and v_var in ds.data_vars:
-            u = ds[u_var].values[i]
-            v = ds[v_var].values[i]
+            u = ds[u_var].values[:, i]
+            v = ds[v_var].values[:, i]
             spd = np.sqrt(u**2 + v**2)
         else:
             continue

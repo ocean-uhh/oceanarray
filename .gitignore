@@ -12,6 +12,9 @@ data/temp.nc
 data/moor/raw/odb_2026/*
 
 
+# Legacy reference scripts — originals kept locally, not tracked
+oceanarray/legacy/02_aqdp_ploter.py
+
 # Caldip prototype and dev scripts (superseded by ../caldip/ package)
 oceanarray/caldip.py
 debug_caldip.py

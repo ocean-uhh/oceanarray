@@ -254,6 +254,7 @@ def _read_nc_metadata(nc_path: Path) -> Dict[str, Any]:
                 "v_max": None,
             }
             if v.dims == ():
+                info["dtype"] = str(v.dtype)
                 try:
                     raw = v.values.item()
                     info["value"] = str(raw)[:120]
@@ -262,6 +263,7 @@ def _read_nc_metadata(nc_path: Path) -> Dict[str, Any]:
                 scalar_vars.append(info)
             else:
                 info["dims"] = ", ".join(str(d) for d in v.dims)
+                info["dtype"] = str(v.dtype)
                 info["n"] = int(np.prod(v.shape)) if v.shape else 0
                 arr = v.values
                 if arr.dtype.kind in ("f", "c"):
@@ -433,3 +435,42 @@ def _stage_files(
         "stage2": Path(str(base) + "_stage2.nc").exists(),
         "stage3": Path(str(base) + "_stage3.nc").exists(),
     }
+
+
+def _fmt_size(n_bytes: int) -> str:
+    """Return a human-readable file size string."""
+    for unit in ("B", "KB", "MB", "GB"):
+        if n_bytes < 1024:
+            return f"{n_bytes:.0f} {unit}"
+        n_bytes /= 1024  # type: ignore[assignment]
+    return f"{n_bytes:.1f} GB"
+
+
+def _file_info(path: Path) -> Dict[str, str]:
+    """Return size and mtime for a file path, or empty strings if it doesn't exist."""
+    if not path.exists():
+        return {"exists": False, "name": path.name, "size": "", "mtime": ""}
+    import datetime as _dt
+
+    st = path.stat()
+    mtime = _dt.datetime.fromtimestamp(st.st_mtime, tz=_dt.timezone.utc)
+    return {
+        "exists": True,
+        "name": path.name,
+        "size": _fmt_size(st.st_size),
+        "mtime": mtime.strftime("%Y-%m-%d %H:%M UTC"),
+    }
+
+
+def _stage_file_details(
+    proc_dir: Path, instr_type: str, mooring: str, serial: str
+) -> list:
+    """Return per-stage file info dicts for template rendering."""
+    base = proc_dir / instr_type / f"{mooring}_{serial}"
+    rows = []
+    for stage in ("stage1", "stage2", "stage3"):
+        p = Path(str(base) + f"_{stage}.nc")
+        info = _file_info(p)
+        info["label"] = stage.capitalize()
+        rows.append(info)
+    return rows

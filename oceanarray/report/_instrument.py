@@ -13,6 +13,8 @@ from ._html_helpers import (
     _parse_history,
     _read_qc_summary,
     _read_nc_metadata,
+    _stage_file_details,
+    _file_info,
 )
 from ._plots import (
     _make_instrument_fig,
@@ -46,16 +48,24 @@ _INSTRUMENT_HTML_TEMPLATE = """\
   * { box-sizing: border-box; }
   body { font-family: system-ui,-apple-system,"Segoe UI",sans-serif; font-size:14px;
          color:var(--text); max-width:1150px; margin:0 auto; padding:1.5rem 2rem 4rem; line-height:1.5; }
-  .masthead { background:var(--ocean); color:#fff; padding:1.4rem 2rem;
+  .masthead { background:#27ae60; color:#fff; padding:1.6rem 2rem;
               border-radius:8px; margin-bottom:2rem; }
-  .masthead h1 { margin:0 0 0.25rem; font-size:1.5rem; font-weight:700; }
-  .masthead .back { font-size:0.82rem; opacity:0.8; margin:0 0 0.9rem; }
-  .masthead .back a { color:#fff; }
+  .masthead h1 { margin:0 0 0.3rem; font-size:1.75rem; font-weight:700; letter-spacing:0.02em; }
+  .masthead .sub { font-size:0.9rem; opacity:0.88; margin:0 0 0.15rem; }
+  .masthead .sub a { color:#d5f5e3; font-weight:600; text-decoration:none; }
+  .masthead .sub a:hover { text-decoration:underline; }
   .meta-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr));
-               gap:0.45rem 2rem; font-size:0.83rem; }
-  .meta-grid dt { opacity:0.65; text-transform:uppercase; font-size:0.68rem;
+               gap:0.45rem 2rem; font-size:0.83rem; margin-top:0.9rem; }
+  .meta-grid dt { opacity:0.7; text-transform:uppercase; font-size:0.68rem;
                   letter-spacing:0.06em; margin-bottom:0.1rem; }
   .meta-grid dd { margin:0; font-weight:600; }
+  .file-table { width:100%; border-collapse:collapse; font-size:0.81rem; margin-bottom:1.2rem; }
+  .file-table th { background:var(--seafoam); text-align:left; padding:0.35rem 0.65rem;
+                   border-bottom:2px solid #cde; font-weight:600; }
+  .file-table td { padding:0.3rem 0.65rem; border-bottom:1px solid #eef; vertical-align:middle; }
+  .file-table tr:nth-child(even) td { background:#f4f9fc; }
+  .file-table .ok { color:var(--good); font-weight:700; }
+  .file-table .miss { color:#bbb; }
   h2 { color:var(--ocean); font-size:1rem; border-bottom:2px solid var(--seafoam);
        padding-bottom:0.3rem; margin:2.2rem 0 0.9rem;
        display:flex; justify-content:space-between; align-items:baseline; }
@@ -106,22 +116,21 @@ _INSTRUMENT_HTML_TEMPLATE = """\
 
 <div id="top" class="masthead">
   <h1>{{ instr_type | title }}&ensp;&mdash;&ensp;s/n&nbsp;{{ serial }}</h1>
-  <p class="back"><a href="{{ mooring_report_link }}">&#8592; {{ mooring_name }} summary</a></p>
+  <p class="sub">{{ mooring_name }} &bull; {{ "%.1f"|format(hab) }}&thinsp;m hab{% if depth is not none %} &bull; ~{{ "%.0f"|format(depth) }}&thinsp;m depth{% endif %} &bull; generated {{ generated }}</p>
+  <p class="sub"><a href="{{ mooring_report_link }}">&#8592; Mooring summary</a></p>
   <dl class="meta-grid">
-    <div><dt>Mooring</dt><dd>{{ mooring_name }}</dd></div>
     <div><dt>Cruise</dt><dd>{{ cruise }}</dd></div>
-    <div><dt>Hab</dt><dd>{{ "%.1f"|format(hab) }}&nbsp;m</dd></div>
-    <div><dt>Depth</dt><dd>{% if depth is not none %}{{ "%.0f"|format(depth) }}&nbsp;m{% else %}&mdash;{% endif %}</dd></div>
     <div><dt>Records</dt><dd>{{ n_records | default("&mdash;") }}</dd></div>
     <div><dt>Start</dt><dd>{{ t_start | default("&mdash;") }}</dd></div>
     <div><dt>End</dt><dd>{{ t_end | default("&mdash;") }}</dd></div>
-    <div><dt>Samp.&nbsp;&Delta;t&nbsp;(p90)</dt><dd>{{ median_dt | default("&mdash;") }}</dd></div>
+    <div><dt>Samp.&nbsp;&Delta;t</dt><dd>{{ median_dt | default("&mdash;") }}</dd></div>
     <div><dt>Source&nbsp;file</dt><dd>{{ nc_file }}</dd></div>
   </dl>
 </div>
 
 <nav class="jump-nav">
   Jump to:
+  <a href="#files">Files</a>
   <a href="#history">History</a>
   <a href="#timeseries">Time series</a>
   <a href="#start">Start/end windows</a>
@@ -134,6 +143,41 @@ _INSTRUMENT_HTML_TEMPLATE = """\
   {% if qc_summary %}<a href="#qc">QC flags</a>{% endif %}
   <a href="#vars">Variables</a>
 </nav>
+
+<!-- ══ Files ══ -->
+<h2 id="files">Files</h2>
+<table class="file-table">
+  <thead><tr><th>Stage</th><th>Filename</th><th>Size</th><th>Last modified</th></tr></thead>
+  <tbody>
+  {% if raw_file.exists %}
+  <tr>
+    <td>Raw</td>
+    <td class="mono">{{ raw_file.name }}</td>
+    <td class="num">{{ raw_file.size }}</td>
+    <td>{{ raw_file.mtime }}</td>
+  </tr>
+  {% else %}
+  <tr>
+    <td>Raw</td>
+    <td class="mono miss">{{ raw_file.name }}</td>
+    <td colspan="2" class="miss">&mdash; not found</td>
+  </tr>
+  {% endif %}
+  {% for f in stage_files %}
+  <tr>
+    <td>{{ f.label }}</td>
+    {% if f.exists %}
+    <td class="mono">{{ f.name }}</td>
+    <td class="num">{{ f.size }}</td>
+    <td>{{ f.mtime }}</td>
+    {% else %}
+    <td class="mono miss">{{ f.name }}</td>
+    <td colspan="2" class="miss">&mdash; not generated</td>
+    {% endif %}
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
 
 <!-- ══ Processing history ══ -->
 <h2 id="history">Processing history</h2>
@@ -298,13 +342,14 @@ _INSTRUMENT_HTML_TEMPLATE = """\
 <h3 style="font-size:0.88rem;color:var(--ocean);margin:1rem 0 0.4rem;">Time-series variables</h3>
 <table>
   <thead>
-    <tr><th>Variable</th><th>Dims</th><th class="num">N</th><th class="num">Valid</th><th class="num">Min / Max</th><th>Units</th><th>Long name</th><th>Standard name</th><th>QC&nbsp;flag</th></tr>
+    <tr><th>Variable</th><th>Type</th><th>Dims</th><th class="num">N</th><th class="num">Valid</th><th class="num">Min / Max</th><th>Units</th><th>Long name</th><th>Standard name</th><th>QC&nbsp;flag</th></tr>
   </thead>
   <tbody>
     {% for v in nc_meta.time_vars %}
     {% if not v.is_qc %}
     <tr>
       <td class="mono">{{ v.name }}</td>
+      <td class="mono" style="font-size:0.75rem">{{ v.dtype }}</td>
       <td class="mono" style="font-size:0.75rem">{{ v.dims }}</td>
       <td class="num">{{ "{:,}".format(v.n) }}</td>
       <td class="num" {% if v.n_valid is defined and v.n_valid < v.n %}style="color:#c0392b;font-weight:600"{% endif %}>{{ "{:,}".format(v.n_valid) if v.n_valid is defined else "&mdash;" }}</td>
@@ -323,12 +368,13 @@ _INSTRUMENT_HTML_TEMPLATE = """\
 <h3 style="font-size:0.88rem;color:var(--ocean);margin:1.4rem 0 0.4rem;">Scalar metadata variables</h3>
 <table>
   <thead>
-    <tr><th>Variable</th><th>Value</th><th>Units</th><th>Long name</th></tr>
+    <tr><th>Variable</th><th>Type</th><th>Value</th><th>Units</th><th>Long name</th></tr>
   </thead>
   <tbody>
     {% for v in nc_meta.scalar_vars %}
     <tr>
       <td class="mono">{{ v.name }}</td>
+      <td class="mono" style="font-size:0.75rem">{{ v.dtype }}</td>
       <td class="mono" style="font-size:0.78rem;word-break:break-all">{{ v.value }}</td>
       <td>{{ v.units }}</td>
       <td>{{ v.long_name }}</td>
@@ -433,6 +479,23 @@ def generate_instrument_pages(
             except Exception:
                 pass
 
+        # File listing — raw source and stage1/2/3 NC files
+        raw_filename = instr.get("filename", "")
+        raw_file_path = (
+            base_dir
+            / str(cfg.get("directory", "raw")).rstrip("/")
+            / instr_type
+            / raw_filename
+            if raw_filename
+            else Path("no_raw_file")
+        )
+        raw_file = (
+            _file_info(raw_file_path)
+            if raw_filename
+            else {"exists": False, "name": raw_filename or "—", "size": "", "mtime": ""}
+        )
+        stage_files = _stage_file_details(proc_dir, instr_type, mooring_name, serial)
+
         ctx = {
             "mooring_name": mooring_name,
             "cruise": cruise,
@@ -447,6 +510,8 @@ def generate_instrument_pages(
             "t_end": t_end,
             "median_dt": median_dt,
             "nc_file": nc_file,
+            "raw_file": raw_file,
+            "stage_files": stage_files,
             "mooring_report_link": mooring_report_link,
             "generated": generated,
             "proc_machine": proc_machine,
@@ -461,12 +526,12 @@ def generate_instrument_pages(
             "fig_rose_b64": _make_instrument_rose_b64(best_nc) if best_nc else None,
             "fig_trajectory_b64": (
                 _make_temperature_trajectory(best_nc)
-                if best_nc and "nortek" in instr_type.lower()
+                if best_nc and instr_type.lower() == "aquadopp"
                 else None
             ),
             "fig_speed_boxplot_b64": (
                 _make_speed_boxplot(best_nc)
-                if best_nc and "nortek" in instr_type.lower()
+                if best_nc and instr_type.lower() == "aquadopp"
                 else None
             ),
             "fig_dt_b64": _make_data_histogram(best_nc) if best_nc else None,
@@ -508,7 +573,7 @@ def generate_instrument_pages(
         ctx["analog_yaml_info"] = analog_yaml_info
         # Warn if magnetic declination was not applied (lat/lon missing from YAML)
         ctx["declination_warn"] = (
-            "nortek" in instr_type.lower()
+            instr_type.lower() == "aquadopp"
             and "magnetic_declination" not in ctx["nc_meta"].get("global_attrs", {})
         )
         # True when the NC contains instrument-frame XYZ velocities (rose has XYZ panel)
