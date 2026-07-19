@@ -164,3 +164,37 @@ INSTRUMENT_ABBREV = {
     "tr1050": "TR",
     "adcp": "AD",
 }
+
+# ---------------------------------------------------------------------------
+# Instrument type → allowed file_type values for the mooring YAML.
+#
+# ``instrument:``  is the human-readable name stored in instrument_type
+#                  coordinates and used to dispatch Aquadopp-specific plots,
+#                  declination correction, tilt QC, etc.
+#
+# ``file_type:``   is the seasenselib reader key that controls how the raw
+#                  file is parsed.  Each instrument may have several variants.
+#
+# To add a new instrument class: add an entry here.  Everything that checks
+# instrument type (reports, mooring_level, plotters) reads KNOWN_INSTRUMENT_TYPES
+# from this dict.
+# ---------------------------------------------------------------------------
+INSTRUMENT_FILE_TYPES: dict = {
+    "microcat": ["sbe-cnv", "sbe-ascii", "sbe-hex"],
+    "aquadopp": ["nortek-aqd", "nortek-ascii", "nortek-csv"],
+    "tr1050": [
+        "rbr-hex-oa"
+    ],  # RBR TR-1050 thermistor chain; -oa until seasenselib supports it
+}
+
+# Derived: set of allowed ``instrument:`` values in mooring YAML files.
+KNOWN_INSTRUMENT_TYPES: frozenset = frozenset(INSTRUMENT_FILE_TYPES.keys())
+
+# File types accepted by the stage1 reader but not yet tied to a canonical
+# instrument name (deprecated, legacy, or not yet standardised).
+_EXTRA_FILE_TYPES: dict = {
+    "nortek-csv-oa": "aquadopp (DEPRECATED internal reader; use nortek-csv)",
+    "rbr-rsk": "RBR instruments (instrument name not yet standardised)",
+    "rbr-dat": "RBR instruments (instrument name not yet standardised)",
+    "rbr-matlab-legacy": "RBR instruments (DEPRECATED legacy format)",
+}

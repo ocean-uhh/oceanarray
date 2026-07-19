@@ -34,12 +34,17 @@ _GRID_HTML_TEMPLATE = """\
   * { box-sizing:border-box; }
   body { font-family:system-ui,-apple-system,"Segoe UI",sans-serif; font-size:14px;
          color:var(--text); max-width:1200px; margin:0 auto; padding:1.5rem 2rem 4rem; }
-  .masthead { background:var(--ocean); color:#fff; padding:1.4rem 2rem;
+  .masthead { background:#8e44ad; color:#fff; padding:1.6rem 2rem;
               border-radius:8px; margin-bottom:2rem; }
-  .masthead h1 { margin:0 0 0.25rem; font-size:1.6rem; font-weight:700; }
-  .masthead .sub { font-size:0.88rem; opacity:0.82; margin:0 0 0.7rem; }
-  .masthead .back { font-size:0.82rem; opacity:0.8; margin:0; }
-  .masthead .back a { color:#fff; }
+  .masthead h1 { margin:0 0 0.3rem; font-size:1.75rem; font-weight:700; letter-spacing:0.02em; }
+  .masthead .sub { font-size:0.9rem; opacity:0.88; margin:0 0 0.15rem; }
+  .masthead .sub a { color:#e8d5ff; font-weight:600; text-decoration:none; }
+  .masthead .sub a:hover { text-decoration:underline; }
+  .meta-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+               gap:0.5rem 2rem; font-size:0.84rem; margin-top:0.9rem; }
+  .meta-grid dt { opacity:0.7; text-transform:uppercase; font-size:0.7rem;
+                  letter-spacing:0.06em; margin-bottom:0.1rem; }
+  .meta-grid dd { margin:0; font-weight:600; }
   h2 { color:var(--ocean); font-size:1rem; border-bottom:2px solid var(--seafoam);
        padding-bottom:0.3rem; margin:2.5rem 0 1rem;
        display:flex; justify-content:space-between; align-items:baseline; }
@@ -77,11 +82,19 @@ _GRID_HTML_TEMPLATE = """\
 
 <div id="top" class="masthead">
   <h1>{{ mooring_name }} &mdash; Gridded data</h1>
-  <p class="sub">{{ deploy_time }} &ndash; {{ recover_time }} &bull; {{ n_levels }} pressure levels &bull; {{ n_time }} time steps</p>
-  <p class="back">
-    <a href="{{ mooring_report_link }}">&#8592; {{ mooring_name }} summary</a>
-    {% if stack_exists %} &bull; <a href="{{ mooring_name }}_stack_report.html">Stack report &#8596;</a>{% endif %}
+  <p class="sub">{{ n_levels }} pressure levels &bull; {{ p_range }} &bull; {{ n_time }} time steps &bull; generated {{ generated }}</p>
+  <p class="sub">
+    <a href="{{ mooring_report_link }}">&#8592; Mooring summary</a>
+    {% if stack_exists %} &bull; <a href="{{ mooring_name }}_stack_report.html">&#8592; Stack report</a>{% endif %}
   </p>
+  <dl class="meta-grid">
+    <div><dt>Cruise</dt><dd>{{ cruise }}</dd></div>
+    <div><dt>Ship</dt><dd>{{ ship }}</dd></div>
+    <div><dt>Deployment</dt><dd>{{ deploy_time }}</dd></div>
+    <div><dt>Recovery</dt><dd>{{ recover_time }}</dd></div>
+    <div><dt>Duration</dt><dd>{{ duration }}</dd></div>
+    <div><dt>Water depth</dt><dd>{{ waterdepth }}&thinsp;m</dd></div>
+  </dl>
 </div>
 
 <nav class="jump-nav">
@@ -128,12 +141,7 @@ _GRID_HTML_TEMPLATE = """\
 <h2 {% if loop.first %}id="density" {% endif %}>{{ sec.label }}</h2>
 <p class="note">{{ p_range }} &bull; colour range: {{ sec.plow }}–{{ sec.phigh }} {{ sec.units }} (5th–95th percentile) &bull; 20 discrete levels</p>
 {% if sec.fig_b64 %}
-<p class="style-label">pcolormesh</p>
 <img class="fig" src="data:image/png;base64,{{ sec.fig_b64 }}" alt="{{ sec.label }} pcolormesh">
-{% endif %}
-{% if sec.fig_cf_b64 %}
-<p class="style-label">contourf</p>
-<img class="fig" src="data:image/png;base64,{{ sec.fig_cf_b64 }}" alt="{{ sec.label }} contourf">
 {% endif %}
 {% if sec.isopycnal_zoom_b64 %}
 <h2>Isopycnal depths &mdash; {{ sec.name }} (3-day zoom, unfiltered)</h2>
@@ -183,13 +191,14 @@ _GRID_HTML_TEMPLATE = """\
 <h3 style="font-size:0.88rem;color:var(--ocean);margin:1rem 0 0.4rem;">Variables</h3>
 <table class="var-table">
   <thead>
-    <tr><th>Variable</th><th>Dims</th><th class="num">N</th><th class="num">Valid</th><th class="num">Min / Max</th><th>Units</th><th>Long name</th><th>Standard name</th><th>QC&nbsp;flag</th></tr>
+    <tr><th>Variable</th><th>Type</th><th>Dims</th><th class="num">N</th><th class="num">Valid</th><th class="num">Min / Max</th><th>Units</th><th>Long name</th><th>Standard name</th><th>QC&nbsp;flag</th></tr>
   </thead>
   <tbody>
     {% for v in nc_meta.time_vars %}
     {% if not v.is_qc %}
     <tr>
       <td class="mono">{{ v.name }}</td>
+      <td class="mono" style="font-size:0.75rem">{{ v.dtype }}</td>
       <td class="mono" style="font-size:0.75rem">{{ v.dims }}</td>
       <td class="num">{{ "{:,}".format(v.n) }}</td>
       <td class="num" {% if v.n_valid is defined and v.n_valid < v.n %}style="color:#c0392b;font-weight:600"{% endif %}>{{ "{:,}".format(v.n_valid) if v.n_valid is defined else "&mdash;" }}</td>
@@ -446,9 +455,6 @@ def generate_grid_page(
                     "fig_b64": _make_grid_fig_b64(
                         da, label, units_s, P.DENSITY_COLORMAP
                     ),
-                    "fig_cf_b64": _make_grid_fig_b64(
-                        da, label, units_s, P.DENSITY_COLORMAP, style="contourf"
-                    ),
                     "isopycnal_zoom_b64": _make_isopycnal_fig_b64(
                         da,
                         P.SIGMA_CONTOUR_LEVELS,
@@ -493,8 +499,12 @@ def generate_grid_page(
         env = Environment(autoescape=True)
         html = env.from_string(_GRID_HTML_TEMPLATE).render(
             mooring_name=mooring_name,
+            cruise=ctx.get("cruise", "—"),
+            ship=ctx.get("ship", "—"),
             deploy_time=ctx["deploy_time"],
             recover_time=ctx["recover_time"],
+            duration=ctx.get("duration", "—"),
+            waterdepth=ctx.get("waterdepth", "—"),
             n_levels=n_levels,
             n_time=n_time,
             p_range=p_range,

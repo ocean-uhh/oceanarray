@@ -47,7 +47,7 @@ import xarray as xr
 import yaml
 from seasenselib.writers import NetCdfWriter
 
-from .utilities import _status
+from .utilities import _status, cast_output_dtypes, drop_all_zero_vars
 
 
 def _parse_clock_str(s: str) -> Optional[pd.Timestamp]:
@@ -550,7 +550,8 @@ class Stage2Processor:
                 use_filepath.unlink()
 
             # Write the processed dataset
-            writer = NetCdfWriter(dataset)
+            dataset = drop_all_zero_vars(dataset, ["amplitude_beam", "analog_input_"])
+            writer = NetCdfWriter(cast_output_dtypes(dataset))
             writer_params = self._get_netcdf_writer_params()
             writer.write(str(use_filepath), **writer_params)
 

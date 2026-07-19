@@ -289,6 +289,43 @@ def cmd_validate(args: argparse.Namespace) -> int:
     return 0 if all_ok else 1
 
 
+def cmd_list(args: argparse.Namespace) -> int:
+    """Print allowed instrument types and file_type values for mooring YAML files."""
+    from . import parameters as P
+
+    topic = getattr(args, "topic", None)
+
+    instr_col = max(len(k) for k in P.INSTRUMENT_FILE_TYPES) + 2
+    file_col = max(len(", ".join(v)) for v in P.INSTRUMENT_FILE_TYPES.values()) + 2
+
+    if topic in (None, "instruments", "file-types"):
+        print()
+        print("  Mooring YAML — allowed values for instrument: and file_type:")
+        print()
+        print(f"  {'instrument':<{instr_col}}  {'file_type (seasenselib reader)'}")
+        print(f"  {'-' * instr_col}  {'-' * file_col}")
+        for name in sorted(P.INSTRUMENT_FILE_TYPES):
+            readers = ", ".join(P.INSTRUMENT_FILE_TYPES[name])
+            print(f"  {name:<{instr_col}}  {readers}")
+
+        if P._EXTRA_FILE_TYPES:
+            print()
+            print("  Additional file_type values (specialist / deprecated):")
+            print(f"  {'-' * instr_col}  {'-' * file_col}")
+            for ft, note in sorted(P._EXTRA_FILE_TYPES.items()):
+                print(f"  {ft:<{instr_col}}  {note}")
+
+        print()
+        print("  Notes:")
+        print("    instrument:  human-readable name stored in instrument_type")
+        print("                 coordinates; drives Aquadopp-specific plots,")
+        print("                 declination correction, and tilt QC.")
+        print("    file_type:   selects the seasenselib reader for stage 1.")
+        print()
+
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build and return the top-level argument parser for the oceanarray CLI."""
     parser = argparse.ArgumentParser(
@@ -507,6 +544,19 @@ def build_parser() -> argparse.ArgumentParser:
         help="Display the figure interactively (works alongside --output)",
     )
     p_plot.set_defaults(func=cmd_plot)
+
+    p_list = sub.add_parser(
+        "list",
+        help="List allowed instrument types and file_type values for mooring YAML files.",
+    )
+    p_list.add_argument(
+        "topic",
+        nargs="?",
+        choices=["instruments", "file-types"],
+        default=None,
+        help="Filter output: 'instruments' or 'file-types' (default: show both).",
+    )
+    p_list.set_defaults(func=cmd_list)
 
     return parser
 

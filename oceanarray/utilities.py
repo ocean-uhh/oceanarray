@@ -355,3 +355,114 @@ def _nice_colorbar_bounds(vmin: float, vmax: float, n: int = 20) -> np.ndarray:
     mid_aligned = round(mid / nice_step) * nice_step
     lo = mid_aligned - (n / 2) * nice_step
     return np.array([lo + i * nice_step for i in range(n + 1)])
+
+
+# ---------------------------------------------------------------------------
+# Output dtype helpers
+# ---------------------------------------------------------------------------
+
+
+def find_best_dtype(var_name: str, da: xr.DataArray) -> type:
+    """Determine the optimal storage dtype for a variable.
+
+    Parameters
+    ----------
+    var_name : str
+        Variable name.
+    da : xr.DataArray
+        Data array to inspect.
+
+    Returns
+    -------
+    type
+        Recommended numpy dtype.
+
+    Notes
+    -----
+    Rules applied in order:
+
+    - String / datetime / object variables: unchanged.
+    - ``time`` in name: unchanged (preserve datetime64 / float encoding).
+    - ``*_qc`` suffix or ``flag`` in name: ``int8``.
+    - ``serial_number`` or ``serial``: ``int32``.
+    - ``latitude`` / ``longitude`` in name: ``float64``.
+    - Integer input: downsize to ``int32`` if stored as ``int64``, else unchanged.
+    - ``float64`` input: ``float32``.
+    - Anything else: unchanged.
+
+    """
+    input_dtype = da.dtype.type
+    if da.dtype.kind in ("U", "S", "O", "M"):
+        return input_dtype
+    if "time" in var_name.lower():
+        return input_dtype
+    if var_name.endswith("_qc") or "flag" in var_name:
+        return np.int8
+    if var_name in ("serial_number", "serial"):
+        return np.int32
+    if "latitude" in var_name.lower() or "longitude" in var_name.lower():
+        return np.float64
+    if da.dtype.kind in ("i", "u") and da.dtype.itemsize == 8:
+        return np.int32
+    if input_dtype == np.float64:
+        return np.float32
+    return input_dtype
+
+
+def drop_all_zero_vars(ds: xr.Dataset, prefixes: list[str]) -> xr.Dataset:
+    """Drop variables whose finite values are all zero.
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        Dataset to filter.
+    prefixes : list of str
+        Variable name prefixes to check (e.g. ``["amplitude_beam", "analog_input_"]``).
+        Any variable whose name starts with one of these prefixes and whose
+        finite values are all zero (or has no finite values) is dropped.
+
+    Returns
+    -------
+    xr.Dataset
+        Dataset with all-zero prefix-matched variables removed.
+
+    """
+    to_drop = []
+    for vname in ds.data_vars:
+        if not any(vname.startswith(p) for p in prefixes):
+            continue
+        arr = ds[vname].values
+        finite = arr[np.isfinite(arr)] if np.issubdtype(arr.dtype, np.floating) else arr
+        if finite.size == 0 or np.all(finite == 0):
+            to_drop.append(vname)
+    return ds.drop_vars(to_drop) if to_drop else ds
+
+
+def cast_output_dtypes(ds: xr.Dataset) -> xr.Dataset:
+    """Cast every variable in *ds* to its optimal storage dtype.
+
+    Calls :func:`find_best_dtype` per variable and rebuilds only those that
+    change.  Attributes are preserved.  The input dataset is not modified.
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        Dataset to cast.
+
+    Returns
+    -------
+    xr.Dataset
+        New dataset with optimised dtypes, ready for NetCDF output.
+
+    """
+    updates: dict[str, xr.Variable] = {}
+    for vname in ds.data_vars:
+        var = ds[vname]
+        target = find_best_dtype(vname, var)
+        if np.dtype(target) != var.dtype:
+            updates[vname] = xr.Variable(
+                var.dims, var.values.astype(target), attrs=var.attrs
+            )
+    if not updates:
+        return ds
+    return ds.assign(updates)

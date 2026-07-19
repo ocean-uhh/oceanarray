@@ -1400,7 +1400,7 @@ def _make_rose_grid_b64(
         east_all[qc >= 3] = np.nan
         north_all[qc >= 3] = np.nan
 
-    has_vel = [np.any(np.isfinite(east_all[i])) for i in range(east_all.shape[0])]
+    has_vel = [np.any(np.isfinite(east_all[:, i])) for i in range(east_all.shape[1])]
     aqd_idx = [i for i in range(len(serial_list)) if i < len(has_vel) and has_vel[i]]
     n = len(aqd_idx)
     if n == 0:
@@ -1427,7 +1427,9 @@ def _make_rose_grid_b64(
             title = f"{serial} ({hab_vals[instr_i]:.0f} m)"
         else:
             title = str(serial)
-        _rose_ax(axs_flat[plot_i], east_all[instr_i], north_all[instr_i], title=title)
+        _rose_ax(
+            axs_flat[plot_i], east_all[:, instr_i], north_all[:, instr_i], title=title
+        )
 
     for k in range(n, len(axs_flat)):
         axs_flat[k].set_visible(False)
@@ -1652,17 +1654,18 @@ def _make_analog_timeseries(nc_path: "Path", analog_vars: "List[str]") -> Option
             long_name = ds[vname].attrs.get("long_name", vname)
             ylabel = f"{long_name} ({units})" if units else long_name
 
-            # Stack NC: shape (N_LEVELS, time) — plot each level with finite data
+            # Stack NC: shape (time, N_LEVELS) — plot each level with finite data
             if raw.ndim == 2:
                 n_plotted = 0
-                for lvl_i in range(raw.shape[0]):
-                    row_data = raw[lvl_i]
+                for lvl_i in range(raw.shape[1]):
+                    row_data = raw[:, lvl_i]
                     if np.any(np.isfinite(row_data)):
                         label = None
                         if "serial" in ds.coords:
                             label = str(ds["serial"].values[lvl_i])
                         ax.plot(
-                            time, row_data,
+                            time,
+                            row_data,
                             linewidth=0.8,
                             color=colors[n_plotted % len(colors)],
                             label=label,

@@ -35,12 +35,17 @@ _STACK_HTML_TEMPLATE = """\
   * { box-sizing:border-box; }
   body { font-family:system-ui,-apple-system,"Segoe UI",sans-serif; font-size:14px;
          color:var(--text); max-width:1200px; margin:0 auto; padding:1.5rem 2rem 4rem; }
-  .masthead { background:var(--ocean); color:#fff; padding:1.4rem 2rem;
+  .masthead { background:#2980b9; color:#fff; padding:1.6rem 2rem;
               border-radius:8px; margin-bottom:2rem; }
-  .masthead h1 { margin:0 0 0.25rem; font-size:1.6rem; font-weight:700; }
-  .masthead .sub { font-size:0.88rem; opacity:0.82; margin:0 0 0.7rem; }
-  .masthead .back { font-size:0.82rem; opacity:0.8; margin:0; }
-  .masthead .back a { color:#fff; }
+  .masthead h1 { margin:0 0 0.3rem; font-size:1.75rem; font-weight:700; letter-spacing:0.02em; }
+  .masthead .sub { font-size:0.9rem; opacity:0.88; margin:0 0 0.15rem; }
+  .masthead .sub a { color:#cef; font-weight:600; text-decoration:none; }
+  .masthead .sub a:hover { text-decoration:underline; }
+  .meta-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+               gap:0.5rem 2rem; font-size:0.84rem; margin-top:0.9rem; }
+  .meta-grid dt { opacity:0.7; text-transform:uppercase; font-size:0.7rem;
+                  letter-spacing:0.06em; margin-bottom:0.1rem; }
+  .meta-grid dd { margin:0; font-weight:600; }
   h2 { color:var(--ocean); font-size:1rem; border-bottom:2px solid var(--seafoam);
        padding-bottom:0.3rem; margin:2.5rem 0 1rem;
        display:flex; justify-content:space-between; align-items:baseline; }
@@ -77,11 +82,19 @@ _STACK_HTML_TEMPLATE = """\
 
 <div id="top" class="masthead">
   <h1>{{ mooring_name }} &mdash; Stacked data</h1>
-  <p class="sub">{{ deploy_time }} &ndash; {{ recover_time }} &bull; {{ n_instr }} instruments &bull; {{ dt_seconds }}s grid &bull; {{ n_time }} time steps</p>
-  <p class="back">
-    <a href="{{ mooring_report_link }}">&#8592; {{ mooring_name }} summary</a>
-    {% if grid_exists %} &bull; <a href="{{ mooring_name }}_grid_report.html">Grid report &#8596;</a>{% endif %}
+  <p class="sub">{{ n_instr }} instruments &bull; {{ dt_seconds }}&thinsp;s grid &bull; {{ n_time }} time steps &bull; generated {{ generated }}</p>
+  <p class="sub">
+    <a href="{{ mooring_report_link }}">&#8592; Mooring summary</a>
+    {% if grid_exists %} &bull; <a href="{{ mooring_name }}_grid_report.html">&#8594; Grid report</a>{% endif %}
   </p>
+  <dl class="meta-grid">
+    <div><dt>Cruise</dt><dd>{{ cruise }}</dd></div>
+    <div><dt>Ship</dt><dd>{{ ship }}</dd></div>
+    <div><dt>Deployment</dt><dd>{{ deploy_time }}</dd></div>
+    <div><dt>Recovery</dt><dd>{{ recover_time }}</dd></div>
+    <div><dt>Duration</dt><dd>{{ duration }}</dd></div>
+    <div><dt>Water depth</dt><dd>{{ waterdepth }}&thinsp;m</dd></div>
+  </dl>
 </div>
 
 <nav class="jump-nav">
@@ -250,13 +263,14 @@ _STACK_HTML_TEMPLATE = """\
 <h3 style="font-size:0.88rem;color:var(--ocean);margin:1rem 0 0.4rem;">Variables</h3>
 <table class="var-table">
   <thead>
-    <tr><th>Variable</th><th>Dims</th><th class="num">N</th><th class="num">Valid</th><th class="num">Min / Max</th><th>Units</th><th>Long name</th><th>Standard name</th><th>QC&nbsp;flag</th></tr>
+    <tr><th>Variable</th><th>Type</th><th>Dims</th><th class="num">N</th><th class="num">Valid</th><th class="num">Min / Max</th><th>Units</th><th>Long name</th><th>Standard name</th><th>QC&nbsp;flag</th></tr>
   </thead>
   <tbody>
     {% for v in nc_meta.time_vars %}
     {% if not v.is_qc %}
     <tr>
       <td class="mono">{{ v.name }}</td>
+      <td class="mono" style="font-size:0.75rem">{{ v.dtype }}</td>
       <td class="mono" style="font-size:0.75rem">{{ v.dims }}</td>
       <td class="num">{{ "{:,}".format(v.n) }}</td>
       <td class="num" {% if v.n_valid is defined and v.n_valid < v.n %}style="color:#c0392b;font-weight:600"{% endif %}>{{ "{:,}".format(v.n_valid) if v.n_valid is defined else "&mdash;" }}</td>
@@ -275,12 +289,13 @@ _STACK_HTML_TEMPLATE = """\
 <h3 style="font-size:0.88rem;color:var(--ocean);margin:1.4rem 0 0.4rem;">Scalar metadata variables</h3>
 <table class="var-table">
   <thead>
-    <tr><th>Variable</th><th>Value</th><th>Units</th><th>Long name</th></tr>
+    <tr><th>Variable</th><th>Type</th><th>Value</th><th>Units</th><th>Long name</th></tr>
   </thead>
   <tbody>
     {% for v in nc_meta.scalar_vars %}
     <tr>
       <td class="mono">{{ v.name }}</td>
+      <td class="mono" style="font-size:0.75rem">{{ v.dtype }}</td>
       <td class="mono" style="font-size:0.78rem;word-break:break-all">{{ v.value }}</td>
       <td>{{ v.units }}</td>
       <td>{{ v.long_name }}</td>
@@ -356,7 +371,7 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
         )
 
         aq_indices = [
-            i for i, t in enumerate(instr_types) if "nortek" in str(t).lower()
+            i for i, t in enumerate(instr_types) if str(t).lower() == "aquadopp"
         ]
         if not aq_indices:
             return None
@@ -386,17 +401,17 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
 
             p_data = r_data = tp_data = None
             if has_pitch:
-                p_data = np.abs(ds["pitch"].values[i, ::step].astype(float))
+                p_data = np.abs(ds["pitch"].values[::step, i].astype(float))
                 if np.any(np.isfinite(p_data)):
                     ax_ts.plot(
                         time_ds, p_data, lw=0.7, color="#2980b9", label="|pitch|"
                     )
             if has_roll:
-                r_data = np.abs(ds["roll"].values[i, ::step].astype(float))
+                r_data = np.abs(ds["roll"].values[::step, i].astype(float))
                 if np.any(np.isfinite(r_data)):
                     ax_ts.plot(time_ds, r_data, lw=0.7, color="#27ae60", label="|roll|")
             if has_tilt_p:
-                tp_data = ds["tilt_from_pressure"].values[i, ::step].astype(float)
+                tp_data = ds["tilt_from_pressure"].values[::step, i].astype(float)
                 if np.any(np.isfinite(tp_data)):
                     ax_ts.plot(
                         time_ds,
@@ -417,7 +432,12 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
                 _ref_s = str(ref_serials[i]) if ref_serials is not None else "?"
                 _ref_note = f"  [ref: s/n {_ref_s} @ {ref_habs[i]:.0f} m]"
             ax_ts.set_title(f"s/n {serial}  ({hab:.0f} m hab){_ref_note}")
-            ax_ts.legend(loc="upper right", framealpha=0.8, ncol=3)
+            ax_ts.legend(
+                loc="upper left",
+                bbox_to_anchor=(1.01, 1.0),
+                borderaxespad=0,
+                framealpha=0.8,
+            )
 
             if row < n_panels - 1:
                 ax_ts.tick_params(labelbottom=False)
@@ -469,7 +489,13 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
                 ax_sc.set_ylim(bottom=0.0)
                 ax_sc.set_xlabel("tilt (pressure) [°]")
                 ax_sc.set_ylabel("|pitch|, |roll| [°]")
-                ax_sc.legend(loc="upper left", framealpha=0.8, markerscale=3)
+                ax_sc.legend(
+                    loc="upper left",
+                    bbox_to_anchor=(1.01, 1.0),
+                    borderaxespad=0,
+                    framealpha=0.8,
+                    markerscale=3,
+                )
             else:
                 ax_sc.text(
                     0.5,
@@ -566,7 +592,7 @@ def generate_stack_page(
             for i in range(n_instr):
                 serial = _serial_list[i]
                 color = _serial_colors[serial]
-                y = arr[i, ::step]
+                y = arr[::step, i]
                 if not np.any(np.isfinite(y)):
                     continue
                 plotted = True
@@ -590,9 +616,14 @@ def generate_stack_page(
                 except Exception:
                     pass
             n_plotted = sum(
-                1 for i in range(n_instr) if np.any(np.isfinite(arr[i, ::step]))
+                1 for i in range(n_instr) if np.any(np.isfinite(arr[::step, i]))
             )
-            ax.legend(loc="upper right", framealpha=0.8, ncol=max(1, n_plotted // 8))
+            ax.legend(
+                loc="upper left",
+                bbox_to_anchor=(1.01, 1.0),
+                borderaxespad=0,
+                framealpha=0.8,
+            )
             plt.tight_layout()
             b64 = _fig_to_base64(fig)
             plt.close(fig)
@@ -636,7 +667,7 @@ def generate_stack_page(
         _n_rose = 0
         if "east_velocity" in ds.data_vars:
             _ev = ds["east_velocity"].values
-            _n_rose = sum(np.any(np.isfinite(_ev[i])) for i in range(_ev.shape[0]))
+            _n_rose = sum(np.any(np.isfinite(_ev[:, i])) for i in range(_ev.shape[1]))
         _rose_w_map = {1: "33", 2: "50", 3: "66", 4: "83"}
         rose_img_width = _rose_w_map.get(_n_rose, "100")
 
@@ -648,9 +679,9 @@ def generate_stack_page(
                 {round(float(v), 2) for v in _dv if np.isfinite(float(v))}
             )
             if "instrument_type" in ds:
-                # instrument_type is a coord (N_LEVELS); YAML key is "nortek-aqd"
+                # instrument_type is a coord (N_LEVELS); allowed value is "aquadopp"
                 _aqd_mask = np.array(
-                    ["nortek" in str(t).lower() for t in ds["instrument_type"].values]
+                    [str(t).lower() == "aquadopp" for t in ds["instrument_type"].values]
                 )
                 _decl_missing = bool(
                     _aqd_mask.any() and np.any(~np.isfinite(_dv[_aqd_mask]))
@@ -658,7 +689,7 @@ def generate_stack_page(
             # no else — if instrument_type absent, don't warn (can't identify Aquadopps)
         elif "instrument_type" in ds:
             _aqd_mask = np.array(
-                ["nortek" in str(t).lower() for t in ds["instrument_type"].values]
+                [str(t).lower() == "aquadopp" for t in ds["instrument_type"].values]
             )
             _decl_missing = bool(_aqd_mask.any())
         rose_declination_note = (
@@ -671,13 +702,13 @@ def generate_stack_page(
         fig_spacing_b64: Optional[str] = None
         if "pressure" in ds.data_vars and n_instr > 1:
             try:
-                pres_arr = ds["pressure"].values
-                med_p = np.nanmedian(pres_arr, axis=1)
+                pres_arr = ds["pressure"].values  # (time, N_LEVELS)
+                med_p = np.nanmedian(pres_arr, axis=0)  # one value per N_LEVELS
                 sort_idx = np.argsort(med_p)
-                pres_sorted = pres_arr[sort_idx, :]
+                pres_sorted = pres_arr[:, sort_idx]
                 all_spacings: list = []
                 for i in range(1, n_instr):
-                    spacing = pres_sorted[i, :] - pres_sorted[i - 1, :]
+                    spacing = pres_sorted[:, i] - pres_sorted[:, i - 1]
                     valid = spacing[np.isfinite(spacing) & (spacing >= 2.0)]
                     all_spacings.extend(valid.tolist())
                 if all_spacings:
@@ -713,8 +744,12 @@ def generate_stack_page(
         env = Environment(autoescape=True)
         html = env.from_string(_STACK_HTML_TEMPLATE).render(
             mooring_name=mooring_name,
+            cruise=ctx.get("cruise", "—"),
+            ship=ctx.get("ship", "—"),
             deploy_time=ctx["deploy_time"],
             recover_time=ctx["recover_time"],
+            duration=ctx.get("duration", "—"),
+            waterdepth=ctx.get("waterdepth", "—"),
             n_instr=n_instr,
             dt_seconds=dt_seconds,
             n_time=n_time,

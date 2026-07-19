@@ -286,7 +286,7 @@ _HTML_TEMPLATE = """\
 </table>
 
 <!-- ════════════════════════════════════ 3. INSTRUMENT SUMMARY ══ -->
-<h2 id="instruments">3 &mdash; Instrument summary</h2>
+<h2 id="instruments">3 &mdash; Instrument summary (using stage3 files)</h2>
 <style>
   .vbadge {
     display: inline-block;

@@ -12,7 +12,7 @@ import xarray as xr
 import yaml
 import seasenselib
 from seasenselib.writers import NetCdfWriter
-from .utilities import _status
+from .utilities import _status, cast_output_dtypes
 
 # Suppress noisy INFO/WARNING messages from seasenselib/pycnv.
 logging.getLogger("seasenselib").setLevel(logging.WARNING)
@@ -193,6 +193,7 @@ class MooringProcessor:
         "rbr-rsk",
         "rbr-matlab-legacy",
         "rbr-dat",
+        "rbr-hex-oa",  # internal oceanarray hex reader for TR-1050; use rbr-hex once seasenselib supports it
         "sbe-hex",
     }
 
@@ -324,6 +325,23 @@ class MooringProcessor:
                 )
                 coord_system = "UNK"
             return self._normalize_nortek_variables(ds, coord_system=coord_system)
+
+        if file_type == "rbr-hex-oa":
+            from .read_rbr_hex import read_rbr_hex
+
+            ds = read_rbr_hex(file_path)
+            # Rename column-derived physical variables to canonical oceanarray names.
+            # read_rbr_hex uses the column header as the variable name (e.g. "temp");
+            # raw ADC count variables are always named "channel_N" and kept as-is.
+            rename_map = {}
+            for v in list(ds.data_vars):
+                if v.startswith("channel_"):
+                    continue
+                if "temp" in v.lower():
+                    rename_map[v] = "temperature"
+            if rename_map:
+                ds = ds.rename(rename_map)
+            return ds
 
         kwargs = {}
         if file_type in ("nortek-aqd", "nortek-ascii") and header_path:
@@ -701,7 +719,8 @@ class MooringProcessor:
 
         def _coeff_str(coeffs: Dict[str, Any]) -> str:
             return ", ".join(
-                f"{k}={v}" for k, v in coeffs.items()
+                f"{k}={v}"
+                for k, v in coeffs.items()
                 if k not in ("serialnum", "caldate")
             )
 
@@ -710,6 +729,7 @@ class MooringProcessor:
 
         def _iso_date(raw: str) -> str:
             import datetime
+
             for fmt in ("%d-%b-%y", "%d-%b-%Y"):
                 try:
                     return datetime.datetime.strptime(raw, fmt).strftime("%Y-%m-%d")
@@ -722,48 +742,54 @@ class MooringProcessor:
             tc = cal_coeffs["temperature"]["coefficients"]
             sn = tc.get("serialnum", instr_serial)
             cal_date = _iso_date(tc.get("caldate", "—"))
-            dataset[f"SENSOR_TEMP_{instr_serial}"] = _make_sensor_var({
-                "long_name": "Sea-Bird SBE temperature sensor metadata",
-                "sensor_type": "TEMPERATURE",
-                "sensor_serial_number": sn,
-                "sensor_model": "Sea-Bird SBE temperature sensor",
-                "sensor_calibration_date": cal_date,
-                "TEMPERATURE_calibration_coefficients": _coeff_str(tc),
-                "cf_role": "sensor_id",
-                "coverage_content_type": "auxiliaryInformation",
-            })
+            dataset[f"SENSOR_TEMP_{instr_serial}"] = _make_sensor_var(
+                {
+                    "long_name": "Sea-Bird SBE temperature sensor metadata",
+                    "sensor_type": "TEMPERATURE",
+                    "sensor_serial_number": sn,
+                    "sensor_model": "Sea-Bird SBE temperature sensor",
+                    "sensor_calibration_date": cal_date,
+                    "TEMPERATURE_calibration_coefficients": _coeff_str(tc),
+                    "cf_role": "sensor_id",
+                    "coverage_content_type": "auxiliaryInformation",
+                }
+            )
 
         # Conductivity
         if "conductivity" in cal_coeffs:
             cc = cal_coeffs["conductivity"]["coefficients"]
             sn = cc.get("serialnum", instr_serial)
             cal_date = _iso_date(cc.get("caldate", "—"))
-            dataset[f"SENSOR_CNDC_{instr_serial}"] = _make_sensor_var({
-                "long_name": "Sea-Bird SBE conductivity sensor metadata",
-                "sensor_type": "CONDUCTIVITY",
-                "sensor_serial_number": sn,
-                "sensor_model": "Sea-Bird SBE conductivity sensor",
-                "sensor_calibration_date": cal_date,
-                "CONDUCTIVITY_calibration_coefficients": _coeff_str(cc),
-                "cf_role": "sensor_id",
-                "coverage_content_type": "auxiliaryInformation",
-            })
+            dataset[f"SENSOR_CNDC_{instr_serial}"] = _make_sensor_var(
+                {
+                    "long_name": "Sea-Bird SBE conductivity sensor metadata",
+                    "sensor_type": "CONDUCTIVITY",
+                    "sensor_serial_number": sn,
+                    "sensor_model": "Sea-Bird SBE conductivity sensor",
+                    "sensor_calibration_date": cal_date,
+                    "CONDUCTIVITY_calibration_coefficients": _coeff_str(cc),
+                    "cf_role": "sensor_id",
+                    "coverage_content_type": "auxiliaryInformation",
+                }
+            )
 
         # Pressure
         if "pressure" in cal_coeffs:
             pc = cal_coeffs["pressure"]["coefficients"]
             sn = pc.get("serialnum", instr_serial)
             cal_date = _iso_date(pc.get("caldate", "—"))
-            dataset[f"SENSOR_PRES_{instr_serial}"] = _make_sensor_var({
-                "long_name": "Sea-Bird pressure sensor metadata",
-                "sensor_type": "PRESSURE",
-                "sensor_serial_number": sn,
-                "sensor_model": "Sea-Bird pressure sensor",
-                "sensor_calibration_date": cal_date,
-                "PRESSURE_calibration_coefficients": _coeff_str(pc),
-                "cf_role": "sensor_id",
-                "coverage_content_type": "auxiliaryInformation",
-            })
+            dataset[f"SENSOR_PRES_{instr_serial}"] = _make_sensor_var(
+                {
+                    "long_name": "Sea-Bird pressure sensor metadata",
+                    "sensor_type": "PRESSURE",
+                    "sensor_serial_number": sn,
+                    "sensor_model": "Sea-Bird pressure sensor",
+                    "sensor_calibration_date": cal_date,
+                    "PRESSURE_calibration_coefficients": _coeff_str(pc),
+                    "cf_role": "sensor_id",
+                    "coverage_content_type": "auxiliaryInformation",
+                }
+            )
 
         return dataset
 
@@ -926,7 +952,7 @@ class MooringProcessor:
         return ""
 
     @staticmethod
-    def _safe_serial(serial) -> str:
+    def _safe_serial(serial: str) -> str:
         """Strip characters that are illegal in filenames (e.g. '*' used as a YAML marker)."""
         import re
 
@@ -1231,7 +1257,7 @@ class MooringProcessor:
 
         # Write to NetCDF
         _status("file", str(relative_output))
-        writer = NetCdfWriter(dataset)
+        writer = NetCdfWriter(cast_output_dtypes(dataset))
         writer_params = self._get_netcdf_writer_params()
         writer.write(str(output_file), **writer_params)
 
@@ -1250,6 +1276,7 @@ class MooringProcessor:
             mooring_name: Name of the mooring to process
             output_path: Optional custom output path. If None, uses default structure.
             serials: Optional list of serial numbers to process; if None, process all.
+            force: Re-process even if output already exists.
 
         Returns:
             bool: True if processing completed successfully, False otherwise
