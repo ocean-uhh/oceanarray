@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import socket
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -19,6 +20,9 @@ from ._plots import (
     _make_ts_diagram,
     _make_instrument_rose_b64,
     _make_data_histogram,
+    _make_temperature_trajectory,
+    _make_speed_boxplot,
+    _make_analog_timeseries,
 )
 
 
@@ -123,6 +127,9 @@ _INSTRUMENT_HTML_TEMPLATE = """\
   <a href="#start">Start/end windows</a>
   {% if fig_tsd_b64 %}<a href="#ts">T-S diagram</a>{% endif %}
   {% if fig_rose_b64 %}<a href="#rose">Current roses</a>{% endif %}
+  {% if fig_trajectory_b64 %}<a href="#trajectory">Trajectory</a>{% endif %}
+  {% if fig_speed_boxplot_b64 %}<a href="#speed">Speed distribution</a>{% endif %}
+  {% if fig_analog_b64 %}<a href="#analog">Analog channels</a>{% endif %}
   <a href="#dist">Distributions</a>
   {% if qc_summary %}<a href="#qc">QC flags</a>{% endif %}
   <a href="#vars">Variables</a>
@@ -173,12 +180,57 @@ _INSTRUMENT_HTML_TEMPLATE = """\
 <!-- ══ Current roses ══ -->
 {% if fig_rose_b64 %}
 <h2 id="rose">Current rose diagrams</h2>
+{% if declination_warn %}
+<p style="font-size:0.82rem;background:#fff8e1;border-left:4px solid #f9a825;padding:0.5rem 0.8rem;margin-bottom:0.6rem;">
+  ⚠ Magnetic declination could not be applied — latitude/longitude are missing or all-zero in the mooring YAML (check <code>seabed_latitude</code>, <code>deployment_latitude</code>, or <code>latitude</code>/<code>longitude</code>).
+  ENU velocities use 0° declination (magnetic north, not true north).
+</p>
+{% endif %}
 <p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
-  XYZ: instrument-frame velocities (before geographic rotation).
-  ENU panels split by QARTOD flag: good (flag&nbsp;≤&nbsp;2, Blues), suspect (flag&nbsp;3, Oranges), fail (flag&nbsp;4, Reds).
+  {% if rose_has_xyz %}XYZ: instrument-frame velocities (before geographic rotation). {% endif %}ENU panels split by QARTOD flag: good (flag&nbsp;≤&nbsp;2, Blues), suspect (flag&nbsp;3, Oranges), fail (flag&nbsp;4, Reds).
   Direction toward which the current flows; 0°&nbsp;=&nbsp;N, clockwise.
 </p>
-<img class="fig" src="data:image/png;base64,{{ fig_rose_b64 }}">
+<img class="fig" style="max-width:66%" src="data:image/png;base64,{{ fig_rose_b64 }}">
+{% endif %}
+
+<!-- ══ Lagrangian trajectory ══ -->
+{% if fig_trajectory_b64 %}
+<h2 id="trajectory">Particle trajectory</h2>
+<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+  Pseudo-Lagrangian displacement obtained by integrating east/north velocity over time
+  (Euler forward; NaN velocities set to zero).  Coloured by temperature.
+  Origin (0,&nbsp;0) = deployment position; axes in metres.
+</p>
+<img class="fig" src="data:image/png;base64,{{ fig_trajectory_b64 }}" style="max-width:600px;">
+{% endif %}
+
+<!-- ══ Speed distribution ══ -->
+{% if fig_speed_boxplot_b64 %}
+<h2 id="speed">Current speed distribution</h2>
+<img class="fig" src="data:image/png;base64,{{ fig_speed_boxplot_b64 }}" style="max-width:300px;">
+{% endif %}
+
+<!-- ══ Analog channels ══ -->
+{% if fig_analog_b64 %}
+<h2 id="analog">Analog channels</h2>
+<p class="note">
+  Full-record time series of analog channel variables containing non-zero, non-NaN data.
+  One panel per channel.
+  Labels and units are read from the mooring YAML — update them there to change what appears here.
+</p>
+{% if analog_yaml_info %}
+<ul style="font-size:0.8rem;margin:0.3rem 0 0.8rem 1.5rem;color:#555;">
+  {% for ch in analog_yaml_info %}
+  <li>
+    <code>{{ ch.varname }}</code> — from YAML:
+    <code>{{ ch.yaml_key }}: {{ ch.label if ch.label else "(not set)" }}</code>{% if ch.units %},
+    <code>{{ ch.yaml_key }}_units: "{{ ch.units }}"</code>{% endif %}{% if ch.serial %},
+    <code>{{ ch.yaml_key }}_serial_number: {{ ch.serial }}</code>{% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+<img class="fig" src="data:image/png;base64,{{ fig_analog_b64 }}">
 {% endif %}
 
 <!-- ══ Data distributions ══ -->
@@ -246,7 +298,7 @@ _INSTRUMENT_HTML_TEMPLATE = """\
 <h3 style="font-size:0.88rem;color:var(--ocean);margin:1rem 0 0.4rem;">Time-series variables</h3>
 <table>
   <thead>
-    <tr><th>Variable</th><th>Dims</th><th class="num">N</th><th class="num">Valid</th><th>Units</th><th>Long name</th><th>Standard name</th><th>QC&nbsp;flag</th></tr>
+    <tr><th>Variable</th><th>Dims</th><th class="num">N</th><th class="num">Valid</th><th class="num">Min / Max</th><th>Units</th><th>Long name</th><th>Standard name</th><th>QC&nbsp;flag</th></tr>
   </thead>
   <tbody>
     {% for v in nc_meta.time_vars %}
@@ -256,6 +308,7 @@ _INSTRUMENT_HTML_TEMPLATE = """\
       <td class="mono" style="font-size:0.75rem">{{ v.dims }}</td>
       <td class="num">{{ "{:,}".format(v.n) }}</td>
       <td class="num" {% if v.n_valid is defined and v.n_valid < v.n %}style="color:#c0392b;font-weight:600"{% endif %}>{{ "{:,}".format(v.n_valid) if v.n_valid is defined else "&mdash;" }}</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">{% if v.v_min is not none %}{{ v.v_min }} / {{ v.v_max }}{% else %}&mdash;{% endif %}</td>
       <td>{{ v.units }}</td>
       <td>{{ v.long_name }}</td>
       <td style="font-size:0.78rem;color:var(--muted)">{{ v.standard_name }}</td>
@@ -303,7 +356,7 @@ _INSTRUMENT_HTML_TEMPLATE = """\
 {% endif %}
 
 <div class="report-footer">
-  Generated by <strong>oceanarray</strong> on {{ generated }}
+  Generated by <strong>oceanarray</strong> on {{ generated }}{% if proc_machine %} &bull; {{ proc_machine }}{% endif %}
 </div>
 <script>
   document.querySelectorAll('h2').forEach(h => {
@@ -333,6 +386,7 @@ def generate_instrument_pages(
     """Generate one HTML report page per instrument."""
     mooring_report_link = f"{mooring_name}_report.html"
     generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    proc_machine = socket.gethostname().split(".")[0]
     _d = cfg.get("deployment_cruise") or cfg.get("cruise", "—")
     _r = cfg.get("recovery_cruise") or cfg.get("cruise") or _d
     cruise = _d if _d == _r else f"{_d} / {_r}"
@@ -395,6 +449,7 @@ def generate_instrument_pages(
             "nc_file": nc_file,
             "mooring_report_link": mooring_report_link,
             "generated": generated,
+            "proc_machine": proc_machine,
             "history_entries": history_entries,
             "fig_ts_b64": (
                 _make_instrument_fig(best_nc, instr_type) if best_nc else None
@@ -404,10 +459,61 @@ def generate_instrument_pages(
             ),
             "fig_tsd_b64": _make_ts_diagram(best_nc) if best_nc else None,
             "fig_rose_b64": _make_instrument_rose_b64(best_nc) if best_nc else None,
+            "fig_trajectory_b64": (
+                _make_temperature_trajectory(best_nc)
+                if best_nc and "nortek" in instr_type.lower()
+                else None
+            ),
+            "fig_speed_boxplot_b64": (
+                _make_speed_boxplot(best_nc)
+                if best_nc and "nortek" in instr_type.lower()
+                else None
+            ),
             "fig_dt_b64": _make_data_histogram(best_nc) if best_nc else None,
             "qc_summary": _read_qc_summary(stage3_nc) if stage3_nc else [],
             "nc_meta": _read_nc_metadata(best_nc) if best_nc else {},
         }
+        analog_vars = ctx["nc_meta"].get("analog_vars", [])
+        ctx["fig_analog_b64"] = (
+            _make_analog_timeseries(best_nc, analog_vars)
+            if best_nc and analog_vars
+            else None
+        )
+        # Look up the per-instrument YAML entry for analog metadata
+        _instr_entries = cfg.get("clamp", cfg.get("instruments", []))
+        _yaml_entry: Dict[str, Any] = next(
+            (
+                e
+                for e in _instr_entries
+                if _safe_serial(str(e.get("serial", ""))) == serial
+            ),
+            {},
+        )
+        # Build per-channel YAML-source info for display in the template.
+        # Variable name in NC is always "analog_input_{n}" (seasenselib native).
+        # YAML key matches: analog_input_{n}, analog_input_{n}_units, etc.
+        analog_yaml_info: List[Dict[str, str]] = []
+        for _av in analog_vars:
+            _n = _av.replace("analog_input_", "").replace("analog_", "")
+            _yaml_key = f"analog_input_{_n}"
+            analog_yaml_info.append(
+                {
+                    "varname": _av,
+                    "yaml_key": _yaml_key,
+                    "label": str(_yaml_entry.get(_yaml_key, "")),
+                    "units": str(_yaml_entry.get(f"{_yaml_key}_units", "")),
+                    "serial": str(_yaml_entry.get(f"{_yaml_key}_serial_number", "")),
+                }
+            )
+        ctx["analog_yaml_info"] = analog_yaml_info
+        # Warn if magnetic declination was not applied (lat/lon missing from YAML)
+        ctx["declination_warn"] = (
+            "nortek" in instr_type.lower()
+            and "magnetic_declination" not in ctx["nc_meta"].get("global_attrs", {})
+        )
+        # True when the NC contains instrument-frame XYZ velocities (rose has XYZ panel)
+        _tvar_names = {v["name"] for v in ctx["nc_meta"].get("time_vars", [])}
+        ctx["rose_has_xyz"] = "velocity_x" in _tvar_names
 
         try:
             from jinja2 import Environment

@@ -104,7 +104,10 @@ ignore = [
 # The following files move to tools/ or pipeline/ post-OdB; ANN/D deferred until then
 "oceanarray/clock_offset.py" = ["ANN", "D"]
 "oceanarray/find_deployment.py" = ["ANN", "D"]
-"oceanarray/plotters.py" = ["ANN", "D"]
+"oceanarray/plotter.py" = ["ANN", "D"]          # legacy; renamed from plotters.py; migrates to plotters/ post-OdB
+"oceanarray/plotters/__init__.py" = ["ANN", "D", "F401"]  # backward-compat shim re-exports
+"oceanarray/plotters/_primitives.py" = ["ANN", "D"]
+"oceanarray/plotters/_current.py" = ["ANN", "D"]
 "oceanarray/readers.py" = ["ANN", "D"]
 "oceanarray/writers.py" = ["ANN", "D"]
 # rapid_interp.py moves to legacy/ post-OdB; suppress everything until then

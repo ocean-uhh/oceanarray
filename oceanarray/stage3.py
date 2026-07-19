@@ -290,6 +290,82 @@ def _apply_beam_to_enu(
     return ds
 
 
+def _apply_declination_to_enu(
+    ds: "xr.Dataset",
+    lat: float,
+    lon: float,
+    latlon_source: str = "unknown",
+    log_fn: Any = None,
+) -> "xr.Dataset":
+    """Apply magnetic declination rotation to velocities already in ENU frame.
+
+    When a Nortek instrument is configured to output ENU coordinates internally,
+    the heading reference used is magnetic north.  This function rotates
+    east_velocity and north_velocity by the declination angle so that north
+    aligns with true (geographic) north.
+
+    Rotation (D = declination, positive = east):
+        u_true = u_mag * cos(D) + v_mag * sin(D)
+        v_true = -u_mag * sin(D) + v_mag * cos(D)
+
+    No-ops if east_velocity or north_velocity are absent, or if magnetic
+    declination has already been applied (``magnetic_declination`` attr present).
+    """
+
+    def _warn(msg: str) -> None:
+        if log_fn:
+            log_fn(msg)
+        else:
+            print(msg)
+
+    if "magnetic_declination" in ds.attrs:
+        return ds  # already applied
+
+    if "east_velocity" not in ds.data_vars or "north_velocity" not in ds.data_vars:
+        return ds
+
+    try:
+        import ppigrf
+        import datetime as _dt
+
+        time_vals = ds["time"].values
+        t_mid = time_vals[len(time_vals) // 2]
+        t_mid_s = int(t_mid.astype("datetime64[s]").astype("int64"))
+        t_mid_dt = _dt.datetime.utcfromtimestamp(t_mid_s)
+        Be, Bn, _ = ppigrf.igrf(float(lon), float(lat), 0.0, t_mid_dt)
+        declination = float(
+            np.degrees(
+                np.arctan2(float(np.atleast_1d(Be)[0]), float(np.atleast_1d(Bn)[0]))
+            )
+        )
+
+        D = np.radians(declination)
+        u = ds["east_velocity"].values.astype(float)
+        v = ds["north_velocity"].values.astype(float)
+        ds["east_velocity"].values[:] = u * np.cos(D) + v * np.sin(D)
+        ds["north_velocity"].values[:] = -u * np.sin(D) + v * np.cos(D)
+
+        ds.attrs["magnetic_declination"] = declination
+        ds.attrs["magnetic_declination_units"] = "degrees_east"
+        ds.attrs["magnetic_declination_method"] = "ppigrf IGRF at deployment midpoint"
+        ds.attrs["magnetic_declination_lat"] = lat
+        ds.attrs["magnetic_declination_lon"] = lon
+        ds.attrs["magnetic_declination_latlon_source"] = (
+            f"mooring YAML ({latlon_source})"
+        )
+        ds.attrs["nortek_coordinate_system_source"] = (
+            "ENU from instrument; declination-corrected by oceanarray stage3"
+        )
+        _warn(
+            f"  ENU declination correction: {declination:+.2f}° applied to "
+            "east_velocity / north_velocity"
+        )
+    except Exception as e:  # noqa: BLE001  — ppigrf optional
+        _warn(f"  WARNING: declination correction unavailable ({e}) — ENU unchanged")
+
+    return ds
+
+
 # Priority order for merging QC flags (higher priority = worse data quality).
 # 9=missing, 4=bad, 3=suspect, 8=interpolated, 2=prob-good, 1=good
 _QC_PRIORITY: Dict[int, int] = {9: 6, 4: 5, 3: 4, 8: 3, 2: 2, 1: 1, 0: 0}
@@ -1110,6 +1186,16 @@ class Stage3Processor:
                 latlon_source=info.get("latlon_source", "unknown"),
                 log_fn=self._log,
             )
+            # If instrument was already in ENU (e.g. configured internally),
+            # still apply the magnetic declination rotation.
+            if coord_sys_before == "ENU":
+                ds = _apply_declination_to_enu(
+                    ds,
+                    info["lat"],
+                    info["lon"],
+                    latlon_source=info.get("latlon_source", "unknown"),
+                    log_fn=self._log,
+                )
 
             # ── ENU velocity QC + up→east/north flag propagation ──────
             # Run gross-range on ENU vars just created by _apply_beam_to_enu,

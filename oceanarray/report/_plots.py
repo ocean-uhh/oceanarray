@@ -1534,3 +1534,154 @@ def _make_isopycnal_fig_b64(
         return b64
     except Exception:
         return None
+
+
+# ---------------------------------------------------------------------------
+# Aquadopp trajectory and speed distribution (Tier-3 wrappers)
+# Delegates to oceanarray.plotters._current (Tier-2 domain wrappers).
+# ---------------------------------------------------------------------------
+
+
+def _make_temperature_trajectory(nc_path: str) -> Optional[str]:
+    """Lagrangian trajectory coloured by temperature, for Aquadopp instrument page."""
+    try:
+        import xarray as xr
+        import matplotlib.pyplot as plt
+        from oceanarray.plotters._current import plot_temperature_trajectory
+
+        with xr.open_dataset(nc_path) as ds:
+            fig = plot_temperature_trajectory(ds)
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception:  # noqa: BLE001  — plot is optional; bad data or missing vars → skip
+        return None
+
+
+def _make_speed_boxplot(nc_path: str) -> Optional[str]:
+    """Speed boxplot with percentile statistics, for Aquadopp instrument page."""
+    try:
+        import xarray as xr
+        import matplotlib.pyplot as plt
+        from oceanarray.plotters._current import plot_speed_boxplot
+
+        with xr.open_dataset(nc_path) as ds:
+            fig = plot_speed_boxplot(ds)
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception:  # noqa: BLE001  — plot is optional; bad data or missing vars → skip
+        return None
+
+
+def _make_multi_aquadopp_trajectories(ds: "xr.Dataset") -> Optional[str]:
+    """Multi-instrument Aquadopp trajectory plot coloured by temperature, for stack page.
+
+    Takes an already-loaded xarray.Dataset (not a path) since the stack report
+    has the dataset in memory when it calls this function.
+    """
+    try:
+        import matplotlib.pyplot as plt
+        from oceanarray.plotters._current import plot_multi_aquadopp_trajectories
+
+        fig = plot_multi_aquadopp_trajectories(ds)
+        if fig is None:
+            return None
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception:  # noqa: BLE001  — plot is optional; no aquadopps or missing vars → skip
+        return None
+
+
+def _make_aquadopp_speed_profile(ds: "xr.Dataset") -> Optional[str]:
+    """Horizontal speed boxplots per Aquadopp positioned by HAB, for stack page.
+
+    Takes an already-loaded xarray.Dataset (not a path).
+    """
+    try:
+        import matplotlib.pyplot as plt
+        from oceanarray.plotters._current import plot_aquadopp_speed_profile
+
+        fig = plot_aquadopp_speed_profile(ds)
+        if fig is None:
+            return None
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception:  # noqa: BLE001  — plot is optional; no aquadopps or missing vars → skip
+        return None
+
+
+def _make_analog_timeseries(nc_path: "Path", analog_vars: "List[str]") -> Optional[str]:
+    """Full-record time series for analog channel variables, one panel per variable.
+
+    Only generates a plot when *analog_vars* is non-empty (caller should check
+    via nc_meta['analog_vars'] before calling).  Returns None on any error or if
+    the dataset lacks a time dimension.
+    """
+    if not analog_vars:
+        return None
+    try:
+        import matplotlib.pyplot as plt
+        import xarray as xr
+        from .. import parameters as P
+
+        plt.style.use(str(P.MPLSTYLE))
+        ds = xr.open_dataset(nc_path, decode_timedelta=False).load()
+
+        if "time" not in ds.dims:
+            ds.close()
+            return None
+
+        time = ds["time"].values
+        n_vars = len(analog_vars)
+        fig, axes = plt.subplots(
+            n_vars,
+            1,
+            figsize=(10, max(2.5, n_vars * 2.0)),
+            sharex=True,
+            squeeze=False,
+        )
+
+        colors = ["steelblue", "darkorange", "seagreen", "crimson"]
+        for row, vname in enumerate(analog_vars):
+            ax = axes[row][0]
+            raw = ds[vname].values
+            units = ds[vname].attrs.get("units", "")
+            long_name = ds[vname].attrs.get("long_name", vname)
+            ylabel = f"{long_name} ({units})" if units else long_name
+
+            # Stack NC: shape (N_LEVELS, time) — plot each level with finite data
+            if raw.ndim == 2:
+                n_plotted = 0
+                for lvl_i in range(raw.shape[0]):
+                    row_data = raw[lvl_i]
+                    if np.any(np.isfinite(row_data)):
+                        label = None
+                        if "serial" in ds.coords:
+                            label = str(ds["serial"].values[lvl_i])
+                        ax.plot(
+                            time, row_data,
+                            linewidth=0.8,
+                            color=colors[n_plotted % len(colors)],
+                            label=label,
+                        )
+                        n_plotted += 1
+                if n_plotted > 1 and "serial" in ds.coords:
+                    ax.legend(fontsize=6, loc="upper right")
+            else:
+                ax.plot(time, raw, linewidth=0.8, color="steelblue")
+
+            ax.set_ylabel(ylabel, fontsize=7)
+            ax.tick_params(axis="both", labelsize=7)
+            ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.5)
+
+        fig.autofmt_xdate(rotation=30, ha="right")
+        fig.tight_layout()
+        ds.close()
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception:  # noqa: BLE001
+        return None
