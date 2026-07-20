@@ -149,31 +149,44 @@ def _apply_beam_to_enu(
 
     # Magnetic declination via ppigrf
     declination = 0.0
-    try:
-        import ppigrf
-        import datetime as _dt
-
-        time_vals = ds["time"].values
-        t_mid = time_vals[len(time_vals) // 2]
-        t_mid_s = int(t_mid.astype("datetime64[s]").astype("int64"))
-        t_mid_dt = _dt.datetime.utcfromtimestamp(t_mid_s)
-        Be, Bn, _ = ppigrf.igrf(float(lon), float(lat), 0.0, t_mid_dt)
-        declination = float(
-            np.degrees(
-                np.arctan2(float(np.atleast_1d(Be)[0]), float(np.atleast_1d(Bn)[0]))
-            )
+    if lat == 0.0 and lon == 0.0 and "unknown" in latlon_source.lower():
+        _warn(
+            f"  WARNING: BEAM→ENU — lat/lon unknown for serial {entry.get('serial', '?')}. "
+            "Skipping magnetic declination to avoid silently applying the Gulf of Guinea value. "
+            "Set lat/lon in the mooring YAML to get a correct declination correction."
         )
-        ds.attrs["magnetic_declination"] = declination
-        ds.attrs["magnetic_declination_units"] = "degrees_east"
-        ds.attrs["magnetic_declination_method"] = "ppigrf IGRF at deployment midpoint"
-        ds.attrs["magnetic_declination_lat"] = lat
-        ds.attrs["magnetic_declination_lon"] = lon
+        ds.attrs["magnetic_declination"] = "UNK"
         ds.attrs["magnetic_declination_latlon_source"] = (
             f"mooring YAML ({latlon_source})"
         )
-        _warn(f"  BEAM→ENU: magnetic declination = {declination:.2f}°")
-    except Exception as e:  # noqa: BLE001  — ppigrf optional; proceed with 0° declination
-        _warn(f"  WARNING: magnetic declination unavailable ({e}) — using 0°")
+    else:
+        try:
+            import ppigrf
+            import datetime as _dt
+
+            time_vals = ds["time"].values
+            t_mid = time_vals[len(time_vals) // 2]
+            t_mid_s = int(t_mid.astype("datetime64[s]").astype("int64"))
+            t_mid_dt = _dt.datetime.utcfromtimestamp(t_mid_s)
+            Be, Bn, _ = ppigrf.igrf(float(lon), float(lat), 0.0, t_mid_dt)
+            declination = float(
+                np.degrees(
+                    np.arctan2(float(np.atleast_1d(Be)[0]), float(np.atleast_1d(Bn)[0]))
+                )
+            )
+            ds.attrs["magnetic_declination"] = declination
+            ds.attrs["magnetic_declination_units"] = "degrees_east"
+            ds.attrs["magnetic_declination_method"] = (
+                "ppigrf IGRF at deployment midpoint"
+            )
+            ds.attrs["magnetic_declination_lat"] = lat
+            ds.attrs["magnetic_declination_lon"] = lon
+            ds.attrs["magnetic_declination_latlon_source"] = (
+                f"mooring YAML ({latlon_source})"
+            )
+            _warn(f"  BEAM→ENU: magnetic declination = {declination:.2f}°")
+        except Exception as e:  # noqa: BLE001  — ppigrf optional; proceed with 0° declination
+            _warn(f"  WARNING: magnetic declination unavailable ({e}) — using 0°")
 
     if coord_sys == "BEAM":
         # Stage1 could not apply the T matrix (header file missing or unparseable).
@@ -324,6 +337,18 @@ def _apply_declination_to_enu(
         return ds  # already applied
 
     if "east_velocity" not in ds.data_vars or "north_velocity" not in ds.data_vars:
+        return ds
+
+    if lat == 0.0 and lon == 0.0 and "unknown" in latlon_source.lower():
+        _warn(
+            "  WARNING: ENU declination correction skipped — lat/lon unknown. "
+            "Applying declination from (0°N, 0°E) would silently rotate velocities by "
+            "the Gulf of Guinea value. Set lat/lon in the mooring YAML."
+        )
+        ds.attrs["magnetic_declination"] = "UNK"
+        ds.attrs["magnetic_declination_latlon_source"] = (
+            f"mooring YAML ({latlon_source})"
+        )
         return ds
 
     try:

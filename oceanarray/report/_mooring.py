@@ -16,6 +16,7 @@ from ._html_helpers import (
     _fmt_dt,
     _get_proc_dir,
     _load_pdf_b64,
+    _nav_buttons_html,
     _parse_dt,
     _raw_file_path,
     _read_instrument_info,
@@ -81,6 +82,7 @@ _HTML_TEMPLATE = """\
   }
   .meta-grid dt { opacity: 0.68; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.06em; margin-bottom: 0.1rem; }
   .meta-grid dd { margin: 0; font-weight: 600; }
+  .meta-miss dd { color: #e67e22; opacity: 1; }
   /* section headings */
   h2 {
     color: var(--ocean);
@@ -157,21 +159,18 @@ _HTML_TEMPLATE = """\
 
 <!-- ══════════════════════════════════════════════ 1. HEADER ══ -->
 <div id="top" class="masthead">
-  <h1>{{ mooring_name }}</h1>
-  <p class="sub">Mooring recovery report &mdash; generated {{ generated }}</p>
-  {% if stack_exists or grid_exists %}<p class="sub" style="margin-top:0.2rem">
-    {% if stack_exists %}<a href="{{ mooring_name }}_stack_report.html" style="color:#aee;font-weight:600">&#8594; Stack report</a>{% endif %}
-    {% if stack_exists and grid_exists %} &bull; {% endif %}
-    {% if grid_exists %}<a href="{{ mooring_name }}_grid_report.html" style="color:#aee;font-weight:600">&#8594; Grid report</a>{% endif %}
-  </p>{% endif %}
+  <h1 style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem"><span>{{ mooring_name }}</span><span style="font-size:1.2rem;opacity:0.8;white-space:nowrap">Summary</span></h1>
+  <p class="sub" style="display:flex;justify-content:space-between"><span>Mooring recovery report</span><span>generated {{ generated }}</span></p>
+  {{ nav_buttons | safe }}
   <dl class="meta-grid">
-    <div><dt>Cruise</dt><dd>{{ cruise }}</dd></div>
-    <div><dt>Ship</dt><dd>{{ ship }}</dd></div>
-    <div><dt>Deployment</dt><dd>{{ deploy_time }}</dd></div>
-    <div><dt>Recovery</dt><dd>{{ recover_time }}</dd></div>
-    <div><dt>Duration</dt><dd>{{ duration }}</dd></div>
-    <div><dt>Water depth</dt><dd>{{ waterdepth }} m</dd></div>
-    <div><dt>Location</dt><dd>{{ latitude }}, {{ longitude }}</dd></div>
+    <div{% if cruise == '—' %} class="meta-miss"{% endif %}><dt>Cruise</dt><dd>{{ cruise }}</dd></div>
+    <div{% if ship == '—' %} class="meta-miss"{% endif %}><dt>Ship</dt><dd>{{ ship }}</dd></div>
+    <div{% if latitude == '—' %} class="meta-miss"{% endif %}><dt>Latitude</dt><dd>{{ latitude }}</dd></div>
+    <div{% if longitude == '—' %} class="meta-miss"{% endif %}><dt>Longitude</dt><dd>{{ longitude }}</dd></div>
+    <div{% if waterdepth == '—' %} class="meta-miss"{% endif %}><dt>Water depth</dt><dd>{{ waterdepth }}{% if waterdepth != '—' %}&thinsp;m{% endif %}</dd></div>
+    <div{% if deploy_time == '—' %} class="meta-miss"{% endif %}><dt>Deployment</dt><dd>{{ deploy_time }}</dd></div>
+    <div{% if recover_time == '—' %} class="meta-miss"{% endif %}><dt>Recovery</dt><dd>{{ recover_time }}</dd></div>
+    <div{% if duration == '—' %} class="meta-miss"{% endif %}><dt>Duration</dt><dd>{{ duration }}</dd></div>
     <div><dt>Instruments</dt><dd>{{ n_instruments }}</dd></div>
   </dl>
 </div>
@@ -804,6 +803,13 @@ class MooringReport:
             "stack_exists": stack_exists,
             "grid_exists": grid_exists,
             "any_clock_correction": any_clock,
+            "nav_buttons": _nav_buttons_html(
+                mooring_name,
+                instruments,
+                stack_exists=stack_exists,
+                grid_exists=grid_exists,
+                current_report="summary",
+            ),
             "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
             "proc_machine": socket.gethostname().split(".")[0],
             "yaml_path": str(yaml_path.relative_to(self.base_dir)),

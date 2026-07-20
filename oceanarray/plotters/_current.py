@@ -12,12 +12,14 @@ from __future__ import annotations
 
 from typing import Optional
 
+import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 from matplotlib.collections import LineCollection
 
 from oceanarray.plotters._primitives import plot_trajectory
+from oceanarray.utilities import _nice_colorbar_bounds
 
 
 def plot_temperature_trajectory(
@@ -217,11 +219,12 @@ def plot_multi_aquadopp_trajectories(
     cmap = plt.get_cmap("coolwarm")
     if has_temp and all_temps:
         flat = np.concatenate(all_temps)
-        norm: plt.Normalize = plt.Normalize(
-            vmin=float(np.nanmin(flat)), vmax=float(np.nanmax(flat))
+        _bounds = _nice_colorbar_bounds(
+            float(np.nanmin(flat)), float(np.nanmax(flat)), n=20
         )
     else:
-        norm = plt.Normalize(vmin=0, vmax=1)
+        _bounds = _nice_colorbar_bounds(0.0, 1.0, n=20)
+    norm: mcolors.BoundaryNorm = mcolors.BoundaryNorm(_bounds, ncolors=256)
 
     fig, ax = plt.subplots(figsize=(6, 5))
 
@@ -235,7 +238,7 @@ def plot_multi_aquadopp_trajectories(
             lc = LineCollection(
                 segments, cmap=cmap, norm=norm, linewidth=1.5, alpha=0.85
             )
-            lc.set_array(temp)
+            lc.set_array(temp[:-1])
             ax.add_collection(lc)
             end_color = cmap(
                 norm(float(np.nanmedian(temp[-max(1, len(temp) // 20) :])))
@@ -275,7 +278,9 @@ def plot_multi_aquadopp_trajectories(
         sm.set_array([])
         units = ds[temp_var].attrs.get("units", "°C")
         long_name = ds[temp_var].attrs.get("long_name", "Temperature")
-        fig.colorbar(sm, ax=ax, label=f"{long_name} ({units})", shrink=0.75)
+        fig.colorbar(
+            sm, ax=ax, label=f"{long_name} ({units})", shrink=0.75, ticks=_bounds
+        )
 
     ax.autoscale_view()
     ax.set_xlabel("East displacement (m)")

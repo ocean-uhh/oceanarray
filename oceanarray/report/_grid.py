@@ -7,7 +7,7 @@ from typing import Any, Dict
 
 import numpy as np
 
-from ._html_helpers import _parse_history, _read_nc_metadata, _status
+from ._html_helpers import _nav_buttons_html, _parse_history, _read_nc_metadata, _status
 from ._plots import (
     _make_grid_fig_b64,
     _make_grid_ts_diagram,
@@ -40,11 +40,12 @@ _GRID_HTML_TEMPLATE = """\
   .masthead .sub { font-size:0.9rem; opacity:0.88; margin:0 0 0.15rem; }
   .masthead .sub a { color:#e8d5ff; font-weight:600; text-decoration:none; }
   .masthead .sub a:hover { text-decoration:underline; }
-  .meta-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+  .meta-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
                gap:0.5rem 2rem; font-size:0.84rem; margin-top:0.9rem; }
   .meta-grid dt { opacity:0.7; text-transform:uppercase; font-size:0.7rem;
                   letter-spacing:0.06em; margin-bottom:0.1rem; }
   .meta-grid dd { margin:0; font-weight:600; }
+  .meta-miss dd { color:#e67e22; opacity:1; }
   h2 { color:var(--ocean); font-size:1rem; border-bottom:2px solid var(--seafoam);
        padding-bottom:0.3rem; margin:2.5rem 0 1rem;
        display:flex; justify-content:space-between; align-items:baseline; }
@@ -81,19 +82,25 @@ _GRID_HTML_TEMPLATE = """\
 <body>
 
 <div id="top" class="masthead">
-  <h1>{{ mooring_name }} &mdash; Gridded data</h1>
-  <p class="sub">{{ n_levels }} pressure levels &bull; {{ p_range }} &bull; {{ n_time }} time steps &bull; generated {{ generated }}</p>
-  <p class="sub">
-    <a href="{{ mooring_report_link }}">&#8592; Mooring summary</a>
-    {% if stack_exists %} &bull; <a href="{{ mooring_name }}_stack_report.html">&#8592; Stack report</a>{% endif %}
-  </p>
+  <h1 style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem"><span>{{ mooring_name }}</span><span style="font-size:1.2rem;opacity:0.8;white-space:nowrap">Gridded</span></h1>
+  <p class="sub" style="text-align:right">generated {{ generated }}</p>
+  {{ nav_buttons | safe }}
   <dl class="meta-grid">
-    <div><dt>Cruise</dt><dd>{{ cruise }}</dd></div>
-    <div><dt>Ship</dt><dd>{{ ship }}</dd></div>
-    <div><dt>Deployment</dt><dd>{{ deploy_time }}</dd></div>
-    <div><dt>Recovery</dt><dd>{{ recover_time }}</dd></div>
-    <div><dt>Duration</dt><dd>{{ duration }}</dd></div>
-    <div><dt>Water depth</dt><dd>{{ waterdepth }}&thinsp;m</dd></div>
+    <div{% if cruise == '—' %} class="meta-miss"{% endif %}><dt>Cruise</dt><dd>{{ cruise }}</dd></div>
+    <div{% if ship == '—' %} class="meta-miss"{% endif %}><dt>Ship</dt><dd>{{ ship }}</dd></div>
+    <div{% if latitude == '—' %} class="meta-miss"{% endif %}><dt>Latitude</dt><dd>{{ latitude }}</dd></div>
+    <div{% if longitude == '—' %} class="meta-miss"{% endif %}><dt>Longitude</dt><dd>{{ longitude }}</dd></div>
+    <div{% if waterdepth == '—' %} class="meta-miss"{% endif %}><dt>Water depth</dt><dd>{{ waterdepth }}{% if waterdepth != '—' %}&thinsp;m{% endif %}</dd></div>
+    <div{% if deploy_time == '—' %} class="meta-miss"{% endif %}><dt>Deployment</dt><dd>{{ deploy_time }}</dd></div>
+    <div{% if recover_time == '—' %} class="meta-miss"{% endif %}><dt>Recovery</dt><dd>{{ recover_time }}</dd></div>
+    <div{% if duration == '—' %} class="meta-miss"{% endif %}><dt>Duration</dt><dd>{{ duration }}</dd></div>
+    <div{% if grid_dt_s == '—' %} class="meta-miss"{% endif %}><dt>Samp.&nbsp;&Delta;t</dt><dd>{{ grid_dt_s }}{% if grid_dt_s != '—' %}&thinsp;s{% endif %}</dd></div>
+    <div><dt>Records</dt><dd>{{ n_time }}</dd></div>
+    <div{% if grid_dp == '—' %} class="meta-miss"{% endif %}><dt>Grid&nbsp;&Delta;P</dt><dd>{{ grid_dp }}</dd></div>
+    <div><dt>Pressure&nbsp;levels</dt><dd>{{ n_levels }}</dd></div>
+    <div><dt>Pressure&nbsp;range</dt><dd>{{ p_range }}</dd></div>
+    <div><dt>Instruments</dt><dd>{{ n_instr }}</dd></div>
+    <div><dt>Source&nbsp;file</dt><dd>{{ nc_file }}</dd></div>
   </dl>
 </div>
 
@@ -290,6 +297,17 @@ def generate_grid_page(
         n_time = ds.sizes["time"]
         p_min, p_max = int(pressure.min()), int(pressure.max())
         p_range = f"{p_min}–{p_max} dbar"
+        grid_dp = (
+            f"{int(round(float(np.median(np.diff(pressure)))))} dbar"
+            if len(pressure) > 1
+            else "—"
+        )
+        if n_time > 1:
+            dt_arr = np.diff(ds["time"].values) / np.timedelta64(1, "s")
+            grid_dt_s = str(int(np.median(dt_arr)))
+        else:
+            grid_dt_s = "—"
+        n_instr = ctx.get("n_instruments", "—")
         grid_history = _parse_history(ds.attrs.get("history", ""))
 
         # Temperature
@@ -499,6 +517,13 @@ def generate_grid_page(
         env = Environment(autoescape=True)
         html = env.from_string(_GRID_HTML_TEMPLATE).render(
             mooring_name=mooring_name,
+            nav_buttons=_nav_buttons_html(
+                mooring_name,
+                ctx.get("instruments", []),
+                stack_exists=stack_exists,
+                grid_exists=True,
+                current_report="grid",
+            ),
             cruise=ctx.get("cruise", "—"),
             ship=ctx.get("ship", "—"),
             deploy_time=ctx["deploy_time"],
@@ -527,6 +552,11 @@ def generate_grid_page(
             fig_spectrum_b64=fig_spectrum_b64,
             fig_ts_grid_b64=fig_ts_grid_b64,
             fig_n2_b64=fig_n2_b64,
+            latitude=ctx.get("latitude", "—"),
+            longitude=ctx.get("longitude", "—"),
+            n_instr=n_instr,
+            grid_dt_s=grid_dt_s,
+            grid_dp=grid_dp,
             generated=ctx["generated"],
             proc_machine=ctx.get("proc_machine", ""),
         )

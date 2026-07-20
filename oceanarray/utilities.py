@@ -67,7 +67,7 @@ def concat_with_scalar_vars(
     return combined
 
 
-def _check_necessary_variables(ds: xr.Dataset, vars: list) -> None:
+def check_necessary_variables(ds: xr.Dataset, vars: list) -> None:
     """Check that all required variables are present in a dataset.
 
     Parameters

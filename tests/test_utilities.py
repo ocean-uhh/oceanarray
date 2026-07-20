@@ -1,19 +1,13 @@
-from oceanarray import logger, utilities
-
-# Sample data
-VALID_URL = "https://rapid.ac.uk/sites/default/files/rapid_data/"
-INVALID_URL = "ftdp://invalid-url.com/data.nc"
-INVALID_STRING = "not_a_valid_source"
-
-logger.disable_logging()
-
 from datetime import datetime
 
 import numpy as np
 import pytest
 import xarray as xr
 
-from oceanarray.utilities import iso8601_duration_from_seconds
+from oceanarray import logger, utilities
+from oceanarray.utilities import drop_all_zero_vars, iso8601_duration_from_seconds
+
+logger.disable_logging()
 
 
 def test_concat_with_scalar_vars_preserves_scalars():
@@ -27,13 +21,13 @@ def test_concat_with_scalar_vars_preserves_scalars():
 
 def test_check_necessary_variables_pass():
     ds = xr.Dataset({"TEMP": ("TIME", [1, 2, 3]), "PRES": ("TIME", [10, 20, 30])})
-    utilities._check_necessary_variables(ds, ["TEMP", "PRES"])  # Should not raise
+    utilities.check_necessary_variables(ds, ["TEMP", "PRES"])
 
 
 def test_check_necessary_variables_fail():
     ds = xr.Dataset({"TEMP": ("TIME", [1, 2, 3])})
     with pytest.raises(KeyError):
-        utilities._check_necessary_variables(ds, ["TEMP", "PRES"])
+        utilities.check_necessary_variables(ds, ["TEMP", "PRES"])
 
 
 def test_get_time_key_standard():
@@ -62,13 +56,6 @@ def test_get_dims_basic():
     assert time_key == "TIME"
     assert pres_dim == "DEPTH"
     assert time_dim == "TIME"
-
-
-def test_iso8601_duration_from_seconds():
-    assert utilities.iso8601_duration_from_seconds(3600) == "PT1H"
-    assert utilities.iso8601_duration_from_seconds(65) == "PT1M"
-    assert utilities.iso8601_duration_from_seconds(5) == "PT5S"
-    assert utilities.iso8601_duration_from_seconds(86400) == "P1D"
 
 
 def test_is_iso8601_utc_valid_formats():
@@ -116,3 +103,60 @@ def test_is_iso8601_utc():
     assert utilities.is_iso8601_utc("2023-06-09T12:00:00Z")
     assert utilities.is_iso8601_utc("2023/06/09T12:00:00Z")
     assert not utilities.is_iso8601_utc("2023-06-09 12:00:00")
+
+
+# ---------------------------------------------------------------------------
+# drop_all_zero_vars
+# ---------------------------------------------------------------------------
+
+
+def test_drop_all_zero_vars_drops_all_zero_float():
+    ds = xr.Dataset(
+        {
+            "amplitude_beam1": ("time", np.zeros(5, dtype=float)),
+            "temperature": ("time", np.ones(5)),
+        }
+    )
+    out = drop_all_zero_vars(ds, ["amplitude_beam"])
+    assert "amplitude_beam1" not in out.data_vars
+    assert "temperature" in out.data_vars
+
+
+def test_drop_all_zero_vars_keeps_mixed_float():
+    ds = xr.Dataset(
+        {
+            "amplitude_beam1": ("time", np.array([0.0, 1.0, 0.0])),
+        }
+    )
+    out = drop_all_zero_vars(ds, ["amplitude_beam"])
+    assert "amplitude_beam1" in out.data_vars
+
+
+def test_drop_all_zero_vars_all_nan_dropped():
+    ds = xr.Dataset(
+        {
+            "amplitude_beam1": ("time", np.array([np.nan, np.nan, np.nan])),
+        }
+    )
+    out = drop_all_zero_vars(ds, ["amplitude_beam"])
+    assert "amplitude_beam1" not in out.data_vars
+
+
+def test_drop_all_zero_vars_integer_zero_dropped():
+    ds = xr.Dataset(
+        {
+            "amplitude_beam1": ("time", np.zeros(5, dtype=np.int16)),
+        }
+    )
+    out = drop_all_zero_vars(ds, ["amplitude_beam"])
+    assert "amplitude_beam1" not in out.data_vars
+
+
+def test_drop_all_zero_vars_nonmatching_prefix_kept():
+    ds = xr.Dataset(
+        {
+            "temperature": ("time", np.zeros(5)),
+        }
+    )
+    out = drop_all_zero_vars(ds, ["amplitude_beam"])
+    assert "temperature" in out.data_vars

@@ -201,3 +201,26 @@ def test_show_attributes_from_dataset():
     df = plotters.show_attributes(ds)
     assert "Attribute" in df.columns
     assert "Value" in df.columns
+
+
+def test_plot_trajectory_lc_array_length():
+    """LineCollection colour array must have N-1 entries for N trajectory points."""
+    import matplotlib.pyplot as plt
+    from matplotlib.collections import LineCollection
+
+    from oceanarray.plotters._primitives import plot_trajectory
+
+    x = np.array([0.0, 1.0, 2.0, 3.0, 4.0])
+    y = np.array([0.0, 1.0, 0.0, -1.0, 0.0])
+    color = np.linspace(5.0, 25.0, 5)  # N=5 values → N-1=4 segments
+
+    fig = plot_trajectory(x, y, color_data=color)
+    ax = fig.axes[0]
+    lcs = [c for c in ax.collections if isinstance(c, LineCollection)]
+    assert lcs, "expected a LineCollection in the trajectory figure"
+    arr = lcs[0].get_array()
+    assert len(arr) == len(x) - 1, (
+        f"LineCollection has {len(arr)} colour values for {len(x)} points; "
+        f"expected {len(x) - 1} (one per segment)"
+    )
+    plt.close(fig)
