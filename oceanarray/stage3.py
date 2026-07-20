@@ -118,7 +118,7 @@ def _apply_beam_to_enu(
     """Transform BEAM or XYZ Nortek velocities to ENU geographic coordinates.
 
     Adds east_velocity, north_velocity, up_velocity, current_speed,
-    current_direction.  Updates nortek_coordinate_system attr to 'ENU'.
+    current_direction.  Updates coordinate_system attr to 'ENU'.
     No-ops for instruments already in ENU or with unknown coordinate system.
     Requires normalized variable names (heading, pitch, roll) — re-run stage1
     if these are absent.
@@ -130,7 +130,7 @@ def _apply_beam_to_enu(
         else:
             print(msg)
 
-    coord_sys = ds.attrs.get("nortek_coordinate_system", "ENU")
+    coord_sys = ds.attrs.get("coordinate_system", "ENU")
     if coord_sys not in ("BEAM", "XYZ"):
         return ds
 
@@ -294,8 +294,8 @@ def _apply_beam_to_enu(
             attrs={"units": units, "standard_name": cf, "long_name": long_name},
         )
 
-    ds.attrs["nortek_coordinate_system"] = "ENU"
-    ds.attrs["nortek_coordinate_system_source"] = (
+    ds.attrs["coordinate_system"] = "ENU"
+    ds.attrs["coordinate_system_source"] = (
         f"rotated from {coord_sys} by oceanarray stage3"
     )
     _warn(
@@ -380,7 +380,7 @@ def _apply_declination_to_enu(
         ds.attrs["magnetic_declination_latlon_source"] = (
             f"mooring YAML ({latlon_source})"
         )
-        ds.attrs["nortek_coordinate_system_source"] = (
+        ds.attrs["coordinate_system_source"] = (
             "ENU from instrument; declination-corrected by oceanarray stage3"
         )
         _warn(
@@ -967,6 +967,10 @@ class Stage3Processor:
                 continue
             serial = _safe_serial(entry.get("serial", ""))
             instr_type = entry.get("instrument", "unknown")
+            if entry.get("skip"):
+                reason = entry.get("skip_reason", "marked skip:true in YAML")
+                self._log(f"  SKIP {instr_type} {serial}: {reason}")
+                continue
             hab = entry.get("hab")
             if hab is None:
                 self._log(f"  WARNING: serial {serial} has no 'hab' — skipping")
@@ -980,11 +984,27 @@ class Stage3Processor:
                 if key.endswith("_qc") and isinstance(val, int)
             }
             gr_cfg, sp_cfg, tilt_cfg = _load_qc_config(mooring_config, entry)
+            # Parse optional hab_segments: list of {from: ISO, hab: float}
+            # Stored as sorted list of (np.datetime64, float) breakpoints.
+            raw_segs = entry.get("hab_segments", [])
+            hab_segments: List[tuple] = []
+            for seg in raw_segs:
+                try:
+                    bp = np.datetime64(seg["from"], "ns")
+                    hab_segments.append((bp, float(seg["hab"])))
+                except (KeyError, ValueError) as _e:
+                    self._log(
+                        f"  WARNING: serial {serial} hab_segments entry invalid"
+                        f" ({seg}): {_e} — skipped"
+                    )
+            hab_segments.sort(key=lambda x: x[0])
+
             instruments.append(
                 {
                     "serial": serial,
                     "instrument": instr_type,
                     "hab": float(hab),
+                    "hab_segments": hab_segments,
                     "nc_path": nc_path,
                     "qc_flags": qc_flags,
                     "gross_range": gr_cfg,
@@ -1204,7 +1224,7 @@ class Stage3Processor:
 
             # ── BEAM / XYZ → ENU coordinate transform ─────────────────
             # Must run before tilt QC so east/north/up_velocity exist to be flagged.
-            coord_sys_before = ds.attrs.get("nortek_coordinate_system", "ENU")
+            coord_sys_before = ds.attrs.get("coordinate_system", "ENU")
             ds = _apply_beam_to_enu(
                 ds,
                 info["entry"],
@@ -1227,7 +1247,7 @@ class Stage3Processor:
             # ── ENU velocity QC + up→east/north flag propagation ──────
             # Run gross-range on ENU vars just created by _apply_beam_to_enu,
             # then propagate up_velocity_qc so bad w flags u and v too.
-            if ds.attrs.get("nortek_coordinate_system") == "ENU":
+            if ds.attrs.get("coordinate_system") == "ENU":
                 ds = _apply_enu_velocity_qc(ds, gr_cfg, qc_attrs)
 
             # ── Tilt QC ────────────────────────────────────────────────
@@ -1241,10 +1261,7 @@ class Stage3Processor:
                     f"tilt≥{tilt_cfg['fail_threshold']}°→bad): "
                     f"suspect={n_tilt_susp}, bad={n_tilt_bad}"
                 )
-            if (
-                ds.attrs.get("nortek_coordinate_system") == "ENU"
-                and coord_sys_before != "ENU"
-            ):
+            if ds.attrs.get("coordinate_system") == "ENU" and coord_sys_before != "ENU":
                 _ba = ds.attrs.get("nortek_beam_angle", "?")
                 _ba_src = ds.attrs.get("nortek_beam_angle_source", "")
                 _assumed = "ASSUMED DEFAULT" in _ba_src
@@ -1305,26 +1322,14 @@ class Stage3Processor:
         return True
 
     # ------------------------------------------------------------------
-    def _interpolate_pressure(
+    def _interp_pressure_for_hab(
         self,
-        ds: xr.Dataset,
-        target_info: Dict[str, Any],
-        sources: List[Dict[str, Any]],
+        hab_t: float,
+        sorted_sources: List[Dict[str, Any]],
         target_time: np.ndarray,
-        pressure_bad_flag: bool,
-        qc_attrs: Dict[str, Any],
-    ) -> tuple[xr.Dataset, str]:
-        """Interpolate pressure from sources onto target; return (ds, method_str)."""
-        hab_t = target_info["hab"]
-        pressure_qc_val = target_info["qc_flags"].get("pressure", 0)
-
-        sorted_sources = sorted(
-            [s for s in sources if s.get("ds") is not None],
-            key=lambda s: s["hab"],
-        )
-        if not sorted_sources:
-            return ds, "no sources available"
-
+        serial: str,
+    ) -> tuple[np.ndarray, str]:
+        """Interpolate pressure for a single nominal HAB; return (p_array, method_str)."""
         habs = np.array([s["hab"] for s in sorted_sources])
         diffs = np.abs(habs - hab_t)
         nearest_idx = int(np.argmin(diffs))
@@ -1332,7 +1337,7 @@ class Stage3Processor:
         if diffs[nearest_idx] <= HAB_THRESHOLD:
             src = sorted_sources[nearest_idx]
             hab_offset_dbar = src["hab"] - hab_t
-            p_interp = (
+            p = (
                 _interp_pressure(
                     src["ds"]["time"].values,
                     src["ds"][src["pressure_var"]].values,
@@ -1345,7 +1350,7 @@ class Stage3Processor:
                 f"(Δhab={diffs[nearest_idx]:.1f}m, "
                 f"static offset={hab_offset_dbar:+.1f} dbar)"
             )
-            self._log(f"  {target_info['serial']} (hab={hab_t:.1f}m): {method}")
+            self._log(f"  {serial} (hab={hab_t:.1f}m): {method}")
         else:
             below = [(s, h) for s, h in zip(sorted_sources, habs) if h < hab_t]
             above = [(s, h) for s, h in zip(sorted_sources, habs) if h > hab_t]
@@ -1365,18 +1370,18 @@ class Stage3Processor:
                     src_above["ds"][src_above["pressure_var"]].values,
                     target_time,
                 )
-                p_interp = w_below * p_below + w_above * p_above
+                p = w_below * p_below + w_above * p_above
                 method = (
                     f"bracketed: {w_below:.2f}×{src_below['instrument']} "
                     f"{src_below['serial']} (hab={h_below:.1f}m) + "
                     f"{w_above:.2f}×{src_above['instrument']} "
                     f"{src_above['serial']} (hab={h_above:.1f}m)"
                 )
-                self._log(f"  {target_info['serial']} (hab={hab_t:.1f}m): {method}")
+                self._log(f"  {serial} (hab={hab_t:.1f}m): {method}")
             else:
                 src = below[-1][0] if below else above[0][0]
                 hab_offset_dbar = src["hab"] - hab_t
-                p_interp = (
+                p = (
                     _interp_pressure(
                         src["ds"]["time"].values,
                         src["ds"][src["pressure_var"]].values,
@@ -1389,9 +1394,70 @@ class Stage3Processor:
                     f"(hab={src['hab']:.1f}m, "
                     f"static offset={hab_offset_dbar:+.1f} dbar) — WARNING: out of range"
                 )
-                self._log(
-                    f"  WARNING: {target_info['serial']} (hab={hab_t:.1f}m): {method}"
+                self._log(f"  WARNING: {serial} (hab={hab_t:.1f}m): {method}")
+
+        return p, method
+
+    def _interpolate_pressure(
+        self,
+        ds: xr.Dataset,
+        target_info: Dict[str, Any],
+        sources: List[Dict[str, Any]],
+        target_time: np.ndarray,
+        pressure_bad_flag: bool,
+        qc_attrs: Dict[str, Any],
+    ) -> tuple[xr.Dataset, str]:
+        """Interpolate pressure from sources onto target; return (ds, method_str).
+
+        If *target_info* contains ``hab_segments`` (a sorted list of
+        ``(breakpoint_datetime64, hab_float)`` pairs), the record is split into
+        time segments and each segment is interpolated with its own HAB, allowing
+        for instruments that physically moved during the deployment.
+        """
+        pressure_qc_val = target_info["qc_flags"].get("pressure", 0)
+        serial = target_info["serial"]
+
+        sorted_sources = sorted(
+            [s for s in sources if s.get("ds") is not None],
+            key=lambda s: s["hab"],
+        )
+        if not sorted_sources:
+            return ds, "no sources available"
+
+        hab_segments = target_info.get("hab_segments", [])
+
+        if hab_segments:
+            # Build list of (start_ns, end_ns, hab) covering the full record.
+            # Segment 0: record start → first breakpoint, using nominal HAB.
+            # Segment k: breakpoint[k-1] → breakpoint[k] (or record end), using
+            #            the HAB specified at breakpoint[k-1].
+            T = target_time
+            seg_bounds: List[tuple] = []
+            seg_hab = target_info["hab"]
+            seg_start = T[0]
+            for bp_ns, next_hab in hab_segments:
+                seg_bounds.append((seg_start, bp_ns, seg_hab))
+                seg_start = bp_ns
+                seg_hab = next_hab
+            seg_bounds.append((seg_start, T[-1] + np.timedelta64(1, "ns"), seg_hab))
+
+            p_interp = np.full(len(T), np.nan)
+            method_parts = []
+            for seg_start_ns, seg_end_ns, hab_t in seg_bounds:
+                idx = np.where((T >= seg_start_ns) & (T < seg_end_ns))[0]
+                if len(idx) == 0:
+                    continue
+                p_seg, meth = self._interp_pressure_for_hab(
+                    hab_t, sorted_sources, T[idx], serial
                 )
+                p_interp[idx] = p_seg
+                bp_str = str(seg_end_ns)[:16]
+                method_parts.append(f"hab={hab_t:.1f}m until {bp_str}: {meth}")
+            method = "; ".join(method_parts)
+        else:
+            p_interp, method = self._interp_pressure_for_hab(
+                target_info["hab"], sorted_sources, target_time, serial
+            )
 
         # Preserve bad original pressure
         if pressure_bad_flag and "pressure" in ds.data_vars:

@@ -526,10 +526,17 @@ def _nav_buttons_html(
         "white-space:nowrap;vertical-align:middle;"
     )
 
-    def _pill(label: str, href: str, bg: str, is_current: bool) -> str:
+    def _pill(
+        label: str, href: str, bg: str, is_current: bool, is_missing: bool = False
+    ) -> str:
         esc = _html.escape(label)
         if is_current:
-            return f'<span style="{_CHIP}background:{bg}">{esc}</span>'
+            return f'<span style="{_CHIP}background:{bg}" title="current">{esc}</span>'
+        if is_missing:
+            return (
+                f'<span style="{_CHIP}background:#999" '
+                f'title="report not yet generated">{esc}</span>'
+            )
         return f'<a href="{href}" style="{_BTN}background:{bg}">{esc}</a>'
 
     parts = ['<div style="margin-top:0.65rem">']
@@ -540,47 +547,51 @@ def _nav_buttons_html(
     parts.append(
         _pill("Summary", f"{mn}_report.html", "#1a3a5c", current_report == "summary")
     )
-    if stack_exists:
-        parts.append(
-            _pill(
-                "Stack",
-                f"{mn}_stack_report.html",
-                "#2980b9",
-                current_report == "stack",
-            )
+    parts.append(
+        _pill(
+            "Stack",
+            f"{mn}_stack_report.html",
+            "#2980b9",
+            current_report == "stack",
+            is_missing=not stack_exists,
         )
-    if grid_exists:
-        parts.append(
-            _pill(
-                "Grid",
-                f"{mn}_grid_report.html",
-                "#8e44ad",
-                current_report == "grid",
-            )
+    )
+    parts.append(
+        _pill(
+            "Grid",
+            f"{mn}_grid_report.html",
+            "#8e44ad",
+            current_report == "grid",
+            is_missing=not grid_exists,
         )
+    )
     parts.append("</div>")
 
-    # Row 2: per-instrument buttons grouped by instrument type
-    by_type: Dict[str, List[str]] = {}
+    # Row 2: per-instrument buttons grouped by instrument type.
+    # Grey out instruments that have no processed stage files (no report generated).
+    by_type: Dict[str, List[Dict]] = {}
     for instr in instruments:
         itype = str(instr.get("instr_type", instr.get("instrument", "other"))).lower()
-        ser = str(instr.get("serial", ""))
         if itype not in by_type:
             by_type[itype] = []
-        by_type[itype].append(ser)
+        by_type[itype].append(instr)
 
-    for itype, serials_of_type in by_type.items():
+    for itype, instrs_of_type in by_type.items():
         parts.append('<div style="margin-bottom:0.1rem">')
         parts.append(
             f'<span style="{_LABEL}">{_html.escape(itype.capitalize())}:</span>'
         )
-        for ser in serials_of_type:
+        for instr in instrs_of_type:
+            ser = str(instr.get("serial", ""))
+            stages = instr.get("stages", {})
+            has_report = any(stages.values()) if stages else True
             parts.append(
                 _pill(
                     ser,
                     f"{mn}_{_html.escape(ser)}_report.html",
                     "#27ae60",
                     current_report == ser,
+                    is_missing=not has_report,
                 )
             )
         parts.append("</div>")

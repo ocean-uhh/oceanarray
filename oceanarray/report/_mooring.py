@@ -348,6 +348,8 @@ _HTML_TEMPLATE = """\
         {% for label, present in instr.nc.shorthands %}
         <td style="text-align:center"><span class="vbadge {{ 'vb-yes' if present else 'vb-no' }}">{{ label }}</span></td>
         {% endfor %}
+      {% elif instr.skipped %}
+        <td colspan="10" class="none-note">skipped{% if instr.skip_reason %} — {{ instr.skip_reason }}{% endif %}</td>
       {% else %}
         <td colspan="10" class="none-note">no processed file</td>
       {% endif %}
@@ -620,9 +622,9 @@ class MooringReport:
 
         if outdir:
             out_dir = Path(outdir)
-            out_dir.mkdir(parents=True, exist_ok=True)
         else:
-            out_dir = proc_dir
+            out_dir = proc_dir / "report"
+        out_dir.mkdir(parents=True, exist_ok=True)
         output_path = out_dir / f"{mooring_name}_report.html"
         if output_path.exists() and not force:
             _status("skip", str(output_path.relative_to(self.base_dir)))
@@ -755,6 +757,8 @@ class MooringReport:
                     "readable_note": readable_note,
                     "yaml_interval_s": yaml_interval_s,
                     "stopped_early": stopped_early,
+                    "skipped": bool(entry.get("skip")),
+                    "skip_reason": entry.get("skip_reason", ""),
                     "stages": _stage_files(proc_dir, instr_type, mooring_name, serial),
                     "clock": _resolve_clock(entry),
                     "nc": nc_info,
@@ -819,7 +823,7 @@ class MooringReport:
     def _render(self, ctx: Dict[str, Any]) -> str:
         try:
             from jinja2 import Environment
-        except ImportError:
-            raise ImportError("pip install jinja2")
+        except ImportError as exc:
+            raise ImportError("pip install jinja2") from exc
         env = Environment(autoescape=True)
         return env.from_string(_HTML_TEMPLATE).render(**ctx)

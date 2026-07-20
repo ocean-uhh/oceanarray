@@ -250,8 +250,11 @@ _STACK_HTML_TEMPLATE = """\
 <p class="note">Direction the current flows toward (oceanographic convention, 0&deg;=N). Speed coloured light&rarr;dark blue (slow&rarr;fast). QC-flagged samples excluded. Title shows serial number and height above bottom (m).</p>
 {% if rose_declination_warn %}
 <p style="font-size:0.82rem;background:#fff8e1;border-left:4px solid #f9a825;padding:0.5rem 0.8rem;margin-bottom:0.6rem;">
-  ⚠ Magnetic declination could not be applied to one or more Aquadopps — latitude/longitude are missing or all-zero in the mooring YAML (check <code>seabed_latitude</code>, <code>deployment_latitude</code>, or <code>latitude</code>/<code>longitude</code>).
-  Affected ENU velocities use 0° declination (magnetic north, not true north).
+  ⚠ Magnetic declination could not be applied to
+  {% if rose_declination_missing_serials %}Aquadopp(s) s/n&nbsp;{{ rose_declination_missing_serials | join(', ') }}{% else %}one or more Aquadopps{% endif %}
+  — latitude/longitude are missing or all-zero in the mooring YAML (check <code>seabed_latitude</code>, <code>deployment_latitude</code>, or <code>latitude</code>/<code>longitude</code>).
+  Re-run <code>oceanarray process … --stage 3</code> for the affected instrument(s) after fixing the YAML.
+  Affected ENU velocities currently use 0° declination (magnetic north, not true north).
 </p>
 {% endif %}
 {% if rose_declination_note %}<p class="note">{{ rose_declination_note }}</p>{% endif %}
@@ -633,6 +636,8 @@ def generate_stack_page(
                 bbox_to_anchor=(1.01, 1.0),
                 borderaxespad=0,
                 framealpha=0.8,
+                fontsize=6,
+                ncol=2,
             )
             plt.tight_layout()
             b64 = _fig_to_base64(fig)
@@ -681,22 +686,37 @@ def generate_stack_page(
         _rose_w_map = {1: "33", 2: "50", 3: "66", 4: "83"}
         rose_img_width = _rose_w_map.get(_n_rose, "100")
 
-        _decl_vals = []
+        _decl_vals: list = []
         _decl_missing = False
+        _decl_missing_serials: list = []
         if "magnetic_declination" in ds.data_vars:
             _dv = ds["magnetic_declination"].values
+            # _dv may be 0-D (scalar) if mooring_level collapsed identical values
+            _dv_flat = _dv.ravel()
             _decl_vals = sorted(
-                {round(float(v), 2) for v in _dv if np.isfinite(float(v))}
+                {round(float(v), 2) for v in _dv_flat if np.isfinite(float(v))}
             )
             if "instrument_type" in ds:
-                # instrument_type is a coord (N_LEVELS); allowed value is "aquadopp"
                 _aqd_mask = np.array(
                     [str(t).lower() == "aquadopp" for t in ds["instrument_type"].values]
                 )
-                _decl_missing = bool(
-                    _aqd_mask.any() and np.any(~np.isfinite(_dv[_aqd_mask]))
-                )
-            # no else — if instrument_type absent, don't warn (can't identify Aquadopps)
+                if _dv.ndim == 0:
+                    # Scalar → same value for all instruments
+                    _decl_missing = bool(
+                        _aqd_mask.any() and not np.isfinite(float(_dv))
+                    )
+                else:
+                    _aqd_bad = _aqd_mask & ~np.isfinite(_dv)
+                    _decl_missing = bool(_aqd_mask.any() and _aqd_bad.any())
+                    if _decl_missing:
+                        _svar = next(
+                            (v for v in ("serial_number", "serial") if v in ds), None
+                        )
+                        if _svar is not None:
+                            _svals = [str(s) for s in ds[_svar].values]
+                            _decl_missing_serials = [
+                                _svals[i] for i, bad in enumerate(_aqd_bad) if bad
+                            ]
         elif "instrument_type" in ds:
             _aqd_mask = np.array(
                 [str(t).lower() == "aquadopp" for t in ds["instrument_type"].values]
@@ -708,6 +728,7 @@ def generate_stack_page(
             else None
         )
         rose_declination_warn = _decl_missing
+        rose_declination_missing_serials = _decl_missing_serials
 
         fig_spacing_b64: Optional[str] = None
         if "pressure" in ds.data_vars and n_instr > 1:
@@ -788,6 +809,7 @@ def generate_stack_page(
             rose_img_width=rose_img_width,
             rose_declination_note=rose_declination_note,
             rose_declination_warn=rose_declination_warn,
+            rose_declination_missing_serials=rose_declination_missing_serials,
             fig_spacing_b64=fig_spacing_b64,
             fig_ts_stack_b64=fig_ts_stack_b64,
             fig_aquadopp_tilt_b64=fig_aquadopp_tilt_b64,

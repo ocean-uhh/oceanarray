@@ -253,6 +253,37 @@ class Stage2Processor:
         """Trim dataset to deployment time window."""
         original_size = len(dataset.time)
 
+        # Drop timestamps that are wildly out of range before attempting
+        # monotonic-index slicing.  SeaBird (and other) instruments sometimes
+        # download stray records from older deployments or clock-wrap artifacts.
+        # Use boolean indexing (works on non-monotonic time) to cull anything
+        # more than 31 days outside the known deployment window.
+        _one_month = np.timedelta64(31, "D")
+        t_vals = dataset.time.values
+        mask = np.ones(len(t_vals), dtype=bool)
+        if np.isfinite(deploy_time):
+            early_cutoff = deploy_time - _one_month
+            n_early = int(np.sum(t_vals < early_cutoff))
+            if n_early:
+                self._log_print(
+                    f"WARNING: dropping {n_early} record(s) with timestamps "
+                    f"more than 31 days before deployment ({early_cutoff}): "
+                    f"{t_vals[t_vals < early_cutoff]}"
+                )
+                mask &= t_vals >= early_cutoff
+        if np.isfinite(recover_time):
+            late_cutoff = recover_time + _one_month
+            n_late = int(np.sum(t_vals > late_cutoff))
+            if n_late:
+                self._log_print(
+                    f"WARNING: dropping {n_late} record(s) with timestamps "
+                    f"more than 31 days after recovery ({late_cutoff}): "
+                    f"{t_vals[t_vals > late_cutoff]}"
+                )
+                mask &= t_vals <= late_cutoff
+        if not mask.all():
+            dataset = dataset.isel(time=np.where(mask)[0])
+
         # Apply deployment time trimming
         if np.isfinite(deploy_time):
             self._log_print(f"Trimming start to deployment time: {deploy_time}")
@@ -474,6 +505,11 @@ class Stage2Processor:
 
         serial = re.sub(r"[^\w\-]", "", str(instrument_config.get("serial", "unknown")))
         instrument_type = instrument_config.get("instrument", "unknown")
+
+        if instrument_config.get("skip"):
+            reason = instrument_config.get("skip_reason", "marked skip:true in YAML")
+            self._log_print(f"SKIP {instrument_type} {serial}: {reason}")
+            return True
 
         # Construct file paths
         raw_filename = f"{mooring_name}_{serial}_stage1.nc"

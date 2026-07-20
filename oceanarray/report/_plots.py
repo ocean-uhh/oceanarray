@@ -107,6 +107,7 @@ _CANONICAL_PANELS: List[Tuple] = [
     ("roll", "Roll [°]", "#8B4513", False),
     ("heading", "Heading [°]", "tab:gray", False),
     ("speed_of_sound", "Sound speed [m/s]", "tab:olive", False),
+    ("turbidity", "Turbidity [FTU]", "tab:brown", False),
     ("battery_voltage", "Battery [V]", "tab:pink", False),
 ]
 
@@ -676,8 +677,8 @@ def _ts_heatmap_panel(
     S: np.ndarray,
     T: np.ndarray,
     n_bins: int = 80,
-    plo: float = 1.0,
-    phi: float = 99.0,
+    plo: float = 0.01,
+    phi: float = 99.99,
 ) -> None:
     """Render a T-S 2-D count heatmap on *ax*."""
     import matplotlib.colors as mcolors
@@ -880,6 +881,7 @@ def _make_spectrum_fig_b64(
         markers = [
             ("M2", 1.0 / 1.9323, "#c0392b"),
             ("K1", 23.93 / 24.0, "#e67e22"),
+            ("1.8d", 1.8, "#7f8c8d"),
         ]
         if lat != 0.0:
             import gsw as _gsw
@@ -1573,6 +1575,27 @@ def _make_speed_boxplot(nc_path: str) -> Optional[str]:
         plt.close(fig)
         return b64
     except Exception:  # noqa: BLE001  — plot is optional; bad data or missing vars → skip
+        return None
+
+
+def _make_hodograph_b64(nc_path: str) -> Optional[str]:
+    """Two-panel hodograph (raw + eddy-only) for Aquadopp instrument page.
+
+    Always returns a base64 PNG — a placeholder image is rendered when
+    east/north velocities are absent so the section is never silently omitted.
+    Returns None only on unrecoverable file errors.
+    """
+    try:
+        import xarray as xr
+        import matplotlib.pyplot as plt
+        from oceanarray.plotters._current import plot_hodograph
+
+        with xr.open_dataset(nc_path) as ds:
+            fig = plot_hodograph(ds)
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception:  # noqa: BLE001  — file unreadable; skip section entirely
         return None
 
 

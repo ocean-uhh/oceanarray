@@ -390,7 +390,7 @@ class MooringProcessor:
                BEAM → velocity_beam1 / velocity_beam2 / velocity_beam3
                XYZ  → x_velocity    / y_velocity    / z_velocity
                ENU  → east_velocity / north_velocity / up_velocity  (no rename)
-          4. Stores ``nortek_coordinate_system`` as a dataset attribute.
+          4. Stores ``coordinate_system`` as a dataset attribute.
         """
         import numpy as np
 
@@ -441,7 +441,7 @@ class MooringProcessor:
 
         # ── 3. Velocity renaming based on coordinate system ───────────────────
         cs = coord_system.strip().upper()
-        dataset.attrs["nortek_coordinate_system"] = cs
+        dataset.attrs["coordinate_system"] = cs
 
         _vel_src = ["east_velocity", "north_velocity", "up_velocity"]
         if cs == "BEAM":
@@ -449,9 +449,7 @@ class MooringProcessor:
         elif cs == "XYZ":
             _vel_dst = ["x_velocity", "y_velocity", "z_velocity"]
         elif cs == "UNK":
-            _vel_dst = (
-                _vel_src  # leave as-is; nortek_coordinate_system=UNK signals unknown
-            )
+            _vel_dst = _vel_src  # leave as-is; coordinate_system=UNK signals unknown
         else:  # ENU — names are already correct
             _vel_dst = _vel_src
 
@@ -517,7 +515,7 @@ class MooringProcessor:
         # The nortek-csv-oa reader stores deployment-config columns as full time series
         # even though they never change.  Promote them to global attrs and drop.
         _CSV_TO_ATTR = {
-            "coordinatesystem": "nortek_coordinate_system",
+            "coordinatesystem": "coordinate_system",
             "blanking": "nortek_blanking_m",
             "cellsize": "nortek_cellsize_m",
             "nbeams": "nortek_nbeams",
@@ -1153,7 +1151,7 @@ class MooringProcessor:
             pointing_down = bool(instrument_config.get("pointing_down", False))
             if (
                 T_mat is not None
-                and dataset.attrs.get("nortek_coordinate_system") == "BEAM"
+                and dataset.attrs.get("coordinate_system") == "BEAM"
                 and "velocity_beam1" in dataset.data_vars
             ):
                 import numpy as _np
@@ -1193,7 +1191,7 @@ class MooringProcessor:
                     _vz,
                     {**_vel_attrs, "long_name": "Z velocity (instrument XYZ frame)"},
                 )
-                dataset.attrs["nortek_coordinate_system"] = "XYZ"
+                dataset.attrs["coordinate_system"] = "XYZ"
 
             dataset.attrs["nortek_pointing_down"] = str(pointing_down)
 

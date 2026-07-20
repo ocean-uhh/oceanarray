@@ -677,20 +677,35 @@ class MooringStacker:
         # Coordinate names — exclude these from scalar metadata to avoid name conflicts
         _coord_names = {"serial", "hab", "instrument_type", "instrument", "time"}
 
-        # Add scalar metadata as (N_LEVELS,) variables — float where possible, else str
+        # Add scalar metadata — collapse to 0-D when all non-NaN values are identical,
+        # otherwise store as (N_LEVELS,) with one entry per instrument.
         for vname, values_list in scalar_meta.items():
             if vname in _coord_names:
                 continue
             try:
-                arr = np.array(values_list, dtype=np.float64)
-                data_vars[vname] = xr.Variable(
-                    ("N_LEVELS",), arr, attrs=scalar_attrs[vname]
+                arr = np.array(
+                    [v if v is not None else np.nan for v in values_list],
+                    dtype=np.float64,
                 )
+                unique_finite = np.unique(arr[np.isfinite(arr)])
+                if len(unique_finite) <= 1:
+                    val = float(unique_finite[0]) if len(unique_finite) == 1 else np.nan
+                    data_vars[vname] = xr.Variable((), val, attrs=scalar_attrs[vname])
+                else:
+                    data_vars[vname] = xr.Variable(
+                        ("N_LEVELS",), arr, attrs=scalar_attrs[vname]
+                    )
             except (ValueError, TypeError):
                 arr = np.array([str(v) if v is not None else "" for v in values_list])
-                data_vars[vname] = xr.Variable(
-                    ("N_LEVELS",), arr, attrs=scalar_attrs[vname]
-                )
+                unique_vals = np.unique(arr)
+                if len(unique_vals) == 1:
+                    data_vars[vname] = xr.Variable(
+                        (), unique_vals[0], attrs=scalar_attrs[vname]
+                    )
+                else:
+                    data_vars[vname] = xr.Variable(
+                        ("N_LEVELS",), arr, attrs=scalar_attrs[vname]
+                    )
 
         ds_out = xr.Dataset(
             data_vars,

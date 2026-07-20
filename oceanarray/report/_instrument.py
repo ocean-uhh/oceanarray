@@ -25,8 +25,9 @@ from ._plots import (
     _make_ts_diagram,
     _make_instrument_rose_b64,
     _make_data_histogram,
-    _make_temperature_trajectory,
+    _make_hodograph_b64,
     _make_speed_boxplot,
+    _make_temperature_trajectory,
     _make_analog_timeseries,
 )
 
@@ -144,6 +145,7 @@ _INSTRUMENT_HTML_TEMPLATE = """\
   {% if fig_tsd_b64 %}<a href="#ts">T-S diagram</a>{% endif %}
   {% if fig_rose_b64 %}<a href="#rose">Current roses</a>{% endif %}
   {% if fig_trajectory_b64 %}<a href="#trajectory">Trajectory</a>{% endif %}
+  {% if fig_hodograph_b64 %}<a href="#hodograph">Hodograph</a>{% endif %}
   {% if fig_speed_boxplot_b64 %}<a href="#speed">Speed distribution</a>{% endif %}
   {% if fig_analog_b64 %}<a href="#analog">Analog channels</a>{% endif %}
   <a href="#dist">Distributions</a>
@@ -253,6 +255,17 @@ _INSTRUMENT_HTML_TEMPLATE = """\
   Origin (0,&nbsp;0) = deployment position; axes in metres.
 </p>
 <img class="fig" src="data:image/png;base64,{{ fig_trajectory_b64 }}" style="max-width:600px;">
+{% endif %}
+
+<!-- ══ Hodograph ══ -->
+{% if fig_hodograph_b64 %}
+<h2 id="hodograph">Hodograph</h2>
+<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+  East vs north velocity (m&nbsp;s<sup>-1</sup>).
+  <b>Left</b>: full record.
+  <b>Right</b>: eddy component — raw minus 4-day low-pass (rolling mean).
+</p>
+<img class="fig" src="data:image/png;base64,{{ fig_hodograph_b64 }}">
 {% endif %}
 
 <!-- ══ Speed distribution ══ -->
@@ -457,6 +470,11 @@ def generate_instrument_pages(
         prefix = f"  [{idx:2d}] {instr_type:<12} s/n {serial:<12}"
         idx += 1
 
+        stages = instr.get("stages", {})
+        if not any(stages.get(s) for s in ("stage1", "stage2", "stage3")):
+            print(f"{prefix}  [skipped — no processed files]")
+            continue
+
         if out_path.exists() and not force:
             print(f"{prefix}  {out_path.name}  [exists]")
             continue
@@ -549,6 +567,11 @@ def generate_instrument_pages(
             ),
             "fig_speed_boxplot_b64": (
                 _make_speed_boxplot(best_nc)
+                if best_nc and instr_type.lower() == "aquadopp"
+                else None
+            ),
+            "fig_hodograph_b64": (
+                _make_hodograph_b64(best_nc)
                 if best_nc and instr_type.lower() == "aquadopp"
                 else None
             ),
