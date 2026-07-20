@@ -16,9 +16,12 @@ from __future__ import annotations
 
 from typing import Optional
 
+import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.collections import LineCollection
+
+from ..utilities import _nice_colorbar_bounds
 
 
 def plot_trajectory(
@@ -64,11 +67,12 @@ def plot_trajectory(
         segments = np.concatenate([points[:-1], points[1:]], axis=1)
         vmin = np.nanmin(color_data)
         vmax = np.nanmax(color_data)
-        norm = plt.Normalize(vmin=vmin, vmax=vmax)
+        bounds = _nice_colorbar_bounds(vmin, vmax, n=20)
+        norm = mcolors.BoundaryNorm(bounds, ncolors=256)
         lc = LineCollection(segments, cmap=cmap, norm=norm, linewidth=1.5)
-        lc.set_array(color_data)
+        lc.set_array(color_data[:-1])
         ax.add_collection(lc)
-        fig.colorbar(lc, ax=ax, label=colorbar_label, shrink=0.8)
+        fig.colorbar(lc, ax=ax, label=colorbar_label, shrink=0.8, ticks=bounds)
         ax.set_xlim(
             np.nanmin(x) - 0.05 * (np.nanmax(x) - np.nanmin(x) + 1),
             np.nanmax(x) + 0.05 * (np.nanmax(x) - np.nanmin(x) + 1),

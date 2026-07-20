@@ -599,8 +599,8 @@ def interpolate_profiles(
 
     """
     # Check if the climatology dataset has the required variables
-    utilities._check_necessary_variables(clim_ds, vars=["dTdp", "dSdp"])
-    utilities._check_necessary_variables(
+    utilities.check_necessary_variables(clim_ds, vars=["dTdp", "dSdp"])
+    utilities.check_necessary_variables(
         ds, vars=[temp_key, salt_key, "LATITUDE", "LONGITUDE"]
     )
 

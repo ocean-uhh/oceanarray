@@ -474,3 +474,116 @@ def _stage_file_details(
         info["label"] = stage.capitalize()
         rows.append(info)
     return rows
+
+
+def _nav_buttons_html(
+    mooring_name: str,
+    instruments: List[Dict[str, Any]],
+    stack_exists: bool = True,
+    grid_exists: bool = True,
+    current_report: str = "",
+) -> str:
+    """Return an HTML navigation snippet for injection into report masthead cards.
+
+    Parameters
+    ----------
+    mooring_name : str
+        Mooring identifier used to build sibling report filenames.
+    instruments : list of dict
+        Each dict must have ``serial`` and ``instr_type`` keys (the format
+        produced by ``MooringReport._build_context()``).
+    stack_exists : bool
+        Whether the stack report is available.
+    grid_exists : bool
+        Whether the grid report is available.
+    current_report : str
+        Which report this snippet is rendered in — ``"summary"``, ``"stack"``,
+        ``"grid"``, or a serial number string for per-instrument reports.
+        The matching pill is shown as a non-clickable chip (greyed out).
+
+    Returns
+    -------
+    str
+        HTML fragment safe for ``{{ nav_buttons | safe }}`` in Jinja2 templates.
+
+    """
+    import html as _html
+
+    mn = _html.escape(mooring_name)
+
+    _BTN = (
+        "display:inline-block;padding:0.2em 0.65em;border-radius:4px;"
+        "font-size:0.78rem;font-weight:700;text-decoration:none;"
+        "color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;"
+    )
+    _CHIP = (
+        "display:inline-block;padding:0.2em 0.65em;border-radius:4px;"
+        "font-size:0.78rem;font-weight:700;color:#fff;"
+        "margin:0 0.2rem 0.25rem 0;white-space:nowrap;opacity:0.45;"
+    )
+    _LABEL = (
+        "font-size:0.72rem;opacity:0.75;margin-right:0.3rem;"
+        "white-space:nowrap;vertical-align:middle;"
+    )
+
+    def _pill(label: str, href: str, bg: str, is_current: bool) -> str:
+        esc = _html.escape(label)
+        if is_current:
+            return f'<span style="{_CHIP}background:{bg}">{esc}</span>'
+        return f'<a href="{href}" style="{_BTN}background:{bg}">{esc}</a>'
+
+    parts = ['<div style="margin-top:0.65rem">']
+
+    # Row 1: report-level navigation (Summary / Stack / Grid)
+    parts.append('<div style="margin-bottom:0.25rem">')
+    parts.append(f'<span style="{_LABEL}">Reports:</span>')
+    parts.append(
+        _pill("Summary", f"{mn}_report.html", "#1a3a5c", current_report == "summary")
+    )
+    if stack_exists:
+        parts.append(
+            _pill(
+                "Stack",
+                f"{mn}_stack_report.html",
+                "#2980b9",
+                current_report == "stack",
+            )
+        )
+    if grid_exists:
+        parts.append(
+            _pill(
+                "Grid",
+                f"{mn}_grid_report.html",
+                "#8e44ad",
+                current_report == "grid",
+            )
+        )
+    parts.append("</div>")
+
+    # Row 2: per-instrument buttons grouped by instrument type
+    by_type: Dict[str, List[str]] = {}
+    for instr in instruments:
+        itype = str(instr.get("instr_type", instr.get("instrument", "other"))).lower()
+        ser = str(instr.get("serial", ""))
+        if itype not in by_type:
+            by_type[itype] = []
+        by_type[itype].append(ser)
+
+    for itype, serials_of_type in by_type.items():
+        parts.append('<div style="margin-bottom:0.1rem">')
+        parts.append(
+            f'<span style="{_LABEL}">{_html.escape(itype.capitalize())}:</span>'
+        )
+        for ser in serials_of_type:
+            parts.append(
+                _pill(
+                    ser,
+                    f"{mn}_{_html.escape(ser)}_report.html",
+                    "#27ae60",
+                    current_report == ser,
+                )
+            )
+        parts.append("</div>")
+
+    parts.append("</div>")
+    return "".join(parts)

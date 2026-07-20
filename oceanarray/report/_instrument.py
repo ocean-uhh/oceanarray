@@ -9,12 +9,15 @@ from typing import Any, Dict, List, Optional
 
 
 from ._html_helpers import (
-    _safe_serial,
-    _parse_history,
-    _read_qc_summary,
-    _read_nc_metadata,
-    _stage_file_details,
+    _duration_str,
     _file_info,
+    _nav_buttons_html,
+    _parse_dt,
+    _parse_history,
+    _read_nc_metadata,
+    _read_qc_summary,
+    _safe_serial,
+    _stage_file_details,
 )
 from ._plots import (
     _make_instrument_fig,
@@ -48,17 +51,18 @@ _INSTRUMENT_HTML_TEMPLATE = """\
   * { box-sizing: border-box; }
   body { font-family: system-ui,-apple-system,"Segoe UI",sans-serif; font-size:14px;
          color:var(--text); max-width:1150px; margin:0 auto; padding:1.5rem 2rem 4rem; line-height:1.5; }
-  .masthead { background:#27ae60; color:#fff; padding:1.6rem 2rem;
+  .masthead { background:#1e8449; color:#fff; padding:1.6rem 2rem;
               border-radius:8px; margin-bottom:2rem; }
   .masthead h1 { margin:0 0 0.3rem; font-size:1.75rem; font-weight:700; letter-spacing:0.02em; }
   .masthead .sub { font-size:0.9rem; opacity:0.88; margin:0 0 0.15rem; }
   .masthead .sub a { color:#d5f5e3; font-weight:600; text-decoration:none; }
   .masthead .sub a:hover { text-decoration:underline; }
-  .meta-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr));
+  .meta-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
                gap:0.45rem 2rem; font-size:0.83rem; margin-top:0.9rem; }
   .meta-grid dt { opacity:0.7; text-transform:uppercase; font-size:0.68rem;
                   letter-spacing:0.06em; margin-bottom:0.1rem; }
   .meta-grid dd { margin:0; font-weight:600; }
+  .meta-miss dd { color:#e67e22; opacity:1; }
   .file-table { width:100%; border-collapse:collapse; font-size:0.81rem; margin-bottom:1.2rem; }
   .file-table th { background:var(--seafoam); text-align:left; padding:0.35rem 0.65rem;
                    border-bottom:2px solid #cde; font-weight:600; }
@@ -116,14 +120,17 @@ _INSTRUMENT_HTML_TEMPLATE = """\
 
 <div id="top" class="masthead">
   <h1>{{ instr_type | title }}&ensp;&mdash;&ensp;s/n&nbsp;{{ serial }}</h1>
-  <p class="sub">{{ mooring_name }} &bull; {{ "%.1f"|format(hab) }}&thinsp;m hab{% if depth is not none %} &bull; ~{{ "%.0f"|format(depth) }}&thinsp;m depth{% endif %} &bull; generated {{ generated }}</p>
-  <p class="sub"><a href="{{ mooring_report_link }}">&#8592; Mooring summary</a></p>
+  <p class="sub" style="display:flex;justify-content:space-between"><span>{{ mooring_name }}</span><span>generated {{ generated }}</span></p>
+  {{ nav_buttons | safe }}
   <dl class="meta-grid">
-    <div><dt>Cruise</dt><dd>{{ cruise }}</dd></div>
-    <div><dt>Records</dt><dd>{{ n_records | default("&mdash;") }}</dd></div>
-    <div><dt>Start</dt><dd>{{ t_start | default("&mdash;") }}</dd></div>
-    <div><dt>End</dt><dd>{{ t_end | default("&mdash;") }}</dd></div>
-    <div><dt>Samp.&nbsp;&Delta;t</dt><dd>{{ median_dt | default("&mdash;") }}</dd></div>
+    <div{% if cruise == '—' %} class="meta-miss"{% endif %}><dt>Cruise</dt><dd>{{ cruise }}</dd></div>
+    <div><dt>HAB</dt><dd>{{ "%.1f"|format(hab) }}&thinsp;m</dd></div>
+    <div{% if depth is none %} class="meta-miss"{% endif %}><dt>Depth</dt><dd>{% if depth is not none %}~{{ "%.0f"|format(depth) }}&thinsp;m{% else %}&mdash;{% endif %}</dd></div>
+    <div{% if t_start is none or t_start == '—' %} class="meta-miss"{% endif %}><dt>Start</dt><dd>{{ t_start | default("—") }}</dd></div>
+    <div{% if t_end is none or t_end == '—' %} class="meta-miss"{% endif %}><dt>End</dt><dd>{{ t_end | default("—") }}</dd></div>
+    <div{% if duration == '—' %} class="meta-miss"{% endif %}><dt>Duration</dt><dd>{{ duration }}</dd></div>
+    <div{% if median_dt is none or median_dt == '—' %} class="meta-miss"{% endif %}><dt>Samp.&nbsp;&Delta;t</dt><dd>{{ median_dt | default("—") }}</dd></div>
+    <div{% if n_records is none or n_records == '—' %} class="meta-miss"{% endif %}><dt>Records</dt><dd>{{ n_records | default("—") }}</dd></div>
     <div><dt>Source&nbsp;file</dt><dd>{{ nc_file }}</dd></div>
   </dl>
 </div>
@@ -433,6 +440,8 @@ def generate_instrument_pages(
     mooring_report_link = f"{mooring_name}_report.html"
     generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     proc_machine = socket.gethostname().split(".")[0]
+    stack_exists = (proc_dir / f"{mooring_name}_stack.nc").exists()
+    grid_exists = (proc_dir / f"{mooring_name}_grid.nc").exists()
     _d = cfg.get("deployment_cruise") or cfg.get("cruise", "—")
     _r = cfg.get("recovery_cruise") or cfg.get("cruise") or _d
     cruise = _d if _d == _r else f"{_d} / {_r}"
@@ -468,6 +477,7 @@ def generate_instrument_pages(
         t_end = nc_info.get("t_end", "—")
         dt_s = nc_info.get("dt_s")
         median_dt = f"{dt_s:.0f} s" if dt_s and dt_s == dt_s else "—"
+        duration = _duration_str(_parse_dt(t_start), _parse_dt(t_end))
 
         history_entries: List[Dict[str, str]] = []
         if best_nc:
@@ -508,11 +518,19 @@ def generate_instrument_pages(
             ),
             "t_start": t_start,
             "t_end": t_end,
+            "duration": duration,
             "median_dt": median_dt,
             "nc_file": nc_file,
             "raw_file": raw_file,
             "stage_files": stage_files,
             "mooring_report_link": mooring_report_link,
+            "nav_buttons": _nav_buttons_html(
+                mooring_name,
+                instruments,
+                stack_exists=stack_exists,
+                grid_exists=grid_exists,
+                current_report=serial,
+            ),
             "generated": generated,
             "proc_machine": proc_machine,
             "history_entries": history_entries,
