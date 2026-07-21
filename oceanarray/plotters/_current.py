@@ -575,3 +575,117 @@ def plot_aquadopp_speed_profile(
     ax.grid(True, axis="x", linestyle="--", linewidth=0.5, alpha=0.5)
     fig.tight_layout()
     return fig
+
+
+def plot_adcp_trajectories(
+    ds: xr.Dataset,
+    u_var: str = "east_velocity",
+    v_var: str = "north_velocity",
+    instr_type_var: str = "instrument_type",
+    hab_var: str = "hab",
+    seabed_qc_var: str = "seabed_qc",
+    percent_good_qc_var: str = "percent_good_qc",
+) -> Optional[plt.Figure]:
+    """Lagrangian per-bin trajectories for ADCP data, coloured by HAB.
+
+    Each depth bin integrated by Euler-forward from the origin.  Bins that are
+    entirely below the seabed (all seabed_qc >= 3) are silently omitted.  QC
+    masking is applied before integration so bad pings are treated as zero
+    velocity (do not accumulate spurious displacement).
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        Stacked mooring dataset.  ADCP bins are identified by
+        ``instrument_type == "ADCP"``.
+    u_var, v_var : str
+        Eastward and northward velocity variable names (m s⁻¹).
+    instr_type_var, hab_var : str
+        Coordinate variable names.
+    seabed_qc_var : str
+        QC variable for seabed proximity; bins with all values >= 3 are skipped.
+    percent_good_qc_var : str
+        Ping-quality QC; timesteps flagged >= 3 are zeroed before integration.
+
+    Returns
+    -------
+    matplotlib.figure.Figure or None
+        None if no ADCP bins are found.
+    """
+    if u_var not in ds.data_vars or v_var not in ds.data_vars:
+        return None
+
+    instr_types = ds[instr_type_var].values
+    habs = ds[hab_var].values
+    adcp_idx = [i for i, t in enumerate(instr_types) if str(t).upper() == "ADCP"]
+
+    if not adcp_idx:
+        return None
+
+    time = ds["time"].values
+    dt = np.array(
+        [(time[j] - time[j - 1]) / np.timedelta64(1, "s") for j in range(1, len(time))],
+        dtype=float,
+    )
+
+    # Build per-bin trajectories with seabed + percent_good masking
+    trajs: list = []  # (hab, x, y)
+    hab_all: list = []
+    for i in adcp_idx:
+        u = ds[u_var].values[:, i].copy().astype(float)
+        v = ds[v_var].values[:, i].copy().astype(float)
+
+        # Mask by seabed proximity
+        if seabed_qc_var in ds.data_vars:
+            sqc = ds[seabed_qc_var].values[:, i]
+            # Skip bins that are always below the seabed
+            if np.all(sqc >= 3):
+                continue
+            u[sqc >= 3] = np.nan
+            v[sqc >= 3] = np.nan
+
+        # Mask by ping quality
+        if percent_good_qc_var in ds.data_vars:
+            pqc = ds[percent_good_qc_var].values[:, i]
+            u[pqc >= 3] = np.nan
+            v[pqc >= 3] = np.nan
+
+        # NaN → 0 for integration (no displacement during missing pings)
+        x = np.concatenate([[0.0], np.cumsum(np.nan_to_num(u[:-1], nan=0.0) * dt)])
+        y = np.concatenate([[0.0], np.cumsum(np.nan_to_num(v[:-1], nan=0.0) * dt)])
+        trajs.append((float(habs[i]), x, y))
+        hab_all.append(float(habs[i]))
+
+    if not trajs:
+        return None
+
+    hab_min, hab_max = min(hab_all), max(hab_all)
+    cmap = plt.get_cmap("viridis")
+    _bounds = _nice_colorbar_bounds(hab_min, hab_max, n=20)
+    norm: mcolors.BoundaryNorm = mcolors.BoundaryNorm(_bounds, ncolors=256)
+
+    fig, ax = plt.subplots(figsize=(6, 5))
+
+    for hab, x, y in trajs:
+        points = np.array([x, y]).T.reshape(-1, 1, 2)
+        segments = np.concatenate([points[:-1], points[1:]], axis=1)
+        lc = LineCollection(segments, cmap=cmap, norm=norm, linewidth=1.0, alpha=0.6)
+        lc.set_array(np.full(len(segments), hab))
+        ax.add_collection(lc)
+
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+    fig.colorbar(sm, ax=ax, label="HAB (m)", shrink=0.75, ticks=_bounds)
+
+    ax.plot(0, 0, "o", color="black", markersize=7, zorder=6, label="Start")
+    ax.legend(fontsize=8, loc="upper left")
+    ax.autoscale_view()
+    ax.set_xlabel("East displacement (m)")
+    ax.set_ylabel("North displacement (m)")
+    ax.axhline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
+    ax.axvline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
+    ax.set_aspect("equal", adjustable="datalim")
+    ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.4)
+    ax.set_title("ADCP bins coloured by HAB")
+    fig.tight_layout()
+    return fig

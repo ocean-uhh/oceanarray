@@ -30,6 +30,8 @@ from ._plots import (
     _make_speed_boxplot,
     _make_temperature_trajectory,
     _make_analog_timeseries,
+    _make_adcp_velocity_b64,
+    _make_adcp_rose_b64,
 )
 
 
@@ -133,7 +135,7 @@ _INSTRUMENT_HTML_TEMPLATE = """\
     <div{% if duration == '—' %} class="meta-miss"{% endif %}><dt>Duration</dt><dd>{{ duration }}</dd></div>
     <div{% if median_dt is none or median_dt == '—' %} class="meta-miss"{% endif %}><dt>Samp.&nbsp;&Delta;t</dt><dd>{{ median_dt | default("—") }}</dd></div>
     <div{% if n_records is none or n_records == '—' %} class="meta-miss"{% endif %}><dt>Records</dt><dd>{{ n_records | default("—") }}</dd></div>
-    <div><dt>Source&nbsp;file</dt><dd>{{ nc_file }}</dd></div>
+    <div><dt>Source&nbsp;file</dt><dd>{{ nc_file }}{% if data_stage and data_stage != 'stage3' %} <span style="color:#e67e22;font-weight:bold">({{ data_stage }} — QC not applied)</span>{% endif %}</dd></div>
   </dl>
 </div>
 
@@ -141,9 +143,11 @@ _INSTRUMENT_HTML_TEMPLATE = """\
   Jump to:
   <a href="#files">Files</a>
   <a href="#history">History</a>
+  {% if fig_adcp_velocity_b64 %}<a href="#adcp-velocity">Velocity</a>{% endif %}
   <a href="#timeseries">Time series</a>
   <a href="#start">Start/end windows</a>
   {% if fig_tsd_b64 %}<a href="#ts">T-S diagram</a>{% endif %}
+  {% if fig_adcp_rose_b64 %}<a href="#adcp-rose">Current roses</a>{% endif %}
   {% if fig_rose_b64 %}<a href="#rose">Current roses</a>{% endif %}
   {% if fig_trajectory_b64 %}<a href="#trajectory">Trajectory</a>{% endif %}
   {% if fig_hodograph_b64 %}<a href="#hodograph">Hodograph</a>{% endif %}
@@ -151,6 +155,7 @@ _INSTRUMENT_HTML_TEMPLATE = """\
   {% if fig_analog_b64 %}<a href="#analog">Analog channels</a>{% endif %}
   <a href="#dist">Distributions</a>
   {% if qc_summary %}<a href="#qc">QC thresholds &amp; flags</a>{% endif %}
+  {% if nc_meta.dims %}<a href="#dims">Dimensions</a>{% endif %}
   <a href="#vars">Variables</a>
 </nav>
 
@@ -204,6 +209,18 @@ _INSTRUMENT_HTML_TEMPLATE = """\
 <p class="none-note">No history attribute found.</p>
 {% endif %}
 
+<!-- ══ ADCP velocity colour plots ══ -->
+{% if fig_adcp_velocity_b64 %}
+<h2 id="adcp-velocity">Velocity</h2>
+<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+  Time&ndash;range colour plots of the four velocity components (east, north, up, error).
+  Y-axis: range from transducer (m).
+  Colour scale: symmetric about zero; percentile&nbsp;2/98 of all components combined.
+  {% if data_stage and data_stage != 'stage3' %}Magnetic declination has <b>not</b> been applied ({{ data_stage }} data).{% endif %}
+</p>
+<img class="fig" src="data:image/png;base64,{{ fig_adcp_velocity_b64 }}">
+{% endif %}
+
 <!-- ══ Full time series ══ -->
 <h2 id="timeseries">Time series (full deployment)</h2>
 {% if fig_ts_b64 %}
@@ -229,6 +246,18 @@ _INSTRUMENT_HTML_TEMPLATE = """\
   Coloured by pressure (or sample index). &times; = suspect &nbsp;|&nbsp; &times; = bad (QC flags).
 </p>
 <img class="fig" src="data:image/png;base64,{{ fig_tsd_b64 }}">
+{% endif %}
+
+<!-- ══ ADCP current roses ══ -->
+{% if fig_adcp_rose_b64 %}
+<h2 id="adcp-rose">Current roses</h2>
+<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+  Depth-average followed by bins nearest 100, 200, 300 and 400&nbsp;m from the transducer.
+  Bins with fewer than two valid samples are omitted.
+  Direction toward which the current flows; 0°&nbsp;=&nbsp;N, clockwise.
+  {% if data_stage and data_stage != 'stage3' %}Magnetic declination not yet applied ({{ data_stage }} data).{% endif %}
+</p>
+<img class="fig" src="data:image/png;base64,{{ fig_adcp_rose_b64 }}">
 {% endif %}
 
 <!-- ══ Current roses ══ -->
@@ -380,6 +409,19 @@ _INSTRUMENT_HTML_TEMPLATE = """\
 </table>
 {% endif %}
 
+<!-- ══ NetCDF dimensions ══ -->
+{% if nc_meta.dims %}
+<h2 id="dims">NetCDF dimensions &mdash; {{ nc_file }}</h2>
+<table class="var-table" style="max-width:28rem">
+  <thead><tr><th>Dimension</th><th class="num">Size</th></tr></thead>
+  <tbody>
+    {% for dim, size in nc_meta.dims.items() %}
+    <tr><td class="mono">{{ dim }}</td><td class="num">{{ "{:,}".format(size) }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
 <!-- ══ NetCDF variables ══ -->
 <h2 id="vars">NetCDF variables &mdash; {{ nc_file }}</h2>
 {% if nc_meta.get("error") %}
@@ -403,7 +445,7 @@ _INSTRUMENT_HTML_TEMPLATE = """\
       <td class="num" style="font-size:0.76rem;white-space:nowrap">{% if v.v_min is not none %}{{ v.v_min }} / {{ v.v_max }}{% else %}&mdash;{% endif %}</td>
       <td>{{ v.units }}</td>
       <td>{{ v.long_name }}</td>
-      <td style="font-size:0.78rem;color:var(--muted)">{{ v.standard_name }}</td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">{{ v.standard_name }}</td>
       <td style="text-align:center">{% if v.has_qc %}<span class="var-qc">✓</span>{% else %}&ndash;{% endif %}</td>
     </tr>
     {% endif %}
@@ -509,10 +551,21 @@ def generate_instrument_pages(
         _base = proc_dir / instr_type / f"{mooring_name}_{serial}"
         stage3_nc = Path(str(_base) + "_stage3.nc")
         stage3_nc = stage3_nc if stage3_nc.exists() else None
-        best_nc = stage3_nc or (
-            Path(str(_base) + "_stage2.nc")
-            if Path(str(_base) + "_stage2.nc").exists()
-            else None
+        _stage2_nc = Path(str(_base) + "_stage2.nc")
+        _stage1_nc = Path(str(_base) + "_stage1.nc")
+        best_nc = (
+            stage3_nc
+            or (_stage2_nc if _stage2_nc.exists() else None)
+            or (_stage1_nc if _stage1_nc.exists() else None)
+        )
+        data_stage = (
+            "stage3"
+            if stage3_nc
+            else (
+                "stage2"
+                if _stage2_nc.exists()
+                else ("stage1" if _stage1_nc.exists() else None)
+            )
         )
         nc_file = best_nc.name if best_nc else "—"
 
@@ -586,7 +639,21 @@ def generate_instrument_pages(
                 _make_windows_fig(best_nc, instr_type) if best_nc else None
             ),
             "fig_tsd_b64": _make_ts_diagram(best_nc) if best_nc else None,
-            "fig_rose_b64": _make_instrument_rose_b64(best_nc) if best_nc else None,
+            "fig_rose_b64": (
+                _make_instrument_rose_b64(best_nc)
+                if best_nc and instr_type.lower() != "adcp"
+                else None
+            ),
+            "fig_adcp_velocity_b64": (
+                _make_adcp_velocity_b64(best_nc)
+                if best_nc and instr_type.lower() == "adcp"
+                else None
+            ),
+            "fig_adcp_rose_b64": (
+                _make_adcp_rose_b64(best_nc)
+                if best_nc and instr_type.lower() == "adcp"
+                else None
+            ),
             "fig_trajectory_b64": (
                 _make_temperature_trajectory(best_nc)
                 if best_nc and instr_type.lower() == "aquadopp"
@@ -606,6 +673,7 @@ def generate_instrument_pages(
             "qc_summary": _read_qc_summary(stage3_nc) if stage3_nc else [],
             "qc_thresholds": _read_qc_thresholds(stage3_nc) if stage3_nc else [],
             "nc_meta": _read_nc_metadata(best_nc) if best_nc else {},
+            "data_stage": data_stage,  # "stage1", "stage2", "stage3", or None
         }
         analog_vars = ctx["nc_meta"].get("analog_vars", [])
         ctx["fig_analog_b64"] = (
@@ -613,13 +681,20 @@ def generate_instrument_pages(
             if best_nc and analog_vars
             else None
         )
-        # Look up the per-instrument YAML entry for analog metadata
-        _instr_entries = cfg.get("clamp", cfg.get("instruments", []))
+        # Look up the per-instrument YAML entry for analog metadata.
+        # Search both 'clamp' and 'inline' lists (the serial in inline entries
+        # may contain a comma; _safe_serial strips it to the first token).
+        _instr_entries = list(cfg.get("clamp", cfg.get("instruments", []))) + [
+            e
+            for e in cfg.get("inline", [])
+            if isinstance(e, dict) and "instrument" in e
+        ]
         _yaml_entry: Dict[str, Any] = next(
             (
                 e
                 for e in _instr_entries
-                if _safe_serial(str(e.get("serial", ""))) == serial
+                if _safe_serial(str(e.get("serial", "")).split(",")[0].strip())
+                == serial
             ),
             {},
         )

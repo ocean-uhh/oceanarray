@@ -154,6 +154,29 @@ QC_TILT: dict = {
     "fail_threshold": 50.0,
 }
 
+# ---------------------------------------------------------------------------
+# ADCP-specific QC thresholds.
+#
+# percent_good_bad     : bins whose mean (across beams) percent_good falls
+#                        below this threshold are flagged bad (4).
+# percent_good_suspect : bins between percent_good_bad and this threshold
+#                        are flagged suspect (3).
+# error_velocity_threshold : bins where |error_velocity| exceeds this value
+#                        are flagged bad (4). m/s.
+# ---------------------------------------------------------------------------
+QC_ADCP: dict = {
+    "percent_good_bad": 25.0,
+    "percent_good_suspect": 50.0,
+    "error_velocity_threshold": 0.3,
+}
+
+# ---------------------------------------------------------------------------
+# ADCP bin dimension name.
+# Never hard-code "N_BINS" — reference this constant everywhere so the
+# dimension can be renamed to "N_LEVELS" later by changing one line.
+# ---------------------------------------------------------------------------
+ADCP_BIN_DIM: str = "N_BINS"
+
 INSTRUMENT_ABBREV = {
     "microcat": "MC",
     "aquadopp": "AQ",
@@ -188,11 +211,12 @@ INSTRUMENT_FILE_TYPES: dict = {
     "rbrsolo": ["rbr-rsk", "rbr-dat"],  # RBR Solo/Duet single-channel T or T+P
     "seapoint": ["rbr-rsk", "rbr-dat"],  # Seapoint turbidity sensor via RBR logger
     "ADCP": [
+        "rdi-raw",  # RDI Workhorse / Sentinel via dolfyn (mhkit[dolfyn] required)
         "nortek-aqd",
         "nortek-ascii",
         "adcp-matlab-rdadcp",
         "adcp-matlab-uhhds",
-    ],  # Generic ADCP
+    ],  # Generic ADCP (instrument: ADCP in YAML — note uppercase)
 }
 
 # Derived: set of allowed ``instrument:`` values in mooring YAML files.

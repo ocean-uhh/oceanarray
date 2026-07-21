@@ -12,12 +12,17 @@ import xarray as xr
 import yaml
 import seasenselib
 from seasenselib.writers import NetCdfWriter
-from .utilities import _status, cast_output_dtypes
+from .utilities import _status, cast_output_dtypes, extract_inline_instruments
+from . import parameters as P
 
 # Suppress noisy INFO/WARNING messages from seasenselib/pycnv.
 logging.getLogger("seasenselib").setLevel(logging.WARNING)
 logging.getLogger("seasenselib.pipeline.derivation").setLevel(logging.ERROR)
 logging.getLogger("pycnv").setLevel(logging.WARNING)
+
+
+# Re-export for backward compatibility; canonical definition is in parameters.py.
+ADCP_BIN_DIM: str = P.ADCP_BIN_DIM
 
 
 def _dms_str_to_decimal(s: str) -> Optional[float]:
@@ -195,6 +200,7 @@ class MooringProcessor:
         "rbr-dat",
         "rbr-hex-oa",  # internal oceanarray hex reader for TR-1050; use rbr-hex once seasenselib supports it
         "sbe-hex",
+        "rdi-raw",  # RDI ADCP raw binary (requires mhkit[dolfyn])
     }
 
     # Variables to remove for specific file types
@@ -551,6 +557,32 @@ class MooringProcessor:
         if _csv_drop:
             dataset = dataset.drop_vars(_csv_drop)
 
+        # ── 7. Consolidate per-beam amplitude and correlation into (time, beam) ─
+        # Combine amplitude_beam1/2/3 → amplitude(time, beam) and
+        # correlation_beam1/2/3 → correlation(time, beam) to match the 3-D
+        # layout used by the RDI ADCP reader.  Only applied when all three beam
+        # variables are present and 1-D (shape guard against future 2-D readers).
+        for _basename, _units, _long_name in [
+            ("amplitude", "counts", "Acoustic signal amplitude"),
+            ("correlation", "%", "Acoustic signal correlation"),
+        ]:
+            _bvars = [f"{_basename}_beam{i}" for i in range(1, 4)]
+            if not all(v in dataset.data_vars for v in _bvars):
+                continue
+            if any(dataset[v].ndim != 1 for v in _bvars):
+                continue
+            _tdim = dataset[_bvars[0]].dims[0]
+            _arr = np.stack([dataset[v].values for v in _bvars], axis=-1).astype(
+                np.float32
+            )
+            dataset[_basename] = xr.DataArray(
+                _arr,
+                dims=(_tdim, "beam"),
+                coords={"beam": np.array([1, 2, 3], dtype=np.int8)},
+                attrs={"units": _units, "long_name": _long_name},
+            )
+            dataset = dataset.drop_vars(_bvars)
+
         return dataset
 
     def _add_sbe_ascii_sensor_vars(
@@ -869,7 +901,12 @@ class MooringProcessor:
     def _clean_dataset_variables(
         self, dataset: xr.Dataset, file_type: str
     ) -> xr.Dataset:
-        """Remove unwanted variables and coordinates from dataset."""
+        """Remove unwanted variables and coordinates for specific file types.
+
+        Removals are driven by ``VARS_TO_REMOVE`` and ``COORDS_TO_REMOVE``, which
+        are only populated for SBE file types (``sbe-cnv``, ``sbe-ascii``).
+        For Nortek, RBR, and RDI ADCP file types this method is a no-op.
+        """
         # Remove variables
         vars_to_remove = self.VARS_TO_REMOVE.get(file_type, [])
         for var in vars_to_remove:
@@ -936,6 +973,166 @@ class MooringProcessor:
         dataset["end_time"] = instrument_config.get(
             "end_time", dataset.attrs["recovery_time"]
         )
+
+        return dataset
+
+    def _normalize_rdi_raw(
+        self,
+        dataset: xr.Dataset,
+        instrument_config: Dict[str, Any],
+    ) -> xr.Dataset:
+        """Normalise the dataset produced by the ``rdi-raw`` seasenselib reader.
+
+        The rdi-raw reader (via mhkit/dolfyn) returns:
+
+        - ``vel(dir, range, time)`` with ``dir=['E','N','U','err']`` — already in
+          Earth frame because ``coord_sys=earth`` was set in the RDI configuration.
+          However, ``magnetic_var_deg=0.0`` is common, meaning **no magnetic
+          declination was applied**; stage3 must apply the ppigrf correction.
+        - ``amp``, ``corr``, ``prcnt_gd`` with dims ``(beam, range, time)``.
+        - ``beam2inst_orientmat(x1, x2)`` — static beam→instrument rotation matrix.
+
+        Steps applied:
+
+        1. Rename the ``range`` spatial dimension to ``ADCP_BIN_DIM`` (``"N_BINS"``).
+           The ``range`` coordinate (metres above transducer) is preserved under the
+           new dimension name.
+        2. Split ``vel`` into ``east_velocity``, ``north_velocity``, ``up_velocity``,
+           and ``error_velocity``, each with dims ``(time, N_BINS)``.  Drops ``vel``
+           and the ``dir`` coordinate.
+        3. Transpose quality variables to ``(time, N_BINS, beam)``.
+        4. Flatten ``beam2inst_orientmat`` to global attrs ``beam2inst_M{i}{j}``
+           and drop the variable and its ``x1``/``x2`` dimension coordinates.
+        5. Transpose ``orientmat`` to ``(time, earth, inst)`` (time-first).
+        6. Extract instrument metadata from the ``raw_metadata`` JSON blob:
+           cell size, blanking distance, beam angle, pings per ensemble, and
+           ``instrument_magnetic_variation_deg``.
+        7. Set ``coordinate_system = "ENU"``.
+        8. Store ``orientation_instrument`` from the raw file and
+           ``orientation_yaml`` from the YAML ``orientation`` key (if present);
+           emit a WARNING if they disagree — a correction will be needed in stage3.
+
+        This method is faithful to the raw data: no values are modified or removed.
+        Pressure overflow values and other sensor artefacts are preserved as-is;
+        flagging is deferred to stage3.
+
+        Args:
+            dataset: Dataset as returned by ``seasenselib.read(..., file_type="rdi-raw")``.
+            instrument_config: Per-instrument YAML configuration dict.
+
+        Returns:
+            Normalised dataset ready for metadata attachment and NetCDF writing.
+
+        """
+        import json
+        import numpy as np  # noqa: F401 — used in potential future extensions
+
+        # 1. Rename the spatial bin dimension: range → N_BINS
+        if "range" in dataset.dims:
+            dataset = dataset.rename_dims({"range": ADCP_BIN_DIM})
+
+        # 2. Split vel(dir, N_BINS, time) into named components (time, N_BINS)
+        _DIR_MAP = {
+            "E": (
+                "east_velocity",
+                "East velocity (magnetic ENU; declination correction not applied)",
+            ),
+            "N": (
+                "north_velocity",
+                "North velocity (magnetic ENU; declination correction not applied)",
+            ),
+            "U": ("up_velocity", "Up velocity"),
+            "err": ("error_velocity", "Error velocity"),
+        }
+        if "vel" in dataset.data_vars:
+            vel = dataset["vel"]
+            for dir_label, (var_name, long_name) in _DIR_MAP.items():
+                if dir_label in vel.dir.values:
+                    component = vel.sel(dir=dir_label).transpose("time", ADCP_BIN_DIM)
+                    component.attrs.update({"units": "m s-1", "long_name": long_name})
+                    dataset[var_name] = component
+            dataset = dataset.drop_vars("vel")
+            if "dir" in dataset.coords:
+                dataset = dataset.drop_vars("dir")
+
+        # 3. Rename dolfyn quality variable names to oceanarray standard names,
+        #    transpose to (time, N_BINS, beam), and set long_name.
+        _QUAL_RENAME: Dict[str, Tuple[str, str]] = {
+            "amp": ("amplitude", "Acoustic signal amplitude"),
+            "corr": ("correlation", "Acoustic signal correlation"),
+            "prcnt_gd": ("percent_good", "Percent good"),
+        }
+        for dolfyn_name, (std_name, long_name) in _QUAL_RENAME.items():
+            if dolfyn_name in dataset.data_vars:
+                da = dataset[dolfyn_name].transpose("time", ADCP_BIN_DIM, "beam")
+                da.attrs.setdefault("long_name", long_name)
+                dataset[std_name] = da
+                dataset = dataset.drop_vars(dolfyn_name)
+
+        # Rename c_sound → speed_of_sound (matches Aquadopp convention)
+        if "c_sound" in dataset.data_vars:
+            dataset = dataset.rename_vars({"c_sound": "speed_of_sound"})
+
+        # 4. Store beam2inst rotation matrix as global attrs; drop variable + dim coords
+        if "beam2inst_orientmat" in dataset.data_vars:
+            mat = dataset["beam2inst_orientmat"].values
+            for _i in range(mat.shape[0]):
+                for _j in range(mat.shape[1]):
+                    dataset.attrs[f"beam2inst_M{_i + 1}{_j + 1}"] = float(mat[_i, _j])
+            dataset = dataset.drop_vars("beam2inst_orientmat")
+            for _dim_coord in ("x1", "x2"):
+                if _dim_coord in dataset.coords:
+                    dataset = dataset.drop_vars(_dim_coord)
+
+        # 5. Transpose orientmat to (time, earth, inst)
+        if "orientmat" in dataset.data_vars:
+            dataset["orientmat"] = dataset["orientmat"].transpose(
+                "time", "earth", "inst"
+            )
+
+        # 6. Extract instrument metadata from the raw_metadata JSON blob
+        try:
+            _raw_meta = json.loads(dataset.attrs.get("raw_metadata", "{}"))
+            _ga = (
+                _raw_meta.get("blocks", {})
+                .get("other", {})
+                .get("global_attributes", {})
+            )
+            for _raw_key, _attr_name in [
+                ("cell_size", "cell_size_m"),
+                ("blank_dist", "blanking_distance_m"),
+                ("beam_angle", "beam_angle_deg"),
+                ("n_cells", "n_cells"),
+                ("pings_per_ensemble", "n_pings_per_ensemble"),
+                ("carrier_freq", "carrier_freq_khz"),
+            ]:
+                if _raw_key in _ga:
+                    dataset.attrs[_attr_name] = _ga[_raw_key]
+            _mag_var = _ga.get("magnetic_var_deg")
+            if _mag_var is not None:
+                dataset.attrs["instrument_magnetic_variation_deg"] = float(_mag_var)
+            _orient_raw = _ga.get("orientation")
+            if _orient_raw:
+                dataset.attrs["orientation_instrument"] = str(_orient_raw)
+        except Exception:  # noqa: BLE001 — raw_metadata absent or malformed; proceed without
+            pass
+
+        # 7. Set coordinate system (ENU from dolfyn; declination not yet applied)
+        dataset.attrs["coordinate_system"] = "ENU"
+
+        # 8. Store YAML orientation and warn on mismatch with raw file
+        orientation_yaml = instrument_config.get("orientation")
+        if orientation_yaml:
+            dataset.attrs["orientation_yaml"] = str(orientation_yaml)
+        _orient_instrument = dataset.attrs.get("orientation_instrument", "")
+        if orientation_yaml and _orient_instrument:
+            if orientation_yaml.lower() != _orient_instrument.lower():
+                self._log_print(
+                    f"WARNING: ADCP orientation mismatch — raw file says "
+                    f"'{_orient_instrument}' but YAML says '{orientation_yaml}'. "
+                    f"Velocity signs and beam geometry may be incorrect. "
+                    f"A correction must be applied in stage3."
+                )
 
         return dataset
 
@@ -1132,6 +1329,10 @@ class MooringProcessor:
 
         relative_output = output_file.relative_to(self.base_dir)
 
+        # For rdi-raw: reshape vel/quality arrays and extract instrument metadata
+        if file_type == "rdi-raw":
+            dataset = self._normalize_rdi_raw(dataset, instrument_config)
+
         # Store Nortek pressure sensor calibration coefficients from .hdr as attrs
         if file_type in ("nortek-aqd", "nortek-ascii") and header_file:
             pcal = _parse_nortek_pressure_cal(Path(header_file))
@@ -1320,8 +1521,16 @@ class MooringProcessor:
             self._log_print(f"ERROR: Input directory not found: {input_dir}")
             return False
 
-        # Process each instrument — support both 'instruments' (legacy) and 'clamp' (new format)
-        instrument_list = yaml_data.get("clamp", yaml_data.get("instruments", []))
+        # Process each instrument — support both 'instruments' (legacy) and 'clamp' (new format).
+        # Also scan the 'inline' hardware list for entries that have an instrument field.
+        instrument_list = list(yaml_data.get("clamp", yaml_data.get("instruments", [])))
+        inline_instruments = extract_inline_instruments(yaml_data.get("inline", []))
+        if inline_instruments:
+            self._log_print(
+                f"Found {len(inline_instruments)} instrument(s) in 'inline' list: "
+                + ", ".join(str(ic.get("serial", "?")) for ic in inline_instruments)
+            )
+        instrument_list = instrument_list + inline_instruments
 
         # Filter by serial if requested
         if serials:

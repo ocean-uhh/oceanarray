@@ -161,6 +161,7 @@ def flag_salinity_outliers(ds, n_std=4):
 
 def flag_temporal_spikes(ds, var="CNDC", threshold=5):
     """Flags large absolute differences in time for each depth.
+
     threshold: maximum allowed difference in units of the variable
     """
     diff = np.abs(ds[var].diff("TIME", label="upper"))

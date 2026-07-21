@@ -273,6 +273,8 @@ def _build_fig_from_ds(
             vmin, vmax = float(np.nanmin(data)), float(np.nanmax(data))
             pad = max((vmax - vmin) * 0.1, 0.5)
             ax.set_ylim(vmax + pad, vmin - pad)
+        elif vname == "heading":
+            ax.set_ylim(0.0, 360.0)
         elif "velocity" in vname:
             _half = max(abs(float(np.nanmax(data))), abs(float(np.nanmin(data))), 1e-6)
             ax.set_ylim(-_half, _half)
@@ -385,7 +387,15 @@ def _make_windows_fig(
                 hspace=0.18,
             )
 
-            def _plot_panel(ax, vname, label, color, invert, mask, col):
+            def _plot_panel(  # noqa: ANN202
+                ax: "plt.Axes",
+                vname: str,
+                label: str,
+                color: str,
+                invert: bool,
+                mask: "np.ndarray",
+                col: str,
+            ) -> None:
                 _suspect_t = float(ds.attrs.get("tilt_suspect_threshold", 20.0))
                 _fail_t = float(ds.attrs.get("tilt_fail_threshold", 30.0))
 
@@ -507,11 +517,23 @@ def _make_data_histogram(nc_path: Path) -> Optional[str]:
 
         panels = _instrument_panels(ds)
         _HIST_EXCLUDE = {"battery_voltage"}
-        plot_panels = [
-            (vn, lbl)
+        plot_panels: list = [
+            (vn, lbl, False)
             for vn, lbl, *_ in panels
             if ds[vn].dims == ("time",) and vn not in _HIST_EXCLUDE
         ]
+        # ADCP: append multi-dim velocity and percent_good panels (flattened).
+        _ADCP_FLAT = [
+            ("east_velocity", "East vel. (all bins, m s⁻¹)"),
+            ("north_velocity", "North vel. (all bins, m s⁻¹)"),
+            ("up_velocity", "Up vel. (all bins, m s⁻¹)"),
+            ("error_velocity", "Error vel. (all bins, m s⁻¹)"),
+            ("percent_good", "Pct good (all bins/beams, %)"),
+        ]
+        for vn, lbl in _ADCP_FLAT:
+            if vn in ds.data_vars and ds[vn].values.ndim > 1:
+                plot_panels.append((vn, lbl, True))  # True = flatten
+
         if not plot_panels:
             ds.close()
             return None
@@ -530,25 +552,46 @@ def _make_data_histogram(nc_path: Path) -> Optional[str]:
         for k in range(len(plot_panels), len(axs)):
             axs[k].set_visible(False)
 
-        for ax, (vname, ylabel) in zip(axs, plot_panels):
-            data = ds[vname].values.astype(float)
+        for ax, (vname, ylabel, flatten) in zip(axs, plot_panels):
+            data = (
+                ds[vname].values.astype(float).ravel()
+                if flatten
+                else ds[vname].values.astype(float)
+            )
 
             qc_var = f"{vname}_qc"
-            if qc_var in ds:
-                flags = ds[qc_var].values.astype(int)
-                mask = np.isfinite(data) & ~np.isin(flags, [4, 9])
-                n_bad = int(np.sum(flags == 4))
+            has_qc = qc_var in ds
+            if has_qc:
+                flags = (
+                    ds[qc_var].values.astype(int).ravel()
+                    if flatten
+                    else ds[qc_var].values.astype(int)
+                )
+                kept_mask = np.isfinite(data) & ~np.isin(flags, [4, 9])
             else:
-                mask = np.isfinite(data)
-                n_bad = 0
+                kept_mask = np.isfinite(data)
+            all_mask = np.isfinite(data)
 
-            plot_data = data[mask]
-            if len(plot_data) == 0:
+            # percent_good has no _qc variable; annotate with ADCP thresholds
+            pg_thresholds = None
+            if vname == "percent_good":
+                from .. import parameters as _P
+
+                pg_thresholds = (
+                    _P.QC_ADCP["percent_good_bad"],
+                    _P.QC_ADCP["percent_good_suspect"],
+                )
+                # Treat bins below bad threshold as "removed" for the histogram
+                kept_mask = all_mask & (data >= _P.QC_ADCP["percent_good_bad"])
+
+            all_data = data[all_mask]
+            kept_data = data[kept_mask]
+            if len(all_data) == 0:
                 ax.set_ylabel(ylabel)
                 ax.text(
                     0.5,
                     0.5,
-                    "no unflagged data",
+                    "no data",
                     transform=ax.transAxes,
                     ha="center",
                     va="center",
@@ -556,47 +599,82 @@ def _make_data_histogram(nc_path: Path) -> Optional[str]:
                 )
                 continue
 
+            # Compute shared bin edges from ALL data so both histograms are comparable
+            if vname == "heading":
+                bin_edges = np.linspace(0.0, 360.0, 81)
+            elif vname == "percent_good":
+                bin_edges = np.linspace(0.0, 100.0, 81)
+            elif "velocity" in vname:
+                _half = max(
+                    abs(float(all_data.min())), abs(float(all_data.max())), 1e-4
+                )
+                bin_edges = np.linspace(-_half, _half, 81)
+            else:
+                bin_edges = 80
+
+            # Grey: all finite data; blue: kept (not bad/missing)
             ax.hist(
-                plot_data,
-                bins=80,
-                color="#2980b9",
-                edgecolor="white",
-                linewidth=0.2,
-                zorder=2,
+                all_data,
+                bins=bin_edges,
+                color="#aaaaaa",
+                alpha=0.6,
+                edgecolor="none",
+                zorder=1,
+                label="all",
             )
-            ax.set_ylabel(ylabel)
+            if len(kept_data) > 0:
+                ax.hist(
+                    kept_data,
+                    bins=bin_edges,
+                    color="#2980b9",
+                    alpha=0.85,
+                    edgecolor="none",
+                    zorder=2,
+                    label="kept",
+                )
+            ax.set_yscale("log")
+            ax.set_ylabel(f"{ylabel}\n(log count)")
 
             s_min = s_max = f_min = f_max = None
-            if qc_var in ds:
+            if has_qc:
                 qattrs = ds[qc_var].attrs
                 s_min = qattrs.get("qc_gross_range_suspect_min")
                 s_max = qattrs.get("qc_gross_range_suspect_max")
                 f_min = qattrs.get("qc_gross_range_fail_min")
                 f_max = qattrs.get("qc_gross_range_fail_max")
 
-            data_lo, data_hi = float(plot_data.min()), float(plot_data.max())
-            pad = max(0.03 * (data_hi - data_lo), 1e-6)
+            all_lo, all_hi = float(all_data.min()), float(all_data.max())
+            pad = max(0.03 * (all_hi - all_lo), 1e-6)
             xlim_lo = (
-                max(float(f_min), data_lo - pad) if f_min is not None else data_lo - pad
+                max(float(f_min), all_lo - pad) if f_min is not None else all_lo - pad
             )
             xlim_hi = (
-                min(float(f_max), data_hi + pad) if f_max is not None else data_hi + pad
+                min(float(f_max), all_hi + pad) if f_max is not None else all_hi + pad
             )
             ax.set_xlim(xlim_lo, xlim_hi)
 
             if vname == "heading":
                 ax.set_xlim(0.0, 360.0)
+            elif vname == "percent_good":
+                ax.set_xlim(0.0, 100.0)
             elif "velocity" in vname:
-                _half = max(abs(data_lo), abs(data_hi), 1e-6)
+                _half = max(abs(all_lo), abs(all_hi), 1e-6)
                 ax.set_xlim(-_half, _half)
 
             legend_handles, legend_labels = [], []
-            for xv, col, ls, lbl in [
+            threshold_lines = [
                 (s_min, "#f39c12", "--", f"suspect min ({s_min})"),
                 (s_max, "#f39c12", "--", f"suspect max ({s_max})"),
                 (f_min, "#e74c3c", ":", f"fail min ({f_min})"),
                 (f_max, "#e74c3c", ":", f"fail max ({f_max})"),
-            ]:
+            ]
+            if pg_thresholds is not None:
+                pg_bad, pg_susp = pg_thresholds
+                threshold_lines += [
+                    (pg_bad, "#e74c3c", ":", f"bad < {pg_bad}%"),
+                    (pg_susp, "#f39c12", "--", f"suspect < {pg_susp}%"),
+                ]
+            for xv, col, ls, lbl in threshold_lines:
                 if xv is not None and xlim_lo <= float(xv) <= xlim_hi:
                     line = ax.axvline(
                         float(xv), color=col, linewidth=1.2, linestyle=ls, zorder=3
@@ -612,11 +690,12 @@ def _make_data_histogram(nc_path: Path) -> Optional[str]:
                     framealpha=0.8,
                 )
 
-            if n_bad > 0:
+            n_removed = int(np.sum(all_mask)) - int(np.sum(kept_mask))
+            if n_removed > 0:
                 ax.text(
                     0.98,
                     0.96,
-                    f"{n_bad} points flagged bad (excluded)",
+                    f"{n_removed} removed (grey)",
                     transform=ax.transAxes,
                     ha="right",
                     va="top",
@@ -626,7 +705,7 @@ def _make_data_histogram(nc_path: Path) -> Optional[str]:
         for ax in axs_grid[-1]:
             if ax.get_visible():
                 ax.set_xlabel("Value")
-        fig.suptitle("Data value distributions", y=1.01)
+        fig.suptitle("Data value distributions  (grey = all,  blue = kept)", y=1.01)
         plt.tight_layout()
         b64 = _fig_to_base64(fig)
         plt.close(fig)
@@ -641,7 +720,9 @@ def _make_data_histogram(nc_path: Path) -> Optional[str]:
 # ---------------------------------------------------------------------------
 
 
-def _add_sigma0_contours(ax, S_data, T_data, n_grid: int = 200) -> None:
+def _add_sigma0_contours(
+    ax: "plt.Axes", S_data: "np.ndarray", T_data: "np.ndarray", n_grid: int = 200
+) -> None:
     """Overlay sigma-0 contour lines on a T-S axes."""
     try:
         import gsw
@@ -830,7 +911,13 @@ def _make_spectrum_fig_b64(
         import numpy as np
         from scipy import signal as _signal
 
-        def welch_psd(x, dt_days, segment_length, overlap=0.5, window="hann"):
+        def welch_psd(
+            x: "np.ndarray",
+            dt_days: float,
+            segment_length: int,
+            overlap: float = 0.5,
+            window: str = "hann",
+        ) -> "tuple[np.ndarray, np.ndarray]":
             fs = 1.0 / dt_days
             noverlap = int(round(overlap * segment_length))
             f, p = _signal.welch(
@@ -1053,8 +1140,13 @@ def _rose_ax(
     title: str = "",
     n_dir: int = 16,
     cmap: str = "Blues",
-) -> None:
-    """Draw a current rose on a polar Axes (compass convention, N up, CW)."""
+    max_speed: Optional[float] = None,
+) -> "Optional[tuple]":
+    """Draw a current rose on a polar Axes (compass convention, N up, CW).
+
+    Returns ``(spd_edges, colors)`` so callers can add a shared colorbar, or
+    ``None`` if the panel was hidden due to insufficient data.
+    """
     import matplotlib.pyplot as plt
 
     speed = np.sqrt(east**2 + north**2)
@@ -1063,14 +1155,15 @@ def _rose_ax(
     speed, direction = speed[valid], direction[valid]
     if len(speed) < 2:
         ax.set_visible(False)
-        return
+        return None
 
     dir_edges = np.linspace(0, 360, n_dir + 1)
     dir_centers = (dir_edges[:-1] + dir_edges[1:]) / 2
     theta = np.radians(dir_centers)
     bar_width = 2 * np.pi / n_dir * 0.9
 
-    max_speed = max(float(np.nanpercentile(speed, 99)), 1e-9)
+    if max_speed is None:
+        max_speed = max(float(np.nanpercentile(speed, 99)), 1e-9)
     n_spd = 5
     spd_edges = np.linspace(0, max_speed, n_spd + 1)
     colors = getattr(plt.cm, cmap)(np.linspace(0.25, 1.0, n_spd))
@@ -1103,6 +1196,7 @@ def _rose_ax(
     ax.set_xticklabels(["N", "E", "S", "W"])
     ax.set_rticks([])
     ax.set_title(title, pad=2)
+    return spd_edges, colors
 
 
 def _xyz_to_enu_2d(
@@ -1165,7 +1259,7 @@ def _make_instrument_rose_b64(nc_path: Path) -> Optional[str]:
                 else np.ones(len(e_all), dtype=int)
             )
 
-            def _masked(flag_mask):
+            def _masked(flag_mask: "np.ndarray") -> "tuple[np.ndarray, np.ndarray]":
                 e = e_all.copy()
                 n = n_all.copy()
                 e[~flag_mask] = np.nan
@@ -1316,6 +1410,182 @@ def _make_grid_ts_diagram(ds: "xr.Dataset", n_bins: int = 80) -> Optional[str]:
         return None
 
 
+def _make_velocity_iqr_profile_b64(ds: "xr.Dataset") -> Optional[str]:
+    """IQR velocity profiles from the gridded dataset.
+
+    Three side-by-side panels:
+    - Left: current speed — p2.5/p25/p50/p75/p97.5 shaded profile.
+    - Middle: east and north velocity on the same axes, each with p25/p50/p75,
+      using Okabe-Ito colours (#0072B2 blue for east, #E69F00 orange for north).
+    - Right: count of non-NaN values at each pressure level.
+
+    Y-axis is pressure (dbar), inverted (surface at top).  Returns None if no
+    velocity data are present.
+    """
+    import warnings
+    import matplotlib.pyplot as plt
+    import xarray as _xr
+    from .. import parameters as P
+
+    # Ensure current_speed exists
+    if "current_speed" not in ds.data_vars and all(
+        v in ds.data_vars for v in ("east_velocity", "north_velocity")
+    ):
+        spd = np.sqrt(
+            ds["east_velocity"].values ** 2 + ds["north_velocity"].values ** 2
+        )
+        ds = ds.assign(
+            current_speed=_xr.DataArray(
+                spd,
+                dims=ds["east_velocity"].dims,
+                coords=ds["east_velocity"].coords,
+                attrs={"units": "m s-1", "long_name": "Current speed"},
+            )
+        )
+
+    has_speed = "current_speed" in ds.data_vars
+    has_horiz = all(v in ds.data_vars for v in ("east_velocity", "north_velocity"))
+    if not has_speed and not has_horiz:
+        return None
+
+    pressure = ds["pressure"].values  # 1-D (n_levels,)
+
+    # Count non-NaN values at each pressure level (from east_velocity, or speed)
+    _count_ref = ds["east_velocity"].values if has_horiz else ds["current_speed"].values
+    n_good = np.sum(np.isfinite(_count_ref), axis=0)  # (n_levels,)
+
+    # Okabe-Ito blue and orange — distinguishable for all common colour-vision deficiencies
+    _C_EAST = "#0072B2"
+    _C_NORTH = "#E69F00"
+
+    n_panels = int(has_speed) + int(has_horiz) + 1  # +1 for count panel
+    plt.style.use(str(P.MPLSTYLE))
+    fig, axs = plt.subplots(
+        1,
+        n_panels,
+        figsize=(n_panels * 3.5, 6),
+        sharey=True,
+        gridspec_kw={"width_ratios": [2] * (n_panels - 1) + [1]},
+    )
+    if n_panels == 1:
+        axs = [axs]
+
+    ax_iter = iter(axs[:-1])  # last panel reserved for count
+
+    # ── Panel 1: current speed with 2.5/25/50/75/97.5 ────────────────────────
+    if has_speed:
+        ax = next(ax_iter)
+        data = ds["current_speed"].values  # (time, pressure)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)  # all-NaN pressure levels
+            p025 = np.nanpercentile(data, 2.5, axis=0)
+            p25 = np.nanpercentile(data, 25, axis=0)
+            p50 = np.nanpercentile(data, 50, axis=0)
+            p75 = np.nanpercentile(data, 75, axis=0)
+            p975 = np.nanpercentile(data, 97.5, axis=0)
+        valid = np.isfinite(p50)
+        if valid.any():
+            ax.fill_betweenx(
+                pressure[valid],
+                p025[valid],
+                p975[valid],
+                alpha=0.15,
+                color="steelblue",
+                label="2.5–97.5 %",
+            )
+            ax.fill_betweenx(
+                pressure[valid],
+                p25[valid],
+                p75[valid],
+                alpha=0.35,
+                color="steelblue",
+                label="IQR (25–75 %)",
+            )
+            ax.plot(
+                p50[valid],
+                pressure[valid],
+                color="steelblue",
+                linewidth=1.5,
+                label="Median",
+            )
+            ax.plot(
+                p025[valid],
+                pressure[valid],
+                color="steelblue",
+                linewidth=0.6,
+                linestyle=":",
+            )
+            ax.plot(
+                p975[valid],
+                pressure[valid],
+                color="steelblue",
+                linewidth=0.6,
+                linestyle=":",
+            )
+            ax.set_xlim(left=0)
+        ax.set_xlabel("Current speed (m s⁻¹)")
+        ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.5)
+        ax.legend(loc="lower right")
+
+    # ── Panel 2: east + north on shared axes ─────────────────────────────────
+    if has_horiz:
+        ax = next(ax_iter)
+        absmax = 0.0
+        for varname, color, label in [
+            ("east_velocity", _C_EAST, "East"),
+            ("north_velocity", _C_NORTH, "North"),
+        ]:
+            data = ds[varname].values
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", RuntimeWarning)
+                p25 = np.nanpercentile(data, 25, axis=0)
+                p50 = np.nanpercentile(data, 50, axis=0)
+                p75 = np.nanpercentile(data, 75, axis=0)
+            valid = np.isfinite(p50)
+            if not valid.any():
+                continue
+            ax.fill_betweenx(
+                pressure[valid], p25[valid], p75[valid], alpha=0.25, color=color
+            )
+            ax.plot(
+                p50[valid], pressure[valid], color=color, linewidth=1.5, label=label
+            )
+            ax.plot(
+                p25[valid], pressure[valid], color=color, linewidth=0.6, linestyle="--"
+            )
+            ax.plot(
+                p75[valid], pressure[valid], color=color, linewidth=0.6, linestyle="--"
+            )
+            _abs = np.nanmax(np.abs([p25[valid], p75[valid]]))
+            if np.isfinite(_abs):
+                absmax = max(absmax, _abs)
+        ax.axvline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
+        if absmax > 0:
+            ax.set_xlim(-absmax * 1.15, absmax * 1.15)
+        ax.set_xlabel("Velocity (m s⁻¹)")
+        ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.5)
+        ax.legend(loc="lower right")
+
+    # ── Count panel (rightmost) ───────────────────────────────────────────────
+    ax_count = axs[-1]
+    ax_count.barh(
+        pressure,
+        n_good,
+        height=np.diff(pressure).mean() * 0.8 if len(pressure) > 1 else 5,
+        color="gray",
+        alpha=0.6,
+    )
+    ax_count.set_xlabel("N good")
+    ax_count.grid(True, linestyle="--", linewidth=0.4, alpha=0.5)
+
+    axs[0].set_ylabel("Pressure (dbar)")
+    axs[0].invert_yaxis()  # shared y — invert once only
+    fig.tight_layout()
+    b64 = _fig_to_base64(fig)
+    plt.close(fig)
+    return b64
+
+
 def _make_grid_n2_b64(ds: "xr.Dataset", lat: float = 0.0) -> Optional[str]:
     """Compute and plot buoyancy frequency squared N² on the pressure-time grid."""
     try:
@@ -1397,10 +1667,21 @@ def _make_rose_grid_b64(
     east_all = ds["east_velocity"].values.copy()
     north_all = ds["north_velocity"].values.copy()
 
-    if "east_velocity_qc" in ds.data_vars:
-        qc = ds["east_velocity_qc"].values
-        east_all[qc >= 3] = np.nan
-        north_all[qc >= 3] = np.nan
+    # Mask suspect/bad data from all available QC variables before plotting roses.
+    # seabed_qc handles ADCP bins below the seafloor; percent_good_qc and
+    # error_velocity_qc handle low-quality ADCP pings.  Any flag >= 3
+    # (suspect or worse) is treated as invalid.
+    for _qc_var in (
+        "east_velocity_qc",
+        "seabed_qc",
+        "percent_good_qc",
+        "error_velocity_qc",
+    ):
+        if _qc_var in ds.data_vars:
+            _qc = ds[_qc_var].values
+            if _qc.shape == east_all.shape:
+                east_all[_qc >= 3] = np.nan
+                north_all[_qc >= 3] = np.nan
 
     has_vel = [np.any(np.isfinite(east_all[:, i])) for i in range(east_all.shape[1])]
     aqd_idx = [i for i in range(len(serial_list)) if i < len(has_vel) and has_vel[i]]
@@ -1475,6 +1756,153 @@ def _filter_sigma_tukey(
         smoothed[nan_mask] = np.nan
         result[k, :] = smoothed
     return result
+
+
+def _make_grid_trajectory_b64(ds: "xr.Dataset") -> Optional[str]:
+    """Particle trajectory plot from gridded east/north velocity.
+
+    For each pressure level, integrate east and north velocity over time
+    (Euler forward; NaN velocities set to zero) to produce a pseudo-Lagrangian
+    trajectory.  All trajectories start at the origin.  Lines are coloured by
+    pressure (dbar) using the viridis colormap (shallow → deep).
+
+    Returns None if east_velocity or north_velocity are absent.
+    """
+    import matplotlib.pyplot as plt
+    import matplotlib.colors as mcolors
+    from matplotlib.collections import LineCollection
+    from .. import parameters as P
+
+    if "east_velocity" not in ds.data_vars or "north_velocity" not in ds.data_vars:
+        return None
+
+    pressure = ds["pressure"].values  # 1-D (n_levels,)
+    time = ds["time"].values
+    dt = np.array(
+        [(time[j] - time[j - 1]) / np.timedelta64(1, "s") for j in range(1, len(time))],
+        dtype=float,
+    )
+
+    east = ds["east_velocity"].values.copy()  # (time, pressure)
+    north = ds["north_velocity"].values.copy()
+
+    # Apply QC masking before integration
+    for _qv, _dv in (("east_velocity_qc", east), ("north_velocity_qc", north)):
+        if _qv in ds.data_vars:
+            _qc = ds[_qv].values
+            _dv[_qc >= 3] = np.nan
+
+    # Build one trajectory per pressure level; skip levels with all-NaN velocity
+    trajs = []  # (pressure_val, x_array, y_array)
+    for k, p_val in enumerate(pressure):
+        u = np.nan_to_num(east[:, k], nan=0.0)
+        v = np.nan_to_num(north[:, k], nan=0.0)
+        if not np.any(east[:, k][np.isfinite(east[:, k])]):
+            continue
+        x = np.concatenate([[0.0], np.cumsum(u[:-1] * dt)])
+        y = np.concatenate([[0.0], np.cumsum(v[:-1] * dt)])
+        trajs.append((float(p_val), x, y))
+
+    if not trajs:
+        return None
+
+    p_vals = [t[0] for t in trajs]
+    _bounds = _nice_colorbar_bounds(min(p_vals), max(p_vals), n=20)
+    norm: mcolors.BoundaryNorm = mcolors.BoundaryNorm(_bounds, ncolors=256)
+    cmap = plt.get_cmap("viridis_r")  # shallow (low p) → light; deep → dark
+
+    plt.style.use(str(P.MPLSTYLE))
+    fig, ax = plt.subplots(figsize=(6, 5))
+
+    for p_val, x, y in trajs:
+        points = np.array([x, y]).T.reshape(-1, 1, 2)
+        segments = np.concatenate([points[:-1], points[1:]], axis=1)
+        lc = LineCollection(segments, cmap=cmap, norm=norm, linewidth=0.8, alpha=0.7)
+        lc.set_array(np.full(len(segments), p_val))
+        ax.add_collection(lc)
+
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+    fig.colorbar(sm, ax=ax, label="Pressure (dbar)", shrink=0.75, ticks=_bounds)
+
+    ax.plot(0, 0, "o", color="black", markersize=6, zorder=6, label="Start")
+    ax.legend(fontsize=8, loc="upper left")
+    ax.autoscale_view()
+    ax.set_xlabel("East displacement (m)")
+    ax.set_ylabel("North displacement (m)")
+    ax.axhline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
+    ax.axvline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
+    ax.set_aspect("equal", adjustable="datalim")
+    ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.4)
+    fig.tight_layout()
+    b64 = _fig_to_base64(fig)
+    plt.close(fig)
+    return b64
+
+
+def _make_grid_timeseries_b64(ds: "xr.Dataset") -> Optional[str]:
+    """Time series of speed, east, and north velocity at the depth of maximum mean speed.
+
+    The target pressure level is chosen as the one with the highest time-mean
+    current speed (or east/north magnitude).  Returns None if velocity data are
+    absent.
+    """
+    import warnings
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
+    from .. import parameters as P
+
+    has_horiz = all(v in ds.data_vars for v in ("east_velocity", "north_velocity"))
+    if not has_horiz:
+        return None
+
+    east = ds["east_velocity"].values  # (time, pressure)
+    north = ds["north_velocity"].values
+    pressure = ds["pressure"].values  # 1-D
+    time_vals = ds["time"].values
+
+    spd = np.sqrt(east**2 + north**2)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        mean_spd = np.nanmean(spd, axis=0)  # (pressure,)
+    if not np.any(np.isfinite(mean_spd)):
+        return None
+    k_max = int(np.nanargmax(mean_spd))
+    p_target = float(pressure[k_max])
+
+    spd_ts = spd[:, k_max]
+    east_ts = east[:, k_max]
+    north_ts = north[:, k_max]
+
+    plt.style.use(str(P.MPLSTYLE))
+    fig, axs = plt.subplots(3, 1, figsize=(10, 6), sharex=True)
+    _C_EAST = "#0072B2"
+    _C_NORTH = "#E69F00"
+
+    axs[0].plot(time_vals, spd_ts, color="k", linewidth=0.8)
+    axs[0].set_ylabel("Speed (m s⁻¹)")
+
+    axs[1].plot(time_vals, east_ts, color=_C_EAST, linewidth=0.8, label="East")
+    axs[1].axhline(0, color="k", linewidth=0.4, linestyle="--", alpha=0.4)
+    axs[1].set_ylabel("East vel. (m s⁻¹)")
+
+    axs[2].plot(time_vals, north_ts, color=_C_NORTH, linewidth=0.8, label="North")
+    axs[2].axhline(0, color="k", linewidth=0.4, linestyle="--", alpha=0.4)
+    axs[2].set_ylabel("North vel. (m s⁻¹)")
+
+    for ax in axs:
+        ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.4)
+    axs[-1].xaxis.set_major_formatter(
+        mdates.ConciseDateFormatter(axs[-1].xaxis.get_major_locator())
+    )
+    fig.suptitle(
+        f"Velocity time series at {p_target:.0f} dbar (depth of maximum mean speed)",
+        y=1.01,
+    )
+    fig.tight_layout()
+    b64 = _fig_to_base64(fig)
+    plt.close(fig)
+    return b64
 
 
 def _make_isopycnal_fig_b64(
@@ -1635,6 +2063,369 @@ def _make_aquadopp_speed_profile(ds: "xr.Dataset") -> Optional[str]:
         plt.close(fig)
         return b64
     except Exception:  # noqa: BLE001  — plot is optional; no aquadopps or missing vars → skip
+        return None
+
+
+def _make_adcp_trajectories_b64(ds: "xr.Dataset") -> Optional[str]:
+    """Per-bin ADCP particle trajectories coloured by HAB, for stack page.
+
+    Takes an already-loaded xarray.Dataset (not a path).
+    """
+    try:
+        import matplotlib.pyplot as plt
+        from oceanarray.plotters._current import plot_adcp_trajectories
+
+        fig = plot_adcp_trajectories(ds)
+        if fig is None:
+            return None
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception:  # noqa: BLE001  — plot is optional; no ADCP bins or missing vars → skip
+        return None
+
+
+def _make_adcp_velocity_b64(nc_path: str) -> Optional[str]:
+    """Stacked colour panels for ADCP per-instrument page.
+
+    Panels (where data are present):
+    - East / North / Up / Error velocity — symmetric Spectral_r (11 class), shared bounds
+    - Current speed (sqrt(E²+N²))        — sequential YlOrRd, 0 → 98th pctile
+    - Current direction (atan2(E,N) °T)   — cyclic twilight_shifted, 0–360°
+
+    Y-axis is the ``range`` coordinate; inverted for downward-looking instruments.
+    """
+    try:
+        import matplotlib.pyplot as plt
+        import matplotlib.colors as mcolors
+        import matplotlib.dates as mdates
+        import xarray as xr
+        from .. import parameters as P
+
+        # (varname, label, panel_type)  — panel_type: "div" | "seq" | "cyc"
+        _COMPONENTS = [
+            ("east_velocity", "East velocity (m s⁻¹)", "div"),
+            ("north_velocity", "North velocity (m s⁻¹)", "div"),
+            ("up_velocity", "Up velocity (m s⁻¹)", "div"),
+            ("error_velocity", "Error velocity (m s⁻¹)", "div"),
+            ("current_speed", "Current speed (m s⁻¹)", "seq"),
+            ("current_direction", "Current direction (°T)", "cyc"),
+            ("bin_pressure", "Bin pressure (dbar)", "seq"),
+        ]
+
+        with xr.open_dataset(nc_path, decode_timedelta=False) as ds:
+            # Compute speed and direction from east/north if both present
+            arrays = {}
+            for v in ds.data_vars:
+                arrays[v] = ds[v]
+            if "east_velocity" in ds and "north_velocity" in ds:
+                e = ds["east_velocity"].values.astype(float)
+                n = ds["north_velocity"].values.astype(float)
+                spd = np.sqrt(e**2 + n**2)
+                # Oceanographic convention: direction water flows TO, 0=N clockwise
+                dirn = np.degrees(np.arctan2(e, n)) % 360.0
+                arrays["current_speed"] = spd
+                arrays["current_direction"] = dirn
+
+            # Apply seabed mask (seabed_qc ≥ 3 → at or below seabed) to all
+            # (time, N_BINS) arrays before plotting.  Done after speed/direction
+            # are computed so they are masked consistently.
+            if "seabed_qc" in ds.data_vars:
+                seabed_mask = ds["seabed_qc"].values >= 3  # (time, N_BINS)
+                masked_arrays = {}
+                for k, v in arrays.items():
+                    arr = v if isinstance(v, np.ndarray) else v.values
+                    if arr.ndim == 2 and arr.shape == seabed_mask.shape:
+                        arr = arr.astype(float).copy()
+                        arr[seabed_mask] = np.nan
+                    masked_arrays[k] = arr
+                arrays = masked_arrays
+
+            present = [(v, lbl, pt) for v, lbl, pt in _COMPONENTS if v in arrays]
+            if not present:
+                return None
+
+            time = ds["time"].values
+
+            if "range" in ds.coords:
+                range_coord = ds["range"].values
+            else:
+                range_coord = None
+                for v, _, _ in present:
+                    if v not in ds:
+                        continue
+                    for dim in ds[v].dims:
+                        if dim == "time":
+                            continue
+                        for _cn, cda in ds.coords.items():
+                            if cda.dims == (dim,):
+                                range_coord = cda.values
+                                break
+                        if range_coord is not None:
+                            break
+                    if range_coord is not None:
+                        break
+            if range_coord is None:
+                return None
+
+            # Shared diverging bounds from ENU components (2nd/98th pctile)
+            div_vals = np.concatenate(
+                [
+                    arrays[v].ravel()
+                    if isinstance(arrays[v], np.ndarray)
+                    else arrays[v].values.ravel()
+                    for v, _, pt in present
+                    if pt == "div"
+                ]
+            )
+            finite_div = div_vals[np.isfinite(div_vals)]
+            abs_max = (
+                max(
+                    abs(float(np.percentile(finite_div, 2))),
+                    abs(float(np.percentile(finite_div, 98))),
+                    1e-4,
+                )
+                if len(finite_div)
+                else 1.0
+            )
+            div_bounds = _nice_colorbar_bounds(-abs_max, abs_max, n=20)
+            div_norm = mcolors.BoundaryNorm(div_bounds, ncolors=256)
+
+            # Sequential bounds for speed (0 → 98th pctile)
+            spd_vals = (
+                arrays["current_speed"].ravel()
+                if "current_speed" in arrays
+                else np.array([])
+            )
+            spd_finite = (
+                spd_vals[np.isfinite(spd_vals)] if len(spd_vals) else np.array([])
+            )
+            spd_max = float(np.percentile(spd_finite, 98)) if len(spd_finite) else 1.0
+            seq_bounds = _nice_colorbar_bounds(0.0, max(spd_max, 1e-4), n=20)
+            seq_norm = mcolors.BoundaryNorm(seq_bounds, ncolors=256)
+
+            # Sequential bounds for bin_pressure (2nd → 98th pctile, dbar)
+            bp_arr = arrays["bin_pressure"] if "bin_pressure" in arrays else None
+            if bp_arr is not None:
+                bp_vals = (
+                    bp_arr if isinstance(bp_arr, np.ndarray) else bp_arr.values
+                ).ravel()
+                bp_finite = bp_vals[np.isfinite(bp_vals)]
+            else:
+                bp_finite = np.array([])
+            if len(bp_finite):
+                bp_bounds = _nice_colorbar_bounds(
+                    float(np.percentile(bp_finite, 2)),
+                    float(np.percentile(bp_finite, 98)),
+                    n=20,
+                )
+            else:
+                bp_bounds = _nice_colorbar_bounds(0.0, 1000.0, n=20)
+            bp_norm = mcolors.BoundaryNorm(bp_bounds, ncolors=256)
+
+            # Cyclic bounds for direction: always 0–360
+            cyc_bounds = np.linspace(0, 360, 21)
+            cyc_norm = mcolors.BoundaryNorm(cyc_bounds, ncolors=256)
+
+            plt.style.use(str(P.MPLSTYLE))
+            n = len(present)
+            fig, axes = plt.subplots(
+                n, 1, figsize=(13, 3.5 * n), sharex=True, squeeze=False
+            )
+
+            orientation = ds.attrs.get("orientation_yaml") or ds.attrs.get(
+                "orientation_instrument", "up"
+            )
+            looking_down = str(orientation).lower() == "down"
+            ylabel = (
+                "Range (m, ↓ deeper)" if looking_down else "Range (m from transducer)"
+            )
+
+            # Determine the deepest range to show.
+            # Prefer seabed_qc: deepest bin that is ever above the seabed
+            # (flag 1 = good).  Fall back to deepest bin with any finite
+            # velocity data.  Fall back further to the full range_coord span.
+            if "seabed_qc" in ds.data_vars:
+                seabed_qc_vals = ds["seabed_qc"].values  # (time, N_BINS)
+                bin_ever_good = np.any(seabed_qc_vals == 1, axis=0)  # (N_BINS,)
+                range_max = (
+                    float(range_coord[bin_ever_good].max())
+                    if bin_ever_good.any()
+                    else float(range_coord.max())
+                )
+            else:
+                range_max = float(range_coord.max())
+                for vel_var in ("east_velocity", "north_velocity", "up_velocity"):
+                    if vel_var not in arrays:
+                        continue
+                    vel = (
+                        arrays[vel_var]
+                        if isinstance(arrays[vel_var], np.ndarray)
+                        else arrays[vel_var].values
+                    )
+                    bin_has_data = np.any(np.isfinite(vel), axis=0)  # (N_BINS,)
+                    if bin_has_data.any():
+                        range_max = float(range_coord[bin_has_data].max())
+                    break
+
+            for ax, (var, label, pt) in zip(axes[:, 0], present):
+                raw = arrays[var]
+                data2d = raw if isinstance(raw, np.ndarray) else raw.values
+                # Ensure (time, N_BINS) then transpose to (N_BINS, time) for pcolormesh
+                if data2d.shape[0] != len(time):
+                    data2d = data2d.T
+                data2d = data2d.T  # now (N_BINS, time)
+
+                if pt == "div":
+                    norm, cmap, cb_label, cb_ticks = (
+                        div_norm,
+                        "Spectral_r",
+                        "m s⁻¹",
+                        div_bounds[::2],
+                    )
+                elif pt == "seq":
+                    if var == "bin_pressure":
+                        norm, cmap, cb_label, cb_ticks = (
+                            bp_norm,
+                            "PuRd",
+                            "dbar",
+                            bp_bounds[::2],
+                        )
+                    else:
+                        norm, cmap, cb_label, cb_ticks = (
+                            seq_norm,
+                            "plasma",
+                            "m s⁻¹",
+                            seq_bounds[::2],
+                        )
+                else:  # cyc
+                    norm, cmap, cb_label, cb_ticks = (
+                        cyc_norm,
+                        "hsv",
+                        "°T",
+                        cyc_bounds[::2],
+                    )
+
+                pc = ax.pcolormesh(
+                    time, range_coord, data2d, shading="nearest", cmap=cmap, norm=norm
+                )
+                cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=cb_ticks)
+                cb.set_label(cb_label)
+                ax.set_ylabel(ylabel)
+                ax.set_title(label, loc="left")
+                ax.grid(True, linestyle="--", linewidth=0.3, alpha=0.4)
+                # Show from 0 (includes blanking zone) to deepest valid bin.
+                # set_ylim with reversed args inverts for downward-looking.
+                if looking_down:
+                    ax.set_ylim(range_max, 0.0)
+                else:
+                    ax.set_ylim(0.0, range_max)
+
+            locator = mdates.AutoDateLocator()
+            axes[-1, 0].xaxis.set_major_locator(locator)
+            axes[-1, 0].xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+
+        fig.tight_layout()
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception:  # noqa: BLE001  — plot is optional; missing vars or bad data → skip
+        return None
+
+
+def _make_adcp_rose_b64(nc_path: str) -> Optional[str]:
+    """Current rose panels for an ADCP: depth-average plus bins nearest 100/200/300/400 m.
+
+    Selects the depth-average and up to four individual range bins (those closest
+    to 100, 200, 300 and 400 m from the transducer).  A bin is included only when
+    it contains at least two finite velocity samples.  Returns None if east/north
+    velocity are absent or too few samples exist.
+    """
+    try:
+        import matplotlib.pyplot as plt
+        import xarray as xr
+        from .. import parameters as P
+
+        _TARGET_RANGES = [100, 200, 300, 400]  # m from transducer
+
+        with xr.open_dataset(nc_path, decode_timedelta=False) as ds:
+            if "east_velocity" not in ds or "north_velocity" not in ds:
+                return None
+
+            east_2d = ds["east_velocity"].values.astype(float)  # (time, N_BINS)
+            north_2d = ds["north_velocity"].values.astype(float)
+
+            if "range" in ds.coords:
+                range_vals = ds["range"].values
+            else:
+                return None
+
+            # Build panel list: depth-average first, then per-bin
+            panels = []
+
+            e_mean = np.nanmean(east_2d, axis=1)
+            n_mean = np.nanmean(north_2d, axis=1)
+            if np.sum(np.isfinite(e_mean)) >= 2:
+                panels.append((e_mean, n_mean, "Depth average"))
+
+            for target in _TARGET_RANGES:
+                idx = int(np.argmin(np.abs(range_vals - target)))
+                e_bin = east_2d[:, idx]
+                n_bin = north_2d[:, idx]
+                if np.sum(np.isfinite(e_bin)) < 2:
+                    continue
+                actual = float(range_vals[idx])
+                panels.append((e_bin, n_bin, f"{actual:.0f} m"))
+
+            if not panels:
+                return None
+
+            # Shared speed scale across all panels (99th percentile of all data)
+            all_speeds = np.concatenate([np.sqrt(e**2 + n**2) for e, n, _ in panels])
+            shared_max = max(
+                float(np.nanpercentile(all_speeds[np.isfinite(all_speeds)], 99)), 1e-9
+            )
+
+            plt.style.use(str(P.MPLSTYLE))
+            ncols = len(panels)
+            fig, axs = plt.subplots(
+                1,
+                ncols,
+                figsize=(ncols * 3.2, 4.0),
+                subplot_kw={"projection": "polar"},
+                squeeze=False,
+            )
+            spd_edges = colors = None
+            for ax, (east, north, title) in zip(axs[0], panels):
+                result = _rose_ax(ax, east, north, title=title, max_speed=shared_max)
+                if result is not None:
+                    spd_edges, colors = result
+
+            # Add shared colorbar below the rose panels
+            if spd_edges is not None and colors is not None:
+                import matplotlib.colors as mcolors
+                import matplotlib.cm as mcm
+
+                cmap_obj = mcolors.ListedColormap(colors)
+                norm = mcolors.BoundaryNorm(spd_edges, len(colors))
+                sm = mcm.ScalarMappable(cmap=cmap_obj, norm=norm)
+                sm.set_array([])
+                cbar = fig.colorbar(
+                    sm,
+                    ax=axs[0].tolist(),
+                    orientation="horizontal",
+                    fraction=0.04,
+                    pad=0.08,
+                    aspect=40,
+                )
+                cbar.set_label("Speed (m s⁻¹)")
+                cbar.set_ticks(spd_edges)
+                cbar.set_ticklabels([f"{v:.2f}" for v in spd_edges])
+
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception:  # noqa: BLE001
         return None
 
 

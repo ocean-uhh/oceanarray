@@ -45,17 +45,14 @@ STACK_VARS = [
     "velocity_beam1",
     "velocity_beam2",
     "velocity_beam3",
-    "amplitude_beam1",
-    "amplitude_beam2",
-    "amplitude_beam3",
-    "correlation_beam1",
-    "correlation_beam2",
-    "correlation_beam3",
     "heading",
     "pitch",
     "roll",
     "analog_input_1",
     "analog_input_2",
+    "percent_good_qc",
+    "error_velocity_qc",
+    "seabed_qc",
 ]
 
 # Variables passed through without QC masking at the stack step.
@@ -72,12 +69,6 @@ _STACK_RAW: frozenset = frozenset(
         "velocity_beam1",
         "velocity_beam2",
         "velocity_beam3",
-        "amplitude_beam1",
-        "amplitude_beam2",
-        "amplitude_beam3",
-        "correlation_beam1",
-        "correlation_beam2",
-        "correlation_beam3",
         "heading",
         "pitch",
         "roll",
@@ -86,12 +77,22 @@ _STACK_RAW: frozenset = frozenset(
         "up_velocity_qc",
         "pitch_qc",
         "roll_qc",
+        "percent_good_qc",
+        "error_velocity_qc",
+        "seabed_qc",
     }
 )
 
 
 def _safe_serial(serial: Any) -> str:
-    return re.sub(r"[^\w\-]", "", str(serial))
+    """Sanitise a serial number string for use in filenames.
+
+    If the raw YAML value contains a comma (e.g. ``16430, R01-024``), only
+    the first comma-separated token is used — the remainder is a beacon ID
+    or annotation and is not part of the filename.
+    """
+    s = str(serial).split(",")[0]
+    return re.sub(r"[^\w\-]", "", s)
 
 
 def _dms_to_deg(s: str) -> float:
@@ -248,6 +249,102 @@ def _detect_interval_s(time_vals: np.ndarray) -> float:
     return float(np.median(dt))
 
 
+# Variables measured at the ADCP transducer head (point measurements, not per-bin).
+# These must NOT appear in per-bin datasets — they belong only in the head entry.
+_ADCP_HEAD_VARS: frozenset = frozenset(
+    {
+        "temperature",
+        "temperature_qc",
+        "heading",
+        "pitch",
+        "roll",
+        "battery_voltage",
+        "speed_of_sound",
+        "analog_input_1",
+        "analog_input_2",
+    }
+)
+
+
+def _make_adcp_head_ds(ds_parent: xr.Dataset) -> xr.Dataset:
+    """Create a 1-D point-instrument view of the ADCP transducer head.
+
+    Keeps only time-series variables that are measured at the instrument head
+    (temperature, heading, pitch, roll, transducer pressure) — NOT the per-bin
+    velocity or bin_pressure arrays.  This entry represents the instrument's
+    physical location in the stack alongside the velocity bin entries.
+    """
+    keep = [
+        v
+        for v in ds_parent.data_vars
+        if v in _ADCP_HEAD_VARS and ds_parent[v].dims == ("time",)
+    ]
+    # Also keep the instrument-head pressure if present (1-D, not bin_pressure)
+    if "pressure" in ds_parent.data_vars and ds_parent["pressure"].dims == ("time",):
+        if "pressure" not in keep:
+            keep.append("pressure")
+    return ds_parent[keep]
+
+
+def _make_adcp_bin_ds(ds_parent: xr.Dataset, bin_idx: int) -> xr.Dataset:
+    """Create a 1-D point-instrument view of ADCP data for one range bin.
+
+    Slices the parent dataset at *bin_idx* along ``P.ADCP_BIN_DIM``, replaces
+    the transducer ``pressure`` with ``bin_pressure[:, bin_idx]``, computes
+    ``current_speed`` and ``current_direction``, and drops any remaining
+    variables that still have non-time dimensions (e.g. beam-dimension arrays
+    ``amplitude``, ``correlation``, ``percent_good``).
+
+    Instrument-head variables (temperature, heading, pitch, roll — see
+    ``_ADCP_HEAD_VARS``) are dropped here; they belong only in the separate
+    head entry added to the stack by the expansion loop.
+
+    The result is compatible with ``_nearest_subsample`` and ``_linear_interp``
+    because every data variable has dimension ``("time",)`` or is scalar.
+    """
+    bin_dim = P.ADCP_BIN_DIM
+    ds_bin = ds_parent.isel({bin_dim: bin_idx}, drop=True)
+
+    # Drop head-only variables — these belong in the separate head entry
+    head_to_drop = [v for v in _ADCP_HEAD_VARS if v in ds_bin.data_vars]
+    if head_to_drop:
+        ds_bin = ds_bin.drop_vars(head_to_drop)
+
+    if "bin_pressure" in ds_bin.data_vars:
+        ds_bin = ds_bin.assign(
+            pressure=xr.Variable(
+                "time",
+                ds_bin["bin_pressure"].values.astype(np.float32),
+                {"units": "dbar", "long_name": "Pressure at ADCP bin"},
+            )
+        ).drop_vars("bin_pressure")
+
+    if "east_velocity" in ds_bin.data_vars and "north_velocity" in ds_bin.data_vars:
+        e = ds_bin["east_velocity"].values.astype(float)
+        n = ds_bin["north_velocity"].values.astype(float)
+        ds_bin = ds_bin.assign(
+            current_speed=xr.Variable(
+                "time",
+                np.hypot(e, n).astype(np.float32),
+                {"units": "m s-1", "long_name": "Current speed"},
+            ),
+            current_direction=xr.Variable(
+                "time",
+                (np.degrees(np.arctan2(e, n)) % 360.0).astype(np.float32),
+                {
+                    "units": "degrees",
+                    "long_name": "Current direction (oceanographic, 0=N clockwise)",
+                },
+            ),
+        )
+
+    to_drop = [v for v in ds_bin.data_vars if any(d != "time" for d in ds_bin[v].dims)]
+    if to_drop:
+        ds_bin = ds_bin.drop_vars(to_drop)
+
+    return ds_bin
+
+
 def _nearest_subsample(
     ds: xr.Dataset,
     common_time: np.ndarray,
@@ -376,9 +473,12 @@ class MooringStacker:
         ).astype("datetime64[ns]")
         n_time = len(common_time)
 
-        instrument_list = mooring_config.get(
-            "clamp", mooring_config.get("instruments", [])
+        from .utilities import extract_inline_instruments
+
+        instrument_list = list(
+            mooring_config.get("clamp", mooring_config.get("instruments", []))
         )
+        instrument_list += extract_inline_instruments(mooring_config.get("inline", []))
 
         # Collect instruments with known hab and an available stage2/stage3 file
         instruments = []
@@ -418,6 +518,103 @@ class MooringStacker:
 
         # Sort deep-first (ascending hab: smallest hab = nearest bottom = deepest)
         instruments.sort(key=lambda x: x["hab"])
+
+        # ── Expand ADCP instruments into per-bin pseudo-instruments ───────
+        # Each ADCP bin becomes a separate row in the stack, with its own
+        # bin_pressure, velocity, and QC time series sliced from the 2-D
+        # (time, N_BINS) arrays in the parent stage3 file.
+        # The parent file is loaded once and cached; _make_adcp_bin_ds slices it.
+        _adcp_parent_datasets: Dict[str, xr.Dataset] = {}
+        expanded: List[Dict] = []
+        for info in instruments:
+            if info["instrument"].lower() != "adcp":
+                expanded.append(info)
+                continue
+            nc_key = str(info["nc_path"])
+            if nc_key not in _adcp_parent_datasets:
+                try:
+                    _adcp_parent_datasets[nc_key] = xr.open_dataset(
+                        info["nc_path"], decode_timedelta=False
+                    ).load()
+                except Exception as e:  # noqa: BLE001  — bad ADCP file must not abort stack
+                    print(f"  WARNING: Could not load ADCP {info['nc_path'].name}: {e}")
+                    expanded.append(info)
+                    continue
+            ds_adcp = _adcp_parent_datasets[nc_key]
+            bin_dim = P.ADCP_BIN_DIM
+            if bin_dim not in ds_adcp.dims:
+                print(
+                    f"  WARNING: ADCP s/n {info['serial']} has no {bin_dim} dim "
+                    "— treating as point instrument"
+                )
+                expanded.append(info)
+                continue
+            n_bins = ds_adcp.dims[bin_dim]
+            range_vals = (
+                ds_adcp["range"].values
+                if "range" in ds_adcp.coords
+                else np.arange(n_bins, dtype=float)
+            )
+            orientation = ds_adcp.attrs.get("orientation_yaml") or ds_adcp.attrs.get(
+                "orientation_instrument", "down"
+            )
+            looking_down = str(orientation).lower() == "down"
+            # Pre-compute seabed mask so always-submerged bins can be skipped.
+            # seabed_qc has dims (time, N_BINS); a bin is permanently below the
+            # seabed when every time step is flagged suspect or worse (>= 3).
+            _seabed_qc_vals = (
+                ds_adcp["seabed_qc"].values
+                if "seabed_qc" in ds_adcp.data_vars
+                else None
+            )
+
+            n_skipped = 0
+            valid_bins = []
+            for i in range(n_bins):
+                if _seabed_qc_vals is not None and np.all(_seabed_qc_vals[:, i] >= 3):
+                    n_skipped += 1
+                else:
+                    valid_bins.append(i)
+
+            print(
+                f"  ADCP s/n {info['serial']}: expanding {len(valid_bins)} of {n_bins} bins "
+                f"({orientation}-looking) into stack + head entry"
+                + (
+                    f" [{n_skipped} bins always below seabed, skipped]"
+                    if n_skipped
+                    else ""
+                )
+            )
+
+            # Head entry — transducer location carries temperature and orientation.
+            # Uses the instrument HAB directly (range = 0 from the transducer).
+            expanded.append(
+                {
+                    **info,
+                    "serial": f"{info['serial']}_hd",
+                    "hab": float(info["hab"]),
+                    "_adcp_head": True,
+                    "_adcp_nc_key": nc_key,
+                }
+            )
+            for i in valid_bins:
+                r = float(range_vals[i])
+                bin_hab = (
+                    float(info["hab"]) - r if looking_down else float(info["hab"]) + r
+                )
+                expanded.append(
+                    {
+                        **info,
+                        "serial": f"{info['serial']}_b{i:02d}",
+                        "hab": bin_hab,
+                        "_adcp_bin_idx": i,
+                        "_adcp_nc_key": nc_key,
+                    }
+                )
+        instruments = expanded
+        # Re-sort after expansion so ADCP bins interleave with other instruments by depth
+        instruments.sort(key=lambda x: x["hab"])
+
         n_instr = len(instruments)
 
         print(
@@ -444,8 +641,15 @@ class MooringStacker:
             stage_labels.append(info["nc_path"].stem.split("_")[-1])
 
             try:
-                ds = xr.open_dataset(info["nc_path"], decode_timedelta=False).load()
-                ds.close()
+                if "_adcp_bin_idx" in info:
+                    ds_parent = _adcp_parent_datasets[info["_adcp_nc_key"]]
+                    ds = _make_adcp_bin_ds(ds_parent, info["_adcp_bin_idx"])
+                elif "_adcp_head" in info:
+                    ds_parent = _adcp_parent_datasets[info["_adcp_nc_key"]]
+                    ds = _make_adcp_head_ds(ds_parent)
+                else:
+                    ds = xr.open_dataset(info["nc_path"], decode_timedelta=False).load()
+                    ds.close()
             except Exception as e:  # noqa: BLE001  — one bad instrument must not abort the stack
                 print(f"  WARNING: Could not load {info['nc_path'].name}: {e}")
                 # Ensure scalar_meta lists stay length-consistent
@@ -505,6 +709,10 @@ class MooringStacker:
             for vname in scalar_meta:
                 if len(scalar_meta[vname]) < i + 1:
                     scalar_meta[vname].append(None)
+
+        # Release cached ADCP parent datasets
+        for _ds_adcp in _adcp_parent_datasets.values():
+            _ds_adcp.close()
 
         # Build output dataset; skip physics variables that are entirely NaN
         data_vars: Dict = {}
@@ -758,8 +966,8 @@ class MooringStacker:
                 "Conventions": "CF-1.13",
                 "history": (
                     f"Step 1 stack: {n_instr} instruments onto {dt_seconds}s grid; "
-                    f"fast instruments (dt<={dt_seconds}s) subsampled (nearest), "
-                    f"slow instruments interpolated (linear)"
+                    f"fast instruments (dt<={dt_seconds}s) subsampled (nearest-neighbour in time), "
+                    f"slow instruments interpolated (linear in time)"
                 ),
             }
         )
@@ -862,12 +1070,8 @@ class MooringGridder:
                 "velocity_beam1",
                 "velocity_beam2",
                 "velocity_beam3",
-                "amplitude_beam1",
-                "amplitude_beam2",
-                "amplitude_beam3",
-                "correlation_beam1",
-                "correlation_beam2",
-                "correlation_beam3",
+                "amplitude",
+                "correlation",
                 "battery_voltage",
                 "velocity_flag",  # flag array, not a gridded physics variable
                 "tilt_from_pressure",  # per-instrument diagnostic, not gridded
@@ -917,6 +1121,20 @@ class MooringGridder:
             for _v in _vel_vars:
                 if _v in var_data:
                     var_data[_v][~np.isfinite(var_data[_v])] = np.nan
+
+        # ADCP standalone QC variables — mask velocity before gridding.
+        # seabed_qc removes bins at/below the seafloor; percent_good_qc and
+        # error_velocity_qc remove poor-quality pings.  All three use flag >= 3
+        # (suspect or worse) as the NaN threshold, consistent with how the
+        # rose diagram and stack report mask these variables.
+        for _adcp_qc in ("seabed_qc", "percent_good_qc", "error_velocity_qc"):
+            if _adcp_qc not in ds.data_vars:
+                continue
+            _qc = ds[_adcp_qc].values  # (time, N_LEVELS) after stack transpose
+            _bad = np.isin(np.round(_qc).astype(np.int8), [3, 4, 9])
+            for _v in _vel_vars:
+                if _v in var_data:
+                    var_data[_v][_bad] = np.nan
 
         for t in range(n_time):
             p_col = pressure[t, :]
@@ -979,7 +1197,7 @@ class MooringGridder:
                 "dp_dbar": dp,
                 "history": (
                     prior_history
-                    + f"; Step 2 grid: linear interpolation onto {dp:.0f} dbar pressure grid "
+                    + f"; Step 2 grid: linear interpolation in pressure onto {dp:.0f} dbar pressure grid "
                     f"({p_start:.0f}–{p_end:.0f} dbar); no extrapolation"
                 ),
             }
