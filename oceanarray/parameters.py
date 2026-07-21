@@ -157,8 +157,10 @@ QC_TILT: dict = {
 # ---------------------------------------------------------------------------
 # ADCP-specific QC thresholds.
 #
-# percent_good_bad     : bins whose mean (across beams) percent_good falls
-#                        below this threshold are flagged bad (4).
+# percent_good_bad     : bins where percent_good column 3 (fraction of 4-beam
+#                        solutions) falls below this threshold are flagged bad (4).
+#                        Column 3 is used — NOT the mean across beams — because
+#                        a cross-beam mean would give ~25 % even for perfect data.
 # percent_good_suspect : bins between percent_good_bad and this threshold
 #                        are flagged suspect (3).
 # error_velocity_threshold : bins where |error_velocity| exceeds this value

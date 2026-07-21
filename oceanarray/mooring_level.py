@@ -267,12 +267,33 @@ _ADCP_HEAD_VARS: frozenset = frozenset(
 
 
 def _make_adcp_head_ds(ds_parent: xr.Dataset) -> xr.Dataset:
-    """Create a 1-D point-instrument view of the ADCP transducer head.
+    """Create a 1-D (time-only) view of the ADCP transducer head for stack insertion.
 
-    Keeps only time-series variables that are measured at the instrument head
-    (temperature, heading, pitch, roll, transducer pressure) — NOT the per-bin
-    velocity or bin_pressure arrays.  This entry represents the instrument's
-    physical location in the stack alongside the velocity bin entries.
+    The ADCP transducer head is treated as a distinct instrument position in the mooring
+    stack.  It carries instrument-diagnostic variables that describe the sensor, not the
+    water column:
+
+    - ``temperature`` (°C) — internal electronics temperature; useful for diagnosing
+      warm-up drift but not a reliable water temperature measurement.
+    - ``heading``, ``pitch``, ``roll`` (°) — instrument orientation.
+    - ``pressure`` (dbar) — pressure at the transducer face, i.e. the instrument depth.
+
+    Per-bin velocity and ``bin_pressure`` are deliberately excluded.  Each velocity bin
+    gets its own stack entry at the pressure appropriate to that bin
+    (see ``_make_adcp_bin_ds``), rather than the transducer pressure.
+
+    Parameters
+    ----------
+    ds_parent : xr.Dataset
+        Full ADCP stage-3 dataset, including 2-D ``(time, N_BINS)`` variables.
+
+    Returns
+    -------
+    xr.Dataset
+        Dataset containing only time-series (1-D) variables from ``_ADCP_HEAD_VARS``
+        plus the transducer ``pressure``.  Suitable for merging into a point-instrument
+        stack.
+
     """
     keep = [
         v
@@ -287,20 +308,43 @@ def _make_adcp_head_ds(ds_parent: xr.Dataset) -> xr.Dataset:
 
 
 def _make_adcp_bin_ds(ds_parent: xr.Dataset, bin_idx: int) -> xr.Dataset:
-    """Create a 1-D point-instrument view of ADCP data for one range bin.
+    """Create a 1-D (time-only) point-instrument view of one ADCP range bin.
 
-    Slices the parent dataset at *bin_idx* along ``P.ADCP_BIN_DIM``, replaces
-    the transducer ``pressure`` with ``bin_pressure[:, bin_idx]``, computes
-    ``current_speed`` and ``current_direction``, and drops any remaining
-    variables that still have non-time dimensions (e.g. beam-dimension arrays
-    ``amplitude``, ``correlation``, ``percent_good``).
+    Slices the parent dataset at *bin_idx* along ``P.ADCP_BIN_DIM`` and replaces the
+    transducer ``pressure`` with ``bin_pressure[:, bin_idx]`` so that this entry sits at
+    the correct depth in the stack.  Computes derived scalar velocity quantities::
 
-    Instrument-head variables (temperature, heading, pitch, roll — see
-    ``_ADCP_HEAD_VARS``) are dropped here; they belong only in the separate
-    head entry added to the stack by the expansion loop.
+        current_speed      = sqrt(east_velocity² + north_velocity²)  [m s⁻¹, always ≥ 0]
+        current_direction  = atan2(east, north) mod 360               [degrees, 0 = N CW]
 
-    The result is compatible with ``_nearest_subsample`` and ``_linear_interp``
-    because every data variable has dimension ``("time",)`` or is scalar.
+    **Direction convention**: the direction *toward which* the water flows, clockwise
+    from True North.  This is the oceanographic convention (opposite to meteorological
+    "wind from").  0° = northward flow, 90° = eastward flow.
+
+    Instrument-head variables (``temperature``, ``heading``, ``pitch``, ``roll`` — see
+    ``_ADCP_HEAD_VARS``) are dropped because they belong to the transducer location, not
+    to an individual velocity bin.  Variables retaining non-time dimensions (e.g.
+    beam-dimension arrays ``amplitude``, ``correlation``, ``percent_good``) are also
+    dropped; they cannot be represented as point-instrument time series without
+    ambiguity about which beam to keep.
+
+    The result is compatible with ``_nearest_subsample`` and ``_linear_interp`` because
+    every remaining data variable has dimension ``("time",)`` or is scalar.
+
+    Parameters
+    ----------
+    ds_parent : xr.Dataset
+        Full ADCP stage-3 dataset.
+    bin_idx : int
+        Zero-based index along the bin dimension (``P.ADCP_BIN_DIM``).  Index 0 is
+        the bin nearest the transducer face.
+
+    Returns
+    -------
+    xr.Dataset
+        Single-bin time-series dataset with ``pressure`` set to ``bin_pressure``
+        at this bin and ``current_speed`` / ``current_direction`` added.
+
     """
     bin_dim = P.ADCP_BIN_DIM
     ds_bin = ds_parent.isel({bin_dim: bin_idx}, drop=True)
@@ -556,8 +600,15 @@ class MooringStacker:
                 else np.arange(n_bins, dtype=float)
             )
             orientation = ds_adcp.attrs.get("orientation_yaml") or ds_adcp.attrs.get(
-                "orientation_instrument", "down"
+                "orientation_instrument"
             )
+            if not orientation:
+                orientation = "down"
+                print(
+                    f"  WARNING: ADCP {info['serial']} has no orientation attr — "
+                    "assuming downward-looking. HAB offsets may be wrong for "
+                    "upward-looking instruments."
+                )
             looking_down = str(orientation).lower() == "down"
             # Pre-compute seabed mask so always-submerged bins can be skipped.
             # seabed_qc has dims (time, N_BINS); a bin is permanently below the

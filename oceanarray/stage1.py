@@ -1025,7 +1025,6 @@ class MooringProcessor:
 
         """
         import json
-        import numpy as np  # noqa: F401 — used in potential future extensions
 
         # 1. Rename the spatial bin dimension: range → N_BINS
         if "range" in dataset.dims:
@@ -1044,6 +1043,7 @@ class MooringProcessor:
             "U": ("up_velocity", "Up velocity"),
             "err": ("error_velocity", "Error velocity"),
         }
+        _enu_extracted: list[str] = []
         if "vel" in dataset.data_vars:
             vel = dataset["vel"]
             for dir_label, (var_name, long_name) in _DIR_MAP.items():
@@ -1051,6 +1051,7 @@ class MooringProcessor:
                     component = vel.sel(dir=dir_label).transpose("time", ADCP_BIN_DIM)
                     component.attrs.update({"units": "m s-1", "long_name": long_name})
                     dataset[var_name] = component
+                    _enu_extracted.append(var_name)
             dataset = dataset.drop_vars("vel")
             if "dir" in dataset.coords:
                 dataset = dataset.drop_vars("dir")
@@ -1117,8 +1118,21 @@ class MooringProcessor:
         except Exception:  # noqa: BLE001 — raw_metadata absent or malformed; proceed without
             pass
 
-        # 7. Set coordinate system (ENU from dolfyn; declination not yet applied)
-        dataset.attrs["coordinate_system"] = "ENU"
+        # 7. Set coordinate system — only mark ENU if at least one ENU component was
+        #    extracted.  If the RDI was configured in beam or instrument coords dolfyn
+        #    uses different dir labels and _DIR_MAP matches nothing; calling the result
+        #    "ENU" would be wrong and would confuse stage3.
+        if _enu_extracted:
+            dataset.attrs["coordinate_system"] = "ENU"
+        else:
+            dataset.attrs["coordinate_system"] = "UNK"
+            self._log_print(
+                f"  WARNING: _normalize_rdi_raw extracted no ENU velocity components "
+                f"for {instrument_config.get('serial', 'UNKNOWN')}.  "
+                f"The RDI file may use beam or instrument coordinates rather than "
+                f"earth frame.  'coordinate_system' set to 'UNK'; stage3 will not "
+                f"apply beam→ENU rotation.  Re-process after converting to earth frame."
+            )
 
         # 8. Store YAML orientation and warn on mismatch with raw file
         orientation_yaml = instrument_config.get("orientation")

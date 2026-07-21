@@ -1134,13 +1134,34 @@ def _make_grid_fig_b64(
 
 
 def _make_grid_hydro_b64(ds: "xr.Dataset") -> Optional[str]:
-    """Stacked T / S pcolormesh panels for the grid report hydrography section.
+    """Stacked temperature / salinity pcolormesh panels for the grid report.
 
-    Panels rendered (only those present in *ds*):
-    - Temperature (RdYlBu_r)
-    - Salinity (YlGnBu_r)
+    Both panels have pressure (dbar) on the Y-axis (inverted, surface at top).
+    Colorbar bounds are clipped to the ``COLORBAR_PLOW``–``COLORBAR_PHIGH`` percentiles
+    of the data to reduce the influence of outliers on color scaling.
 
-    Returns None if neither variable is present.
+    **Temperature** (°C, colormap ``RdYlBu_r``): sea water temperature on the gridded
+    pressure–time grid.
+
+    **Salinity** (PSU, colormap ``YlGnBu_r``): taken from the ``salinity`` variable if
+    present.  If absent but both ``conductivity`` (mS cm⁻¹) and ``temperature`` (°C) are
+    present, Practical Salinity is derived via ``gsw.SP_from_C`` (PSS-78).  Note: this
+    is Practical Salinity, not Absolute Salinity (g kg⁻¹); the latter would require
+    pressure and longitude via ``gsw.SA_from_SP``.
+
+    Panels are rendered only for variables that are present in *ds* or derivable.
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        Gridded mooring dataset with dimensions ``(time, pressure)``.
+
+    Returns
+    -------
+    str or None
+        Base64-encoded PNG for HTML embedding, or None if no hydrographic data
+        are present.
+
     """
     import matplotlib.pyplot as plt
     import matplotlib.colors as mcolors
@@ -1155,9 +1176,14 @@ def _make_grid_hydro_b64(ds: "xr.Dataset") -> Optional[str]:
         panels.append((var, cmap))
 
     # Also allow derived salinity from T/C
-    if "salinity" not in ds.data_vars and "conductivity" in ds.data_vars and "temperature" in ds.data_vars:
+    if (
+        "salinity" not in ds.data_vars
+        and "conductivity" in ds.data_vars
+        and "temperature" in ds.data_vars
+    ):
         try:
             import gsw
+
             p_1d = ds["pressure"].values
             T = ds["temperature"].transpose("time", "pressure").values
             C = ds["conductivity"].transpose("time", "pressure").values
@@ -1193,7 +1219,9 @@ def _make_grid_hydro_b64(ds: "xr.Dataset") -> Optional[str]:
         _vmax = float(np.nanpercentile(data, P.COLORBAR_PHIGH))
         bounds = _nice_colorbar_bounds(_vmin, _vmax, n=20)
         norm = mcolors.BoundaryNorm(bounds, ncolors=256)
-        pc = ax.pcolormesh(time, pressure, data, shading="nearest", cmap=cmap, norm=norm)
+        pc = ax.pcolormesh(
+            time, pressure, data, shading="nearest", cmap=cmap, norm=norm
+        )
         cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=bounds[::2])
         cb.set_label(f"{label} ({units})" if units else label)
         ax.invert_yaxis()
@@ -1212,11 +1240,34 @@ def _make_grid_hydro_b64(ds: "xr.Dataset") -> Optional[str]:
 def _make_grid_velocity_stacked_b64(ds: "xr.Dataset") -> Optional[str]:
     """Stacked east / north / up velocity pcolormesh panels for the grid report.
 
-    Uses a shared symmetric Spectral_r colormap across E/N/Up so magnitudes are
-    comparable across panels.  Up velocity uses its own symmetric bounds (usually
-    much smaller than horizontal).
+    All three panels have pressure (dbar) on the Y-axis (inverted, surface at top) and
+    share the same time axis.
 
-    Returns None if no velocity data are present.
+    **Coordinate convention**: velocities are in geographic ENU (East–North–Up), after
+    magnetic declination correction applied in stage 3.  Positive east = rightward facing
+    north; positive north = toward True North; positive up = upward.
+
+    The horizontal panels (east, north) share a symmetric diverging colormap
+    (``Spectral_r``) with bounds ±max(|2nd pctile|, |98th pctile|) of all finite
+    horizontal velocity values, so east and north are directly comparable in magnitude.
+
+    Up velocity uses its own symmetric bounds (same percentile logic, but independent of
+    horizontal) because open-ocean vertical velocities are typically 1–2 cm s⁻¹ while
+    horizontal velocities can reach tens of cm s⁻¹.
+
+    All velocity units are m s⁻¹.
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        Gridded dataset with dimensions ``(time, pressure)``.
+
+    Returns
+    -------
+    str or None
+        Base64-encoded PNG for HTML embedding, or None if no velocity variables are
+        present.
+
     """
     import matplotlib.pyplot as plt
     import matplotlib.colors as mcolors
@@ -1224,9 +1275,9 @@ def _make_grid_velocity_stacked_b64(ds: "xr.Dataset") -> Optional[str]:
     from .. import parameters as P
 
     vel_vars = [
-        ("east_velocity",  "East velocity",  "m s⁻¹"),
+        ("east_velocity", "East velocity", "m s⁻¹"),
         ("north_velocity", "North velocity", "m s⁻¹"),
-        ("up_velocity",    "Up velocity",    "m s⁻¹"),
+        ("up_velocity", "Up velocity", "m s⁻¹"),
     ]
     present = [(v, lbl, u) for v, lbl, u in vel_vars if v in ds.data_vars]
     if not present:
@@ -1236,17 +1287,23 @@ def _make_grid_velocity_stacked_b64(ds: "xr.Dataset") -> Optional[str]:
     time = ds["time"].values
 
     # Shared symmetric bounds from horizontal velocity (2nd/98th pctile)
-    horiz_vals = np.concatenate([
-        ds[v].values.ravel()
-        for v, _, _ in present
-        if v in ("east_velocity", "north_velocity")
-    ])
+    horiz_vals = np.concatenate(
+        [
+            ds[v].values.ravel()
+            for v, _, _ in present
+            if v in ("east_velocity", "north_velocity")
+        ]
+    )
     finite_h = horiz_vals[np.isfinite(horiz_vals)]
-    abs_max_h = max(
-        abs(float(np.percentile(finite_h, 2))),
-        abs(float(np.percentile(finite_h, 98))),
-        1e-4,
-    ) if len(finite_h) else 1.0
+    abs_max_h = (
+        max(
+            abs(float(np.percentile(finite_h, 2))),
+            abs(float(np.percentile(finite_h, 98))),
+            1e-4,
+        )
+        if len(finite_h)
+        else 1.0
+    )
     h_bounds = _nice_colorbar_bounds(-abs_max_h, abs_max_h, n=20)
     h_norm = mcolors.BoundaryNorm(h_bounds, ncolors=256)
 
@@ -1254,11 +1311,15 @@ def _make_grid_velocity_stacked_b64(ds: "xr.Dataset") -> Optional[str]:
     if "up_velocity" in ds.data_vars:
         up_vals = ds["up_velocity"].values.ravel()
         finite_u = up_vals[np.isfinite(up_vals)]
-        abs_max_u = max(
-            abs(float(np.percentile(finite_u, 2))),
-            abs(float(np.percentile(finite_u, 98))),
-            1e-4,
-        ) if len(finite_u) else 1.0
+        abs_max_u = (
+            max(
+                abs(float(np.percentile(finite_u, 2))),
+                abs(float(np.percentile(finite_u, 98))),
+                1e-4,
+            )
+            if len(finite_u)
+            else 1.0
+        )
         u_bounds = _nice_colorbar_bounds(-abs_max_u, abs_max_u, n=20)
         u_norm = mcolors.BoundaryNorm(u_bounds, ncolors=256)
     else:
@@ -1277,8 +1338,10 @@ def _make_grid_velocity_stacked_b64(ds: "xr.Dataset") -> Optional[str]:
             data = data.copy()
             data[ds[qc_var].transpose("pressure", "time").values >= 3] = np.nan
         bounds = u_bounds if var == "up_velocity" else h_bounds
-        norm   = u_norm   if var == "up_velocity" else h_norm
-        pc = ax.pcolormesh(time, pressure, data, shading="nearest", cmap="Spectral_r", norm=norm)
+        norm = u_norm if var == "up_velocity" else h_norm
+        pc = ax.pcolormesh(
+            time, pressure, data, shading="nearest", cmap="Spectral_r", norm=norm
+        )
         cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=bounds[::2])
         cb.set_label(units)
         ax.invert_yaxis()
@@ -1301,7 +1364,9 @@ def _make_grid_sigma_b64(ds: "xr.Dataset") -> Optional[str]:
     import matplotlib.dates as mdates
     from .. import parameters as P
 
-    sigma_vars = [v for v in ds.data_vars if v.startswith("sigma") and "pressure" in ds[v].dims]
+    sigma_vars = [
+        v for v in ds.data_vars if v.startswith("sigma") and "pressure" in ds[v].dims
+    ]
     if not sigma_vars:
         return None
 
@@ -1321,7 +1386,9 @@ def _make_grid_sigma_b64(ds: "xr.Dataset") -> Optional[str]:
         _vmax = float(np.nanpercentile(data, P.COLORBAR_PHIGH))
         bounds = _nice_colorbar_bounds(_vmin, _vmax, n=20)
         norm = mcolors.BoundaryNorm(bounds, ncolors=256)
-        pc = ax.pcolormesh(time, pressure, data, shading="nearest", cmap=P.DENSITY_COLORMAP, norm=norm)
+        pc = ax.pcolormesh(
+            time, pressure, data, shading="nearest", cmap=P.DENSITY_COLORMAP, norm=norm
+        )
         cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=bounds[::2])
         cb.set_label(f"{label} ({units})" if units else label)
         ax.invert_yaxis()
@@ -1620,16 +1687,44 @@ def _make_grid_ts_diagram(ds: "xr.Dataset", n_bins: int = 80) -> Optional[str]:
 
 
 def _make_velocity_iqr_profile_b64(ds: "xr.Dataset") -> Optional[str]:
-    """IQR velocity profiles from the gridded dataset.
+    """Percentile-profile figure for gridded ADCP velocity data.
 
-    Three side-by-side panels:
-    - Left: current speed — p2.5/p25/p50/p75/p97.5 shaded profile.
-    - Middle: east and north velocity on the same axes, each with p25/p50/p75,
-      using Okabe-Ito colours (#0072B2 blue for east, #E69F00 orange for north).
-    - Right: count of non-NaN values at each pressure level.
+    Three side-by-side panels, all with pressure (dbar) on the Y-axis (inverted,
+    surface at top).  All velocity units are m s⁻¹.
 
-    Y-axis is pressure (dbar), inverted (surface at top).  Returns None if no
-    velocity data are present.
+    **Left — current speed** (always ≥ 0):
+        Shaded percentile profile: outer band p2.5–p97.5 (95% range of the
+        distribution); inner band IQR p25–p75; median p50.  Wide IQR at a given
+        depth indicates high velocity variability (e.g. an eddy-active layer or a
+        strong tidal signal); narrow IQR with a large median indicates a persistent
+        mean flow.  ``current_speed`` is computed from ``sqrt(east² + north²)`` if
+        not already present in the dataset.
+
+    **Middle — east and north velocity** (can be negative):
+        Median and IQR (p25/p50/p75) for each component.  East velocity in
+        Okabe-Ito blue (#0072B2); north velocity in Okabe-Ito orange (#E69F00); both
+        colours are distinguishable for common colour-vision deficiencies.
+        Positive east = rightward facing north (geographic ENU after declination
+        correction); positive north = toward True North.  A median near zero with
+        large IQR suggests rotary motion (e.g. tides or near-inertial oscillations);
+        a non-zero median indicates a mean current.
+
+    **Right — count** (dimensionless):
+        Number of non-NaN time steps at each pressure level.  Use this panel to assess
+        data coverage before interpreting velocity statistics: pressure levels with very
+        few records produce unreliable percentile estimates.
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        Gridded dataset with dimensions ``(time, pressure)`` containing at minimum one
+        of ``current_speed``, ``east_velocity``, or ``north_velocity`` in m s⁻¹.
+
+    Returns
+    -------
+    str or None
+        Base64-encoded PNG for HTML embedding, or None if no velocity data are present.
+
     """
     import warnings
     import matplotlib.pyplot as plt
@@ -1968,14 +2063,37 @@ def _filter_sigma_tukey(
 
 
 def _make_grid_trajectory_b64(ds: "xr.Dataset") -> Optional[str]:
-    """Particle trajectory plot from gridded east/north velocity.
+    """Pseudo-Lagrangian current-vector integral by pressure level for the grid report.
 
-    For each pressure level, integrate east and north velocity over time
-    (Euler forward; NaN velocities set to zero) to produce a pseudo-Lagrangian
-    trajectory.  All trajectories start at the origin.  Lines are coloured by
-    pressure (dbar) using the viridis colormap (shallow → deep).
+    For each pressure level in the gridded dataset, integrates east and north velocity
+    over time using the Euler forward method to produce a cumulative displacement
+    trajectory.  All trajectories start at the origin (0, 0).  The figure shows the net
+    displacement (in **metres**) a neutrally buoyant float would experience at each depth
+    if it were advected by the measured velocity field.  This is a *pseudo-Lagrangian*
+    representation of Eulerian mooring velocity data — the water parcel does not
+    actually stay at the mooring.
 
-    Returns None if east_velocity or north_velocity are absent.
+    **QC masking**: time steps flagged suspect or bad on ``east_velocity_qc`` or
+    ``north_velocity_qc`` (≥ 3) are set to NaN before integration.  NaN time steps
+    contribute zero displacement, which biases trajectories toward the origin during
+    extended data gaps.
+
+    Trajectory lines are coloured by pressure (dbar) using ``viridis_r``: shallow
+    levels (low pressure) are light; deep levels (high pressure) are dark.  Pressure
+    levels with no finite velocity data at any time step are omitted.
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        Gridded dataset with dimensions ``(time, pressure)``, containing
+        ``east_velocity`` and ``north_velocity`` in m s⁻¹.
+
+    Returns
+    -------
+    str or None
+        Base64-encoded PNG for HTML embedding, or None if east/north velocity are
+        absent or all-NaN.
+
     """
     import matplotlib.pyplot as plt
     import matplotlib.colors as mcolors
@@ -2050,11 +2168,32 @@ def _make_grid_trajectory_b64(ds: "xr.Dataset") -> Optional[str]:
 
 
 def _make_grid_timeseries_b64(ds: "xr.Dataset") -> Optional[str]:
-    """Time series of speed, east, and north velocity at the depth of maximum mean speed.
+    """Velocity time series at the depth of maximum time-mean current speed.
 
-    The target pressure level is chosen as the one with the highest time-mean
-    current speed (or east/north magnitude).  Returns None if velocity data are
-    absent.
+    Three stacked panels (shared time axis, all in m s⁻¹):
+
+    - **Speed** (black): ``sqrt(east² + north²)``; always ≥ 0.
+    - **East velocity** (Okabe-Ito blue #0072B2): positive = eastward flow (geographic
+      ENU, after magnetic declination correction).
+    - **North velocity** (Okabe-Ito orange #E69F00): positive = flow toward True North.
+
+    The target pressure level is chosen automatically as the level with the highest
+    time-mean current speed.  This heuristic selects the most energetic depth in the
+    record and is not guaranteed to be oceanographically meaningful.  The selected
+    pressure is annotated in the figure title.
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        Gridded dataset with dimensions ``(time, pressure)`` containing at minimum
+        ``east_velocity`` and ``north_velocity`` in m s⁻¹.
+
+    Returns
+    -------
+    str or None
+        Base64-encoded PNG for HTML embedding, or None if horizontal velocity data are
+        absent.
+
     """
     import warnings
     import matplotlib.pyplot as plt
@@ -2295,14 +2434,53 @@ def _make_adcp_trajectories_b64(ds: "xr.Dataset") -> Optional[str]:
 
 
 def _make_adcp_velocity_b64(nc_path: str) -> Optional[str]:
-    """Stacked colour panels for ADCP per-instrument page.
+    """Stacked colour panels for the ADCP per-instrument HTML report page.
 
-    Panels (where data are present):
-    - East / North / Up / Error velocity — symmetric Spectral_r (11 class), shared bounds
-    - Current speed (sqrt(E²+N²))        — sequential YlOrRd, 0 → 98th pctile
-    - Current direction (atan2(E,N) °T)   — cyclic twilight_shifted, 0–360°
+    Reads the stage-3 NetCDF file at *nc_path* and produces a multi-panel
+    time × range pcolormesh figure encoded as a base64 PNG string for HTML embedding.
 
-    Y-axis is the ``range`` coordinate; inverted for downward-looking instruments.
+    **Coordinate convention**: velocities are in geographic ENU (East–North–Up), after
+    magnetic declination correction applied in stage 3.  Positive east = rightward facing
+    north; positive north = toward True North.
+
+    **Direction convention** (``current_direction`` panel): direction *toward which* the
+    water flows, clockwise from True North (0° = northward, 90° = eastward).  This is
+    the oceanographic convention, opposite to meteorological "direction from".
+    Computed as ``atan2(east, north) mod 360``.
+
+    Panels rendered for each variable present in the file:
+
+    ====================  ================================  ===================
+    Variable              Label                             Colormap
+    ====================  ================================  ===================
+    east_velocity         East velocity (m s⁻¹)            Spectral_r (div)
+    north_velocity        North velocity (m s⁻¹)           Spectral_r (div)
+    up_velocity           Up velocity (m s⁻¹)              Spectral_r (div)
+    error_velocity        Error velocity (m s⁻¹)           Spectral_r (div)
+    current_speed         Current speed (m s⁻¹)            plasma (seq, 0→98th)
+    current_direction     Current direction (°T)            hsv (cyclic, 0–360°)
+    bin_pressure          Bin pressure (dbar)               viridis (seq)
+    ====================  ================================  ===================
+
+    Diverging panels (east/north/up/error) share symmetric colormap bounds set to
+    ±max(|2nd pctile|, |98th pctile|) of all finite ENU velocity values.
+
+    Bins flagged at or below the seabed (``seabed_qc >= 3``) are masked to NaN.
+    Y-axis (range coordinate) is inverted for downward-looking instruments (pressure
+    increases into the page); non-inverted for upward-looking.
+
+    Parameters
+    ----------
+    nc_path : str
+        Path to a stage-3 NetCDF file for a single ADCP instrument.
+
+    Returns
+    -------
+    str or None
+        Base64-encoded PNG string (for embedding in HTML as
+        ``<img src="data:image/png;base64,…">``), or None if the file cannot be
+        opened, no velocity data are present, or the range coordinate is absent.
+
     """
     try:
         import matplotlib.pyplot as plt
@@ -2443,7 +2621,7 @@ def _make_adcp_velocity_b64(nc_path: str) -> Optional[str]:
             )
 
             orientation = ds.attrs.get("orientation_yaml") or ds.attrs.get(
-                "orientation_instrument", "up"
+                "orientation_instrument", "down"
             )
             looking_down = str(orientation).lower() == "down"
             ylabel = (

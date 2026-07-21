@@ -118,6 +118,27 @@ def find_cold_entry_exit(
 
 
 def calc_psal(ds):
+    """Compute Practical Salinity from conductivity, temperature, and pressure.
+
+    Uses the Gibbs SeaWater (GSW) toolbox: ``gsw.SP_from_C`` applies the
+    PSS-78 equation to derive Practical Salinity (dimensionless, roughly PSU)
+    from conductivity (mS cm⁻¹), temperature (°C), and pressure (dbar).
+
+    If ``PSAL`` is already present in *ds* the function is a no-op.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        Dataset containing ``CNDC`` (conductivity, mS cm⁻¹), ``TEMP``
+        (temperature, °C), and ``PRES`` (pressure, dbar).
+
+    Returns
+    -------
+    xarray.Dataset
+        Input dataset with ``PSAL`` added (same dimensions as ``CNDC``),
+        or unchanged if ``PSAL`` was already present.
+
+    """
     if "PSAL" not in ds:
         SP = gsw.SP_from_C(ds["CNDC"], ds["TEMP"], ds["PRES"])
         ds["PSAL"] = (ds["CNDC"].dims, SP.data)

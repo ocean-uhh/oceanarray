@@ -944,12 +944,55 @@ def _compute_adcp_bin_pressure(
     lat: float,
     log_fn: Any = None,
 ) -> xr.Dataset:
-    """Compute pressure at each ADCP bin from transducer pressure and range.
+    """Compute pressure at each ADCP bin from transducer pressure and along-beam range.
 
-    Creates ``bin_pressure(time, N_BINS)`` in dbar.  Orientation is read from
-    the ``orientation_yaml`` attribute (preferred) or ``orientation_instrument``
-    (fallback).  For a downward-looking ADCP bins are deeper than the
-    transducer so pressure increases; for upward-looking it decreases.
+    For each time step, adds a pressure offset per bin based on the bin's distance
+    from the transducer.  The offset is ``gsw.p_from_z(-range_m, lat)``, which
+    approximates the hydrostatic pressure contribution of *range_m* metres of
+    seawater at the given latitude.
+
+    **Note on ``range`` units**: the RDI WorkHorse firmware already converts slant range
+    to vertical distance before writing to the raw output (using the nominal beam angle;
+    see RDI ADCP Coordinate Transformation manual §4.2, Equation 8).  Dolfyn reads these
+    vertical distances directly, so ``range`` is already in metres of vertical depth —
+    no beam-angle correction is needed.
+
+    **Approximation** (fixable post-OdB; see ``.claude/refactor-plan-postOdB-20260721.md``):
+    ``gsw.p_from_z(-range_m, lat)`` computes the pressure of a water column of depth
+    *range_m* measured from the *sea surface*, not the true pressure increment at the
+    ADCP's actual depth.  Error at 300 m range from a 500 m transducer is ~2–3 dbar —
+    within the seabed-QC margin (~20 dbar) for current moorings.
+
+    The sign follows instrument orientation:
+
+    - Downward-looking (``orientation == "down"``): bins are deeper than the
+      transducer → pressure increases with bin index.
+    - Upward-looking (``orientation == "up"``): bins are shallower than the
+      transducer → pressure decreases with bin index.
+
+    If orientation cannot be determined from dataset attributes a WARNING is emitted
+    and ``"down"`` is assumed.
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        Stage 3 ADCP dataset.  Must contain ``pressure(time)`` in dbar (pressure at
+        the transducer head) and ``range(N_BINS)`` in metres (bin centre distance from
+        the transducer face).  Orientation is read from the ``orientation_yaml`` global
+        attribute (preferred) or ``orientation_instrument`` (fallback).
+    lat : float
+        Mooring latitude in decimal degrees (positive North), used by
+        ``gsw.p_from_z`` for the gravitational/centrifugal correction.
+    log_fn : callable, optional
+        Logging callback (e.g. ``logger.info``).
+
+    Returns
+    -------
+    xr.Dataset
+        Input dataset with ``bin_pressure(time, N_BINS)`` added in dbar.
+        The variable's ``comment`` attribute records the formula and orientation used.
+        Returns *ds* unchanged if ``pressure`` or ``range`` are absent.
+
     """
     import gsw
     from . import parameters as _P
@@ -960,8 +1003,16 @@ def _compute_adcp_bin_pressure(
         return ds
 
     orientation = ds.attrs.get("orientation_yaml") or ds.attrs.get(
-        "orientation_instrument", "down"
+        "orientation_instrument"
     )
+    if not orientation:
+        orientation = "down"
+        if log_fn:
+            log_fn(
+                "  WARNING: ADCP orientation unknown (no orientation_yaml or "
+                "orientation_instrument attr) — assuming downward-looking. "
+                "bin_pressure signs may be wrong for upward-looking instruments."
+            )
     sign = 1.0 if str(orientation).lower() == "down" else -1.0
 
     p_trans = ds["pressure"].values.astype(float)  # (time,)
@@ -1002,29 +1053,45 @@ def _apply_adcp_seabed_qc(
 ) -> xr.Dataset:
     """Flag ADCP bins that are at or below the seabed.
 
-    Bins whose ``bin_pressure`` exceeds the estimated seabed pressure are
-    flagged suspect (3); bins more than *fail_margin_m* metres below the
-    seabed are flagged bad (4).  The flag is stored as
-    ``seabed_qc(time, N_BINS)`` and merged into the per-component velocity
-    QC variables via ``_merge_flags``.
+    Bins whose ``bin_pressure`` exceeds the estimated seabed pressure are flagged
+    suspect (3); bins more than *fail_margin_m* metres below the seabed are flagged
+    bad (4).  The flag is stored as the standalone variable ``seabed_qc(time, N_BINS)``.
+
+    **Flag scale** (OceanSITES / QARTOD convention):
+    1 = good, 3 = suspect, 4 = bad, 9 = missing.
+
+    **Standalone flag**: ``seabed_qc`` is *not* merged into ``east_velocity_qc``,
+    ``north_velocity_qc``, or ``up_velocity_qc``.  Downstream code that needs clean
+    velocity data must explicitly include all relevant flags, for example::
+
+        clean = (ds.east_velocity_qc == 1) & (ds.seabed_qc == 1)
+
+    The seabed pressure threshold is computed via ``gsw.p_from_z(-water_depth_m, lat)``,
+    consistent with ``_compute_adcp_bin_pressure``.
 
     Parameters
     ----------
     ds : xr.Dataset
-        Stage 3 dataset containing ``bin_pressure(time, N_BINS)``.
+        Stage 3 ADCP dataset containing ``bin_pressure(time, N_BINS)`` in dbar.
     water_depth_m : float
-        Water depth at the mooring site in metres (from YAML ``waterdepth``
-        key).  If ≤ 0 the function is a no-op.
+        Water depth at the mooring site in metres (from YAML ``waterdepth`` key).
+        If ≤ 0 the function is a no-op.
     lat : float
-        Latitude (decimal degrees) for ``gsw.p_from_z`` conversion.
+        Mooring latitude in decimal degrees, used by ``gsw.p_from_z``.
     qc_attrs : dict
         OceanSITES flag attribute dict written to ``seabed_qc``.
     fail_margin_m : float
-        Depth margin below seabed that triggers the bad (4) flag.
-        Default 20 m.  Bins between 0 and *fail_margin_m* below the seabed
-        receive the suspect (3) flag.
+        Margin below the seabed (in metres) that separates suspect (3) from bad (4).
+        Default 20 m.  Bins between 0 and *fail_margin_m* below the seabed receive
+        flag 3; bins more than *fail_margin_m* below receive flag 4.
     log_fn : callable, optional
         Logging callback.
+
+    Returns
+    -------
+    xr.Dataset
+        Input dataset with ``seabed_qc(time, N_BINS)`` added.
+        Returns *ds* unchanged if ``water_depth_m <= 0`` or ``bin_pressure`` is absent.
 
     """
     if water_depth_m <= 0:
@@ -1151,6 +1218,21 @@ def _apply_adcp_velocity_qc(
         OceanSITES flag attribute dict written to every ``*_qc`` variable.
     log_fn : callable, optional
         Logging callback.
+
+    Returns
+    -------
+    xr.Dataset
+        Input dataset with the following standalone QC variables added (where their
+        parent data variables are present):
+
+        - ``east_velocity_qc(time, N_BINS)`` — gross-range flag on east velocity
+        - ``north_velocity_qc(time, N_BINS)`` — gross-range flag on north velocity
+        - ``up_velocity_qc(time, N_BINS)`` — gross-range flag on up velocity
+        - ``percent_good_qc(time, N_BINS)`` — 4-beam percent-good flag
+        - ``error_velocity_qc(time, N_BINS)`` — error velocity magnitude flag
+
+        All flags use the OceanSITES scale: 1 = good, 3 = suspect, 4 = bad, 9 = missing.
+        Variables are standalone; no merging across criteria is performed.
 
     """
     # 1. Gross-range on each ENU velocity component independently.
@@ -1655,9 +1737,9 @@ class Stage3Processor:
 
             # ── Tilt QC ────────────────────────────────────────────────
             # Flags all velocity variables when pitch+roll tilt exceeds threshold.
-            # Skipped for ADCP: percent_good and error_velocity already capture
-            # ensemble-level quality; tilt thresholding is handled per-bin by
-            # _apply_adcp_velocity_qc instead.
+            # Skipped for ADCP: percent_good (col 3) and error_velocity capture
+            # ensemble-level quality without a separate tilt threshold step.
+            # Note: this does NOT mean tilt is checked per-bin — it is not.
             tilt_cfg = info["tilt"]
             if is_adcp:
                 n_tilt_susp, n_tilt_bad = 0, 0
