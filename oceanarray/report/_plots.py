@@ -1129,6 +1129,215 @@ def _make_grid_fig_b64(
 
 
 # ---------------------------------------------------------------------------
+# Stacked grid panels (hydrography and velocity)
+# ---------------------------------------------------------------------------
+
+
+def _make_grid_hydro_b64(ds: "xr.Dataset") -> Optional[str]:
+    """Stacked T / S pcolormesh panels for the grid report hydrography section.
+
+    Panels rendered (only those present in *ds*):
+    - Temperature (RdYlBu_r)
+    - Salinity (YlGnBu_r)
+
+    Returns None if neither variable is present.
+    """
+    import matplotlib.pyplot as plt
+    import matplotlib.colors as mcolors
+    import matplotlib.dates as mdates
+    import xarray as _xr
+    from .. import parameters as P
+
+    panels = []
+    for var, cmap in [("temperature", "RdYlBu_r"), ("salinity", "YlGnBu_r")]:
+        if var not in ds.data_vars:
+            continue
+        panels.append((var, cmap))
+
+    # Also allow derived salinity from T/C
+    if "salinity" not in ds.data_vars and "conductivity" in ds.data_vars and "temperature" in ds.data_vars:
+        try:
+            import gsw
+            p_1d = ds["pressure"].values
+            T = ds["temperature"].transpose("time", "pressure").values
+            C = ds["conductivity"].transpose("time", "pressure").values
+            SP_vals = gsw.SP_from_C(C, T, p_1d[np.newaxis, :])
+            ds = ds.assign(
+                salinity=_xr.DataArray(
+                    SP_vals,
+                    dims=("time", "pressure"),
+                    coords={"time": ds["time"], "pressure": ds["pressure"]},
+                    attrs={"units": "1", "long_name": "Practical Salinity"},
+                )
+            )
+            panels.append(("salinity", "YlGnBu_r"))
+        except Exception:  # noqa: BLE001
+            pass
+
+    if not panels:
+        return None
+
+    pressure = ds["pressure"].values
+    time = ds["time"].values
+    plt.style.use(str(P.MPLSTYLE))
+    n = len(panels)
+    fig, axes = plt.subplots(n, 1, figsize=(13, 3.2 * n), sharex=True, squeeze=False)
+    locator = mdates.AutoDateLocator()
+
+    for ax, (var, cmap) in zip(axes[:, 0], panels):
+        da = ds[var]
+        data = da.transpose("pressure", "time").values
+        units = da.attrs.get("units", "")
+        label = da.attrs.get("long_name", var)
+        _vmin = float(np.nanpercentile(data, P.COLORBAR_PLOW))
+        _vmax = float(np.nanpercentile(data, P.COLORBAR_PHIGH))
+        bounds = _nice_colorbar_bounds(_vmin, _vmax, n=20)
+        norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+        pc = ax.pcolormesh(time, pressure, data, shading="nearest", cmap=cmap, norm=norm)
+        cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=bounds[::2])
+        cb.set_label(f"{label} ({units})" if units else label)
+        ax.invert_yaxis()
+        ax.set_ylabel("Pressure (dbar)")
+        ax.set_title(label, loc="left")
+        ax.grid(True, linestyle="--", linewidth=0.3, alpha=0.4)
+
+    axes[-1, 0].xaxis.set_major_locator(locator)
+    axes[-1, 0].xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+    fig.tight_layout()
+    b64 = _fig_to_base64(fig)
+    plt.close(fig)
+    return b64
+
+
+def _make_grid_velocity_stacked_b64(ds: "xr.Dataset") -> Optional[str]:
+    """Stacked east / north / up velocity pcolormesh panels for the grid report.
+
+    Uses a shared symmetric Spectral_r colormap across E/N/Up so magnitudes are
+    comparable across panels.  Up velocity uses its own symmetric bounds (usually
+    much smaller than horizontal).
+
+    Returns None if no velocity data are present.
+    """
+    import matplotlib.pyplot as plt
+    import matplotlib.colors as mcolors
+    import matplotlib.dates as mdates
+    from .. import parameters as P
+
+    vel_vars = [
+        ("east_velocity",  "East velocity",  "m s⁻¹"),
+        ("north_velocity", "North velocity", "m s⁻¹"),
+        ("up_velocity",    "Up velocity",    "m s⁻¹"),
+    ]
+    present = [(v, lbl, u) for v, lbl, u in vel_vars if v in ds.data_vars]
+    if not present:
+        return None
+
+    pressure = ds["pressure"].values
+    time = ds["time"].values
+
+    # Shared symmetric bounds from horizontal velocity (2nd/98th pctile)
+    horiz_vals = np.concatenate([
+        ds[v].values.ravel()
+        for v, _, _ in present
+        if v in ("east_velocity", "north_velocity")
+    ])
+    finite_h = horiz_vals[np.isfinite(horiz_vals)]
+    abs_max_h = max(
+        abs(float(np.percentile(finite_h, 2))),
+        abs(float(np.percentile(finite_h, 98))),
+        1e-4,
+    ) if len(finite_h) else 1.0
+    h_bounds = _nice_colorbar_bounds(-abs_max_h, abs_max_h, n=20)
+    h_norm = mcolors.BoundaryNorm(h_bounds, ncolors=256)
+
+    # Separate bounds for up velocity
+    if "up_velocity" in ds.data_vars:
+        up_vals = ds["up_velocity"].values.ravel()
+        finite_u = up_vals[np.isfinite(up_vals)]
+        abs_max_u = max(
+            abs(float(np.percentile(finite_u, 2))),
+            abs(float(np.percentile(finite_u, 98))),
+            1e-4,
+        ) if len(finite_u) else 1.0
+        u_bounds = _nice_colorbar_bounds(-abs_max_u, abs_max_u, n=20)
+        u_norm = mcolors.BoundaryNorm(u_bounds, ncolors=256)
+    else:
+        u_bounds, u_norm = h_bounds, h_norm
+
+    plt.style.use(str(P.MPLSTYLE))
+    n = len(present)
+    fig, axes = plt.subplots(n, 1, figsize=(13, 3.2 * n), sharex=True, squeeze=False)
+    locator = mdates.AutoDateLocator()
+
+    for ax, (var, label, units) in zip(axes[:, 0], present):
+        data = ds[var].transpose("pressure", "time").values
+        # Apply QC mask
+        qc_var = f"{var}_qc"
+        if qc_var in ds.data_vars:
+            data = data.copy()
+            data[ds[qc_var].transpose("pressure", "time").values >= 3] = np.nan
+        bounds = u_bounds if var == "up_velocity" else h_bounds
+        norm   = u_norm   if var == "up_velocity" else h_norm
+        pc = ax.pcolormesh(time, pressure, data, shading="nearest", cmap="Spectral_r", norm=norm)
+        cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=bounds[::2])
+        cb.set_label(units)
+        ax.invert_yaxis()
+        ax.set_ylabel("Pressure (dbar)")
+        ax.set_title(label, loc="left")
+        ax.grid(True, linestyle="--", linewidth=0.3, alpha=0.4)
+
+    axes[-1, 0].xaxis.set_major_locator(locator)
+    axes[-1, 0].xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+    fig.tight_layout()
+    b64 = _fig_to_base64(fig)
+    plt.close(fig)
+    return b64
+
+
+def _make_grid_sigma_b64(ds: "xr.Dataset") -> Optional[str]:
+    """Stacked sigma0 pcolormesh panel(s) for the stratification section."""
+    import matplotlib.pyplot as plt
+    import matplotlib.colors as mcolors
+    import matplotlib.dates as mdates
+    from .. import parameters as P
+
+    sigma_vars = [v for v in ds.data_vars if v.startswith("sigma") and "pressure" in ds[v].dims]
+    if not sigma_vars:
+        return None
+
+    pressure = ds["pressure"].values
+    time = ds["time"].values
+    plt.style.use(str(P.MPLSTYLE))
+    n = len(sigma_vars)
+    fig, axes = plt.subplots(n, 1, figsize=(13, 3.2 * n), sharex=True, squeeze=False)
+    locator = mdates.AutoDateLocator()
+
+    for ax, sv in zip(axes[:, 0], sigma_vars):
+        da = ds[sv]
+        data = da.transpose("pressure", "time").values
+        units = da.attrs.get("units", "kg m⁻³")
+        label = da.attrs.get("long_name", sv)
+        _vmin = float(np.nanpercentile(data, P.COLORBAR_PLOW))
+        _vmax = float(np.nanpercentile(data, P.COLORBAR_PHIGH))
+        bounds = _nice_colorbar_bounds(_vmin, _vmax, n=20)
+        norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+        pc = ax.pcolormesh(time, pressure, data, shading="nearest", cmap=P.DENSITY_COLORMAP, norm=norm)
+        cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=bounds[::2])
+        cb.set_label(f"{label} ({units})" if units else label)
+        ax.invert_yaxis()
+        ax.set_ylabel("Pressure (dbar)")
+        ax.set_title(label, loc="left")
+        ax.grid(True, linestyle="--", linewidth=0.3, alpha=0.4)
+
+    axes[-1, 0].xaxis.set_major_locator(locator)
+    axes[-1, 0].xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+    fig.tight_layout()
+    b64 = _fig_to_base64(fig)
+    plt.close(fig)
+    return b64
+
+
+# ---------------------------------------------------------------------------
 # Rose diagrams
 # ---------------------------------------------------------------------------
 
