@@ -103,12 +103,20 @@ VALID_INSTRUMENTS: Dict[str, Dict[str, Any]] = {
         "typical_file_types": ["nortek-aqd", "nortek-ascii"],
     },
     "adcp": {
-        "description": "Acoustic Doppler Current Profiler",
-        "typical_file_types": ["adcp-matlab"],
+        "description": "Acoustic Doppler Current Profiler (lowercase; use 'ADCP' in YAML)",
+        "typical_file_types": ["rdi-raw", "adcp-matlab"],
+    },
+    "ADCP": {
+        "description": "Acoustic Doppler Current Profiler (RDI or similar)",
+        "typical_file_types": ["rdi-raw", "adcp-matlab"],
     },
     "tr1050": {
         "description": "Turner TR-1050 fluorometer (via RBR logger)",
-        "typical_file_types": ["rbr-matlab"],
+        "typical_file_types": ["rbr-matlab", "rbr-hex-oa"],
+    },
+    "seapoint": {
+        "description": "Seapoint turbidity sensor (via RBR logger)",
+        "typical_file_types": ["rbr-rsk", "rbr-dat"],
     },
 }
 
@@ -130,6 +138,8 @@ VALID_FILE_TYPES = {
     "rbr-dat",
     "rbr-matlab",
     "adcp-matlab",
+    "rdi-raw",  # RDI ADCP raw binary; requires mhkit[dolfyn]
+    "rbr-hex-oa",  # internal oceanarray hex reader for TR-1050; use rbr-hex once seasenselib supports it
 }
 
 UNSUPPORTED_FILE_TYPES: Dict[str, str] = {}
@@ -175,17 +185,29 @@ def validate_mooring_yaml(yaml_path: str) -> List[ValidationIssue]:
         if key not in data:
             issues.append(ValidationIssue("ERROR", f"Missing required key: '{key}'"))
 
-    # Validate instrument list (supports both 'clamp' and legacy 'instruments')
+    # Validate instrument list (supports both 'clamp' and legacy 'instruments').
+    # Also validate inline hardware entries that carry instrument data.
     instrument_list = data.get("clamp", data.get("instruments", []))
-    if not instrument_list:
+    inline_list = data.get("inline", [])
+    inline_instruments = [
+        e
+        for e in inline_list
+        if isinstance(e, dict)
+        and "instrument" in e
+        and (e.get("filename") or e.get("skip"))
+    ]
+    combined_list = list(instrument_list) + inline_instruments
+
+    if not combined_list:
         issues.append(
             ValidationIssue(
-                "WARNING", "No instruments found under 'clamp' or 'instruments'"
+                "WARNING",
+                "No instruments found under 'clamp', 'instruments', or 'inline'",
             )
         )
         return issues
 
-    for i, entry in enumerate(instrument_list):
+    for i, entry in enumerate(combined_list):
         if not isinstance(entry, dict):
             continue
 
@@ -205,6 +227,22 @@ def validate_mooring_yaml(yaml_path: str) -> List[ValidationIssue]:
                     f"(e.g. '*') — they will be stripped automatically when constructing output filenames",
                 )
             )
+
+        # Fragile serial parsing for inline instruments with compound serials.
+        # extract_inline_instruments splits on the first comma and uses the first
+        # token as the instrument serial.  Warn so operators can verify the ordering.
+        if entry.get("source") == "inline" or entry in inline_instruments:
+            if "," in serial_str:
+                parts = [p.strip() for p in serial_str.split(",")]
+                issues.append(
+                    ValidationIssue(
+                        "WARNING",
+                        f"{prefix} inline serial='{serial_str}' contains a comma — "
+                        f"the first token '{parts[0]}' will be used as the instrument serial "
+                        f"and '{', '.join(parts[1:])}' stored as beacon_id.  "
+                        f"Confirm the instrument serial comes first.",
+                    )
+                )
 
         if instrument is None:
             issues.append(
@@ -256,7 +294,7 @@ def validate_mooring_yaml(yaml_path: str) -> List[ValidationIssue]:
                 )
             )
 
-        if not filename:
+        if not filename and not entry.get("skip"):
             issues.append(
                 ValidationIssue(
                     "WARNING",

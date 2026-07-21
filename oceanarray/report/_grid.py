@@ -9,11 +9,16 @@ import numpy as np
 
 from ._html_helpers import _nav_buttons_html, _parse_history, _read_nc_metadata, _status
 from ._plots import (
-    _make_grid_fig_b64,
+    _make_grid_hydro_b64,
+    _make_grid_sigma_b64,
+    _make_grid_timeseries_b64,
+    _make_grid_trajectory_b64,
     _make_grid_ts_diagram,
     _make_grid_n2_b64,
+    _make_grid_velocity_stacked_b64,
     _make_isopycnal_fig_b64,
     _make_spectrum_fig_b64,
+    _make_velocity_iqr_profile_b64,
 )
 from .. import parameters as P
 
@@ -76,6 +81,10 @@ _GRID_HTML_TEMPLATE = """\
   td.mono { font-family:monospace; font-size:0.8rem; }
   .none-note { color:var(--muted); font-style:italic; }
   .var-qc { color:var(--good); font-size:0.78rem; }
+  details summary.collapse-toggle { color:var(--muted); font-size:0.76rem; cursor:pointer;
+    list-style:none; padding:0.15rem 0 0.4rem; user-select:none; }
+  details summary.collapse-toggle::before { content:"▾ "; }
+  details[open] summary.collapse-toggle::before { content:"▴ "; }
   @media print { .masthead { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
 </style>
 </head>
@@ -107,12 +116,13 @@ _GRID_HTML_TEMPLATE = """\
 <nav class="jump-nav">
   Jump to:
   {% if history_entries %}<a href="#history">History</a>{% endif %}
-  {% if fig_temp_b64 or fig_temp_cf_b64 %}<a href="#temp">Temperature</a>{% endif %}
-  {% if fig_sal_b64 or fig_sal_cf_b64 %}<a href="#sal">Salinity</a>{% endif %}
-  {% if sigma_sections %}<a href="#density">Potential density</a>{% endif %}
-  {% if vel_sections %}<a href="#vel">Velocities</a>{% endif %}
-  {% if fig_n2_b64 %}<a href="#n2">N²</a>{% endif %}
+  {% if fig_hydro_b64 %}<a href="#hydro">Hydrography</a>{% endif %}
+  {% if fig_vel_stacked_b64 %}<a href="#vel">Velocity</a>{% endif %}
   {% if fig_ts_grid_b64 %}<a href="#ts">T-S diagram</a>{% endif %}
+  {% if fig_vel_iqr_b64 %}<a href="#vel-iqr">Velocity profiles</a>{% endif %}
+  {% if fig_grid_traj_b64 %}<a href="#grid-traj">Particle trajectory</a>{% endif %}
+  {% if fig_grid_ts_b64 %}<a href="#grid-ts">Velocity time series</a>{% endif %}
+  {% if fig_sigma_b64 or fig_n2_b64 %}<a href="#strat">Stratification</a>{% endif %}
   {% if fig_spectrum_b64 %}<a href="#spectrum">Power spectrum</a>{% endif %}
   <a href="#vars">Variables</a>
 </nav>
@@ -129,64 +139,103 @@ _GRID_HTML_TEMPLATE = """\
 </ul>
 {% endif %}
 
-<!-- Temperature -->
-{% if fig_temp_b64 %}
-<h2 id="temp">Temperature</h2>
-<p class="note">{{ p_range }} &bull; colour range: {{ temp_plow }}–{{ temp_phigh }} °C (5th–95th percentile) &bull; 20 discrete levels</p>
-<img class="fig" src="data:image/png;base64,{{ fig_temp_b64 }}" alt="Temperature pcolormesh">
+<!-- ══ Hydrography: T and S ══ -->
+{% if fig_hydro_b64 %}
+<h2 id="hydro">Hydrography</h2>
+<p class="note">Temperature and salinity. Vertically interpolated to regular pressure grid &bull; 20 discrete colour levels.</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,{{ fig_hydro_b64 }}" alt="Temperature and salinity">
+</details>
 {% endif %}
 
-<!-- Salinity -->
-{% if fig_sal_b64 %}
-<h2 id="sal">Practical Salinity</h2>
-<p class="note">{{ sal_source }} &bull; colour range: {{ sal_plow }}–{{ sal_phigh }} (5th–95th percentile) &bull; 20 discrete levels</p>
-<img class="fig" src="data:image/png;base64,{{ fig_sal_b64 }}" alt="Salinity pcolormesh">
+<!-- ══ Velocity: E / N / Up ══ -->
+{% if fig_vel_stacked_b64 %}
+<h2 id="vel">Velocity</h2>
+<p class="note">East, north, and up velocity. QC-flagged samples excluded before interpolation. Shared symmetric Spectral_r colormap for east/north; separate bounds for up. No temporal gap fill — NaN where no data.</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,{{ fig_vel_stacked_b64 }}" alt="Velocity pcolormesh">
+</details>
 {% endif %}
 
-<!-- Potential density -->
-{% for sec in sigma_sections %}
-<h2 {% if loop.first %}id="density" {% endif %}>{{ sec.label }}</h2>
-<p class="note">{{ p_range }} &bull; colour range: {{ sec.plow }}–{{ sec.phigh }} {{ sec.units }} (5th–95th percentile) &bull; 20 discrete levels</p>
-{% if sec.fig_b64 %}
-<img class="fig" src="data:image/png;base64,{{ sec.fig_b64 }}" alt="{{ sec.label }} pcolormesh">
-{% endif %}
-{% if sec.isopycnal_zoom_b64 %}
-<h2>Isopycnal depths &mdash; {{ sec.name }} (3-day zoom, unfiltered)</h2>
-<p class="note">3-day window centred on deployment midpoint &bull; raw gridded data &bull; no temporal filter applied.</p>
-<img class="fig" src="data:image/png;base64,{{ sec.isopycnal_zoom_b64 }}" alt="Isopycnal depths zoom {{ sec.label }}">
-{% endif %}
-{% if sec.isopycnal_b64 %}
-<h2>Isopycnal depths &mdash; {{ sec.name }} (full record, 24 h Tukey filtered)</h2>
-<p class="note">Full deployment &bull; 24 h Tukey (α=0.5) moving-average applied before contouring to reduce tidal noise.</p>
-<img class="fig" src="data:image/png;base64,{{ sec.isopycnal_b64 }}" alt="Isopycnal depths {{ sec.label }}">
-{% endif %}
-{% endfor %}
-
-<!-- Velocity grids (speed, direction, W) -->
-{% for sec in vel_sections %}
-<h2 {% if loop.first %}id="vel" {% endif %}>{{ sec.label }}</h2>
-<p class="note">Vertically interpolated to regular pressure grid. QC-flagged samples excluded before interpolation. No temporal gap fill — NaN where no data.</p>
-{% if sec.fig_b64 %}
-<img class="fig" src="data:image/png;base64,{{ sec.fig_b64 }}" alt="{{ sec.label }} grid">
-{% endif %}
-{% endfor %}
-
-{% if fig_n2_b64 %}
-<h2 id="n2">Buoyancy frequency squared (N²)</h2>
-<p class="note">log₁₀(N²) in s⁻². Purple = strongly stratified (high N²); yellow = weakly stratified. Computed from T and S via GSW; one pressure mid-point between each adjacent pair of grid levels.</p>
-<img class="fig" src="data:image/png;base64,{{ fig_n2_b64 }}" alt="N² pcolormesh">
-{% endif %}
-
+<!-- ══ T-S diagram (before derived quantities) ══ -->
 {% if fig_ts_grid_b64 %}
 <h2 id="ts">T-S diagram</h2>
 <p class="note">All (pressure, time) grid points. Colour = log₁₀(count+1). QC-bad data excluded at the stack step before gridding.</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" style="width:45%;max-width:45%;" src="data:image/png;base64,{{ fig_ts_grid_b64 }}" alt="T-S diagram">
+</details>
 {% endif %}
 
+<!-- ══ Velocity IQR profiles ══ -->
+{% if fig_vel_iqr_b64 %}
+<h2 id="vel-iqr">Velocity IQR profiles</h2>
+<p class="note">Median (solid line) and interquartile range (shaded, 25–75 %) across the full deployment at each pressure level. 2.5–97.5 % outer envelope for speed. Right panel: count of non-NaN values per depth.</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" style="max-width:85%" src="data:image/png;base64,{{ fig_vel_iqr_b64 }}" alt="Velocity IQR profiles">
+</details>
+{% endif %}
+
+<!-- ══ Particle trajectory ══ -->
+{% if fig_grid_traj_b64 %}
+<h2 id="grid-traj">Particle trajectory</h2>
+<p class="note">Pseudo-Lagrangian trajectories at each gridded pressure level, integrated from east and north velocity (Euler forward). All start at the origin. Coloured by pressure (dbar).</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" style="max-width:55%" src="data:image/png;base64,{{ fig_grid_traj_b64 }}" alt="Grid particle trajectory">
+</details>
+{% endif %}
+
+<!-- ══ Velocity time series at depth of max speed ══ -->
+{% if fig_grid_ts_b64 %}
+<h2 id="grid-ts">Velocity time series at depth of maximum mean speed</h2>
+<p class="note">Depth chosen as the pressure level with the highest time-mean current speed. Speed, east, and north velocity at that level.</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,{{ fig_grid_ts_b64 }}" alt="Velocity time series at max-speed depth">
+</details>
+{% endif %}
+
+<!-- ══ Stratification: sigma0 + N² + isopycnal depths + spectrum ══ -->
+{% if fig_sigma_b64 or fig_n2_b64 %}
+<h2 id="strat">Stratification</h2>
+{% endif %}
+
+{% if fig_sigma_b64 %}
+<p class="note">Potential density. 20 discrete colour levels.</p>
+<details open><summary class="collapse-toggle">show / hide sigma0</summary>
+<img class="fig" src="data:image/png;base64,{{ fig_sigma_b64 }}" alt="Potential density pcolormesh">
+</details>
+{% endif %}
+
+{% if fig_n2_b64 %}
+<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;">Buoyancy frequency squared (N²)</h3>
+<p class="note">log₁₀(N²) in s⁻². Purple = strongly stratified; yellow = weakly stratified. Computed from T and S via GSW.</p>
+<details open><summary class="collapse-toggle">show / hide N²</summary>
+<img class="fig" src="data:image/png;base64,{{ fig_n2_b64 }}" alt="N² pcolormesh">
+</details>
+{% endif %}
+
+{% for sec in sigma_sections %}
+{% if sec.isopycnal_zoom_b64 %}
+<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;">Isopycnal depths &mdash; {{ sec.name }} (3-day zoom, unfiltered)</h3>
+<p class="note">3-day window centred on deployment midpoint &bull; raw gridded data.</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,{{ sec.isopycnal_zoom_b64 }}" alt="Isopycnal depths zoom">
+</details>
+{% endif %}
+{% if sec.isopycnal_b64 %}
+<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;">Isopycnal depths &mdash; {{ sec.name }} (full record, 24 h Tukey filtered)</h3>
+<p class="note">Full deployment &bull; 24 h Tukey (α=0.5) moving-average applied before contouring.</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,{{ sec.isopycnal_b64 }}" alt="Isopycnal depths">
+</details>
+{% endif %}
+{% endfor %}
+
 {% if fig_spectrum_b64 %}
-<h2 id="spectrum">Temperature power spectrum</h2>
+<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;" id="spectrum">Temperature power spectrum</h3>
 <p class="note">Welch PSD (Hann window, 14-day segments, 50% overlap). One line per depth level; colour indicates pressure (shallow = light blue, deep = dark blue). Dashed vertical lines mark tidal and inertial frequencies. Dashed black line: &minus;2 spectral slope reference.</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,{{ fig_spectrum_b64 }}" alt="Temperature power spectrum">
+</details>
 {% endif %}
 
 <!-- ══ NetCDF variables ══ -->
@@ -310,127 +359,15 @@ def generate_grid_page(
         n_instr = ctx.get("n_instruments", "—")
         grid_history = _parse_history(ds.attrs.get("history", ""))
 
-        # Temperature
-        fig_temp_b64 = fig_temp_cf_b64 = temp_plow = temp_phigh = None
-        if "temperature" in ds:
-            T_da = ds["temperature"]
-            T_units = T_da.attrs.get("units", "degC")
-            T_vals = T_da.values
-            temp_plow = f"{np.nanpercentile(T_vals, P.COLORBAR_PLOW):.2f}"
-            temp_phigh = f"{np.nanpercentile(T_vals, P.COLORBAR_PHIGH):.2f}"
-            fig_temp_b64 = _make_grid_fig_b64(T_da, "Temperature", T_units, "RdYlBu_r")
-            fig_temp_cf_b64 = None
+        # Hydrography: stacked T + S
+        fig_hydro_b64 = _make_grid_hydro_b64(ds)
 
-        # Salinity — use stored variable or derive from T/C via GSW
-        fig_sal_b64 = sal_plow = sal_phigh = None
-        sal_source = ""
-        SP_da = None
-        if "salinity" in ds:
-            SP_da = ds["salinity"]
-            sal_units = SP_da.attrs.get("units", "1")
-            sal_source = "practical salinity from _grid.nc"
-        elif "conductivity" in ds and "temperature" in ds:
-            import gsw
+        # Velocity: stacked E / N / Up
+        fig_vel_stacked_b64 = _make_grid_velocity_stacked_b64(ds)
 
-            T_tp = ds["temperature"].transpose("time", "pressure").values
-            C_tp = ds["conductivity"].transpose("time", "pressure").values
-            SP_vals = gsw.SP_from_C(C_tp, T_tp, pressure[np.newaxis, :])
-            SP_da = xr.DataArray(
-                SP_vals,
-                dims=("time", "pressure"),
-                coords={"time": ds["time"], "pressure": ds["pressure"]},
-            )
-            sal_units = "1"
-            sal_source = "practical salinity computed from T, C via GSW"
-        fig_sal_cf_b64 = None
-        if SP_da is not None:
-            sal_plow = f"{np.nanpercentile(SP_da.values, P.COLORBAR_PLOW):.3f}"
-            sal_phigh = f"{np.nanpercentile(SP_da.values, P.COLORBAR_PHIGH):.3f}"
-            fig_sal_b64 = _make_grid_fig_b64(
-                SP_da, "Practical Salinity", sal_units, "YlGnBu_r"
-            )
-
-        # Velocity grids (ENU)
-        vel_sections = []
-
-        def _qc_masked_vel(ds, vel_var):
-            import xarray as _xr
-
-            if vel_var not in ds.data_vars:
-                return None
-            da = ds[vel_var]
-            qc_var = f"{vel_var}_qc"
-            if qc_var in ds.data_vars:
-                data = da.values.copy()
-                data[ds[qc_var].values >= 3] = np.nan
-                da = _xr.DataArray(data, dims=da.dims, coords=da.coords, attrs=da.attrs)
-            return da
-
-        da_east = _qc_masked_vel(ds, "east_velocity")
-        da_north = _qc_masked_vel(ds, "north_velocity")
-
-        if da_east is not None and da_north is not None:
-            import xarray as _xr
-
-            spd_vals = np.sqrt(da_east.values**2 + da_north.values**2)
-            dir_vals = (
-                90.0 - np.degrees(np.arctan2(da_north.values, da_east.values))
-            ) % 360.0
-            spd_da = _xr.DataArray(
-                spd_vals,
-                dims=da_east.dims,
-                coords=da_east.coords,
-                attrs={"units": "m s-1", "long_name": "Current speed"},
-            )
-            dir_da = _xr.DataArray(
-                dir_vals,
-                dims=da_east.dims,
-                coords=da_east.coords,
-                attrs={
-                    "units": "degrees",
-                    "long_name": "Current direction (toward, °T)",
-                },
-            )
-            vel_sections.append(
-                {
-                    "label": "Current speed",
-                    "units": "m s-1",
-                    "fig_b64": _make_grid_fig_b64(
-                        spd_da, "Current speed", "m s⁻¹", "plasma"
-                    ),
-                }
-            )
-            vel_sections.append(
-                {
-                    "label": "Current direction (toward, °T)",
-                    "units": "°",
-                    "fig_b64": _make_grid_fig_b64(
-                        dir_da,
-                        "Current direction (toward, °T)",
-                        "°",
-                        "hsv",
-                        vmin=0.0,
-                        vmax=360.0,
-                    ),
-                }
-            )
-
-        da_up = _qc_masked_vel(ds, "up_velocity")
-        if da_up is not None:
-            vel_sections.append(
-                {
-                    "label": "Up velocity (W)",
-                    "units": da_up.attrs.get("units", "m s-1"),
-                    "fig_b64": _make_grid_fig_b64(
-                        da_up,
-                        "Up velocity (W)",
-                        da_up.attrs.get("units", "m s-1"),
-                        "RdBu_r",
-                        symmetric=True,
-                    ),
-                }
-            )
-
+        fig_vel_iqr_b64 = _make_velocity_iqr_profile_b64(ds)
+        fig_grid_traj_b64 = _make_grid_trajectory_b64(ds)
+        fig_grid_ts_b64 = _make_grid_timeseries_b64(ds)
         fig_ts_grid_b64 = _make_grid_ts_diagram(ds)
 
         _lat_n2 = 0.0
@@ -446,6 +383,8 @@ def generate_grid_page(
                     pass
         fig_n2_b64 = _make_grid_n2_b64(ds, lat=_lat_n2)
 
+        # Stratification: sigma0 stacked panel + isopycnal time series
+        fig_sigma_b64 = _make_grid_sigma_b64(ds)
         sigma_sections = []
         for sv in [
             v
@@ -454,10 +393,6 @@ def generate_grid_page(
         ]:
             da = ds[sv]
             label = da.attrs.get("long_name", sv)
-            units_s = da.attrs.get("units", "kg m-3")
-            vals = da.values
-            sig_plow = f"{np.nanpercentile(vals, P.COLORBAR_PLOW):.4f}"
-            sig_phigh = f"{np.nanpercentile(vals, P.COLORBAR_PHIGH):.4f}"
             _dt_s = float(ds.attrs.get("dt_seconds", 60))
             _filter_s = max(3, int(24 * 3600 / _dt_s))
             _n_t = da.sizes["time"]
@@ -467,12 +402,6 @@ def generate_grid_page(
                 {
                     "name": sv,
                     "label": label,
-                    "units": units_s,
-                    "plow": sig_plow,
-                    "phigh": sig_phigh,
-                    "fig_b64": _make_grid_fig_b64(
-                        da, label, units_s, P.DENSITY_COLORMAP
-                    ),
                     "isopycnal_zoom_b64": _make_isopycnal_fig_b64(
                         da,
                         P.SIGMA_CONTOUR_LEVELS,
@@ -538,17 +467,13 @@ def generate_grid_page(
             history_entries=grid_history,
             nc_meta=nc_meta,
             nc_file=grid_path.name,
-            fig_temp_b64=fig_temp_b64,
-            fig_temp_cf_b64=fig_temp_cf_b64,
-            temp_plow=temp_plow,
-            temp_phigh=temp_phigh,
-            fig_sal_b64=fig_sal_b64,
-            fig_sal_cf_b64=fig_sal_cf_b64,
-            sal_plow=sal_plow,
-            sal_phigh=sal_phigh,
-            sal_source=sal_source,
+            fig_hydro_b64=fig_hydro_b64,
+            fig_vel_stacked_b64=fig_vel_stacked_b64,
             sigma_sections=sigma_sections,
-            vel_sections=vel_sections,
+            fig_sigma_b64=fig_sigma_b64,
+            fig_vel_iqr_b64=fig_vel_iqr_b64,
+            fig_grid_traj_b64=fig_grid_traj_b64,
+            fig_grid_ts_b64=fig_grid_ts_b64,
             fig_spectrum_b64=fig_spectrum_b64,
             fig_ts_grid_b64=fig_ts_grid_b64,
             fig_n2_b64=fig_n2_b64,

@@ -51,7 +51,11 @@ import numpy as np
 import xarray as xr
 import yaml
 
-from .utilities import cast_output_dtypes, drop_all_zero_vars
+from .utilities import (
+    cast_output_dtypes,
+    drop_all_zero_vars,
+    extract_inline_instruments,
+)
 
 
 HAB_THRESHOLD = 2.0  # metres — use near-neighbour below this Δhab
@@ -482,13 +486,17 @@ def _merge_flags(*flag_arrays: np.ndarray) -> np.ndarray:
     """Merge multiple int8 flag arrays using priority ordering.
 
     Returns element-wise flag with highest priority (worst quality).
+    Works on arrays of any shape (1-D time series or 2-D time×N_BINS).
     """
-    result = flag_arrays[0].copy()
+    # Lookup table: priority[flag] for flags 0-9
+    # _QC_PRIORITY: {9:6, 4:5, 3:4, 8:3, 2:2, 1:1, 0:0}; unlisted flags → 0
+    _priority = np.array([0, 1, 2, 4, 5, 0, 0, 0, 3, 6], dtype=np.int8)
+    result = np.asarray(flag_arrays[0], dtype=np.int8).copy()
     for fa in flag_arrays[1:]:
-        for i in range(len(result)):
-            a, b = int(result[i]), int(fa[i])
-            result[i] = a if _QC_PRIORITY.get(a, 0) >= _QC_PRIORITY.get(b, 0) else b
-    return result.astype(np.int8)
+        fa = np.asarray(fa, dtype=np.int8)
+        replace = _priority[fa.clip(0, 9)] > _priority[result.clip(0, 9)]
+        result = np.where(replace, fa, result).astype(np.int8)
+    return result
 
 
 def _deep_merge(base: Dict, override: Dict) -> Dict:
@@ -668,11 +676,18 @@ def _apply_tilt_qc(
     vel_vars = [v for v in _VELOCITY_VARS if v in ds.data_vars]
     for varname in vel_vars:
         qc_varname = f"{varname}_qc"
+        # For ADCP, velocity is 2-D (time, N_BINS); broadcast (time,) → (time, N_BINS).
+        if ds[varname].values.ndim > 1:
+            flags_for_var = np.broadcast_to(
+                tilt_flags[:, np.newaxis], ds[varname].shape
+            ).copy()
+        else:
+            flags_for_var = tilt_flags.copy()
         if qc_varname in ds:
             existing = ds[qc_varname].values.astype(np.int8)
-            new_flags = _merge_flags(existing, tilt_flags)
+            new_flags = _merge_flags(existing, flags_for_var)
         else:
-            new_flags = tilt_flags.copy()
+            new_flags = flags_for_var
         ds[qc_varname] = xr.Variable(
             ds[varname].dims,
             new_flags,
@@ -924,6 +939,414 @@ def _apply_enu_velocity_qc(
     return ds
 
 
+def _compute_adcp_bin_pressure(
+    ds: xr.Dataset,
+    lat: float,
+    log_fn: Any = None,
+) -> xr.Dataset:
+    """Compute pressure at each ADCP bin from transducer pressure and along-beam range.
+
+    For each time step, adds a pressure offset per bin based on the bin's distance
+    from the transducer.  The offset is ``gsw.p_from_z(-range_m, lat)``, which
+    approximates the hydrostatic pressure contribution of *range_m* metres of
+    seawater at the given latitude.
+
+    **Note on ``range`` units**: the RDI WorkHorse firmware already converts slant range
+    to vertical distance before writing to the raw output (using the nominal beam angle;
+    see RDI ADCP Coordinate Transformation manual §4.2, Equation 8).  Dolfyn reads these
+    vertical distances directly, so ``range`` is already in metres of vertical depth —
+    no beam-angle correction is needed.
+
+    **Approximation** (fixable post-OdB; see ``.claude/refactor-plan-postOdB-20260721.md``):
+    ``gsw.p_from_z(-range_m, lat)`` computes the pressure of a water column of depth
+    *range_m* measured from the *sea surface*, not the true pressure increment at the
+    ADCP's actual depth.  Error at 300 m range from a 500 m transducer is ~2–3 dbar —
+    within the seabed-QC margin (~20 dbar) for current moorings.
+
+    The sign follows instrument orientation:
+
+    - Downward-looking (``orientation == "down"``): bins are deeper than the
+      transducer → pressure increases with bin index.
+    - Upward-looking (``orientation == "up"``): bins are shallower than the
+      transducer → pressure decreases with bin index.
+
+    If orientation cannot be determined from dataset attributes a WARNING is emitted
+    and ``"down"`` is assumed.
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        Stage 3 ADCP dataset.  Must contain ``pressure(time)`` in dbar (pressure at
+        the transducer head) and ``range(N_BINS)`` in metres (bin centre distance from
+        the transducer face).  Orientation is read from the ``orientation_yaml`` global
+        attribute (preferred) or ``orientation_instrument`` (fallback).
+    lat : float
+        Mooring latitude in decimal degrees (positive North), used by
+        ``gsw.p_from_z`` for the gravitational/centrifugal correction.
+    log_fn : callable, optional
+        Logging callback (e.g. ``logger.info``).
+
+    Returns
+    -------
+    xr.Dataset
+        Input dataset with ``bin_pressure(time, N_BINS)`` added in dbar.
+        The variable's ``comment`` attribute records the formula and orientation used.
+        Returns *ds* unchanged if ``pressure`` or ``range`` are absent.
+
+    """
+    import gsw
+    from . import parameters as _P
+
+    if "pressure" not in ds.data_vars or "range" not in ds.coords:
+        if log_fn:
+            log_fn("  ADCP bin_pressure: skipped (no pressure or range coord)")
+        return ds
+
+    orientation = ds.attrs.get("orientation_yaml") or ds.attrs.get(
+        "orientation_instrument"
+    )
+    if not orientation:
+        orientation = "down"
+        if log_fn:
+            log_fn(
+                "  WARNING: ADCP orientation unknown (no orientation_yaml or "
+                "orientation_instrument attr) — assuming downward-looking. "
+                "bin_pressure signs may be wrong for upward-looking instruments."
+            )
+    sign = 1.0 if str(orientation).lower() == "down" else -1.0
+
+    p_trans = ds["pressure"].values.astype(float)  # (time,)
+    range_m = ds["range"].values.astype(float)  # (N_BINS,)
+
+    # gsw.p_from_z(z, lat): z is depth in m (negative = below surface)
+    dp = gsw.p_from_z(-range_m, lat)  # (N_BINS,) pressure offset per bin
+
+    bin_p = p_trans[:, np.newaxis] + sign * dp[np.newaxis, :]  # (time, N_BINS)
+
+    ds["bin_pressure"] = xr.Variable(
+        ("time", _P.ADCP_BIN_DIM),
+        bin_p.astype(np.float32),
+        attrs={
+            "long_name": "pressure at ADCP bin",
+            "units": "dbar",
+            "comment": (
+                f"transducer pressure + gsw.p_from_z(-range, lat={lat:.2f}°)"
+                f" × sign({orientation}-looking)"
+            ),
+        },
+    )
+    if log_fn:
+        log_fn(
+            f"  ADCP bin_pressure: {ds['range'].size} bins, "
+            f"orientation={orientation}, lat={lat:.2f}°"
+        )
+    return ds
+
+
+def _apply_adcp_seabed_qc(
+    ds: xr.Dataset,
+    water_depth_m: float,
+    lat: float,
+    qc_attrs: Dict[str, Any],
+    fail_margin_m: float = 20.0,
+    log_fn: Any = None,
+) -> xr.Dataset:
+    """Flag ADCP bins that are at or below the seabed.
+
+    Bins whose ``bin_pressure`` exceeds the estimated seabed pressure are flagged
+    suspect (3); bins more than *fail_margin_m* metres below the seabed are flagged
+    bad (4).  The flag is stored as the standalone variable ``seabed_qc(time, N_BINS)``.
+
+    **Flag scale** (OceanSITES / QARTOD convention):
+    1 = good, 3 = suspect, 4 = bad, 9 = missing.
+
+    **Standalone flag**: ``seabed_qc`` is *not* merged into ``east_velocity_qc``,
+    ``north_velocity_qc``, or ``up_velocity_qc``.  Downstream code that needs clean
+    velocity data must explicitly include all relevant flags, for example::
+
+        clean = (ds.east_velocity_qc == 1) & (ds.seabed_qc == 1)
+
+    The seabed pressure threshold is computed via ``gsw.p_from_z(-water_depth_m, lat)``,
+    consistent with ``_compute_adcp_bin_pressure``.
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        Stage 3 ADCP dataset containing ``bin_pressure(time, N_BINS)`` in dbar.
+    water_depth_m : float
+        Water depth at the mooring site in metres (from YAML ``waterdepth`` key).
+        If ≤ 0 the function is a no-op.
+    lat : float
+        Mooring latitude in decimal degrees, used by ``gsw.p_from_z``.
+    qc_attrs : dict
+        OceanSITES flag attribute dict written to ``seabed_qc``.
+    fail_margin_m : float
+        Margin below the seabed (in metres) that separates suspect (3) from bad (4).
+        Default 20 m.  Bins between 0 and *fail_margin_m* below the seabed receive
+        flag 3; bins more than *fail_margin_m* below receive flag 4.
+    log_fn : callable, optional
+        Logging callback.
+
+    Returns
+    -------
+    xr.Dataset
+        Input dataset with ``seabed_qc(time, N_BINS)`` added.
+        Returns *ds* unchanged if ``water_depth_m <= 0`` or ``bin_pressure`` is absent.
+
+    """
+    if water_depth_m <= 0:
+        if log_fn:
+            log_fn("  seabed QC: skipped (waterdepth not set in mooring YAML)")
+        return ds
+    if "bin_pressure" not in ds.data_vars:
+        if log_fn:
+            log_fn("  seabed QC: skipped (bin_pressure not in dataset)")
+        return ds
+
+    import gsw
+    from . import parameters as _P
+
+    p_seabed = float(gsw.p_from_z(-water_depth_m, lat))
+    p_fail = float(gsw.p_from_z(-(water_depth_m + fail_margin_m), lat))
+
+    bin_p = ds["bin_pressure"].values  # (time, N_BINS)
+    seabed_flags = np.ones(bin_p.shape, dtype=np.int8)  # 1 = good
+    seabed_flags = np.where(bin_p > p_seabed, np.int8(3), seabed_flags)  # suspect
+    seabed_flags = np.where(bin_p > p_fail, np.int8(4), seabed_flags)  # bad
+    seabed_flags = seabed_flags.astype(np.int8)
+
+    n_suspect = int(np.sum(seabed_flags == 3))
+    n_bad = int(np.sum(seabed_flags == 4))
+
+    ds["seabed_qc"] = xr.Variable(
+        ("time", _P.ADCP_BIN_DIM),
+        seabed_flags,
+        {
+            "long_name": "Seabed proximity QC flag",
+            "comment": (
+                f"Bins at or below seabed ({water_depth_m:.0f} m, "
+                f"p_seabed={p_seabed:.1f} dbar): flag 3 (suspect); "
+                f"bins >{fail_margin_m:.0f} m below seabed "
+                f"(p={p_fail:.1f} dbar): flag 4 (bad). "
+                "Standalone — not merged into velocity_qc."
+            ),
+            **qc_attrs,
+        },
+    )
+
+    if log_fn:
+        log_fn(
+            f"  seabed QC: water_depth={water_depth_m:.0f} m, "
+            f"p_seabed={p_seabed:.1f} dbar, "
+            f"p_fail={p_fail:.1f} dbar (+{fail_margin_m:.0f} m), "
+            f"suspect={n_suspect}, bad={n_bad}"
+        )
+    return ds
+
+
+def _apply_adcp_velocity_qc(
+    ds: xr.Dataset,
+    gr_cfg: Dict[str, Any],
+    prcnt_gd_bad: float,
+    prcnt_gd_suspect: float,
+    error_vel_threshold: float,
+    qc_attrs: Dict[str, Any],
+    log_fn: Any = None,
+) -> xr.Dataset:
+    """Apply QC to ADCP 2D velocity variables (time × N_BINS).
+
+    Each QC criterion produces its **own standalone variable**; flags are
+    **not** merged across variables.  Downstream users combine them to mask
+    data, e.g.::
+
+        good = (
+            (ds.east_velocity_qc == 1)
+            & (ds.percent_good_qc == 1)
+            & (ds.error_velocity_qc == 1)
+            & (ds.seabed_qc == 1)
+        )
+
+    QC variables produced
+    ---------------------
+    ``east/north/up_velocity_qc``
+        Gross-range flag on the velocity component value itself (same
+        fail_span / suspect_span thresholds as point instruments).  Flag 1
+        means the velocity value is within the accepted range; it says nothing
+        about acoustic quality.
+
+    ``percent_good_qc(time, N_BINS)``
+        RDI ADCPs write four percent-good columns per ensemble per bin:
+
+        =======  =============================================================
+        Col 0    % pings accepted as 3-beam solutions (one beam rejected)
+        Col 1    % pings rejected by the error-velocity threshold
+        Col 2    % pings rejected by low correlation or low amplitude
+        **Col 3**  **% pings accepted as 4-beam solutions ← quality metric**
+        =======  =============================================================
+
+        Column 3 (4-beam solutions) is the relevant quality indicator.
+        Averaging all four columns is wrong: when data is perfect, col 3 ≈
+        100 % and cols 0–2 ≈ 0 %, giving a mean of ~25 %, which falls below
+        any reasonable suspect threshold and flags everything.  This function
+        therefore uses column 3 alone (falling back to the column mean for
+        non-4-beam ADCPs that store fewer than 4 columns).
+
+        Flags: col3 < *prcnt_gd_bad* → bad (4);
+        col3 < *prcnt_gd_suspect* → suspect (3); otherwise good (1).
+
+    ``error_velocity_qc(time, N_BINS)``
+        For a 4-beam ADCP the error velocity is the difference between two
+        independent estimates of vertical velocity from opposite beam pairs.
+        It is zero for a perfect measurement; large values indicate beam
+        decorrelation (e.g. fish, bubbles, mooring motion).
+        |error_velocity| > *error_vel_threshold* → bad (4).
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        Stage 2 dataset with 2-D ADCP velocity variables.
+    gr_cfg : dict
+        Gross-range config (same format as ``_load_qc_config`` returns).
+    prcnt_gd_bad : float
+        4-beam percent good below this → flag 4 (bad). Percent.
+    prcnt_gd_suspect : float
+        4-beam percent good below this (but above prcnt_gd_bad) → flag 3
+        (suspect). Percent.
+    error_vel_threshold : float
+        |error_velocity| above this → flag 4 (bad). m s⁻¹.
+    qc_attrs : dict
+        OceanSITES flag attribute dict written to every ``*_qc`` variable.
+    log_fn : callable, optional
+        Logging callback.
+
+    Returns
+    -------
+    xr.Dataset
+        Input dataset with the following standalone QC variables added (where their
+        parent data variables are present):
+
+        - ``east_velocity_qc(time, N_BINS)`` — gross-range flag on east velocity
+        - ``north_velocity_qc(time, N_BINS)`` — gross-range flag on north velocity
+        - ``up_velocity_qc(time, N_BINS)`` — gross-range flag on up velocity
+        - ``percent_good_qc(time, N_BINS)`` — 4-beam percent-good flag
+        - ``error_velocity_qc(time, N_BINS)`` — error velocity magnitude flag
+
+        All flags use the OceanSITES scale: 1 = good, 3 = suspect, 4 = bad, 9 = missing.
+        Variables are standalone; no merging across criteria is performed.
+
+    """
+    # 1. Gross-range on each ENU velocity component independently.
+    #    Flags only reflect whether that component's value is out of range.
+    for varname in ("east_velocity", "north_velocity", "up_velocity"):
+        if varname not in ds.data_vars:
+            continue
+        cfg = gr_cfg.get(varname)
+        if not cfg:
+            continue
+        data = ds[varname].values.astype(float)
+        fail_min, fail_max = cfg["fail_span"]
+        susp_min, susp_max = cfg.get("suspect_span", cfg["fail_span"])
+        flags = np.where(
+            ~np.isfinite(data),
+            np.int8(9),
+            np.where(
+                (data < fail_min) | (data > fail_max),
+                np.int8(4),
+                np.where((data < susp_min) | (data > susp_max), np.int8(3), np.int8(1)),
+            ),
+        ).astype(np.int8)
+        qc_var = f"{varname}_qc"
+        threshold_attrs: Dict[str, Any] = {
+            "qc_gross_range_fail_min": float(fail_min),
+            "qc_gross_range_fail_max": float(fail_max),
+            "qc_gross_range_suspect_min": float(susp_min),
+            "qc_gross_range_suspect_max": float(susp_max),
+        }
+        ds[qc_var] = xr.Variable(
+            ds[varname].dims,
+            flags,
+            attrs={
+                "long_name": f"quality flag for {varname}",
+                **qc_attrs,
+                **threshold_attrs,
+            },
+        )
+
+    # 2. percent_good QC — standalone variable, NOT merged into velocity_qc.
+    #    RDI ADCPs store four percent-good columns per bin:
+    #      [0] 3-beam solutions  [1] rejected (error vel)
+    #      [2] rejected (low corr/amp)  [3] 4-beam solutions  ← the useful one
+    #    Using column 3 only; averaging all columns gives ~25% even for
+    #    perfect data (100% 4-beam, 0% others), which would flag everything.
+    if "percent_good" in ds.data_vars:
+        pg = ds["percent_good"].values.astype(float)  # (time, N_BINS, beam)
+        if pg.ndim == 3 and pg.shape[2] >= 4:
+            pg_col3 = pg[:, :, 3]  # 4-beam solutions column
+        else:
+            pg_col3 = np.nanmean(pg, axis=-1)  # fallback for non-4-beam ADCPs
+        pg_flags = np.where(
+            ~np.isfinite(pg_col3),
+            np.int8(9),
+            np.where(
+                pg_col3 < prcnt_gd_bad,
+                np.int8(4),
+                np.where(pg_col3 < prcnt_gd_suspect, np.int8(3), np.int8(1)),
+            ),
+        ).astype(np.int8)
+        n_bad_pg = int(np.sum(pg_flags == 4))
+        n_susp_pg = int(np.sum(pg_flags == 3))
+        if log_fn:
+            log_fn(
+                f"  ADCP percent_good QC (col-3 4-beam): bad={n_bad_pg}, suspect={n_susp_pg} "
+                f"(thresholds: bad<{prcnt_gd_bad}%, suspect<{prcnt_gd_suspect}%)"
+            )
+        from . import parameters as _P
+
+        ds["percent_good_qc"] = xr.Variable(
+            ("time", _P.ADCP_BIN_DIM),
+            pg_flags,
+            attrs={
+                "long_name": "QC flag for ADCP percent good (4-beam solutions, column 3)",
+                "comment": (
+                    f"Based on RDI percent_good column 3 (4-beam solutions). "
+                    f"bad<{prcnt_gd_bad}%, suspect<{prcnt_gd_suspect}%. "
+                    "Standalone — not merged into velocity_qc."
+                ),
+                **qc_attrs,
+            },
+        )
+
+    # 3. error_velocity QC — standalone variable, NOT merged into velocity_qc.
+    if "error_velocity" in ds.data_vars:
+        ev = ds["error_velocity"].values.astype(float)  # (time, N_BINS)
+        ev_flags = np.where(
+            ~np.isfinite(ev),
+            np.int8(9),
+            np.where(np.abs(ev) > error_vel_threshold, np.int8(4), np.int8(1)),
+        ).astype(np.int8)
+        n_ev_bad = int(np.sum(ev_flags == 4))
+        if log_fn:
+            log_fn(
+                f"  ADCP error_velocity QC: bad={n_ev_bad} "
+                f"(threshold: |ev|>{error_vel_threshold:.2f} m s-1). Standalone."
+            )
+        ds["error_velocity_qc"] = xr.Variable(
+            ds["error_velocity"].dims,
+            ev_flags,
+            attrs={
+                "long_name": "QC flag for error velocity",
+                "comment": (
+                    f"|error_velocity| > {error_vel_threshold:.2f} m s-1 → bad (4). "
+                    "Standalone — not merged into velocity_qc."
+                ),
+                "qc_threshold_fail_m_s": float(error_vel_threshold),
+                **qc_attrs,
+            },
+        )
+
+    return ds
+
+
 class Stage3Processor:
     """Pressure interpolation + QARTOD QC for all mooring instruments."""
 
@@ -978,9 +1401,10 @@ class Stage3Processor:
         with open(config_file) as f:
             mooring_config = yaml.safe_load(f)
 
-        instrument_list = mooring_config.get(
-            "clamp", mooring_config.get("instruments", [])
+        instrument_list = list(
+            mooring_config.get("clamp", mooring_config.get("instruments", []))
         )
+        instrument_list += extract_inline_instruments(mooring_config.get("inline", []))
 
         # ── Mooring location for BEAM→ENU declination ──────────────────
         from .mooring_level import _parse_latlon_with_source
@@ -988,6 +1412,8 @@ class Stage3Processor:
         _mooring_lat, _mooring_lon, _latlon_source = _parse_latlon_with_source(
             mooring_config
         )
+
+        _water_depth_m = float(mooring_config.get("waterdepth") or 0.0)
 
         # ── Build instrument table ──────────────────────────────────────
         instruments: List[Dict[str, Any]] = []
@@ -1043,6 +1469,7 @@ class Stage3Processor:
                     "lat": _mooring_lat,
                     "lon": _mooring_lon,
                     "latlon_source": _latlon_source,
+                    "water_depth_m": _water_depth_m,
                 }
             )
 
@@ -1218,12 +1645,15 @@ class Stage3Processor:
 
         is_target = info in targets
         pressure_bad_flag = info["qc_flags"].get("pressure", 0) >= 3
+        is_adcp = info.get("instrument", "").lower() == "adcp"
 
         self._log(
             f"-->   Processing {info.get('instrument', 'unknown')}: {nc_path.name}"
         )
 
         try:
+            from . import parameters as P
+
             ds = xr.open_dataset(nc_path, decode_timedelta=False).load()
             target_time = ds["time"].values
             history_notes = []
@@ -1246,7 +1676,15 @@ class Stage3Processor:
             # ── QARTOD QC tests (temperature, conductivity, salinity, …) ─
             gr_cfg = info["gross_range"]
             sp_cfg = info["spike"]
-            ds = _apply_qc_tests(ds, gr_cfg, sp_cfg, qc_attrs)
+            # For ADCP, exclude 2-D velocity vars from the ioos_qc path
+            # (gross_range_test expects 1-D input); velocity QC is handled
+            # below by _apply_adcp_velocity_qc.
+            if is_adcp:
+                _ENU_KEYS = {"east_velocity", "north_velocity", "up_velocity"}
+                gr_cfg_scalar = {k: v for k, v in gr_cfg.items() if k not in _ENU_KEYS}
+                ds = _apply_qc_tests(ds, gr_cfg_scalar, sp_cfg, qc_attrs)
+            else:
+                ds = _apply_qc_tests(ds, gr_cfg, sp_cfg, qc_attrs)
 
             # ── Fold T/C/P parent QC into salinity_qc ─────────────────
             ds = _merge_salinity_parent_qc(ds, qc_attrs)
@@ -1274,22 +1712,48 @@ class Stage3Processor:
                 )
 
             # ── ENU velocity QC + up→east/north flag propagation ──────
-            # Run gross-range on ENU vars just created by _apply_beam_to_enu,
-            # then propagate up_velocity_qc so bad w flags u and v too.
             if ds.attrs.get("coordinate_system") == "ENU":
-                ds = _apply_enu_velocity_qc(ds, gr_cfg, qc_attrs)
+                if is_adcp:
+                    adcp_qc = P.QC_ADCP
+                    ds = _apply_adcp_velocity_qc(
+                        ds,
+                        gr_cfg=gr_cfg,
+                        prcnt_gd_bad=adcp_qc["percent_good_bad"],
+                        prcnt_gd_suspect=adcp_qc["percent_good_suspect"],
+                        error_vel_threshold=adcp_qc["error_velocity_threshold"],
+                        qc_attrs=qc_attrs,
+                        log_fn=self._log,
+                    )
+                    ds = _compute_adcp_bin_pressure(ds, info["lat"], log_fn=self._log)
+                    ds = _apply_adcp_seabed_qc(
+                        ds,
+                        water_depth_m=info.get("water_depth_m", 0.0),
+                        lat=info["lat"],
+                        qc_attrs=qc_attrs,
+                        log_fn=self._log,
+                    )
+                else:
+                    ds = _apply_enu_velocity_qc(ds, gr_cfg, qc_attrs)
 
             # ── Tilt QC ────────────────────────────────────────────────
-            # Flags all velocity variables (beam and ENU) when combined
-            # pitch+roll tilt exceeds threshold.
+            # Flags all velocity variables when pitch+roll tilt exceeds threshold.
+            # Skipped for ADCP: percent_good (col 3) and error_velocity capture
+            # ensemble-level quality without a separate tilt threshold step.
+            # Note: this does NOT mean tilt is checked per-bin — it is not.
             tilt_cfg = info["tilt"]
-            ds, n_tilt_susp, n_tilt_bad = _apply_tilt_qc(ds, tilt_cfg, qc_attrs)
-            if n_tilt_susp or n_tilt_bad:
+            if is_adcp:
+                n_tilt_susp, n_tilt_bad = 0, 0
                 history_notes.append(
-                    f"tilt QC (tilt≥{tilt_cfg['suspect_threshold']}°→suspect, "
-                    f"tilt≥{tilt_cfg['fail_threshold']}°→bad): "
-                    f"suspect={n_tilt_susp}, bad={n_tilt_bad}"
+                    "tilt QC skipped for ADCP (percent_good+error_velocity QC applied instead)"
                 )
+            else:
+                ds, n_tilt_susp, n_tilt_bad = _apply_tilt_qc(ds, tilt_cfg, qc_attrs)
+                if n_tilt_susp or n_tilt_bad:
+                    history_notes.append(
+                        f"tilt QC (tilt≥{tilt_cfg['suspect_threshold']}°→suspect, "
+                        f"tilt≥{tilt_cfg['fail_threshold']}°→bad): "
+                        f"suspect={n_tilt_susp}, bad={n_tilt_bad}"
+                    )
             if ds.attrs.get("coordinate_system") == "ENU" and coord_sys_before != "ENU":
                 _ba = ds.attrs.get("nortek_beam_angle", "?")
                 _ba_src = ds.attrs.get("nortek_beam_angle_source", "")
@@ -1307,7 +1771,7 @@ class Stage3Processor:
             for v in sorted(ds.data_vars):
                 if v.endswith("_qc") and not v.endswith("_orig_qc"):
                     counts = np.bincount(
-                        ds[v].values.astype(np.int8).clip(0, 9), minlength=10
+                        ds[v].values.astype(np.int8).clip(0, 9).ravel(), minlength=10
                     )
                     n_good = int(counts[1])
                     n_susp = int(counts[3])

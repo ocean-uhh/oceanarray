@@ -15,4 +15,7 @@ ppigrf  # IGRF magnetic declination (used in stage3 for Nortek BEAM→ENU correc
 ioos_qc
 
 
+# RDI ADCP reader (rdi-raw file type) requires dolfyn via mhkit
+dolfyn  # or: pip install "mhkit[dolfyn]"
+
 # seasenselib is installed separately: pip install -e seasenselib

@@ -19,6 +19,7 @@ from ._plots import (
     _make_stack_ts_diagram,
     _make_multi_aquadopp_trajectories,
     _make_aquadopp_speed_profile,
+    _make_adcp_trajectories_b64,
     _make_analog_timeseries,
 )
 from .. import parameters as P
@@ -116,12 +117,13 @@ _STACK_HTML_TEMPLATE = """\
   {% if fig_sal_b64 %}<a href="#sal">Salinity</a>{% endif %}
   {% if fig_east_vel_b64 or fig_north_vel_b64 or fig_up_vel_b64 %}<a href="#vel">Velocity</a>{% endif %}
   {% if fig_aquadopp_tilt_b64 %}<a href="#tilt">Tilt</a>{% endif %}
-  {% if fig_trajectories_b64 %}<a href="#trajectories">Trajectories</a>{% endif %}
+  {% if fig_trajectories_b64 or fig_adcp_trajectories_b64 %}<a href="#trajectories">Trajectories</a>{% endif %}
   {% if fig_speed_profile_b64 %}<a href="#speed-profile">Speed profile</a>{% endif %}
   {% if fig_analog_b64 %}<a href="#analog">Analog channels</a>{% endif %}
   {% if fig_ts_stack_b64 %}<a href="#ts">T-S diagram</a>{% endif %}
   {% if fig_rose_grid_b64 %}<a href="#roses">Current roses</a>{% endif %}
   {% if fig_spacing_b64 %}<a href="#spacing">Spacing</a>{% endif %}
+  <a href="#dims">Dimensions</a>
   <a href="#vars">Variables</a>
 </nav>
 
@@ -208,15 +210,28 @@ _STACK_HTML_TEMPLATE = """\
 <img class="fig" src="data:image/png;base64,{{ fig_aquadopp_tilt_b64 }}" alt="Aquadopp tilt panels">
 {% endif %}
 
-{% if fig_trajectories_b64 %}
-<h2 id="trajectories">Aquadopp particle trajectories</h2>
+{% if fig_trajectories_b64 or fig_adcp_trajectories_b64 %}
+<h2 id="trajectories">Particle trajectories</h2>
 <p class="note">
-  Pseudo-Lagrangian displacement for each Aquadopp: east/north velocity integrated over time
+  Pseudo-Lagrangian displacement: east/north velocity integrated over time
   (Euler forward; NaN velocities set to zero).  All trajectories share a common origin (0,&nbsp;0).
-  Colour shows temperature along each path (shared scale). End points labelled with serial number
-  and height above bottom.
+  Aquadopp: colour shows temperature (shared scale); end points labelled with serial and HAB.
+  ADCP: per-bin trajectories coloured by height above bottom; bins entirely below the seabed are omitted.
 </p>
-<img class="fig" style="max-width:50%" src="data:image/png;base64,{{ fig_trajectories_b64 }}" alt="Aquadopp trajectories">
+<div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-start">
+  {% if fig_trajectories_b64 %}
+  <div style="flex:1;min-width:280px">
+    <p style="text-align:center;font-weight:600;margin-bottom:0.3rem">Aquadopp</p>
+    <img class="fig" style="max-width:100%;width:100%" src="data:image/png;base64,{{ fig_trajectories_b64 }}" alt="Aquadopp trajectories">
+  </div>
+  {% endif %}
+  {% if fig_adcp_trajectories_b64 %}
+  <div style="flex:1;min-width:280px">
+    <p style="text-align:center;font-weight:600;margin-bottom:0.3rem">ADCP</p>
+    <img class="fig" style="max-width:100%;width:100%" src="data:image/png;base64,{{ fig_adcp_trajectories_b64 }}" alt="ADCP trajectories">
+  </div>
+  {% endif %}
+</div>
 {% endif %}
 
 {% if fig_speed_profile_b64 %}
@@ -265,6 +280,19 @@ _STACK_HTML_TEMPLATE = """\
 <h2 id="spacing">Adjacent instrument spacing</h2>
 <p class="note">Distribution of pressure differences between adjacent instrument pairs (pairs &lt; 2 dbar apart excluded as co-located).</p>
 <img class="fig" src="data:image/png;base64,{{ fig_spacing_b64 }}" alt="Instrument spacing histogram">
+{% endif %}
+
+<!-- ══ NetCDF dimensions ══ -->
+<h2 id="dims">NetCDF dimensions &mdash; {{ nc_file }}</h2>
+{% if nc_meta.dims %}
+<table class="var-table" style="max-width:28rem">
+  <thead><tr><th>Dimension</th><th class="num">Size</th></tr></thead>
+  <tbody>
+    {% for dim, size in nc_meta.dims.items() %}
+    <tr><td class="mono">{{ dim }}</td><td class="num">{{ "{:,}".format(size) }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
 {% endif %}
 
 <!-- ══ NetCDF variables ══ -->
@@ -759,6 +787,7 @@ def generate_stack_page(
         fig_ts_stack_b64 = _make_stack_ts_diagram(ds)
         fig_aquadopp_tilt_b64 = _make_aquadopp_tilt_panels(ds, step=step)
         fig_trajectories_b64 = _make_multi_aquadopp_trajectories(ds)
+        fig_adcp_trajectories_b64 = _make_adcp_trajectories_b64(ds)
         fig_speed_profile_b64 = _make_aquadopp_speed_profile(ds)
 
         ds.close()
@@ -814,6 +843,7 @@ def generate_stack_page(
             fig_ts_stack_b64=fig_ts_stack_b64,
             fig_aquadopp_tilt_b64=fig_aquadopp_tilt_b64,
             fig_trajectories_b64=fig_trajectories_b64,
+            fig_adcp_trajectories_b64=fig_adcp_trajectories_b64,
             fig_speed_profile_b64=fig_speed_profile_b64,
             fig_analog_b64=fig_analog_b64,
             generated=ctx["generated"],

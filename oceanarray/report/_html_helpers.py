@@ -281,12 +281,14 @@ def _read_nc_metadata(nc_path: Path) -> Dict[str, Any]:
                 time_vars.append(info)
 
         global_attrs = {k: str(val) for k, val in ds.attrs.items() if k != "history"}
+        dims = {str(d): int(s) for d, s in ds.sizes.items()}
         ds.close()
         return {
             "time_vars": time_vars,
             "scalar_vars": scalar_vars,
             "global_attrs": global_attrs,
             "analog_vars": analog_vars,
+            "dims": dims,
         }
     except Exception as exc:
         return {

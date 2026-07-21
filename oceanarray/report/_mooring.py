@@ -30,6 +30,7 @@ from ._html_helpers import (
 from ._grid import generate_grid_page
 from ._instrument import generate_instrument_pages
 from ._stack import generate_stack_page
+from ..utilities import extract_inline_instruments
 
 
 # ---------------------------------------------------------------------------
@@ -224,8 +225,8 @@ _HTML_TEMPLATE = """\
     <tr>
       <td class="num">{{ loop.index }}</td>
       <td>{{ instr.instr_type }}</td>
-      <td><a href="{{ mooring_name }}_{{ instr.serial }}_report.html"
-             style="font-family:monospace;font-size:0.85rem">{{ instr.serial }}</a></td>
+      <td>{% if instr.report_exists %}<a href="{{ mooring_name }}_{{ instr.serial }}_report.html"
+             style="font-family:monospace;font-size:0.85rem">{{ instr.serial }}</a>{% else %}<span style="font-family:monospace;font-size:0.85rem">{{ instr.serial }}</span>{% endif %}</td>
       <td class="num">{{ "%.1f"|format(instr.hab) }}</td>
       <td class="num">{{ "%.0f"|format(instr.depth) if instr.depth is not none else "—" }}</td>
       <td>
@@ -340,8 +341,8 @@ _HTML_TEMPLATE = """\
     <tr{% if instr.stopped_early %} class="row-warn"{% endif %}>
       <td class="num">{{ loop.index }}</td>
       <td>{{ instr.instr_type }}</td>
-      <td><a href="{{ mooring_name }}_{{ instr.serial }}_report.html"
-             style="font-family:monospace;font-size:0.85rem">{{ instr.serial }}</a></td>
+      <td>{% if instr.report_exists %}<a href="{{ mooring_name }}_{{ instr.serial }}_report.html"
+             style="font-family:monospace;font-size:0.85rem">{{ instr.serial }}</a>{% else %}<span style="font-family:monospace;font-size:0.85rem">{{ instr.serial }}</span>{% endif %}</td>
       <td class="num">{{ "%.1f"|format(instr.hab) }}</td>
       {% if instr.nc and instr.nc.get("error") %}
         <td colspan="10" style="color:var(--bad);font-size:0.8rem;">Error: {{ instr.nc.error }}</td>
@@ -624,13 +625,21 @@ def _serials_in_nc(nc_path: Path) -> frozenset:
     Reads the ``serial`` coordinate on the ``N_LEVELS`` dimension.  Returns an
     empty frozenset if the file is missing, unreadable, or has no ``serial``
     coordinate.
+
+    ADCP entries use suffixed serials (e.g. ``16430_hd``, ``16430_b03``).  The
+    returned set also includes the base serial (suffix stripped) so that the YAML
+    instrument serial matches correctly.
     """
+    import re
+
     try:
         import xarray as xr
 
         ds = xr.open_dataset(nc_path, decode_timedelta=False)
         if "serial" in ds.coords:
-            return frozenset(str(s) for s in ds["serial"].values)
+            raw = frozenset(str(s) for s in ds["serial"].values)
+            base = frozenset(re.sub(r"_(hd|b\d+)$", "", s) for s in raw)
+            return raw | base
     except Exception:  # noqa: BLE001
         pass
     return frozenset()
@@ -675,7 +684,7 @@ class MooringReport:
         with open(yaml_path) as f:
             cfg = yaml.safe_load(f)
 
-        ctx = self._build_context(mooring_name, cfg, proc_dir, yaml_path)
+        ctx = self._build_context(mooring_name, cfg, proc_dir, yaml_path, out_dir)
         html = self._render(ctx)
         output_path.write_text(html, encoding="utf-8")
         _status("file", str(output_path.relative_to(self.base_dir)))
@@ -718,13 +727,15 @@ class MooringReport:
         cfg: Dict[str, Any],
         proc_dir: Path,
         yaml_path: Path,
+        out_dir: Optional[Path] = None,
     ) -> Dict[str, Any]:
         deploy_dt = _parse_dt(cfg.get("deployment_time"))
         recover_dt = _parse_dt(cfg.get("recovery_time"))
         waterdepth = cfg.get("waterdepth")
         raw_subdir = str(cfg.get("directory", "raw")).rstrip("/")
 
-        instrument_list = cfg.get("clamp", cfg.get("instruments", []))
+        instrument_list = list(cfg.get("clamp", cfg.get("instruments", [])))
+        instrument_list += extract_inline_instruments(cfg.get("inline", []))
 
         stack_nc = proc_dir / f"{mooring_name}_stack.nc"
         grid_nc = proc_dir / f"{mooring_name}_grid.nc"
@@ -804,6 +815,10 @@ class MooringReport:
                     "stopped_early": stopped_early,
                     "skipped": bool(entry.get("skip")),
                     "skip_reason": entry.get("skip_reason", ""),
+                    "report_exists": (
+                        out_dir is not None
+                        and (out_dir / f"{mooring_name}_{serial}_report.html").exists()
+                    ),
                     "stages": _stage_files(proc_dir, instr_type, mooring_name, serial),
                     "in_stack": serial in stack_serials,
                     "in_grid": (serial in stack_serials) and grid_exists,

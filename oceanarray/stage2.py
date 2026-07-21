@@ -47,7 +47,12 @@ import xarray as xr
 import yaml
 from seasenselib.writers import NetCdfWriter
 
-from .utilities import _status, cast_output_dtypes, drop_all_zero_vars
+from .utilities import (
+    _status,
+    cast_output_dtypes,
+    drop_all_zero_vars,
+    extract_inline_instruments,
+)
 
 
 def _parse_clock_str(s: str) -> Optional[pd.Timestamp]:
@@ -674,9 +679,10 @@ class Stage2Processor:
         self._log_print(f"Recovery time: {recover_time}")
 
         # Process each instrument — support both 'instruments' (legacy) and 'clamp' (new format)
-        instrument_list = mooring_config.get(
-            "clamp", mooring_config.get("instruments", [])
+        instrument_list = list(
+            mooring_config.get("clamp", mooring_config.get("instruments", []))
         )
+        instrument_list += extract_inline_instruments(mooring_config.get("inline", []))
 
         # Filter by serial if requested
         if serials:
