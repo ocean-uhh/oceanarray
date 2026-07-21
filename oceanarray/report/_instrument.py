@@ -16,6 +16,7 @@ from ._html_helpers import (
     _parse_history,
     _read_nc_metadata,
     _read_qc_summary,
+    _read_qc_thresholds,
     _safe_serial,
     _stage_file_details,
 )
@@ -149,7 +150,7 @@ _INSTRUMENT_HTML_TEMPLATE = """\
   {% if fig_speed_boxplot_b64 %}<a href="#speed">Speed distribution</a>{% endif %}
   {% if fig_analog_b64 %}<a href="#analog">Analog channels</a>{% endif %}
   <a href="#dist">Distributions</a>
-  {% if qc_summary %}<a href="#qc">QC flags</a>{% endif %}
+  {% if qc_summary %}<a href="#qc">QC thresholds &amp; flags</a>{% endif %}
   <a href="#vars">Variables</a>
 </nav>
 
@@ -312,6 +313,32 @@ _INSTRUMENT_HTML_TEMPLATE = """\
 <!-- ══ QC flag breakdown ══ -->
 {% if qc_summary %}
 <h2 id="qc">QC flag breakdown</h2>
+
+{% if qc_thresholds %}
+<h3 style="font-size:0.85rem;color:var(--ocean);margin:0.8rem 0 0.3rem;">Thresholds applied (as stored in stage&nbsp;3 file)</h3>
+<table style="font-size:0.82rem;margin-bottom:1rem;">
+  <thead>
+    <tr>
+      <th>Variable</th>
+      <th>Test</th>
+      <th>Suspect range / threshold</th>
+      <th>Fail range / threshold</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in qc_thresholds %}
+    <tr>
+      <td class="mono">{{ row.var }}</td>
+      <td>{{ row.test }}</td>
+      <td class="num" style="color:var(--warn);font-family:monospace">{{ row.suspect }}</td>
+      <td class="num" style="color:var(--bad);font-family:monospace">{{ row.fail }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<h3 style="font-size:0.85rem;color:var(--ocean);margin:0.8rem 0 0.3rem;">Flag counts</h3>
 <table>
   <thead>
     <tr>
@@ -336,10 +363,10 @@ _INSTRUMENT_HTML_TEMPLATE = """\
       <td class="mono">{{ row.var }}</td>
       <td class="num">{{ "{:,}".format(row.total) }}</td>
       <td class="num" style="color:{% if good.pct >= 95 %}var(--good){% elif good.pct >= 80 %}var(--warn){% else %}var(--bad){% endif %}">{{ good.pct }}</td>
-      <td class="num">{% if susp.pct > 0 %}<span style="color:var(--warn)">{{ susp.pct }}</span>{% else %}&ndash;{% endif %}</td>
-      <td class="num">{% if bad.pct > 0 %}<span style="color:var(--bad)">{{ bad.pct }}</span>{% else %}&ndash;{% endif %}</td>
-      <td class="num">{% if interp.pct > 0 %}<span style="color:var(--interp)">{{ interp.pct }}</span>{% else %}&ndash;{% endif %}</td>
-      <td class="num">{% if miss.pct > 0 %}{{ miss.pct }}{% else %}&ndash;{% endif %}</td>
+      <td class="num">{% if susp.n > 0 %}<span style="color:var(--warn)" title="{{ susp.n }} records">{% if susp.pct > 0 %}{{ susp.pct }}{% else %}&lt;0.1%&nbsp;({{ susp.n }}){% endif %}</span>{% else %}&ndash;{% endif %}</td>
+      <td class="num">{% if bad.n > 0 %}<span style="color:var(--bad)" title="{{ bad.n }} records">{% if bad.pct > 0 %}{{ bad.pct }}{% else %}&lt;0.1%&nbsp;({{ bad.n }}){% endif %}</span>{% else %}&ndash;{% endif %}</td>
+      <td class="num">{% if interp.n > 0 %}<span style="color:var(--interp)" title="{{ interp.n }} records">{% if interp.pct > 0 %}{{ interp.pct }}{% else %}&lt;0.1%&nbsp;({{ interp.n }}){% endif %}</span>{% else %}&ndash;{% endif %}</td>
+      <td class="num">{% if miss.n > 0 %}<span title="{{ miss.n }} records">{% if miss.pct > 0 %}{{ miss.pct }}{% else %}&lt;0.1%&nbsp;({{ miss.n }}){% endif %}</span>{% else %}&ndash;{% endif %}</td>
       <td>
         <div class="qc-bar">
           {% for f in row.flags %}{% if f.pct > 0 %}
@@ -577,6 +604,7 @@ def generate_instrument_pages(
             ),
             "fig_dt_b64": _make_data_histogram(best_nc) if best_nc else None,
             "qc_summary": _read_qc_summary(stage3_nc) if stage3_nc else [],
+            "qc_thresholds": _read_qc_thresholds(stage3_nc) if stage3_nc else [],
             "nc_meta": _read_nc_metadata(best_nc) if best_nc else {},
         }
         analog_vars = ctx["nc_meta"].get("analog_vars", [])

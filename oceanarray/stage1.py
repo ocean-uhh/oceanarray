@@ -1020,9 +1020,15 @@ class MooringProcessor:
 
         Returns True on success or skip, False on error or missing filename.
         """
+        instrument_name = instrument_config.get("instrument", "unknown")
+        serial = instrument_config.get("serial", "unknown")
+
+        if instrument_config.get("skip"):
+            reason = instrument_config.get("skip_reason", "marked skip:true in YAML")
+            self._log_print(f"SKIP {instrument_name} {serial}: {reason}")
+            return True
+
         if "filename" not in instrument_config:
-            instrument_name = instrument_config.get("instrument", "unknown")
-            serial = instrument_config.get("serial", "unknown")
             self._log_print(
                 f"FILENAME MISSING: Skipping {instrument_name}:{serial}. "
                 f"YAML is missing 'filename'."

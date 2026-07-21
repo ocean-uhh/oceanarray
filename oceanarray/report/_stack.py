@@ -745,7 +745,7 @@ def generate_stack_page(
                 if all_spacings:
                     fig_sp, ax_sp = plt.subplots(figsize=(8, 4))
                     ax_sp.hist(
-                        all_spacings, bins="auto", color="steelblue", edgecolor="white"
+                        all_spacings, bins=60, color="steelblue", edgecolor="white"
                     )
                     ax_sp.set_xlabel("Instrument spacing (dbar)")
                     ax_sp.set_ylabel("Count (instrument pair × time step)")
@@ -753,8 +753,8 @@ def generate_stack_page(
                     plt.tight_layout()
                     fig_spacing_b64 = _fig_to_base64(fig_sp)
                     plt.close(fig_sp)
-            except Exception:
-                pass
+            except Exception as _exc_sp:
+                print(f"WARNING: pressure spacing figure failed: {_exc_sp}")
 
         fig_ts_stack_b64 = _make_stack_ts_diagram(ds)
         fig_aquadopp_tilt_b64 = _make_aquadopp_tilt_panels(ds, step=step)

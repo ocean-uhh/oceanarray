@@ -250,7 +250,25 @@ class Stage2Processor:
         deploy_time: np.datetime64,
         recover_time: np.datetime64,
     ) -> xr.Dataset:
-        """Trim dataset to deployment time window."""
+        """Trim dataset to deployment time window.
+
+        A two-pass approach is used:
+
+        1. **Stray-record pre-filter** (boolean indexing, non-monotonic safe):
+           Any record whose timestamp falls more than 31 days before deployment
+           or more than 31 days after recovery is dropped with a WARNING.  The
+           31-day window is hard-coded; it was chosen to handle clock-wrap
+           artefacts (e.g. SeaBird clocks jumping to 2038) without discarding
+           instruments that start logging a few weeks before entering the water.
+           TODO: consider making this window configurable via YAML or a package
+           parameter if shorter/longer windows are needed for specific deployments.
+
+        2. **Deployment-window trim** (``sel(time=slice(...))``): the remaining
+           time-series is sliced to ``[deploy_time, recover_time]``.  This call
+           requires a monotonic time index; if non-monotonic timestamps remain
+           after the pre-filter, the ``sel`` call will raise — use ``skip: true``
+           in the YAML for instruments with irrecoverably corrupted clocks.
+        """
         original_size = len(dataset.time)
 
         # Drop timestamps that are wildly out of range before attempting

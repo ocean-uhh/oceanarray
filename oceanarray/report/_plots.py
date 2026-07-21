@@ -107,7 +107,7 @@ _CANONICAL_PANELS: List[Tuple] = [
     ("roll", "Roll [°]", "#8B4513", False),
     ("heading", "Heading [°]", "tab:gray", False),
     ("speed_of_sound", "Sound speed [m/s]", "tab:olive", False),
-    ("turbidity", "Turbidity [FTU]", "tab:brown", False),
+    ("turbidity", "Turbidity [NTU]", "tab:brown", False),
     ("battery_voltage", "Battery [V]", "tab:pink", False),
 ]
 

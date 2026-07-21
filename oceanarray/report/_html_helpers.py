@@ -298,6 +298,63 @@ def _read_nc_metadata(nc_path: Path) -> Dict[str, Any]:
         }
 
 
+def _read_qc_thresholds(nc_path: Path) -> List[Dict[str, Any]]:
+    """Return the QC thresholds actually applied, as stored in the stage3 NC file.
+
+    Reads ``qc_gross_range_*`` attributes from each ``{var}_qc`` variable and
+    ``tilt_suspect_threshold`` / ``tilt_fail_threshold`` from dataset-level attrs.
+    Returns a list of dicts, one per variable, with the actual values that were
+    written to the file — regardless of whether they came from package defaults,
+    mooring-level YAML, or per-instrument overrides.
+    """
+    try:
+        import xarray as xr
+
+        ds = xr.open_dataset(nc_path, decode_timedelta=False)
+        rows = []
+        for v in sorted(ds.data_vars):
+            if not v.endswith("_qc") or v.endswith("_orig_qc"):
+                continue
+            base = v[:-3]
+            if base not in ds.data_vars:
+                continue
+            attrs = ds[v].attrs
+            fail_min = attrs.get("qc_gross_range_fail_min")
+            fail_max = attrs.get("qc_gross_range_fail_max")
+            susp_min = attrs.get("qc_gross_range_suspect_min")
+            susp_max = attrs.get("qc_gross_range_suspect_max")
+            if fail_min is None and susp_min is None:
+                continue
+            rows.append(
+                {
+                    "var": base,
+                    "test": "gross-range",
+                    "suspect": (
+                        f"[{susp_min}, {susp_max}]" if susp_min is not None else "—"
+                    ),
+                    "fail": (
+                        f"[{fail_min}, {fail_max}]" if fail_min is not None else "—"
+                    ),
+                }
+            )
+        # Tilt QC (Aquadopp): stored at dataset level
+        t_susp = ds.attrs.get("tilt_suspect_threshold")
+        t_fail = ds.attrs.get("tilt_fail_threshold")
+        if t_susp is not None or t_fail is not None:
+            rows.append(
+                {
+                    "var": "roll (tilt)",
+                    "test": "tilt",
+                    "suspect": f">{t_susp}°" if t_susp is not None else "—",
+                    "fail": f">{t_fail}°" if t_fail is not None else "—",
+                }
+            )
+        ds.close()
+        return rows
+    except Exception:
+        return []
+
+
 def _read_qc_summary(nc_path: Path) -> List[Dict[str, Any]]:
     """Return per-variable QC flag breakdown from a stage3 NC file."""
     try:

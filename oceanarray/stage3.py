@@ -397,6 +397,35 @@ def _apply_declination_to_enu(
 # 9=missing, 4=bad, 3=suspect, 8=interpolated, 2=prob-good, 1=good
 _QC_PRIORITY: Dict[int, int] = {9: 6, 4: 5, 3: 4, 8: 3, 2: 2, 1: 1, 0: 0}
 
+# CF standard names and canonical long_names for known physics variables.
+# Applied as a normalization pass just before writing _stage3.nc so that all
+# output files have consistent metadata regardless of which reader produced them.
+_CF_ATTRS: Dict[str, Dict[str, str]] = {
+    "temperature": {
+        "standard_name": "sea_water_temperature",
+        "long_name": "Temperature",
+        "units": "degrees_C",
+    },
+    "conductivity": {
+        "standard_name": "sea_water_electrical_conductivity",
+        "long_name": "Conductivity",
+    },
+    "salinity": {
+        "standard_name": "sea_water_practical_salinity",
+        "long_name": "Salinity",
+        "units": "1",
+    },
+    "pressure": {
+        "standard_name": "sea_water_pressure",
+        "long_name": "Pressure",
+        "units": "dbar",
+    },
+    "turbidity": {
+        "standard_name": "sea_water_turbidity",
+        "long_name": "Turbidity",
+    },
+}
+
 
 def _safe_serial(serial: Any) -> str:
     return re.sub(r"[^\w\-]", "", str(serial))
@@ -1306,6 +1335,14 @@ class Stage3Processor:
             existing = ds.attrs.get("history", "")
             ds.attrs["history"] = f"{existing}; {entry}" if existing else entry
 
+            # Normalize CF standard_name and long_name for known physics variables.
+            # Only fills in missing attrs — never overwrites values already set.
+            for _vname, _cf in _CF_ATTRS.items():
+                if _vname in ds.data_vars:
+                    for _k, _v in _cf.items():
+                        if _k not in ds[_vname].attrs:
+                            ds[_vname].attrs[_k] = _v
+
             ds = drop_all_zero_vars(ds, ["amplitude_beam", "analog_input_"])
             cast_output_dtypes(ds).to_netcdf(l3_path)
             ds.close()
@@ -1413,7 +1450,22 @@ class Stage3Processor:
         ``(breakpoint_datetime64, hab_float)`` pairs), the record is split into
         time segments and each segment is interpolated with its own HAB, allowing
         for instruments that physically moved during the deployment.
+
+        HAB convention for segmented deployments
+        -----------------------------------------
+        ``target_info["hab"]`` is the **initial** HAB — the height above bottom
+        at which the instrument was **deployed**.  Segment 0 runs from the start
+        of the record up to (but not including) the first breakpoint, using this
+        value.  Each entry in ``hab_segments`` gives the new HAB **at and after**
+        the breakpoint timestamp (i.e. records with ``T >= breakpoint`` use the
+        new HAB; the breakpoint itself belongs to the new segment).  This matches
+        the YAML convention where ``hab:`` records the as-deployed position and
+        ``hab_segments:`` records subsequent slides, with ``from:`` marking the
+        first timestamp that belongs to the post-slide position.
         """
+        if len(target_time) == 0:
+            return ds, "no data"
+
         pressure_qc_val = target_info["qc_flags"].get("pressure", 0)
         serial = target_info["serial"]
 

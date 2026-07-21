@@ -98,7 +98,8 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["ANN", "D"]   # tests don't need type annotations or docstrings
+"tests/**" = ["ANN", "D", "SLF001"]   # tests don't need type annotations, docstrings, or private-access guards
+"tests/legacy/**" = ["ANN", "D", "SLF001", "ARG001", "E741", "F841"]  # legacy tests: also allow unused fixture args, short variable names, unused locals
 # tools.py is being reorganised into analysis/ post-OdB; ANN/D deferred until then
 "oceanarray/tools.py" = ["ANN", "D205"]
 # The following files move to tools/ or pipeline/ post-OdB; ANN/D deferred until then

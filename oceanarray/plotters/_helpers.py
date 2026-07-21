@@ -42,7 +42,7 @@ def tukey_smooth(arr: np.ndarray, window_n: int) -> np.ndarray:
     """
     from scipy.signal import windows as scipy_windows
 
-    if window_n < 3:
+    if window_n < 3 or window_n >= len(arr):
         return arr.copy()
     win = scipy_windows.tukey(window_n, alpha=0.5)
     win = win / win.sum()
