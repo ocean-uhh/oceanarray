@@ -289,6 +289,112 @@ def cmd_validate(args: argparse.Namespace) -> int:
     return 0 if all_ok else 1
 
 
+def cmd_animate(args: argparse.Namespace) -> int:
+    """Write animated hodograph GIF(s) for Aquadopp instrument(s)."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import xarray as xr
+
+    from .plotters import animate_hodograph
+
+    basedir = _resolve_basedir(args.basedir)
+    proc_dir = _get_proc_root(basedir) / args.mooring
+    serials = args.serial or []
+
+    # Build {stem: best_nc} — stage3 preferred over stage2
+    stage3_map = {
+        f.name.replace("_stage3.nc", ""): f
+        for f in sorted(proc_dir.rglob("*_stage3.nc"))
+    }
+
+    if serials:
+        candidates: list[tuple[str, Path]] = []
+        for sn in serials:
+            matches = [stem for stem in stage3_map if str(sn) in stem]
+            if matches:
+                candidates.extend((m, stage3_map[m]) for m in matches)
+            else:
+                stage2 = sorted(proc_dir.rglob(f"*{sn}*_stage2.nc"))
+                if stage2:
+                    stem = stage2[0].name.replace("_stage2.nc", "")
+                    candidates.append((stem, stage2[0]))
+                else:
+                    print(
+                        f"  WARNING: no stage2/3 NC found for serial {sn} under {proc_dir}"
+                    )
+    else:
+        # All stage3 files; fill in with stage2 where stage3 is absent
+        seen: set[str] = set(stage3_map)
+        candidates = list(stage3_map.items())
+        for nc in sorted(proc_dir.rglob("*_stage2.nc")):
+            stem = nc.name.replace("_stage2.nc", "")
+            if stem not in seen:
+                seen.add(stem)
+                candidates.append((stem, nc))
+
+    if not candidates:
+        print(f"  No processed files found under {proc_dir}")
+        return 1
+
+    n_ok = 0
+    for stem, nc in candidates:
+        if args.output and len(candidates) == 1:
+            out = Path(args.output)
+        else:
+            out = nc.parent / f"{stem}_hodograph.gif"
+
+        _status("section", f"Animate: {nc.name}")
+        try:
+            import numpy as np
+            import pandas as pd
+
+            ds = xr.open_dataset(nc, decode_timedelta=False)
+            t = ds["time"].values
+            t0_str = pd.Timestamp(t[0]).strftime("%Y-%m-%d %H:%M")
+            t1_str = pd.Timestamp(t[-1]).strftime("%Y-%m-%d %H:%M")
+            n_days = float((t[-1] - t[0]) / np.timedelta64(1, "D"))
+            if len(t) > 1:
+                dt_s = float(np.median(np.diff(t) / np.timedelta64(1, "s")))
+                step_n = max(1, int(round(args.frame_hours * 3600.0 / dt_s)))
+                n_exp = int(np.ceil(len(t) / step_n))
+            else:
+                dt_s = float("nan")
+                n_exp = 1
+            print(
+                f"  Data:   {t0_str} → {t1_str}  ({n_days:.1f} days, "
+                f"{len(t)} records, dt={dt_s:.0f} s)"
+            )
+            print(f"  Frames: ~{n_exp}  ({args.frame_hours:.0f}-h steps)")
+
+            result = animate_hodograph(
+                ds,
+                out,
+                u_var=args.u_var,
+                v_var=args.v_var,
+                lp_days=args.lp_days,
+                smooth_hours=args.smooth_hours,
+                frame_hours=args.frame_hours,
+                fps=args.fps,
+                dpi=args.dpi,
+            )
+            ds.close()
+        except Exception as exc:  # noqa: BLE001  — I/O boundary; report and continue
+            print(f"  ERROR: {exc}")
+            continue
+
+        if result is None:
+            print(
+                f"  Skipped: {nc.name} — no {args.u_var}/{args.v_var} variables "
+                "or pillow writer unavailable"
+            )
+        else:
+            print(f"  Saved: {result}")
+            n_ok += 1
+
+    return 0 if n_ok > 0 else 1
+
+
 def cmd_list(args: argparse.Namespace) -> int:
     """Print allowed instrument types and file_type values for mooring YAML files."""
     from . import parameters as P
@@ -308,11 +414,11 @@ def cmd_list(args: argparse.Namespace) -> int:
             readers = ", ".join(P.INSTRUMENT_FILE_TYPES[name])
             print(f"  {name:<{instr_col}}  {readers}")
 
-        if P._EXTRA_FILE_TYPES:
+        if P.EXTRA_FILE_TYPES:
             print()
             print("  Additional file_type values (specialist / deprecated):")
             print(f"  {'-' * instr_col}  {'-' * file_col}")
-            for ft, note in sorted(P._EXTRA_FILE_TYPES.items()):
+            for ft, note in sorted(P.EXTRA_FILE_TYPES.items()):
                 print(f"  {ft:<{instr_col}}  {note}")
 
         print()
@@ -544,6 +650,84 @@ def build_parser() -> argparse.ArgumentParser:
         help="Display the figure interactively (works alongside --output)",
     )
     p_plot.set_defaults(func=cmd_plot)
+
+    p_animate = sub.add_parser(
+        "animate",
+        help="Write an animated hodograph GIF for Aquadopp instrument(s).",
+    )
+    p_animate.add_argument("mooring", help="Mooring name, e.g. dsG2_1_2026")
+    p_animate.add_argument(
+        "--basedir", required=True, help="Root data directory (contains proc/)"
+    )
+    p_animate.add_argument(
+        "--serial",
+        nargs="+",
+        metavar="SN",
+        default=[],
+        help="Serial number(s) to animate (default: all instruments with velocity data)",
+    )
+    p_animate.add_argument(
+        "-o",
+        "--output",
+        default=None,
+        metavar="FILE",
+        help="Output GIF path (only used when a single --serial is given; "
+        "default: {stem}_hodograph.gif next to the NC file)",
+    )
+    p_animate.add_argument(
+        "--u-var",
+        default="east_velocity",
+        dest="u_var",
+        metavar="VAR",
+        help="Eastward velocity variable name (default: east_velocity)",
+    )
+    p_animate.add_argument(
+        "--v-var",
+        default="north_velocity",
+        dest="v_var",
+        metavar="VAR",
+        help="Northward velocity variable name (default: north_velocity)",
+    )
+    p_animate.add_argument(
+        "--lp-days",
+        type=float,
+        default=4.0,
+        dest="lp_days",
+        metavar="DAYS",
+        help="Low-pass window for eddy-component removal in days (default: 4.0)",
+    )
+    p_animate.add_argument(
+        "--smooth-hours",
+        type=float,
+        default=3.0,
+        dest="smooth_hours",
+        metavar="HOURS",
+        help="Tukey smoothing window in hours applied to both panels (default: 3.0)",
+    )
+    p_animate.add_argument(
+        "--frame-hours",
+        type=float,
+        default=6.0,
+        dest="frame_hours",
+        metavar="HOURS",
+        help="Time step between frames in hours (default: 6.0 → one frame per "
+        "quarter-day of deployment)",
+    )
+    p_animate.add_argument(
+        "--fps",
+        type=int,
+        default=20,
+        metavar="FPS",
+        help="Frames per second in the output GIF (default: 20)",
+    )
+    p_animate.add_argument(
+        "--dpi",
+        type=int,
+        default=100,
+        metavar="DPI",
+        help="Resolution of each frame in dots per inch (default: 100)",
+    )
+    p_animate.set_defaults(func=cmd_animate)
 
     p_list = sub.add_parser(
         "list",

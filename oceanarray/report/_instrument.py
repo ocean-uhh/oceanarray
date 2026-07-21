@@ -16,6 +16,7 @@ from ._html_helpers import (
     _parse_history,
     _read_nc_metadata,
     _read_qc_summary,
+    _read_qc_thresholds,
     _safe_serial,
     _stage_file_details,
 )
@@ -25,8 +26,9 @@ from ._plots import (
     _make_ts_diagram,
     _make_instrument_rose_b64,
     _make_data_histogram,
-    _make_temperature_trajectory,
+    _make_hodograph_b64,
     _make_speed_boxplot,
+    _make_temperature_trajectory,
     _make_analog_timeseries,
 )
 
@@ -144,10 +146,11 @@ _INSTRUMENT_HTML_TEMPLATE = """\
   {% if fig_tsd_b64 %}<a href="#ts">T-S diagram</a>{% endif %}
   {% if fig_rose_b64 %}<a href="#rose">Current roses</a>{% endif %}
   {% if fig_trajectory_b64 %}<a href="#trajectory">Trajectory</a>{% endif %}
+  {% if fig_hodograph_b64 %}<a href="#hodograph">Hodograph</a>{% endif %}
   {% if fig_speed_boxplot_b64 %}<a href="#speed">Speed distribution</a>{% endif %}
   {% if fig_analog_b64 %}<a href="#analog">Analog channels</a>{% endif %}
   <a href="#dist">Distributions</a>
-  {% if qc_summary %}<a href="#qc">QC flags</a>{% endif %}
+  {% if qc_summary %}<a href="#qc">QC thresholds &amp; flags</a>{% endif %}
   <a href="#vars">Variables</a>
 </nav>
 
@@ -255,6 +258,17 @@ _INSTRUMENT_HTML_TEMPLATE = """\
 <img class="fig" src="data:image/png;base64,{{ fig_trajectory_b64 }}" style="max-width:600px;">
 {% endif %}
 
+<!-- ══ Hodograph ══ -->
+{% if fig_hodograph_b64 %}
+<h2 id="hodograph">Hodograph</h2>
+<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+  East vs north velocity (m&nbsp;s<sup>-1</sup>).
+  <b>Left</b>: full record.
+  <b>Right</b>: eddy component — raw minus 4-day low-pass (rolling mean).
+</p>
+<img class="fig" src="data:image/png;base64,{{ fig_hodograph_b64 }}">
+{% endif %}
+
 <!-- ══ Speed distribution ══ -->
 {% if fig_speed_boxplot_b64 %}
 <h2 id="speed">Current speed distribution</h2>
@@ -299,6 +313,32 @@ _INSTRUMENT_HTML_TEMPLATE = """\
 <!-- ══ QC flag breakdown ══ -->
 {% if qc_summary %}
 <h2 id="qc">QC flag breakdown</h2>
+
+{% if qc_thresholds %}
+<h3 style="font-size:0.85rem;color:var(--ocean);margin:0.8rem 0 0.3rem;">Thresholds applied (as stored in stage&nbsp;3 file)</h3>
+<table style="font-size:0.82rem;margin-bottom:1rem;">
+  <thead>
+    <tr>
+      <th>Variable</th>
+      <th>Test</th>
+      <th>Suspect range / threshold</th>
+      <th>Fail range / threshold</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in qc_thresholds %}
+    <tr>
+      <td class="mono">{{ row.var }}</td>
+      <td>{{ row.test }}</td>
+      <td class="num" style="color:var(--warn);font-family:monospace">{{ row.suspect }}</td>
+      <td class="num" style="color:var(--bad);font-family:monospace">{{ row.fail }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+<h3 style="font-size:0.85rem;color:var(--ocean);margin:0.8rem 0 0.3rem;">Flag counts</h3>
 <table>
   <thead>
     <tr>
@@ -323,10 +363,10 @@ _INSTRUMENT_HTML_TEMPLATE = """\
       <td class="mono">{{ row.var }}</td>
       <td class="num">{{ "{:,}".format(row.total) }}</td>
       <td class="num" style="color:{% if good.pct >= 95 %}var(--good){% elif good.pct >= 80 %}var(--warn){% else %}var(--bad){% endif %}">{{ good.pct }}</td>
-      <td class="num">{% if susp.pct > 0 %}<span style="color:var(--warn)">{{ susp.pct }}</span>{% else %}&ndash;{% endif %}</td>
-      <td class="num">{% if bad.pct > 0 %}<span style="color:var(--bad)">{{ bad.pct }}</span>{% else %}&ndash;{% endif %}</td>
-      <td class="num">{% if interp.pct > 0 %}<span style="color:var(--interp)">{{ interp.pct }}</span>{% else %}&ndash;{% endif %}</td>
-      <td class="num">{% if miss.pct > 0 %}{{ miss.pct }}{% else %}&ndash;{% endif %}</td>
+      <td class="num">{% if susp.n > 0 %}<span style="color:var(--warn)" title="{{ susp.n }} records">{% if susp.pct > 0 %}{{ susp.pct }}{% else %}&lt;0.1%&nbsp;({{ susp.n }}){% endif %}</span>{% else %}&ndash;{% endif %}</td>
+      <td class="num">{% if bad.n > 0 %}<span style="color:var(--bad)" title="{{ bad.n }} records">{% if bad.pct > 0 %}{{ bad.pct }}{% else %}&lt;0.1%&nbsp;({{ bad.n }}){% endif %}</span>{% else %}&ndash;{% endif %}</td>
+      <td class="num">{% if interp.n > 0 %}<span style="color:var(--interp)" title="{{ interp.n }} records">{% if interp.pct > 0 %}{{ interp.pct }}{% else %}&lt;0.1%&nbsp;({{ interp.n }}){% endif %}</span>{% else %}&ndash;{% endif %}</td>
+      <td class="num">{% if miss.n > 0 %}<span title="{{ miss.n }} records">{% if miss.pct > 0 %}{{ miss.pct }}{% else %}&lt;0.1%&nbsp;({{ miss.n }}){% endif %}</span>{% else %}&ndash;{% endif %}</td>
       <td>
         <div class="qc-bar">
           {% for f in row.flags %}{% if f.pct > 0 %}
@@ -457,6 +497,11 @@ def generate_instrument_pages(
         prefix = f"  [{idx:2d}] {instr_type:<12} s/n {serial:<12}"
         idx += 1
 
+        stages = instr.get("stages", {})
+        if not any(stages.get(s) for s in ("stage1", "stage2", "stage3")):
+            print(f"{prefix}  [skipped — no processed files]")
+            continue
+
         if out_path.exists() and not force:
             print(f"{prefix}  {out_path.name}  [exists]")
             continue
@@ -552,8 +597,14 @@ def generate_instrument_pages(
                 if best_nc and instr_type.lower() == "aquadopp"
                 else None
             ),
+            "fig_hodograph_b64": (
+                _make_hodograph_b64(best_nc)
+                if best_nc and instr_type.lower() == "aquadopp"
+                else None
+            ),
             "fig_dt_b64": _make_data_histogram(best_nc) if best_nc else None,
             "qc_summary": _read_qc_summary(stage3_nc) if stage3_nc else [],
+            "qc_thresholds": _read_qc_thresholds(stage3_nc) if stage3_nc else [],
             "nc_meta": _read_nc_metadata(best_nc) if best_nc else {},
         }
         analog_vars = ctx["nc_meta"].get("analog_vars", [])

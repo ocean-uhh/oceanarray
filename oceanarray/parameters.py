@@ -150,8 +150,8 @@ QC_SPIKE: dict = {
 # Override per mooring in ``tilt_qc`` YAML key, or per instrument.
 # ---------------------------------------------------------------------------
 QC_TILT: dict = {
-    "suspect_threshold": 20.0,
-    "fail_threshold": 30.0,
+    "suspect_threshold": 30.0,
+    "fail_threshold": 50.0,
 }
 
 INSTRUMENT_ABBREV = {
@@ -185,6 +185,14 @@ INSTRUMENT_FILE_TYPES: dict = {
     "tr1050": [
         "rbr-hex-oa"
     ],  # RBR TR-1050 thermistor chain; -oa until seasenselib supports it
+    "rbrsolo": ["rbr-rsk", "rbr-dat"],  # RBR Solo/Duet single-channel T or T+P
+    "seapoint": ["rbr-rsk", "rbr-dat"],  # Seapoint turbidity sensor via RBR logger
+    "ADCP": [
+        "nortek-aqd",
+        "nortek-ascii",
+        "adcp-matlab-rdadcp",
+        "adcp-matlab-uhhds",
+    ],  # Generic ADCP
 }
 
 # Derived: set of allowed ``instrument:`` values in mooring YAML files.
@@ -192,7 +200,7 @@ KNOWN_INSTRUMENT_TYPES: frozenset = frozenset(INSTRUMENT_FILE_TYPES.keys())
 
 # File types accepted by the stage1 reader but not yet tied to a canonical
 # instrument name (deprecated, legacy, or not yet standardised).
-_EXTRA_FILE_TYPES: dict = {
+EXTRA_FILE_TYPES: dict = {
     "nortek-csv-oa": "aquadopp (DEPRECATED internal reader; use nortek-csv)",
     "rbr-rsk": "RBR instruments (instrument name not yet standardised)",
     "rbr-dat": "RBR instruments (instrument name not yet standardised)",

@@ -201,6 +201,12 @@ _HTML_TEMPLATE = """\
   Stack = mooring-level <code>_stack.nc</code> &bull;
   Grid = pressure-gridded <code>_grid.nc</code>
 </p>
+<p style="font-size:0.82rem;color:#555;margin-top:-0.3rem;">
+  Instruments marked <code>skip: true</code> in the YAML are excluded from all
+  processing and are shown with a <em>skipped</em> note in the Note column.
+  Stack and Grid pills are grey for any instrument that did not reach Stage&nbsp;3.
+  See <a href="#instruments">Table&nbsp;3</a> for skip reasons where given.
+</p>
 <table>
   <thead>
     <tr>
@@ -210,6 +216,7 @@ _HTML_TEMPLATE = """\
       <th>Hab&nbsp;(m)</th>
       <th>Depth&nbsp;(m)</th>
       <th>Pipeline</th>
+      <th>Note</th>
     </tr>
   </thead>
   <tbody>
@@ -264,20 +271,23 @@ _HTML_TEMPLATE = """\
             <span class="badge b-miss">Stage&nbsp;3 ○</span>
           {% endif %}
           <span class="arrow">›</span>
-          {# stack — same for all instruments #}
-          {% if stack_exists %}
+          {# stack — only coloured if this instrument is in the stack file #}
+          {% if instr.in_stack %}
             <span class="badge b-stack">Stack ✓</span>
           {% else %}
             <span class="badge b-miss">Stack ○</span>
           {% endif %}
           <span class="arrow">›</span>
-          {# grid — same for all instruments #}
-          {% if grid_exists %}
+          {# grid — only coloured if this instrument is in the grid file #}
+          {% if instr.in_grid %}
             <span class="badge b-grid">Grid ✓</span>
           {% else %}
             <span class="badge b-miss">Grid ○</span>
           {% endif %}
         </div>
+      </td>
+      <td style="font-size:0.8rem;color:#c0392b;">
+        {% if instr.skipped %}skipped{% endif %}
       </td>
     </tr>
     {% endfor %}
@@ -286,6 +296,15 @@ _HTML_TEMPLATE = """\
 
 <!-- ════════════════════════════════════ 3. INSTRUMENT SUMMARY ══ -->
 <h2 id="instruments">3 &mdash; Instrument summary (using stage3 files)</h2>
+<p style="font-size:0.82rem;color:#555;margin-top:-0.5rem;">
+  Variables, record length, and QC flag counts are read from each instrument's
+  stage&nbsp;3 NetCDF file.  The <strong>P</strong> button is shown as present
+  whether pressure was directly measured or interpolated from neighbouring
+  instruments — see Table&nbsp;6 (QC flag summary) to distinguish measured from
+  interpolated pressure.  Instruments marked <code>skip: true</code> in the
+  YAML are listed with the skip reason in the row (where provided via
+  <code>skip_reason:</code>).
+</p>
 <style>
   .vbadge {
     display: inline-block;
@@ -348,6 +367,8 @@ _HTML_TEMPLATE = """\
         {% for label, present in instr.nc.shorthands %}
         <td style="text-align:center"><span class="vbadge {{ 'vb-yes' if present else 'vb-no' }}">{{ label }}</span></td>
         {% endfor %}
+      {% elif instr.skipped %}
+        <td colspan="10" class="none-note">skipped{% if instr.skip_reason %} — {{ instr.skip_reason }}{% endif %}</td>
       {% else %}
         <td colspan="10" class="none-note">no processed file</td>
       {% endif %}
@@ -597,6 +618,24 @@ _HTML_TEMPLATE = """\
 # ---------------------------------------------------------------------------
 
 
+def _serials_in_nc(nc_path: Path) -> frozenset:
+    """Return the set of serial numbers present in a stack or grid NC file.
+
+    Reads the ``serial`` coordinate on the ``N_LEVELS`` dimension.  Returns an
+    empty frozenset if the file is missing, unreadable, or has no ``serial``
+    coordinate.
+    """
+    try:
+        import xarray as xr
+
+        ds = xr.open_dataset(nc_path, decode_timedelta=False)
+        if "serial" in ds.coords:
+            return frozenset(str(s) for s in ds["serial"].values)
+    except Exception:  # noqa: BLE001
+        pass
+    return frozenset()
+
+
 class MooringReport:
     """Generate a mooring recovery HTML report from YAML and processed files."""
 
@@ -620,9 +659,9 @@ class MooringReport:
 
         if outdir:
             out_dir = Path(outdir)
-            out_dir.mkdir(parents=True, exist_ok=True)
         else:
-            out_dir = proc_dir
+            out_dir = proc_dir / "report"
+        out_dir.mkdir(parents=True, exist_ok=True)
         output_path = out_dir / f"{mooring_name}_report.html"
         if output_path.exists() and not force:
             _status("skip", str(output_path.relative_to(self.base_dir)))
@@ -686,6 +725,14 @@ class MooringReport:
         raw_subdir = str(cfg.get("directory", "raw")).rstrip("/")
 
         instrument_list = cfg.get("clamp", cfg.get("instruments", []))
+
+        stack_nc = proc_dir / f"{mooring_name}_stack.nc"
+        grid_nc = proc_dir / f"{mooring_name}_grid.nc"
+        stack_exists = stack_nc.exists()
+        grid_exists = grid_nc.exists()
+        stack_serials = _serials_in_nc(stack_nc) if stack_exists else frozenset()
+        # Grid is a pressure-regridded version of the stack with no per-instrument
+        # serial coordinate — use stack membership as the proxy for grid inclusion.
 
         instruments = []
         for entry in instrument_list:
@@ -755,7 +802,11 @@ class MooringReport:
                     "readable_note": readable_note,
                     "yaml_interval_s": yaml_interval_s,
                     "stopped_early": stopped_early,
+                    "skipped": bool(entry.get("skip")),
+                    "skip_reason": entry.get("skip_reason", ""),
                     "stages": _stage_files(proc_dir, instr_type, mooring_name, serial),
+                    "in_stack": serial in stack_serials,
+                    "in_grid": (serial in stack_serials) and grid_exists,
                     "clock": _resolve_clock(entry),
                     "nc": nc_info,
                     "sensors": _read_sensor_info(
@@ -767,8 +818,6 @@ class MooringReport:
 
         instruments.sort(key=lambda x: x["hab"])
 
-        stack_exists = (proc_dir / f"{mooring_name}_stack.nc").exists()
-        grid_exists = (proc_dir / f"{mooring_name}_grid.nc").exists()
         any_clock = any(i["clock"]["has_correction"] for i in instruments)
 
         def _combined(deploy_key, recover_key, legacy_key):
@@ -819,7 +868,7 @@ class MooringReport:
     def _render(self, ctx: Dict[str, Any]) -> str:
         try:
             from jinja2 import Environment
-        except ImportError:
-            raise ImportError("pip install jinja2")
+        except ImportError as exc:
+            raise ImportError("pip install jinja2") from exc
         env = Environment(autoescape=True)
         return env.from_string(_HTML_TEMPLATE).render(**ctx)

@@ -18,6 +18,7 @@ import numpy as np
 import xarray as xr
 from matplotlib.collections import LineCollection
 
+from oceanarray.plotters._helpers import tukey_smooth
 from oceanarray.plotters._primitives import plot_trajectory
 from oceanarray.utilities import _nice_colorbar_bounds
 
@@ -294,6 +295,175 @@ def plot_multi_aquadopp_trajectories(
     if title:
         ax.set_title(title)
     fig.tight_layout()
+    return fig
+
+
+def plot_hodograph(
+    ds: xr.Dataset,
+    u_var: str = "east_velocity",
+    v_var: str = "north_velocity",
+    lp_days: float = 4.0,
+    smooth_hours: float = 3.0,
+) -> plt.Figure:
+    """Two-panel hodograph: Tukey-smoothed raw and eddy-only, coloured by time.
+
+    Panel 1: *smooth_hours*-Tukey-smoothed raw east-vs-north velocity.
+    Panel 2: eddy component — raw minus a *lp_days*-day rolling-mean low-pass,
+    then *smooth_hours*-Tukey smoothed to suppress instrument noise.
+
+    Points are coloured by fractional time through the record (0 = start,
+    1 = end) using a discrete viridis colorbar so the temporal evolution of
+    rotary motion can be followed by eye.  The figure title shows the
+    instrument id from ``ds.attrs["id"]`` when available.
+
+    If *u_var* or *v_var* are absent, a placeholder figure is returned with
+    an explanatory message — the caller always receives a renderable image.
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        Per-instrument dataset containing east and north velocity variables.
+    u_var : str
+        Eastward velocity variable name (m s⁻¹).
+    v_var : str
+        Northward velocity variable name (m s⁻¹).
+    lp_days : float
+        Low-pass window length in days for the eddy-component panel.
+    smooth_hours : float
+        Tukey smoothing window in hours applied to both panels.
+
+    Returns
+    -------
+    matplotlib.figure.Figure
+
+    """
+    import pandas as pd
+
+    instr_id = ds.attrs.get("id", "")
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    fig.subplots_adjust(top=0.90)
+    if instr_id:
+        fig.suptitle(instr_id, fontsize=10, y=0.995)
+
+    if u_var not in ds.data_vars or v_var not in ds.data_vars:
+        for ax in axes:
+            ax.set_visible(False)
+        fig.text(
+            0.5,
+            0.5,
+            "No east/north velocities",
+            ha="center",
+            va="center",
+            fontsize=12,
+            color="#95a5a6",
+        )
+        return fig
+
+    east_raw = ds[u_var].values.astype(float).ravel()
+    north_raw = ds[v_var].values.astype(float).ravel()
+    t = ds["time"].values
+    units = ds[u_var].attrs.get("units", "m s⁻¹")
+
+    dt_s = (
+        float(np.median(np.diff(t) / np.timedelta64(1, "s"))) if len(t) > 1 else 3600.0
+    )
+    smooth_n = max(3, int(round(smooth_hours * 3600.0 / dt_s)))
+    lp_n = max(3, int(round(lp_days * 86400.0 / dt_s)))
+
+    # Raw panel: Tukey-smoothed raw signal
+    east = tukey_smooth(east_raw, smooth_n)
+    north = tukey_smooth(north_raw, smooth_n)
+
+    # Eddy panel: LP mean removed, then Tukey smoothed
+    e_lp = (
+        pd.Series(east_raw)
+        .rolling(window=lp_n, min_periods=1, center=True)
+        .mean()
+        .values
+    )
+    n_lp = (
+        pd.Series(north_raw)
+        .rolling(window=lp_n, min_periods=1, center=True)
+        .mean()
+        .values
+    )
+    e_eddy = tukey_smooth(east_raw - e_lp, smooth_n)
+    n_eddy = tukey_smooth(north_raw - n_lp, smooth_n)
+
+    # Time fraction 0→1 for colour encoding
+    t_frac = np.linspace(0.0, 1.0, len(east_raw))
+    bounds = _nice_colorbar_bounds(0.0, 1.0, n=10)
+    norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+    cmap = plt.get_cmap("viridis")
+
+    def _panel(ax: plt.Axes, e: np.ndarray, n: np.ndarray, title: str) -> None:
+        mask = np.isfinite(e) & np.isfinite(n)
+        if mask.sum() == 0:
+            ax.text(
+                0.5, 0.5, "No data", transform=ax.transAxes, ha="center", va="center"
+            )
+        else:
+            ax.scatter(
+                e[mask],
+                n[mask],
+                c=t_frac[mask],
+                cmap=cmap,
+                norm=norm,
+                s=4,
+                alpha=0.8,
+                linewidths=0,
+                marker="o",
+                rasterized=True,
+            )
+            idx = np.where(mask)[0]
+            ax.scatter(
+                e[idx[0]],
+                n[idx[0]],
+                s=55,
+                c="lime",
+                zorder=5,
+                marker="o",
+                edgecolors="black",
+                linewidths=0.5,
+                label="Start",
+            )
+            ax.scatter(
+                e[idx[-1]],
+                n[idx[-1]],
+                s=65,
+                c="red",
+                zorder=5,
+                marker="s",
+                edgecolors="black",
+                linewidths=0.5,
+                label="End",
+            )
+            ax.legend(fontsize=7, loc="upper right", framealpha=0.7)
+        ax.axhline(0, color="#bbb", lw=0.7, zorder=0)
+        ax.axvline(0, color="#bbb", lw=0.7, zorder=0)
+        ax.set_aspect("equal", adjustable="datalim")
+        ax.set_xlabel(f"East ({units})")
+        ax.set_ylabel(f"North ({units})")
+        ax.set_title(title, fontsize=10)
+        ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.4)
+
+    _panel(axes[0], east, north, f"Raw ({smooth_hours:.0f}-h smoothed)")
+    _panel(
+        axes[1],
+        e_eddy,
+        n_eddy,
+        f"Eddy ({lp_days:.0f}-day LP removed, {smooth_hours:.0f}-h smoothed)",
+    )
+
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+    fig.colorbar(
+        sm,
+        ax=axes,
+        label="Time (0 = start, 1 = end of record)",
+        shrink=0.8,
+        ticks=bounds,
+    )
     return fig
 
 
