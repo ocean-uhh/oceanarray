@@ -2,29 +2,30 @@
 OceanArray processing framework
 ===============================
 
-This document outlines the stages of processing for data from moored instruments.  Processing is separated into "instrument-level" processing (actions performed on a single instrument for a single deployment), "mooring-level" processing (actions performed on a mooring consisting of instruments deployed at the same x/y location), and "array-level" processing (actions performed on multiple moorings used together).
-
-Initial examples are built from the RAPID project, which is a well-established mooring array in the Atlantic Ocean, which uses an array of moored instruments to measure the Atlantic Meridional Overturning Circulation (AMOC).
+This document describes the stages of processing for data from moored instruments.
+Processing is separated into instrument-level (single instrument, single deployment),
+mooring-level (multiple instruments at the same location), and array-level
+(multiple moorings).
 
 **Principles:**
 
 - **Modular**: Each stage has clearly defined inputs and outputs.
-- **Adaptable**: While RAPID and similar projects guide the structure, this framework supports
-  different instrument types, platforms, and processing strategies.
-- **Reproducible**: Every transformation step should be traceable, with logs, versioning, and metadata.
-- **Incremental**: Intermediate outputs should be storable and reloadable for downstream processing.
+- **Cruise-ready**: Designed for quick-look processing at sea, with enough structure
+  to carry forward into scientific analysis.
+- **Reproducible**: Every transformation step is traceable, with logs, versioning,
+  and metadata.
+- **Incremental**: Intermediate outputs are storable and reloadable for downstream
+  processing.
 
-Final datasets are stored in a common format (CF-netCDF following OceanSITES_) with consistent metadata for analysis or transport diagnostics.
-
-.. _OceanSITES: https://www.ocean-ops.org/oceansites/data/index.html
-
+Output files use CF-NetCDF conventions with OceanSITES-style metadata where possible.
+Full OceanSITES compliance is a work in progress.
 
 ----
 
 Instrument-level processing
 ---------------------------
 
-.. figure:: /_static/instrument_processing_v5.png
+.. figure:: /_static/instrument_processing_v6.png
   :alt: Instrument-level processing workflow
   :align: center
 
@@ -32,81 +33,109 @@ Instrument-level processing
 
 The instrument-level processing carries out the following steps:
 
-- **Stage 0:** Downloading raw instrument files (e.g., `.cnv`, `.asc`).
-- **Stage 1:** Converting data files to CF-compliant NetCDF (``_stage1.nc``).  Unit normalisation is applied at this stage: pressure is standardised to ``dbar`` (SeaBird CNV files use ``db``), conductivity is renamed and where necessary converted to ``mS/cm``, and SeaBird ASCII files receive a ``scale = "ITS-90"`` attribute on the temperature variable.
-- **Stage 2:** Trimming the record to the deployment period and applying clock corrections (``_stage2.nc``).
-- **Stage 3:** Unit normalisation (conductivity ``S/m`` → ``mS/cm`` for instruments where stage 1 did not convert); derivation of practical salinity via ``gsw.SP_from_C(C, T, p)``; pressure interpolation for instruments lacking a pressure sensor; QARTOD gross-range and spike QC tests on temperature, conductivity, salinity, and pressure; tilt QC for Aquadopps (velocity variables flagged suspect when ``|roll| ≥ 20°``, bad when ``|roll| ≥ 30°``, configurable via ``tilt_qc`` in YAML) (``_stage3.nc``).  Stage 3 output files are written for **all** instruments.  Applied QC thresholds are stored as attributes on each ``*_qc`` variable so the report histogram can show exactly what was applied.
-- **Stage 3.5 (planned):** Apply calibrations (e.g., from caldip casts) and create a traceable log of the calibration process.
-- **Stage 4 (planned):** Convert to OceanSITES format with rich metadata for community sharing.
+- **Stage 0:** Download raw instrument files from the instrument (e.g. ``.cnv``,
+  ``.asc``, ``.rsk``, ``.aqd``).  See :doc:`yaml_configuration` for the full list of
+  supported file types and instrument types.
+- **Stage 1:** Convert raw files to CF-NetCDF (``_stage1.nc``).  Data are stored
+  as-is — no trimming or QC.  Unit normalisation at this stage: pressure standardised
+  to ``dbar``; conductivity renamed where needed; temperature receives a
+  ``scale = "ITS-90"`` attribute for SeaBird ASCII files.
+- **Stage 2:** Trim the record to the deployment period and apply clock corrections
+  (``_stage2.nc``).
+- **Stage 3:** Applied in this order:
 
-The first step step is downloading data from instruments.  This is typically using manufacturers' software and some of the downloaded files may be in proprietary formats (e.g., SeaBird `.cnv` format).  Formats can also change over time or depending on settings used when downloading the data, hence the need for the "standardisation" step.  Stage 0 is typically performed at sea as soon as a mooring is recovered and instruments are available.
+  1. Pressure interpolation for instruments without a native pressure sensor, using
+     HAB and the pressure records of neighbouring instruments.
+  2. Conductivity unit check — converts S/m → mS/cm where needed.
+  3. Derivation of practical salinity via ``gsw.SP_from_C(C, T, p)``.
+  4. QARTOD gross-range and spike QC tests on temperature, conductivity, salinity,
+     and pressure — applied *after* pressure interpolation so that interpolated
+     pressures also receive QC flags.
+  5. XYZ→ENU coordinate rotation for Aquadopps, using heading, pitch, roll, and
+     magnetic declination correction.  (Stage 1 applies the prior BEAM→XYZ step
+     using the instrument T matrix from the ``.hdr`` file.)
+  6. Tilt QC for Aquadopps: velocity variables flagged suspect or bad when pitch/roll
+     exceed configurable thresholds (default 20°/30°).  For RDI ADCPs with four
+     beams, ``error_velocity`` is used for QC instead.
 
+  Output: ``_stage3.nc``.  Applied QC thresholds are stored as attributes on each
+  ``*_qc`` variable so the exact configuration can be recovered from the file.
+
+- **Stage 3.5 (planned):** Apply instrument calibrations from post-cruise caldip casts
+  or laboratory comparisons, and create a traceable calibration log.  See the
+  `caldip package <https://github.com/ocean-uhh/caldip>`_ for calibration dip
+  processing.
+- **Stage 4 (planned):** Full export to OceanSITES format with rich metadata.
 
 .. note::
 
-  Stage 2 clock corrections are only necessary if the clock on the instrument was set up incorrectly (normally should be UTC to the nearest second) or if the instrument drifts over the deployment period (usually small/negligible for microCATs, i.e. a clock drift of a few seconds or up to a minute is usually ignored except for bottom pressure sensors).
+  Stage 2 applies two corrections.  **Clock offset** corrects an instrument whose
+  clock was set to the wrong time at deployment — provide the computer and instrument
+  times at recovery and ``oceanarray`` applies a linear correction.  **Clock drift**
+  is a slow accumulation of error that can happen to any instrument regardless of
+  how carefully the clock was set; it is corrected the same way.  Both are optional —
+  if neither ``computer_clock_at_recovery`` nor ``instrument_clock_at_recovery`` are
+  set in the YAML, no clock correction is applied.
 
 .. note::
 
-  Stage 3.5 only involves *applying* calibration corrections.  The corrections should be determined in a separate step, e.g., by comparing the instrument data with the CTD during a calibration cast (pre- and post-deployment) or with laboratory calibrations (pre- and/or post-deployment).
+  Stage 3.5 only *applies* calibration corrections.  The corrections themselves are
+  determined separately — from a calibration cast (pre- and post-deployment) or from
+  laboratory calibrations — using the `caldip <https://github.com/ocean-uhh/caldip>`_
+  package.
 
-.. admonition:: RAPID Analogy
-  :class: hint
+**Further details:**
 
-  Stage 0: Download raw instrument files (e.g., `.cnv`, `.asc`).
-  The initial conversion to the RDB (or RODB) format is called "stage 1" and takes place while still onboard the ship.  Stage 2 is mainly trimming to the deployment period, which requires some minor iteration between running the processing, updating the mooring-level metadata (contained in a RAPID `*info.dat` file), and then re-running the processing.  Outputs are the `*.use` RDB format file.  The third stage is performed after the cruise, and isn't necessarily referred to by the RAPID project as "stage 3".  This is done also with some iterative steps where corrections are applied making various choices (linear change between pre- and post-cruise calibrations) or using only the pre- or post-cruise cal dip, and making different versions of the `*.microcat` file in RDB format.  Each variation of the processing also produces a parallel `*.microcat.txt` file recording the choices made.  A final choice may be made only after comparing to auxiliary data or other instruments on the mooring, so while this falls within "instrument-level" processing because it's performed on a single instrument, the inputs may be broader.
-
-
-**Further details**:
-
-- :doc:`methods/acquisition` describes downloading raw instrument files.
-- :doc:`methods/standardisation` describes how to convert the raw instrument files to an internally-consistent format (e.g., RBD or netCDF).
-- :doc:`methods/trimming` describes how to trim the data to the deployment period and apply clock corrections.
-- :doc:`methods/auto_qc` describes the approach for automatically generating and adding quality control flags to the data parameters (geophysical ones, e.g., `TEMP`, `CNDC`, `PRES`).
-- :doc:`methods/calibration` describes how to apply calibration corrections to the instrument data and create a traceable log of the calibration process.
-- :doc:`methods/conversion` describes how to convert the data to a common format (e.g., CF-netCDF) with rich metadata.
+- :doc:`methods/acquisition` — downloading raw instrument files.
+- :doc:`methods/standardisation` — converting raw files to CF-NetCDF.
+- :doc:`methods/trimming` — trimming and clock corrections.
+- :doc:`methods/auto_qc` — QARTOD QC flags.
+- :doc:`methods/calibration` — applying calibration corrections.
+- :doc:`methods/conversion` — exporting to OceanSITES format.
 
 ----
-
 
 Mooring-level processing
 ------------------------
 
-.. figure:: /_static/mooring_processing_v3.png
+.. figure:: /_static/mooring_processing_v4.png
   :alt: Mooring-level processing workflow
   :align: center
 
   Mooring-level processing workflow.
 
-The previous steps (stage 0 to stage 3) are applied per instrument, per deployment.  When multiple instruments are deployed on the same tall mooring, the following steps combine them:
+After per-instrument processing (stages 0–3.5), multiple instruments on the same
+mooring are combined:
 
-- **Stack** (``oceanarray stack``): Resample all instruments onto a common time axis (default 60 s) and stack into a single NetCDF file with an ``N_LEVELS`` dimension ordered deep-first (``{mooring}_stack.nc``).  Fast-sampling instruments (Δt ≤ 60 s) are subsampled by nearest-neighbour; slower instruments are linearly interpolated.  Scalar sensor metadata is preserved as (N_LEVELS,) coordinate arrays.
-- **Grid** (``oceanarray grid``): Linearly interpolate the stacked file onto a regular pressure grid (``{mooring}_grid.nc``).  Values outside the range of available instruments at each time step are set to NaN.  Note: the grid step interpolates data values directly and does not consult QC flags — data flagged suspect or bad in stage 3 are treated the same as good data unless they are already NaN.
-- **Step 3 (planned):** Concatenating (in time) the data from multiple mooring deployments at a single x/y location.
-
-Outputs can be stored in updated OceanSites format file(s) which include details of processing steps in the metadata.
+- **Stack** (``oceanarray stack``): Resample all instruments onto a common time axis
+  (default 60 s) and stack into a single NetCDF file with an ``N_LEVELS`` dimension
+  ordered deep-first (``{mooring}_stack.nc``).  Fast-sampling instruments (Δt ≤ 60 s)
+  are subsampled by nearest-neighbour; slower instruments are linearly interpolated.
+- **Grid** (``oceanarray grid``): Linearly interpolate the stacked file onto a regular
+  pressure grid (``{mooring}_grid.nc``).  Values outside the instrument range at each
+  time step are set to NaN.  QC flags are not consulted — data flagged suspect or bad
+  in stage 3 are treated the same as good data unless already NaN.
+- **Concatenation (planned):** Join multiple deployments at the same location into a
+  continuous time series.
 
 .. note::
 
-  Step 1 may include filtering to remove tides, and subsampling to a coarser grid for data decimation, depending on the scientific aims of the project.
-
-.. note::
-
-  Step 2 as included here assumes that all individual instruments have a pressure sensor and so they know their vertical position.  If this is not the case, then a "virtual" pressure record may need to be created, e.g. by interpolating between two sensors with pressure measurements.
-
+  The stack step may include optional low-pass filtering to remove tides before
+  subsampling.  This is controlled by YAML parameters; see :doc:`yaml_configuration`.
 
 .. admonition:: RAPID Analogy
   :class: hint
 
-  For RAPID, data are de-tided by using a 2-day, 6th order Butterworth low-pass filter.  Data are then subsampled to 12 hour intervals for onward processing.  Vertical gridding is done by using climatological (monthly) profiles of temperature and salinity built from hydrographic (CTD and Argo profile) data.  Concatenating in time is done with a simple application of `interp1.m` in Matlab onto a uniform 12-hourly time axis.
+  For RAPID, data are de-tided by a 2-day, 6th-order Butterworth low-pass filter and
+  subsampled to 12-hour intervals.  Vertical gridding uses monthly climatological T/S
+  profiles built from CTD and Argo data.  Concatenation in time is a simple
+  ``interp1.m`` call onto a uniform 12-hourly axis.
 
-**Further details**:
+**Further details:**
 
-- :doc:`methods/time_gridding` describes how to apply a low-pass filter and subsample the time series to a common time axis.
-- :doc:`methods/vertical_gridding` describes how to vertically interpolate the data onto a standard pressure grid.
-- :doc:`methods/concatenation` describes how to concatenate multiple deployments at a single x/y location into a continuous time series.
-
-
+- :doc:`methods/time_gridding` — low-pass filtering and common time axis.
+- :doc:`methods/vertical_gridding` — pressure-grid interpolation.
+- :doc:`methods/concatenation` — joining multiple deployments.
 
 
 ----
@@ -121,90 +150,26 @@ Array-level processing
 
   Array-level processing workflow.
 
-For **boundary profiles**, this step starts from the time-gridded individual instrument records produced in the previous steps, stacking them and sorting them vertically at east time step, and then re-doing the vertical regridding now across instrument data from multiple moorings. This helps minimize data gaps and ensures smooth transitions across deployments. Note that this may not have any method to flag or identify possibly statically unstable profiles.
+For **boundary profiles**, this step starts from the mooring-level gridded files,
+stacks and sorts them vertically at each time step across multiple moorings, and
+re-interpolates onto a common pressure grid.  This reduces data gaps and ensures
+smooth transitions across deployments.
 
 .. admonition:: RAPID Analogy
   :class: hint
 
-  For RAPID, this is done by merging the mooring sites WB2, WB3, and WBH2 where data from 0-3800 dbar are used from WB2, then the next deeper instruments from WBH2 and then WB3 are added.  These sites, deployed across a sloping ocean boundary, improve coverage along the boundary (e.g., when WB2 ends at 3800 dbar, and WB3 at 4500 dbar).  The final output is a merged "West" profile, ready for use in transport calculations.
+  For RAPID, sites WB2, WBH2, and WB3 are merged: WB2 data from 0–3800 dbar, then
+  WBH2 and WB3 for deeper levels.  The final output is a merged "West" boundary
+  profile ready for transport calculations.
 
+**Further details:**
 
-**Further details**:
-
-- :doc:`methods/multisite_merging` describes how to merge multiple mooring sites into a single boundary profile.
+- :doc:`methods/multisite_merging` — merging multiple mooring sites into a single
+  boundary profile.
 
 ----
 
-Further Analysis
-----------------
-
-The notes below are a stub.
-
-Transbasin Transport
-^^^^^^^^^^^^^^^^^^^^
-
-**Description**: TEOS-10 conversion, dynamic height, and shear.
-
-**Actions**:
-
-- Convert to Absolute Salinity and Conservative Temp.
-- Compute dynamic height and geostrophic shear.
-
-**Inputs**: T/S/P profiles
-
-**Choices**: reference pressure
-
-**Outputs**: Dynamic height fields
-
-**RAPID Analogy**: `gsw_geo_strf_dyn_height`
-
-Velocity-Based Transports
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-**Description**: Processing of WBW/ADCP data.
-
-**Actions**:
-
-- Filter, vertically/horizontally interpolate.
-- Sum over depth × width.
-
-**Inputs**: Velocity data + bathymetry
-
-**Outputs**: WBW transport fields
-
-**RAPID Analogy**: WBW/Johns et al. 2008
-
-Composite Transport and Mass Compensation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-**Description**: Combine transports and ensure mass balance.
-
-**Actions**:
-
-- Combine all components.
-- Hypsometric compensation.
-- Cumulative transports.
-
-**Inputs**: Component transports + bathymetry
-
-**Outputs**: `td_total`, streamfunction
-
-**RAPID Analogy**: `transports.m`, `stream2moc.m`
-
-MOC Time Series and Diagnostics
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-**Description**: Final diagnostics and time series generation.
-
-**Actions**:
-
-- Compute overturning strength and depth.
-- Integrate layer transports (e.g. thermocline, NADW).
-- Apply final time filtering.
-
-**Outputs**: MOC time series, diagnostics, plots
-
-Summary Table
+Summary table
 -------------
 
 .. list-table::
@@ -213,40 +178,30 @@ Summary Table
    * - Step
      - Name
      - Description
-     - RAPID Equivalent
-   * -  0
+   * - 0
      - Acquisition
-     - Download raw instrument files (e.g., `.cnv`, `.asc`)
-     - Stage 0
+     - Download raw instrument files
    * - 1
      - Standardisation
-     - Convert raw files to CF-netCDF with metadata
-     - Stage 1 (RDB conversion)
+     - Convert raw files to CF-NetCDF; faithfully preserve raw values
    * - 2
      - Trimming & clock corrections
-     - Restrict to deployment period; apply clock offset and drift corrections (``*_stage2.nc``)
-     - Stage 2 (``*.use``)
+     - Restrict to deployment period; apply clock offset/drift corrections
    * - 3
-     - Automatic QC
-     - Apply QARTOD global range and spike tests; write QC flag variables (``*_stage3.nc``)
-     - (post-cruise)
+     - QC & rotation
+     - Pressure interpolation; QARTOD QC flags; salinity; velocity rotation
    * - 3.5
-     - Calibration
-     - Apply CTD/lab-based corrections (salinity, pressure); traceable calibration log
-     - Post-cruise
-   * - **A**
-     - Time Filtering
-     - Remove tides, subsample time series
-     - `auto_filt`
-   * - **B**
-     - Vertical Gridding
-     - Interpolate onto standard pressure grid
-     - `hydro_grid`, `con_tprof0`
-   * - **C**
-     - Concatenation
+     - Calibration (planned)
+     - Apply post-cruise calibration corrections; traceable calibration log
+   * - A
+     - Stack
+     - Resample all instruments onto a common time axis; stack with depth dimension
+   * - B
+     - Grid
+     - Interpolate onto a regular pressure grid
+   * - C
+     - Concatenation (planned)
      - Join deployments into continuous mooring records
-     - Internal
-   * - **D**
-     - Boundary Merging
-     - Merge multiple moorings (e.g., WB2–WB4) into slope profile
-     - West, East, Marwest merged profiles
+   * - D
+     - Boundary merging
+     - Merge multiple moorings into a single boundary profile

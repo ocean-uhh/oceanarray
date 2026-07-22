@@ -1,222 +1,118 @@
-2. Trimming to Deployed period
-==============================
+Trim to deployment period (Stage 2)
+====================================
 
-This document outlines the **trimming** step in the oceanarray processing workflow. Trimming refers to the process of isolating the valid deployment period from a time series—typically corresponding to the interval between instrument deployment and recovery. This step also applies clock corrections and produces standardized NetCDF files ready for further processing.
+Stage 2 isolates the valid in-water period from a raw time series and applies
+clock corrections.  Input is the Stage 1 output (``*_stage1.nc``); output is
+``*_stage2.nc``.
 
-This step may need to be run several times, adjusting the start and end of the deployment periods based on data inspection.
-
-It corresponds to **Stage 2** from RAPID data processing and management, which uses as input the RDB format and outputs (in RDB format) the `*.use` file.  Here, we start with the Stage 1 output `*_raw.nc` files and produce `*_use.nc` files.
+This step typically needs to be run at least twice: once to produce an initial
+inspection report, then again after adjusting ``deployment_time`` and
+``recovery_time`` in the YAML.
 
 1. Overview
 -----------
 
-Raw mooring records often contain extraneous data before deployment or after recovery (e.g., deck recording, values during ascent/descent, post-recovery handling). These segments must be trimmed to retain only the time interval when the instrument was collecting valid in-situ measurements at the nominal depth during deployment. In this stage:
+Raw mooring records contain data collected before deployment (deck testing, bench
+soaking) and after recovery (handling, rinsing).  Stage 2 removes these segments and
+corrects for any timing error in the instrument clock.
 
-- Clock offsets are applied to correct instrument timing
-- Data is trimmed to deployment/recovery time windows
-- Unnecessary variables are removed
-- Metadata is enriched and standardized
-- Files are converted from `*_raw.nc` to `*_use.nc` format
+Operations applied at Stage 2:
 
-2. Purpose
-----------
+- Clock offset and drift correction (linear)
+- Trim to ``deployment_time`` / ``recovery_time`` from the YAML
+- Removal of SeaBird CNV elapsed-time columns (``timeS``, ``timeQ``), which are
+  redundant with the CF time coordinate
+- Metadata enrichment (instrument depth, serial number, type)
 
-- Apply clock corrections to synchronize instrument times
-- Remove non-oceanographic data before deployment and after recovery
-- Ensure temporal consistency across instruments on the same mooring
-- Define the usable deployment interval for each instrument
-- Standardize file naming and metadata structure
+2. Clock corrections
+--------------------
 
-3. Current Implementation (Stage 2)
------------------------------------
+Two types of timing error can be corrected.
 
-The trimming process is implemented in the :mod:`oceanarray.stage2` module, which provides automated clock correction and temporal trimming for mooring datasets.
+**Clock offset** is a fixed error introduced at instrument setup, where the
+instrument clock was set to the wrong time.
 
-3.1. Input Requirements
-^^^^^^^^^^^^^^^^^^^^^^^
+**Clock drift** is a slow accumulation of error over the deployment.  Any
+instrument can drift; it is not a sign that the clock was set incorrectly.
 
-The :class:`oceanarray.stage2.Stage2Processor` class processes Stage 1 output files:
+Both are corrected using the same mechanism: you record the computer time and the
+instrument time at the same moment (typically at recovery) and provide both to
+Stage 2.  A linear correction is applied over the record.
 
-- **Raw NetCDF files** (`*_raw.nc`): Standardized files from Stage 1 processing
-- **YAML configuration**: Mooring metadata including deployment times and clock offsets
-- **Deployment windows**: Start and end times for valid data periods
-
-3.2. Processing Workflow
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-The Stage 2 processing follows these steps:
-
-1. **Configuration Loading**: Read YAML files containing:
-   - Deployment and recovery timestamps
-   - Instrument-specific clock offsets
-   - Mooring location and metadata
-
-2. **Clock Offset Application**: Correct instrument timing by:
-   - Adding clock offset variables to datasets
-   - Shifting time coordinates by specified offset amounts
-   - Preserving original datasets (immutable processing)
-
-3. **Temporal Trimming**: Remove invalid data by:
-   - Trimming to deployment time window (if specified)
-   - Trimming to recovery time window (if specified)
-   - Handling missing or invalid time bounds gracefully
-
-4. **Metadata Enrichment**: Ensure complete metadata by:
-   - Adding missing instrument depth, serial number, type
-   - Preserving existing metadata without overwriting
-   - Maintaining provenance information
-
-5. **Variable Cleanup**: Remove unnecessary variables:
-   - Legacy time variables (e.g., `timeS`)
-   - Derived variables not needed for further processing
-
-6. **NetCDF Output**: Write processed files with:
-   - Updated filename suffix (`*_use.nc`)
-   - Optimized compression and chunking
-   - CF-compliant metadata structure
-
-3.3. Configuration Format
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Clock offsets and deployment times are specified in YAML configuration:
+YAML configuration:
 
 .. code-block:: yaml
 
-   name: mooring_name
-   deployment_time: '2018-08-12T08:00:00'
-   recovery_time: '2018-08-26T20:47:24'
-   instruments:
-     - instrument: microcat
-       serial: 7518
-       depth: 100
-       clock_offset: 300  # seconds
+   clamp:
+     - serial: "26261"
+       instrument: microcat
+       filename: 26261_recovery.asc
+       file_type: sbe-ascii
+       hab: 450
+       computer_clock_at_recovery: "2027-04-15T08:00:00"
+       instrument_clock_at_recovery: "2027-04-15T07:59:48"
 
-3.4. Usage Example
-^^^^^^^^^^^^^^^^^^
+See :doc:`../yaml_configuration` for the full field reference and sign convention.
 
-.. code-block:: python
+If neither ``computer_clock_at_recovery`` nor ``instrument_clock_at_recovery`` is
+set, no clock correction is applied.
 
-   from oceanarray.stage2 import Stage2Processor, process_multiple_moorings_stage2
+3. CLI usage
+------------
 
-   # Process a single mooring
-   processor = Stage2Processor('/path/to/data/')
-   success = processor.process_mooring('mooring_name')
+Run Stage 2 for all instruments:
 
-   # Process multiple moorings
-   moorings = ['mooring1', 'mooring2', 'mooring3']
-   results = process_multiple_moorings_stage2(moorings, '/path/to/data/')
+.. code-block:: bash
 
-4. Output Format
+   oceanarray process dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --stage 2
+
+Rerun after adjusting deployment times (single instrument):
+
+.. code-block:: bash
+
+   oceanarray process dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --stage 2 --serial 26261 --force
+
+4. Output format
 ----------------
 
-The processed output includes:
+``{mooring}_{serial}_stage2.nc`` in ``{proc_dir}/{mooring}/{instrument}/``
 
-- **Trimmed NetCDF files** (`*_use.nc`) with:
-  - Time coordinates corrected for clock offsets
-  - Data restricted to deployment period
-  - Standardized metadata and variable structure
-  - Optimized storage format
+The dataset is a trimmed slice of the Stage 1 output.  Key attributes added:
 
-- **Processing logs** with detailed information about:
-  - Clock offsets applied
-  - Trimming operations performed
-  - Data volume changes
-  - Error conditions encountered
+- ``deployment_time``, ``recovery_time`` — the trim bounds used
+- ``clock_offset_seconds`` — the correction applied, stored for provenance
+- ``history`` — processing timestamp and command
 
-Example output structure:
+5. Validation
+-------------
 
-.. code-block:: python
+Stage 2 checks for common problems and emits warnings:
 
-   <xarray.Dataset>
-   Dimensions:        (time: 8640)  # Trimmed from original 124619
-   Coordinates:
-     * time           (time) datetime64[ns] 2018-08-12T08:05:00 ... 2018-08-26T19:55:00
-   Data variables:
-       temperature    (time) float32 ...
-       salinity       (time) float32 ...
-       pressure       (time) float32 ...
-       serial_number  int64 7518
-       InstrDepth     int64 100
-       instrument     <U8 'microcat'
-       clock_offset   int64 300
-   Attributes:
-       mooring_name:           test_mooring
-       deployment_time:        2018-08-12T08:00:00
-       recovery_time:          2018-08-26T20:47:24
+- Trimming results in an empty dataset (deployment/recovery times outside the
+  raw record)
+- Clock correction exceeds a sanity threshold
+- Deployment time is after recovery time
 
-5. Quality Control and Error Handling
---------------------------------------
+Processing continues past individual instrument failures; check
+``{proc_dir}/{mooring}/processing_logs/`` for details.
 
-Stage 2 processing includes comprehensive quality control:
+6. What comes next
+------------------
 
-- **Time Range Validation**: Ensures deployment/recovery times are reasonable
-- **Clock Offset Verification**: Logs all timing corrections applied
-- **Data Completeness Checks**: Warns when trimming results in empty datasets
-- **File Integrity**: Validates input files before processing
-- **Graceful Degradation**: Continues processing other instruments if one fails
+Stage 2 output is the normal input to Stage 3 (QC, velocity rotation, salinity
+derivation).  See :doc:`auto_qc` and :doc:`../processing_framework`.
 
-All processing activities are logged with timestamps for audit trails and debugging.
+7. Legacy scripts
+-----------------
 
-6. Integration with Processing Chain
-------------------------------------
-
-Stage 2 processed files serve as input to subsequent processing steps:
-
-- **Stage 3**: Further quality control and calibration applications
-- **Later stages**: :doc:`filtering`, :doc:`gridding`, :doc:`stitching` for array products
-
-The consistent structure and timing corrections applied during Stage 2 ensure that downstream processing tools can operate reliably across different instrument types and deployments.
-
-7. Historical Context: RAPID Processing
----------------------------------------
-
-This trimming step evolved from the RAPID programme's Stage 2 processing, which converted RDB format files from `*.raw` to `*.use` format. The modern implementation provides equivalent functionality with several improvements:
-
-- **Automated Processing**: Batch processing of multiple instruments and moorings
-- **Enhanced Metadata**: Comprehensive provenance and quality control information
-- **Flexible Configuration**: YAML-based configuration for easy modification
-- **Error Recovery**: Robust handling of missing files and invalid configurations
-- **Modern Formats**: NetCDF output with CF conventions for interoperability
-
-8. Legacy Processing Scripts
-----------------------------
-
-The original RAPID processing chain used MATLAB scripts for trimming operations:
+The original RAPID trimming script:
 
 - `microcat_raw2use_003.m <../_static/code/microcat_raw2use_003.m>`__
-
-This script performed similar functions to the current Python implementation:
 
 .. literalinclude:: ../_static/code/microcat_raw2use_003.m
    :language: matlab
    :lines: 1-40
    :linenos:
-   :caption: Excerpt from `microcat_raw2use_003.m`
+   :caption: Excerpt from ``microcat_raw2use_003.m``
 
-The modern Python implementation in :mod:`oceanarray.stage2` provides equivalent functionality with improved:
-
-- **Scalability**: Process multiple moorings and years of data efficiently
-- **Reproducibility**: Automated processing with comprehensive logging
-- **Flexibility**: Easy modification of deployment windows and clock offsets
-- **Integration**: Seamless connection to subsequent processing stages
-
-9. Implementation Notes
------------------------
-
-- **Time Handling**: All times are processed as UTC datetime64 objects for consistency
-- **Clock Corrections**: Applied as integer second offsets to maintain precision
-- **Immutable Processing**: Original datasets are preserved; all operations return new objects
-- **Flexible Trimming**: Supports trimming by deployment time, recovery time, or both
-- **Batch Processing**: Efficient processing of multiple instruments and moorings
-
-10. FAIR Considerations
------------------------
-
-- **Findable**: Standardized file naming and metadata structure
-- **Accessible**: NetCDF format with CF conventions for broad compatibility
-- **Interoperable**: Consistent data structure across instruments and deployments
-- **Reusable**: Comprehensive metadata and processing provenance
-
-Trimmed intervals and clock corrections are documented transparently in dataset attributes and processing logs to maintain full provenance.
-
-See also: :doc:`../oceanarray`, :doc:`standardisation`, :doc:`filtering`
+See also: :doc:`standardisation`, :doc:`time_gridding`

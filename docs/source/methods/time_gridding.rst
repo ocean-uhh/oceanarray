@@ -10,7 +10,7 @@ Command
 
 .. code-block:: bash
 
-   oceanarray stack {mooring} --basedir /path/to/data [--dt 60] [--force]
+   oceanarray stack {mooring} --proc-dir /data/proc [--dt 60] [--force]
 
 Python API
 ----------

@@ -32,6 +32,7 @@ from ._plots import (
     _make_analog_timeseries,
     _make_adcp_velocity_b64,
     _make_adcp_rose_b64,
+    _make_adcp_hodograph_b64,
 )
 
 
@@ -711,7 +712,11 @@ def generate_instrument_pages(
             "fig_hodograph_b64": (
                 _make_hodograph_b64(best_nc)
                 if best_nc and instr_type.lower() == "aquadopp"
-                else None
+                else (
+                    _make_adcp_hodograph_b64(best_nc)
+                    if best_nc and instr_type.lower() in ("adcp", "rdi")
+                    else None
+                )
             ),
             "fig_dt_b64": _make_data_histogram(best_nc) if best_nc else None,
             "qc_summary": _read_qc_summary(stage3_nc) if stage3_nc else [],

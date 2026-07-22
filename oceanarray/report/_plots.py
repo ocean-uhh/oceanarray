@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple
 
 if TYPE_CHECKING:
     import matplotlib.pyplot as plt
@@ -1020,13 +1020,21 @@ def _make_spectrum_fig_b64(
         seg_14d = max(128, int(14.0 / dt_days))
         segment_length = min(seg_14d, max(n_time // 4, 128))
 
+        # Select at most 8 evenly-spaced valid levels
+        _MAX_LEVELS = 8
+        valid_lev_idx = [
+            k for k in range(n_lev)
+            if np.sum(np.isfinite(arr[k, :])) >= segment_length
+        ]
+        if len(valid_lev_idx) > _MAX_LEVELS:
+            sel = np.linspace(0, len(valid_lev_idx) - 1, _MAX_LEVELS, dtype=int)
+            valid_lev_idx = [valid_lev_idx[i] for i in sel]
+
         freq_out = None
         psds, press_plotted = [], []
-        for k in range(n_lev):
+        for k in valid_lev_idx:
             col = arr[k, :].copy()
             good = np.isfinite(col)
-            if good.sum() < segment_length:
-                continue
             if not good.all():
                 col = np.interp(np.arange(n_time), np.where(good)[0], col[good])
             freq, psd = welch_psd(col, dt_days, segment_length=segment_length)
@@ -1042,16 +1050,14 @@ def _make_spectrum_fig_b64(
             ("M2", 1.0 / 1.9323, "#c0392b"),
             ("K1", 23.93 / 24.0, "#e67e22"),
             ("1.8d", 1.8, "#7f8c8d"),
+            ("4d", 4.0, "#95a5a6"),
         ]
         if lat != 0.0:
             import gsw as _gsw
 
             f_inert = abs(_gsw.f(lat))
             f_inert_cpd = f_inert * 86400.0 / (2.0 * np.pi)
-            f_period_h = 24.0 / f_inert_cpd
-            markers.append(
-                (f"f {f_period_h:.1f}h ({lat:.1f}°)", 1.0 / f_inert_cpd, "#27ae60")
-            )
+            markers.append(("f", 1.0 / f_inert_cpd, "#27ae60"))
 
         p_arr = np.array(press_plotted)
         p_min, p_max = p_arr.min(), p_arr.max()
@@ -1098,10 +1104,10 @@ def _make_spectrum_fig_b64(
                 ax.axvline(period_d, color=color, lw=1.0, ls="--", alpha=0.65)
                 ax.text(
                     period_d,
-                    0.98,
-                    f" {label} ",
-                    rotation=0,
-                    va="top",
+                    0.03,
+                    label,
+                    rotation=90,
+                    va="bottom",
                     ha="center",
                     color=color,
                     transform=trans,
@@ -1127,6 +1133,234 @@ def _make_spectrum_fig_b64(
         return b64
     except Exception as exc:
         print(f"  WARNING: spectrum figure failed: {exc}")
+        return None
+
+
+def _make_grid_rotary_spectrum_b64(
+    ds: "xr.Dataset",
+    lat: float = 0.0,
+) -> Optional[str]:
+    """Two-panel rotary velocity spectrum for the grid report.
+
+    Left panel: CW (solid, reds) and CCW (dashed, blues) power spectra on the same axes,
+    one line per selected pressure level.  Right panel: rotary coefficient
+    r = (CCW - CW) / (CCW + CW) on a linear [-1, 1] scale.
+    Welch PSD with Hann window, 14-day segments, 50% overlap.
+
+    Level selection: min(4, max(1, n_valid_levels // 5)) evenly-spaced levels
+    from those with >= 5% finite data in both east and north velocity.
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        Gridded dataset with ``east_velocity`` and ``north_velocity`` on
+        ``(time, pressure)`` dimensions.
+    lat : float
+        Mooring latitude (degrees, positive north) used for the inertial period marker.
+
+    Returns
+    -------
+    str or None
+        Base64-encoded PNG or None if insufficient velocity data.
+
+    """
+    try:
+        import matplotlib.pyplot as plt
+        import matplotlib.colors as mcolors
+        from matplotlib.lines import Line2D
+        from matplotlib.transforms import blended_transform_factory
+        import numpy as np
+        from scipy import signal as _signal
+        from .. import parameters as P
+
+        if "east_velocity" not in ds.data_vars or "north_velocity" not in ds.data_vars:
+            return None
+
+        # Grid dims are (time, pressure) — transpose to (pressure, time) for indexing
+        east_da = ds["east_velocity"]
+        north_da = ds["north_velocity"]
+        if east_da.dims[0] != "pressure":
+            east_da = east_da.transpose("pressure", "time")
+            north_da = north_da.transpose("pressure", "time")
+
+        arr_u = east_da.values.copy()  # (pressure, time)
+        arr_v = north_da.values.copy()
+
+        # Apply QC flags (≥3 → NaN)
+        for _qc_var, _arr in (
+            ("east_velocity_qc", arr_u),
+            ("north_velocity_qc", arr_v),
+        ):
+            if _qc_var in ds.data_vars:
+                _qc = ds[_qc_var].values
+                if _qc.ndim == arr_u.ndim:
+                    if ds[_qc_var].dims[0] != "pressure":
+                        _qc = _qc.T
+                    _arr[_qc >= 3] = np.nan
+
+        press_vals = ds.coords["pressure"].values.astype(float)
+        n_lev, n_time = arr_u.shape
+        dt_s = float(ds.attrs.get("dt_seconds", 3600))
+        dt_days = dt_s / 86400.0
+
+        seg_14d = max(128, int(14.0 / dt_days))
+        segment_length = min(seg_14d, max(n_time // 4, 128))
+        fs = 1.0 / dt_days
+        noverlap = int(0.5 * segment_length)
+
+        # Valid levels: both u and v have ≥ segment_length finite values
+        valid_lev_idx = [
+            k for k in range(n_lev)
+            if np.sum(np.isfinite(arr_u[k, :])) >= segment_length
+            and np.sum(np.isfinite(arr_v[k, :])) >= segment_length
+        ]
+        if len(valid_lev_idx) < 2:
+            return None
+
+        # Subsample: min(4, max(1, n_valid // 5))
+        n_select = min(4, max(1, len(valid_lev_idx) // 5))
+        if len(valid_lev_idx) > n_select:
+            sel = np.linspace(0, len(valid_lev_idx) - 1, n_select, dtype=int)
+            valid_lev_idx = [valid_lev_idx[i] for i in sel]
+
+        freq_out: Optional["np.ndarray"] = None
+        s_cw_list: "List[np.ndarray]" = []
+        s_ccw_list: "List[np.ndarray]" = []
+        r_list: "List[np.ndarray]" = []
+        press_plotted: "List[float]" = []
+
+        for k in valid_lev_idx:
+            u_col = arr_u[k, :].copy()
+            v_col = arr_v[k, :].copy()
+            # Gap-fill by linear interpolation before Welch
+            for col in (u_col, v_col):
+                good = np.isfinite(col)
+                if good.sum() < 2:
+                    break
+                col[:] = np.interp(np.arange(n_time), np.where(good)[0], col[good])
+            else:
+                _kw = dict(
+                    fs=fs, window="hann", nperseg=segment_length,
+                    noverlap=noverlap, detrend="linear", scaling="density",
+                )
+                f_uu, p_uu = _signal.welch(u_col, **_kw)
+                _kw2 = _kw.copy()
+                _, p_vv = _signal.welch(v_col, **_kw2)
+                _, c_uv = _signal.csd(u_col, v_col, **_kw)
+                # Gonella (1972) rotary decomposition
+                q_uv = np.imag(c_uv)
+                s_cw = np.maximum((p_uu + p_vv + 2.0 * q_uv) / 4.0, 0.0)
+                s_ccw = np.maximum((p_uu + p_vv - 2.0 * q_uv) / 4.0, 0.0)
+                denom = s_cw + s_ccw
+                r = np.where(denom > 0, (s_ccw - s_cw) / denom, 0.0)
+                if freq_out is None:
+                    freq_out = f_uu
+                s_cw_list.append(s_cw)
+                s_ccw_list.append(s_ccw)
+                r_list.append(r)
+                press_plotted.append(float(press_vals[k]))
+
+        if freq_out is None or not s_cw_list:
+            return None
+
+        nyq_period = 2.0 * dt_days
+        x_min = nyq_period
+        x_max = min(30.0, n_time * dt_days / 2.0)
+        fmask = (freq_out > 0) & (freq_out <= 1.0 / nyq_period)
+        period_plot = 1.0 / freq_out[fmask]
+
+        # Tidal/inertial frequency markers
+        markers = [
+            ("M2", 1.0 / 1.9323, "#c0392b"),
+            ("K1", 23.93 / 24.0, "#e67e22"),
+            ("1.8d", 1.8, "#7f8c8d"),
+            ("4d", 4.0, "#95a5a6"),
+        ]
+        if lat != 0.0:
+            import gsw as _gsw
+
+            f_inert = abs(_gsw.f(lat))
+            f_inert_cpd = f_inert * 86400.0 / (2.0 * np.pi)
+            markers.append(("f", 1.0 / f_inert_cpd, "#27ae60"))
+
+        p_arr = np.array(press_plotted)
+        p_min, p_max = p_arr.min(), p_arr.max()
+        if p_min == p_max:
+            p_min -= 1.0
+            p_max += 1.0
+        norm_p = mcolors.Normalize(vmin=p_min, vmax=p_max)
+        cmap_cw = plt.get_cmap("Reds")
+        cmap_ccw = plt.get_cmap("Blues")
+
+        plt.style.use(str(P.MPLSTYLE))
+        fig, (ax_spec, ax_rot) = plt.subplots(1, 2, figsize=(13, 5))
+
+        # Panel 1: CW (solid, reds) + CCW (dashed, blues)
+        for s_cw, s_ccw, p in zip(s_cw_list, s_ccw_list, press_plotted):
+            cw_col = cmap_cw(norm_p(p))
+            ccw_col = cmap_ccw(norm_p(p))
+            ax_spec.loglog(period_plot, s_cw[fmask], color=cw_col, lw=1.0, alpha=0.85)
+            ax_spec.loglog(period_plot, s_ccw[fmask], color=ccw_col, lw=1.0, alpha=0.85, ls="--")
+
+        trans1 = blended_transform_factory(ax_spec.transData, ax_spec.transAxes)
+        for label, period_d, color in markers:
+            if x_min <= period_d <= x_max:
+                ax_spec.axvline(period_d, color=color, lw=1.0, ls=":", alpha=0.65)
+                ax_spec.text(
+                    period_d, 0.03, label, rotation=90, va="bottom", ha="center",
+                    color=color, transform=trans1,
+                    bbox=dict(boxstyle="round,pad=0.1", fc="white", ec="none", alpha=0.6),
+                )
+        ax_spec.set_xlim(x_max, x_min)
+        ax_spec.set_xlabel("Period (days)")
+        ax_spec.set_ylabel("PSD (m² s⁻² cpd⁻¹)")
+        ax_spec.set_title("Rotary spectra")
+        ax_spec.legend(
+            handles=[
+                Line2D([0], [0], color="red", lw=1.2, label="CW"),
+                Line2D([0], [0], color="blue", lw=1.2, ls="--", label="CCW"),
+            ],
+            loc="lower left",
+        )
+        sm_cw = plt.cm.ScalarMappable(cmap=cmap_cw, norm=norm_p)
+        sm_cw.set_array([])
+        cbar_cw = fig.colorbar(sm_cw, ax=ax_spec, pad=0.03, shrink=0.85)
+        cbar_cw.set_label("Pressure (dbar) — CW")
+
+        # Panel 2: Rotary coefficient r
+        for r, p in zip(r_list, press_plotted):
+            ax_rot.semilogx(period_plot, r[fmask], color=cmap_ccw(norm_p(p)), lw=1.0, alpha=0.85)
+
+        trans2 = blended_transform_factory(ax_rot.transData, ax_rot.transAxes)
+        for label, period_d, color in markers:
+            if x_min <= period_d <= x_max:
+                ax_rot.axvline(period_d, color=color, lw=1.0, ls=":", alpha=0.65)
+                ax_rot.text(
+                    period_d, 0.03, label, rotation=90, va="bottom", ha="center",
+                    color=color, transform=trans2,
+                    bbox=dict(boxstyle="round,pad=0.1", fc="white", ec="none", alpha=0.6),
+                )
+        ax_rot.axhline(0, color="k", lw=0.8, ls="--", alpha=0.5)
+        ax_rot.set_xlim(x_max, x_min)
+        ax_rot.set_ylim(-1.1, 1.1)
+        ax_rot.set_xlabel("Period (days)")
+        ax_rot.set_ylabel("Rotary coefficient r")
+        ax_rot.set_title("r = (CCW − CW) / (CCW + CW)")
+        ax_rot.text(0.02, 0.97, "CCW dominant (r > 0)", transform=ax_rot.transAxes,
+                    va="top", ha="left", color="steelblue")
+        ax_rot.text(0.02, 0.05, "CW dominant (r < 0)", transform=ax_rot.transAxes,
+                    va="bottom", ha="left", color="#c0392b")
+        sm_ccw = plt.cm.ScalarMappable(cmap=cmap_ccw, norm=norm_p)
+        sm_ccw.set_array([])
+        cbar_ccw = fig.colorbar(sm_ccw, ax=ax_rot, pad=0.03, shrink=0.85)
+        cbar_ccw.set_label("Pressure (dbar) — CCW")
+
+        plt.tight_layout()
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception as exc:
+        print(f"  WARNING: rotary spectrum figure failed: {exc}")
         return None
 
 
@@ -2805,12 +3039,140 @@ def _make_adcp_velocity_b64(nc_path: str) -> Optional[str]:
         return None
 
 
-def _make_adcp_rose_b64(nc_path: str) -> Optional[str]:
-    """Current rose panels for an ADCP: depth-average plus bins nearest 100/200/300/400 m.
+def _draw_hodograph_pair(
+    ax_raw: Any,
+    ax_eddy: Any,
+    east_1d: np.ndarray,
+    north_1d: np.ndarray,
+    label: str,
+    smooth_hours: float,
+    lp_days: float,
+    units: str,
+    dt_s: float,
+) -> None:
+    """Draw one row (raw + eddy panels) of a hodograph figure onto two Axes.
 
-    Selects the depth-average and up to four individual range bins (those closest
-    to 100, 200, 300 and 400 m from the transducer).  A bin is included only when
-    it contains at least two finite velocity samples.  Returns None if east/north
+    Computes a 2-D density heatmap (hexbin) of east vs north velocity with a
+    thin downsampled trajectory line overlay for temporal context.  Start and
+    end positions are marked with distinct markers.
+
+    Parameters
+    ----------
+    ax_raw : matplotlib.axes.Axes
+        Left panel — Tukey-smoothed raw east vs north velocity density.
+    ax_eddy : matplotlib.axes.Axes
+        Right panel — eddy component (LP mean removed, then Tukey smoothed).
+    east_1d : np.ndarray
+        1-D eastward velocity timeseries (may contain NaN).
+    north_1d : np.ndarray
+        1-D northward velocity timeseries (may contain NaN).
+    label : str
+        Short bin description used in the subplot title, e.g. ``"430 m range"``.
+    smooth_hours : float
+        Tukey window half-width in hours for the raw panel.
+    lp_days : float
+        Rolling-mean low-pass window in days for the eddy panel.
+    units : str
+        Velocity units string, e.g. ``"m s⁻¹"``.
+    dt_s : float
+        Sample interval in seconds.
+
+    """
+    import matplotlib.pyplot as plt
+    import pandas as pd
+    from oceanarray.plotters._helpers import tukey_smooth
+
+    smooth_n = max(3, int(round(smooth_hours * 3600.0 / dt_s)))
+    lp_n = max(3, int(round(lp_days * 86400.0 / dt_s)))
+
+    e_sm = tukey_smooth(east_1d, smooth_n)
+    n_sm = tukey_smooth(north_1d, smooth_n)
+
+    e_lp = (
+        pd.Series(east_1d)
+        .rolling(window=lp_n, min_periods=1, center=True)
+        .mean()
+        .values
+    )
+    n_lp = (
+        pd.Series(north_1d)
+        .rolling(window=lp_n, min_periods=1, center=True)
+        .mean()
+        .values
+    )
+    e_eddy = tukey_smooth(east_1d - e_lp, smooth_n)
+    n_eddy = tukey_smooth(north_1d - n_lp, smooth_n)
+
+    # Fractional time 0→1 for colour mapping; matches east_1d length
+    t_frac = np.linspace(0.0, 1.0, len(east_1d))
+
+    def _draw(ax: Any, e: np.ndarray, n: np.ndarray, title: str) -> None:
+        from matplotlib.collections import LineCollection
+        import matplotlib.colors as mcolors
+
+        mask = np.isfinite(e) & np.isfinite(n)
+        if mask.sum() < 2:
+            ax.text(
+                0.5, 0.5, "No data", transform=ax.transAxes, ha="center", va="center"
+            )
+            ax.set_title(title, fontsize=9)
+            return
+
+        e_v = e[mask]
+        n_v = n[mask]
+        t_v = t_frac[mask]
+
+        lim = max(np.nanmax(np.abs(e_v)), np.nanmax(np.abs(n_v)), 1e-9) * 1.1
+
+        # Time-coloured line hodograph (thin to ≤2000 segments for performance)
+        step = max(1, len(e_v) // 2000)
+        e_t = e_v[::step]
+        n_t = n_v[::step]
+        t_t = t_v[::step]
+        pts = np.array([e_t, n_t]).T.reshape(-1, 1, 2)
+        segs = np.concatenate([pts[:-1], pts[1:]], axis=1)
+        norm_lc = mcolors.Normalize(0.0, 1.0)
+        lc = LineCollection(segs, cmap="plasma", norm=norm_lc, lw=0.9, alpha=0.85)
+        lc.set_array(t_t[:-1])
+        ax.add_collection(lc)
+
+        # Compact per-panel time colorbar
+        sm = plt.cm.ScalarMappable(cmap="plasma", norm=norm_lc)
+        sm.set_array([])
+        cb = ax.figure.colorbar(sm, ax=ax, shrink=0.75, pad=0.03, aspect=20)
+        cb.set_label("Time →", size=8)
+        cb.ax.set_yticks([0, 1])
+        cb.ax.set_yticklabels(["start", "end"], size=7)
+
+        # Start (lime circle) and end (red square) markers
+        ax.scatter(
+            e_v[0], n_v[0],
+            s=50, c="lime", marker="o", edgecolors="black", linewidths=0.7, zorder=5,
+        )
+        ax.scatter(
+            e_v[-1], n_v[-1],
+            s=55, c="red", marker="s", edgecolors="black", linewidths=0.7, zorder=5,
+        )
+        ax.set_xlim(-lim, lim)
+        ax.set_ylim(-lim, lim)
+        ax.set_aspect("equal")
+        ax.axhline(0, color="#888", lw=0.7)
+        ax.axvline(0, color="#888", lw=0.7)
+        ax.set_xlabel(f"East ({units})")
+        ax.set_ylabel(f"North ({units})")
+        ax.set_title(title, fontsize=9)
+        ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.3)
+
+    _draw(ax_raw, e_sm, n_sm, f"{label} — raw ({smooth_hours:.0f}-h smoothed)")
+    _draw(ax_eddy, e_eddy, n_eddy, f"{label} — eddy ({lp_days:.0f}-day LP removed)")
+
+
+def _make_adcp_rose_b64(nc_path: str) -> Optional[str]:
+    """Current rose panels for an ADCP: depth-average plus percentile-selected bins.
+
+    Selects the depth-average and up to four individual range bins at the 10th,
+    37th, 63rd, and 90th percentile positions of the valid bin indices (bins with
+    at least 5 % of time steps having finite data).  Returns None if east/north
     velocity are absent or too few samples exist.
     """
     try:
@@ -2818,7 +3180,7 @@ def _make_adcp_rose_b64(nc_path: str) -> Optional[str]:
         import xarray as xr
         from .. import parameters as P
 
-        _TARGET_RANGES = [100, 200, 300, 400]  # m from transducer
+        _PERCENTILES = [10, 37, 63, 90]
 
         with xr.open_dataset(nc_path, decode_timedelta=False) as ds:
             if "east_velocity" not in ds or "north_velocity" not in ds:
@@ -2827,12 +3189,24 @@ def _make_adcp_rose_b64(nc_path: str) -> Optional[str]:
             east_2d = ds["east_velocity"].values.astype(float)  # (time, N_BINS)
             north_2d = ds["north_velocity"].values.astype(float)
 
+            n_time, n_bins = east_2d.shape
+
             if "range" in ds.coords:
                 range_vals = ds["range"].values
             else:
-                return None
+                range_vals = np.arange(n_bins, dtype=float)
 
-            # Build panel list: depth-average first, then per-bin
+            # Find valid bins: at least 5 % of time steps have finite data
+            min_finite = max(2, int(0.05 * n_time))
+            valid_mask = np.array(
+                [
+                    np.sum(np.isfinite(east_2d[:, i])) >= min_finite
+                    for i in range(n_bins)
+                ]
+            )
+            valid_bins = np.where(valid_mask)[0]
+
+            # Build panel list: depth-average first, then percentile-selected bins
             panels = []
 
             e_mean = np.nanmean(east_2d, axis=1)
@@ -2840,14 +3214,23 @@ def _make_adcp_rose_b64(nc_path: str) -> Optional[str]:
             if np.sum(np.isfinite(e_mean)) >= 2:
                 panels.append((e_mean, n_mean, "Depth average"))
 
-            for target in _TARGET_RANGES:
-                idx = int(np.argmin(np.abs(range_vals - target)))
-                e_bin = east_2d[:, idx]
-                n_bin = north_2d[:, idx]
-                if np.sum(np.isfinite(e_bin)) < 2:
-                    continue
-                actual = float(range_vals[idx])
-                panels.append((e_bin, n_bin, f"{actual:.0f} m"))
+            if len(valid_bins) >= 1:
+                # Select bins at percentile positions; deduplicate
+                selected_indices = []
+                for pct in _PERCENTILES:
+                    pos = int(round(pct / 100.0 * (len(valid_bins) - 1)))
+                    pos = max(0, min(len(valid_bins) - 1, pos))
+                    idx = int(valid_bins[pos])
+                    if idx not in selected_indices:
+                        selected_indices.append(idx)
+
+                for idx in selected_indices:
+                    e_bin = east_2d[:, idx]
+                    n_bin = north_2d[:, idx]
+                    if np.sum(np.isfinite(e_bin)) < 2:
+                        continue
+                    actual = float(range_vals[idx])
+                    panels.append((e_bin, n_bin, f"{actual:.0f} m"))
 
             if not panels:
                 return None
@@ -2898,6 +3281,208 @@ def _make_adcp_rose_b64(nc_path: str) -> Optional[str]:
         plt.close(fig)
         return b64
     except Exception:  # noqa: BLE001
+        return None
+
+
+def _make_adcp_hodograph_b64(
+    nc_path: str, lp_days: float = 4.0, smooth_hours: float = 24.0
+) -> Optional[str]:
+    """Two-depth hodograph for an ADCP per-instrument report.
+
+    Picks the bins nearest the 25th and 75th percentile of the valid range and
+    renders a 2×2 figure: top row = far bin (75th pctile — typically shallower
+    for upward-looking), bottom row = near bin (25th pctile).  Left column =
+    Tukey-smoothed raw; right column = eddy (LP mean removed).  Returns None if
+    east/north velocity are absent, 1-D, or too few valid bins.
+
+    Accepts both the current naming convention (``east_velocity`` /
+    ``north_velocity``) and the legacy dolfyn names (``u`` / ``v``) so that
+    files produced before the stage1 renaming was introduced can still be
+    visualised.  Files need to be regenerated with the current stage1 to get
+    the canonical names.
+    """
+    try:
+        import matplotlib.pyplot as plt
+        import xarray as xr
+        from .. import parameters as P
+
+        with xr.open_dataset(nc_path, decode_timedelta=False) as ds:
+            # Support both canonical names and legacy dolfyn names
+            u_var = next(
+                (v for v in ("east_velocity", "u") if v in ds), None
+            )
+            v_var = next(
+                (v for v in ("north_velocity", "v") if v in ds), None
+            )
+            if u_var is None or v_var is None:
+                return None
+
+            # Normalise dimension order to (time, bins)
+            east_da = ds[u_var]
+            north_da = ds[v_var]
+            if east_da.dims[0] != "time":
+                east_da = east_da.transpose("time", ...)
+                north_da = north_da.transpose("time", ...)
+            east_2d = east_da.values.astype(float)
+            north_2d = north_da.values.astype(float)
+            if east_2d.ndim != 2:
+                return None
+
+            n_time, n_bins = east_2d.shape
+            if n_time < 4:
+                return None
+
+            # Range coordinate — try both the current dim name and "range"
+            bin_dim = east_da.dims[1] if east_da.ndim == 2 else None
+            range_coord = next(
+                (c for c in ("range", bin_dim) if c and c in ds.coords),
+                None,
+            )
+            range_vals = (
+                ds.coords[range_coord].values
+                if range_coord is not None
+                else np.arange(n_bins, dtype=float)
+            )
+            units = ds[u_var].attrs.get("units", "m s⁻¹")
+
+            if "time" in ds.coords and ds["time"].size >= 2:
+                t_ns = ds["time"].values.astype("datetime64[ns]").astype(float)
+                dt_s = float(np.nanmedian(np.diff(t_ns))) / 1e9
+            else:
+                dt_s = 3600.0
+            dt_s = max(dt_s, 1.0)
+
+        min_finite = max(2, int(0.05 * n_time))
+        valid_mask = np.array(
+            [np.sum(np.isfinite(east_2d[:, i])) >= min_finite for i in range(n_bins)]
+        )
+        valid_bins = np.where(valid_mask)[0]
+        if len(valid_bins) < 2:
+            return None
+
+        i_near = valid_bins[max(0, int(round(0.25 * (len(valid_bins) - 1))))]
+        i_far = valid_bins[
+            min(len(valid_bins) - 1, int(round(0.75 * (len(valid_bins) - 1))))
+        ]
+        if i_near == i_far:
+            return None
+
+        label_far = f"{float(range_vals[i_far]):.0f} m range"
+        label_near = f"{float(range_vals[i_near]):.0f} m range"
+
+        plt.style.use(str(P.MPLSTYLE))
+        fig, axes = plt.subplots(2, 2, figsize=(13, 9))
+        fig.subplots_adjust(hspace=0.55, wspace=0.45)
+
+        _draw_hodograph_pair(
+            axes[0, 0], axes[0, 1],
+            east_2d[:, i_far], north_2d[:, i_far],
+            f"Far bin ({label_far})",
+            smooth_hours, lp_days, units, dt_s,
+        )
+        _draw_hodograph_pair(
+            axes[1, 0], axes[1, 1],
+            east_2d[:, i_near], north_2d[:, i_near],
+            f"Near bin ({label_near})",
+            smooth_hours, lp_days, units, dt_s,
+        )
+
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception:  # noqa: BLE001  — plot is optional; missing vars or bad data → skip
+        return None
+
+
+def _make_grid_hodograph_b64(
+    ds: "xr.Dataset", lp_days: float = 4.0, smooth_hours: float = 24.0
+) -> Optional[str]:
+    """Two-depth hodograph for the grid report.
+
+    Takes an already-loaded xr.Dataset (not a path).  Picks the pressure levels
+    nearest the 25th and 75th percentile of the valid gridded pressure range and
+    renders a 2×2 figure (same layout as the ADCP hodograph).  Returns None if
+    east/north velocity are absent or fewer than two valid levels exist.
+    """
+    try:
+        import matplotlib.pyplot as plt
+        from .. import parameters as P
+
+        if "east_velocity" not in ds or "north_velocity" not in ds:
+            return None
+        east_2d = ds["east_velocity"].values.astype(float)  # (time, pressure)
+        north_2d = ds["north_velocity"].values.astype(float)
+        if east_2d.ndim != 2:
+            return None
+
+        n_time, n_levels = east_2d.shape
+        if n_time < 4:
+            return None
+
+        # Apply QC masking where companion QC variables are present
+        if "east_velocity_qc" in ds:
+            east_2d = np.where(ds["east_velocity_qc"].values >= 3, np.nan, east_2d)
+        if "north_velocity_qc" in ds:
+            north_2d = np.where(ds["north_velocity_qc"].values >= 3, np.nan, north_2d)
+
+        if "pressure" in ds.coords:
+            pressure = ds.coords["pressure"].values
+        elif "pressure" in ds:
+            pressure = ds["pressure"].values
+        else:
+            pressure = np.arange(n_levels, dtype=float)
+
+        units = ds["east_velocity"].attrs.get("units", "m s⁻¹")
+
+        if "time" in ds.coords and ds["time"].size >= 2:
+            t_ns = ds["time"].values.astype("datetime64[ns]").astype(float)
+            dt_s = float(np.nanmedian(np.diff(t_ns))) / 1e9
+        else:
+            dt_s = 3600.0
+        dt_s = max(dt_s, 1.0)
+
+        min_finite = max(2, int(0.05 * n_time))
+        valid_plevs = np.array(
+            [
+                k
+                for k in range(n_levels)
+                if np.sum(np.isfinite(east_2d[:, k])) >= min_finite
+            ]
+        )
+        if len(valid_plevs) < 2:
+            return None
+
+        i_shallow = valid_plevs[max(0, int(round(0.25 * (len(valid_plevs) - 1))))]
+        i_deep = valid_plevs[
+            min(len(valid_plevs) - 1, int(round(0.75 * (len(valid_plevs) - 1))))
+        ]
+        if i_shallow == i_deep:
+            return None
+
+        label_shallow = f"{int(pressure[i_shallow])} dbar"
+        label_deep = f"{int(pressure[i_deep])} dbar"
+
+        plt.style.use(str(P.MPLSTYLE))
+        fig, axes = plt.subplots(2, 2, figsize=(13, 9))
+        fig.subplots_adjust(hspace=0.55, wspace=0.45)
+
+        _draw_hodograph_pair(
+            axes[0, 0], axes[0, 1],
+            east_2d[:, i_shallow], north_2d[:, i_shallow],
+            f"Shallow ({label_shallow})",
+            smooth_hours, lp_days, units, dt_s,
+        )
+        _draw_hodograph_pair(
+            axes[1, 0], axes[1, 1],
+            east_2d[:, i_deep], north_2d[:, i_deep],
+            f"Deep ({label_deep})",
+            smooth_hours, lp_days, units, dt_s,
+        )
+
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception:  # noqa: BLE001  — plot is optional; missing vars or bad data → skip
         return None
 
 

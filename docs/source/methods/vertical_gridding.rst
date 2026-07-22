@@ -3,14 +3,22 @@ Grid: Vertical Pressure Grid
 
 The ``oceanarray grid`` command linearly interpolates the stacked ``(N_LEVELS, time)``
 dataset onto a regular pressure grid, producing ``(time, pressure)`` output suitable for
-T-S section plots and density diagnostics.
+quick T-S section plots and density diagnostics.
+
+.. note::
+
+   Vertical gridding is **preliminary**.  The current implementation is a simple
+   1-D linear interpolation at each time step with no objective mapping, error
+   estimation, or gap-filling.  It is suitable for a first look at the data but
+   should not be used as a substitute for a rigorous vertical interpolation scheme
+   in scientific analysis.
 
 Command
 -------
 
 .. code-block:: bash
 
-   oceanarray grid {mooring} --basedir /path/to/data [--p-start 200] [--p-end 1000] [--dp 20] [--force]
+   oceanarray grid {mooring} --proc-dir /data/proc [--p-start 200] [--p-end 1000] [--dp 20] [--force]
 
 Python API
 ----------
@@ -19,7 +27,7 @@ Python API
 
    from oceanarray.mooring_level import MooringGridder
 
-   MooringGridder(base_dir).grid(mooring_name, p_start=200.0, p_end=1000.0, dp=20.0, force=False)
+   MooringGridder(proc_dir).grid(mooring_name, p_start=200.0, p_end=1000.0, dp=20.0, force=False)
 
 Purpose
 -------

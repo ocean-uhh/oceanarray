@@ -1,0 +1,585 @@
+.. _cli_reference:
+
+===================
+CLI Reference
+===================
+
+``oceanarray run`` is the recommended entry point for full pipeline processing
+once the YAML is set up and tested.  For initial processing and quality
+control, run stages individually with ``oceanarray process``.
+
+All subcommands accept a mooring name as the first positional argument.
+The mooring name must match the ``name`` field in the YAML and is used to
+locate the YAML file at ``{proc_dir}/{mooring}/{mooring}.mooring.yaml``.
+
+Without ``--force``, every subcommand skips any output file that already
+exists.  Add ``--force`` to overwrite.
+
+----
+
+``oceanarray list``
+--------------------
+
+List the moorings found in the processed directory.  A quick way to confirm
+that ``--proc-dir`` is pointing at the right place.
+
+**Synopsis**
+
+.. code-block:: text
+
+   oceanarray list [--proc-dir DIR]
+
+**Example**
+
+.. code-block:: bash
+
+   oceanarray list --proc-dir /data/cruise2026/proc
+
+----
+
+``oceanarray run``
+------------------
+
+Run the complete processing pipeline in one command: stages 1, 2, and 3,
+followed by stack, grid, and all report pages.  Continues past individual
+instrument failures — check the processing logs in
+``{proc_dir}/{mooring}/processing_logs/`` for details.
+
+Use ``oceanarray run`` only after confirming that stage 1 can read all raw
+files and that the ``deployment_time`` / ``recovery_time`` values in the
+YAML produce the correct trim (verified with ``oceanarray process --stage 2``
+and a quick report inspection).
+
+**Synopsis**
+
+.. code-block:: text
+
+   oceanarray run MOORING [--raw-dir DIR] [--proc-dir DIR]
+                          [--dt SECONDS] [--dp DBAR]
+                          [--p-start DBAR] [--p-end DBAR]
+                          [--serial SN ...] [--force]
+
+**Flags**
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 10 15 50
+
+   * - Flag
+     - Type
+     - Default
+     - Description
+   * - ``--raw-dir DIR``
+     - path
+     - (required)
+     - Cruise-level raw data directory.
+   * - ``--proc-dir DIR``
+     - path
+     - (required)
+     - Cruise-level processed data directory.
+   * - ``--dt SECONDS``
+     - integer
+     - 60
+     - Time step for the stack output (seconds).
+   * - ``--dp DBAR``
+     - number
+     - 20
+     - Pressure step for the grid output (dbar).
+   * - ``--p-start DBAR``
+     - number
+     - 200
+     - Shallowest pressure level in the grid (dbar).
+   * - ``--p-end DBAR``
+     - number
+     - 1000
+     - Deepest pressure level in the grid (dbar).
+   * - ``--serial SN``
+     - string (repeat)
+     - (all)
+     - Restrict processing and per-instrument reports to these serial numbers.
+   * - ``--force``
+     - flag
+     - off
+     - Overwrite existing output files at every stage.
+
+**Output created**
+
+All stage NC files, ``{mooring}_stack.nc``, ``{mooring}_grid.nc``,
+mooring summary report, stack report, grid report, and per-instrument
+reports.
+
+**Example**
+
+.. code-block:: bash
+
+   oceanarray run dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --force
+
+----
+
+``oceanarray validate``
+------------------------
+
+Check one or more YAML configuration files for missing required fields,
+unrecognised values, and structural errors.  Does not require ``--raw-dir``
+or ``--proc-dir``.  Run this before any processing to catch typos in
+``file_type``, missing ``hab``, or malformed serial numbers.
+
+**Synopsis**
+
+.. code-block:: text
+
+   oceanarray validate YAML [YAML ...]
+
+**Example**
+
+.. code-block:: bash
+
+   oceanarray validate /data/proc/dsG3_1_2026/dsG3_1_2026.mooring.yaml
+
+Prints errors and warnings to the console.  Exits with a non-zero status
+if any errors are found.
+
+----
+
+``oceanarray process``
+-----------------------
+
+Run one or more per-instrument processing stages.  Stage 2 requires that
+stage 1 has already run; stage 3 requires stage 2.
+
+The recommended sequence for a new mooring is:
+
+1. ``--stage 1``: verify that all raw files are reachable.
+2. ``--stage 2``: check that trimming looks right; adjust
+   ``deployment_time`` / ``recovery_time`` in the YAML if needed.
+3. ``--stage 3``: apply QC and velocity rotation once stages 1 and 2 are
+   confirmed.
+
+**Synopsis**
+
+.. code-block:: text
+
+   oceanarray process MOORING [--raw-dir DIR] [--proc-dir DIR]
+                              [--stage {1,2,3} ...] [--serial SN ...]
+                              [--force] [-n]
+
+**Flags**
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 10 15 50
+
+   * - Flag
+     - Type
+     - Default
+     - Description
+   * - ``--raw-dir DIR``
+     - path
+     - (required)
+     - Cruise-level raw data directory.
+   * - ``--proc-dir DIR``
+     - path
+     - (required)
+     - Cruise-level processed data directory.
+   * - ``--stage {1,2,3}``
+     - integer (repeat)
+     - ``1 2``
+     - Which stage(s) to run.  Stage 3 must be explicitly requested.
+       Multiple stages may be listed: ``--stage 1 2 3``.
+   * - ``--serial SN``
+     - string (repeat)
+     - (all)
+     - Restrict to specific serial number(s).  Useful for iterating on one
+       instrument without reprocessing the whole mooring.
+   * - ``--force``
+     - flag
+     - off
+     - Overwrite existing output files.
+   * - ``-n``
+     - flag
+     - off
+     - Dry run: show what would be done without writing any files.
+
+**Stage descriptions**
+
+- **Stage 1**: reads raw instrument files via seasenselib and writes
+  ``{mooring}_{serial}_stage1.nc``.  Data are stored as-is — no QC, no
+  trimming.
+- **Stage 2**: trims to ``deployment_time`` / ``recovery_time`` from the
+  YAML and applies clock drift correction.  Writes
+  ``{mooring}_{serial}_stage2.nc``.
+- **Stage 3**: applies QARTOD gross-range QC flags, derives salinity,
+  interpolates pressure for instruments without a pressure port, rotates
+  Aquadopp velocities to earth coordinates, and applies magnetic declination
+  correction.  Writes ``{mooring}_{serial}_stage3.nc``.
+
+**Output created**
+
+``{mooring}_{serial}_stage{N}.nc`` in
+``{proc_dir}/{mooring}/{instrument}/``.
+
+**Examples**
+
+Run stage 1 for all instruments:
+
+.. code-block:: bash
+
+   oceanarray process dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --stage 1
+
+Rerun stage 2 for a single instrument after updating the YAML:
+
+.. code-block:: bash
+
+   oceanarray process dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --stage 2 --serial 26261 --force
+
+Run all three stages:
+
+.. code-block:: bash
+
+   oceanarray process dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --stage 1 2 3
+
+----
+
+``oceanarray stack``
+---------------------
+
+Combine individual instrument time series into a single mooring file by
+"stacking" them one above another, ordered by depth (derived from HAB).
+
+Each instrument may sample at a different rate — some thermistors measure
+every 1–3 s, some microCATs every 15–60 s.  A common time interval must be
+chosen so that all instruments appear on the same time axis in the output.
+The default is 60 seconds, which is appropriate for most mooring data.
+Instruments sampling faster than the target interval are subsampled using
+nearest-neighbour; instruments sampling slower are interpolated linearly.
+
+.. note::
+
+   The 60-second default is chosen for straightforward processing.  For
+   scientific questions that require the original sampling rate (e.g.
+   high-frequency internal wave analysis from fast thermistors), you may
+   want to work with the individual ``_stage3.nc`` files rather than the
+   stack, or produce a separate stack at a finer interval using ``--dt``.
+
+**Synopsis**
+
+.. code-block:: text
+
+   oceanarray stack MOORING [--proc-dir DIR] [--dt SECONDS] [--force]
+
+**Flags**
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 10 10 55
+
+   * - Flag
+     - Type
+     - Default
+     - Description
+   * - ``--proc-dir DIR``
+     - path
+     - (required)
+     - Cruise-level processed data directory.
+   * - ``--dt SECONDS``
+     - integer
+     - 60
+     - Target time step in seconds.
+   * - ``--force``
+     - flag
+     - off
+     - Overwrite an existing stack file.
+
+**Output created**
+
+``{proc_dir}/{mooring}/{mooring}_stack.nc``
+
+**Example**
+
+.. code-block:: bash
+
+   oceanarray stack dsG3_1_2026 --proc-dir /data/proc --dt 60
+
+----
+
+``oceanarray grid``
+--------------------
+
+Interpolate the stack file onto a regular pressure grid.  Run after
+``oceanarray stack``.
+
+Values outside the depth range of available instruments at each time step
+are set to NaN.  QC flags from stage 3 are not consulted — data flagged
+suspect or bad are treated the same as good data unless they are already NaN.
+
+**Synopsis**
+
+.. code-block:: text
+
+   oceanarray grid MOORING [--proc-dir DIR] [--dp DBAR]
+                           [--p-start DBAR] [--p-end DBAR] [--force]
+
+**Flags**
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 10 10 55
+
+   * - Flag
+     - Type
+     - Default
+     - Description
+   * - ``--proc-dir DIR``
+     - path
+     - (required)
+     - Cruise-level processed data directory.
+   * - ``--dp DBAR``
+     - number
+     - 20
+     - Pressure grid spacing in dbar.
+   * - ``--p-start DBAR``
+     - number
+     - 200
+     - Shallowest pressure level (dbar).
+   * - ``--p-end DBAR``
+     - number
+     - 1000
+     - Deepest pressure level (dbar).
+   * - ``--force``
+     - flag
+     - off
+     - Overwrite an existing grid file.
+
+**Output created**
+
+``{proc_dir}/{mooring}/{mooring}_grid.nc``
+
+**Example**
+
+.. code-block:: bash
+
+   oceanarray grid dsG3_1_2026 --proc-dir /data/proc --dp 20 --p-start 100 --p-end 2000
+
+----
+
+``oceanarray report``
+----------------------
+
+Generate HTML reports for a mooring.  Without any report-type flags,
+generates only the mooring summary page.  See :doc:`reports` for a
+description of what each report page contains.
+
+**Synopsis**
+
+.. code-block:: text
+
+   oceanarray report MOORING [--raw-dir DIR] [--proc-dir DIR]
+                             [-o DIR] [--instruments] [--stack]
+                             [--grid] [--serial SN ...] [--force]
+
+**Flags**
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 10 10 55
+
+   * - Flag
+     - Type
+     - Default
+     - Description
+   * - ``--raw-dir DIR``
+     - path
+     - (required)
+     - Cruise-level raw data directory.
+   * - ``--proc-dir DIR``
+     - path
+     - (required)
+     - Cruise-level processed data directory.
+   * - ``-o DIR``
+     - path
+     - ``{proc_dir}/{mooring}/report/``
+     - Override the output directory for HTML files.
+   * - ``--instruments``
+     - flag
+     - off
+     - Generate per-instrument report pages (one per instrument in the YAML).
+   * - ``--stack``
+     - flag
+     - off
+     - Generate the stack report (requires ``_stack.nc``).
+   * - ``--grid``
+     - flag
+     - off
+     - Generate the grid report (requires ``_grid.nc``).
+   * - ``--serial SN``
+     - string (repeat)
+     - (all)
+     - Restrict per-instrument pages to specific serial numbers.
+   * - ``--force``
+     - flag
+     - off
+     - Regenerate reports even if HTML files already exist.
+
+**Output created**
+
+``{mooring}_report.html`` (always), plus optional
+``{mooring}_stack_report.html``, ``{mooring}_grid_report.html``, and
+``report/instrument/{mooring}_{serial}_report.html``.
+
+**Examples**
+
+Summary and per-instrument pages:
+
+.. code-block:: bash
+
+   oceanarray report dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --instruments
+
+All report types:
+
+.. code-block:: bash
+
+   oceanarray report dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --instruments --stack --grid
+
+----
+
+Preliminary visualisation commands
+------------------------------------
+
+The following commands produce standalone plots and animations.  They are
+available for quick inspection but are considered preliminary — the output
+style, variable names, and flag set may change in a future release.
+
+``oceanarray plot``
+~~~~~~~~~~~~~~~~~~~~
+
+Show an interactive overview plot of processed data, or save it to a file.
+
+**Synopsis**
+
+.. code-block:: text
+
+   oceanarray plot MOORING [--proc-dir DIR] [--var_y VAR]
+                           [--var_color VAR] [--colormap CM]
+                           [--downsample SEC] [--output FILE]
+                           [-o DIR] [--show]
+
+**Flags**
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 10 15 50
+
+   * - Flag
+     - Type
+     - Default
+     - Description
+   * - ``--proc-dir DIR``
+     - path
+     - (required)
+     - Cruise-level processed data directory.
+   * - ``--var_y VAR``
+     - string
+     - ``temperature``
+     - Variable to plot on the y-axis.
+   * - ``--var_color VAR``
+     - string
+     - (same as ``--var_y``)
+     - Variable to use for colouring data points.
+   * - ``--colormap CM``
+     - string
+     - (auto)
+     - Matplotlib colormap name.
+   * - ``--downsample SEC``
+     - integer
+     - (none)
+     - Subsample data to this interval in seconds before plotting.
+   * - ``--output FILE``
+     - path
+     - (none)
+     - Save the plot to a file (e.g. ``.png``, ``.pdf``).
+   * - ``-o DIR``
+     - path
+     - (current dir)
+     - Directory in which to save the output file.
+   * - ``--show``
+     - flag
+     - on
+     - Display an interactive plot window.
+
+**Example**
+
+.. code-block:: bash
+
+   oceanarray plot dsG3_1_2026 --proc-dir /data/proc --var_y pressure --var_color temperature --output overview.png
+
+----
+
+``oceanarray animate``
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Generate an animated hodograph (tip of the velocity vector tracing a path
+over time) for Aquadopp or ADCP instruments.  Requires ``east_velocity``
+and ``north_velocity`` in the stage 3 output.  The ``Pillow`` library must
+be installed for GIF output.
+
+**Synopsis**
+
+.. code-block:: text
+
+   oceanarray animate MOORING [--proc-dir DIR] [--serial SN ...]
+                              [-o FILE] [--u-var VAR] [--v-var VAR]
+
+**Flags**
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 10 15 50
+
+   * - Flag
+     - Type
+     - Default
+     - Description
+   * - ``--proc-dir DIR``
+     - path
+     - (required)
+     - Cruise-level processed data directory.
+   * - ``--serial SN``
+     - string (repeat)
+     - (all)
+     - Restrict to specific instrument serial number(s).
+   * - ``-o FILE``
+     - path
+     - (auto)
+     - Output file path (e.g. ``hodograph.gif``).
+   * - ``--u-var VAR``
+     - string
+     - ``east_velocity``
+     - Variable name for the eastward velocity component.
+   * - ``--v-var VAR``
+     - string
+     - ``north_velocity``
+     - Variable name for the northward velocity component.
+
+**Example**
+
+.. code-block:: bash
+
+   oceanarray animate dsG3_1_2026 --proc-dir /data/proc --serial 400115 -o dsG3_400115_hodograph.gif
+
+----
+
+Deprecated flags
+----------------
+
+``--basedir DIR``
+~~~~~~~~~~~~~~~~~
+
+The ``--basedir`` flag is accepted by ``process``, ``stack``, ``grid``,
+``report``, and ``run`` for backward compatibility.  It expects raw files
+at ``{basedir}/raw/{instrument}/{mooring}/`` (instrument-first layout)
+and the YAML at ``{basedir}/proc/{mooring}/``.
+
+Using ``--basedir`` emits a deprecation warning.  New deployments should
+use ``--raw-dir`` and ``--proc-dir`` with the mooring-first layout instead.
+
+See :doc:`migration` for step-by-step migration instructions.

@@ -66,7 +66,7 @@ Steps
    end
 
 4. **Regrid vertically**:
-   Since we now have moorings ending at different depths and from different moorings, they need to be vertically gridded over possible gaps. This re-applies the method from :doc:`gridding` to concatenate all year-specific fragments into a single time–depth matrix and re-interpolate:
+   Since we now have moorings ending at different depths and from different moorings, they need to be vertically gridded over possible gaps. This re-applies the method from :doc:`vertical_gridding` to concatenate all year-specific fragments into a single time–depth matrix and re-interpolate:
    ::
 
       TG_wb2 = interp1([jg_y1 jg_y2 ...], [TG_y1 TG_y2 ...], jg);

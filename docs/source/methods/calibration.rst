@@ -28,11 +28,9 @@ Sensor readings (temperature, conductivity, pressure) can drift during deploymen
 4. Output
 ---------
 
-- Calibrated `xarray.Dataset`
-  - Adjusted values in `TEMPERATURE`, `CONDUCTIVITY`, `PRESSURE`
-  - Updated attributes:
-    - `calibrated = True`
-    - Offsets applied
+- Calibrated ``xarray.Dataset`` with adjusted values in ``temperature``,
+  ``conductivity``, ``pressure`` and updated attributes (``calibrated = True``,
+  offsets applied)
 - Calibration log saved or appended to provenance
 
 5. Example `.microcat.txt` Content
@@ -84,7 +82,7 @@ The following attributes should be added to the calibrated dataset:
 - Provide both pre- and post-correction values
 - Ensure reproducibility by archiving code and calibration metadata
 
-See also: :doc:`trimming`, :doc:`filtering`, :doc:`standardisation`
+See also: :doc:`trimming`, :doc:`time_gridding`, :doc:`standardisation`
 
 Legacy Calibration Script (RAPID)
 ---------------------------------
