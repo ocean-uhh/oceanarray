@@ -24,13 +24,62 @@ def _get_proc_root(basedir: str) -> Path:
     return legacy if legacy.is_dir() else proc
 
 
-def _print_report(basedir: str, mooring: str) -> None:
-    """Print a per-instrument summary covering _raw, _use, and _stage3 files."""
+def _parse_dirs(
+    args: "argparse.Namespace",
+) -> "tuple[Path | None, Path, bool]":
+    """Resolve raw and proc directories from CLI args.
+
+    Returns
+    -------
+    raw_dir : Path or None
+        Cruise-level raw directory (``--raw-dir``). None in legacy mode.
+    proc_root : Path
+        Cruise-level processed output directory.
+    legacy : bool
+        True when ``--basedir`` was used (deprecated path).
+
+    """
+    import warnings
+
+    basedir = getattr(args, "basedir", None)
+    raw_dir = getattr(args, "raw_dir", None)
+    proc_dir = getattr(args, "proc_dir", None)
+
+    if raw_dir or proc_dir:
+        if not proc_dir:
+            raise SystemExit("ERROR: --proc-dir is required when --raw-dir is given.")  # noqa: TRY003
+        return Path(raw_dir) if raw_dir else None, Path(proc_dir), False
+
+    if not basedir:
+        raise SystemExit(  # noqa: TRY003
+            "ERROR: supply either --raw-dir + --proc-dir (recommended) "
+            "or --basedir (deprecated)."
+        )
+    basedir = _resolve_basedir(basedir)
+    warnings.warn(
+        "--basedir is deprecated; switch to --raw-dir and --proc-dir. "
+        "See MIGRATION-BASEDIR.md at the repository root.",
+        DeprecationWarning,
+        stacklevel=3,
+    )
+    return None, _get_proc_root(basedir), True
+
+
+def _print_report(basedir: "str | None", mooring: str, legacy: bool = True) -> None:
+    """Print a per-instrument summary of stage1/stage2/stage3 NetCDF files for a mooring.
+
+    For each instrument, reports: serial number, record count (raw from stage1 vs
+    processed from stage2/stage3), time span, nominal depth, sampling interval, and
+    which geophysical variables are present (temperature, salinity, velocity, etc.).
+    """
     import datetime
     import numpy as np
     import xarray as xr
 
-    proc_dir = _get_proc_root(basedir) / mooring
+    if legacy and basedir is not None:
+        proc_dir = _get_proc_root(basedir) / mooring
+    else:
+        proc_dir = Path(basedir) if basedir else Path(".")
 
     # Collect all processed files; prefer _stage3 > _use as the "best" file per serial
     use_files = sorted(proc_dir.rglob("*_stage2.nc"))
@@ -108,12 +157,25 @@ def _print_report(basedir: str, mooring: str) -> None:
 
 
 def cmd_process(args: argparse.Namespace) -> int:
-    """Run stage1, stage2, and/or stage3 for a mooring."""
+    """Convert raw instrument files to processed NetCDF for one mooring.
+
+    By default runs stage 1 (raw → CF-NetCDF) and stage 2 (trim to deployment
+    window + clock-drift correction).  Pass ``--stage 1 2 3`` to also run
+    stage 3 (QC flags, pressure interpolation, beam → ENU velocity rotation).
+
+    Optional side effects:
+    - ``--report``: after processing, print a per-instrument record summary to
+      the console (record counts, time spans, variables present).
+    - ``--plot``: save a PNG overview plot for each instrument alongside the
+      stage2 NetCDF file in the proc directory.
+    """
     from .stage1 import MooringProcessor
     from .stage2 import Stage2Processor
     from .stage3 import Stage3Processor
 
-    basedir = _resolve_basedir(args.basedir)
+    raw_dir, proc_root, legacy = _parse_dirs(args)
+    basedir = _resolve_basedir(args.basedir) if legacy else None
+
     # If --stage was not explicitly set and --report is the only action, skip processing
     stages = args.stage if (args.stage is not None or not args.report) else []
     if stages is None:
@@ -125,18 +187,22 @@ def cmd_process(args: argparse.Namespace) -> int:
 
     if 1 in stages:
         _status("section", f"Stage 1: {args.mooring}")
-        ok = MooringProcessor(basedir).process_mooring(
-            args.mooring, serials=serials, force=args.force
-        )
+        if legacy:
+            proc = MooringProcessor(basedir)
+        else:
+            proc = MooringProcessor(raw_dir=str(raw_dir), proc_dir=str(proc_root))
+        ok = proc.process_mooring(args.mooring, serials=serials, force=args.force)
         if not ok:
             print("Stage 1 failed.")
             overall_success = False
 
     if 2 in stages:
         _status("section", f"Stage 2: {args.mooring}")
-        ok = Stage2Processor(basedir).process_mooring(
-            args.mooring, serials=serials, force=args.force
-        )
+        if legacy:
+            s2 = Stage2Processor(basedir)
+        else:
+            s2 = Stage2Processor(proc_dir=str(proc_root))
+        ok = s2.process_mooring(args.mooring, serials=serials, force=args.force)
         if not ok:
             print("Stage 2 failed.")
             overall_success = False
@@ -148,7 +214,11 @@ def cmd_process(args: argparse.Namespace) -> int:
             + (" — DRY RUN" if dry else "")
             + " ==="
         )
-        ok = Stage3Processor(basedir).process_mooring(
+        if legacy:
+            s3 = Stage3Processor(basedir)
+        else:
+            s3 = Stage3Processor(proc_dir=str(proc_root))
+        ok = s3.process_mooring(
             args.mooring, serials=serials, force=args.force, dry_run=dry
         )
         if not ok:
@@ -157,7 +227,9 @@ def cmd_process(args: argparse.Namespace) -> int:
 
     if args.report:
         _status("section", f"Record Summary: {args.mooring}")
-        _print_report(basedir, args.mooring)
+        _print_report(
+            basedir or str(proc_root / args.mooring), args.mooring, legacy=legacy
+        )
 
     if args.plot:
         import matplotlib
@@ -169,7 +241,11 @@ def cmd_process(args: argparse.Namespace) -> int:
         from .plotters import plot_aquadopp_raw
 
         _status("section", f"Plotting: {args.mooring}")
-        proc_dir = _get_proc_root(basedir) / args.mooring
+        proc_dir = (
+            _get_proc_root(basedir) / args.mooring
+            if legacy
+            else proc_root / args.mooring
+        )
 
         for nc in sorted((proc_dir / "microcat").glob("*_stage2.nc")):
             ds = xr.open_dataset(nc, decode_timedelta=False)
@@ -185,13 +261,21 @@ def cmd_process(args: argparse.Namespace) -> int:
 
 
 def cmd_plot(args: argparse.Namespace) -> int:
-    """Generate a multi-instrument mooring overview plot."""
+    """Generate a multi-instrument mooring overview plot.
+
+    Reads the best available processed NetCDF (stage3 preferred, falling back to
+    stage2) for all instruments and produces a scatter/line plot with a user-chosen
+    y-axis variable (default: pressure) and colour variable (default: temperature).
+
+    When ``--output`` is given the plot is saved to that filename in the proc
+    directory (or ``--output-dir`` if specified).  Without ``--output``, the plot
+    is displayed interactively.
+    """
     from pathlib import Path
     from .plotters import plot_mooring_timeseries
     from . import parameters as P
 
-    basedir = _resolve_basedir(args.basedir)
-    proc_root = _get_proc_root(basedir)
+    _, proc_root, _ = _parse_dirs(args)
 
     if args.colormap:
         P.DEFAULT_COLORMAP = args.colormap
@@ -200,11 +284,7 @@ def cmd_plot(args: argparse.Namespace) -> int:
 
     save_path = None
     if args.output:
-        out_dir = (
-            Path(args.output_dir)
-            if args.output_dir
-            else _get_proc_root(basedir) / args.mooring
-        )
+        out_dir = Path(args.output_dir) if args.output_dir else proc_root / args.mooring
         save_path = out_dir / args.output
 
     try:
@@ -227,13 +307,29 @@ def cmd_plot(args: argparse.Namespace) -> int:
 
 
 def cmd_report(args: argparse.Namespace) -> int:
-    """Generate a mooring recovery HTML report."""
+    """Generate HTML quality-control reports for a mooring.
+
+    By default produces only the mooring summary page (``{mooring}_report.html``).
+    Add flags to generate additional pages:
+
+    - ``--instruments``: one page per instrument (in ``report/instrument/``).
+    - ``--stack``: stack report (``{mooring}_stack_report.html``).
+    - ``--grid``: pressure-gridded report (``{mooring}_grid_report.html``).
+    """
     from .report import MooringReport
 
-    basedir = _resolve_basedir(args.basedir)
+    raw_dir, proc_root, legacy = _parse_dirs(args)
+    basedir = _resolve_basedir(args.basedir) if legacy else None
     _status("section", f"Report: {args.mooring}")
     serials = getattr(args, "serial", None)
-    result = MooringReport(basedir).generate(
+    if legacy:
+        reporter = MooringReport(basedir)
+    else:
+        reporter = MooringReport(
+            proc_dir=str(proc_root),
+            raw_dir=str(raw_dir) if raw_dir else None,
+        )
+    result = reporter.generate(
         args.mooring,
         force=args.force,
         outdir=getattr(args, "outdir", None),
@@ -246,12 +342,26 @@ def cmd_report(args: argparse.Namespace) -> int:
 
 
 def cmd_stack(args: argparse.Namespace) -> int:
-    """Step 1 mooring-level: stack all instruments onto a common time axis."""
+    """Combine all instruments from a mooring onto a common time axis.
+
+    Reads ``{mooring}_{serial}_stage3.nc`` (falling back to ``_stage2.nc``) for
+    every instrument listed in the mooring YAML and resamples each time series to
+    a uniform sampling interval (default 60 s).  Writes a single multi-instrument
+    file ``{mooring}_stack.nc`` in the proc directory.
+
+    Prerequisite: stage 1 and 2 (and ideally stage 3) must have completed for all
+    instruments before running this command.
+    """
     from .mooring_level import MooringStacker
 
-    basedir = _resolve_basedir(args.basedir)
+    _, proc_root, legacy = _parse_dirs(args)
+    basedir = _resolve_basedir(args.basedir) if legacy else None
     _status("section", f"Stack: {args.mooring}")
-    ok = MooringStacker(basedir).stack(
+    if legacy:
+        stacker = MooringStacker(basedir)
+    else:
+        stacker = MooringStacker(proc_dir=str(proc_root))
+    ok = stacker.stack(
         args.mooring,
         dt_seconds=args.dt,
         force=args.force,
@@ -260,12 +370,24 @@ def cmd_stack(args: argparse.Namespace) -> int:
 
 
 def cmd_grid(args: argparse.Namespace) -> int:
-    """Step 2 mooring-level: vertically interpolate onto a pressure grid."""
+    """Vertically interpolate a mooring stack onto a uniform pressure grid.
+
+    Reads ``{mooring}_stack.nc`` (produced by ``oceanarray stack``) and
+    interpolates scalar variables onto a regular pressure axis between
+    ``--p-start`` and ``--p-end`` dbar at ``--dp`` dbar spacing.  Writes
+    ``{mooring}_grid.nc`` in the proc directory.
+
+    Prerequisite: ``oceanarray stack`` must have completed successfully.
+    """
     from .mooring_level import MooringGridder
 
-    basedir = _resolve_basedir(args.basedir)
+    _, proc_root, legacy = _parse_dirs(args)
+    basedir = _resolve_basedir(args.basedir) if legacy else None
     _status("section", f"Grid: {args.mooring}")
-    ok = MooringGridder(basedir).grid(
+    gridder = (
+        MooringGridder(basedir) if legacy else MooringGridder(proc_dir=str(proc_root))
+    )
+    ok = gridder.grid(
         args.mooring,
         p_start=args.p_start,
         p_end=args.p_end,
@@ -273,6 +395,76 @@ def cmd_grid(args: argparse.Namespace) -> int:
         force=args.force,
     )
     return 0 if ok else 1
+
+
+def cmd_run(args: argparse.Namespace) -> int:
+    """Run the complete processing pipeline for one mooring.
+
+    Executes in order: stage 1 (raw → CF-NetCDF), stage 2 (trim + clock
+    correction), stage 3 (QC + velocity rotation), stack (common time axis),
+    grid (pressure interpolation), and all reports (summary, per-instrument,
+    stack, grid).
+
+    All steps run regardless of earlier failures.  If any step fails the command
+    returns exit code 1 at the end, but subsequent steps are not skipped.  Check
+    the log files in ``processing_logs/`` to diagnose partial failures.
+    """
+    import argparse as _ap
+
+    overall_ok = True
+    _dirs = dict(
+        basedir=getattr(args, "basedir", None),
+        raw_dir=getattr(args, "raw_dir", None),
+        proc_dir=getattr(args, "proc_dir", None),
+    )
+
+    process_args = _ap.Namespace(
+        mooring=args.mooring,
+        stage=[1, 2, 3],
+        force=args.force,
+        serial=args.serial,
+        report=False,
+        plot=False,
+        dry_run=False,
+        **_dirs,
+    )
+    if cmd_process(process_args) != 0:
+        overall_ok = False
+
+    stack_args = _ap.Namespace(
+        mooring=args.mooring,
+        dt=args.dt,
+        force=args.force,
+        **_dirs,
+    )
+    if cmd_stack(stack_args) != 0:
+        overall_ok = False
+
+    grid_args = _ap.Namespace(
+        mooring=args.mooring,
+        p_start=args.p_start,
+        p_end=args.p_end,
+        dp=args.dp,
+        force=args.force,
+        **_dirs,
+    )
+    if cmd_grid(grid_args) != 0:
+        overall_ok = False
+
+    report_args = _ap.Namespace(
+        mooring=args.mooring,
+        force=args.force,
+        outdir=None,
+        serial=args.serial or None,
+        instruments=True,
+        grid=True,
+        stack=True,
+        **_dirs,
+    )
+    if cmd_report(report_args) != 0:
+        overall_ok = False
+
+    return 0 if overall_ok else 1
 
 
 def cmd_validate(args: argparse.Namespace) -> int:
@@ -290,7 +482,20 @@ def cmd_validate(args: argparse.Namespace) -> int:
 
 
 def cmd_animate(args: argparse.Namespace) -> int:
-    """Write animated hodograph GIF(s) for Aquadopp instrument(s)."""
+    """Write animated hodograph GIF(s) for Aquadopp current-meter instruments.
+
+    A hodograph plots the tip of the horizontal velocity vector (east vs north
+    component) over time, showing how current speed and direction evolve.  The
+    animation highlights rotary motion such as tidal ellipses or eddy passages.
+
+    Requires ``east_velocity`` and ``north_velocity`` in the NetCDF file, which
+    means stage 3 (BEAM → ENU coordinate rotation) must have completed for the
+    target instrument.  A low-pass filter can be applied via ``--lp-days`` to
+    separate sub-inertial (eddy/mean) flow from tidal and near-inertial signals.
+
+    Requires the Pillow package (``pip install Pillow``); will fail at import time
+    if Pillow is not installed.
+    """
     import matplotlib
 
     matplotlib.use("Agg")
@@ -298,8 +503,11 @@ def cmd_animate(args: argparse.Namespace) -> int:
 
     from .plotters import animate_hodograph
 
-    basedir = _resolve_basedir(args.basedir)
-    proc_dir = _get_proc_root(basedir) / args.mooring
+    _, proc_root, legacy = _parse_dirs(args)
+    basedir = _resolve_basedir(args.basedir) if legacy else None
+    proc_dir = (
+        _get_proc_root(basedir) / args.mooring if legacy else proc_root / args.mooring
+    )
     serials = args.serial or []
 
     # Build {stem: best_nc} — stage3 preferred over stage2
@@ -432,21 +640,91 @@ def cmd_list(args: argparse.Namespace) -> int:
     return 0
 
 
+def _add_dir_args(p: "argparse.ArgumentParser", raw_needed: bool = True) -> None:
+    """Add directory arguments to a subparser.
+
+    Adds ``--raw-dir`` / ``--proc-dir`` (new layout) and the deprecated
+    ``--basedir`` flag.  When *raw_needed* is False (e.g. for ``stack``,
+    ``grid``, ``report``, ``animate`` which operate on already-processed NetCDF
+    files) ``--raw-dir`` is silently omitted and the argument defaults to None.
+    Stage 1 processing requires raw instrument files and therefore sets
+    *raw_needed=True*.
+
+    Parameters
+    ----------
+    p : argparse.ArgumentParser
+        The subparser to add arguments to.
+    raw_needed : bool
+        Whether to add ``--raw-dir``.  Pass False for commands that do not
+        read raw instrument data files (stack, grid, report, animate).
+
+    """
+    grp = p.add_mutually_exclusive_group()
+    grp.add_argument(
+        "--basedir",
+        default=None,
+        metavar="DIR",
+        help="[DEPRECATED] Root data directory (contains proc/). "
+        "Use --raw-dir + --proc-dir instead.",
+    )
+    if raw_needed:
+        p.add_argument(
+            "--raw-dir",
+            default=None,
+            dest="raw_dir",
+            metavar="DIR",
+            help="Cruise-level raw data directory (pipeline appends /{mooring}/). "
+            "Required for stage 1.",
+        )
+    else:
+        p.set_defaults(raw_dir=None)
+    p.add_argument(
+        "--proc-dir",
+        default=None,
+        dest="proc_dir",
+        metavar="DIR",
+        help="Cruise-level processed output directory (pipeline appends /{mooring}/).",
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build and return the top-level argument parser for the oceanarray CLI."""
+    epilog = (
+        "Typical per-mooring workflow (new canonical layout):\n"
+        "  oceanarray process MOORING --raw-dir /data/raw --proc-dir /data/proc --stage 1 2 3\n"
+        "  oceanarray stack   MOORING --proc-dir /data/proc\n"
+        "  oceanarray grid    MOORING --proc-dir /data/proc --dp 20\n"
+        "  oceanarray report  MOORING --raw-dir /data/raw --proc-dir /data/proc --instruments --stack --grid\n"
+        "\n"
+        "Or run all steps in one command:\n"
+        "  oceanarray run MOORING --raw-dir /data/raw --proc-dir /data/proc --dp 20 --force\n"
+        "\n"
+        "Legacy (deprecated):\n"
+        "  oceanarray run MOORING --basedir /data --dp 20 --force\n"
+        "  See MIGRATION-BASEDIR.md for migration instructions.\n"
+    )
     parser = argparse.ArgumentParser(
         prog="oceanarray",
         description="Oceanographic mooring data processing.",
+        epilog=epilog,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_process = sub.add_parser(
-        "process", help="Process a mooring through stage1/stage2."
+        "process",
+        help="Run per-instrument processing stages 1-3 (raw→NetCDF, trim+clock, QC+ENU).",
+        description=(
+            "Run one or more per-instrument processing stages for a mooring.\n"
+            "  Stage 1: read raw files → CF-NetCDF (_stage1.nc)\n"
+            "  Stage 2: trim to deployment window + apply clock-drift correction (_stage2.nc)\n"
+            "  Stage 3: QC flags, BEAM→ENU rotation, magnetic declination, derived vars (_stage3.nc)\n"
+            "Default when --stage is omitted: stages 1 and 2 only."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p_process.add_argument("mooring", help="Mooring name, e.g. dsG3_1_2026")
-    p_process.add_argument(
-        "--basedir", required=True, help="Root data directory (contains moor/)"
-    )
+    _add_dir_args(p_process, raw_needed=True)
     p_process.add_argument(
         "--stage",
         type=int,
@@ -454,8 +732,8 @@ def build_parser() -> argparse.ArgumentParser:
         choices=[1, 2, 3],
         default=None,
         metavar="{1,2,3}",
-        help="Stage(s) to run (default: 1 2, or none if --report is the only flag). "
-        "Stage 3 interpolates pressure onto instruments that lack it.",
+        help="Stage(s) to run (default: 1 2). "
+        "Stage 3 applies QC, coordinate rotation, and derived variables.",
     )
     p_process.add_argument(
         "--plot",
@@ -493,7 +771,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Generate a mooring recovery HTML report.",
     )
     p_report.add_argument("mooring", help="Mooring name, e.g. dsG3_1_2026")
-    p_report.add_argument("--basedir", required=True, help="Root data directory")
+    _add_dir_args(p_report, raw_needed=True)
     p_report.add_argument(
         "-o",
         "--output-dir",
@@ -538,12 +816,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_stack = sub.add_parser(
         "stack",
-        help="Step 1: stack all instruments onto a common time axis → {mooring}_stack.nc",
+        help="Mooring-level step 1: interpolate all instruments onto a common time axis → _stack.nc",
+        description=(
+            "Reads all _stage3.nc (or _stage2.nc) files for a mooring and interpolates\n"
+            "every instrument onto a uniform time grid, producing {mooring}_stack.nc.\n"
+            "Run after 'oceanarray process --stage 1 2 3'."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p_stack.add_argument("mooring", help="Mooring name, e.g. dsG3_1_2026")
-    p_stack.add_argument(
-        "--basedir", required=True, help="Root data directory (contains proc/)"
-    )
+    _add_dir_args(p_stack, raw_needed=False)
     p_stack.add_argument(
         "--dt",
         type=int,
@@ -558,12 +840,16 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_grid = sub.add_parser(
         "grid",
-        help="Step 2: vertically interpolate stacked instruments onto pressure grid → {mooring}_grid.nc",
+        help="Mooring-level step 2: vertically interpolate stack onto a pressure grid → _grid.nc",
+        description=(
+            "Reads {mooring}_stack.nc and interpolates temperature, salinity, and other\n"
+            "scalar fields onto a uniform pressure grid, producing {mooring}_grid.nc.\n"
+            "Run after 'oceanarray stack'."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p_grid.add_argument("mooring", help="Mooring name, e.g. dsG3_1_2026")
-    p_grid.add_argument(
-        "--basedir", required=True, help="Root data directory (contains proc/)"
-    )
+    _add_dir_args(p_grid, raw_needed=False)
     p_grid.add_argument(
         "--p-start",
         type=float,
@@ -592,15 +878,71 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_grid.set_defaults(func=cmd_grid)
 
+    p_run = sub.add_parser(
+        "run",
+        help="Full pipeline: stages 1-3, stack, grid, and all reports in one command.",
+    )
+    p_run.add_argument("mooring", help="Mooring name, e.g. dsG3_1_2026")
+    _add_dir_args(p_run, raw_needed=True)
+    p_run.add_argument(
+        "--force", action="store_true", help="Overwrite existing files at every stage"
+    )
+    p_run.add_argument(
+        "--serial",
+        nargs="+",
+        metavar="SN",
+        default=[],
+        help="Restrict to these serial number(s) for processing and per-instrument reports",
+    )
+    p_run.add_argument(
+        "--dt",
+        type=int,
+        default=60,
+        metavar="SECONDS",
+        help="Stack time-grid interval in seconds (default: 60)",
+    )
+    p_run.add_argument(
+        "--dp",
+        type=float,
+        default=20.0,
+        metavar="DBAR",
+        help="Pressure grid spacing in dbar (default: 20)",
+    )
+    p_run.add_argument(
+        "--p-start",
+        type=float,
+        default=200.0,
+        dest="p_start",
+        metavar="DBAR",
+        help="Shallowest pressure level for grid (default: 200)",
+    )
+    p_run.add_argument(
+        "--p-end",
+        type=float,
+        default=1000.0,
+        dest="p_end",
+        metavar="DBAR",
+        help="Deepest pressure level for grid (default: 1000)",
+    )
+    p_run.set_defaults(func=cmd_run)
+
     p_validate = sub.add_parser(
-        "validate", help="Validate mooring YAML configuration file(s)."
+        "validate",
+        help="Validate mooring YAML configuration file(s).",
+        description=(
+            "Parse and validate one or more .mooring.yaml files.\n"
+            "Checks instrument types, serial numbers, file_type values, HAB fields,\n"
+            "deployment dates, and inline instrument conventions.\n"
+            "Exits 0 if all files are valid, 1 if any file has errors or warnings."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p_validate.add_argument("yaml", nargs="+", help="Path(s) to .mooring.yaml file(s)")
     p_validate.set_defaults(func=cmd_validate)
 
     p_plot = sub.add_parser("plot", help="Plot multi-instrument mooring overview.")
     p_plot.add_argument("mooring", help="Mooring name, e.g. dsG3_1_2026")
-    p_plot.add_argument("--basedir", required=True, help="Root data directory")
+    _add_dir_args(p_plot, raw_needed=False)
     p_plot.add_argument(
         "--var_y",
         default="temperature",
@@ -656,9 +998,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Write an animated hodograph GIF for Aquadopp instrument(s).",
     )
     p_animate.add_argument("mooring", help="Mooring name, e.g. dsG2_1_2026")
-    p_animate.add_argument(
-        "--basedir", required=True, help="Root data directory (contains proc/)"
-    )
+    _add_dir_args(p_animate, raw_needed=False)
     p_animate.add_argument(
         "--serial",
         nargs="+",

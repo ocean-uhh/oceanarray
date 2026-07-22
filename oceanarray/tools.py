@@ -294,6 +294,10 @@ def process_dataset(
         Latitude limits for filtering, by default (26.0, 27.0).
     lonlim : tuple of float, optional
         Longitude limits for filtering, by default (-77.0, -76.5).
+    pgrid : np.ndarray, optional
+        Target pressure levels (dbar) for vertical interpolation.  When None,
+        a 20 dbar grid is constructed automatically from 0 to the maximum
+        observed pressure.
 
     Returns
     -------

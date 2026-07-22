@@ -1144,6 +1144,95 @@ def _apply_adcp_seabed_qc(
     return ds
 
 
+def _apply_adcp_surface_qc(
+    ds: xr.Dataset,
+    lat: float,
+    qc_attrs: Dict[str, Any],
+    suspect_margin_m: float = 20.0,
+    log_fn: Any = None,
+) -> xr.Dataset:
+    """Flag ADCP bins that are at or above the sea surface.
+
+    Bins whose ``bin_pressure`` is ≤ 0 dbar are flagged bad (4); bins within
+    *suspect_margin_m* metres of the surface (0 < bin_pressure < p_suspect) are
+    flagged suspect (3).  The result is stored as the standalone variable
+    ``surface_qc(time, N_BINS)``.
+
+    This catches upward-looking ADCP bins that extend above the water surface
+    when the instrument range exceeds the distance to the surface.  Symmetric
+    counterpart to ``_apply_adcp_seabed_qc``.
+
+    **Flag scale** (OceanSITES / QARTOD convention):
+    1 = good, 3 = suspect, 4 = bad.
+
+    **Standalone flag**: ``surface_qc`` is *not* merged into the velocity QC
+    variables.  Downstream consumers must combine flags explicitly::
+
+        clean = (ds.east_velocity_qc == 1) & (ds.surface_qc == 1) & (ds.seabed_qc == 1)
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        Stage 3 ADCP dataset containing ``bin_pressure(time, N_BINS)`` in dbar.
+    lat : float
+        Mooring latitude in decimal degrees, used by ``gsw.p_from_z``.
+    qc_attrs : dict
+        OceanSITES flag attribute dict written to ``surface_qc``.
+    suspect_margin_m : float
+        Depth (m) below the surface that defines the suspect zone.  Bins with
+        0 < bin_pressure < p_from_z(-suspect_margin_m) receive flag 3; bins
+        with bin_pressure ≤ 0 receive flag 4.  Default 20 m.
+    log_fn : callable, optional
+        Logging callback.
+
+    Returns
+    -------
+    xr.Dataset
+        Input dataset with ``surface_qc(time, N_BINS)`` added.
+        Returns *ds* unchanged if ``bin_pressure`` is absent.
+
+    """
+    if "bin_pressure" not in ds.data_vars:
+        if log_fn:
+            log_fn("  surface QC: skipped (bin_pressure not in dataset)")
+        return ds
+
+    import gsw
+    from . import parameters as _P
+
+    p_suspect = float(gsw.p_from_z(-suspect_margin_m, lat))
+
+    bin_p = ds["bin_pressure"].values  # (time, N_BINS)
+    surface_flags = np.ones(bin_p.shape, dtype=np.int8)  # 1 = good
+    surface_flags = np.where(bin_p < p_suspect, np.int8(3), surface_flags)  # suspect
+    surface_flags = np.where(bin_p <= 0.0, np.int8(4), surface_flags)  # bad
+
+    n_suspect = int(np.sum(surface_flags == 3))
+    n_bad = int(np.sum(surface_flags == 4))
+
+    ds["surface_qc"] = xr.Variable(
+        ("time", _P.ADCP_BIN_DIM),
+        surface_flags,
+        {
+            "long_name": "Sea surface proximity QC flag",
+            "comment": (
+                f"Bins within {suspect_margin_m:.0f} m of sea surface "
+                f"(bin_pressure < {p_suspect:.1f} dbar): flag 3 (suspect); "
+                f"bins at or above surface (bin_pressure ≤ 0 dbar): flag 4 (bad). "
+                "Standalone — not merged into velocity_qc."
+            ),
+            **qc_attrs,
+        },
+    )
+
+    if log_fn:
+        log_fn(
+            f"  surface QC: p_suspect={p_suspect:.1f} dbar ({suspect_margin_m:.0f} m), "
+            f"suspect={n_suspect}, bad={n_bad}"
+        )
+    return ds
+
+
 def _apply_adcp_velocity_qc(
     ds: xr.Dataset,
     gr_cfg: Dict[str, Any],
@@ -1164,6 +1253,7 @@ def _apply_adcp_velocity_qc(
             & (ds.percent_good_qc == 1)
             & (ds.error_velocity_qc == 1)
             & (ds.seabed_qc == 1)
+            & (ds.surface_qc == 1)
         )
 
     QC variables produced
@@ -1350,8 +1440,37 @@ def _apply_adcp_velocity_qc(
 class Stage3Processor:
     """Pressure interpolation + QARTOD QC for all mooring instruments."""
 
-    def __init__(self, base_dir: str) -> None:
-        self.base_dir = Path(base_dir)
+    def __init__(
+        self,
+        base_dir: Optional[str] = None,
+        *,
+        proc_dir: Optional[str] = None,
+    ) -> None:
+        """Apply QC flags, coordinate rotation, and derived variables to mooring data.
+
+        Reads stage2 CF-NetCDF files and applies: QARTOD gross-range and spike QC
+        flags for scalar sensors; pressure interpolation for instruments that lack a
+        pressure sensor; BEAM→XYZ→ENU coordinate rotation for Aquadopp current meters
+        (using the instrument T matrix and heading/pitch/roll); and magnetic declination
+        correction so velocities are referenced to true north.  Writes
+        ``{mooring}_{serial}_stage3.nc``.
+
+        Parameters
+        ----------
+        base_dir : str, optional
+            Legacy: cruise-level base directory containing a ``proc/`` subdirectory.
+        proc_dir : str, optional
+            Cruise-level processed output directory. Pipeline appends ``/{mooring}/``.
+
+        """
+        if base_dir is not None:
+            self.base_dir: Optional[Path] = Path(base_dir)
+            self._proc_dir: Optional[Path] = None
+            self._legacy = True
+        else:
+            self.base_dir = None
+            self._proc_dir = Path(proc_dir) if proc_dir else None
+            self._legacy = False
         self.log_file = None
 
     def _setup_logging(self, mooring_name: str, output_path: Path) -> None:
@@ -1369,6 +1488,8 @@ class Stage3Processor:
                 pass
 
     def _get_proc_dir(self, mooring_name: str) -> Path:
+        if not self._legacy and self._proc_dir is not None:
+            return self._proc_dir / mooring_name
         proc = self.base_dir / "proc"
         if not proc.is_dir():
             legacy = self.base_dir / "moor" / "proc"
@@ -1728,6 +1849,12 @@ class Stage3Processor:
                     ds = _apply_adcp_seabed_qc(
                         ds,
                         water_depth_m=info.get("water_depth_m", 0.0),
+                        lat=info["lat"],
+                        qc_attrs=qc_attrs,
+                        log_fn=self._log,
+                    )
+                    ds = _apply_adcp_surface_qc(
+                        ds,
                         lat=info["lat"],
                         qc_attrs=qc_attrs,
                         log_fn=self._log,

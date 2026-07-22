@@ -463,8 +463,50 @@ def _linear_interp(
 class MooringStacker:
     """Step 1: stack all instruments onto a common time axis → ``_stack.nc``."""
 
-    def __init__(self, base_dir: str) -> None:
-        self.base_dir = Path(base_dir)
+    def __init__(
+        self,
+        base_dir: Optional[str] = None,
+        *,
+        proc_dir: Optional[str] = None,
+    ) -> None:
+        """Resample all instruments from a mooring onto a common time axis.
+
+        Reads ``{mooring}_{serial}_stage3.nc`` (or ``_stage2.nc`` as fallback) for
+        every instrument listed in the mooring YAML, resamples each to a uniform
+        sampling interval, and writes a single multi-instrument file
+        ``{mooring}_stack.nc`` in the mooring proc directory.
+
+        Parameters
+        ----------
+        base_dir : str, optional
+            Legacy: cruise-level base directory containing a ``proc/`` subdirectory.
+        proc_dir : str, optional
+            Cruise-level processed output directory. Pipeline appends ``/{mooring}/``.
+
+        """
+        if base_dir is not None:
+            self.base_dir: Optional[Path] = Path(base_dir)
+            self._proc_dir: Optional[Path] = None
+            self._legacy = True
+        else:
+            self.base_dir = None
+            self._proc_dir = Path(proc_dir) if proc_dir else None
+            self._legacy = False
+
+    def _resolve_proc_dir(self, mooring_name: str) -> Path:
+        """Return the mooring-level proc directory."""
+        if not self._legacy and self._proc_dir is not None:
+            return self._proc_dir / mooring_name
+        return _get_proc_dir(self.base_dir, mooring_name)
+
+    def _rel(self, path: Path) -> str:
+        """Return a short display path relative to base_dir or proc_dir."""
+        for root in (r for r in (self.base_dir, self._proc_dir) if r):
+            try:
+                return str(path.relative_to(root))
+            except ValueError:
+                continue
+        return path.name
 
     def stack(
         self,
@@ -481,7 +523,7 @@ class MooringStacker:
         Returns True on success, False if no instruments could be loaded or an
         unrecoverable error occurs.
         """
-        proc_dir = _get_proc_dir(self.base_dir, mooring_name)
+        proc_dir = self._resolve_proc_dir(mooring_name)
         try:
             proc_dir_exists = proc_dir.exists()
         except (TimeoutError, OSError) as exc:
@@ -496,7 +538,7 @@ class MooringStacker:
 
         output_path = proc_dir / f"{mooring_name}_stack.nc"
         if output_path.exists() and not force:
-            _status("skip", str(output_path.relative_to(self.base_dir)))
+            _status("skip", self._rel(output_path))
             return True
 
         config_file = proc_dir / f"{mooring_name}.mooring.yaml"
@@ -876,15 +918,21 @@ class MooringStacker:
                 _has_p = np.array(
                     [np.any(np.isfinite(p_arr[k, :])) for k in range(n_lev)]
                 )
+                _is_adcp = [t.lower() == "adcp" for t in instr_types]
                 for i in range(n_lev):
                     if not _has_p[i]:
                         continue
-                    # Find nearest level above i that is ≥_MIN_HAB_SEP away with pressure
+                    if _is_adcp[i]:
+                        continue  # ADCP transducer pressure is not suitable for tilt
+                    # Find nearest level above i that is ≥_MIN_HAB_SEP away with pressure,
+                    # excluding ADCP levels as reference (their bin pressures shift with tilt).
                     ref_j = None
                     for j in range(i + 1, n_lev):
                         if float(habs[j]) - float(habs[i]) < _MIN_HAB_SEP:
                             continue
                         if not _has_p[j]:
+                            continue
+                        if _is_adcp[j]:
                             continue
                         ref_j = j
                         break  # first valid j = nearest ≥10 m above
@@ -1035,15 +1083,57 @@ class MooringStacker:
         ds_out = cast_output_dtypes(ds_out)
         _enc = {v: {"zlib": True, "complevel": 5} for v in ds_out.data_vars}
         ds_out.to_netcdf(output_path, encoding=_enc)
-        _status("file", str(output_path.relative_to(self.base_dir)))
+        _status("file", self._rel(output_path))
         return True
 
 
 class MooringGridder:
     """Step 2: vertically interpolate stacked instruments onto a pressure grid → ``_grid.nc``."""
 
-    def __init__(self, base_dir: str) -> None:
-        self.base_dir = Path(base_dir)
+    def __init__(
+        self,
+        base_dir: Optional[str] = None,
+        *,
+        proc_dir: Optional[str] = None,
+    ) -> None:
+        """Interpolate a mooring stack onto a regular pressure grid.
+
+        Reads ``{mooring}_stack.nc`` (produced by :class:`MooringStacker`) and
+        interpolates all scalar variables onto a uniform pressure axis defined by
+        ``p_start``, ``p_end``, and ``dp`` (in dbar).  Writes
+        ``{mooring}_grid.nc`` in the mooring proc directory.
+
+        Parameters
+        ----------
+        base_dir : str, optional
+            Legacy: cruise-level base directory containing a ``proc/`` subdirectory.
+        proc_dir : str, optional
+            Cruise-level processed output directory. Pipeline appends ``/{mooring}/``.
+
+        """
+        if base_dir is not None:
+            self.base_dir: Optional[Path] = Path(base_dir)
+            self._proc_dir: Optional[Path] = None
+            self._legacy = True
+        else:
+            self.base_dir = None
+            self._proc_dir = Path(proc_dir) if proc_dir else None
+            self._legacy = False
+
+    def _resolve_proc_dir(self, mooring_name: str) -> Path:
+        """Return the mooring-level proc directory."""
+        if not self._legacy and self._proc_dir is not None:
+            return self._proc_dir / mooring_name
+        return _get_proc_dir(self.base_dir, mooring_name)
+
+    def _rel(self, path: Path) -> str:
+        """Return a short display path relative to base_dir or proc_dir."""
+        for root in (r for r in (self.base_dir, self._proc_dir) if r):
+            try:
+                return str(path.relative_to(root))
+            except ValueError:
+                continue
+        return path.name
 
     def grid(
         self,
@@ -1061,7 +1151,7 @@ class MooringGridder:
 
         Returns True on success, False on error.
         """
-        proc_dir = _get_proc_dir(self.base_dir, mooring_name)
+        proc_dir = self._resolve_proc_dir(mooring_name)
         merge_path = proc_dir / f"{mooring_name}_stack.nc"
         output_path = proc_dir / f"{mooring_name}_grid.nc"
 
@@ -1080,7 +1170,7 @@ class MooringGridder:
             return False
 
         if output_found and not force:
-            _status("skip", str(output_path.relative_to(self.base_dir)))
+            _status("skip", self._rel(output_path))
             return True
 
         p_grid = np.arange(p_start, p_end + dp * 0.5, dp)
@@ -1260,5 +1350,5 @@ class MooringGridder:
         ds_out = cast_output_dtypes(ds_out)
         _enc = {v: {"zlib": True, "complevel": 5} for v in ds_out.data_vars}
         ds_out.to_netcdf(output_path, encoding=_enc)
-        _status("file", str(output_path.relative_to(self.base_dir)))
+        _status("file", self._rel(output_path))
         return True

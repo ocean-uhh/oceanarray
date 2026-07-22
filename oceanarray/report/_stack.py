@@ -620,6 +620,7 @@ def generate_stack_page(
             ylabel: str,
             invert: bool = False,
             hlines: Optional[List[tuple]] = None,
+            exclude_types: Optional[set] = None,
         ) -> Optional[str]:
             if varname not in ds.data_vars:
                 return None
@@ -631,6 +632,8 @@ def generate_stack_page(
             fig, ax = plt.subplots(figsize=(13, 4))
             plotted = False
             for i in range(n_instr):
+                if exclude_types and instr_types[i].lower() in exclude_types:
+                    continue
                 serial = _serial_list[i]
                 color = _serial_colors[serial]
                 y = arr[::step, i]
@@ -672,7 +675,9 @@ def generate_stack_page(
             plt.close(fig)
             return b64
 
-        fig_pressure_b64 = _ts_fig("pressure", "Pressure (dbar)", invert=True)
+        fig_pressure_b64 = _ts_fig(
+            "pressure", "Pressure (dbar)", invert=True, exclude_types={"adcp"}
+        )
         fig_temp_b64 = _ts_fig(
             "temperature",
             f"Temperature ({ds['temperature'].attrs.get('units', '°C')})"

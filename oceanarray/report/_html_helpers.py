@@ -541,6 +541,7 @@ def _nav_buttons_html(
     stack_exists: bool = True,
     grid_exists: bool = True,
     current_report: str = "",
+    in_instrument_subdir: bool = False,
 ) -> str:
     """Return an HTML navigation snippet for injection into report masthead cards.
 
@@ -559,6 +560,13 @@ def _nav_buttons_html(
         Which report this snippet is rendered in — ``"summary"``, ``"stack"``,
         ``"grid"``, or a serial number string for per-instrument reports.
         The matching pill is shown as a non-clickable chip (greyed out).
+    in_instrument_subdir : bool
+        Set to ``True`` when this snippet is rendered inside a per-instrument
+        report that lives one level deeper than the main report directory
+        (i.e. in ``report/instrument/``).  Summary/Stack/Grid links will then
+        be prefixed with ``../`` and instrument-to-instrument links will remain
+        flat.  When ``False`` (default, used by Summary/Stack/Grid reports),
+        instrument links are prefixed with ``instrument/``.
 
     Returns
     -------
@@ -569,6 +577,8 @@ def _nav_buttons_html(
     import html as _html
 
     mn = _html.escape(mooring_name)
+    _pfx = "../" if in_instrument_subdir else ""
+    _ipfx = "" if in_instrument_subdir else "instrument/"
 
     _BTN = (
         "display:inline-block;padding:0.2em 0.65em;border-radius:4px;"
@@ -604,12 +614,14 @@ def _nav_buttons_html(
     parts.append('<div style="margin-bottom:0.25rem">')
     parts.append(f'<span style="{_LABEL}">Reports:</span>')
     parts.append(
-        _pill("Summary", f"{mn}_report.html", "#1a3a5c", current_report == "summary")
+        _pill(
+            "Summary", f"{_pfx}{mn}_report.html", "#1a3a5c", current_report == "summary"
+        )
     )
     parts.append(
         _pill(
             "Stack",
-            f"{mn}_stack_report.html",
+            f"{_pfx}{mn}_stack_report.html",
             "#2980b9",
             current_report == "stack",
             is_missing=not stack_exists,
@@ -618,7 +630,7 @@ def _nav_buttons_html(
     parts.append(
         _pill(
             "Grid",
-            f"{mn}_grid_report.html",
+            f"{_pfx}{mn}_grid_report.html",
             "#8e44ad",
             current_report == "grid",
             is_missing=not grid_exists,
@@ -647,7 +659,7 @@ def _nav_buttons_html(
             parts.append(
                 _pill(
                     ser,
-                    f"{mn}_{_html.escape(ser)}_report.html",
+                    f"{_ipfx}{mn}_{_html.escape(ser)}_report.html",
                     "#27ae60",
                     current_report == ser,
                     is_missing=not has_report,

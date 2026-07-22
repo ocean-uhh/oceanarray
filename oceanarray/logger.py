@@ -144,12 +144,10 @@ def setup_stage_logging(mooring_name: str, stage_name: str, proc_dir: Path) -> P
     Returns
     -------
     Path
-        Full path to the log file
-
-    Raises
-    ------
-    FileNotFoundError
-        If logging config cannot be loaded
+        Full path to the log file.  When the logging configuration file
+        (``config/logging.yaml``) is missing or unparseable, falls back to
+        ``{proc_dir}/processing_logs/{mooring_name}_{timestamp}_{stage_name}.mooring.log``.
+        This function does not raise; config failures are handled silently.
 
     """
     import yaml
@@ -157,12 +155,14 @@ def setup_stage_logging(mooring_name: str, stage_name: str, proc_dir: Path) -> P
     try:
         config = load_logging_config()
     except (FileNotFoundError, yaml.YAMLError):
-        # Fallback to old behavior if config is not available
+        # Fallback: place logs in processing_logs/ subdir
         log_time = datetime.datetime.now().strftime("%Y%m%dT%H")
-        return proc_dir / f"{mooring_name}_{log_time}_{stage_name}.mooring.log"
+        log_dir = proc_dir / "processing_logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        return log_dir / f"{mooring_name}_{log_time}_{stage_name}.mooring.log"
 
     # Extract configuration values with defaults
-    log_directory = config.get("directory", "logs")
+    log_directory = config.get("directory", "processing_logs")
     filename_pattern = config.get(
         "filename_pattern", "{mooring_name}_{timestamp}_{stage}.log"
     )

@@ -95,7 +95,7 @@ def plot_trajectory(
         ax.set_title(title)
     ax.axhline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
     ax.axvline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
-    ax.set_aspect("equal", adjustable="datalim")
+    ax.set_aspect("equal", adjustable="box")
     ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.4)
     fig.tight_layout()
     return fig

@@ -24,42 +24,109 @@ pip install -e .
 ## Quick start
 
 ```bash
-# Instrument-level: stages 1 and 2 (default)
-oceanarray process dsG3_1_2026 --basedir /path/to/data
+RAW=/path/to/cruise/raw       # raw instrument files: $RAW/{mooring}/{instrument}/file
+PROC=/path/to/cruise/proc     # processed output root
 
-# All three instrument-level stages (stage 3 adds QARTOD QC flags)
-oceanarray process dsG3_1_2026 --basedir /path/to/data --stage 1 2 3
+# Instrument-level: stages 1 and 2 (default)
+oceanarray process dsG3_1_2026 --raw-dir $RAW --proc-dir $PROC
+
+# All three instrument-level stages (stage 3 adds QC flags and velocity rotation)
+oceanarray process dsG3_1_2026 --raw-dir $RAW --proc-dir $PROC --stage 1 2 3
 
 # Single instrument rerun
-oceanarray process dsG3_1_2026 --basedir /path/to/data --stage 3 --serial 7507 --force
+oceanarray process dsG3_1_2026 --raw-dir $RAW --proc-dir $PROC --stage 3 --serial 7507 --force
 
 # Mooring-level: stack all instruments onto 60 s time grid
-oceanarray stack dsG3_1_2026 --basedir /path/to/data
+oceanarray stack dsG3_1_2026 --proc-dir $PROC
 
 # Mooring-level: vertically interpolate onto pressure grid
-oceanarray grid dsG3_1_2026 --basedir /path/to/data
+oceanarray grid dsG3_1_2026 --proc-dir $PROC
 
 # Generate main HTML mooring report (fast — no per-instrument pages)
-oceanarray report dsG3_1_2026 --basedir /path/to/data -o outputs/
+oceanarray report dsG3_1_2026 --raw-dir $RAW --proc-dir $PROC
 
 # Also generate per-instrument pages (slow)
-oceanarray report dsG3_1_2026 --basedir /path/to/data --instruments
+oceanarray report dsG3_1_2026 --raw-dir $RAW --proc-dir $PROC --instruments
 
-# Also generate gridded-data report page (T/S pcolormesh; requires _grid.nc)
-oceanarray report dsG3_1_2026 --basedir /path/to/data --grid
-
-# Also generate stacked-data report (pressure and T time series; requires _stack.nc)
-oceanarray report dsG3_1_2026 --basedir /path/to/data --stack
+# Also generate gridded and stacked report pages
+oceanarray report dsG3_1_2026 --raw-dir $RAW --proc-dir $PROC --grid --stack
 
 # One specific instrument page only
-oceanarray report dsG3_1_2026 --basedir /path/to/data --serial 7507
+oceanarray report dsG3_1_2026 --raw-dir $RAW --proc-dir $PROC --serial 7507
 
 # Validate mooring YAML configuration
-oceanarray validate dsG3_1_2026 --basedir /path/to/data
+oceanarray validate dsG3_1_2026.mooring.yaml
 
-# Plot multi-instrument mooring overview
-oceanarray plot dsG3_1_2026 --basedir /path/to/data
+# Run the complete pipeline in one command (stages 1–3, stack, grid, all reports)
+oceanarray run dsG3_1_2026 --raw-dir $RAW --proc-dir $PROC --dp 10
 ```
+
+## Recommended first-processing workflow
+
+Processing a mooring for the first time has a natural checkpoint: you need to
+verify that the deployment start and end times in the YAML are correct before
+stage 2 trims the records.  The sequence below catches problems early and
+avoids reprocessing the full mooring unnecessarily.
+
+### Step 1 — convert raw files to CF-NetCDF
+
+```bash
+oceanarray process dsG3_1_2026 --raw-dir $RAW --proc-dir $PROC --stage 1
+```
+
+Stage 1 reads each raw instrument file and writes `_stage1.nc` with no
+modifications — the full record exactly as recorded by the instrument.
+Check the console output for any read errors or missing files.
+
+### Step 2 — inspect the summary report
+
+```bash
+oceanarray report dsG3_1_2026 --raw-dir $RAW --proc-dir $PROC --instruments
+```
+
+The summary page shows which stage 1 files exist and how many records each
+instrument has.  Open the per-instrument pages to look at time series and
+check for obvious pre-deployment records (instrument left running on deck,
+depth hovering near zero) that will need to be trimmed by stage 2.
+
+### Step 3 — set deployment start/end times in the YAML
+
+Edit `dsG3_1_2026.mooring.yaml` and set `deployment_time` and `recovery_time`
+(or per-instrument `deployment_start` / `deployment_end` overrides) to the
+correct times identified from the data.  Stage 2 will trim to this window.
+
+If you are unsure about one instrument, process it alone first:
+
+```bash
+oceanarray process dsG3_1_2026 --raw-dir $RAW --proc-dir $PROC --stage 2 --serial 7507
+oceanarray report dsG3_1_2026 --raw-dir $RAW --proc-dir $PROC --serial 7507 --force
+```
+
+Iterate on the YAML until the trimmed record looks correct for each instrument.
+
+### Step 4 — complete the pipeline
+
+Once deployment times are confirmed for all instruments:
+
+```bash
+oceanarray process dsG3_1_2026 --raw-dir $RAW --proc-dir $PROC --stage 2 3
+oceanarray stack   dsG3_1_2026 --proc-dir $PROC
+oceanarray grid    dsG3_1_2026 --proc-dir $PROC --dp 10
+oceanarray report  dsG3_1_2026 --raw-dir $RAW --proc-dir $PROC --instruments --stack --grid
+```
+
+### Subsequent reruns
+
+Once settings are finalised (deployment window, QC thresholds, clock offsets)
+the full pipeline can be rerun in a single command:
+
+```bash
+oceanarray run dsG3_1_2026 --raw-dir $RAW --proc-dir $PROC --dp 10 --force
+```
+
+`oceanarray run` executes all stages in order (1 → 2 → 3 → stack → grid →
+all reports).  Each step runs regardless of earlier failures; check the exit
+code and log files in `processing_logs/` if something looks wrong.
 
 ## Processing pipeline
 
