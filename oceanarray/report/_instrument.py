@@ -517,9 +517,46 @@ def generate_instrument_pages(
     force: bool,
     base_dir: Path,
     serials: Optional[List[str]] = None,
+    raw_dir: Optional[Path] = None,
 ) -> None:
-    """Generate one HTML report page per instrument."""
-    mooring_report_link = f"{mooring_name}_report.html"
+    """Generate one HTML quality-control report page per instrument.
+
+    For each instrument in *instruments*, reads the best available processed
+    NetCDF (stage3 preferred, falling back to stage2 or stage1) and renders an
+    HTML page with time-series plots, data-quality flags, a histogram panel,
+    hodograph (if velocity data are present), and provenance metadata.  Pages are
+    written to ``{out_dir}/instrument/{mooring_name}_{serial}_report.html``.
+
+    Parameters
+    ----------
+    mooring_name : str
+        Mooring identifier (e.g. ``"dsG3_1_2026"``).
+    instruments : list of dict
+        Instrument records extracted from the mooring YAML, each containing at
+        minimum ``serial``, ``instr_type``, and ``stages`` keys.
+    cfg : dict
+        Full mooring configuration dictionary (from the mooring YAML).
+    proc_dir : Path
+        Mooring-level processed output directory (e.g. ``proc/dsG3_1_2026/``).
+    out_dir : Path
+        Report output directory for this mooring (e.g. ``proc/dsG3_1_2026/report/``).
+        Per-instrument pages are placed in ``out_dir/instrument/``.
+    force : bool
+        If True, regenerate pages that already exist.
+    base_dir : Path
+        Legacy cruise-level base directory.  Used to resolve raw file paths in
+        legacy mode (when *raw_dir* is None).
+    serials : list of str, optional
+        If provided, only generate pages for instruments whose serial number is in
+        this list.  Useful for regenerating a single instrument without reprocessing
+        the full mooring.
+    raw_dir : Path, optional
+        Cruise-level raw data directory for the new directory layout.  When given,
+        raw file existence is checked at ``{raw_dir}/{mooring}/{instr_type}/filename``.
+        When None, *base_dir* is used instead (legacy layout).
+
+    """
+    mooring_report_link = f"../{mooring_name}_report.html"
     generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     proc_machine = socket.gethostname().split(".")[0]
     stack_exists = (proc_dir / f"{mooring_name}_stack.nc").exists()
@@ -535,7 +572,7 @@ def generate_instrument_pages(
         if serial_filter and serial not in serial_filter:
             continue
         instr_type = instr["instr_type"]
-        out_path = out_dir / f"{mooring_name}_{serial}_report.html"
+        out_path = out_dir / "instrument" / f"{mooring_name}_{serial}_report.html"
         prefix = f"  [{idx:2d}] {instr_type:<12} s/n {serial:<12}"
         idx += 1
 
@@ -589,14 +626,20 @@ def generate_instrument_pages(
 
         # File listing — raw source and stage1/2/3 NC files
         raw_filename = instr.get("filename", "")
-        raw_file_path = (
-            base_dir
-            / str(cfg.get("directory", "raw")).rstrip("/")
-            / instr_type
-            / raw_filename
-            if raw_filename
-            else Path("no_raw_file")
-        )
+        if raw_filename:
+            if raw_dir is not None:
+                # New layout: {raw_dir}/{mooring}/{instrument}/filename
+                raw_file_path = raw_dir / mooring_name / instr_type / raw_filename
+            else:
+                # Legacy layout: {base_dir}/{directory}/{instrument}/filename
+                raw_file_path = (
+                    base_dir
+                    / str(cfg.get("directory", "raw")).rstrip("/")
+                    / instr_type
+                    / raw_filename
+                )
+        else:
+            raw_file_path = Path("no_raw_file")
         raw_file = (
             _file_info(raw_file_path)
             if raw_filename
@@ -628,6 +671,7 @@ def generate_instrument_pages(
                 stack_exists=stack_exists,
                 grid_exists=grid_exists,
                 current_report=serial,
+                in_instrument_subdir=True,
             ),
             "generated": generated,
             "proc_machine": proc_machine,
@@ -729,6 +773,7 @@ def generate_instrument_pages(
 
             env = Environment(autoescape=True)
             html = env.from_string(_INSTRUMENT_HTML_TEMPLATE).render(**ctx)
+            out_path.parent.mkdir(parents=True, exist_ok=True)
             out_path.write_text(html, encoding="utf-8")
             print(f"{prefix}  {out_path.name}")
         except Exception as exc:

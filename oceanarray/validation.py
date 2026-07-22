@@ -148,6 +148,8 @@ REQUIRED_MOORING_KEYS = ["name", "waterdepth", "deployment_time", "recovery_time
 
 
 class ValidationIssue(NamedTuple):
+    """A single validation finding with a severity level and human-readable message."""
+
     level: str  # "ERROR" or "WARNING"
     message: str
 

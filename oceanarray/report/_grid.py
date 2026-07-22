@@ -10,6 +10,7 @@ import numpy as np
 from ._html_helpers import _nav_buttons_html, _parse_history, _read_nc_metadata, _status
 from ._plots import (
     _make_grid_hydro_b64,
+    _make_grid_rose_b64,
     _make_grid_sigma_b64,
     _make_grid_timeseries_b64,
     _make_grid_trajectory_b64,
@@ -120,6 +121,7 @@ _GRID_HTML_TEMPLATE = """\
   {% if fig_vel_stacked_b64 %}<a href="#vel">Velocity</a>{% endif %}
   {% if fig_ts_grid_b64 %}<a href="#ts">T-S diagram</a>{% endif %}
   {% if fig_vel_iqr_b64 %}<a href="#vel-iqr">Velocity profiles</a>{% endif %}
+  {% if fig_grid_rose_b64 %}<a href="#grid-rose">Current roses</a>{% endif %}
   {% if fig_grid_traj_b64 %}<a href="#grid-traj">Particle trajectory</a>{% endif %}
   {% if fig_grid_ts_b64 %}<a href="#grid-ts">Velocity time series</a>{% endif %}
   {% if fig_sigma_b64 or fig_n2_b64 %}<a href="#strat">Stratification</a>{% endif %}
@@ -172,6 +174,15 @@ _GRID_HTML_TEMPLATE = """\
 <p class="note">Median (solid line) and interquartile range (shaded, 25–75 %) across the full deployment at each pressure level. 2.5–97.5 % outer envelope for speed. Right panel: count of non-NaN values per depth.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" style="max-width:85%" src="data:image/png;base64,{{ fig_vel_iqr_b64 }}" alt="Velocity IQR profiles">
+</details>
+{% endif %}
+
+<!-- ══ Current roses per pressure level ══ -->
+{% if fig_grid_rose_b64 %}
+<h2 id="grid-rose">Current roses</h2>
+<p class="note">One rose per pressure level (up to 12, evenly subsampled). Suspect/bad QC excluded. Each petal shows the fraction of time current flowed in that direction; petal length encodes speed (m s⁻¹).</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,{{ fig_grid_rose_b64 }}" alt="Current roses by pressure level">
 </details>
 {% endif %}
 
@@ -366,6 +377,7 @@ def generate_grid_page(
         fig_vel_stacked_b64 = _make_grid_velocity_stacked_b64(ds)
 
         fig_vel_iqr_b64 = _make_velocity_iqr_profile_b64(ds)
+        fig_grid_rose_b64 = _make_grid_rose_b64(ds)
         fig_grid_traj_b64 = _make_grid_trajectory_b64(ds)
         fig_grid_ts_b64 = _make_grid_timeseries_b64(ds)
         fig_ts_grid_b64 = _make_grid_ts_diagram(ds)
@@ -472,6 +484,7 @@ def generate_grid_page(
             sigma_sections=sigma_sections,
             fig_sigma_b64=fig_sigma_b64,
             fig_vel_iqr_b64=fig_vel_iqr_b64,
+            fig_grid_rose_b64=fig_grid_rose_b64,
             fig_grid_traj_b64=fig_grid_traj_b64,
             fig_grid_ts_b64=fig_grid_ts_b64,
             fig_spectrum_b64=fig_spectrum_b64,

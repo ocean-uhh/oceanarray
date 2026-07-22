@@ -90,10 +90,45 @@ def _append_history(dataset: xr.Dataset, note: str) -> None:
 class Stage2Processor:
     """Handles Stage 2 processing: clock correction and temporal trimming."""
 
-    def __init__(self, base_dir: str) -> None:
-        """Initialize processor with base directory."""
-        self.base_dir = Path(base_dir)
+    def __init__(
+        self,
+        base_dir: Optional[str] = None,
+        *,
+        proc_dir: Optional[str] = None,
+    ) -> None:
+        """Apply clock-drift correction and trim records to the deployment window.
+
+        Reads stage1 CF-NetCDF files, corrects instrument clock offsets using a
+        linear drift model (offset at deployment and recovery specified in the YAML),
+        and trims each record to the deployment start/end times.  Writes
+        ``{mooring}_{serial}_stage2.nc`` alongside the stage1 file.
+
+        Parameters
+        ----------
+        base_dir : str, optional
+            Legacy: cruise-level base directory containing a ``proc/`` subdirectory.
+        proc_dir : str, optional
+            Cruise-level processed output directory. Pipeline appends ``/{mooring}/``.
+
+        """
+        if base_dir is not None:
+            self.base_dir: Optional[Path] = Path(base_dir)
+            self._proc_dir: Optional[Path] = None
+            self._legacy = True
+        else:
+            self.base_dir = None
+            self._proc_dir = Path(proc_dir) if proc_dir else None
+            self._legacy = False
         self.log_file = None
+
+    def _rel(self, path: Path) -> str:
+        """Return a short display path relative to base_dir or proc_dir."""
+        for root in (r for r in (self.base_dir, self._proc_dir) if r):
+            try:
+                return str(path.relative_to(root))
+            except ValueError:
+                continue
+        return path.name
 
     def _setup_logging(self, mooring_name: str, output_path: Path) -> None:
         """Set up logging for the processing run using global config."""
@@ -549,8 +584,7 @@ class Stage2Processor:
         _status("instr", f"{instrument_type} {serial}")
 
         if use_filepath.exists() and not force:
-            relative = use_filepath.relative_to(self.base_dir)
-            _status("skip", str(relative))
+            _status("skip", self._rel(use_filepath))
             return True
 
         try:
@@ -614,8 +648,7 @@ class Stage2Processor:
             writer_params = self._get_netcdf_writer_params()
             writer.write(str(use_filepath), **writer_params)
 
-            relative_use = use_filepath.relative_to(self.base_dir)
-            _status("file", str(relative_use))
+            _status("file", self._rel(use_filepath))
 
         except Exception as e:  # noqa: BLE001  — intentional broad catch at I/O boundary
             self._log_print(f"ERROR processing {instrument_type} {serial}: {e}")
@@ -642,14 +675,17 @@ class Stage2Processor:
 
         """
         # Set up paths
-        if output_path is None:
-            proc = self.base_dir / "proc"
-            if not proc.is_dir():
-                legacy = self.base_dir / "moor" / "proc"
-                proc = legacy if legacy.is_dir() else proc
-            proc_dir = proc / mooring_name
+        if self._legacy:
+            if output_path is None:
+                proc = self.base_dir / "proc"
+                if not proc.is_dir():
+                    legacy_proc = self.base_dir / "moor" / "proc"
+                    proc = legacy_proc if legacy_proc.is_dir() else proc
+                proc_dir = proc / mooring_name
+            else:
+                proc_dir = Path(output_path) / mooring_name
         else:
-            proc_dir = Path(output_path) / mooring_name
+            proc_dir = self._proc_dir / mooring_name
 
         if not proc_dir.exists():
             print(f"ERROR: Processing directory not found: {proc_dir}")

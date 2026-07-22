@@ -225,7 +225,7 @@ _HTML_TEMPLATE = """\
     <tr>
       <td class="num">{{ loop.index }}</td>
       <td>{{ instr.instr_type }}</td>
-      <td>{% if instr.report_exists %}<a href="{{ mooring_name }}_{{ instr.serial }}_report.html"
+      <td>{% if instr.report_exists %}<a href="instrument/{{ mooring_name }}_{{ instr.serial }}_report.html"
              style="font-family:monospace;font-size:0.85rem">{{ instr.serial }}</a>{% else %}<span style="font-family:monospace;font-size:0.85rem">{{ instr.serial }}</span>{% endif %}</td>
       <td class="num">{{ "%.1f"|format(instr.hab) }}</td>
       <td class="num">{{ "%.0f"|format(instr.depth) if instr.depth is not none else "—" }}</td>
@@ -341,7 +341,7 @@ _HTML_TEMPLATE = """\
     <tr{% if instr.stopped_early %} class="row-warn"{% endif %}>
       <td class="num">{{ loop.index }}</td>
       <td>{{ instr.instr_type }}</td>
-      <td>{% if instr.report_exists %}<a href="{{ mooring_name }}_{{ instr.serial }}_report.html"
+      <td>{% if instr.report_exists %}<a href="instrument/{{ mooring_name }}_{{ instr.serial }}_report.html"
              style="font-family:monospace;font-size:0.85rem">{{ instr.serial }}</a>{% else %}<span style="font-family:monospace;font-size:0.85rem">{{ instr.serial }}</span>{% endif %}</td>
       <td class="num">{{ "%.1f"|format(instr.hab) }}</td>
       {% if instr.nc and instr.nc.get("error") %}
@@ -648,8 +648,52 @@ def _serials_in_nc(nc_path: Path) -> frozenset:
 class MooringReport:
     """Generate a mooring recovery HTML report from YAML and processed files."""
 
-    def __init__(self, base_dir: str):
-        self.base_dir = Path(base_dir)
+    def __init__(
+        self,
+        base_dir: Optional[str] = None,
+        *,
+        proc_dir: Optional[str] = None,
+        raw_dir: Optional[str] = None,
+    ) -> None:
+        """Initialize with base_dir (legacy) or proc_dir + optional raw_dir (new).
+
+        Parameters
+        ----------
+        base_dir : str, optional
+            Legacy: cruise-level base directory containing a ``proc/`` subdirectory.
+        proc_dir : str, optional
+            Cruise-level processed output directory. Pipeline appends ``/{mooring}/``.
+        raw_dir : str, optional
+            Cruise-level raw data directory.  When provided, the report checks whether
+            each instrument's raw data file still exists on disk and shows a green/red
+            status indicator next to the filename.  When absent, the check is skipped.
+
+        """
+        if base_dir is not None:
+            self.base_dir: Optional[Path] = Path(base_dir)
+            self._proc_dir: Optional[Path] = None
+            self._raw_dir: Optional[Path] = None
+            self._legacy = True
+        else:
+            self.base_dir = None
+            self._proc_dir = Path(proc_dir) if proc_dir else None
+            self._raw_dir = Path(raw_dir) if raw_dir else None
+            self._legacy = False
+
+    def _resolve_proc_dir(self, mooring_name: str) -> Path:
+        """Return the mooring-level proc directory."""
+        if not self._legacy and self._proc_dir is not None:
+            return self._proc_dir / mooring_name
+        return _get_proc_dir(self.base_dir, mooring_name)
+
+    def _rel(self, path: Path) -> str:
+        """Return a short display path relative to base_dir or proc_dir."""
+        for root in (r for r in (self.base_dir, self._proc_dir) if r):
+            try:
+                return str(path.relative_to(root))
+            except ValueError:
+                continue
+        return path.name
 
     def generate(
         self,
@@ -661,7 +705,7 @@ class MooringReport:
         grid: bool = False,
         stack: bool = False,
     ) -> Optional[Path]:
-        proc_dir = _get_proc_dir(self.base_dir, mooring_name)
+        proc_dir = self._resolve_proc_dir(mooring_name)
         if not proc_dir.exists():
             print(f"ERROR: Processing directory not found: {proc_dir}")
             return None
@@ -673,7 +717,7 @@ class MooringReport:
         out_dir.mkdir(parents=True, exist_ok=True)
         output_path = out_dir / f"{mooring_name}_report.html"
         if output_path.exists() and not force:
-            _status("skip", str(output_path.relative_to(self.base_dir)))
+            _status("skip", self._rel(output_path))
             return output_path
 
         yaml_path = proc_dir / f"{mooring_name}.mooring.yaml"
@@ -684,10 +728,13 @@ class MooringReport:
         with open(yaml_path) as f:
             cfg = yaml.safe_load(f)
 
+        # Resolve the base_dir used for raw file lookups in instrument pages
+        report_base_dir = self.base_dir or self._proc_dir or proc_dir.parent
+
         ctx = self._build_context(mooring_name, cfg, proc_dir, yaml_path, out_dir)
         html = self._render(ctx)
         output_path.write_text(html, encoding="utf-8")
-        _status("file", str(output_path.relative_to(self.base_dir)))
+        _status("file", self._rel(output_path))
 
         if instruments:
             generate_instrument_pages(
@@ -697,15 +744,16 @@ class MooringReport:
                 proc_dir,
                 out_dir,
                 force,
-                self.base_dir,
+                report_base_dir,
                 serials=serials,
+                raw_dir=self._raw_dir,
             )
 
         if grid:
             grid_path = proc_dir / f"{mooring_name}_grid.nc"
             if grid_path.exists():
                 generate_grid_page(
-                    mooring_name, grid_path, ctx, out_dir, force, self.base_dir
+                    mooring_name, grid_path, ctx, out_dir, force, report_base_dir
                 )
             else:
                 print("  NOTE: no grid file found — run 'oceanarray grid' first")
@@ -714,7 +762,7 @@ class MooringReport:
             stack_path = proc_dir / f"{mooring_name}_stack.nc"
             if stack_path.exists():
                 generate_stack_page(
-                    mooring_name, stack_path, ctx, out_dir, force, self.base_dir
+                    mooring_name, stack_path, ctx, out_dir, force, report_base_dir
                 )
             else:
                 print("  NOTE: no stack file found — run 'oceanarray stack' first")
@@ -767,16 +815,24 @@ class MooringReport:
             yaml_interval_s = entry.get("sample_interval_seconds")
 
             if filename:
-                raw_path = _raw_file_path(
-                    self.base_dir, raw_subdir, instr_type, mooring_name, filename
-                )
+                if self._legacy:
+                    raw_path = _raw_file_path(
+                        self.base_dir, raw_subdir, instr_type, mooring_name, filename
+                    )
+                    raw_path_str = str(raw_path.relative_to(self.base_dir))
+                elif self._raw_dir is not None:
+                    # New layout: {raw_dir}/{mooring}/{instrument}/filename
+                    raw_path = self._raw_dir / mooring_name / instr_type / filename
+                    raw_path_str = str(raw_path.relative_to(self._raw_dir))
+                else:
+                    raw_path = Path(filename)
+                    raw_path_str = filename
                 raw_exists = raw_path.exists()
                 readable, readable_note = (
                     _check_readable(raw_path, file_type)
                     if raw_exists
                     else (False, "file missing")
                 )
-                raw_path_str = str(raw_path.relative_to(self.base_dir))
             else:
                 raw_path_str = ""
                 raw_exists = False
@@ -817,7 +873,11 @@ class MooringReport:
                     "skip_reason": entry.get("skip_reason", ""),
                     "report_exists": (
                         out_dir is not None
-                        and (out_dir / f"{mooring_name}_{serial}_report.html").exists()
+                        and (
+                            out_dir
+                            / "instrument"
+                            / f"{mooring_name}_{serial}_report.html"
+                        ).exists()
                     ),
                     "stages": _stage_files(proc_dir, instr_type, mooring_name, serial),
                     "in_stack": serial in stack_serials,
@@ -835,7 +895,7 @@ class MooringReport:
 
         any_clock = any(i["clock"]["has_correction"] for i in instruments)
 
-        def _combined(deploy_key, recover_key, legacy_key):
+        def _combined(deploy_key: str, recover_key: str, legacy_key: str) -> str:
             d = cfg.get(deploy_key) or cfg.get(legacy_key, "—")
             r = cfg.get(recover_key) or cfg.get(legacy_key) or d
             return d if d == r else f"{d} / {r}"
@@ -876,7 +936,7 @@ class MooringReport:
             ),
             "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
             "proc_machine": socket.gethostname().split(".")[0],
-            "yaml_path": str(yaml_path.relative_to(self.base_dir)),
+            "yaml_path": self._rel(yaml_path),
             "diagram_b64": _load_pdf_b64(proc_dir / f"{mooring_name}_diagram.pdf"),
         }
 

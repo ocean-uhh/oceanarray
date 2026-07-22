@@ -16,11 +16,82 @@ from ..utilities import _nice_colorbar_bounds
 
 
 # ---------------------------------------------------------------------------
+# Shared velocity colormap helper
+# ---------------------------------------------------------------------------
+
+
+def _velocity_panel_style(
+    var: str,
+    finite_vals: np.ndarray,
+    div_abs_max: float,
+) -> tuple:
+    """Return (bounds, norm, cmap, cb_label) for one velocity pcolormesh panel.
+
+    Centralises all velocity colormap decisions so that the per-instrument
+    ADCP report and the grid/stack report always produce visually identical
+    panels.  Call this helper from every function that renders a velocity
+    variable as a pcolormesh — do not duplicate the logic inline.
+
+    Panel types
+    -----------
+    div (diverging)  east/north/up/error_velocity  Spectral_r  ± div_abs_max
+    seq (sequential) current_speed                 plasma       0 → 98th pctile
+    seq              bin_pressure                  PuRd         2nd→98th pctile
+    cyc (cyclic)     current_direction             hsv          0–360°
+
+    Parameters
+    ----------
+    var : str
+        Variable name (e.g. ``"east_velocity"``, ``"current_direction"``).
+    finite_vals : np.ndarray
+        Finite values of *this* variable (used for seq bounds; pass ``[]``
+        for div/cyc panels where per-variable bounds are not needed).
+    div_abs_max : float
+        Pre-computed symmetric bound for diverging panels (ignored for seq/cyc).
+        Computed by the caller as the 2nd/98th percentile magnitude across all
+        ENU velocity components.
+
+    Returns
+    -------
+    tuple
+        ``(bounds, norm, cmap, cb_label)`` where *bounds* is a 1-D array of
+        colorbar tick/boundary values, *norm* is a ``BoundaryNorm``, *cmap*
+        is a colormap name string, and *cb_label* is the colorbar axis label.
+
+    """
+    import matplotlib.colors as mcolors
+
+    if var in ("east_velocity", "north_velocity", "up_velocity", "error_velocity"):
+        bounds = _nice_colorbar_bounds(-div_abs_max, div_abs_max, n=20)
+        norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+        return bounds, norm, "Spectral_r", "m s⁻¹"
+    if var == "current_speed":
+        spd_max = float(np.percentile(finite_vals, 98)) if len(finite_vals) else 1.0
+        bounds = _nice_colorbar_bounds(0.0, max(spd_max, 1e-4), n=20)
+        norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+        return bounds, norm, "plasma", "m s⁻¹"
+    if var == "current_direction":
+        bounds = np.linspace(0, 360, 21)
+        norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+        return bounds, norm, "hsv", "°T"
+    if var == "bin_pressure":
+        p_lo = float(np.percentile(finite_vals, 2)) if len(finite_vals) else 0.0
+        p_hi = float(np.percentile(finite_vals, 98)) if len(finite_vals) else 1000.0
+        bounds = _nice_colorbar_bounds(p_lo, p_hi, n=20)
+        norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+        return bounds, norm, "PuRd", "dbar"
+    # Unknown variable — fall back to diverging
+    bounds = _nice_colorbar_bounds(-div_abs_max, div_abs_max, n=20)
+    norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+    return bounds, norm, "Spectral_r", "m s⁻¹"
+
+
+# ---------------------------------------------------------------------------
 # Aquadopp quick-look
 # ---------------------------------------------------------------------------
 
 
-def _plot_aquadopp_quick(ds) -> "plt.Figure":
+def _plot_aquadopp_quick(ds: "xr.Dataset") -> "plt.Figure":
     """Quick-look figure for Aquadopp; handles beam and ENU naming, lowercase attitude."""
     import matplotlib.pyplot as plt
     import matplotlib.dates as mdates
@@ -115,7 +186,9 @@ _COMPACT_PANEL_VARS: frozenset = frozenset({"battery_voltage", "speed_of_sound"}
 _COMPACT_PANEL_HEIGHT: float = 1.5
 
 
-def _instrument_panels(ds, combine_pitch_roll: bool = False) -> List[Tuple]:
+def _instrument_panels(
+    ds: "xr.Dataset", combine_pitch_roll: bool = False
+) -> List[Tuple]:
     """Return panel list (varname, ylabel, line_color, invert_y) in canonical order."""
     import re as _re
 
@@ -152,7 +225,7 @@ def _instrument_panels(ds, combine_pitch_roll: bool = False) -> List[Tuple]:
 
 
 def _build_fig_from_ds(
-    ds,
+    ds: "xr.Dataset",
     instr_type: str,
     show_qc: bool = True,
     title_suffix: str = "",
@@ -1270,83 +1343,73 @@ def _make_grid_velocity_stacked_b64(ds: "xr.Dataset") -> Optional[str]:
 
     """
     import matplotlib.pyplot as plt
-    import matplotlib.colors as mcolors
     import matplotlib.dates as mdates
     from .. import parameters as P
 
     vel_vars = [
-        ("east_velocity", "East velocity", "m s⁻¹"),
-        ("north_velocity", "North velocity", "m s⁻¹"),
-        ("up_velocity", "Up velocity", "m s⁻¹"),
+        "east_velocity",
+        "north_velocity",
+        "up_velocity",
+        "current_speed",
+        "current_direction",
     ]
-    present = [(v, lbl, u) for v, lbl, u in vel_vars if v in ds.data_vars]
+    _LABELS = {
+        "east_velocity": "East velocity",
+        "north_velocity": "North velocity",
+        "up_velocity": "Up velocity",
+        "current_speed": "Current speed",
+        "current_direction": "Current direction",
+    }
+    present = [v for v in vel_vars if v in ds.data_vars]
     if not present:
         return None
 
     pressure = ds["pressure"].values
     time = ds["time"].values
 
-    # Shared symmetric bounds from horizontal velocity (2nd/98th pctile)
-    horiz_vals = np.concatenate(
-        [
-            ds[v].values.ravel()
-            for v, _, _ in present
-            if v in ("east_velocity", "north_velocity")
-        ]
-    )
-    finite_h = horiz_vals[np.isfinite(horiz_vals)]
-    abs_max_h = (
-        max(
-            abs(float(np.percentile(finite_h, 2))),
-            abs(float(np.percentile(finite_h, 98))),
-            1e-4,
-        )
-        if len(finite_h)
-        else 1.0
-    )
-    h_bounds = _nice_colorbar_bounds(-abs_max_h, abs_max_h, n=20)
-    h_norm = mcolors.BoundaryNorm(h_bounds, ncolors=256)
-
-    # Separate bounds for up velocity
-    if "up_velocity" in ds.data_vars:
-        up_vals = ds["up_velocity"].values.ravel()
-        finite_u = up_vals[np.isfinite(up_vals)]
-        abs_max_u = (
+    # Shared diverging bound from all ENU components (2nd/98th pctile magnitude)
+    div_vars = [
+        v for v in present if v in ("east_velocity", "north_velocity", "up_velocity")
+    ]
+    if div_vars:
+        div_vals = np.concatenate([ds[v].values.ravel() for v in div_vars])
+        finite_div = div_vals[np.isfinite(div_vals)]
+        div_abs_max = (
             max(
-                abs(float(np.percentile(finite_u, 2))),
-                abs(float(np.percentile(finite_u, 98))),
+                abs(float(np.percentile(finite_div, 2))),
+                abs(float(np.percentile(finite_div, 98))),
                 1e-4,
             )
-            if len(finite_u)
+            if len(finite_div)
             else 1.0
         )
-        u_bounds = _nice_colorbar_bounds(-abs_max_u, abs_max_u, n=20)
-        u_norm = mcolors.BoundaryNorm(u_bounds, ncolors=256)
     else:
-        u_bounds, u_norm = h_bounds, h_norm
+        div_abs_max = 1.0
 
     plt.style.use(str(P.MPLSTYLE))
     n = len(present)
     fig, axes = plt.subplots(n, 1, figsize=(13, 3.2 * n), sharex=True, squeeze=False)
     locator = mdates.AutoDateLocator()
 
-    for ax, (var, label, units) in zip(axes[:, 0], present):
+    for ax, var in zip(axes[:, 0], present):
         data = ds[var].transpose("pressure", "time").values
-        # Apply QC mask
-        qc_var = f"{var}_qc"
-        if qc_var in ds.data_vars:
-            data = data.copy()
-            data[ds[qc_var].transpose("pressure", "time").values >= 3] = np.nan
-        bounds = u_bounds if var == "up_velocity" else h_bounds
-        norm = u_norm if var == "up_velocity" else h_norm
+        # Apply QC mask via the variable's own QC flag, or fall back to east_velocity_qc
+        for _qv in (f"{var}_qc", "east_velocity_qc"):
+            if _qv in ds.data_vars:
+                data = data.copy()
+                data[ds[_qv].transpose("pressure", "time").values >= 3] = np.nan
+                break
+        fv = data.ravel()
+        fv = fv[np.isfinite(fv)]
+        bounds, norm, cmap, cb_label = _velocity_panel_style(var, fv, div_abs_max)
         pc = ax.pcolormesh(
-            time, pressure, data, shading="nearest", cmap="Spectral_r", norm=norm
+            time, pressure, data, shading="nearest", cmap=cmap, norm=norm
         )
         cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=bounds[::2])
-        cb.set_label(units)
+        cb.set_label(cb_label)
         ax.invert_yaxis()
         ax.set_ylabel("Pressure (dbar)")
-        ax.set_title(label, loc="left")
+        ax.set_title(_LABELS[var], loc="left")
         ax.grid(True, linestyle="--", linewidth=0.3, alpha=0.4)
 
     axes[-1, 0].xaxis.set_major_locator(locator)
@@ -1829,7 +1892,7 @@ def _make_velocity_iqr_profile_b64(ds: "xr.Dataset") -> Optional[str]:
             ax.set_xlim(left=0)
         ax.set_xlabel("Current speed (m s⁻¹)")
         ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.5)
-        ax.legend(loc="lower right")
+        ax.legend(loc="best")
 
     # ── Panel 2: east + north on shared axes ─────────────────────────────────
     if has_horiz:
@@ -1868,7 +1931,7 @@ def _make_velocity_iqr_profile_b64(ds: "xr.Dataset") -> Optional[str]:
             ax.set_xlim(-absmax * 1.15, absmax * 1.15)
         ax.set_xlabel("Velocity (m s⁻¹)")
         ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.5)
-        ax.legend(loc="lower right")
+        ax.legend(loc="best")
 
     # ── Count panel (rightmost) ───────────────────────────────────────────────
     ax_count = axs[-1]
@@ -1884,6 +1947,16 @@ def _make_velocity_iqr_profile_b64(ds: "xr.Dataset") -> Optional[str]:
 
     axs[0].set_ylabel("Pressure (dbar)")
     axs[0].invert_yaxis()  # shared y — invert once only
+
+    # Mark bottom depth if available (waterdepth global attr, dbar ≈ m seawater)
+    try:
+        _wd = float(ds.attrs.get("waterdepth", ""))
+        if np.isfinite(_wd) and _wd > 0:
+            for _ax in axs:
+                _ax.axhline(_wd, color="k", linewidth=2.0, linestyle="-", zorder=5)
+    except (ValueError, TypeError):
+        pass
+
     fig.tight_layout()
     b64 = _fig_to_base64(fig)
     plt.close(fig)
@@ -2027,6 +2100,82 @@ def _make_rose_grid_b64(
     return b64
 
 
+def _make_grid_rose_b64(ds: "xr.Dataset", max_roses: int = 12) -> Optional[str]:
+    """Grid of current roses, one per pressure level, for the grid report.
+
+    Shows up to *max_roses* pressure levels (evenly subsampled when there are
+    more), each labelled with its pressure (dbar).  Levels with no finite ENU
+    velocity are skipped.  Returns None when east/north velocity are absent or
+    all-NaN.
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        Gridded dataset with dimensions ``(time, pressure)`` containing
+        ``east_velocity`` and ``north_velocity`` in m s⁻¹.
+    max_roses : int
+        Maximum number of rose panels to draw (default 12).
+
+    Returns
+    -------
+    str or None
+        Base64-encoded PNG, or None if no velocity data are present.
+
+    """
+    import math
+    import matplotlib.pyplot as plt
+    from .. import parameters as P
+
+    if "east_velocity" not in ds.data_vars or "north_velocity" not in ds.data_vars:
+        return None
+
+    east_all = ds["east_velocity"].values.copy()  # (time, pressure)
+    north_all = ds["north_velocity"].values.copy()
+
+    for _qc_var in ("east_velocity_qc", "north_velocity_qc"):
+        if _qc_var in ds.data_vars:
+            _qc = ds[_qc_var].values
+            if _qc.shape == east_all.shape:
+                east_all[_qc >= 3] = np.nan
+                north_all[_qc >= 3] = np.nan
+
+    pressure = ds["pressure"].values  # 1-D (n_levels,)
+    valid_idx = [k for k in range(len(pressure)) if np.any(np.isfinite(east_all[:, k]))]
+    if not valid_idx:
+        return None
+
+    # Subsample evenly if more pressure levels than max_roses
+    if len(valid_idx) > max_roses:
+        step = len(valid_idx) / max_roses
+        valid_idx = [valid_idx[int(round(i * step))] for i in range(max_roses)]
+
+    n = len(valid_idx)
+    ncols = min(n, 4)
+    nrows = math.ceil(n / ncols)
+
+    plt.style.use(str(P.MPLSTYLE))
+    fig, axs = plt.subplots(
+        nrows,
+        ncols,
+        figsize=(ncols * 3.0, nrows * 3.2),
+        subplot_kw={"projection": "polar"},
+        squeeze=False,
+    )
+    axs_flat = axs.flatten()
+
+    for plot_i, k in enumerate(valid_idx):
+        title = f"{int(pressure[k])} dbar"
+        _rose_ax(axs_flat[plot_i], east_all[:, k], north_all[:, k], title=title)
+
+    for k in range(n, len(axs_flat)):
+        axs_flat[k].set_visible(False)
+
+    plt.tight_layout()
+    b64 = _fig_to_base64(fig)
+    plt.close(fig)
+    return b64
+
+
 # ---------------------------------------------------------------------------
 # Isopycnal / sigma helpers
 # ---------------------------------------------------------------------------
@@ -2159,7 +2308,7 @@ def _make_grid_trajectory_b64(ds: "xr.Dataset") -> Optional[str]:
     ax.set_ylabel("North displacement (m)")
     ax.axhline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
     ax.axvline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
-    ax.set_aspect("equal", adjustable="datalim")
+    ax.set_aspect("equal", adjustable="box")
     ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.4)
     fig.tight_layout()
     b64 = _fig_to_base64(fig)
@@ -2484,7 +2633,6 @@ def _make_adcp_velocity_b64(nc_path: str) -> Optional[str]:
     """
     try:
         import matplotlib.pyplot as plt
-        import matplotlib.colors as mcolors
         import matplotlib.dates as mdates
         import xarray as xr
         from .. import parameters as P
@@ -2555,7 +2703,9 @@ def _make_adcp_velocity_b64(nc_path: str) -> Optional[str]:
             if range_coord is None:
                 return None
 
-            # Shared diverging bounds from ENU components (2nd/98th pctile)
+            # Shared diverging bound from all ENU components (2nd/98th pctile magnitude)
+            # Passed to _velocity_panel_style for div panels; seq/cyc panels compute
+            # their own bounds inside the helper from the per-panel finite values.
             div_vals = np.concatenate(
                 [
                     arrays[v].ravel()
@@ -2575,44 +2725,6 @@ def _make_adcp_velocity_b64(nc_path: str) -> Optional[str]:
                 if len(finite_div)
                 else 1.0
             )
-            div_bounds = _nice_colorbar_bounds(-abs_max, abs_max, n=20)
-            div_norm = mcolors.BoundaryNorm(div_bounds, ncolors=256)
-
-            # Sequential bounds for speed (0 → 98th pctile)
-            spd_vals = (
-                arrays["current_speed"].ravel()
-                if "current_speed" in arrays
-                else np.array([])
-            )
-            spd_finite = (
-                spd_vals[np.isfinite(spd_vals)] if len(spd_vals) else np.array([])
-            )
-            spd_max = float(np.percentile(spd_finite, 98)) if len(spd_finite) else 1.0
-            seq_bounds = _nice_colorbar_bounds(0.0, max(spd_max, 1e-4), n=20)
-            seq_norm = mcolors.BoundaryNorm(seq_bounds, ncolors=256)
-
-            # Sequential bounds for bin_pressure (2nd → 98th pctile, dbar)
-            bp_arr = arrays["bin_pressure"] if "bin_pressure" in arrays else None
-            if bp_arr is not None:
-                bp_vals = (
-                    bp_arr if isinstance(bp_arr, np.ndarray) else bp_arr.values
-                ).ravel()
-                bp_finite = bp_vals[np.isfinite(bp_vals)]
-            else:
-                bp_finite = np.array([])
-            if len(bp_finite):
-                bp_bounds = _nice_colorbar_bounds(
-                    float(np.percentile(bp_finite, 2)),
-                    float(np.percentile(bp_finite, 98)),
-                    n=20,
-                )
-            else:
-                bp_bounds = _nice_colorbar_bounds(0.0, 1000.0, n=20)
-            bp_norm = mcolors.BoundaryNorm(bp_bounds, ncolors=256)
-
-            # Cyclic bounds for direction: always 0–360
-            cyc_bounds = np.linspace(0, 360, 21)
-            cyc_norm = mcolors.BoundaryNorm(cyc_bounds, ncolors=256)
 
             plt.style.use(str(P.MPLSTYLE))
             n = len(present)
@@ -2655,7 +2767,7 @@ def _make_adcp_velocity_b64(nc_path: str) -> Optional[str]:
                         range_max = float(range_coord[bin_has_data].max())
                     break
 
-            for ax, (var, label, pt) in zip(axes[:, 0], present):
+            for ax, (var, label, _pt) in zip(axes[:, 0], present):
                 raw = arrays[var]
                 data2d = raw if isinstance(raw, np.ndarray) else raw.values
                 # Ensure (time, N_BINS) then transpose to (N_BINS, time) for pcolormesh
@@ -2663,40 +2775,13 @@ def _make_adcp_velocity_b64(nc_path: str) -> Optional[str]:
                     data2d = data2d.T
                 data2d = data2d.T  # now (N_BINS, time)
 
-                if pt == "div":
-                    norm, cmap, cb_label, cb_ticks = (
-                        div_norm,
-                        "Spectral_r",
-                        "m s⁻¹",
-                        div_bounds[::2],
-                    )
-                elif pt == "seq":
-                    if var == "bin_pressure":
-                        norm, cmap, cb_label, cb_ticks = (
-                            bp_norm,
-                            "PuRd",
-                            "dbar",
-                            bp_bounds[::2],
-                        )
-                    else:
-                        norm, cmap, cb_label, cb_ticks = (
-                            seq_norm,
-                            "plasma",
-                            "m s⁻¹",
-                            seq_bounds[::2],
-                        )
-                else:  # cyc
-                    norm, cmap, cb_label, cb_ticks = (
-                        cyc_norm,
-                        "hsv",
-                        "°T",
-                        cyc_bounds[::2],
-                    )
-
+                fv = data2d.ravel()
+                fv = fv[np.isfinite(fv)]
+                bounds, norm, cmap, cb_label = _velocity_panel_style(var, fv, abs_max)
                 pc = ax.pcolormesh(
                     time, range_coord, data2d, shading="nearest", cmap=cmap, norm=norm
                 )
-                cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=cb_ticks)
+                cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=bounds[::2])
                 cb.set_label(cb_label)
                 ax.set_ylabel(ylabel)
                 ax.set_title(label, loc="left")

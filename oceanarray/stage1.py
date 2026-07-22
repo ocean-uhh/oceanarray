@@ -217,9 +217,37 @@ class MooringProcessor:
         "sbe-ascii": ["depth", "latitude", "longitude"],
     }
 
-    def __init__(self, base_dir: str) -> None:
-        """Initialize processor with base directory."""
-        self.base_dir = Path(base_dir)
+    def __init__(
+        self,
+        base_dir: Optional[str] = None,
+        *,
+        raw_dir: Optional[str] = None,
+        proc_dir: Optional[str] = None,
+    ) -> None:
+        """Initialize processor with base directory (legacy) or raw_dir + proc_dir (new).
+
+        Parameters
+        ----------
+        base_dir : str, optional
+            Legacy: cruise-level base directory (must contain a ``proc/`` subdirectory).
+        raw_dir : str, optional
+            Cruise-level raw data directory. Pipeline appends ``/{mooring}/`` internally.
+            Required together with ``proc_dir`` when not using ``base_dir``.
+        proc_dir : str, optional
+            Cruise-level processed output directory. Pipeline appends ``/{mooring}/``.
+            Required together with ``raw_dir`` when not using ``base_dir``.
+
+        """
+        if base_dir is not None:
+            self.base_dir: Optional[Path] = Path(base_dir)
+            self._raw_dir: Optional[Path] = None
+            self._proc_dir: Optional[Path] = None
+            self._legacy = True
+        else:
+            self.base_dir = None
+            self._raw_dir = Path(raw_dir) if raw_dir else None
+            self._proc_dir = Path(proc_dir) if proc_dir else None
+            self._legacy = False
         self.log_file = None
 
     def _setup_logging(self, mooring_name: str, output_path: Path) -> None:
@@ -248,6 +276,16 @@ class MooringProcessor:
         if self.log_file:
             with open(self.log_file, "a") as f:
                 print(*args, **kwargs, file=f)
+
+    def _rel(self, path: Path) -> str:
+        """Return a short display path relative to base_dir, proc_dir, or raw_dir."""
+        roots = [r for r in (self.base_dir, self._proc_dir, self._raw_dir) if r]
+        for root in roots:
+            try:
+                return str(path.relative_to(root))
+            except ValueError:
+                continue
+        return path.name
 
     def _load_mooring_config(self, config_path: Path) -> Dict[str, Any]:
         """Load mooring configuration from YAML file."""
@@ -1217,10 +1255,11 @@ class MooringProcessor:
         self,
         instrument_config: Dict[str, Any],
         yaml_data: Dict[str, Any],
-        input_dir: Path,
+        input_dir: Optional[Path],
         output_path: Path,
         mooring_name: str,
         force: bool = False,
+        raw_mooring_dir: Optional[Path] = None,
     ) -> bool:
         """Process one instrument entry from the mooring YAML.
 
@@ -1230,6 +1269,10 @@ class MooringProcessor:
         that one failed instrument does not abort the whole mooring.
 
         Returns True on success or skip, False on error or missing filename.
+
+        When ``raw_mooring_dir`` is provided (new-layout mode), the input file
+        is resolved as ``raw_mooring_dir / instrument_name / filename`` instead
+        of the legacy ``input_dir / instrument_name / mooring_name / filename``.
         """
         instrument_name = instrument_config.get("instrument", "unknown")
         serial = instrument_config.get("serial", "unknown")
@@ -1253,7 +1296,12 @@ class MooringProcessor:
         serial = str(instrument_config.get("serial", "unknown"))
         _status("instr", f"{instrument_name} {serial}")
 
-        input_file = input_dir / instrument_name / mooring_name / filename
+        if raw_mooring_dir is not None:
+            # New layout: {raw_dir}/{mooring}/{instrument}/filename
+            input_file = raw_mooring_dir / instrument_name / filename
+        else:
+            # Legacy layout: {base_dir}/raw/{instrument}/{mooring}/filename
+            input_file = input_dir / instrument_name / mooring_name / filename
 
         # Create output directory
         output_inst_dir = output_path / instrument_name
@@ -1268,8 +1316,7 @@ class MooringProcessor:
 
         # Skip if output file already exists (unless forced)
         if output_file.exists() and not force:
-            relative_path = output_file.relative_to(self.base_dir)
-            _status("skip", str(relative_path))
+            _status("skip", self._rel(output_file))
             return True
 
         # Process the file
@@ -1281,10 +1328,10 @@ class MooringProcessor:
                 instrument_config,
                 yaml_data,
                 input_dir,
+                raw_mooring_dir=raw_mooring_dir,
             )
         except Exception as e:
-            relative_input = input_file.relative_to(self.base_dir)
-            self._log_print(f"ERROR: Failed to process {relative_input}: {e}")
+            self._log_print(f"ERROR: Failed to process {self._rel(input_file)}: {e}")
             return False
 
     def _read_and_write_file(
@@ -1294,7 +1341,8 @@ class MooringProcessor:
         file_type: str,
         instrument_config: Dict[str, Any],
         yaml_data: Dict[str, Any],
-        input_dir: Path,
+        input_dir: Optional[Path],
+        raw_mooring_dir: Optional[Path] = None,
     ) -> bool:
         """Read one raw instrument file, enrich the dataset, and write Stage 1 NetCDF.
 
@@ -1326,7 +1374,13 @@ class MooringProcessor:
         if file_type in ("nortek-aqd", "nortek-ascii", "nortek-csv") and header_key:
             instrument_name = instrument_config.get("instrument", "unknown")
             mooring_name = yaml_data.get("name", "")
-            header_file = str(input_dir / instrument_name / mooring_name / header_key)
+            if raw_mooring_dir is not None:
+                # New layout: header sits next to the data file
+                header_file = str(raw_mooring_dir / instrument_name / header_key)
+            else:
+                header_file = str(
+                    input_dir / instrument_name / mooring_name / header_key
+                )
 
         # Normalize date format for sbe-ascii files if needed
         read_path = input_file
@@ -1337,11 +1391,10 @@ class MooringProcessor:
         try:
             dataset = self._read_file(file_type, str(read_path), header_file)
         except Exception as e:
-            relative_path = input_file.relative_to(self.base_dir)
-            self._log_print(f"EXCEPT: Error reading file {relative_path}: {e}")
+            self._log_print(f"EXCEPT: Error reading file {self._rel(input_file)}: {e}")
             return False
 
-        relative_output = output_file.relative_to(self.base_dir)
+        relative_output = self._rel(output_file)
 
         # For rdi-raw: reshape vel/quality arrays and extract instrument metadata
         if file_type == "rdi-raw":
@@ -1501,15 +1554,18 @@ class MooringProcessor:
             bool: True if processing completed successfully, False otherwise
 
         """
-        # Set up paths
-        if output_path is None:
-            proc = self.base_dir / "proc"
-            if not proc.is_dir():
-                legacy = self.base_dir / "moor" / "proc"
-                proc = legacy if legacy.is_dir() else proc
-            output_path = proc / mooring_name
+        # Set up paths — legacy (base_dir) or new (raw_dir + proc_dir)
+        if self._legacy:
+            if output_path is None:
+                proc = self.base_dir / "proc"
+                if not proc.is_dir():
+                    legacy_proc = self.base_dir / "moor" / "proc"
+                    proc = legacy_proc if legacy_proc.is_dir() else proc
+                output_path = proc / mooring_name
+            else:
+                output_path = Path(output_path) / mooring_name
         else:
-            output_path = Path(output_path) / mooring_name
+            output_path = self._proc_dir / mooring_name
 
         output_path.mkdir(parents=True, exist_ok=True)
 
@@ -1517,7 +1573,7 @@ class MooringProcessor:
         self._setup_logging(mooring_name, output_path)
         self._log_print(f"Processing mooring: {mooring_name}")
 
-        # Load configuration
+        # Load configuration — always from proc dir (YAML lives alongside NC outputs)
         config_file = output_path / f"{mooring_name}.mooring.yaml"
         if not config_file.exists():
             self._log_print(f"ERROR: Configuration file not found: {config_file}")
@@ -1529,10 +1585,33 @@ class MooringProcessor:
             self._log_print(f"ERROR: Failed to load configuration: {e}")
             return False
 
-        # Set up input directory — 'directory' key optional, defaults to 'raw'
-        input_dir = self.base_dir / yaml_data.get("directory", "raw")
-        if not input_dir.exists():
+        # Set up input directory
+        if self._legacy:
+            # Old layout: {base_dir}/{directory}/{instrument}/{mooring}/filename
+            input_dir = self.base_dir / yaml_data.get("directory", "raw")
+            raw_mooring_dir = None
+        else:
+            # New layout: {raw_dir}/{mooring}/{instrument}/filename
+            # directory: in YAML acts as absolute-path override
+            yaml_dir_override = yaml_data.get("directory")
+            if yaml_dir_override and Path(yaml_dir_override).is_absolute():
+                input_dir = Path(yaml_dir_override)
+                self._log_print(
+                    f"WARNING: using 'directory: {yaml_dir_override}' from YAML "
+                    f"as raw root override (ignoring --raw-dir)"
+                )
+                raw_mooring_dir = None
+            else:
+                input_dir = None
+                raw_mooring_dir = self._raw_dir / mooring_name
+
+        if input_dir is not None and not input_dir.exists():
             self._log_print(f"ERROR: Input directory not found: {input_dir}")
+            return False
+        if raw_mooring_dir is not None and not raw_mooring_dir.exists():
+            self._log_print(
+                f"ERROR: Raw mooring directory not found: {raw_mooring_dir}"
+            )
             return False
 
         # Process each instrument — support both 'instruments' (legacy) and 'clamp' (new format).
@@ -1569,6 +1648,7 @@ class MooringProcessor:
                 output_path,
                 mooring_name,
                 force=force,
+                raw_mooring_dir=raw_mooring_dir,
             )
             if success:
                 success_count += 1
