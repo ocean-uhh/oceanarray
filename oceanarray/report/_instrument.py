@@ -696,7 +696,7 @@ def generate_instrument_pages(
             ),
             "fig_adcp_rose_b64": (
                 _make_adcp_rose_b64(best_nc)
-                if best_nc and instr_type.lower() == "adcp"
+                if best_nc and instr_type.lower() in ("adcp", "rdi")
                 else None
             ),
             "fig_trajectory_b64": (

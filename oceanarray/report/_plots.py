@@ -1244,8 +1244,7 @@ def _make_grid_rotary_spectrum_b64(
                     noverlap=noverlap, detrend="linear", scaling="density",
                 )
                 f_uu, p_uu = _signal.welch(u_col, **_kw)
-                _kw2 = _kw.copy()
-                _, p_vv = _signal.welch(v_col, **_kw2)
+                _, p_vv = _signal.welch(v_col, **_kw)
                 _, c_uv = _signal.csd(u_col, v_col, **_kw)
                 # Gonella (1972) rotary decomposition
                 q_uv = np.imag(c_uv)
