@@ -625,6 +625,8 @@ The latitude and longitude datum is WGS84. This is the default output of GPS sys
 
 Many coordinate variables for ocean data are nominal; an anchor position, or a vertical position on a mooring chain. When there is supplemental data, like a GPS time series or a pressure measurement from one instrument, it may be provided as a data variable, and may be given an 'axis' attribute, but does not need to be specified as a coordinate.
 
+.. _oceansites-25-data-variables:
+
 2.5 Data variables
 ------------------
 
@@ -776,6 +778,8 @@ Format for date and time attributes: Use ISO 8601combined date and time represen
 
 Accuracy is the closeness of the variable to the actual value; precision is the repeatability of the measurement, and resolution is the fineness to which the value can be displayed. Uncertainty combines accuracy and precision and is not to be confused with the sensor accuracy given by a manufacturer. These terms may be provided as attributes to the target data variables if they are constant over the dataset, or may be provided as ancillary variables if they change over depth or time.
 
+.. _oceansites-26-qc-variables:
+
 2.6 Quality control variables
 -----------------------------
 
@@ -893,6 +897,8 @@ as well as the quality indicator variables, e.g.
     TEMP_uncertainty:technique_title = "How to process mooring data? A cookbook for MicroCat, ADCP and RCM data"
     TEMP_uncertainty:technique_DOI = "DOI:10.13140/RG.2.1.2514.7044"
 
+.. _oceansites-3-reference-tables:
+
 3. Reference tables
 ===================
 
@@ -909,6 +915,8 @@ The data_type global attribute should have one of the valid values listed here.
    * - OceanSITES profile data
    * - OceanSITES time-series data
    * - OceanSITES trajectory data
+
+.. _oceansites-32-qc-flags:
 
 3.2 Reference table 2: QC_indicator
 ------------------------------------

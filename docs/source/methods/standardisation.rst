@@ -252,7 +252,7 @@ Standardised files from Stage 1 serve as input to subsequent processing steps:
 
 - **Stage 2**: :doc:`trimming` - Remove pre/post deployment data
 - **Stage 3**: :doc:`calibration` - Apply post-cruise calibration offsets
-- **Later stages**: :doc:`filtering`, :doc:`gridding`, :doc:`stitching` for array products
+- **Later stages**: :doc:`time_gridding`, :doc:`vertical_gridding`, :doc:`concatenation` for array products
 
 The consistent structure created during standardisation ensures that all downstream processing tools can operate on any instrument dataset without format-specific modifications.
 

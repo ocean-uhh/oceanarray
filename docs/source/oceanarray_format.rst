@@ -484,7 +484,7 @@ NetCDF coordinates are a special subset of variables. Coordinate variables orien
 
 Data variables contain the actual measurements and information about their quality, uncertainty, and mode by which they were obtained.
 
-**Reference**: See OceanSITES data variables in :ref:`oceanSITES data variables <oceansites-manual:2.5 Data variables>`.
+**Reference**: See :ref:`OceanSITES data variables <oceansites-25-data-variables>` in the OceanSITES manual.
 
 **Standard Structure**:
 
@@ -501,7 +501,7 @@ Data variables contain the actual measurements and information about their quali
 
 Each measured parameter should have an associated quality control variable with suffix "_QC".
 
-**Reference**: See OceanSITES QC variables in :ref:`oceanSITES QC variables <oceansites-manual:2.6 Quality control variables>`.
+**Reference**: See :ref:`OceanSITES QC variables <oceansites-26-qc-variables>` in the OceanSITES manual.
 
 **QC Structure**:
 
@@ -555,12 +555,12 @@ All units must follow the UDUNITS-2 standard:
      - ``sverdrup``
      - 1 Sv = 10^6 m³/s (note: not ``sv`` to avoid conflict with sievert)
 
-**Reference**: See OceanSITES units in :ref:`oceanSITES reference tables <oceansites-manual:3. Reference tables>`.
+**Reference**: See :ref:`OceanSITES reference tables <oceansites-3-reference-tables>` in the OceanSITES manual.
 
 8.2. QC Flag Values
 --------------------
 
-**Reference**: See complete QC flags in :ref:`oceanSITES QC flags <oceansites-manual:3.2 Reference table 2: QC_indicator>`.
+**Reference**: See :ref:`OceanSITES QC flags <oceansites-32-qc-flags>` in the OceanSITES manual.
 
 .. list-table:: QC Flag Meanings
    :widths: 10 30 60
@@ -597,7 +597,7 @@ All units must follow the UDUNITS-2 standard:
 8.3. Processing Levels
 -----------------------
 
-**Reference**: See OceanSITES processing levels in :ref:`oceanSITES processing levels <oceansites-manual:3.3 Reference table 3: Processing level>`.
+**Reference**: See :ref:`OceanSITES processing levels <oceansites-processing-levels>` in the OceanSITES manual.
 
 Standard processing level descriptions for the ``processing_level`` attribute:
 

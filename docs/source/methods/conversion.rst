@@ -14,7 +14,7 @@ The AC1 format is produced by the ``amocarray.convert.to_AC1()`` function and is
 
 It is based on OceanSITES NetCDF conventions (see `OceanSITES reference manual <https://www.ocean-ops.org/oceansites/docs/oceansites_data_format_reference_manual.pdf>`_), with adaptations for AMOC-specific use.
 
-See also: :doc:`format_oceanSITES`.
+See also: :doc:`../oceanarray_format`.
 
 2. File Format
 --------------

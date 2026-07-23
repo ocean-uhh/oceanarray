@@ -10,7 +10,9 @@ import numpy as np
 from ._html_helpers import _nav_buttons_html, _parse_history, _read_nc_metadata, _status
 from ._plots import (
     _make_grid_hydro_b64,
+    _make_grid_hodograph_b64,
     _make_grid_rose_b64,
+    _make_grid_rotary_spectrum_b64,
     _make_grid_sigma_b64,
     _make_grid_timeseries_b64,
     _make_grid_trajectory_b64,
@@ -122,10 +124,12 @@ _GRID_HTML_TEMPLATE = """\
   {% if fig_ts_grid_b64 %}<a href="#ts">T-S diagram</a>{% endif %}
   {% if fig_vel_iqr_b64 %}<a href="#vel-iqr">Velocity profiles</a>{% endif %}
   {% if fig_grid_rose_b64 %}<a href="#grid-rose">Current roses</a>{% endif %}
+  {% if fig_grid_hodograph_b64 %}<a href="#grid-hodograph">Hodograph</a>{% endif %}
   {% if fig_grid_traj_b64 %}<a href="#grid-traj">Particle trajectory</a>{% endif %}
   {% if fig_grid_ts_b64 %}<a href="#grid-ts">Velocity time series</a>{% endif %}
   {% if fig_sigma_b64 or fig_n2_b64 %}<a href="#strat">Stratification</a>{% endif %}
   {% if fig_spectrum_b64 %}<a href="#spectrum">Power spectrum</a>{% endif %}
+  {% if fig_rotary_b64 %}<a href="#rotary">Rotary spectrum</a>{% endif %}
   <a href="#vars">Variables</a>
 </nav>
 
@@ -183,6 +187,15 @@ _GRID_HTML_TEMPLATE = """\
 <p class="note">One rose per pressure level (up to 12, evenly subsampled). Suspect/bad QC excluded. Each petal shows the fraction of time current flowed in that direction; petal length encodes speed (m s⁻¹).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,{{ fig_grid_rose_b64 }}" alt="Current roses by pressure level">
+</details>
+{% endif %}
+
+<!-- ══ Hodograph ══ -->
+{% if fig_grid_hodograph_b64 %}
+<h2 id="grid-hodograph">Hodograph</h2>
+<p class="note">Current hodographs at two pressure levels (25th and 75th percentile of the valid range). Top row = shallower level; bottom row = deeper level. Left = Tukey-smoothed raw; right = eddy component (LP mean removed). Colour indicates fractional time through the deployment (lime circle = start, red square = end). QC-bad data excluded.</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,{{ fig_grid_hodograph_b64 }}" alt="Hodograph at two pressure levels">
 </details>
 {% endif %}
 
@@ -246,6 +259,14 @@ _GRID_HTML_TEMPLATE = """\
 <p class="note">Welch PSD (Hann window, 14-day segments, 50% overlap). One line per depth level; colour indicates pressure (shallow = light blue, deep = dark blue). Dashed vertical lines mark tidal and inertial frequencies. Dashed black line: &minus;2 spectral slope reference.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,{{ fig_spectrum_b64 }}" alt="Temperature power spectrum">
+</details>
+{% endif %}
+
+{% if fig_rotary_b64 %}
+<h2 id="rotary">Rotary velocity spectrum</h2>
+<p class="note">CW (clockwise, solid red lines) and CCW (counter-clockwise, dashed blue lines) power spectra and rotary coefficient r&nbsp;=&nbsp;(CCW&minus;CW)/(CCW+CW). Welch PSD, Hann window, 14-day segments, 50&nbsp;% overlap. Up to 4 pressure levels (at most 1/5th of valid levels); colour encodes pressure depth. Vertical lines: M2, K1, 1.8&nbsp;d, 4&nbsp;d, and inertial period (f). r&nbsp;&gt;&nbsp;0&nbsp;=&nbsp;CCW dominant; r&nbsp;&lt;&nbsp;0&nbsp;=&nbsp;CW dominant. Physical interpretation (NH): inertial oscillations are inherently CW; for internal waves (f&nbsp;&lt;&nbsp;&omega;), CW dominance indicates upward energy propagation / downward phase propagation (Leaman &amp; Sanford 1975).</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,{{ fig_rotary_b64 }}" alt="Rotary velocity spectrum">
 </details>
 {% endif %}
 
@@ -378,6 +399,7 @@ def generate_grid_page(
 
         fig_vel_iqr_b64 = _make_velocity_iqr_profile_b64(ds)
         fig_grid_rose_b64 = _make_grid_rose_b64(ds)
+        fig_grid_hodograph_b64 = _make_grid_hodograph_b64(ds)
         fig_grid_traj_b64 = _make_grid_trajectory_b64(ds)
         fig_grid_ts_b64 = _make_grid_timeseries_b64(ds)
         fig_ts_grid_b64 = _make_grid_ts_diagram(ds)
@@ -431,22 +453,24 @@ def generate_grid_page(
             )
 
         fig_spectrum_b64 = None
+        _lat = 0.0
+        for _lat_key in ("seabed_latitude", "deployment_latitude", "latitude"):
+            _lv = ds.attrs.get(_lat_key)
+            if _lv is not None:
+                try:
+                    from ..mooring_level import _dms_to_deg
+
+                    _lat = _dms_to_deg(str(_lv))
+                    break
+                except Exception:
+                    pass
         if "temperature" in ds:
             _dt_s = float(ds.attrs.get("dt_seconds", 3600))
-            _lat = 0.0
-            for _lat_key in ("seabed_latitude", "deployment_latitude", "latitude"):
-                _lv = ds.attrs.get(_lat_key)
-                if _lv is not None:
-                    try:
-                        from ..mooring_level import _dms_to_deg
-
-                        _lat = _dms_to_deg(str(_lv))
-                        break
-                    except Exception:
-                        pass
             fig_spectrum_b64 = _make_spectrum_fig_b64(
                 ds["temperature"], _dt_s, lat=_lat
             )
+
+        fig_rotary_b64 = _make_grid_rotary_spectrum_b64(ds, lat=_lat)
 
         ds.close()
 
@@ -485,9 +509,11 @@ def generate_grid_page(
             fig_sigma_b64=fig_sigma_b64,
             fig_vel_iqr_b64=fig_vel_iqr_b64,
             fig_grid_rose_b64=fig_grid_rose_b64,
+            fig_grid_hodograph_b64=fig_grid_hodograph_b64,
             fig_grid_traj_b64=fig_grid_traj_b64,
             fig_grid_ts_b64=fig_grid_ts_b64,
             fig_spectrum_b64=fig_spectrum_b64,
+            fig_rotary_b64=fig_rotary_b64,
             fig_ts_grid_b64=fig_ts_grid_b64,
             fig_n2_b64=fig_n2_b64,
             latitude=ctx.get("latitude", "—"),
