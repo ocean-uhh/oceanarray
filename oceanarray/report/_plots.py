@@ -1023,8 +1023,7 @@ def _make_spectrum_fig_b64(
         # Select at most 8 evenly-spaced valid levels
         _MAX_LEVELS = 8
         valid_lev_idx = [
-            k for k in range(n_lev)
-            if np.sum(np.isfinite(arr[k, :])) >= segment_length
+            k for k in range(n_lev) if np.sum(np.isfinite(arr[k, :])) >= segment_length
         ]
         if len(valid_lev_idx) > _MAX_LEVELS:
             sel = np.linspace(0, len(valid_lev_idx) - 1, _MAX_LEVELS, dtype=int)
@@ -1210,7 +1209,8 @@ def _make_grid_rotary_spectrum_b64(
 
         # Valid levels: both u and v have ≥ segment_length finite values
         valid_lev_idx = [
-            k for k in range(n_lev)
+            k
+            for k in range(n_lev)
             if np.sum(np.isfinite(arr_u[k, :])) >= segment_length
             and np.sum(np.isfinite(arr_v[k, :])) >= segment_length
         ]
@@ -1240,8 +1240,12 @@ def _make_grid_rotary_spectrum_b64(
                 col[:] = np.interp(np.arange(n_time), np.where(good)[0], col[good])
             else:
                 _kw = dict(
-                    fs=fs, window="hann", nperseg=segment_length,
-                    noverlap=noverlap, detrend="linear", scaling="density",
+                    fs=fs,
+                    window="hann",
+                    nperseg=segment_length,
+                    noverlap=noverlap,
+                    detrend="linear",
+                    scaling="density",
                 )
                 f_uu, p_uu = _signal.welch(u_col, **_kw)
                 _, p_vv = _signal.welch(v_col, **_kw)
@@ -1299,16 +1303,26 @@ def _make_grid_rotary_spectrum_b64(
             cw_col = cmap_cw(norm_p(p))
             ccw_col = cmap_ccw(norm_p(p))
             ax_spec.loglog(period_plot, s_cw[fmask], color=cw_col, lw=1.0, alpha=0.85)
-            ax_spec.loglog(period_plot, s_ccw[fmask], color=ccw_col, lw=1.0, alpha=0.85, ls="--")
+            ax_spec.loglog(
+                period_plot, s_ccw[fmask], color=ccw_col, lw=1.0, alpha=0.85, ls="--"
+            )
 
         trans1 = blended_transform_factory(ax_spec.transData, ax_spec.transAxes)
         for label, period_d, color in markers:
             if x_min <= period_d <= x_max:
                 ax_spec.axvline(period_d, color=color, lw=1.0, ls=":", alpha=0.65)
                 ax_spec.text(
-                    period_d, 0.03, label, rotation=90, va="bottom", ha="center",
-                    color=color, transform=trans1,
-                    bbox=dict(boxstyle="round,pad=0.1", fc="white", ec="none", alpha=0.6),
+                    period_d,
+                    0.03,
+                    label,
+                    rotation=90,
+                    va="bottom",
+                    ha="center",
+                    color=color,
+                    transform=trans1,
+                    bbox=dict(
+                        boxstyle="round,pad=0.1", fc="white", ec="none", alpha=0.6
+                    ),
                 )
         ax_spec.set_xlim(x_max, x_min)
         ax_spec.set_xlabel("Period (days)")
@@ -1328,16 +1342,26 @@ def _make_grid_rotary_spectrum_b64(
 
         # Panel 2: Rotary coefficient r
         for r, p in zip(r_list, press_plotted):
-            ax_rot.semilogx(period_plot, r[fmask], color=cmap_ccw(norm_p(p)), lw=1.0, alpha=0.85)
+            ax_rot.semilogx(
+                period_plot, r[fmask], color=cmap_ccw(norm_p(p)), lw=1.0, alpha=0.85
+            )
 
         trans2 = blended_transform_factory(ax_rot.transData, ax_rot.transAxes)
         for label, period_d, color in markers:
             if x_min <= period_d <= x_max:
                 ax_rot.axvline(period_d, color=color, lw=1.0, ls=":", alpha=0.65)
                 ax_rot.text(
-                    period_d, 0.03, label, rotation=90, va="bottom", ha="center",
-                    color=color, transform=trans2,
-                    bbox=dict(boxstyle="round,pad=0.1", fc="white", ec="none", alpha=0.6),
+                    period_d,
+                    0.03,
+                    label,
+                    rotation=90,
+                    va="bottom",
+                    ha="center",
+                    color=color,
+                    transform=trans2,
+                    bbox=dict(
+                        boxstyle="round,pad=0.1", fc="white", ec="none", alpha=0.6
+                    ),
                 )
         ax_rot.axhline(0, color="k", lw=0.8, ls="--", alpha=0.5)
         ax_rot.set_xlim(x_max, x_min)
@@ -1345,10 +1369,24 @@ def _make_grid_rotary_spectrum_b64(
         ax_rot.set_xlabel("Period (days)")
         ax_rot.set_ylabel("Rotary coefficient r")
         ax_rot.set_title("r = (CCW − CW) / (CCW + CW)")
-        ax_rot.text(0.02, 0.97, "CCW dominant (r > 0)", transform=ax_rot.transAxes,
-                    va="top", ha="left", color="steelblue")
-        ax_rot.text(0.02, 0.05, "CW dominant (r < 0)", transform=ax_rot.transAxes,
-                    va="bottom", ha="left", color="#c0392b")
+        ax_rot.text(
+            0.02,
+            0.97,
+            "CCW dominant (r > 0)",
+            transform=ax_rot.transAxes,
+            va="top",
+            ha="left",
+            color="steelblue",
+        )
+        ax_rot.text(
+            0.02,
+            0.05,
+            "CW dominant (r < 0)",
+            transform=ax_rot.transAxes,
+            va="bottom",
+            ha="left",
+            color="#c0392b",
+        )
         sm_ccw = plt.cm.ScalarMappable(cmap=cmap_ccw, norm=norm_p)
         sm_ccw.set_array([])
         cbar_ccw = fig.colorbar(sm_ccw, ax=ax_rot, pad=0.03, shrink=0.85)
@@ -3145,12 +3183,24 @@ def _draw_hodograph_pair(
 
         # Start (lime circle) and end (red square) markers
         ax.scatter(
-            e_v[0], n_v[0],
-            s=50, c="lime", marker="o", edgecolors="black", linewidths=0.7, zorder=5,
+            e_v[0],
+            n_v[0],
+            s=50,
+            c="lime",
+            marker="o",
+            edgecolors="black",
+            linewidths=0.7,
+            zorder=5,
         )
         ax.scatter(
-            e_v[-1], n_v[-1],
-            s=55, c="red", marker="s", edgecolors="black", linewidths=0.7, zorder=5,
+            e_v[-1],
+            n_v[-1],
+            s=55,
+            c="red",
+            marker="s",
+            edgecolors="black",
+            linewidths=0.7,
+            zorder=5,
         )
         ax.set_xlim(-lim, lim)
         ax.set_ylim(-lim, lim)
@@ -3307,12 +3357,8 @@ def _make_adcp_hodograph_b64(
 
         with xr.open_dataset(nc_path, decode_timedelta=False) as ds:
             # Support both canonical names and legacy dolfyn names
-            u_var = next(
-                (v for v in ("east_velocity", "u") if v in ds), None
-            )
-            v_var = next(
-                (v for v in ("north_velocity", "v") if v in ds), None
-            )
+            u_var = next((v for v in ("east_velocity", "u") if v in ds), None)
+            v_var = next((v for v in ("north_velocity", "v") if v in ds), None)
             if u_var is None or v_var is None:
                 return None
 
@@ -3374,16 +3420,26 @@ def _make_adcp_hodograph_b64(
         fig.subplots_adjust(hspace=0.55, wspace=0.45)
 
         _draw_hodograph_pair(
-            axes[0, 0], axes[0, 1],
-            east_2d[:, i_far], north_2d[:, i_far],
+            axes[0, 0],
+            axes[0, 1],
+            east_2d[:, i_far],
+            north_2d[:, i_far],
             f"Far bin ({label_far})",
-            smooth_hours, lp_days, units, dt_s,
+            smooth_hours,
+            lp_days,
+            units,
+            dt_s,
         )
         _draw_hodograph_pair(
-            axes[1, 0], axes[1, 1],
-            east_2d[:, i_near], north_2d[:, i_near],
+            axes[1, 0],
+            axes[1, 1],
+            east_2d[:, i_near],
+            north_2d[:, i_near],
             f"Near bin ({label_near})",
-            smooth_hours, lp_days, units, dt_s,
+            smooth_hours,
+            lp_days,
+            units,
+            dt_s,
         )
 
         b64 = _fig_to_base64(fig)
@@ -3466,16 +3522,26 @@ def _make_grid_hodograph_b64(
         fig.subplots_adjust(hspace=0.55, wspace=0.45)
 
         _draw_hodograph_pair(
-            axes[0, 0], axes[0, 1],
-            east_2d[:, i_shallow], north_2d[:, i_shallow],
+            axes[0, 0],
+            axes[0, 1],
+            east_2d[:, i_shallow],
+            north_2d[:, i_shallow],
             f"Shallow ({label_shallow})",
-            smooth_hours, lp_days, units, dt_s,
+            smooth_hours,
+            lp_days,
+            units,
+            dt_s,
         )
         _draw_hodograph_pair(
-            axes[1, 0], axes[1, 1],
-            east_2d[:, i_deep], north_2d[:, i_deep],
+            axes[1, 0],
+            axes[1, 1],
+            east_2d[:, i_deep],
+            north_2d[:, i_deep],
             f"Deep ({label_deep})",
-            smooth_hours, lp_days, units, dt_s,
+            smooth_hours,
+            lp_days,
+            units,
+            dt_s,
         )
 
         b64 = _fig_to_base64(fig)
