@@ -23,6 +23,7 @@ import yaml
 from oceanarray.stage2 import (
     Stage2Processor,
     _parse_clock_str,
+    detect_deployment_window,
     process_multiple_moorings_stage2,
     stage2_mooring,
 )
@@ -561,6 +562,38 @@ class TestConvenienceFunctions:
         expected = {"mooring1": True, "mooring2": False, "mooring3": True}
         assert results == expected
         assert mock_processor.process_mooring.call_count == 3
+
+
+class TestDetectDeploymentWindow:
+    """Tests for the detect_deployment_window function."""
+
+    def test_bench_data_in_middle_window(self):
+        """Bench data in the first/last 25 % does not prevent correct detection.
+
+        Synthetic pressure: 50 bench samples (0 dbar) + 200 deployed samples
+        (1200 dbar) + 50 bench samples (0 dbar).  The old fixed-12h algorithm
+        failed on this layout; the new middle-50 % approach must detect start at
+        index 50 and end at index 249.
+        """
+        n_bench = 50
+        n_deploy = 200
+        pressure = np.array([0.0] * n_bench + [1200.0] * n_deploy + [0.0] * n_bench)
+        time = pd.date_range("2026-05-01", periods=len(pressure), freq="30min")
+        ds = xr.Dataset({"pressure": ("time", pressure), "time": time})
+
+        sug_start, sug_end, source = detect_deployment_window(ds)
+
+        assert source == "pressure_pmin10dbar", f"unexpected source: {source}"
+        assert sug_start is not None, "start should be detected"
+        assert sug_end is not None, "end should be detected"
+        # start should be at index 50 (first deployed sample)
+        assert sug_start == ds["time"].values[50], (
+            f"expected start at index 50 ({ds['time'].values[50]}), got {sug_start}"
+        )
+        # end should be at index 249 (last deployed sample)
+        assert sug_end == ds["time"].values[249], (
+            f"expected end at index 249 ({ds['time'].values[249]}), got {sug_end}"
+        )
 
 
 class TestErrorHandling:

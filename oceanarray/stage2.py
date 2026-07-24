@@ -87,6 +87,195 @@ def _append_history(dataset: xr.Dataset, note: str) -> None:
     dataset.attrs["history"] = f"{existing}; {entry}" if existing else entry
 
 
+def detect_deployment_window(
+    ds: xr.Dataset,
+) -> tuple[Optional[np.datetime64], Optional[np.datetime64], str]:
+    """Estimate the deployed in-water window from a stage1 pressure record.
+
+    .. important:: **Returns ``(None, None, ...)`` when no pressure data are
+       available.**  The caller must check for ``None`` before using the result.
+       Suggested times are **not** written to the output file when pressure is
+       absent — instruments without pressure receive no ``suggested_*`` attrs.
+
+    .. important:: **All non-None timestamps are in the raw instrument clock.**
+
+       The input *ds* is a stage 1 dataset whose ``"time"`` coordinate carries
+       the uncorrected instrument clock.  Add the YAML ``clock_offset`` to
+       convert to UTC for copy-pasting into the YAML.
+
+    **Pressure-based algorithm** (middle-50 % pmin + 10 dbar):
+
+    1. **Middle-50 % reference window**: skip the first and last 25 % of the
+       record by time.  This excludes any bench / surface period at either end
+       regardless of its length, while avoiding a ``pmax``-based threshold that
+       would be biased by knockdown events (which push instruments *deeper* than
+       the nominal deployment depth).
+    2. ``pmin_deployed`` = 1st-percentile of pressure within that middle window
+       (robust to brief sensor-zero artefacts that would drag the absolute
+       minimum to ~0 dbar and make the threshold negative).
+    3. ``threshold`` = ``pmin_deployed − 10`` dbar.
+    4. **Opening search window**: the first 25 % of the record by time (mirrors
+       the middle window, long enough to cover multi-day bench periods).
+    5. **Closing search window**: the last 25 % of the record by time.
+    6. **Start**: last sample at or below the threshold in the opening window
+       → the *next* sample is the suggested deployment start.
+    7. **End**: first sample at or below the threshold in the closing window
+       → the *preceding* sample is the suggested recovery end.
+
+    This approach avoids two known failure modes of the original "skip
+    first/last 12 h" middle window:
+
+    * **Bench data in the middle window**: if an instrument recorded for days on
+      deck before deployment, the 12 h skip was too short and ``pmin`` would
+      equal the bench pressure (≈ 0 dbar), driving ``threshold`` negative so
+      that nothing ever satisfied it.
+    * **``pmax``-based threshold biased by knockdown**: using ``0.5 × pmax``
+      as a conservative-window threshold is biased because knockdowns push
+      instruments *deeper* than their nominal position, inflating ``pmax``
+      above the nominal deployment pressure.  ``0.5 × pmax`` therefore sits
+      *deeper* than intended, delaying the start of the conservative window.
+      The middle-50 % approach uses the typical deployed pressure (median
+      region of the time series), not the occasional extreme.
+
+    Returns ``(None, None, "no_pressure")`` when the dataset has no
+    ``"pressure"`` variable, fewer than 10 records, all-NaN pressure, the
+    middle window is empty, or the algorithm cannot produce a valid window.
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        Stage 1 dataset.  Must contain a ``"time"`` coordinate in the raw
+        instrument clock.  The ``"pressure"`` variable (dbar) is required.
+
+    Returns
+    -------
+    tuple[Optional[np.datetime64], Optional[np.datetime64], str]
+        ``(sug_start, sug_end, source)`` where *source* is
+        ``"pressure_pmin10dbar"`` on success or ``"no_pressure"`` when no
+        valid pressure data are available.
+
+    """
+    time = ds["time"].values
+    n = len(time)
+
+    if "pressure" not in ds.data_vars or n < 10:
+        return None, None, "no_pressure"
+
+    p = ds["pressure"].values.astype(float)
+
+    # ── Middle-50 % reference window (skip first/last 25 % by index) ─────────
+    i_lo = int(0.25 * n)
+    i_hi = int(0.75 * n)
+    mid_mask = np.zeros(n, dtype=bool)
+    mid_mask[i_lo:i_hi] = True
+
+    p_mid_finite = p[mid_mask & np.isfinite(p)]
+    if p_mid_finite.size == 0:
+        return None, None, "no_pressure"
+
+    # 1st percentile: robust to brief sensor-zero artefacts in the deployed
+    # record that would drag the absolute minimum to ~0 dbar.
+    pmin_deployed = float(np.nanpercentile(p_mid_finite, 1))
+    threshold = pmin_deployed - 10.0
+
+    # ── Search windows: first/last 25 % of record ────────────────────────────
+    # Proportional windows cover multi-day bench periods that a fixed 12 h
+    # window would miss.
+    start_window = np.zeros(n, dtype=bool)
+    start_window[:i_lo] = True  # first 25 %
+    end_window = np.zeros(n, dtype=bool)
+    end_window[i_hi:] = True  # last 25 %
+
+    below = np.isfinite(p) & (p <= threshold)
+
+    # Start: last below-threshold sample in opening window → next sample
+    idx_start = np.where(below & start_window)[0]
+    start_idx = min(int(idx_start[-1]) + 1, n - 1) if idx_start.size > 0 else 0
+
+    # End: first below-threshold sample in closing window → previous sample
+    idx_end = np.where(below & end_window)[0]
+    if idx_end.size > 0:
+        end_idx = max(int(idx_end[0]) - 1, 0)
+    else:
+        import logging as _logging
+
+        _logging.getLogger(__name__).warning(
+            "detect_deployment_window: no recovery pressure transition detected "
+            "in last 25 %% of record — suggested end = last stage1 sample (%s). "
+            "If the YAML recovery_time is set earlier than this, the orange vline "
+            "will fall outside the 6 h end-window and be invisible.",
+            time[n - 1],
+        )
+        end_idx = n - 1
+
+    if start_idx >= end_idx:
+        return None, None, "no_pressure"
+
+    return time[start_idx], time[end_idx], "pressure_pmin10dbar"
+
+
+def _find_nonnull_bounds(
+    dataset: xr.Dataset,
+) -> tuple[np.datetime64, np.datetime64]:
+    """Return (first_nonnull_time, last_nonnull_time) using a variable priority hierarchy.
+
+    Priority: pressure > temperature > any variable with 'velocity' or 'turbidity' in
+    its name > any other 1-D time-dimension variable.  Falls back to the first/last
+    timestamps if no finite values are found.
+
+    .. important:: Returns times in whatever clock the dataset carries — for stage 1
+       input this is the **raw instrument clock** (uncorrected).
+
+    Parameters
+    ----------
+    dataset : xr.Dataset
+        Dataset whose ``"time"`` coordinate is used for indexing.
+
+    Returns
+    -------
+    tuple[np.datetime64, np.datetime64]
+        ``(first_nonnull, last_nonnull)`` timestamps from the chosen variable.
+
+    """
+    time = dataset["time"].values
+    n = len(time)
+
+    # Choose the representative variable using the priority hierarchy
+    var: Optional[str] = None
+    if "pressure" in dataset.data_vars and dataset["pressure"].dims == ("time",):
+        var = "pressure"
+    elif "temperature" in dataset.data_vars and dataset["temperature"].dims == (
+        "time",
+    ):
+        var = "temperature"
+
+    if var is None:
+        for v in dataset.data_vars:
+            if dataset[v].dims == ("time",) and any(
+                k in v for k in ("velocity", "turbidity")
+            ):
+                var = v
+                break
+
+    if var is None:
+        for v in dataset.data_vars:
+            if dataset[v].dims == ("time",):
+                var = v
+                break
+
+    if var is None:
+        return time[0], time[-1]
+
+    vals = np.asarray(dataset[var].values, dtype=float)
+    finite_mask = np.isfinite(vals)
+    if not finite_mask.any():
+        return time[0], time[-1]
+
+    first_idx = int(np.argmax(finite_mask))
+    last_idx = int(n - 1 - np.argmax(finite_mask[::-1]))
+    return time[first_idx], time[last_idx]
+
+
 class Stage2Processor:
     """Handles Stage 2 processing: clock correction and temporal trimming."""
 
@@ -283,6 +472,90 @@ class Stage2Processor:
             result, history_note or f"clock_drift={clock_drift_seconds:+.1f}s applied"
         )
         return result
+
+    def _warn_missing_deployment_window(
+        self,
+        serial: str,
+        instrument_type: str,
+        mooring_name: str,
+        deploy_time: np.datetime64,
+        recover_time: np.datetime64,
+        sug_start: np.datetime64,
+        sug_end: np.datetime64,
+        clock_offset: float = 0,
+    ) -> None:
+        """Print a prominent console + log warning when YAML deployment times are absent.
+
+        Suggests copy-pasteable ISO-8601 timestamps (with clock_offset applied for
+        display) so the operator can fill in the YAML and re-run.  Stage 2 never
+        applies the suggested window automatically.
+
+        Parameters
+        ----------
+        serial : str
+            Instrument serial number.
+        instrument_type : str
+            Instrument type string (e.g. ``"sbe"``).
+        mooring_name : str
+            Mooring name.
+        deploy_time : np.datetime64
+            Resolved YAML deployment_time (NaT if absent).
+        recover_time : np.datetime64
+            Resolved YAML recovery_time (NaT if absent).
+        sug_start : np.datetime64
+            Suggested start from ``detect_deployment_window`` (raw stage1 clock).
+        sug_end : np.datetime64
+            Suggested end from ``detect_deployment_window`` (raw stage1 clock).
+        clock_offset : float
+            Constant clock offset in seconds to apply to suggested times for display.
+
+        """
+        missing_keys = []
+        if not np.isfinite(deploy_time):
+            missing_keys.append("deployment_time")
+        if not np.isfinite(recover_time):
+            missing_keys.append("recovery_time")
+        if not missing_keys:
+            return
+
+        border = "─" * 60
+        lines = [
+            "",
+            f"  ┌─ DEPLOYMENT WINDOW WARNING {'─' * 32}",
+            f"  │  Mooring : {mooring_name}",
+            f"  │  Instrument: {instrument_type} {serial}",
+            f"  │  Missing YAML key(s): {', '.join(missing_keys)}",
+            "  │  No deployment-window trimming applied for this instrument.",
+        ]
+        if sug_start is not None:
+            offset_td = (
+                np.timedelta64(int(clock_offset * 1e9), "ns")
+                if clock_offset
+                else np.timedelta64(0, "ns")
+            )
+            offset_note = (
+                f" (clock_offset={clock_offset:+.1f}s applied)" if clock_offset else ""
+            )
+            lines += [
+                "  │",
+                f"  │  Auto-detected window from pressure{offset_note} (copy-paste into YAML):",
+                f"  │    deployment_time: {pd.Timestamp(sug_start + offset_td).isoformat()}",
+                f"  │    recovery_time:   {pd.Timestamp(sug_end + offset_td).isoformat()}",
+            ]
+        else:
+            lines += [
+                "  │",
+                "  │  No pressure variable — cannot auto-detect deployment window.",
+                "  │  Set deployment_time and recovery_time manually in the YAML.",
+            ]
+        lines += [
+            "  │",
+            f"  │  Update {mooring_name}.mooring.yaml then re-run stage 2.",
+            f"  └{border}",
+            "",
+        ]
+        for line in lines:
+            self._log_print(line)
 
     def _trim_to_deployment_window(
         self,
@@ -593,6 +866,37 @@ class Stage2Processor:
                 # Create a copy to modify
                 dataset = ds.load()
 
+            # Capture the raw stage1 time bounds before any corrections are applied.
+            # Used later for the "differs by ≥ Δt" highlighting comparison in reports.
+            _stage1_t0 = dataset["time"].values[0]
+            _stage1_t1 = dataset["time"].values[-1]
+
+            # Resolve corrections early (needed for suggested-window display)
+            clock_offset = instrument_config.get("clock_offset", 0)
+            drift_s, drift_note = self._resolve_clock_drift(instrument_config)
+            # drift_s is the total correction at recovery; clock_offset is the total at
+            # deployment.  The ramp applied on top of the constant offset is the difference.
+            drift_ramp = (drift_s - clock_offset) if drift_s != 0 else 0
+
+            # Always detect the suggested deployment window from the stage1 pressure record
+            sug_start, sug_end, sug_source = detect_deployment_window(dataset)
+
+            # Find first/last non-NaN timestamps (variable hierarchy: pressure > temp > …)
+            _nonnull_start, _nonnull_end = _find_nonnull_bounds(dataset)
+
+            # Warn loudly when YAML deployment times are absent
+            if not np.isfinite(deploy_time) or not np.isfinite(recover_time):
+                self._warn_missing_deployment_window(
+                    serial,
+                    instrument_type,
+                    mooring_name,
+                    deploy_time,
+                    recover_time,
+                    sug_start,
+                    sug_end,
+                    clock_offset,
+                )
+
             # Add missing metadata with fallback extraction
             dataset = self._add_missing_metadata(
                 dataset, instrument_config, raw_filepath, mooring_name
@@ -600,13 +904,6 @@ class Stage2Processor:
 
             # Clean unnecessary variables
             dataset = self._clean_unnecessary_variables(dataset)
-
-            # Resolve corrections first (cheap — just reads YAML values)
-            clock_offset = instrument_config.get("clock_offset", 0)
-            drift_s, drift_note = self._resolve_clock_drift(instrument_config)
-            # drift_s is the total correction at recovery; clock_offset is the total at
-            # deployment.  The ramp applied on top of the constant offset is the difference.
-            drift_ramp = (drift_s - clock_offset) if drift_s != 0 else 0
 
             # Only save time_orig when we are actually going to change time
             if clock_offset != 0 or drift_ramp != 0:
@@ -637,6 +934,50 @@ class Stage2Processor:
             from . import parameters as _P
 
             dataset.attrs.setdefault("qc_convention", _P.QC_CONVENTION)
+
+            # Suggested deployment window — only written when pressure detection succeeded.
+            # All raw-clock attrs use the uncorrected instrument clock; _utc variants add
+            # the clock correction so they are safe to paste directly into the YAML.
+            if sug_start is not None:
+                dataset.attrs["suggested_deployment_time"] = pd.Timestamp(
+                    sug_start
+                ).isoformat()
+                dataset.attrs["suggested_recovery_time"] = pd.Timestamp(
+                    sug_end
+                ).isoformat()
+                dataset.attrs["suggested_window_source"] = sug_source
+                dataset.attrs["suggested_window_clock"] = "raw_instrument_clock"
+                _sugg_start_utc = pd.Timestamp(sug_start) + pd.Timedelta(
+                    seconds=clock_offset
+                )
+                dataset.attrs["suggested_deployment_time_utc"] = (
+                    _sugg_start_utc.isoformat()
+                )
+                _end_correction = drift_s if drift_s else clock_offset
+                _sugg_end_utc = pd.Timestamp(sug_end) + pd.Timedelta(
+                    seconds=_end_correction
+                )
+                dataset.attrs["suggested_recovery_time_utc"] = _sugg_end_utc.isoformat()
+            # First/last non-NaN timestamps (raw clock) from the priority variable.
+            dataset.attrs["stage1_first_nonnull"] = pd.Timestamp(
+                _nonnull_start
+            ).isoformat()
+            dataset.attrs["stage1_last_nonnull"] = pd.Timestamp(
+                _nonnull_end
+            ).isoformat()
+            # Store the raw stage1 full-record bounds for report comparison (same clock).
+            dataset.attrs["stage1_time_start"] = pd.Timestamp(_stage1_t0).isoformat()
+            dataset.attrs["stage1_time_end"] = pd.Timestamp(_stage1_t1).isoformat()
+            # Store the YAML trim bounds (UTC) so the report can compare stage2_end
+            # against the expected recovery time without needing the YAML directly.
+            if np.isfinite(deploy_time):
+                dataset.attrs["yaml_deployment_time"] = pd.Timestamp(
+                    deploy_time
+                ).isoformat()
+            if np.isfinite(recover_time):
+                dataset.attrs["yaml_recovery_time"] = pd.Timestamp(
+                    recover_time
+                ).isoformat()
 
             # Remove existing output file before writing
             if use_filepath.exists():

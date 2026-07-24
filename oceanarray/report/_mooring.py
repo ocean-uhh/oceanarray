@@ -22,6 +22,7 @@ from ._html_helpers import (
     _read_instrument_info,
     _read_qc_summary,
     _read_sensor_info,
+    _read_timing_info,
     _resolve_clock,
     _safe_serial,
     _stage_files,
@@ -178,20 +179,14 @@ _HTML_TEMPLATE = """\
 
 <nav class="jump-nav">
   Jump to:
-  {% if diagram_b64 %}<a href="#diagram">Mooring diagram</a>{% endif %}
   <a href="#pipeline">Processing pipeline</a>
   <a href="#instruments">Instruments</a>
+  <a href="#timing">Deployment timing</a>
   <a href="#clock">Clock corrections</a>
   <a href="#calibration">Sensor calibration</a>
   <a href="#qc">QC summary</a>
+  {% if diagram_b64 %}<a href="#diagram">Mooring diagram</a>{% endif %}
 </nav>
-
-{% if diagram_b64 %}
-<h2 id="diagram">Mooring diagram</h2>
-<embed src="data:application/pdf;base64,{{ diagram_b64 }}"
-       type="application/pdf" width="100%" height="850px"
-       style="border:1px solid #dce;border-radius:4px;display:block;">
-{% endif %}
 
 <!-- ══════════════════════════════════ 2. PROCESSING PIPELINE ══ -->
 <h2 id="pipeline">2 &mdash; Processing pipeline</h2>
@@ -296,15 +291,13 @@ _HTML_TEMPLATE = """\
 </table>
 
 <!-- ════════════════════════════════════ 3. INSTRUMENT SUMMARY ══ -->
-<h2 id="instruments">3 &mdash; Instrument summary (using stage3 files)</h2>
+<h2 id="instruments">3 &mdash; Instrument summary</h2>
 <p style="font-size:0.82rem;color:#555;margin-top:-0.5rem;">
-  Variables, record length, and QC flag counts are read from each instrument's
-  stage&nbsp;3 NetCDF file.  The <strong>P</strong> button is shown as present
+  Variables and record length are read from stage&nbsp;3 files where available,
+  otherwise stage&nbsp;2.  The <strong>P</strong> badge is shown as present
   whether pressure was directly measured or interpolated from neighbouring
-  instruments — see Table&nbsp;6 (QC flag summary) to distinguish measured from
-  interpolated pressure.  Instruments marked <code>skip: true</code> in the
-  YAML are listed with the skip reason in the row (where provided via
-  <code>skip_reason:</code>).
+  instruments — see Table&nbsp;6 (QC flag summary) to distinguish.  Instruments
+  marked <code>skip: true</code> are listed with the skip reason where provided.
 </p>
 <style>
   .vbadge {
@@ -314,8 +307,9 @@ _HTML_TEMPLATE = """\
     font-size: 0.72rem;
     font-weight: 700;
   }
-  .vb-yes { background: #2980b9; color: #fff; }
-  .vb-no  { background: #ecf0f1; color: #aaa; }
+  .vb-yes    { background: #27ae60; color: #fff; }
+  .vb-interp { background: #2980b9; color: #fff; }
+  .vb-no     { background: #ecf0f1; color: #aaa; }
 </style>
 <table>
   <thead>
@@ -366,7 +360,13 @@ _HTML_TEMPLATE = """\
           {% endif %}
         </td>
         {% for label, present in instr.nc.shorthands %}
-        <td style="text-align:center"><span class="vbadge {{ 'vb-yes' if present else 'vb-no' }}">{{ label }}</span></td>
+        <td style="text-align:center">
+          {% if label == "P" and present and instr.nc.get("pressure_interpolated") %}
+          <span class="vbadge vb-interp" title="pressure interpolated from neighbouring instruments">{{ label }}</span>
+          {% else %}
+          <span class="vbadge {{ 'vb-yes' if present else 'vb-no' }}">{{ label }}</span>
+          {% endif %}
+        </td>
         {% endfor %}
       {% elif instr.skipped %}
         <td colspan="10" class="none-note">skipped{% if instr.skip_reason %} — {{ instr.skip_reason }}{% endif %}</td>
@@ -377,6 +377,163 @@ _HTML_TEMPLATE = """\
     {% endfor %}
   </tbody>
 </table>
+
+<!-- ══════════════════════════════════════ 3.5 DEPLOYMENT TIMING ══ -->
+<h2 id="timing">3.5 &mdash; Deployment timing</h2>
+<p style="font-size:0.82rem;color:#555;margin-top:-0.5rem;">
+  <em>Stage&nbsp;1</em> and <em>Sugg.&nbsp;(raw)</em> columns are in the <strong>raw
+  instrument clock</strong> (uncorrected).  <em>Sugg.&nbsp;UTC</em> columns
+  apply the constant clock offset (and drift, for the end) and are safe to
+  paste into the YAML <code>deployment_time</code> /
+  <code>recovery_time</code> fields.  Suggested UTC cells are highlighted
+  <span style="background:#fff3cd;padding:0 0.3em">amber</span> when the
+  pressure-derived suggested time differs from the YAML time by more than
+  2&thinsp;&Delta;t (indicating a sinking/rising transient was detected).
+  The Stage&nbsp;1 last cell is highlighted
+  <span style="background:#fde3c0;padding:0 0.3em">orange</span> when the
+  raw record ended more than 2&thinsp;&Delta;t before the YAML recovery time
+  (instrument may have stopped early).
+  Serial numbers link to the per-instrument report; the
+  <em>6&thinsp;h</em> link jumps directly to the start/end window plots.
+</p>
+<p style="font-size:0.85rem;background:#fffbe6;border-left:3px solid #e67e22;padding:0.5em 0.8em;margin:0.6rem 0">
+  <strong>Spot-check recommended:</strong> open the 6&thinsp;h start/end
+  window plots for each instrument (click <em>6&thinsp;h</em>) and visually
+  confirm that the orange suggested line (or green YAML line if they match)
+  sits at a plausible transition in the pressure (or temperature) record
+  before updating the YAML times.
+</p>
+<div style="overflow-x:auto">
+<table style="font-size:0.8rem;white-space:nowrap">
+  <thead>
+    <tr>
+      <th rowspan="2">#</th>
+      <th rowspan="2">Type</th>
+      <th rowspan="2">S/N</th>
+      <th colspan="3" style="text-align:center;border-bottom:1px solid #bbb">Start</th>
+      <th colspan="3" style="text-align:center;border-bottom:1px solid #bbb">End</th>
+    </tr>
+    <tr>
+      <th>Stage1 first</th>
+      <th>Sugg.&nbsp;start (raw)</th>
+      <th>Sugg.&nbsp;start (UTC)</th>
+      <th>Stage1 last</th>
+      <th>Sugg.&nbsp;end (raw)</th>
+      <th>Sugg.&nbsp;end (UTC)</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for instr in instruments %}
+    {% set tm = instr.timing %}
+    <tr>
+      <td class="num">{{ loop.index }}</td>
+      <td>{{ instr.instr_type }}</td>
+      <td>
+        <a href="instrument/{{ mooring_name }}_{{ instr.serial }}_report.html"
+           title="Per-instrument report"><code>{{ instr.serial }}</code></a>
+        <a href="instrument/{{ mooring_name }}_{{ instr.serial }}_report.html#start"
+           style="font-size:0.75rem;margin-left:0.3em;color:#2980b9"
+           title="Start/end 6 h windows">6&thinsp;h</a>
+      </td>
+      {% if tm %}
+        {# Anchor dates for deduplication: show only time when on the same day #}
+        {% set d_start = (tm.get("stage1_start") or "")[:10] %}
+        {% set d_end   = (tm.get("stage1_end")   or "")[:10] %}
+        {# Stage1 first — always full date+time; anchors deduplication for start columns #}
+        <td>{{ tm.get("stage1_start") or "—" }}</td>
+        {# Sugg. start (raw) — only present for pressure instruments; time only when same date #}
+        {% set v = tm.get("sugg_start") or "" %}
+        <td{% if tm.get("sugg_start_differs") %} style="background:#fff3cd"{% endif %}>
+          {{- v[11:] if (v and v[:10] == d_start) else (v or "—") -}}
+        </td>
+        {# Sugg. start (UTC) #}
+        {% set v = tm.get("sugg_start_utc") or "" %}
+        <td{% if tm.get("sugg_start_differs") %} style="background:#fff3cd"{% endif %}>
+          {{- v[11:] if (v and v[:10] == d_start) else (v or "—") -}}
+        </td>
+        {# Stage1 last — orange-amber when instrument stopped early #}
+        <td{% if tm.get("stage1_end_early") %} style="background:#fde3c0"{% endif %}>
+          {{- tm.get("stage1_end") or "—" -}}
+        </td>
+        {# Sugg. end (raw) #}
+        {% set v = tm.get("sugg_end") or "" %}
+        <td{% if tm.get("sugg_end_differs") %} style="background:#fff3cd"{% endif %}>
+          {{- v[11:] if (v and v[:10] == d_end) else (v or "—") -}}
+        </td>
+        {# Sugg. end (UTC) #}
+        {% set v = tm.get("sugg_end_utc") or "" %}
+        <td{% if tm.get("sugg_end_differs") %} style="background:#fff3cd"{% endif %}>
+          {{- v[11:] if (v and v[:10] == d_end) else (v or "—") -}}
+        </td>
+      {% elif instr.skipped %}
+        <td colspan="6" class="none-note">skipped</td>
+      {% else %}
+        <td colspan="6" class="none-note">no stage 2 file</td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </tbody>
+  {% if rec_deploy_sec or rec_recover_sec %}
+  <tfoot>
+    <tr style="background:#e8f4f8;font-weight:600;border-top:2px solid #1a3a5c">
+      <td class="num">★</td>
+      <td colspan="2" style="font-style:italic">Mooring</td>
+      <td><span class="none-note">—</span></td>
+      <td style="font-style:italic">Mooring start</td>
+      <td>{{ rec_deploy_sec or "—" }}</td>
+      <td><span class="none-note">—</span></td>
+      <td style="font-style:italic">Mooring end</td>
+      <td>{{ rec_recover_sec or "—" }}</td>
+    </tr>
+  </tfoot>
+  {% endif %}
+</table>
+</div>
+
+{% if yaml_deploy_time or yaml_recover_time or rec_deploy or rec_recover %}
+<div style="margin:1.2rem 0 0.5rem">
+{% if rec_differs %}
+<p style="font-size:0.82rem;color:#555;margin:0 0 0.4rem">
+  <strong>Deployment times</strong> — pressure-based instruments suggest times that differ
+  from the current YAML.  Copy the suggested snippet (blue border) into your YAML file.
+  Times are given to the minute.
+</p>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem">
+  <div>
+    <p style="font-size:0.78rem;color:#888;margin:0 0 0.2rem;font-weight:600">
+      Current YAML</p>
+    <textarea readonly rows="2"
+      style="width:100%;font-family:monospace;font-size:0.85rem;padding:0.5rem 0.6rem;
+             border:1px solid #bbb;border-radius:4px;background:#f0f0f0;
+             resize:vertical;color:#555"
+      onclick="this.select()">deployment_time: '{{ yaml_deploy_time or '?' }}'
+recovery_time:   '{{ yaml_recover_time or '?' }}'</textarea>
+  </div>
+  <div>
+    <p style="font-size:0.78rem;color:#888;margin:0 0 0.2rem;font-weight:600">
+      Suggested (copy &rarr; paste into YAML)</p>
+    <textarea readonly rows="2"
+      style="width:100%;font-family:monospace;font-size:0.85rem;padding:0.5rem 0.6rem;
+             border:1px solid #2980b9;border-radius:4px;background:#f8f9fa;
+             resize:vertical;color:#2c3e50"
+      onclick="this.select()">deployment_time: '{{ rec_deploy or '?' }}'
+recovery_time:   '{{ rec_recover or '?' }}'</textarea>
+  </div>
+</div>
+{% else %}
+<p style="font-size:0.82rem;color:#27ae60;margin:0 0 0.4rem">
+  &#10003; Current YAML times match the pressure-based suggestion from the instruments.</p>
+<p style="font-size:0.78rem;color:#888;margin:0 0 0.2rem;font-weight:600">
+  Current YAML times</p>
+<textarea readonly rows="2"
+  style="width:40%;font-family:monospace;font-size:0.85rem;padding:0.5rem 0.6rem;
+         border:1px solid #bbb;border-radius:4px;background:#f0f0f0;
+         resize:vertical;color:#555"
+  onclick="this.select()">deployment_time: '{{ yaml_deploy_time or '?' }}'
+recovery_time:   '{{ yaml_recover_time or '?' }}'</textarea>
+{% endif %}
+</div>
+{% endif %}
 
 <!-- ══════════════════════════════════════ 4. CLOCK CORRECTIONS ══ -->
 <h2 id="clock">4 &mdash; Clock corrections</h2>
@@ -596,6 +753,14 @@ _HTML_TEMPLATE = """\
 </table>
 {% else %}
 <p class="none-note">No stage&nbsp;3 QC files found — run <code>oceanarray stage3</code> first.</p>
+{% endif %}
+
+{% if diagram_b64 %}
+<!-- ══════════════════════════════════════════ MOORING DIAGRAM ══ -->
+<h2 id="diagram">Mooring diagram</h2>
+<embed src="data:application/pdf;base64,{{ diagram_b64 }}"
+       type="application/pdf" width="100%" height="850px"
+       style="border:1px solid #dce;border-radius:4px;display:block;">
 {% endif %}
 
 <!-- ══════════════════════════════════════════════ FOOTER ══ -->
@@ -884,6 +1049,9 @@ class MooringReport:
                     "in_grid": (serial in stack_serials) and grid_exists,
                     "clock": _resolve_clock(entry),
                     "nc": nc_info,
+                    "timing": _read_timing_info(
+                        proc_dir, instr_type, mooring_name, serial
+                    ),
                     "sensors": _read_sensor_info(
                         proc_dir, instr_type, mooring_name, serial
                     ),
@@ -892,6 +1060,70 @@ class MooringReport:
             )
 
         instruments.sort(key=lambda x: x["hab"])
+
+        # Compute recommended YAML deployment/recovery times from all instruments.
+        # Start: latest suggested start UTC (most conservative — all instruments
+        #        are definitely deployed before this).
+        # End: earliest in the main recovery cluster (instruments stopping days/weeks
+        #      before the latest are likely battery/memory failures; exclude them by
+        #      keeping only instruments whose end time is within 4 h of the latest).
+        from datetime import timedelta as _td
+
+        _rec_starts: List[datetime] = []
+        _rec_ends: List[datetime] = []
+        for _instr in instruments:
+            _tm = _instr.get("timing") or {}
+            # sugg_* attrs are only written when pressure detection succeeded, so
+            # any non-None entry here is already pressure-based.
+            _s = _tm.get("sugg_start_utc")
+            _e = _tm.get("sugg_end_utc")
+            if _s:
+                try:
+                    _rec_starts.append(datetime.fromisoformat(_s.replace("T", " ")))
+                except Exception:  # noqa: BLE001
+                    pass
+            if _e:
+                try:
+                    _rec_ends.append(datetime.fromisoformat(_e.replace("T", " ")))
+                except Exception:  # noqa: BLE001
+                    pass
+
+        rec_deploy: Optional[str] = None  # minute precision — for YAML textarea
+        rec_recover: Optional[str] = None  # minute precision — for YAML textarea
+        rec_deploy_sec: Optional[str] = None  # second precision — for table summary row
+        rec_recover_sec: Optional[str] = (
+            None  # second precision — for table summary row
+        )
+
+        if _rec_starts:
+            _best_start = max(_rec_starts)
+            # Ceil to next whole minute so the YAML start doesn't clip a partial sample
+            if _best_start.second or _best_start.microsecond:
+                _best_start = _best_start.replace(second=0, microsecond=0) + _td(
+                    minutes=1
+                )
+            rec_deploy = _best_start.strftime("%Y-%m-%dT%H:%M")
+            rec_deploy_sec = _best_start.strftime("%Y-%m-%d %H:%M:%S")
+
+        if _rec_ends:
+            _ends_sorted = sorted(_rec_ends)
+            _latest_end = _ends_sorted[-1]
+            _cluster = [t for t in _ends_sorted if _latest_end - t <= _td(hours=4)]
+            _best_end = min(_cluster)
+            # Floor to whole minute so the YAML end doesn't include a partial sample
+            _best_end = _best_end.replace(second=0, microsecond=0)
+            rec_recover = _best_end.strftime("%Y-%m-%dT%H:%M")
+            rec_recover_sec = _best_end.strftime("%Y-%m-%d %H:%M:%S")
+
+        # Only show the recommended YAML block when it differs from the current YAML.
+        # Compare at minute precision (same as rec_deploy / rec_recover).
+        _yaml_deploy_min = deploy_dt.strftime("%Y-%m-%dT%H:%M") if deploy_dt else None
+        _yaml_recover_min = (
+            recover_dt.strftime("%Y-%m-%dT%H:%M") if recover_dt else None
+        )
+        rec_differs = (rec_deploy != _yaml_deploy_min) or (
+            rec_recover != _yaml_recover_min
+        )
 
         any_clock = any(i["clock"]["has_correction"] for i in instruments)
 
@@ -924,6 +1156,17 @@ class MooringReport:
             ),
             "n_instruments": len(instruments),
             "instruments": instruments,
+            "rec_deploy": rec_deploy,
+            "rec_recover": rec_recover,
+            "rec_deploy_sec": rec_deploy_sec,
+            "rec_recover_sec": rec_recover_sec,
+            "rec_differs": rec_differs,
+            "yaml_deploy_time": (
+                deploy_dt.strftime("%Y-%m-%dT%H:%M") if deploy_dt else None
+            ),
+            "yaml_recover_time": (
+                recover_dt.strftime("%Y-%m-%dT%H:%M") if recover_dt else None
+            ),
             "stack_exists": stack_exists,
             "grid_exists": grid_exists,
             "any_clock_correction": any_clock,
