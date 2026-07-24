@@ -174,13 +174,64 @@ Fields required for processing
        instrument-type column in reports.  See `The instrument field`_ for
        the full list of valid values.
    * - ``filename``
-     - string
+     - string or ``null``
      - Raw data filename, relative to
        ``{raw_dir}/{mooring}/{instrument}/``.
+       **Recommended naming convention**: ``{serial}_recovery.<ext>``
+       (e.g. ``26261_recovery.asc``, ``9415_recovery.dat``).
+       If omitted or set to ``null``, ``oceanarray`` will try to locate the
+       file automatically using the conventions in the table below — if a
+       match is found, processing proceeds; if not, the instrument is skipped
+       with a diagnostic message listing the paths tried.
+
+       .. list-table:: Auto-detected filename conventions
+          :header-rows: 1
+          :widths: 25 30 20 25
+
+          * - ``instrument`` value
+            - Condition
+            - Filename tried
+            - ``file_type``
+          * - ``microcat``
+            - serial < 6000
+            - ``{serial}_recovery.asc``
+            - ``sbe-ascii``
+          * - ``microcat``
+            - serial ≥ 6000
+            - ``{serial}_recovery.hex``
+            - ``sbe-hex``
+          * - ``tr1050``
+            - any
+            - ``{serial}_recovery.hex``
+            - ``rbr-hex``
+          * - ``rbrsolo``, ``rbrduet``, ``seapoint``
+            - any
+            - ``{serial}_recovery.rsk``
+            - ``rbr-rsk``
+          * - ``aquadopp`` / ``nortek``
+            - serial < 400000
+            - ``{serial}_recovery.dat`` (+ ``.hdr``)
+            - ``nortek-ascii``
+          * - ``aquadopp`` / ``nortek``
+            - serial ≥ 400000
+            - not auto-detected — set ``filename`` explicitly
+            - —
+          * - ``ADCP``
+            - any
+            - ``{serial}_{mooring}_recovery.000``
+            - ``rdi-raw``
+
+       A trailing ``*`` in the serial field is stripped before building the
+       filename (e.g. ``serial: 13560*`` → tries ``13560_recovery.asc``).
+       Searched directories (in order):
+       ``{raw_dir}/{mooring}/{instrument}/``, then ``{raw_dir}/{mooring}/``.
+
    * - ``file_type``
      - string
      - Reader type passed to seasenselib.  See
        `Valid file_type values`_ below.
+       Can be omitted when ``filename`` is also omitted — the auto-detection
+       logic sets ``file_type`` to match the discovered file.
    * - ``hab``
      - number
      - Height above bottom in metres.  Used for pressure interpolation,

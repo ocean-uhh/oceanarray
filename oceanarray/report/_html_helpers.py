@@ -319,17 +319,18 @@ def _read_nc_metadata(nc_path: Path) -> Dict[str, Any]:
 def _read_qc_thresholds(nc_path: Path) -> List[Dict[str, Any]]:
     """Return the QC thresholds actually applied, as stored in the stage3 NC file.
 
-    Reads three types of threshold from the ``{var}_qc`` variable attrs and from
+    Reads four types of threshold from the ``{var}_qc`` variable attrs and from
     dataset-level attrs:
 
     * ``qc_gross_range_*`` — gross-range fail/suspect min/max
     * ``qc_spike_*`` — QARTOD spike-test suspect/fail thresholds
+    * ``qc_flat_line_*`` — QARTOD flat-line (stuck-value) suspect/fail sample counts
     * ``tilt_suspect_threshold`` / ``tilt_fail_threshold`` — Aquadopp tilt QC
 
     Returns one dict per (variable, test) combination, with the actual values
     stored in the file — regardless of whether they came from package defaults,
-    mooring-level YAML, or per-instrument overrides.  Spike rows only appear
-    for stage3 files produced after the spike-threshold-storage fix (2026-07-24).
+    mooring-level YAML, or per-instrument overrides.  Spike and flat-line rows only
+    appear for stage3 files produced after 2026-07-24.
     """
     try:
         import xarray as xr
@@ -369,6 +370,21 @@ def _read_qc_thresholds(nc_path: Path) -> List[Dict[str, Any]]:
                         "test": "spike",
                         "suspect": f"|Δ| > {sp_susp}" if sp_susp is not None else "—",
                         "fail": f"|Δ| > {sp_fail}" if sp_fail is not None else "—",
+                    }
+                )
+            fl_susp = attrs.get("qc_flat_line_suspect_count")
+            fl_fail = attrs.get("qc_flat_line_fail_count")
+            if fl_susp is not None or fl_fail is not None:
+                rows.append(
+                    {
+                        "var": base,
+                        "test": "flat-line",
+                        "suspect": (
+                            f"stuck ≥ {fl_susp} samples" if fl_susp is not None else "—"
+                        ),
+                        "fail": (
+                            f"stuck ≥ {fl_fail} samples" if fl_fail is not None else "—"
+                        ),
                     }
                 )
         # Tilt QC (Aquadopp): stored at dataset level
@@ -438,7 +454,32 @@ _PRIMARY_VARS = [
 def _read_instrument_info(
     proc_dir: Path, instr_type: str, mooring: str, serial: str
 ) -> Dict[str, Any]:
-    """Read time stats and variable list from the best available processed NC."""
+    """Read record statistics from the best available processed NetCDF file.
+
+    Prefers stage-3 output (QC and coordinate-transformed); falls back to
+    stage-2 (deployment-trimmed, clock-corrected) if stage-3 is absent.
+    Stage-1 (raw) files are never read here.
+
+    Returns a dict with keys:
+
+    * ``t_start`` / ``t_end``: first and last timestamp (ISO-8601 string,
+      truncated to the minute).
+    * ``t_end_raw``: last timestamp as ``numpy.datetime64`` (for arithmetic).
+    * ``n_records``: total number of time steps.
+    * ``dt_s``: 90th-percentile inter-sample interval in seconds (robust
+      against occasional data gaps).
+    * ``shorthands``: list of ``(label, bool)`` pairs indicating which of
+      T / C / P / U / V variables are present.
+    * ``pressure_interpolated``: True if any ``pressure_qc == 8``, meaning
+      pressure was filled by interpolation from neighbouring instruments.
+    * ``p_min`` / ``p_max``: minimum and maximum pressure (dbar) over the
+      trimmed record, excluding non-positive values (stuck-at-zero sensors,
+      pre-deployment bench readings) and QC-bad/missing samples where stage-3
+      flags are available.  ``None`` if no valid pressure data exist.
+
+    Returns ``{}`` if no processed file is found, or ``{"error": str}`` if
+    the file cannot be opened.
+    """
     base = proc_dir / instr_type / f"{mooring}_{serial}"
     nc_path = None
     for suffix in ("_stage3.nc", "_stage2.nc"):
@@ -480,6 +521,29 @@ def _read_instrument_info(
             except Exception:  # noqa: BLE001
                 pass
 
+        # Min/max pressure over the trimmed record (stage2/stage3).
+        # Exclude non-positive values (negative or stuck-at-zero sensors are
+        # non-physical for a deployed mooring) and QC-bad/missing flag values.
+        p_min: Optional[float] = None
+        p_max: Optional[float] = None
+        if "pressure" in ds.data_vars:
+            try:
+                pvals = ds["pressure"].values.astype(float)
+                # Mask QC=4 (bad) and QC=9 (missing) if stage3 QC is available
+                if "pressure_qc" in ds.data_vars:
+                    qc = ds["pressure_qc"].values.astype(int)
+                    pvals = np.where(np.isin(qc, [4, 9]), np.nan, pvals)
+                # Exclude non-positive values (pre-deployment bench / stuck sensor)
+                pvals = np.where(pvals > 0, pvals, np.nan)
+                _pmin = float(np.nanmin(pvals))
+                _pmax = float(np.nanmax(pvals))
+                if np.isfinite(_pmin):
+                    p_min = _pmin
+                if np.isfinite(_pmax):
+                    p_max = _pmax
+            except Exception:  # noqa: BLE001
+                pass
+
         ds.close()
 
         shorthands = [(label, name in vars_present) for name, label in _PRIMARY_VARS]
@@ -493,6 +557,8 @@ def _read_instrument_info(
             "shorthands": shorthands,
             "has_beam": has_beam,
             "pressure_interpolated": pressure_interpolated,
+            "p_min": p_min,
+            "p_max": p_max,
         }
     except Exception as exc:
         return {"error": str(exc)[:80]}

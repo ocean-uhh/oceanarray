@@ -198,7 +198,8 @@ class MooringProcessor:
         "rbr-rsk",
         "rbr-matlab-legacy",
         "rbr-dat",
-        "rbr-hex-oa",  # internal oceanarray hex reader for TR-1050; use rbr-hex once seasenselib supports it
+        "rbr-hex",
+        "rbr-hex-oa",  # legacy internal reader — use rbr-hex instead
         "sbe-hex",
         "rdi-raw",  # RDI ADCP raw binary (requires mhkit[dolfyn])
     }
@@ -1251,6 +1252,168 @@ class MooringProcessor:
             "quantize": 3,
         }
 
+    @staticmethod
+    def _guess_instrument_filename(
+        instrument_config: Dict[str, Any],
+        mooring_name: str,
+        raw_mooring_dir: Optional[Path],
+        input_dir: Optional[Path],
+        log_fn: Optional[Any] = None,
+    ) -> Optional[tuple]:
+        """Try standard recovery-file naming conventions to locate a raw data file.
+
+        Used when ``filename`` is absent or ``null`` in the mooring YAML.
+        Searches ``{raw_mooring_dir}/{instrument}/`` then ``{raw_mooring_dir}/``.
+
+        Returns ``(filename, file_type, header_filename_or_None)`` when a
+        candidate is found on disk, or ``None`` if no match is found (in which
+        case a diagnostic message listing the paths tried is emitted via
+        ``log_fn``).
+
+        Naming conventions applied (all use the ``{serial}_recovery.<ext>``
+        pattern except ADCP):
+
+        * ``microcat`` serial < 6000  → ``.asc`` / ``sbe-ascii`` (older SBE 37)
+        * ``microcat`` serial ≥ 6000  → ``.hex`` / ``sbe-hex`` (newer SBE 37)
+        * ``rbrsolo`` / ``rbrduet`` / ``seapoint`` → ``.rsk`` / ``rbr-rsk``
+        * ``aquadopp`` / ``nortek`` serial < 400000 → ``.dat`` / ``nortek-ascii``
+          + ``.hdr`` header file.  ``nortek`` is accepted but deprecated; a
+          warning is logged recommending ``aquadopp`` instead.
+        * ``aquadopp`` / ``nortek`` serial ≥ 400000 → globs for
+          ``converted_raw/A{serial}*/Average Velocity DF3.csv`` under the
+          instrument directory, returns ``nortek-csv`` with the corresponding
+          ``String Data.csv`` as the header path.
+        * ``ADCP`` → tries ``{serial}_{mooring_name}_recovery.000`` then
+          ``{serial}_{mooring_prefix}_recovery.000`` / ``rdi-raw``
+
+        A trailing ``*`` or other non-alphanumeric annotation in the serial
+        field is stripped before building the candidate filename.
+        """
+        instr_type = str(instrument_config.get("instrument", "")).lower()
+        raw_serial = str(instrument_config.get("serial", "")).split(",")[0].strip()
+        if not raw_serial or raw_serial == "unknown":
+            return None
+        # Strip illegal filename chars (e.g. '*' used as a YAML annotation marker)
+        import re as _re
+
+        raw_serial = _re.sub(r"[^\w\-]", "", raw_serial)
+
+        candidates: list = []  # list of (filename, file_type, header_or_None)
+
+        if instr_type == "microcat":
+            serial_int = int(raw_serial) if raw_serial.isdigit() else None
+            if serial_int is not None and serial_int < 6000:
+                candidates.append((f"{raw_serial}_recovery.asc", "sbe-ascii", None))
+            else:
+                candidates.append((f"{raw_serial}_recovery.hex", "sbe-hex", None))
+
+        elif instr_type in ("rbrsolo", "rbrduet", "seapoint"):
+            candidates.append((f"{raw_serial}_recovery.rsk", "rbr-rsk", None))
+
+        elif instr_type in ("aquadopp", "nortek"):
+            if instr_type == "nortek" and log_fn:
+                log_fn(
+                    f"AUTO-FILENAME: instrument type 'nortek' is deprecated — "
+                    f"use 'aquadopp' in the YAML for serial {raw_serial}"
+                )
+            serial_int = int(raw_serial) if raw_serial.isdigit() else None
+            if serial_int is not None and serial_int >= 400000:
+                # 400### series: data lives under converted_raw/A{serial}*/
+                # The full internal serial suffix varies, so we use glob.
+                _search_400: list = []
+                if raw_mooring_dir is not None:
+                    _search_400 += [raw_mooring_dir / "aquadopp", raw_mooring_dir]
+                if input_dir is not None:
+                    _search_400 += [
+                        input_dir / "aquadopp" / mooring_name,
+                        input_dir,
+                    ]
+                _tried_400: list = []
+                for _root in _search_400:
+                    _conv = _root / "converted_raw"
+                    _tried_400.append(str(_conv / f"A{raw_serial}*" / "Average Velocity DF3.csv"))
+                    if not _conv.is_dir():
+                        continue
+                    for _sub in sorted(_conv.glob(f"A{raw_serial}*")):
+                        if not _sub.is_dir():
+                            continue
+                        for _csv in ("Average Velocity DF3.csv", "String Data.csv"):
+                            _csv_path = _sub / _csv
+                            if _csv_path.exists():
+                                _hdr = _sub / "String Data.csv"
+                                _hdr_rel = (
+                                    str(_hdr.relative_to(_root))
+                                    if _hdr.exists()
+                                    else None
+                                )
+                                return (
+                                    str(_csv_path.relative_to(_root)),
+                                    "nortek-csv",
+                                    _hdr_rel,
+                                )
+                if log_fn:
+                    log_fn(
+                        f"AUTO-FILENAME: no converted_raw/A{raw_serial}*/ found for "
+                        f"aquadopp {raw_serial} — tried:\n  "
+                        + "\n  ".join(_tried_400)
+                    )
+                return None
+            candidates.append(
+                (
+                    f"{raw_serial}_recovery.dat",
+                    "nortek-ascii",
+                    f"{raw_serial}_recovery.hdr",
+                )
+            )
+
+        elif instr_type == "tr1050":
+            candidates.append((f"{raw_serial}_recovery.hex", "rbr-hex", None))
+
+        elif instr_type == "adcp":
+            # Try full mooring name first, then the mooring prefix (before first '_')
+            # since either naming convention may be in use.
+            candidates.append(
+                (f"{raw_serial}_{mooring_name}_recovery.000", "rdi-raw", None)
+            )
+            _pfx = mooring_name.split("_")[0]
+            if _pfx != mooring_name:
+                candidates.append(
+                    (f"{raw_serial}_{_pfx}_recovery.000", "rdi-raw", None)
+                )
+
+        if not candidates:
+            if log_fn:
+                log_fn(
+                    f"AUTO-FILENAME: instrument type '{instr_type}' not recognised "
+                    f"— add 'filename:' to YAML for {instr_type} {raw_serial}"
+                )
+            return None
+
+        # Search directories: new layout (raw_mooring_dir/instrument/), then
+        # mooring subdir (raw_mooring_dir/), then legacy input_dir.
+        search_roots: list = []
+        if raw_mooring_dir is not None:
+            search_roots.append(raw_mooring_dir / instr_type)
+            search_roots.append(raw_mooring_dir)
+        if input_dir is not None:
+            search_roots.append(input_dir / instr_type / mooring_name)
+            search_roots.append(input_dir)
+
+        tried: list = []
+        for fname, ftype, hdr in candidates:
+            for root in search_roots:
+                candidate_path = root / fname
+                tried.append(str(candidate_path))
+                if candidate_path.exists():
+                    return fname, ftype, hdr
+
+        if log_fn:
+            log_fn(
+                f"AUTO-FILENAME: no file found for {instr_type} {raw_serial} — tried:\n  "
+                + "\n  ".join(tried)
+            )
+        return None
+
     def _process_instrument(
         self,
         instrument_config: Dict[str, Any],
@@ -1282,12 +1445,30 @@ class MooringProcessor:
             self._log_print(f"SKIP {instrument_name} {serial}: {reason}")
             return True
 
-        if "filename" not in instrument_config:
-            self._log_print(
-                f"FILENAME MISSING: Skipping {instrument_name}:{serial}. "
-                f"YAML is missing 'filename'."
+        if not instrument_config.get("filename"):
+            guess = self._guess_instrument_filename(
+                instrument_config,
+                mooring_name,
+                raw_mooring_dir,
+                input_dir,
+                log_fn=self._log_print,
             )
-            return False
+            if guess is None:
+                self._log_print(
+                    f"FILENAME MISSING: Skipping {instrument_name}:{serial}. "
+                    f"YAML is missing 'filename' and no standard file was found."
+                )
+                return False
+            _gf, _gt, _gh = guess
+            self._log_print(
+                f"AUTO-FILENAME: {instrument_name} {serial} → {_gf} ({_gt})"
+            )
+            instrument_config = dict(instrument_config)
+            instrument_config["filename"] = _gf
+            if _gt and not instrument_config.get("file_type"):
+                instrument_config["file_type"] = _gt
+            if _gh and not instrument_config.get("header_file"):
+                instrument_config["header_file"] = _gh
 
         # Set up file paths
         filename = instrument_config["filename"]

@@ -110,6 +110,10 @@ QC_GROSS_RANGE: dict = {
     "east_velocity": {"fail_span": (-5.0, 5.0), "suspect_span": (-3.0, 3.0)},  # m/s
     "north_velocity": {"fail_span": (-5.0, 5.0), "suspect_span": (-3.0, 3.0)},  # m/s
     "up_velocity": {"fail_span": (-1.0, 1.0), "suspect_span": (-0.5, 0.5)},  # m/s
+    # Turbidity: negative values are physically impossible (no lower bound in nature).
+    # Upper bound is generous — coastal resuspension events can reach 1000 NTU.
+    # Override per mooring if the sensor range is known to be tighter.
+    "turbidity": {"fail_span": (0.0, 4000.0), "suspect_span": (0.0, 1000.0)},  # NTU
 }
 
 # ---------------------------------------------------------------------------
@@ -138,6 +142,27 @@ QC_SPIKE: dict = {
     # positives at every burst boundary, and real oceanic events can produce
     # large velocity changes on short time scales.  Add per-instrument via
     # qc_spike: YAML key if needed for a specific deployment.
+}
+
+# ---------------------------------------------------------------------------
+# QARTOD flat-line (stuck-value) test thresholds.
+#
+# Applied to pressure only by default.  A value is considered "stuck" when it
+# does not change by more than ``tolerance`` over a contiguous window.
+#
+# suspect_n : flag SUSPECT when stuck for this many consecutive samples
+# fail_n    : flag FAIL when stuck for this many consecutive samples
+# tolerance : maximum allowed change that is still considered "flat" (default 0)
+#
+# ioos_qc converts suspect_n / fail_n to seconds using the median sample
+# interval at runtime.  Override per mooring via ``qc_flat_line`` YAML key.
+# ---------------------------------------------------------------------------
+QC_FLAT_LINE: dict = {
+    # tolerance must be > 0: ioos_qc flags when range < tolerance over the
+    # window, so tolerance=0 means range < 0 which is never true.
+    # 0.001 dbar is below any real mooring pressure variability and catches
+    # sensors returning the exact same value (e.g. 4959 stuck at 0 dbar).
+    "pressure": {"suspect_n": 3, "fail_n": 10, "tolerance": 0.001},
 }
 
 # ---------------------------------------------------------------------------
@@ -207,9 +232,7 @@ INSTRUMENT_ABBREV = {
 INSTRUMENT_FILE_TYPES: dict = {
     "microcat": ["sbe-cnv", "sbe-ascii", "sbe-hex"],
     "aquadopp": ["nortek-aqd", "nortek-ascii", "nortek-csv"],
-    "tr1050": [
-        "rbr-hex-oa"
-    ],  # RBR TR-1050 thermistor chain; -oa until seasenselib supports it
+    "tr1050": ["rbr-hex"],  # RBR TR-1050 thermistor chain
     "rbrsolo": ["rbr-rsk", "rbr-dat"],  # RBR Solo/Duet single-channel T or T+P
     "seapoint": ["rbr-rsk", "rbr-dat"],  # Seapoint turbidity sensor via RBR logger
     "ADCP": [
