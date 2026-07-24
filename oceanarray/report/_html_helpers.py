@@ -64,6 +64,22 @@ def _duration_str(start: Optional[datetime], end: Optional[datetime]) -> str:
     return f"{days}d {hours}h"
 
 
+def _fmt_clock_str(s: Optional[str]) -> Optional[str]:
+    """Reformat an ISO-8601 timestamp to 'YYYY-MM-DD HH:MM' (minute precision).
+
+    Handles both compact ISO (``20260710T21:03:00``) and spaced ISO
+    (``2026-07-10T21:03:00``) inputs.  Returns *None* if *s* is falsy.
+    """
+    if not s:
+        return None
+    try:
+        return datetime.fromisoformat(str(s).replace("T", " ").strip()).strftime(
+            "%Y-%m-%d %H:%M"
+        )
+    except ValueError:
+        return str(s)[:16]
+
+
 def _resolve_clock(entry: Dict[str, Any]) -> Dict[str, Any]:
     """Extract clock correction info from one YAML instrument entry."""
     offset_s = float(entry.get("clock_offset", 0) or 0)
@@ -86,8 +102,8 @@ def _resolve_clock(entry: Dict[str, Any]) -> Dict[str, Any]:
         "offset_s": offset_s,
         "drift_s": drift_s,
         "method": method,
-        "computer_time": str(comp_str) if comp_str else None,
-        "instrument_time": str(inst_str) if inst_str else None,
+        "computer_time": _fmt_clock_str(str(comp_str)) if comp_str else None,
+        "instrument_time": _fmt_clock_str(str(inst_str)) if inst_str else None,
         "has_correction": offset_s != 0 or (drift_s is not None and drift_s != 0),
     }
 
@@ -303,11 +319,17 @@ def _read_nc_metadata(nc_path: Path) -> Dict[str, Any]:
 def _read_qc_thresholds(nc_path: Path) -> List[Dict[str, Any]]:
     """Return the QC thresholds actually applied, as stored in the stage3 NC file.
 
-    Reads ``qc_gross_range_*`` attributes from each ``{var}_qc`` variable and
-    ``tilt_suspect_threshold`` / ``tilt_fail_threshold`` from dataset-level attrs.
-    Returns a list of dicts, one per variable, with the actual values that were
-    written to the file — regardless of whether they came from package defaults,
-    mooring-level YAML, or per-instrument overrides.
+    Reads three types of threshold from the ``{var}_qc`` variable attrs and from
+    dataset-level attrs:
+
+    * ``qc_gross_range_*`` — gross-range fail/suspect min/max
+    * ``qc_spike_*`` — QARTOD spike-test suspect/fail thresholds
+    * ``tilt_suspect_threshold`` / ``tilt_fail_threshold`` — Aquadopp tilt QC
+
+    Returns one dict per (variable, test) combination, with the actual values
+    stored in the file — regardless of whether they came from package defaults,
+    mooring-level YAML, or per-instrument overrides.  Spike rows only appear
+    for stage3 files produced after the spike-threshold-storage fix (2026-07-24).
     """
     try:
         import xarray as xr
@@ -325,20 +347,30 @@ def _read_qc_thresholds(nc_path: Path) -> List[Dict[str, Any]]:
             fail_max = attrs.get("qc_gross_range_fail_max")
             susp_min = attrs.get("qc_gross_range_suspect_min")
             susp_max = attrs.get("qc_gross_range_suspect_max")
-            if fail_min is None and susp_min is None:
-                continue
-            rows.append(
-                {
-                    "var": base,
-                    "test": "gross-range",
-                    "suspect": (
-                        f"[{susp_min}, {susp_max}]" if susp_min is not None else "—"
-                    ),
-                    "fail": (
-                        f"[{fail_min}, {fail_max}]" if fail_min is not None else "—"
-                    ),
-                }
-            )
+            if fail_min is not None or susp_min is not None:
+                rows.append(
+                    {
+                        "var": base,
+                        "test": "gross-range",
+                        "suspect": (
+                            f"[{susp_min}, {susp_max}]" if susp_min is not None else "—"
+                        ),
+                        "fail": (
+                            f"[{fail_min}, {fail_max}]" if fail_min is not None else "—"
+                        ),
+                    }
+                )
+            sp_susp = attrs.get("qc_spike_suspect_threshold")
+            sp_fail = attrs.get("qc_spike_fail_threshold")
+            if sp_susp is not None or sp_fail is not None:
+                rows.append(
+                    {
+                        "var": base,
+                        "test": "spike",
+                        "suspect": f"|Δ| > {sp_susp}" if sp_susp is not None else "—",
+                        "fail": f"|Δ| > {sp_fail}" if sp_fail is not None else "—",
+                    }
+                )
         # Tilt QC (Aquadopp): stored at dataset level
         t_susp = ds.attrs.get("tilt_suspect_threshold")
         t_fail = ds.attrs.get("tilt_fail_threshold")
@@ -436,6 +468,18 @@ def _read_instrument_info(
 
         vars_present = {v for v in ds.data_vars if ds[v].dims != ()}
         has_beam = any(f"velocity_beam{i}" in vars_present for i in (1, 2, 3))
+
+        # Check whether pressure was interpolated (any QC flag == 8) so the P pill
+        # in the instrument summary can be coloured blue (interpolated) vs green (measured).
+        pressure_interpolated = False
+        if "pressure_qc" in ds.data_vars:
+            try:
+                pressure_interpolated = bool(
+                    np.any(ds["pressure_qc"].values.astype(int) == 8)
+                )
+            except Exception:  # noqa: BLE001
+                pass
+
         ds.close()
 
         shorthands = [(label, name in vars_present) for name, label in _PRIMARY_VARS]
@@ -448,9 +492,131 @@ def _read_instrument_info(
             "dt_s": dt_s,
             "shorthands": shorthands,
             "has_beam": has_beam,
+            "pressure_interpolated": pressure_interpolated,
         }
     except Exception as exc:
         return {"error": str(exc)[:80]}
+
+
+def _read_timing_info(
+    proc_dir: Path, instr_type: str, mooring: str, serial: str
+) -> Dict[str, Any]:
+    """Read deployment-timing attrs from the stage 2 NC file.
+
+    Always reads from stage 2 (not stage 3) because timing metadata is written
+    during stage 2 processing.  Returns an empty dict if no stage 2 file exists.
+
+    The dict keys are:
+
+    stage1_start / stage1_end
+        First and last timestamps in the stage 1 record (raw instrument clock).
+    stage1_nonnull_start / stage1_nonnull_end
+        First/last non-NaN timestamps in the priority variable (raw clock).
+    sugg_start / sugg_end
+        Auto-detected deployment window in the raw instrument clock.
+    sugg_start_utc / sugg_end_utc
+        Clock-corrected suggested times (safe to paste into the YAML).
+    stage2_start / stage2_end
+        Actual first/last record in the stage 2 file (corrected, trimmed).
+    sugg_start_differs / sugg_end_differs
+        True when the suggested time differs from the YAML time by more than
+        2 × Δt (two sample intervals) — amber-highlight trigger in the timing
+        table.
+    dt_s
+        Median sample interval in seconds (p90 of first-differences).
+    """
+    nc_path = proc_dir / instr_type / f"{mooring}_{serial}_stage2.nc"
+    if not nc_path.exists():
+        return {}
+    try:
+        import xarray as xr
+
+        ds = xr.open_dataset(nc_path, decode_timedelta=False)
+        time = ds["time"].values
+        n = len(time)
+
+        stage2_start = str(time[0])[:16].replace("T", " ") if n > 0 else None
+        stage2_end = str(time[-1])[:16].replace("T", " ") if n > 0 else None
+
+        if n > 1:
+            dt_arr = np.diff(time.astype("datetime64[s]").astype(float))
+            dt_s = float(np.percentile(dt_arr, 90))
+        else:
+            dt_s = float("nan")
+
+        stage1_start = ds.attrs.get("stage1_time_start")
+        stage1_end = ds.attrs.get("stage1_time_end")
+        stage1_nonnull_start = ds.attrs.get("stage1_first_nonnull")
+        stage1_nonnull_end = ds.attrs.get("stage1_last_nonnull")
+        sugg_start = ds.attrs.get("suggested_deployment_time")
+        sugg_end = ds.attrs.get("suggested_recovery_time")
+        sugg_start_utc = ds.attrs.get("suggested_deployment_time_utc")
+        sugg_end_utc = ds.attrs.get("suggested_recovery_time_utc")
+        yaml_recovery = ds.attrs.get("yaml_recovery_time")
+        ds.close()
+
+        # Amber: sugg UTC differs from YAML/stage2 bound by > 2 sample intervals
+        sugg_start_differs = False
+        sugg_end_differs = False
+        if sugg_start_utc and stage2_start and np.isfinite(dt_s) and dt_s > 0:
+            try:
+                diff_s = abs(
+                    (
+                        datetime.fromisoformat(sugg_start_utc)
+                        - datetime.fromisoformat(stage2_start)
+                    ).total_seconds()
+                )
+                sugg_start_differs = diff_s > 2 * dt_s
+            except Exception:  # noqa: BLE001
+                pass
+        if sugg_end_utc and stage2_end and np.isfinite(dt_s) and dt_s > 0:
+            try:
+                diff_s = abs(
+                    (
+                        datetime.fromisoformat(sugg_end_utc)
+                        - datetime.fromisoformat(stage2_end)
+                    ).total_seconds()
+                )
+                sugg_end_differs = diff_s > 2 * dt_s
+            except Exception:  # noqa: BLE001
+                pass
+
+        # Orange-amber: stage1 last record ends more than 2 sample intervals before
+        # the YAML recovery time — indicates the instrument stopped recording early.
+        stage1_end_early = False
+        if stage1_end and yaml_recovery and np.isfinite(dt_s) and dt_s > 0:
+            try:
+                diff_s = (
+                    datetime.fromisoformat(yaml_recovery[:16])
+                    - datetime.fromisoformat(stage1_end[:16])
+                ).total_seconds()
+                stage1_end_early = diff_s > 2 * dt_s
+            except Exception:  # noqa: BLE001
+                pass
+
+        def _fmt(s: Optional[str]) -> Optional[str]:
+            if not s:
+                return None
+            return str(s)[:16].replace("T", " ")
+
+        return {
+            "stage1_start": _fmt(stage1_start),
+            "stage1_end": _fmt(stage1_end),
+            "stage1_nonnull_start": _fmt(stage1_nonnull_start),
+            "stage1_nonnull_end": _fmt(stage1_nonnull_end),
+            "sugg_start": _fmt(sugg_start),
+            "sugg_end": _fmt(sugg_end),
+            "sugg_start_utc": _fmt(sugg_start_utc),
+            "sugg_end_utc": _fmt(sugg_end_utc),
+            "stage2_start": stage2_start,
+            "stage2_end": stage2_end,
+            "sugg_start_differs": sugg_start_differs,
+            "sugg_end_differs": sugg_end_differs,
+            "stage1_end_early": stage1_end_early,
+            "dt_s": dt_s,
+        }
+    except Exception:  # noqa: BLE001
+        return {}
 
 
 def _read_sensor_info(

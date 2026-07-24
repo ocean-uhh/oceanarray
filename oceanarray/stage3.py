@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import copy
 import datetime
+import hashlib
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -825,7 +826,15 @@ def _apply_qc_tests(
     """Apply QARTOD gross-range and spike tests, writing *_qc variables.
 
     Existing *_qc variables (e.g., pressure_qc=8 from interpolation) are
-    merged with the new test flags using priority ordering.
+    merged with the new test flags using priority ordering (worst flag wins).
+
+    The applied thresholds are stored as attributes on each ``{var}_qc``
+    variable so that downstream tools (reports, histogram overlays) can
+    display exactly what was used without re-reading the YAML:
+
+    * ``qc_gross_range_fail_min`` / ``qc_gross_range_fail_max``
+    * ``qc_gross_range_suspect_min`` / ``qc_gross_range_suspect_max``
+    * ``qc_spike_suspect_threshold`` / ``qc_spike_fail_threshold``
     """
     from ioos_qc import qartod
 
@@ -888,6 +897,16 @@ def _apply_qc_tests(
                 )
                 threshold_attrs["qc_gross_range_suspect_max"] = float(
                     gcfg["suspect_span"][1]
+                )
+        if varname in spike:
+            scfg = spike[varname]
+            if "suspect_threshold" in scfg:
+                threshold_attrs["qc_spike_suspect_threshold"] = float(
+                    scfg["suspect_threshold"]
+                )
+            if "fail_threshold" in scfg:
+                threshold_attrs["qc_spike_fail_threshold"] = float(
+                    scfg["fail_threshold"]
                 )
 
         ds[qc_varname] = xr.Variable(
@@ -1776,6 +1795,18 @@ class Stage3Processor:
             from . import parameters as P
 
             ds = xr.open_dataset(nc_path, decode_timedelta=False).load()
+
+            # Record stage2 source-file provenance as named global attrs
+            _st2_stat = nc_path.stat()
+            _st2_mtime = datetime.datetime.utcfromtimestamp(
+                _st2_stat.st_mtime
+            ).strftime("%Y-%m-%dT%H:%M:%SZ")
+            with open(nc_path, "rb") as _f:
+                _st2_sha = hashlib.sha256(_f.read()).hexdigest()[:8]
+            ds.attrs["stage2_source_file"] = nc_path.name
+            ds.attrs["stage2_source_mtime"] = _st2_mtime
+            ds.attrs["stage2_source_sha256"] = _st2_sha
+
             target_time = ds["time"].values
             history_notes = []
 

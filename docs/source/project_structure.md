@@ -1,202 +1,219 @@
 # OceanArray Project Structure
 
-This document provides an overview of the oceanarray codebase structure and organization.
+This document provides an overview of the oceanarray codebase structure and organisation.
 
 ---
 
-## 🔍 Project Structure Overview
+## Project Structure Overview
 
 ```
 oceanarray/
-├── oceanarray/                    # [core] Main Python package for oceanographic processing
-│   ├── __init__.py                # [core] Makes this a Python package
-│   ├── stage1.py                  # [core] Stage1: Raw data conversion to NetCDF (modern workflow)
-│   ├── stage2.py                  # [core] Stage2: Clock corrections and trimming (modern workflow)
-│   ├── time_gridding.py           # [core] Time gridding and mooring-level processing (modern workflow)
-│   ├── clock_offset.py            # [core] Clock offset detection and correction analysis
-│   ├── find_deployment.py         # [core] Deployment detection from temperature profiles
-│   ├── readers.py                 # [core] Functions to read various oceanographic data formats
-│   ├── writers.py                 # [core] Functions to write processed data to NetCDF
-│   ├── tools.py                   # [core] Core utilities (lag correlation, QC functions)
-│   ├── plotters.py                # [viz] Data visualization and plotting functions
-│   ├── rapid_interp.py            # [interp] Physics-based vertical interpolation
+├── oceanarray/                    # Main Python package
+│   ├── __init__.py
+│   ├── _version.py                # Package version (auto-generated)
+│   ├── cli.py                     # [core] Command-line interface (oceanarray process/stack/grid/report/validate)
+│   ├── parameters.py              # [core] Global constants and configurable defaults
+│   ├── stage1.py                  # [core] Stage 1: raw data → CF-NetCDF (*_stage1.nc)
+│   ├── stage2.py                  # [core] Stage 2: clock correction + deployment trim (*_stage2.nc)
+│   ├── stage3.py                  # [core] Stage 3: QC, velocity rotation, salinity (*_stage3.nc)
+│   ├── mooring_level.py           # [core] Stack + grid: combine instruments onto common grids
+│   ├── time_gridding.py           # [core] Low-level time-axis utilities used by mooring_level.py
+│   ├── clock_offset.py            # [core] Clock-offset detection and correction analysis
+│   ├── find_deployment.py         # [core] Deployment-window detection from pressure/temperature
+│   ├── readers.py                 # [core] Raw instrument file readers (SBE, RBR, Nortek, RDI)
+│   ├── read_rbr_hex.py            # [core] RBR hex-format reader
+│   ├── writers.py                 # [core] NetCDF writers and CF-attribute helpers
+│   ├── tools.py                   # [core] Core algorithms (lag correlation, QC primitives)
+│   ├── utilities.py               # [core] General helpers (_nice_colorbar_bounds, etc.)
+│   ├── validation.py              # [core] YAML and dataset validation (oceanarray validate)
+│   ├── caldip.py                  # [core] Caldip / calibration-dip processing
 │   ├── transports.py              # [analysis] Transport calculations (work in progress)
 │   ├── logger.py                  # [core] Structured logging configuration
-│   ├── utilities.py               # [core] General helper functions
-│   ├── legacy/                    # [legacy] Legacy RODB/RAPID format processing (deprecated)
-│   │   ├── __init__.py            # [legacy] Legacy module imports for backward compatibility
-│   │   ├── rodb.py                # [legacy] RODB format reader for legacy RAPID data
-│   │   ├── process_rodb.py        # [legacy] Legacy RODB instrument processing functions
-│   │   ├── mooring_rodb.py        # [legacy] Legacy RODB mooring-level processing functions
-│   │   └── convertOS.py           # [legacy] Legacy OceanSites format conversion utilities
-│   └── config/                    # [config] Configuration files for processing
-│       ├── OS1_var_names.yaml     # [config] OceanSites variable name mappings
-│       ├── OS1_vocab_attrs.yaml   # [config] OceanSites vocabulary attributes
-│       ├── OS1_sensor_attrs.yaml  # [config] OceanSites sensor attributes
-│       └── legacy/                # [legacy] Legacy configuration files
-│           ├── project_RAPID.yaml # [legacy] RAPID project configuration
-│           ├── rodb_keys.yaml     # [legacy] RODB variable name mappings
-│           └── rodb_keys.txt      # [legacy] Text format RODB variable definitions
+│   ├── rapid_interp.py            # [interp] Physics-based vertical interpolation (legacy path)
+│   ├── plotter.py                 # [viz] Legacy plotting functions (being migrated to plotters/)
+│   │
+│   ├── plotters/                  # [viz] Modern 3-tier plotting package
+│   │   ├── __init__.py            # Backward-compat shim + public API
+│   │   ├── _primitives.py         # Tier 1: low-level axes primitives (plot_trajectory, etc.)
+│   │   ├── _current.py            # Tier 2: current/velocity domain functions
+│   │   ├── _timeseries.py         # Tier 2: timeseries domain functions
+│   │   ├── _section.py            # Tier 2: vertical-section domain functions
+│   │   ├── _diagnostic.py         # Tier 2: diagnostic / QC diagnostic functions
+│   │   ├── _animation.py          # Tier 2: animated plots (e.g. hodograph animation)
+│   │   └── _helpers.py            # Shared colormap/style helpers
+│   │
+│   ├── report/                    # [report] HTML report generation
+│   │   ├── __init__.py            # Public entry-points (generate_mooring_report, etc.)
+│   │   ├── _mooring.py            # Mooring summary report (summary card, instrument table)
+│   │   ├── _instrument.py         # Per-instrument report ({mooring}_{serial}_report.html)
+│   │   ├── _stack.py              # Stack report (multi-instrument timeseries)
+│   │   ├── _grid.py               # Grid report (vertical section, spectra, hodographs)
+│   │   ├── _plots.py              # Tier 3: report-level figure wrappers (base64 PNGs)
+│   │   └── _html_helpers.py       # HTML/Jinja2 utilities shared across report modules
+│   │
+│   ├── config/                    # Configuration files
+│   │   ├── OS1_var_names.yaml     # OceanSITES variable name mappings
+│   │   ├── OS1_vocab_attrs.yaml   # OceanSITES vocabulary and CF attributes
+│   │   ├── OS1_sensor_attrs.yaml  # OceanSITES sensor attributes
+│   │   ├── logging.yaml           # Logging configuration
+│   │   └── legacy/                # Legacy configuration files
+│   │       ├── project_RAPID.yaml
+│   │       ├── rodb_keys.yaml
+│   │       └── rodb_keys.txt
+│   │
+│   └── legacy/                    # Legacy RODB/RAPID processing (deprecated)
+│       ├── __init__.py
+│       ├── rodb.py                # RODB format reader
+│       ├── process_rodb.py        # Legacy instrument processing
+│       ├── mooring_rodb.py        # Legacy mooring-level processing
+│       └── convertOS.py           # Legacy OceanSites format conversion
 │
-├── tests/                         # [test] Unit tests using pytest
-│   ├── test_stage1.py             # [test] Test Stage1 processing
-│   ├── test_stage2.py             # [test] Test Stage2 processing
-│   ├── test_tools.py              # [test] Test core utility functions
-│   ├── legacy/                    # [legacy] Tests for legacy RODB/RAPID processing
-│   │   ├── test_rodb.py           # [legacy] Test RODB data reading
-│   │   ├── test_process_rodb.py   # [legacy] Test legacy RODB processing functions
-│   │   ├── test_mooring_rodb.py   # [legacy] Test legacy RODB mooring functions
-│   │   └── test_convertOS.py      # [legacy] Test legacy OceanSites conversion
-│   └── ...
+├── tests/                         # pytest test suite
+│   ├── test_stage1.py
+│   ├── test_stage2.py
+│   ├── test_stage3.py
+│   ├── test_time_gridding.py
+│   ├── test_plotters.py
+│   ├── test_readers.py
+│   ├── test_writers.py
+│   ├── test_tools.py
+│   ├── test_utilities.py
+│   ├── test_logger.py
+│   └── legacy/                    # Tests for legacy RODB/RAPID processing
 │
-├── notebooks/                     # [demo] Processing demonstration notebooks
-│   ├── demo_stage1.ipynb          # [demo] Stage1 processing demo
-│   ├── demo_stage2.ipynb          # [demo] Stage2 processing demo
-│   ├── demo_step1.ipynb           # [demo] Time gridding (mooring-level) demo
-│   ├── demo_instrument.ipynb      # [demo] Compact instrument processing workflow
-│   ├── demo_clock_offset.ipynb    # [demo] Clock offset analysis (refactored)
-│   ├── demo_check_clock.ipynb     # [demo] Clock offset analysis (original)
-│   ├── demo_climatology.ipynb     # [demo] Climatological processing
-│   └── legacy/                    # [legacy] Legacy RODB/RAPID demo notebooks
-│       ├── README.md              # [legacy] Legacy notebooks documentation
-│       ├── demo_instrument_rdb.ipynb  # [legacy] Legacy RODB instrument processing
-│       ├── demo_mooring_rdb.ipynb     # [legacy] Legacy RODB mooring processing
-│       └── demo_batch_instrument.ipynb # [legacy] Batch processing and QC analysis
+├── notebooks/                     # Demo notebooks
+│   ├── demo_stage1.ipynb
+│   ├── demo_stage2.ipynb
+│   ├── demo_instrument.ipynb
+│   ├── demo_mooring.ipynb
+│   ├── demo_clock_offset.ipynb
+│   ├── demo_check_clock.ipynb
+│   ├── demo_step1.ipynb
+│   ├── demo_climatology.ipynb
+│   └── legacy/
 │
-├── docs/                          # [docs] Sphinx documentation
-│   ├── source/                    # [docs] Documentation source files
-│   │   ├── conf.py                # [docs] Sphinx configuration
-│   │   ├── index.rst              # [docs] Main documentation page
-│   │   ├── processing_framework.rst # [docs] Processing workflow documentation
-│   │   ├── roadmap.rst            # [docs] Development roadmap
-│   │   ├── methods/               # [docs] Method documentation
-│   │   │   ├── standardisation.rst    # [docs] Stage1 standardization
-│   │   │   ├── trimming.rst           # [docs] Stage2 trimming
-│   │   │   ├── time_gridding.rst      # [docs] Time gridding methods
-│   │   │   ├── clock_offset.rst       # [docs] Clock offset analysis
-│   │   │   └── ...
-│   │   └── _static/               # [docs] Static files (images, CSS)
-│   └── Makefile                   # [docs] Build documentation
+├── docs/                          # Sphinx documentation
+│   ├── source/
+│   │   ├── conf.py
+│   │   ├── index.rst
+│   │   ├── methods/               # Method documentation (one page per processing step)
+│   │   └── _static/               # Static files, code examples, CSS
+│   └── Makefile
 │
-├── data/                          # [data] Sample and test data
-│   ├── moor/                      # [data] Mooring data directory structure
-│   │   ├── proc/                  # [data] Processed data
-│   │   └── raw/                   # [data] Raw instrument files
-│   └── climatology/               # [data] Climatological reference data
-│
-├── .github/                       # [ci] GitHub-specific workflows
-│   ├── workflows/
-│   │   ├── tests.yml              # [ci] Run pytest on pull requests
-│   │   └── docs.yml               # [ci] Build documentation
-│   └── ...
-│
-├── CLAUDE.md                      # [meta] Claude Code guidance file
-├── .gitignore                     # [meta] Git ignore patterns
-├── requirements.txt               # [meta] Core dependencies
-├── requirements-dev.txt           # [meta] Development dependencies
-├── .pre-commit-config.yaml        # [style] Pre-commit hooks configuration
-├── pyproject.toml                 # [meta] Build system and project metadata
-├── README.md                      # [meta] Project overview
-└── LICENSE                        # [meta] MIT License
+├── CLAUDE.md                      # Claude Code guidance
+├── pyproject.toml                 # Build system and project metadata
+├── requirements.txt
+├── requirements-dev.txt
+├── .pre-commit-config.yaml
+└── README.md
 ```
 
-## 🔍 Architecture Overview
+---
 
-### Modern Processing Workflow
-The current recommended workflow uses:
-1. **Stage1** (`stage1.py`) - Format conversion from raw instrument files to CF-NetCDF
-2. **Stage2** (`stage2.py`) - Clock corrections and deployment period trimming
-3. **Time Gridding** (`time_gridding.py`) - Multi-instrument coordination and filtering
-4. **Clock Offset Analysis** (`clock_offset.py`) - Inter-instrument timing validation
+## Processing Stages
 
-### Legacy RODB Workflow (Deprecated)
-For backward compatibility with RAPID/RODB format datasets (located in `oceanarray.legacy`):
-- **`legacy/process_rodb.py`** - Individual instrument processing functions
-- **`legacy/mooring_rodb.py`** - Mooring-level stacking and filtering functions
-- **`legacy/rodb.py`** - RODB format data reader
-- **`legacy/convertOS.py`** - Legacy OceanSites format conversion
+The pipeline processes raw instrument data through four sequential stages, each
+producing a CF-NetCDF output file.
 
-**⚠️ Note**: Legacy modules are deprecated. Use modern workflow for new projects.
+### Stage 1 — Standardisation (`stage1.py`)
+- **Input**: raw instrument files (`.cnv`, `.rsk`, `.dat`, `.hex`, RDI raw)
+- **Output**: `{proc_dir}/{mooring}/{mooring}_{serial}_stage1.nc`
+- Faithful to the raw data — no QC, no trimming. Stores the transformation matrix
+  and coordinate system so later stages can rotate correctly.
 
-### Key Design Principles
-- **CF-Compliant**: Uses CF conventions for metadata and variable naming
-- **xarray-Based**: Primary data structure throughout the pipeline
-- **Modular**: Independent processing stages that can be run separately
-- **Configurable**: YAML-driven configuration for processing parameters
-- **Reproducible**: Comprehensive logging and processing history tracking
+### Stage 2 — Clock correction + trimming (`stage2.py`)
+- **Input**: `*_stage1.nc` + mooring YAML (clock offsets, deployment window)
+- **Output**: `*_stage2.nc`
+- Applies linear clock-offset correction; trims to the deployment window.
 
-### File Organization Tags
-- `[core]` - Essential processing functionality and utilities
-- `[legacy]` - RODB/RAPID legacy format compatibility functions  
-- `[demo]` - Example notebooks demonstrating workflows
-- `[test]` - Automated tests for functionality validation
-- `[docs]` - Documentation sources and configuration
-- `[config]` - Processing configuration and parameter files
-- `[data]` - Sample data and directory structure examples
-- `[ci]` - Continuous integration and automation
-- `[meta]` - Project metadata and development configuration
+### Stage 3 — QC, rotation, derived variables (`stage3.py`)
+- **Input**: `*_stage2.nc`
+- **Output**: `*_stage3.nc`
+- Gross-range and tilt QC flags, BEAM→ENU rotation (Aquadopp), magnetic declination
+  correction, salinity, density.
+
+### Stack — multi-instrument coordination (`mooring_level.py`)
+- **Input**: `*_stage3.nc` files for all instruments on a mooring
+- **Output**: `{mooring}_stack.nc`  — `(N_LEVELS, time)` Dataset
+- Aligns instruments onto a common time axis; HAB-ordered deepest-first (index 0).
+
+### Grid — vertical gridding (`mooring_level.py`)
+- **Input**: `*_stack.nc`
+- **Output**: `{mooring}_grid.nc` — `(N_LEVELS, time)` on uniform pressure levels
+- Simple 1-D linear interpolation at each time step (preliminary; no objective mapping).
 
 ---
 
-## 🔧 Processing Stages
-
-### Stage 1: Standardization
-- **Purpose**: Convert raw instrument files to standardized NetCDF format
-- **Input**: Raw files (`.cnv`, `.rsk`, `.dat`, `.mat`)
-- **Output**: CF-compliant NetCDF files (`*_raw.nc`)
-- **Module**: `stage1.py`
-
-### Stage 2: Temporal Corrections
-- **Purpose**: Apply clock corrections and trim to deployment periods
-- **Input**: Stage1 files + YAML with clock offsets
-- **Output**: Time-corrected files (`*_use.nc`)  
-- **Module**: `stage2.py`
-
-### Time Gridding: Mooring Coordination
-- **Purpose**: Combine instruments onto common time grids with optional filtering
-- **Input**: Stage2 files from multiple instruments
-- **Output**: Mooring-level combined datasets
-- **Module**: `time_gridding.py`
-
-### Clock Offset Analysis
-- **Purpose**: Detect timing errors between instruments on same mooring
-- **Input**: Stage1 files from multiple instruments
-- **Output**: Recommended clock offset corrections for YAML
-- **Module**: `clock_offset.py`
-
----
-
-## 📊 Data Flow
+## Data Flow
 
 ```
-Raw Files → Stage1 → Stage2 → Time Gridding → Array Analysis
-    ↓         ↓         ↓           ↓             ↓
-  Various   *_raw.nc  *_use.nc   Combined     Transports
-  Formats                        Mooring      & Products
-                                 Datasets
+Raw files
+   │
+   ▼ oceanarray process --stage 1
+*_stage1.nc   (faithful copy, CF-NetCDF)
+   │
+   ▼ oceanarray process --stage 2
+*_stage2.nc   (clock-corrected, trimmed)
+   │
+   ▼ oceanarray process --stage 3
+*_stage3.nc   (QC flagged, ENU velocities, salinity/density)
+   │
+   ▼ oceanarray stack
+{mooring}_stack.nc   (N_LEVELS × time)
+   │
+   ├──▶ oceanarray report  →  HTML reports
+   │
+   ▼ oceanarray grid
+{mooring}_grid.nc   (uniform pressure × time)
+   │
+   └──▶ oceanarray report  →  grid HTML report
 ```
 
-**Clock Offset Loop**: Stage1 → Clock Analysis → Update YAML → Stage2
+---
+
+## Plotters Package Architecture
+
+Three-tier architecture (see `.claude/plotters_update-20260718.md` for migration rules):
+
+- **Tier 1** (`plotters/_primitives.py`): low-level axes primitives, no domain knowledge
+- **Tier 2** (`plotters/_current.py`, `_timeseries.py`, `_section.py`, etc.): domain
+  functions that know about oceanographic variables
+- **Tier 3** (`report/_plots.py`): report wrappers that call Tier-2 functions and return
+  base64 PNG strings for embedding in HTML
+
+`plotter.py` is the legacy module being migrated into this structure.
 
 ---
 
-## 🧪 Testing Structure
+## Report Package
 
-Tests are organized by module with comprehensive coverage:
-- **Core workflow tests**: `test_stage*.py` 
-- **Legacy format tests**: `test_*_rodb.py`
-- **Utility tests**: `test_tools.py`, `test_convertOS.py`
-- **Integration tests**: Via demo notebooks in CI
+Four report types, each in its own module:
 
----
+| Report | Module | Output file |
+|--------|--------|-------------|
+| Mooring summary | `report/_mooring.py` | `{mooring}_report.html` |
+| Per-instrument | `report/_instrument.py` | `{mooring}_{serial}_report.html` |
+| Stack | `report/_stack.py` | `{mooring}_stack_report.html` |
+| Grid | `report/_grid.py` | `{mooring}_grid_report.html` |
 
-## 📚 Documentation Structure
-
-- **Methods documentation**: Detailed processing methodology
-- **API documentation**: Auto-generated from docstrings
-- **Demo notebooks**: Interactive examples and tutorials
-- **Development guides**: Roadmap and contribution guidelines
+All figures are generated by `report/_plots.py` (Tier 3) and embedded as base64 PNGs.
 
 ---
 
-This structure supports both modern CF-compliant processing workflows and legacy RAPID/RODB format compatibility, providing a flexible framework for oceanographic mooring data processing.
+## Key Design Principles
+
+- **Data provenance**: never silently substitute defaults; store all processing
+  parameters in NetCDF global attributes so treatment can be reconstructed from the file.
+- **CF-compliant**: CF conventions for metadata and variable naming throughout.
+- **xarray-based**: `xr.Dataset` is the primary data structure in all stages.
+- **Discrete colorbars**: all figures use `_nice_colorbar_bounds` + `BoundaryNorm`;
+  continuous colorbars are not used.
+- **Configurable**: YAML-driven configuration for QC ranges, clock offsets, deployment
+  windows, and instrument metadata.
+
+---
+
+## Legacy Modules
+
+`legacy/` contains the RODB/RAPID-format processing path, kept for backward
+compatibility with older datasets.  New projects use the stage 1–3 pipeline above.

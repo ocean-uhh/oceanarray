@@ -12,7 +12,8 @@ import pandas as pd
 import xarray as xr
 import yaml
 
-from oceanarray import find_deployment, tools
+from oceanarray import tools
+from oceanarray.legacy import find_deployment
 
 
 def load_mooring_instruments(mooring_name, base_dir, output_path, file_suffix="_raw"):  # noqa: ARG001

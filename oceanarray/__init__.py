@@ -6,7 +6,7 @@ of oceanographic time series data from moorings and instruments.
 
 __all__ = [
     "clock_offset",
-    "find_deployment",
+    "detect_deployment_window",
     "plotters",
     "readers",
     "stage1",

@@ -232,9 +232,36 @@ _INSTRUMENT_HTML_TEMPLATE = """\
 {% endif %}
 
 <!-- ══ Start / end windows ══ -->
-<h2 id="start">Start &amp; end windows &mdash; first / last 48 h</h2>
+<h2 id="start">Start &amp; end windows &mdash; first / last 6 h</h2>
 {% if fig_windows_b64 %}
-<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">Left panel = first 48 h &nbsp;|&nbsp; Right panel = last 48 h.</p>
+<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+  Left panel = first 7&thinsp;h (1&thinsp;h lead-in + 6&thinsp;h of record) &nbsp;|&nbsp;
+  Right panel = last 7&thinsp;h (6&thinsp;h of record + 1&thinsp;h tail).
+  <span style="color:#e67e22">&#9474;&#9474; orange dashed</span> = auto-detected
+  (pressure-based) suggested deploy/recover time &bull;
+  <span style="color:#27ae60">&#9474;&#9474; green dashed</span> = YAML
+  <code>deployment_time</code> / <code>recovery_time</code> &bull;
+  <span style="color:#cccccc">&#9474;&#9474; grey</span> = stage&nbsp;1 raw record
+  (same variable, same units).
+</p>
+<p style="font-size:0.78rem;color:#777;margin-top:0.3rem;">
+  <strong>Reading the grey background:</strong>
+  where the raw stage&nbsp;1 record is available and uses the same physical
+  units as the stage&nbsp;2/3 data, it is shown in light grey so you can
+  visually verify that the chosen deployment window captures the in-water
+  period.  Three cases where grey may be absent or misleading:
+  (1)&nbsp;<em>sensors without their own pressure</em> (e.g. a microCAT that
+  relies on interpolated pressure from a nearby instrument) — interpolated
+  pressure is only added at stage&nbsp;3, so stage&nbsp;1 has no pressure
+  variable and no grey trace appears;
+  (2)&nbsp;<em>velocity in beam or XYZ coordinates</em> — if an Aquadopp or
+  ADCP was configured to record in BEAM or XYZ mode, the stage&nbsp;1 file
+  contains beam/XYZ velocity variables while stage&nbsp;3 stores
+  ENU velocities; the variable names differ so no grey velocity trace is shown;
+  (3)&nbsp;<em>conductivity</em> — raw conductivity units sometimes differ
+  between stage&nbsp;1 and stage&nbsp;3 (e.g.&nbsp;mS/cm vs S/m) and the
+  grey trace is suppressed automatically to avoid a misleading scale mismatch.
+</p>
 <img class="fig" src="data:image/png;base64,{{ fig_windows_b64 }}">
 {% else %}
 <p class="none-note">Insufficient data for start/end windows.</p>
@@ -616,14 +643,38 @@ def generate_instrument_pages(
         duration = _duration_str(_parse_dt(t_start), _parse_dt(t_end))
 
         history_entries: List[Dict[str, str]] = []
+        _sugg_deploy_utc: Optional[str] = None
+        _sugg_recover_utc: Optional[str] = None
         if best_nc:
             try:
                 import xarray as xr
 
                 with xr.open_dataset(best_nc, decode_timedelta=False) as _ds:
                     history_entries = _parse_history(_ds.attrs.get("history", ""))
+                    _sugg_deploy_utc = _ds.attrs.get("suggested_deployment_time_utc")
+                    _sugg_recover_utc = _ds.attrs.get("suggested_recovery_time_utc")
             except Exception:
                 pass
+
+        # Build vertical-line markers for the start/end window plots.
+        # Orange = auto-detected from pressure; green = set in the YAML.
+        _yaml_deploy_str = cfg.get("deployment_time")
+        _yaml_recover_str = cfg.get("recovery_time")
+        # PyYAML may parse bare ISO datetime values as datetime objects; normalise to
+        # ISO strings so the vlines normalizer in _plots.py can handle them uniformly.
+        if hasattr(_yaml_deploy_str, "isoformat"):
+            _yaml_deploy_str = _yaml_deploy_str.isoformat()
+        if hasattr(_yaml_recover_str, "isoformat"):
+            _yaml_recover_str = _yaml_recover_str.isoformat()
+        _window_vlines: List[tuple] = []
+        if _sugg_deploy_utc:
+            _window_vlines.append((_sugg_deploy_utc, "#e67e22", "Sugg. deploy"))
+        if _sugg_recover_utc:
+            _window_vlines.append((_sugg_recover_utc, "#e67e22", "Sugg. recover"))
+        if _yaml_deploy_str:
+            _window_vlines.append((_yaml_deploy_str, "#27ae60", "YAML deploy"))
+        if _yaml_recover_str:
+            _window_vlines.append((_yaml_recover_str, "#27ae60", "YAML recover"))
 
         # File listing — raw source and stage1/2/3 NC files
         raw_filename = instr.get("filename", "")
@@ -681,7 +732,14 @@ def generate_instrument_pages(
                 _make_instrument_fig(best_nc, instr_type) if best_nc else None
             ),
             "fig_windows_b64": (
-                _make_windows_fig(best_nc, instr_type) if best_nc else None
+                _make_windows_fig(
+                    best_nc,
+                    instr_type,
+                    vlines=_window_vlines,
+                    stage1_nc=_stage1_nc if _stage1_nc.exists() else None,
+                )
+                if best_nc
+                else None
             ),
             "fig_tsd_b64": _make_ts_diagram(best_nc) if best_nc else None,
             "fig_rose_b64": (

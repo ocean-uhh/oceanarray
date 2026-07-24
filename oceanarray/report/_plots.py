@@ -418,10 +418,40 @@ def _make_instrument_fig(
 def _make_windows_fig(
     nc_path: Path,
     instr_type: str,
-    hours: int = 48,
+    hours: int = 6,
     show_qc: bool = True,
+    vlines: Optional[list] = None,
+    stage1_nc: Optional[Path] = None,
 ) -> Optional[str]:
-    """Combined start + end window figure: (nrows × 2) — left = first 48 h, right = last 48 h."""
+    """Combined start + end window figure: (nrows × 2) — left = first N h, right = last N h.
+
+    Parameters
+    ----------
+    nc_path : Path
+        Path to the processed (stage2 or stage3) NetCDF file.
+    instr_type : str
+        Instrument type string (used in the figure title).
+    hours : int
+        Width of each window in hours (default 6).
+    show_qc : bool
+        Overlay QC flag markers on the data.
+    vlines : list of (time_val, color, label), optional
+        Vertical marker lines to draw on both panels.  *time_val* may be a
+        ``numpy.datetime64``, an ISO-8601 string, or a ``pandas.Timestamp``.
+        Lines are only drawn when they fall inside the plotted window.
+        Labels appear as small rotated text at the top of the **first row** only
+        to avoid excessive clutter.
+    stage1_nc : Path, optional
+        Path to the stage1 NC file.  When provided, the raw stage1 data is
+        plotted as a light-grey background trace in each window panel so the
+        full pre/post-deployment record is visible (bench → deployment in the
+        left panel; deployment → recovery in the right panel).  The x-axis
+        limits are taken from the stage1 window extent so that the recovery
+        transition appears even if the stage2/3 YAML trim cut it off.  The
+        y-axis limits are taken from the primary (stage2/3) data only so that
+        bench-pressure outliers (p ≈ 0) do not squish the deployment-depth view.
+
+    """
     try:
         import matplotlib.pyplot as plt
         import matplotlib.dates as mdates
@@ -430,6 +460,19 @@ def _make_windows_fig(
         from .. import parameters as P
 
         ds = xr.open_dataset(nc_path, decode_timedelta=False).load()
+        # Stage1 background data (optional).  Closed in the finally block.
+        # Masks are computed later, after the stage2/3 x-axis bounds are known,
+        # so the grey trace is selected by the same window as the coloured data.
+        ds1 = None
+        time1 = None
+        start_mask1: Optional["np.ndarray"] = None
+        end_mask1: Optional["np.ndarray"] = None
+        if stage1_nc is not None:
+            try:
+                ds1 = xr.open_dataset(stage1_nc, decode_timedelta=False).load()
+                time1 = ds1["time"].values
+            except Exception:
+                ds1 = None
         try:
             time = ds["time"].values
             if len(time) < 2:
@@ -439,6 +482,8 @@ def _make_windows_fig(
             end_mask = time >= time[-1] - np.timedelta64(hours * 3600, "s")
             if start_mask.sum() < 2 and end_mask.sum() < 2:
                 return None
+            # One sample interval used to expand x-axis limits (stage2/3 fallback).
+            _dt_one = (time[1] - time[0]) if len(time) > 1 else np.timedelta64(300, "s")
 
             panels = _instrument_panels(ds, combine_pitch_roll=True)
             if not panels:
@@ -478,23 +523,17 @@ def _make_windows_fig(
                         ax.set_visible(False)
                         return
                     if "pitch" in ds.data_vars:
+                        _p = ds["pitch"].values.astype(float)[mask]
                         ax.plot(
-                            t,
-                            ds["pitch"].values.astype(float)[mask],
-                            color="tab:purple",
-                            lw=0.6,
-                            label="pitch",
-                            zorder=1,
+                            t, _p, color="tab:purple", lw=0.6, label="pitch", zorder=1
+                        )
+                        ax.scatter(
+                            t, _p, s=3, color="tab:purple", zorder=2, linewidths=0
                         )
                     if "roll" in ds.data_vars:
-                        ax.plot(
-                            t,
-                            ds["roll"].values.astype(float)[mask],
-                            color="#8B4513",
-                            lw=0.6,
-                            label="roll",
-                            zorder=1,
-                        )
+                        _r = ds["roll"].values.astype(float)[mask]
+                        ax.plot(t, _r, color="#8B4513", lw=0.6, label="roll", zorder=1)
+                        ax.scatter(t, _r, s=3, color="#8B4513", zorder=2, linewidths=0)
                     for _val, _c, _ls in [
                         (_suspect_t, "tab:orange", "--"),
                         (-_suspect_t, "tab:orange", "--"),
@@ -519,6 +558,7 @@ def _make_windows_fig(
                     ax.set_visible(False)
                     return
                 ax.plot(t, d, color=color, linewidth=0.6, zorder=1)
+                ax.scatter(t, d, s=3, color=color, zorder=2, linewidths=0)
                 if "velocity" in vname and not invert:
                     ax.axhline(0, color="k", linewidth=0.4, linestyle="--", zorder=0)
                 if vname == "tilt":
@@ -526,10 +566,8 @@ def _make_windows_fig(
                         _suspect_t, color="tab:orange", lw=0.9, ls="--", zorder=2
                     )
                     ax.axhline(_fail_t, color="tab:red", lw=0.9, ls="--", zorder=2)
-                if invert:
-                    _lo, _hi = float(np.nanmin(d)), float(np.nanmax(d))
-                    _pad = max((_hi - _lo) * 0.1, 0.5)
-                    ax.set_ylim(_hi + _pad, _lo - _pad)
+                # ylim for inverted variables is set from the outer loop using the
+                # combined range of both panels, so we do not set it here.
                 if show_qc and f"{vname}_qc" in ds.data_vars:
                     flags = ds[f"{vname}_qc"].values.astype(int)[mask]
                     for fval, mkw in _QC_MARKER.items():
@@ -545,11 +583,136 @@ def _make_windows_fig(
                 ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(loc))
                 ax.tick_params(axis="x")
 
+            # Normalise vlines to numpy datetime64[ns] upfront.
+            # Use pandas.Timestamp as an intermediate because it handles Python
+            # datetime objects, ISO strings, and pandas.Timestamp objects uniformly.
+            import pandas as _pd
+
+            _vlines_ns: list = []
+            for _vt, _vc, _vl in vlines or []:
+                try:
+                    _ts = _pd.Timestamp(_vt)
+                    if _ts.tzinfo is not None:
+                        _ts = _ts.tz_convert("UTC").tz_localize(None)
+                    _vlines_ns.append((_ts.to_datetime64(), _vc, _vl))
+                except Exception:
+                    pass
+
+            def _draw_vlines(
+                ax: "plt.Axes",
+                t_lo: "np.datetime64",
+                t_hi: "np.datetime64",
+                first_row: bool,
+            ) -> None:
+                """Draw vertical marker lines that fall inside [t_lo, t_hi]."""
+                for _vt, _vc, _vl in _vlines_ns:
+                    if _vt < t_lo or _vt > t_hi:
+                        continue
+                    ax.axvline(_vt, color=_vc, lw=1.2, ls="--", zorder=4)
+                    if first_row:
+                        ax.text(
+                            _vt,
+                            1.0,
+                            f" {_vl}",
+                            transform=ax.get_xaxis_transform(),
+                            rotation=90,
+                            va="bottom",
+                            ha="left",
+                            fontsize=7,
+                            color=_vc,
+                            zorder=5,
+                            clip_on=False,
+                        )
+
+            # X-axis bounds: always based on stage2/3 data.  Add 1 h of padding
+            # before the stage2/3 start (left panel) and after the stage2/3 end
+            # (right panel) so that any stage1 grey data in those margins is visible.
+            # This makes each window effectively 7 h wide (1 h pad + 6 h of record).
+            _one_hour = np.timedelta64(3600, "s")
+            _t_start_lo = time[0] - _one_hour
+            _t_start_hi = time[start_mask][-1] if start_mask.any() else time[0]
+            _t_end_lo = time[end_mask][0] if end_mask.any() else time[-1]
+            _t_end_hi = time[-1] + _one_hour
+
+            # Stage1 masks: select stage1 samples within the expanded x windows so the
+            # grey trace fills the 1 h margins but never triggers axes auto-rescaling.
+            if time1 is not None:
+                start_mask1 = (time1 >= _t_start_lo) & (time1 <= _t_start_hi)
+                end_mask1 = (time1 >= _t_end_lo) & (time1 <= _t_end_hi)
+
+            def _plot_grey(  # noqa: ANN202
+                ax: "plt.Axes",
+                vname: str,
+                mask: "np.ndarray",
+            ) -> None:
+                """Plot stage1 reference data as light-grey background trace.
+
+                Skipped when the physical units differ between stage1 and stage2/3
+                (e.g. conductivity in mS/cm in stage1 vs S/m after normalisation)
+                because the values would be on an incompatible scale.
+
+                ``_pitch_roll_combo`` is a synthetic panel name; pitch and roll are
+                read directly from ds1 by their real variable names.
+                """
+                if ds1 is None or time1 is None:
+                    return
+                if vname == "_pitch_roll_combo":
+                    for _v in ("pitch", "roll"):
+                        if _v not in ds1.data_vars:
+                            continue
+                        _t1 = time1[mask]
+                        _d1 = ds1[_v].values.astype(float)[mask]
+                        if len(_t1) < 2:
+                            continue
+                        ax.plot(_t1, _d1, color="#cccccc", lw=0.5, zorder=0)
+                        ax.scatter(
+                            _t1, _d1, s=2, color="#cccccc", zorder=0, linewidths=0
+                        )
+                    return
+                if vname not in ds1.data_vars:
+                    return
+                _u1 = ds1[vname].attrs.get("units", "").strip()
+                _u2 = ds[vname].attrs.get("units", "").strip()
+                if _u1 and _u2 and _u1 != _u2:
+                    return
+                data1 = ds1[vname].values.astype(float)
+                t1, d1 = time1[mask], data1[mask]
+                if len(t1) < 2:
+                    return
+                ax.plot(t1, d1, color="#cccccc", lw=0.5, zorder=0)
+                ax.scatter(t1, d1, s=2, color="#cccccc", zorder=0, linewidths=0)
+
             for row_i, (vname, label, color, invert) in enumerate(panels):
                 ax_l = fig.add_subplot(gs[row_i, 0])
                 ax_r = fig.add_subplot(gs[row_i, 1], sharey=ax_l)
+                # Grey stage1 background drawn before the coloured primary data.
+                if start_mask1 is not None:
+                    _plot_grey(ax_l, vname, start_mask1)
+                if end_mask1 is not None:
+                    _plot_grey(ax_r, vname, end_mask1)
                 _plot_panel(ax_l, vname, label, color, invert, start_mask, 0)
                 _plot_panel(ax_r, vname, label, color, invert, end_mask, 1)
+                # For inverted variables (pressure), set the shared y-axis from the
+                # combined range of both panels so neither panel clips the other's data.
+                # Use stage2/3 data only — stage1 bench pressure (≈ 0) must not expand
+                # the y-axis and squish the deployment-depth view.
+                if invert and vname in ds.data_vars:
+                    _d_both = np.concatenate(
+                        [
+                            ds[vname].values.astype(float)[start_mask],
+                            ds[vname].values.astype(float)[end_mask],
+                        ]
+                    )
+                    _d_both = _d_both[np.isfinite(_d_both)]
+                    if _d_both.size:
+                        _lo_c, _hi_c = float(_d_both.min()), float(_d_both.max())
+                        _pad_c = max((_hi_c - _lo_c) * 0.1, 0.5)
+                        ax_l.set_ylim(_hi_c + _pad_c, _lo_c - _pad_c)
+                # Explicit x-axis limits (from stage1 if available, else stage2/3).
+                ax_l.set_xlim(_t_start_lo, _t_start_hi)
+                ax_r.set_xlim(_t_end_lo, _t_end_hi)
+                _draw_vlines(ax_l, _t_start_lo, _t_start_hi, row_i == 0)
+                _draw_vlines(ax_r, _t_end_lo, _t_end_hi, row_i == 0)
                 ax_r.yaxis.tick_right()
                 ax_r.yaxis.set_label_position("right")
                 if row_i == 0:
@@ -569,6 +732,8 @@ def _make_windows_fig(
             return b64
         finally:
             ds.close()
+            if ds1 is not None:
+                ds1.close()
     except Exception:
         return None
 
@@ -2092,6 +2257,10 @@ def _make_velocity_iqr_profile_b64(ds: "xr.Dataset") -> Optional[str]:
     _count_ref = ds["east_velocity"].values if has_horiz else ds["current_speed"].values
     n_good = np.sum(np.isfinite(_count_ref), axis=0)  # (n_levels,)
 
+    # Suppress levels with < 20 % coverage relative to the best-sampled level
+    _max_good = n_good.max() if n_good.max() > 0 else 1
+    coverage_mask = n_good >= 0.2 * _max_good
+
     # Okabe-Ito blue and orange — distinguishable for all common colour-vision deficiencies
     _C_EAST = "#0072B2"
     _C_NORTH = "#E69F00"
@@ -2121,7 +2290,7 @@ def _make_velocity_iqr_profile_b64(ds: "xr.Dataset") -> Optional[str]:
             p50 = np.nanpercentile(data, 50, axis=0)
             p75 = np.nanpercentile(data, 75, axis=0)
             p975 = np.nanpercentile(data, 97.5, axis=0)
-        valid = np.isfinite(p50)
+        valid = np.isfinite(p50) & coverage_mask
         if valid.any():
             ax.fill_betweenx(
                 pressure[valid],
@@ -2179,7 +2348,7 @@ def _make_velocity_iqr_profile_b64(ds: "xr.Dataset") -> Optional[str]:
                 p25 = np.nanpercentile(data, 25, axis=0)
                 p50 = np.nanpercentile(data, 50, axis=0)
                 p75 = np.nanpercentile(data, 75, axis=0)
-            valid = np.isfinite(p50)
+            valid = np.isfinite(p50) & coverage_mask
             if not valid.any():
                 continue
             ax.fill_betweenx(
@@ -2371,12 +2540,12 @@ def _make_rose_grid_b64(
     return b64
 
 
-def _make_grid_rose_b64(ds: "xr.Dataset", max_roses: int = 12) -> Optional[str]:
+def _make_grid_rose_b64(ds: "xr.Dataset", max_roses: int = 4) -> Optional[str]:
     """Grid of current roses, one per pressure level, for the grid report.
 
-    Shows up to *max_roses* pressure levels (evenly subsampled when there are
-    more), each labelled with its pressure (dbar).  Levels with no finite ENU
-    velocity are skipped.  Returns None when east/north velocity are absent or
+    Shows up to *max_roses* pressure levels (at most 1/5th of valid levels,
+    capped at 4), each labelled with its pressure (dbar).  Levels with no finite
+    ENU velocity are skipped.  Returns None when east/north velocity are absent or
     all-NaN.
 
     Parameters
@@ -2415,10 +2584,11 @@ def _make_grid_rose_b64(ds: "xr.Dataset", max_roses: int = 12) -> Optional[str]:
     if not valid_idx:
         return None
 
-    # Subsample evenly if more pressure levels than max_roses
-    if len(valid_idx) > max_roses:
-        step = len(valid_idx) / max_roses
-        valid_idx = [valid_idx[int(round(i * step))] for i in range(max_roses)]
+    # Subsample: min(max_roses, max(1, n_valid // 5)) — same rule as rotary spectrum
+    n_select = min(max_roses, max(1, len(valid_idx) // 5))
+    if len(valid_idx) > n_select:
+        step = len(valid_idx) / n_select
+        valid_idx = [valid_idx[int(round(i * step))] for i in range(n_select)]
 
     n = len(valid_idx)
     ncols = min(n, 4)
