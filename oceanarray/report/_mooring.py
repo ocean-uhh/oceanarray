@@ -1024,12 +1024,12 @@ class MooringReport:
                 )
             else:
                 # Try auto-guessing filename from standard naming conventions
-                # (same logic as Stage1Processor._guess_instrument_filename).
+                # (same logic as MooringProcessor._guess_instrument_filename).
                 # Skip guessing for instruments marked skip:true — they won't
                 # be processed and there's nothing useful to report.
                 _guessed = None
                 if self._raw_dir is not None and not entry.get("skip"):
-                    from oceanarray.stage1 import Stage1Processor as _S1
+                    from oceanarray.stage1 import MooringProcessor as _S1
 
                     _raw_mooring = self._raw_dir / mooring_name
                     _guessed = _S1._guess_instrument_filename(  # noqa: SLF001
