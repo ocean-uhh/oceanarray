@@ -194,7 +194,19 @@ def detect_deployment_window(
 
     # End: first below-threshold sample in closing window → previous sample
     idx_end = np.where(below & end_window)[0]
-    end_idx = max(int(idx_end[0]) - 1, 0) if idx_end.size > 0 else n - 1
+    if idx_end.size > 0:
+        end_idx = max(int(idx_end[0]) - 1, 0)
+    else:
+        import logging as _logging
+
+        _logging.getLogger(__name__).warning(
+            "detect_deployment_window: no recovery pressure transition detected "
+            "in last 25 %% of record — suggested end = last stage1 sample (%s). "
+            "If the YAML recovery_time is set earlier than this, the orange vline "
+            "will fall outside the 6 h end-window and be invisible.",
+            time[n - 1],
+        )
+        end_idx = n - 1
 
     if start_idx >= end_idx:
         return None, None, "no_pressure"

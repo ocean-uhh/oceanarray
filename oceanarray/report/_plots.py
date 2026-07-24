@@ -608,7 +608,7 @@ def _make_windows_fig(
                 for _vt, _vc, _vl in _vlines_ns:
                     if _vt < t_lo or _vt > t_hi:
                         continue
-                    ax.axvline(_vt, color=_vc, lw=1.2, ls="--", zorder=4)
+                    ax.axvline(_vt, color=_vc, lw=1.2, ls="--", zorder=-1)
                     if first_row:
                         ax.text(
                             _vt,

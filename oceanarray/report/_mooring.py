@@ -395,6 +395,8 @@ _HTML_TEMPLATE = """\
   (instrument may have stopped early).
   Serial numbers link to the per-instrument report; the
   <em>6&thinsp;h</em> link jumps directly to the start/end window plots.
+</p>
+<p style="font-size:0.85rem;background:#fffbe6;border-left:3px solid #e67e22;padding:0.5em 0.8em;margin:0.6rem 0">
   <strong>Spot-check recommended:</strong> open the 6&thinsp;h start/end
   window plots for each instrument (click <em>6&thinsp;h</em>) and visually
   confirm that the orange suggested line (or green YAML line if they match)

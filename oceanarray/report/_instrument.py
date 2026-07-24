@@ -249,18 +249,24 @@ _INSTRUMENT_HTML_TEMPLATE = """\
   where the raw stage&nbsp;1 record is available and uses the same physical
   units as the stage&nbsp;2/3 data, it is shown in light grey so you can
   visually verify that the chosen deployment window captures the in-water
-  period.  Three cases where grey may be absent or misleading:
-  (1)&nbsp;<em>sensors without their own pressure</em> (e.g. a microCAT that
-  relies on interpolated pressure from a nearby instrument) — interpolated
-  pressure is only added at stage&nbsp;3, so stage&nbsp;1 has no pressure
-  variable and no grey trace appears;
-  (2)&nbsp;<em>velocity in beam or XYZ coordinates</em> — if an Aquadopp or
-  ADCP was configured to record in BEAM or XYZ mode, the stage&nbsp;1 file
-  contains beam/XYZ velocity variables while stage&nbsp;3 stores
-  ENU velocities; the variable names differ so no grey velocity trace is shown;
-  (3)&nbsp;<em>conductivity</em> — raw conductivity units sometimes differ
-  between stage&nbsp;1 and stage&nbsp;3 (e.g.&nbsp;mS/cm vs S/m) and the
-  grey trace is suppressed automatically to avoid a misleading scale mismatch.
+  period.  Cases where grey may be absent:
+  <ul style="margin:0.3em 0 0.3em 1.2em;padding:0">
+    <li><em>Sensors without their own pressure</em> (e.g. a microCAT that
+    relies on interpolated pressure from a nearby instrument) — interpolated
+    pressure is only added at stage&nbsp;3, so stage&nbsp;1 has no pressure
+    variable and no grey trace appears.</li>
+    <li><em>Velocity in beam or XYZ coordinates</em> — if an Aquadopp or
+    ADCP was configured to record in BEAM or XYZ mode, the stage&nbsp;1 file
+    contains beam/XYZ velocity variables while stage&nbsp;3 stores
+    ENU velocities; the variable names differ so no grey velocity trace is shown.</li>
+    <li><em>Conductivity</em> — raw conductivity units sometimes differ
+    between stage&nbsp;1 and stage&nbsp;3 (e.g.&nbsp;mS/cm vs S/m) and the
+    grey trace is suppressed automatically to avoid a misleading scale mismatch.</li>
+  </ul>
+  If the <span style="color:#e67e22">orange vline</span> is absent from the right-hand panel,
+  no pressure-based recovery transition was detected in the final 25&thinsp;% of the
+  stage&nbsp;1 record — the suggested recovery time equals the last raw sample.
+  Check the timing table in the mooring summary report for the suggested UTC time.
 </p>
 <img class="fig" src="data:image/png;base64,{{ fig_windows_b64 }}">
 {% else %}
