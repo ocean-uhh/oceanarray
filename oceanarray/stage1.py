@@ -1331,7 +1331,9 @@ class MooringProcessor:
                 _tried_400: list = []
                 for _root in _search_400:
                     _conv = _root / "converted_raw"
-                    _tried_400.append(str(_conv / f"A{raw_serial}*" / "Average Velocity DF3.csv"))
+                    _tried_400.append(
+                        str(_conv / f"A{raw_serial}*" / "Average Velocity DF3.csv")
+                    )
                     if not _conv.is_dir():
                         continue
                     for _sub in sorted(_conv.glob(f"A{raw_serial}*")):
@@ -1354,8 +1356,7 @@ class MooringProcessor:
                 if log_fn:
                     log_fn(
                         f"AUTO-FILENAME: no converted_raw/A{raw_serial}*/ found for "
-                        f"aquadopp {raw_serial} — tried:\n  "
-                        + "\n  ".join(_tried_400)
+                        f"aquadopp {raw_serial} — tried:\n  " + "\n  ".join(_tried_400)
                     )
                 return None
             candidates.append(
