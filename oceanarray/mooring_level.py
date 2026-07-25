@@ -641,7 +641,7 @@ class MooringStacker:
                 )
                 expanded.append(info)
                 continue
-            n_bins = ds_adcp.dims[bin_dim]
+            n_bins = ds_adcp.sizes[bin_dim]
             range_vals = (
                 ds_adcp["range"].values
                 if "range" in ds_adcp.coords

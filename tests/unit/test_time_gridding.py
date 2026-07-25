@@ -12,6 +12,9 @@ import pandas as pd
 import pytest
 import xarray as xr
 
+pytest.importorskip("seasenselib", reason="seasenselib not installed")
+pytestmark = pytest.mark.needs_seasenselib
+
 from oceanarray.time_gridding import (
     TimeGriddingProcessor,
     process_multiple_moorings_time_gridding,
@@ -287,7 +290,7 @@ class TestTimeGriddingProcessor:
 
         assert "time" in combined.dims
         assert "N_LEVELS" in combined.dims
-        assert combined.dims["N_LEVELS"] == len(mock_datasets)
+        assert combined.sizes["N_LEVELS"] == len(mock_datasets)
 
         expected_vars = ["temperature", "salinity", "pressure"]
         for var in expected_vars:

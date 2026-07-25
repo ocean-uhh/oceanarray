@@ -9,6 +9,9 @@ import pytest
 import xarray as xr
 import yaml
 
+pytest.importorskip("seasenselib", reason="seasenselib not installed")
+pytestmark = pytest.mark.needs_seasenselib
+
 from oceanarray.stage1 import (
     MooringProcessor,
     process_multiple_moorings,
