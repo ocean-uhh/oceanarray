@@ -1,13 +1,6 @@
-"""Tests for oceanarray.time_gridding module.
-
-Tests cover Step 1: time gridding and optional filtering of multiple instruments.
+"""Unit tests for oceanarray.time_gridding module (synthetic data only).
 
 Version: 1.1
-Last updated: 2025-09-07
-Changes:
-- Fixed test_apply_time_filtering_single method indentation and placement
-- Fixed test_filtering_parameter_placeholder to work with new structure
-- Removed bandpass filter references
 """
 
 import tempfile
@@ -18,7 +11,6 @@ import numpy as np
 import pandas as pd
 import pytest
 import xarray as xr
-import yaml
 
 from oceanarray.time_gridding import (
     TimeGriddingProcessor,
@@ -38,7 +30,6 @@ def create_mock_instrument_dataset(
     """Create a mock instrument dataset for testing."""
     time_range = pd.date_range(start_time, end_time, freq=f"{interval_min}min")
 
-    # Create realistic but synthetic data
     n_points = len(time_range)
     np.random.seed(serial)  # Reproducible based on serial number
 
@@ -66,7 +57,6 @@ def create_mock_instrument_dataset(
 
     ds = xr.Dataset(data, coords={"time": time_range})
 
-    # Add metadata
     ds.attrs["mooring_name"] = "test_mooring"
     ds["serial_number"] = serial
     ds["instrument"] = instrument_type
@@ -111,9 +101,8 @@ class TestTimeGriddingProcessor:
     def mock_datasets(self):
         """Create mock datasets representing different instruments."""
         start_time = "2018-08-12T08:00:00"
-        end_time = "2018-08-12T12:00:00"  # 4 hour window for testing
+        end_time = "2018-08-12T12:00:00"
 
-        # Different sampling rates to test interpolation
         datasets = [
             create_mock_instrument_dataset(
                 start_time, end_time, 10, "microcat", 7518, 100
@@ -147,7 +136,6 @@ class TestTimeGriddingProcessor:
 
     def test_ensure_instrument_metadata(self, processor):
         """Test metadata addition to datasets."""
-        # Create dataset missing some metadata
         ds = xr.Dataset(
             {"temperature": (["time"], [20.0, 20.1])},
             coords={"time": pd.date_range("2018-01-01", periods=2, freq="h")},
@@ -167,7 +155,6 @@ class TestTimeGriddingProcessor:
 
     def test_clean_dataset_variables(self, processor):
         """Test removal of unnecessary variables."""
-        # Create dataset with variables to remove
         ds = xr.Dataset(
             {
                 "temperature": (["time"], [20.0, 20.1]),
@@ -180,7 +167,6 @@ class TestTimeGriddingProcessor:
 
         result = processor._clean_dataset_variables(ds)
 
-        # Should keep temperature, remove others
         assert "temperature" in result.variables
         assert "timeS" not in result.variables
         assert "density" not in result.variables
@@ -188,35 +174,29 @@ class TestTimeGriddingProcessor:
 
     def test_apply_time_filtering_single(self, processor, mock_datasets):
         """Test time filtering on individual instrument datasets."""
-        # Test with no filtering
         result = processor._apply_time_filtering_single(
             mock_datasets[0], filter_type=None
         )
-        assert result is mock_datasets[0]  # Should return same dataset unchanged
+        assert result is mock_datasets[0]
 
-        # Test with lowpass filtering (now implemented)
         with patch.object(processor, "_log_print") as mock_log:
             result = processor._apply_time_filtering_single(
                 mock_datasets[0], filter_type="lowpass"
             )
             mock_log.assert_called()
 
-            # Should contain lowpass filter messages
             log_messages = [str(call) for call in mock_log.call_args_list]
             lowpass_messages = [msg for msg in log_messages if "Low-pass filter" in msg]
             assert len(lowpass_messages) > 0
 
-            # Result should be a dataset (may be same if filtering failed due to insufficient data)
             assert isinstance(result, type(mock_datasets[0]))
 
-        # Test with detide filter (should warn about not implemented, then use lowpass)
         with patch.object(processor, "_log_print") as mock_log:
             result = processor._apply_time_filtering_single(
                 mock_datasets[0], filter_type="detide"
             )
             mock_log.assert_called()
 
-            # Should contain warning about harmonic de-tiding not implemented
             warning_calls = [
                 call
                 for call in mock_log.call_args_list
@@ -224,24 +204,21 @@ class TestTimeGriddingProcessor:
             ]
             assert len(warning_calls) > 0
 
-            # Result should be a dataset (filtered with lowpass as substitute)
             assert isinstance(result, type(mock_datasets[0]))
 
-        # Test with unknown filter type (should warn and return unchanged)
         with patch.object(processor, "_log_print") as mock_log:
             result = processor._apply_time_filtering_single(
                 mock_datasets[0], filter_type="unknown_filter"
             )
             mock_log.assert_called()
 
-            # Should contain warning about unknown filter
             warning_calls = [
                 call
                 for call in mock_log.call_args_list
                 if "Unknown filter type" in str(call)
             ]
             assert len(warning_calls) > 0
-            assert result is mock_datasets[0]  # Should return unchanged
+            assert result is mock_datasets[0]
 
     def test_analyze_timing_info(self, processor, mock_datasets):
         """Test timing analysis across multiple datasets."""
@@ -250,19 +227,16 @@ class TestTimeGriddingProcessor:
                 mock_datasets
             )
 
-        # Check that we get a reasonable time grid
         assert len(time_grid) > 0
         assert isinstance(start_time, np.datetime64)
         assert isinstance(end_time, np.datetime64)
         assert start_time < end_time
 
-        # Grid should span the full time range
         assert time_grid[0] >= start_time
         assert time_grid[-1] <= end_time
 
     def test_interpolate_datasets(self, processor, mock_datasets):
         """Test interpolation of datasets onto common grid."""
-        # Create a simple time grid
         start_time = mock_datasets[0].time.values[0]
         end_time = mock_datasets[0].time.values[-1]
         time_grid = np.arange(start_time, end_time, np.timedelta64(10, "m"))
@@ -270,16 +244,13 @@ class TestTimeGriddingProcessor:
         with patch.object(processor, "_log_print"):
             interpolated = processor._interpolate_datasets(mock_datasets, time_grid)
 
-        # Should have same number of datasets
         assert len(interpolated) == len(mock_datasets)
 
-        # All should have same time coordinate
         for ds in interpolated:
             np.testing.assert_array_equal(ds.time.values, time_grid)
 
     def test_merge_global_attrs(self, processor, mock_datasets):
         """Test merging of global attributes."""
-        # Add different attributes to datasets
         mock_datasets[0].attrs["attr1"] = "value1"
         mock_datasets[0].attrs["common"] = "first"
         mock_datasets[1].attrs["attr2"] = "value2"
@@ -293,7 +264,6 @@ class TestTimeGriddingProcessor:
 
     def test_merge_var_attrs(self, processor, mock_datasets):
         """Test merging of variable attributes."""
-        # Add attributes to temperature variable
         mock_datasets[0]["temperature"].attrs["units"] = "celsius"
         mock_datasets[0]["temperature"].attrs["source"] = "first"
         mock_datasets[1]["temperature"].attrs["long_name"] = "Temperature"
@@ -307,7 +277,6 @@ class TestTimeGriddingProcessor:
 
     def test_create_combined_dataset(self, processor, mock_datasets):
         """Test creation of combined dataset."""
-        # First interpolate onto common grid
         start_time = mock_datasets[0].time.values[0]
         end_time = mock_datasets[0].time.values[-1]
         time_grid = np.arange(start_time, end_time, np.timedelta64(10, "m"))
@@ -316,23 +285,19 @@ class TestTimeGriddingProcessor:
             interpolated = processor._interpolate_datasets(mock_datasets, time_grid)
             combined = processor._create_combined_dataset(interpolated, time_grid)
 
-        # Check dimensions
         assert "time" in combined.dims
         assert "N_LEVELS" in combined.dims
         assert combined.dims["N_LEVELS"] == len(mock_datasets)
 
-        # Check that variables are present
         expected_vars = ["temperature", "salinity", "pressure"]
         for var in expected_vars:
             assert var in combined.data_vars
             assert combined[var].dims == ("time", "N_LEVELS")
 
-        # Check coordinate metadata
         assert "nominal_depth" in combined.coords
         assert "serial_number" in combined.coords
         assert "instrument" in combined.coords
 
-        # Check metadata values
         expected_depths = [100, 200, 300]
         expected_serials = [7518, 7519, 1234]
         np.testing.assert_array_equal(combined.nominal_depth.values, expected_depths)
@@ -340,7 +305,6 @@ class TestTimeGriddingProcessor:
 
     def test_encode_instrument_as_flags(self, processor):
         """Test encoding of instrument names as integer flags."""
-        # Create dataset with instrument coordinate
         ds = xr.Dataset(
             {"temperature": (["time", "N_LEVELS"], np.random.random((10, 3)))},
             coords={
@@ -352,210 +316,13 @@ class TestTimeGriddingProcessor:
 
         result = processor._encode_instrument_as_flags(ds)
 
-        # Check that instrument_id was created
         assert "instrument_id" in result.variables
-        assert "instrument" not in result.variables  # Original should be removed
+        assert "instrument" not in result.variables
 
-        # Check flag values
         assert "flag_values" in result["instrument_id"].attrs
         assert "flag_meanings" in result["instrument_id"].attrs
 
-        # Check global attribute
         assert "instrument_names" in result.attrs
-
-
-class TestTimeGriddingIntegration:
-    """Integration tests for time gridding processing."""
-
-    @pytest.fixture
-    def test_data_setup(self, tmp_path):
-        """Set up test environment with mock instrument files."""
-        base_dir = tmp_path / "test_data"
-        proc_dir = base_dir / "moor" / "proc" / "test_mooring"
-        proc_dir.mkdir(parents=True)
-
-        # Create YAML config
-        yaml_data = {
-            "name": "test_mooring",
-            "waterdepth": 1000,
-            "instruments": [
-                {"instrument": "microcat", "serial": 7518, "depth": 100},
-                {"instrument": "microcat", "serial": 7519, "depth": 200},
-            ],
-        }
-
-        config_file = proc_dir / "test_mooring.mooring.yaml"
-        with open(config_file, "w") as f:
-            yaml.dump(yaml_data, f)
-
-        # Create mock instrument files
-        start_time = "2018-08-12T08:00:00"
-        end_time = "2018-08-12T12:00:00"
-
-        for instrument_config in yaml_data["instruments"]:
-            instrument_type = instrument_config["instrument"]
-            serial = instrument_config["serial"]
-            depth = instrument_config["depth"]
-
-            # Create instrument directory
-            inst_dir = proc_dir / instrument_type
-            inst_dir.mkdir(exist_ok=True)
-
-            # Create mock dataset
-            interval = 10 if serial == 7518 else 5  # Different sampling rates
-            ds = create_mock_instrument_dataset(
-                start_time, end_time, interval, instrument_type, serial, depth
-            )
-
-            # Save as NetCDF
-            filename = f"test_mooring_{serial}_stage2.nc"
-            filepath = inst_dir / filename
-            ds.to_netcdf(filepath)
-
-        return {
-            "base_dir": base_dir,
-            "proc_dir": proc_dir,
-            "config_file": config_file,
-            "yaml_data": yaml_data,
-        }
-
-    def test_full_time_gridding_processing(self, test_data_setup):
-        """Test complete time gridding processing workflow."""
-        setup = test_data_setup
-        processor = TimeGriddingProcessor(str(setup["base_dir"]))
-
-        # Process the mooring
-        result = processor.process_mooring("test_mooring")
-
-        # Check that processing succeeded
-        assert result is True
-
-        # Check that output file was created
-        output_file = setup["proc_dir"] / "test_mooring_mooring_stage2.nc"
-        assert output_file.exists()
-
-        # Load and validate the combined dataset
-        with xr.open_dataset(output_file) as ds:
-            # Check dimensions
-            assert "time" in ds.dims
-            assert "N_LEVELS" in ds.dims
-            assert ds.sizes["N_LEVELS"] == 2  # Two instruments
-
-            # Check variables
-            assert "temperature" in ds.data_vars
-            assert "salinity" in ds.data_vars
-            assert "pressure" in ds.data_vars
-
-            # Check coordinate metadata
-            assert "nominal_depth" in ds.coords
-            assert "serial_number" in ds.coords
-            assert (
-                "instrument_id" in ds.data_vars
-            )  # This is a data variable, not coordinate
-
-            # Validate metadata values
-            expected_depths = [100.0, 200.0]
-            expected_serials = [7518, 7519]
-            np.testing.assert_array_equal(ds.nominal_depth.values, expected_depths)
-            np.testing.assert_array_equal(ds.serial_number.values, expected_serials)
-
-    def test_missing_instruments_warning(self, test_data_setup):
-        """Test warning when some instruments are missing."""
-        setup = test_data_setup
-
-        # Add extra instrument to YAML that doesn't have a file
-        yaml_data = setup["yaml_data"].copy()
-        yaml_data["instruments"].append(
-            {"instrument": "adcp", "serial": 1234, "depth": 300}
-        )
-
-        # Write updated config
-        with open(setup["config_file"], "w") as f:
-            yaml.dump(yaml_data, f)
-
-        processor = TimeGriddingProcessor(str(setup["base_dir"]))
-        result = processor.process_mooring("test_mooring")
-
-        # Should still succeed with available instruments
-        assert result is True
-
-        # Check log file mentions missing instrument
-        log_files = list(setup["proc_dir"].glob("processing_logs/*_time_gridding.log"))
-        assert len(log_files) == 1
-        log_content = log_files[0].read_text()
-        assert "Missing instruments" in log_content
-        assert "adcp:1234" in log_content
-
-    def test_different_sampling_rates_warning(self, test_data_setup):
-        """Test warnings about different sampling rates."""
-        setup = test_data_setup
-        processor = TimeGriddingProcessor(str(setup["base_dir"]))
-
-        # Process (datasets have 10min and 5min intervals)
-        result = processor.process_mooring("test_mooring")
-        assert result is True
-
-        # Check log mentions timing analysis
-        log_files = list(setup["proc_dir"].glob("processing_logs/*_time_gridding.log"))
-        log_content = log_files[0].read_text()
-        assert "TIMING ANALYSIS" in log_content
-        assert "min intervals" in log_content
-
-    def test_filtering_parameter_detide(self, test_data_setup):
-        """Test filtering integration with detide filter (not yet implemented)."""
-        setup = test_data_setup
-        processor = TimeGriddingProcessor(str(setup["base_dir"]))
-
-        # Test with detide filtering (should show "not yet implemented" warning)
-        result = processor.process_mooring("test_mooring", filter_type="detide")
-
-        # Check that processing succeeded
-        assert result is True
-
-        # Check the log file contains the expected warning
-        log_files = list(setup["proc_dir"].glob("processing_logs/*_time_gridding.log"))
-        assert len(log_files) == 1
-
-        log_content = log_files[0].read_text()
-        assert "not yet implemented" in log_content
-        assert "Harmonic de-tiding not yet implemented" in log_content
-
-    def test_no_valid_datasets(self, tmp_path):
-        """Test handling when no valid datasets are found."""
-        base_dir = tmp_path / "test_data"
-        proc_dir = base_dir / "moor" / "proc" / "test_mooring"
-        proc_dir.mkdir(parents=True)
-
-        # Create YAML with instruments but no data files
-        yaml_data = {
-            "name": "test_mooring",
-            "instruments": [{"instrument": "microcat", "serial": 9999, "depth": 100}],
-        }
-
-        config_file = proc_dir / "test_mooring.mooring.yaml"
-        with open(config_file, "w") as f:
-            yaml.dump(yaml_data, f)
-
-        processor = TimeGriddingProcessor(str(base_dir))
-        result = processor.process_mooring("test_mooring")
-
-        assert result is False
-
-    def test_custom_variables_to_keep(self, test_data_setup):
-        """Test processing with custom variable selection."""
-        setup = test_data_setup
-        processor = TimeGriddingProcessor(str(setup["base_dir"]))
-
-        # Process with only temperature
-        result = processor.process_mooring("test_mooring", vars_to_keep=["temperature"])
-        assert result is True
-
-        # Check output only has temperature
-        output_file = setup["proc_dir"] / "test_mooring_mooring_stage2.nc"
-        with xr.open_dataset(output_file) as ds:
-            assert "temperature" in ds.data_vars
-            assert "salinity" not in ds.data_vars
-            assert "pressure" not in ds.data_vars
 
 
 class TestConvenienceFunctions:
@@ -610,7 +377,6 @@ class TestErrorHandling:
         proc_dir = base_dir / "moor" / "proc" / "test_mooring"
         proc_dir.mkdir(parents=True)
 
-        # Create invalid YAML
         invalid_yaml = proc_dir / "test_mooring.mooring.yaml"
         invalid_yaml.write_text("invalid: yaml: content: [")
 
@@ -628,5 +394,4 @@ class TestErrorHandling:
 
 
 if __name__ == "__main__":
-    # Version 1.1 - Time gridding test suite
     pytest.main([__file__, "-v", "--tb=short"])

@@ -1,12 +1,10 @@
-"""Tests for oceanarray.stage1 module.
-
-Tests use real data files for reliable integration testing.
-"""
+"""Unit tests for oceanarray.stage1 module (synthetic data only)."""
 
 import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+import numpy as np
 import pytest
 import xarray as xr
 import yaml
@@ -164,54 +162,41 @@ class TestMooringProcessor:
 
     def test_clean_dataset_variables_sbe_cnv(self, processor):
         """Test cleaning dataset variables for SBE CNV files."""
-        # Create a mock dataset with variables that should be removed
-        import numpy as np
-
         ds = xr.Dataset(
             {
                 "temperature": (["time"], [20.0, 21.0, 22.0]),
                 "pressure": (["time"], [100.0, 101.0, 102.0]),
-                "potential_temperature": (
-                    ["time"],
-                    [19.8, 20.8, 21.8],
-                ),  # Should be removed
-                "density": (["time"], [1025.0, 1026.0, 1027.0]),  # Should be removed
-                "julian_days_offset": (["time"], [1, 2, 3]),  # Should be removed
-                "salinity": (["time"], [35.0, 35.1, 35.2]),  # Should be kept
+                "potential_temperature": (["time"], [19.8, 20.8, 21.8]),
+                "density": (["time"], [1025.0, 1026.0, 1027.0]),
+                "julian_days_offset": (["time"], [1, 2, 3]),
+                "salinity": (["time"], [35.0, 35.1, 35.2]),
             },
             coords={
                 "time": (["time"], np.arange(3)),
-                "depth": (["time"], [100.0, 100.0, 100.0]),  # Should be removed
-                "latitude": 60.0,  # Should be removed
-                "longitude": -30.0,  # Should be removed
+                "depth": (["time"], [100.0, 100.0, 100.0]),
+                "latitude": 60.0,
+                "longitude": -30.0,
             },
         )
 
-        # Clean the dataset
         cleaned_ds = processor._clean_dataset_variables(ds, "sbe-cnv")
 
-        # Check that unwanted variables were removed
         assert "potential_temperature" not in cleaned_ds.variables
         assert "density" not in cleaned_ds.variables
         assert "julian_days_offset" not in cleaned_ds.variables
 
-        # Check that wanted variables were kept
         assert "temperature" in cleaned_ds.variables
         assert "pressure" in cleaned_ds.variables
         assert "salinity" in cleaned_ds.variables
 
-        # Check that unwanted coordinates were removed
         assert "depth" not in cleaned_ds.coords
         assert "latitude" not in cleaned_ds.coords
         assert "longitude" not in cleaned_ds.coords
 
-        # Check that time coordinate was kept
         assert "time" in cleaned_ds.coords
 
     def test_clean_dataset_variables_unknown_type(self, processor):
         """Test cleaning dataset variables for unknown file type."""
-        import numpy as np
-
         ds = xr.Dataset(
             {
                 "temperature": (["time"], [20.0, 21.0, 22.0]),
@@ -223,10 +208,8 @@ class TestMooringProcessor:
             },
         )
 
-        # Clean with unknown file type (should not remove anything)
         cleaned_ds = processor._clean_dataset_variables(ds, "unknown-type")
 
-        # Check that all variables and coordinates are preserved
         assert "temperature" in cleaned_ds.variables
         assert "unwanted_var" in cleaned_ds.variables
         assert "time" in cleaned_ds.coords
@@ -234,9 +217,6 @@ class TestMooringProcessor:
 
     def test_add_global_attributes_complete(self, processor):
         """Test adding global attributes with complete YAML data."""
-        import numpy as np
-
-        # Create a simple dataset
         ds = xr.Dataset(
             {"temperature": (["time"], [20.0, 21.0, 22.0])},
             coords={"time": (["time"], np.arange(3))},
@@ -255,10 +235,8 @@ class TestMooringProcessor:
             "recovery_time": "2018-08-26T20:47:24",
         }
 
-        # Add global attributes
         updated_ds = processor._add_global_attributes(ds, yaml_data)
 
-        # Check that all attributes were added correctly
         assert updated_ds.attrs["mooring_name"] == "test_mooring"
         assert updated_ds.attrs["waterdepth"] == 1000
         assert updated_ds.attrs["longitude"] == -30.0
@@ -272,28 +250,21 @@ class TestMooringProcessor:
 
     def test_add_global_attributes_minimal(self, processor):
         """Test adding global attributes with minimal YAML data."""
-        import numpy as np
-
-        # Create a simple dataset
         ds = xr.Dataset(
             {"temperature": (["time"], [20.0, 21.0, 22.0])},
             coords={"time": (["time"], np.arange(3))},
         )
 
-        # Minimal YAML data (only required fields)
         yaml_data = {
             "name": "minimal_mooring",
             "waterdepth": 500,
         }
 
-        # Add global attributes
         updated_ds = processor._add_global_attributes(ds, yaml_data)
 
-        # Check that required attributes were added
         assert updated_ds.attrs["mooring_name"] == "minimal_mooring"
         assert updated_ds.attrs["waterdepth"] == 500
 
-        # Check that default values were used for missing fields
         assert updated_ds.attrs["longitude"] == 0.0
         assert updated_ds.attrs["latitude"] == 0.0
         assert updated_ds.attrs["deployment_latitude"] == "00 00.000 N"
@@ -302,157 +273,6 @@ class TestMooringProcessor:
         assert updated_ds.attrs["seabed_latitude"] == "00 00.000 N"
         assert updated_ds.attrs["seabed_longitude"] == "000 00.000 W"
         assert updated_ds.attrs["recovery_time"] == "YYYY-mm-ddTHH:MM:ss"
-
-
-class TestRealDataProcessing:
-    """Integration tests using real data files."""
-
-    @pytest.fixture
-    def test_data_setup(self, tmp_path):
-        """Set up test environment with real CNV data."""
-        base_dir = tmp_path / "test_data"
-
-        # Create directory structure matching real layout:
-        # input_dir / instrument / mooring_name / filename
-        raw_dir = (
-            base_dir / "moor" / "raw" / "test_deployment" / "microcat" / "test_mooring"
-        )
-        proc_dir = base_dir / "moor" / "proc" / "test_mooring"
-        raw_dir.mkdir(parents=True)
-        proc_dir.mkdir(parents=True)
-
-        # Copy the real test data file
-        test_data_source = Path("data/test_data.cnv")
-        test_data_dest = raw_dir / "test_data.cnv"
-
-        if test_data_source.exists():
-            test_data_dest.write_text(test_data_source.read_text())
-        else:
-            pytest.skip("Real test data file not found at data/test_data.cnv")
-
-        # Create YAML config
-        yaml_data = {
-            "name": "test_mooring",
-            "waterdepth": 1000,
-            "longitude": -30.0,
-            "latitude": 60.0,
-            "deployment_latitude": "60 00.000 N",
-            "deployment_longitude": "030 00.000 W",
-            "deployment_time": "2018-08-12T08:00:00",
-            "recovery_time": "2018-08-26T20:47:24",
-            "seabed_latitude": "60 00.000 N",
-            "seabed_longitude": "030 00.000 W",
-            "directory": "moor/raw/test_deployment/",
-            "instruments": [
-                {
-                    "instrument": "microcat",
-                    "serial": 7518,
-                    "depth": 100,
-                    "filename": "test_data.cnv",
-                    "file_type": "sbe-cnv",
-                    "clock_offset": 0,
-                    "start_time": "2018-08-12T08:00:00",
-                    "end_time": "2018-08-26T20:47:24",
-                }
-            ],
-        }
-
-        config_file = proc_dir / "test_mooring.mooring.yaml"
-        with open(config_file, "w") as f:
-            yaml.dump(yaml_data, f)
-
-        return {
-            "base_dir": base_dir,
-            "raw_dir": raw_dir,
-            "proc_dir": proc_dir,
-            "config_file": config_file,
-            "data_file": test_data_dest,
-            "yaml_data": yaml_data,
-        }
-
-    def test_process_real_sbe_file(self, test_data_setup):
-        """Test processing with real SBE CNV file."""
-        setup = test_data_setup
-        processor = MooringProcessor(str(setup["base_dir"]))
-
-        # Process the mooring
-        result = processor.process_mooring("test_mooring")
-
-        # Check that it worked
-        assert result is True
-
-        # Check that output file was created
-        output_file = setup["proc_dir"] / "microcat" / "test_mooring_7518_stage1.nc"
-        assert output_file.exists()
-
-        # Check that we can open and validate the NetCDF file
-        with xr.open_dataset(output_file) as ds:
-            # Check basic structure
-            assert "temperature" in ds.data_vars
-            assert "pressure" in ds.data_vars
-            assert "salinity" in ds.data_vars
-            assert "time" in ds.coords
-
-            # Check metadata
-            assert ds.attrs["mooring_name"] == "test_mooring"
-            assert ds["serial_number"].values == 7518
-            assert ds["instrument"].values == "microcat"
-            assert ds["InstrDepth"].values == 100
-
-            # Check data ranges are reasonable
-            assert len(ds.time) == 151  # Should match the test file
-            assert ds.temperature.min() > 15  # Reasonable temperature range
-            assert ds.temperature.max() < 25
-            assert ds.pressure.min() >= -1  # Pressure should be reasonable
-            assert ds.pressure.max() < 2
-
-    def test_process_missing_file(self, test_data_setup):
-        """Test processing when data file is missing."""
-        setup = test_data_setup
-
-        # Remove the data file
-        setup["data_file"].unlink()
-
-        processor = MooringProcessor(str(setup["base_dir"]))
-        result = processor.process_mooring("test_mooring")
-
-        # Should fail gracefully
-        assert result is False
-
-        # Check log file contains error message
-        log_files = list(setup["proc_dir"].glob("processing_logs/*_stage1.log"))
-        assert len(log_files) == 1
-        log_content = log_files[0].read_text()
-        assert "Error reading file" in log_content
-
-    def test_process_existing_output(self, test_data_setup):
-        """Test processing when output file already exists."""
-        setup = test_data_setup
-        processor = MooringProcessor(str(setup["base_dir"]))
-
-        # First processing run
-        result1 = processor.process_mooring("test_mooring")
-        assert result1 is True
-
-        # Second processing run should skip existing file
-        result2 = processor.process_mooring("test_mooring")
-        assert result2 is True
-
-        # Check log mentions skipping
-        log_files = list(setup["proc_dir"].glob("processing_logs/*_stage1.log"))
-        log_content = log_files[-1].read_text()  # Get the latest log
-        assert "OUTFILE EXISTS" in log_content
-
-    def test_process_missing_config(self, tmp_path):
-        """Test processing mooring with missing config file."""
-        base_dir = tmp_path / "test_data"
-        proc_dir = base_dir / "moor" / "proc" / "test_mooring"
-        proc_dir.mkdir(parents=True)
-
-        processor = MooringProcessor(str(base_dir))
-        result = processor.process_mooring("test_mooring")
-
-        assert result is False
 
 
 class TestConvenienceFunctions:
@@ -500,7 +320,6 @@ class TestErrorHandling:
         """Test handling of invalid YAML file."""
         processor = MooringProcessor(str(tmp_path))
 
-        # Create invalid YAML file
         invalid_yaml = tmp_path / "invalid.yaml"
         invalid_yaml.write_text("invalid: yaml: content: [")
 

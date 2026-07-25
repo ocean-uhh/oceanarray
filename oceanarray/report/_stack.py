@@ -650,7 +650,13 @@ def generate_stack_page(
                 ax.plot(time_ds, y, color=color, lw=0.7, alpha=0.85, label=f"{serial}")
                 if dot_overlay:
                     ax.plot(
-                        time_ds, y, ".", color=color, markersize=2, linewidth=0, alpha=0.85
+                        time_ds,
+                        y,
+                        ".",
+                        color=color,
+                        markersize=2,
+                        linewidth=0,
+                        alpha=0.85,
                     )
             if not plotted:
                 plt.close(fig)

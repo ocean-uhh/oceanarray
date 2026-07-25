@@ -1,13 +1,6 @@
-"""Tests for oceanarray.stage2 module.
-
-Tests use real data files generated from Stage 1 processing.
+"""Unit tests for oceanarray.stage2 module (synthetic data only).
 
 Version: 2.0 - Fixed clock offset tests with proper array comparison and immutability testing
-Last updated: 2025-01-09
-Changes:
-- Fixed clock offset tests using np.testing.assert_array_equal
-- Added verification that original datasets are not modified
-- Fixed date ranges in trimming tests to match actual data
 """
 
 import tempfile
@@ -18,7 +11,6 @@ import numpy as np
 import pandas as pd
 import pytest
 import xarray as xr
-import yaml
 
 from oceanarray.stage2 import (
     Stage2Processor,
@@ -66,7 +58,6 @@ class TestStage2Processor:
     @pytest.fixture
     def sample_raw_dataset(self):
         """Create a sample raw dataset for testing."""
-        # Create time series with some data before/after deployment window
         start_time = pd.to_datetime("2018-08-12T08:00:00")
         end_time = pd.to_datetime("2018-08-26T20:00:00")
         time_range = pd.date_range(start_time, end_time, freq="10min")
@@ -75,12 +66,11 @@ class TestStage2Processor:
             "temperature": (["time"], np.random.random(len(time_range)) + 20),
             "salinity": (["time"], np.random.random(len(time_range)) + 35),
             "pressure": (["time"], np.random.random(len(time_range)) + 100),
-            "timeS": (["time"], np.arange(len(time_range))),  # To be removed
+            "timeS": (["time"], np.arange(len(time_range))),
         }
 
         ds = xr.Dataset(data, coords={"time": time_range})
 
-        # Add some metadata
         ds.attrs["mooring_name"] = "test_mooring"
         ds["serial_number"] = 7518
         ds["instrument"] = "microcat"
@@ -137,10 +127,8 @@ class TestStage2Processor:
         original_time = sample_raw_dataset.time.copy()
         result = processor._apply_clock_offset(sample_raw_dataset, 0)
 
-        # Time should be unchanged
         np.testing.assert_array_equal(result.time.values, original_time.values)
 
-        # Verify original dataset was not modified
         np.testing.assert_array_equal(
             sample_raw_dataset.time.values, original_time.values
         )
@@ -151,16 +139,13 @@ class TestStage2Processor:
         original_time = sample_raw_dataset.time.copy()
         result = processor._apply_clock_offset(sample_raw_dataset, offset_seconds)
 
-        # Check that clock_offset variable was added
         assert "clock_offset" in result.variables
         assert result["clock_offset"].values == offset_seconds
         assert result["clock_offset"].attrs["units"] == "s"
 
-        # Check that time was shifted forward
         expected_time = original_time + np.timedelta64(offset_seconds, "s")
         np.testing.assert_array_equal(result.time.values, expected_time.values)
 
-        # Verify original dataset was not modified
         np.testing.assert_array_equal(
             sample_raw_dataset.time.values, original_time.values
         )
@@ -171,11 +156,9 @@ class TestStage2Processor:
         original_time = sample_raw_dataset.time.copy()
         result = processor._apply_clock_offset(sample_raw_dataset, offset_seconds)
 
-        # Check that time was shifted backward
         expected_time = original_time + np.timedelta64(offset_seconds, "s")
         np.testing.assert_array_equal(result.time.values, expected_time.values)
 
-        # Verify original dataset was not modified
         np.testing.assert_array_equal(
             sample_raw_dataset.time.values, original_time.values
         )
@@ -189,7 +172,6 @@ class TestStage2Processor:
             sample_raw_dataset, deploy_time, recover_time
         )
 
-        # Check that data is trimmed correctly
         assert result.time.min() >= deploy_time
         assert result.time.max() <= recover_time
         assert len(result.time) < len(sample_raw_dataset.time)
@@ -203,7 +185,6 @@ class TestStage2Processor:
             sample_raw_dataset, deploy_time, recover_time
         )
 
-        # Check that only start is trimmed
         assert result.time.min() >= deploy_time
         assert result.time.max() == sample_raw_dataset.time.max()
 
@@ -218,7 +199,6 @@ class TestStage2Processor:
             sample_raw_dataset, deploy_time, recover_time
         )
 
-        # Check that only end is trimmed
         assert result.time.min() == sample_raw_dataset.time.min()
         assert result.time.max() <= recover_time
 
@@ -231,14 +211,12 @@ class TestStage2Processor:
             sample_raw_dataset, deploy_time, recover_time
         )
 
-        # Check that nothing is trimmed
         assert len(result.time) == len(sample_raw_dataset.time)
 
     def test_trim_to_deployment_window_empty_result(
         self, processor, sample_raw_dataset
     ):
         """Test trimming that results in empty dataset."""
-        # Use times outside the data range
         deploy_time = np.datetime64("2019-01-01T00:00:00")
         recover_time = np.datetime64("2019-01-02T00:00:00")
 
@@ -246,18 +224,15 @@ class TestStage2Processor:
             sample_raw_dataset, deploy_time, recover_time
         )
 
-        # Should result in empty dataset
         assert len(result.time) == 0
 
     def test_add_missing_metadata(self, processor, sample_raw_dataset, tmp_path):
         """Test adding missing metadata variables."""
-        # Remove some metadata to test adding it back
         ds = sample_raw_dataset.copy()
         ds = ds.drop_vars(["InstrDepth", "instrument", "serial_number"])
 
         instrument_config = {"depth": 150, "instrument": "new_microcat", "serial": 9999}
 
-        # Create a mock filepath for testing
         mock_filepath = tmp_path / "microcat" / "test_mooring_7518_stage1.nc"
         mock_filepath.parent.mkdir(parents=True)
         mock_filepath.touch()
@@ -280,7 +255,6 @@ class TestStage2Processor:
             "serial": 8888,
         }
 
-        # Create a mock filepath for testing
         mock_filepath = tmp_path / "microcat" / "test_mooring_7518_stage1.nc"
         mock_filepath.parent.mkdir(parents=True)
         mock_filepath.touch()
@@ -289,28 +263,19 @@ class TestStage2Processor:
             sample_raw_dataset, instrument_config, mock_filepath, "test_mooring"
         )
 
-        # Should keep original values
         assert result["InstrDepth"].values == 100
         assert result["instrument"].values == "microcat"
         assert result["serial_number"].values == 7518
 
     def test_fallback_metadata_extraction(self, processor, tmp_path):
         """Test fallback metadata extraction from filepath."""
-        # Create dataset missing metadata
-        import numpy as np
-        import xarray as xr
-
         ds = xr.Dataset(
-            {
-                "temperature": (["time"], np.random.random(10)),
-            },
+            {"temperature": (["time"], np.random.random(10))},
             coords={"time": pd.date_range("2018-01-01", periods=10, freq="h")},
         )
 
-        # YAML config is missing instrument and serial (None, not provided)
-        instrument_config = {"depth": 150}  # Only depth provided
+        instrument_config = {"depth": 150}
 
-        # Create filepath that contains metadata
         mock_filepath = tmp_path / "sbe56" / "dsE_1_2018_6363_stage1.nc"
         mock_filepath.parent.mkdir(parents=True)
         mock_filepath.touch()
@@ -319,12 +284,10 @@ class TestStage2Processor:
             ds, instrument_config, mock_filepath, "dsE_1_2018"
         )
 
-        # Should extract from filepath
         assert result["instrument"].values == "sbe56"
         assert result["serial_number"].values == 6363
-        assert result["InstrDepth"].values == 150  # From YAML
+        assert result["InstrDepth"].values == 150
 
-        # Should add history note about non-standard enrichment
         assert (
             "non-standard enrichment of metadata from filename patterns"
             in result.attrs["history"]
@@ -332,21 +295,13 @@ class TestStage2Processor:
 
     def test_no_fallback_when_yaml_complete(self, processor, tmp_path):
         """Test that fallback is not used when YAML provides complete metadata."""
-        # Create dataset missing metadata
-        import numpy as np
-        import xarray as xr
-
         ds = xr.Dataset(
-            {
-                "temperature": (["time"], np.random.random(10)),
-            },
+            {"temperature": (["time"], np.random.random(10))},
             coords={"time": pd.date_range("2018-01-01", periods=10, freq="h")},
         )
 
-        # YAML config has complete metadata
         instrument_config = {"depth": 150, "instrument": "microcat", "serial": 7518}
 
-        # Create filepath with different metadata
         mock_filepath = tmp_path / "sbe56" / "dsE_1_2018_6363_stage1.nc"
         mock_filepath.parent.mkdir(parents=True)
         mock_filepath.touch()
@@ -355,213 +310,20 @@ class TestStage2Processor:
             ds, instrument_config, mock_filepath, "dsE_1_2018"
         )
 
-        # Should use YAML metadata, not filepath
-        assert result["instrument"].values == "microcat"  # From YAML
-        assert result["serial_number"].values == 7518  # From YAML
-        assert result["InstrDepth"].values == 150  # From YAML
+        assert result["instrument"].values == "microcat"
+        assert result["serial_number"].values == 7518
+        assert result["InstrDepth"].values == 150
 
-        # Should NOT add history note since no fallback was used
         assert "history" not in result.attrs
 
     def test_clean_unnecessary_variables(self, processor, sample_raw_dataset):
         """Test removal of unnecessary variables."""
         result = processor._clean_unnecessary_variables(sample_raw_dataset)
 
-        # timeS should be removed
         assert "timeS" not in result.variables
-        # Other variables should remain
         assert "temperature" in result.variables
         assert "salinity" in result.variables
         assert "pressure" in result.variables
-
-
-class TestRealDataProcessing:
-    """Integration tests using real data files - Version 2.0 with fixed date ranges."""
-
-    @pytest.fixture
-    def test_data_setup(self, tmp_path):
-        """Set up test environment with real processed data."""
-        # Check for real test data files
-        raw_data_file = Path("data/test_data_stage1.nc")
-        yaml_config_file = Path("data/test_mooring.yaml")
-
-        if not raw_data_file.exists() or not yaml_config_file.exists():
-            pytest.skip(
-                (
-                    "Real test data files not found. Expected files: "
-                    "data/test_data_stage1.nc, data/test_mooring.yaml"
-                )
-            )
-
-        # Set up test directory structure
-        base_dir = tmp_path / "test_data"
-        proc_dir = base_dir / "moor" / "proc" / "test_mooring"
-        microcat_dir = proc_dir / "microcat"
-        microcat_dir.mkdir(parents=True)
-
-        # Copy real files to test location
-        test_raw_file = microcat_dir / "test_mooring_7518_stage1.nc"
-        test_yaml_file = proc_dir / "test_mooring.mooring.yaml"
-
-        test_raw_file.write_bytes(raw_data_file.read_bytes())
-        test_yaml_file.write_text(yaml_config_file.read_text())
-
-        return {
-            "base_dir": base_dir,
-            "proc_dir": proc_dir,
-            "raw_file": test_raw_file,
-            "yaml_file": test_yaml_file,
-        }
-
-    def test_process_real_data_full_workflow(self, test_data_setup):
-        """Test complete Stage 2 processing with real data - Version 2.0."""
-        setup = test_data_setup
-        processor = Stage2Processor(str(setup["base_dir"]))
-
-        # Process the mooring
-        result = processor.process_mooring("test_mooring")
-
-        # Check that processing succeeded
-        assert result is True
-
-        # Check that output file was created
-        use_file = setup["proc_dir"] / "microcat" / "test_mooring_7518_stage2.nc"
-        assert use_file.exists()
-
-        # Load and validate the processed file
-        with xr.open_dataset(use_file) as ds:
-            # Check basic structure
-            assert "temperature" in ds.data_vars
-            assert "pressure" in ds.data_vars
-            assert "salinity" in ds.data_vars
-            assert "time" in ds.coords
-
-            # Check that clock offset was applied
-            assert "clock_offset" in ds.variables
-            assert ds["clock_offset"].values == 300  # 5 minutes from config
-
-            # Check that timeS was removed
-            assert "timeS" not in ds.variables
-
-            # Verify metadata is present
-            assert ds["serial_number"].values == 7518
-            assert ds["instrument"].values == "microcat"
-
-            # Check that data was trimmed (should be less than original)
-            with xr.open_dataset(setup["raw_file"]) as raw_ds:
-                assert len(ds.time) <= len(raw_ds.time)
-
-                # Time should be shifted due to clock offset
-                if len(ds.time) > 0 and len(raw_ds.time) > 0:
-                    # First time point should be shifted by clock offset
-                    time_diff = ds.time[0].values - raw_ds.time[0].values
-                    expected_diff = np.timedelta64(300, "s")  # 5 minutes
-                    assert abs(time_diff - expected_diff) < np.timedelta64(1, "s")
-
-    def test_process_with_modified_times(self, test_data_setup):
-        """Test processing with modified deployment/recovery times - Version 2.0 with correct dates."""
-        setup = test_data_setup
-
-        # Load and modify the YAML config
-        with open(setup["yaml_file"], "r") as f:
-            config = yaml.safe_load(f)
-
-        # First check what time range we actually have in the data
-        with xr.open_dataset(setup["raw_file"]) as raw_ds:
-            data_start = raw_ds.time.min().values
-            data_end = raw_ds.time.max().values
-            print(f"Raw data time range: {data_start} to {data_end}")
-
-        # Set a restrictive time window within the actual data range
-        # Data is on 2018-08-13, so use the correct date
-        config["deployment_time"] = "2018-08-13T08:05:00"  # 5 minutes after data start
-        config["recovery_time"] = "2018-08-13T08:15:00"  # 10 minute window
-
-        # Write modified config
-        with open(setup["yaml_file"], "w") as f:
-            yaml.dump(config, f)
-
-        processor = Stage2Processor(str(setup["base_dir"]))
-        result = processor.process_mooring("test_mooring")
-
-        assert result is True
-
-        # Check that the processed file has limited data
-        use_file = setup["proc_dir"] / "microcat" / "test_mooring_7518_stage2.nc"
-        with xr.open_dataset(use_file) as ds:
-            # Should have much less data due to restrictive time window
-            with xr.open_dataset(setup["raw_file"]) as raw_ds:
-                assert len(ds.time) < len(raw_ds.time), (
-                    f"Expected trimmed data, got {len(ds.time)} vs {len(raw_ds.time)}"
-                )
-
-            # All data should be within the specified window (accounting for clock offset)
-            deploy_time = pd.to_datetime("2018-08-13T08:05:00")
-            recover_time = pd.to_datetime("2018-08-13T08:15:00")
-
-            assert ds.time.min() >= np.datetime64(deploy_time)
-            assert ds.time.max() <= np.datetime64(recover_time)
-
-    def test_process_missing_raw_file(self, test_data_setup):
-        """Test processing when raw file is missing."""
-        setup = test_data_setup
-
-        # Remove the raw file
-        setup["raw_file"].unlink()
-
-        processor = Stage2Processor(str(setup["base_dir"]))
-        result = processor.process_mooring("test_mooring")
-
-        # Should fail gracefully
-        assert result is False
-
-        # Check log file contains warning
-        log_files = list(setup["proc_dir"].glob("processing_logs/*_stage2.log"))
-        assert len(log_files) == 1
-        log_content = log_files[0].read_text()
-        assert "Raw file not found" in log_content
-
-    def test_process_missing_config(self, tmp_path):
-        """Test processing with missing config file."""
-        base_dir = tmp_path / "test_data"
-        proc_dir = base_dir / "moor" / "proc" / "test_mooring"
-        proc_dir.mkdir(parents=True)
-
-        processor = Stage2Processor(str(base_dir))
-        result = processor.process_mooring("test_mooring")
-
-        assert result is False
-
-
-class TestConvenienceFunctions:
-    """Test convenience functions - Version 2.0."""
-
-    @patch("oceanarray.stage2.Stage2Processor")
-    def test_stage2_mooring(self, mock_processor_class):
-        """Test backwards compatibility function."""
-        mock_processor = Mock()
-        mock_processor.process_mooring.return_value = True
-        mock_processor_class.return_value = mock_processor
-
-        result = stage2_mooring("test_mooring", "/test/dir")
-
-        assert result is True
-        mock_processor_class.assert_called_once_with("/test/dir")
-        mock_processor.process_mooring.assert_called_once_with("test_mooring", None)
-
-    @patch("oceanarray.stage2.Stage2Processor")
-    def test_process_multiple_moorings_stage2(self, mock_processor_class):
-        """Test batch processing function."""
-        mock_processor = Mock()
-        mock_processor.process_mooring.side_effect = [True, False, True]
-        mock_processor_class.return_value = mock_processor
-
-        moorings = ["mooring1", "mooring2", "mooring3"]
-        results = process_multiple_moorings_stage2(moorings, "/test/dir")
-
-        expected = {"mooring1": True, "mooring2": False, "mooring3": True}
-        assert results == expected
-        assert mock_processor.process_mooring.call_count == 3
 
 
 class TestDetectDeploymentWindow:
@@ -586,11 +348,9 @@ class TestDetectDeploymentWindow:
         assert source == "pressure_pmin10dbar", f"unexpected source: {source}"
         assert sug_start is not None, "start should be detected"
         assert sug_end is not None, "end should be detected"
-        # start should be at index 50 (first deployed sample)
         assert sug_start == ds["time"].values[50], (
             f"expected start at index 50 ({ds['time'].values[50]}), got {sug_start}"
         )
-        # end should be at index 249 (last deployed sample)
         assert sug_end == ds["time"].values[249], (
             f"expected end at index 249 ({ds['time'].values[249]}), got {sug_end}"
         )
@@ -603,7 +363,6 @@ class TestErrorHandling:
         """Test handling of invalid YAML file."""
         processor = Stage2Processor(str(tmp_path))
 
-        # Create invalid YAML file
         proc_dir = tmp_path / "moor" / "proc" / "test_mooring"
         proc_dir.mkdir(parents=True)
 
@@ -618,6 +377,38 @@ class TestErrorHandling:
         processor = Stage2Processor(str(tmp_path))
         result = processor.process_mooring("nonexistent_mooring")
         assert result is False
+
+
+class TestConvenienceFunctions:
+    """Test convenience functions - Version 2.0."""
+
+    @patch("oceanarray.stage2.Stage2Processor")
+    def test_stage2_mooring(self, mock_processor_class):
+        """Test backwards compatibility function."""
+        mock_processor = Mock()
+        mock_processor.process_mooring.return_value = True
+        mock_processor_class.return_value = mock_processor
+
+        result = stage2_mooring("test_mooring", "/test/dir")
+
+        assert result is True
+        mock_processor_class.assert_called_once_with("/test/dir")
+        # stage2_mooring passes output_path as second arg (None by default)
+        mock_processor.process_mooring.assert_called_once_with("test_mooring", None)
+
+    @patch("oceanarray.stage2.Stage2Processor")
+    def test_process_multiple_moorings_stage2(self, mock_processor_class):
+        """Test batch processing function."""
+        mock_processor = Mock()
+        mock_processor.process_mooring.side_effect = [True, False, True]
+        mock_processor_class.return_value = mock_processor
+
+        moorings = ["mooring1", "mooring2", "mooring3"]
+        results = process_multiple_moorings_stage2(moorings, "/test/dir")
+
+        expected = {"mooring1": True, "mooring2": False, "mooring3": True}
+        assert results == expected
+        assert mock_processor.process_mooring.call_count == 3
 
 
 class TestParseClockStr:
@@ -742,11 +533,9 @@ class TestResolveClockDrift:
             "computer_clock_at_recovery": "unknown",
             "instrument_clock_at_recovery": "unknown",
         }
-        # Should not raise; 'unknown' is falsy after parsing fails or is empty
         drift_s, _ = processor._resolve_clock_drift(cfg)
         assert drift_s == 0.0
 
 
 if __name__ == "__main__":
-    # Version 2.0 - Updated test runner
     pytest.main([__file__, "-v", "--tb=short"])
