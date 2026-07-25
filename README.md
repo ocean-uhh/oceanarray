@@ -12,14 +12,30 @@ OceanArray implements a multi-stage processing pipeline for mooring data, contro
 
 ## Installation
 
+### Using conda (recommended)
+
 ```bash
 git clone https://github.com/ocean-uhh/oceanarray.git
 cd oceanarray
-python -m venv venv
-source venv/bin/activate
+conda create -n oceanarray python=3.12
+conda activate oceanarray
 pip install -r requirements-dev.txt
 pip install -e .
 ```
+
+### Using pip + venv
+
+```bash
+git clone https://github.com/ocean-uhh/oceanarray.git
+cd oceanarray
+python3.12 -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
+pip install -r requirements-dev.txt
+pip install -e .
+```
+
+> **Python version**: Python 3.10–3.12 is supported. Python 3.13+ has not been
+> tested with all dependencies and is not recommended.
 
 ## Quick start
 
