@@ -663,7 +663,9 @@ def cmd_logsheet(args: "argparse.Namespace") -> int:
     inventory_path = Path(args.logsheet_inventory) if args.logsheet_inventory else None
     logsheet_config_path = Path(args.logsheet_config) if args.logsheet_config else None
     output_dir = Path(args.logsheet_output_dir)
-    _, proc_root, _ = _parse_dirs(args)
+    # proc_dir is optional for logsheets — caldip sheets don't need it
+    _pd = getattr(args, "proc_dir", None)
+    proc_root = Path(_pd) if _pd else None
 
     cfg = resolve_config(
         config_dir=config_dir,
@@ -698,30 +700,45 @@ def cmd_logsheet(args: "argparse.Namespace") -> int:
             build_deployment_setup(mooring, cfg, fmt=fmt)
         return 0
 
-    ltype = args.logsheet_type
-    if not ltype:
+    ltypes: list[str] = args.logsheet_type or []
+    if not ltypes:
         print("Error: --type is required (or use --all)", file=sys.stderr)
         return 1
 
-    if ltype in ("caldip-setup", "caldip-download"):
-        if not args.logsheet_cast:
-            print(f"Error: --cast is required for --type {ltype}", file=sys.stderr)
+    # Resolve caldip YAML once for all caldip sheet types in this call.
+    caldip_yaml = None
+    cast_val = args.logsheet_cast or ""
+    if any(t in ("caldip-setup", "caldip-download") for t in ltypes):
+        if not cast_val:
+            print("Error: --cast is required for caldip sheet types", file=sys.stderr)
             return 1
-        if ltype == "caldip-setup":
-            build_caldip_setup(args.logsheet_cast, cfg, fmt=fmt)
-        else:
-            build_caldip_download(args.logsheet_cast, cfg, fmt=fmt)
+        cast_path = Path(cast_val)
+        if cast_path.suffix.lower() == ".yaml":
+            if not cast_path.exists():
+                print(f"Error: caldip YAML not found: {cast_val}", file=sys.stderr)
+                return 1
+            caldip_yaml = load_yaml(cast_path)
 
-    elif ltype in ("mooring-download", "mooring-recovery", "mooring-setup"):
-        if not args.logsheet_mooring:
-            print(f"Error: --mooring is required for --type {ltype}", file=sys.stderr)
-            return 1
-        if ltype == "mooring-download":
-            build_mooring_download(args.logsheet_mooring, cfg, fmt=fmt)
-        elif ltype == "mooring-recovery":
-            build_recovery(args.logsheet_mooring, cfg, fmt=fmt)
-        else:
-            build_deployment_setup(args.logsheet_mooring, cfg, fmt=fmt)
+    for ltype in ltypes:
+        if ltype in ("caldip-setup", "caldip-download"):
+            if ltype == "caldip-setup":
+                build_caldip_setup(cast_val, cfg, fmt=fmt, caldip_yaml=caldip_yaml)
+            else:
+                build_caldip_download(cast_val, cfg, fmt=fmt, caldip_yaml=caldip_yaml)
+
+        elif ltype in ("mooring-download", "mooring-recovery", "mooring-setup"):
+            if not args.logsheet_mooring:
+                print(
+                    f"Error: --mooring is required for --type {ltype}",
+                    file=sys.stderr,
+                )
+                return 1
+            if ltype == "mooring-download":
+                build_mooring_download(args.logsheet_mooring, cfg, fmt=fmt)
+            elif ltype == "mooring-recovery":
+                build_recovery(args.logsheet_mooring, cfg, fmt=fmt)
+            else:
+                build_deployment_setup(args.logsheet_mooring, cfg, fmt=fmt)
 
     return 0
 
@@ -1182,6 +1199,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--type",
         dest="logsheet_type",
         metavar="TYPE",
+        nargs="+",
         choices=[
             "caldip-setup",
             "caldip-download",
@@ -1190,8 +1208,9 @@ def build_parser() -> argparse.ArgumentParser:
             "mooring-setup",
         ],
         help=(
-            "Sheet type: caldip-setup, caldip-download, mooring-download, "
-            "mooring-recovery, mooring-setup."
+            "Sheet type(s): caldip-setup, caldip-download, mooring-download, "
+            "mooring-recovery, mooring-setup.  Pass multiple values to generate "
+            "several sheets in one call, e.g. --type caldip-setup caldip-download."
         ),
     )
     p_logsheet.add_argument(

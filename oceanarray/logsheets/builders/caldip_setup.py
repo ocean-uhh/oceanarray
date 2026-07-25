@@ -12,7 +12,6 @@ from .._config import (
     load_yaml,
     load_instruments,
     sn_to_entry,
-    resolve_mooring_yaml,
 )
 from .._firmware import fw_group, FW_GROUP_LABELS
 from .._latex import colspec_from_cols, header_row, data_row, example_data_row
@@ -20,39 +19,63 @@ from .._columns import resolve_columns
 from .._render import make_jinja_env, render_sheet
 
 
-def build_caldip_setup(cast_id: str, cfg: LogsheetsConfig, fmt: str = "pdf") -> Path:
+def build_caldip_setup(
+    cast_id: str,
+    cfg: LogsheetsConfig,
+    fmt: str = "pdf",
+    caldip_yaml: "dict | None" = None,
+) -> Path:
     """Build the caldip-setup PDF for a given cast.
 
     Parameters
     ----------
     cast_id:
-        Cast key from ``cruise_config.yaml → casts``, e.g. ``"N1"``.
+        File path string (used for the output filename fallback when
+        *caldip_yaml* is provided) or a cast key in a legacy
+        ``cruise_config.yaml → casts`` dict.
     cfg:
         Resolved logsheets configuration from :func:`~._config.resolve_config`.
     fmt:
         ``"pdf"`` or ``"tex"``.
+    caldip_yaml:
+        Pre-loaded caldip YAML dict.  The canonical format is a dict with a
+        top-level ``instruments:`` list; each entry has at minimum ``serial``
+        (int) and ``instrument`` (type string).  When provided, cast info is
+        taken directly from this dict.
 
     """
-    cruise_cfg = load_yaml(cfg.cruise_config_path)
     col_defs = load_yaml(cfg.column_defs_path)
     col_library = col_defs.get("column_library", {})
     instruments = load_instruments(cfg)
 
-    cast_cfg = cruise_cfg["casts"].get(cast_id)
-    if cast_cfg is None:
-        sys.exit(f"Cast {cast_id} not found in cruise_config.yaml")
+    # Global settings from logsheet_config.yaml (with safe fallback).
+    lsconf: dict = {}
+    if cfg.cruise_config_path.exists():
+        lsconf = load_yaml(cfg.cruise_config_path)
 
-    cast_label = cast_cfg["label"]
+    sentinel = lsconf.get("microcat_firmware_sentinel", "3.0d")
+    caldip_data = lsconf.get("paths", {}).get("caldip_data", "")
+
+    # Cast config: from explicit caldip_yaml, or looked up in legacy casts dict.
+    if caldip_yaml is not None:
+        cast_cfg = caldip_yaml
+    else:
+        cast_cfg = lsconf.get("casts", {}).get(cast_id)
+        if cast_cfg is None:
+            sys.exit(f"Cast {cast_id} not found in {cfg.cruise_config_path}")
+
+    # cruise may live in the caldip YAML itself or in logsheet_config.yaml.
+    cruise = cast_cfg.get("cruise") or lsconf.get("cruise", "")
+
+    # Label: try common key names, fall back to file stem.
+    cast_label = (
+        cast_cfg.get("label")
+        or cast_cfg.get("cast_label")
+        or cast_cfg.get("name")
+        or cast_cfg.get("cast")
+        or Path(cast_id).name.split(".")[0]
+    )
     post_dep = cast_cfg.get("post_deployment", False)
-    sentinel = cruise_cfg.get("microcat_firmware_sentinel", "3.0d")
-    caldip_data = cruise_cfg.get("paths", {}).get("caldip_data", "")
-    cruise = cruise_cfg["cruise"]
-    mooring_yaml_map = cruise_cfg.get("mooring_yaml_map", {})
-
-    mcat_filter = cast_cfg.get("microcat_filter")
-    aq_override = cast_cfg.get("aquadopps_override")
-    tr_filter = cast_cfg.get("rbr_tr1050_filter")
-    solot_filter = cast_cfg.get("rbr_solot_filter")
 
     all_mcats_by_group: dict[str, list[dict]] = {
         "old_seaterm": [],
@@ -60,37 +83,31 @@ def build_caldip_setup(cast_id: str, cfg: LogsheetsConfig, fmt: str = "pdf") -> 
         "seaterm_v2_odo": [],
     }
     all_aquadopps: list[dict] = []
+    rbr_tr1050_entries: list[dict] = []
+    rbr_solot_entries: list[dict] = []
+    seapoint_entries: list[dict] = []
     sheet_warnings: list[str] = []
 
-    if mcat_filter is not None:
-        for sn in mcat_filter:
+    # Canonical caldip YAML format: top-level instruments: list.
+    # Each entry has serial (int) and instrument (type string).
+    # Classify each entry by looking up the serial in the inventory.
+    for item in cast_cfg.get("instruments", []):
+        sn = int(item["serial"])
+        try:
             itype, entry = sn_to_entry(instruments, sn)
-            if itype == "microcat":
-                all_mcats_by_group[fw_group(entry, sentinel)].append(entry)
-    else:
-        for mooring in cast_cfg.get("moorings", []):
-            yaml_path = resolve_mooring_yaml(mooring, cfg, mooring_yaml_map)
-            if yaml_path is None:
-                print(f"  Warning: no YAML for {mooring}")
-                continue
-            moor_data = load_yaml(yaml_path)
-            for clamp in moor_data.get("clamp", []):
-                sn = int(str(clamp["serial"]).rstrip("*"))
-                try:
-                    itype, entry = sn_to_entry(instruments, sn)
-                except KeyError:
-                    sheet_warnings.append(f"SN {sn} not found in instruments.yaml")
-                    continue
-                if itype == "microcat":
-                    all_mcats_by_group[fw_group(entry, sentinel)].append(entry)
-
-    if aq_override is not None:
-        for sn in aq_override:
-            _, entry = sn_to_entry(instruments, sn)
+        except KeyError:
+            sheet_warnings.append(f"SN {sn} not found in inventory -- skipped")
+            continue
+        if itype == "microcat":
+            all_mcats_by_group[fw_group(entry, sentinel)].append(entry)
+        elif itype == "aquadopp":
             all_aquadopps.append(entry)
-
-    rbr_tr1050_entries = [sn_to_entry(instruments, sn)[1] for sn in (tr_filter or [])]
-    rbr_solot_entries = [sn_to_entry(instruments, sn)[1] for sn in (solot_filter or [])]
+        elif itype in ("rbrsolo", "rbrduet"):
+            rbr_solot_entries.append(entry)
+        elif itype == "tr1050":
+            rbr_tr1050_entries.append(entry)
+        elif itype == "seapoint":
+            seapoint_entries.append(entry)
 
     sections = []
 
@@ -127,7 +144,7 @@ def build_caldip_setup(cast_id: str, cfg: LogsheetsConfig, fmt: str = "pdf") -> 
             }
         )
 
-    def _rbr_section(entries, title):
+    def _rbr_section(entries: list[dict], title: str) -> dict:
         cols = resolve_columns(col_defs["rbr_setup_caldip"]["columns"], col_library)
         return {
             "title": title,
@@ -143,11 +160,10 @@ def build_caldip_setup(cast_id: str, cfg: LogsheetsConfig, fmt: str = "pdf") -> 
         sections.append(_rbr_section(rbr_tr1050_entries, "RBR TR-1050 Thermistors"))
     if rbr_solot_entries:
         sections.append(_rbr_section(rbr_solot_entries, "RBR soloT Thermistors"))
+    if seapoint_entries:
+        sections.append(_rbr_section(seapoint_entries, "Seapoint Turbidity"))
 
     caldip_data_tex = caldip_data.replace("~", r"\textasciitilde{}").replace("_", r"\_")
-    moorings_str = ", ".join(
-        m.replace("_", r"\_") for m in cast_cfg.get("moorings", [])
-    )
 
     tex_source = (
         make_jinja_env(cfg.templates_dir)
@@ -155,7 +171,7 @@ def build_caldip_setup(cast_id: str, cfg: LogsheetsConfig, fmt: str = "pdf") -> 
         .render(
             cruise=cruise,
             cast_label=cast_label,
-            moorings_str=moorings_str,
+            moorings_str="",
             caldip_data=caldip_data_tex,
             sections=sections,
             sheet_warnings=sheet_warnings,

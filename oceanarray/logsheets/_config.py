@@ -17,6 +17,7 @@ Mooring YAMLs are resolved from the oceanarray proc directory
 
 from __future__ import annotations
 
+import csv
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -131,18 +132,62 @@ def load_yaml(path: Path) -> dict:
         return yaml.safe_load(fh)
 
 
+def _parse_csv_value(val: str) -> object:
+    """Convert a raw CSV string to a Python scalar.
+
+    * ``"true"`` / ``"false"`` (case-insensitive) → ``bool``
+    * Empty string → ``None``
+    * Anything else → left as ``str``
+
+    Integers and floats are intentionally left as strings so that firmware
+    version strings like ``"3.0h"`` or serial suffixes are never miscast.
+    """
+    stripped = val.strip()
+    lower = stripped.lower()
+    if lower == "true":
+        return True
+    if lower == "false":
+        return False
+    if lower == "":
+        return None
+    return stripped
+
+
 def load_instruments(cfg: LogsheetsConfig) -> dict:
     """Return the instrument registry keyed by ``(type_str, serial_int)``.
 
-    Reads ``instrument_inventory.csv`` (or legacy ``instruments.yaml``) from
-    the user-supplied config directory.  Example key: ``("microcat", 7507)``.
+    Reads ``instrument_inventory.csv`` or legacy ``instruments.yaml``.
+    CSV files are detected by a ``.csv`` suffix; everything else is treated as
+    YAML.  Boolean-string fields (``"true"``/``"false"``) in CSV rows are
+    converted to Python ``bool`` so that checks like ``entry.get("odo")``
+    behave correctly.  Example key: ``("microcat", 7507)``.
     """
-    raw = load_yaml(cfg.instruments_path)
+    path = cfg.instruments_path
     lookup = {}
-    for itype, entries in raw.items():
-        for entry in entries:
-            sn = entry["serial"]
-            lookup[(itype, sn)] = entry
+    if path.suffix.lower() == ".csv":
+        with open(path, newline="") as fh:
+            for row in csv.DictReader(fh):
+                itype = row.get("type", "").strip()
+                serial_str = row.get("serial", "").strip()
+                if not itype or not serial_str:
+                    continue
+                try:
+                    sn = int(serial_str)
+                except ValueError:
+                    continue
+                entry = {
+                    k: _parse_csv_value(v)
+                    for k, v in row.items()
+                    if k not in ("type", "serial")
+                }
+                entry["serial"] = sn
+                lookup[(itype, sn)] = entry
+    else:
+        raw = load_yaml(path)
+        for itype, entries in raw.items():
+            for entry in entries:
+                sn = entry["serial"]
+                lookup[(itype, sn)] = entry
     return lookup
 
 
@@ -167,7 +212,7 @@ def sn_to_entry(instruments: dict, sn: int) -> tuple[str, dict]:
         If the serial number is not found in any type.
 
     """
-    for itype in ("microcat", "aquadopp", "tr1050", "rbrsolo", "adcp"):
+    for itype in ("microcat", "aquadopp", "tr1050", "rbrsolo", "rbrduet", "adcp"):
         if (itype, sn) in instruments:
             return itype, instruments[(itype, sn)]
     raise KeyError(f"SN {sn} not found in instrument_inventory.csv")
