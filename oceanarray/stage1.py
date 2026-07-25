@@ -1667,6 +1667,14 @@ class MooringProcessor:
         # Rename any remaining SBE CNV variable names that contain '/' (NetCDF-illegal)
         dataset = self._sanitize_slash_vars(dataset)
 
+        # SBE hex reader (seasenselib) outputs ODO oxygen as 'oxygen' (µmol/L) and
+        # 'oxygen_ml_l' (mL/L) — rename to canonical names so downstream stages and
+        # the report use a consistent variable name regardless of file type.
+        if "oxygen" in dataset.data_vars:
+            dataset = dataset.rename({"oxygen": "dissolved_oxygen"})
+        if "oxygen_ml_l" in dataset.data_vars:
+            dataset = dataset.rename({"oxygen_ml_l": "dissolved_oxygen_ml_l"})
+
         # SeaBird CNV files use "db" (decibars) instead of the CF-standard "dbar".
         for pvar in [
             v for v in dataset.data_vars if v == "pressure" or v.startswith("pressure")

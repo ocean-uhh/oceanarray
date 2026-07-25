@@ -53,6 +53,12 @@ STACK_VARS = [
     "percent_good_qc",
     "error_velocity_qc",
     "seabed_qc",
+    "turbidity",
+    "turbidity_qc",
+    "dissolved_oxygen",
+    "dissolved_oxygen_qc",
+    "oxygen_saturation_pct",
+    "apparent_oxygen_utilization",
 ]
 
 # Variables passed through without QC masking at the stack step.

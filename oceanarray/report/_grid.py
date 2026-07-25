@@ -148,7 +148,7 @@ _GRID_HTML_TEMPLATE = """\
 <!-- ══ Hydrography: T and S ══ -->
 {% if fig_hydro_b64 %}
 <h2 id="hydro">Hydrography</h2>
-<p class="note">Temperature and salinity. Vertically interpolated to regular pressure grid &bull; 20 discrete colour levels.</p>
+<p class="note">Temperature, salinity, dissolved oxygen, and O₂ saturation (when present). Vertically interpolated to regular pressure grid &bull; 20 discrete colour levels.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,{{ fig_hydro_b64 }}" alt="Temperature and salinity">
 </details>
@@ -166,9 +166,9 @@ _GRID_HTML_TEMPLATE = """\
 <!-- ══ T-S diagram (before derived quantities) ══ -->
 {% if fig_ts_grid_b64 %}
 <h2 id="ts">T-S diagram</h2>
-<p class="note">All (pressure, time) grid points. Colour = log₁₀(count+1). QC-bad data excluded at the stack step before gridding.</p>
+<p class="note">Left: log₁₀(count+1) per T-S bin. Right (when O₂ present): median O₂ saturation per T-S bin — bins with &lt;5 samples masked. Colour scale: BrBG (brown=low, teal=high).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" style="width:45%;max-width:45%;" src="data:image/png;base64,{{ fig_ts_grid_b64 }}" alt="T-S diagram">
+<img class="fig" src="data:image/png;base64,{{ fig_ts_grid_b64 }}" alt="T-S diagram">
 </details>
 {% endif %}
 
@@ -391,8 +391,11 @@ def generate_grid_page(
         n_instr = ctx.get("n_instruments", "—")
         grid_history = _parse_history(ds.attrs.get("history", ""))
 
-        # Hydrography: stacked T + S
-        fig_hydro_b64 = _make_grid_hydro_b64(ds)
+        # T-S diagram first so its axis limits can be passed to the hydro panels.
+        fig_ts_grid_b64, _ts_bounds = _make_grid_ts_diagram(ds)
+
+        # Hydrography: stacked T + S (+ O2 sat) — shared axis limits from T-S diagram
+        fig_hydro_b64 = _make_grid_hydro_b64(ds, var_bounds=_ts_bounds)
 
         # Velocity: stacked E / N / Up
         fig_vel_stacked_b64 = _make_grid_velocity_stacked_b64(ds)
@@ -402,7 +405,6 @@ def generate_grid_page(
         fig_grid_hodograph_b64 = _make_grid_hodograph_b64(ds)
         fig_grid_traj_b64 = _make_grid_trajectory_b64(ds)
         fig_grid_ts_b64 = _make_grid_timeseries_b64(ds)
-        fig_ts_grid_b64 = _make_grid_ts_diagram(ds)
 
         _lat_n2 = 0.0
         for _lat_key in ("seabed_latitude", "deployment_latitude", "latitude"):
