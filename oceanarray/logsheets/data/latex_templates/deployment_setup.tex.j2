@@ -1,0 +1,97 @@
+\documentclass[a4paper]{article}
+\usepackage[a4paper,top=2.2cm,bottom=15mm,left=2.5cm,right=2.5cm,includehead]{geometry}
+\usepackage{array}
+\usepackage{colortbl}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\usepackage{longtable}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{amssymb}
+\usepackage{parskip}
+\usepackage{fancyhdr}
+
+\setlength{\parindent}{0pt}
+\setlength{\tabcolsep}{4pt}
+\setlength{\parskip}{0pt}
+\setlength{\headheight}{16pt}
+
+\definecolor{hdrgray}{gray}{0.82}
+\definecolor{prefill}{gray}{0.55}
+\definecolor{exrow}{RGB}{220,235,255}
+\definecolor{warnred}{RGB}{180,0,0}
+\definecolor{footgray}{gray}{0.55}
+
+\renewcommand{\arraystretch}{1.3}
+
+\newcommand{\pre}[1]{{\color{prefill}\small #1}}
+\newcommand{\datastrut}{\rule[-5pt]{0pt}{20pt}}
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+\lhead{\large\textbf{MIXSED MOORING LOGSHEET}}
+\rhead{\large\textbf{\textcolor{red}{DEPLOYMENT}}}
+\rfoot{{\color{footgray}\small (( timestamp ))}}
+
+\begin{document}
+
+(% if sheet_warnings %)
+\noindent\colorbox{red!10}{\parbox{\dimexpr\linewidth-2\fboxsep\relax}{%
+  {\color{warnred}\bfseries $\bigtriangleup$\ MISSING FROM instruments.yaml --- these serials were not found and are omitted from this sheet:}\\[4pt]
+  (% for w in sheet_warnings %)
+  {\color{warnred}\small \textbullet\ (( w ))}\\
+  (% endfor %)
+}}
+\bigskip
+(% endif %)
+
+\begin{tabular}{lllllll}
+  \textbf{Mooring:} & (( mooring_tex )) & &
+  \textbf{Date:} & \underline{\hspace{3cm}} & &
+  \textbf{User:} \underline{\hspace{3cm}} \\
+\end{tabular}
+
+%% UTC clock sync reminder
+{\color{warnred}\textbf{\small $\bigstar$~Confirm: laptop clock synced to UTC before setting instrument clocks.}}
+
+(% for section in sections %)
+
+\bigskip
+\begin{longtable}{(( section.colspec ))}
+%% ---- title + note rows (first page) ----------------------------------------
+\multicolumn{(( section.ncols ))}{l}{\textbf{\small (( section.title ))}}\\
+(% for line in section.note_lines %)
+\multicolumn{(( section.ncols ))}{l}{{\small (( line ))}}\\
+(% endfor %)
+\hline
+(( section.header_row ))\\
+\hline
+\endfirsthead
+%% ---- continuation header (subsequent pages) --------------------------------
+\multicolumn{(( section.ncols ))}{l}{%
+  \textbf{\small (( section.title ))} {\small (continued)}}\\
+\hline
+(( section.header_row ))\\
+\hline
+\endhead
+%% ---- footer ----------------------------------------------------------------
+\hline
+\endfoot
+%% ---- example row -----------------------------------------------------------
+\rowcolor{exrow}
+(( section.example_row ))\\
+\hline
+%% ---- data rows -------------------------------------------------------------
+(% for row in section.data_rows %)
+\datastrut (( row ))\\
+\hline
+(% endfor %)
+\end{longtable}
+
+(% endfor %)
+\end{document}

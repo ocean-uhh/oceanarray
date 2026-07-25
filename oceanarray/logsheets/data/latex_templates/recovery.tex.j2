@@ -1,0 +1,103 @@
+\documentclass[a4paper]{article}
+\usepackage[a4paper,top=2.2cm,bottom=15mm,left=2.5cm,right=2.5cm,includehead]{geometry}
+\usepackage{array}
+\usepackage{colortbl}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{parskip}
+\usepackage{fancyhdr}
+
+\setlength{\parindent}{0pt}
+\setlength{\tabcolsep}{4pt}
+\setlength{\parskip}{0pt}
+\setlength{\headheight}{16pt}
+
+\definecolor{hdrgray}{gray}{0.82}
+\definecolor{prefill}{gray}{0.55}
+\definecolor{footgray}{gray}{0.55}
+\definecolor{warnred}{RGB}{180,0,0}
+
+\renewcommand{\arraystretch}{2.0}
+
+\newcommand{\pre}[1]{{\color{prefill}\small #1}}
+\newcommand{\blank}[1]{\underline{\hspace{#1}}}
+
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+\lhead{\large\textbf{MIXSED MOORING LOGSHEET}}
+\rhead{\large\textbf{\textcolor{red}{RECOVERY}}}
+\rfoot{{\color{footgray}\small (( timestamp ))}}
+
+\begin{document}
+
+(% if sheet_warnings %)
+\noindent\colorbox{red!10}{\parbox{\dimexpr\linewidth-2\fboxsep\relax}{%
+  {\color{warnred}\bfseries $\bigtriangleup$\ MISSING FROM instruments.yaml --- these serials were not found and are omitted from this sheet:}\\[4pt]
+  (% for w in sheet_warnings %)
+  {\color{warnred}\small \textbullet\ (( w ))}\\
+  (% endfor %)
+}}
+\bigskip
+(% endif %)
+
+\begin{tabularx}{\linewidth}{@{}lX@{\hspace{1.5em}}lX@{}}
+  \textbf{Mooring:}               & (( mooring_tex ))          &
+  \textbf{Date:}                  & \blank{\hsize}             \\[6pt]
+  \textbf{Site arrival time:}     & \blank{\hsize}             &
+  \textbf{Ascent rate:}           & \blank{\hsize}             \\[6pt]
+  \textbf{Time of first ranging:} & \blank{\hsize}             &
+  \textbf{Water depth:}           & \blank{\hsize}             \\
+\end{tabularx}
+
+\bigskip
+
+%% --- Component table --------------------------------------------------------
+\begin{longtable}{(( comp_colspec ))}
+\rowcolor{hdrgray}
+(( comp_header_row ))\\
+\hline
+\endfirsthead
+\rowcolor{hdrgray}
+(( comp_header_row ))\\
+\hline
+\endhead
+\hline
+\endfoot
+(% for row in comp_rows %)
+(( row ))\\
+\hline
+(% endfor %)
+\end{longtable}
+
+\newpage
+
+%% --- Ranging table ----------------------------------------------------------
+\textbf{Ranging log}
+
+\begin{longtable}{(( rang_colspec ))}
+\rowcolor{hdrgray}
+(( rang_header_row ))\\
+\hline
+\endfirsthead
+\rowcolor{hdrgray}
+(( rang_header_row ))\\
+\hline
+\endhead
+\hline
+\endfoot
+(% for row in rang_rows %)
+(( row ))\\
+\hline
+(% endfor %)
+\end{longtable}
+
+\end{document}

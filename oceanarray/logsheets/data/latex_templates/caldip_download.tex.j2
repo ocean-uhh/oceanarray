@@ -1,0 +1,47 @@
+(% extends "_base_instrument.tex.j2" %)
+
+(% block lhead %)\large\textbf{Cal Dip Download}(% endblock %)
+(% block rhead %)\large\textbf{(( cast_label ))}(% endblock %)
+
+(% block body %)
+(% if sheet_warnings %)
+\noindent\colorbox{red!10}{\parbox{\dimexpr\linewidth-2\fboxsep\relax}{%
+  {\color{warnred}\bfseries $\bigtriangleup$\ MISSING FROM instruments.yaml --- these serials were not found and are omitted from this sheet:}\\[4pt]
+  (% for w in sheet_warnings %)
+  {\color{warnred}\small \textbullet\ (( w ))}\\
+  (% endfor %)
+}}
+\bigskip
+(% endif %)
+(% for section in sections %)
+\begin{longtable}{(( section.colspec ))}
+%% ---- title + note rows (first page) ----------------------------------------
+\multicolumn{(( section.ncols ))}{l}{\textbf{\small (( section.title ))}}\\
+(% for line in section.note_lines %)
+\multicolumn{(( section.ncols ))}{l}{{\small (( line ))}}\\
+(% endfor %)
+\hline
+(( section.header_row ))\\
+\hline
+\endfirsthead
+%% ---- continuation header (subsequent pages) --------------------------------
+\multicolumn{(( section.ncols ))}{l}{\textbf{\small (( section.title ))} {\small (continued)}}\\
+\hline
+(( section.header_row ))\\
+\hline
+\endhead
+%% ---- footer ----------------------------------------------------------------
+\hline
+\endfoot
+%% ---- example row (compact) -------------------------------------------------
+\rowcolor{exrow}
+(( section.example_row ))\\
+\hline
+%% ---- data rows (tall via \datastrut) ---------------------------------------
+(% for row in section.data_rows %)
+\datastrut (( row ))\\
+\hline
+(% endfor %)
+\end{longtable}
+(% endfor %)
+(% endblock %)

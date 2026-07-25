@@ -2,7 +2,8 @@ setup.sh
 */_version.py
 
 # Data files — not stored in the repository
-data/
+# Anchored to repo root so oceanarray/logsheets/data/ (package data) is NOT excluded.
+/data/
 outputs/
 
 # Legacy individual exclusions (superseded by data/ above)
