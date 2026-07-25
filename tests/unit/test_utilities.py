@@ -160,3 +160,126 @@ def test_drop_all_zero_vars_nonmatching_prefix_kept():
     )
     out = drop_all_zero_vars(ds, ["amplitude_beam"])
     assert "temperature" in out.data_vars
+
+
+# ---------------------------------------------------------------------------
+# extract_inline_instruments — beacon_id splitting
+# ---------------------------------------------------------------------------
+
+
+def test_extract_inline_instruments_beacon_id():
+    """serial='16430, R01-024' → primary serial '16430', beacon_id 'R01-024'."""
+    inline = [
+        {
+            "instrument": "aquadopp",
+            "serial": "16430, R01-024",
+            "filename": "16430.dat",
+            "hab_bottom": 1.5,
+        }
+    ]
+    result = utilities.extract_inline_instruments(inline)
+    assert len(result) == 1
+    entry = result[0]
+    assert entry["serial"] == "16430"
+    assert entry["beacon_id"] == "R01-024"
+
+
+def test_extract_inline_instruments_no_comma_serial():
+    """serial without comma passes through unchanged; no beacon_id key added."""
+    inline = [{"instrument": "microcat", "serial": 7518, "filename": "data.cnv"}]
+    result = utilities.extract_inline_instruments(inline)
+    assert result[0]["serial"] == 7518
+    assert "beacon_id" not in result[0]
+
+
+def test_extract_inline_instruments_hab_bottom_to_hab():
+    """hab_bottom is copied to hab when hab is absent."""
+    inline = [
+        {
+            "instrument": "aquadopp",
+            "serial": "1234",
+            "filename": "f.dat",
+            "hab_bottom": 2.0,
+        }
+    ]
+    result = utilities.extract_inline_instruments(inline)
+    assert result[0]["hab"] == 2.0
+
+
+def test_extract_inline_instruments_skip_entry_included():
+    """Entry with skip=True and no filename should still be returned."""
+    inline = [{"instrument": "microcat", "serial": 9999, "skip": True}]
+    result = utilities.extract_inline_instruments(inline)
+    assert len(result) == 1
+
+
+def test_extract_inline_instruments_no_instrument_excluded():
+    """Entry without 'instrument' key is filtered out."""
+    inline = [{"serial": 1234, "filename": "data.cnv"}]
+    result = utilities.extract_inline_instruments(inline)
+    assert result == []
+
+
+# ---------------------------------------------------------------------------
+# get_dims — DataArray and multi-dim pressure branches
+# ---------------------------------------------------------------------------
+
+
+def test_get_dims_with_dataarray():
+    """Passing a DataArray is converted to Dataset internally.
+
+    xr.DataArray.to_dataset() requires a name, so we use a named DataArray.
+    """
+    da = xr.DataArray(
+        np.zeros((3, 2)),
+        dims=("TIME", "DEPTH"),
+        coords={"TIME": [0, 1, 2], "DEPTH": [10, 20]},
+        name="pressure",
+    )
+    pres_key, time_key, pres_dim, time_dim = utilities.get_dims(da)
+    assert time_key == "TIME"
+    assert pres_key == "pressure"
+
+
+def test_get_dims_2d_pressure():
+    """Pressure with dims (time, depth) — pres_dim should be the non-time dim."""
+    ds = xr.Dataset(
+        {
+            "temperature": (("TIME", "DEPTH"), np.zeros((3, 4))),
+            "pressure": (("TIME", "DEPTH"), np.zeros((3, 4))),
+        },
+        coords={"TIME": np.arange(3), "DEPTH": np.arange(4)},
+    )
+    pres_key, time_key, pres_dim, time_dim = utilities.get_dims(ds)
+    assert pres_key == "pressure"
+    assert time_key == "TIME"
+    assert pres_dim == "DEPTH"
+    assert time_dim == "TIME"
+
+
+# ---------------------------------------------------------------------------
+# _nice_colorbar_bounds
+# ---------------------------------------------------------------------------
+
+
+def test_nice_colorbar_bounds_standard():
+    bounds = utilities._nice_colorbar_bounds(0.5, 7.5, n=20)
+    assert len(bounds) == 21  # n+1 edges
+    assert np.all(np.diff(bounds) > 0), "bounds must be monotonically increasing"
+    # All values should be finite
+    assert np.all(np.isfinite(bounds))
+
+
+def test_nice_colorbar_bounds_zero_span():
+    """vmin == vmax: function must not crash and must return n+1 values."""
+    bounds = utilities._nice_colorbar_bounds(5.0, 5.0, n=20)
+    assert len(bounds) == 21
+    assert np.all(np.isfinite(bounds))
+
+
+def test_nice_colorbar_bounds_salinity_range():
+    """Typical salinity range gives clean step and correct count."""
+    bounds = utilities._nice_colorbar_bounds(34.78, 35.14, n=20)
+    assert len(bounds) == 21
+    assert bounds[0] < 34.78 or np.isclose(bounds[0], 34.78, atol=0.1)
+    assert bounds[-1] > 35.14 or np.isclose(bounds[-1], 35.14, atol=0.1)

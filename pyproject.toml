@@ -65,6 +65,12 @@ ignore = [
 line-length = 88
 target-version = ['py39']
 
+[tool.coverage.run]
+source = ["oceanarray"]
+omit = [
+  "oceanarray/legacy/*",
+]
+
 [tool.ruff]
 exclude = [
   "oceanarray/legacy",   # legacy modules — not maintained to current standards
