@@ -114,6 +114,16 @@ QC_GROSS_RANGE: dict = {
     # Upper bound is generous — coastal resuspension events can reach 1000 NTU.
     # Override per mooring if the sensor range is known to be tighter.
     "turbidity": {"fail_span": (0.0, 4000.0), "suspect_span": (0.0, 1000.0)},  # NTU
+    # Dissolved oxygen (SBE ODO sensor, µmol/L).  Deep North Atlantic: 200–320 µmol/L.
+    # Negative values are physically impossible → fail.  >500 µmol/L is unrealistic
+    # even near the surface (photosynthetic supersaturation ~350–400 µmol/L).
+    # Override per mooring via qc_ranges YAML key.
+    "dissolved_oxygen": {
+        "fail_span": (0.0, 500.0),
+        "suspect_span": (0.0, 450.0),
+    },  # umol/L
+    # O2 % saturation: >200 % would indicate severe bubble entrainment or sensor fault.
+    "oxygen_saturation_pct": {"fail_span": (0.0, 200.0), "suspect_span": (0.0, 150.0)},
 }
 
 # ---------------------------------------------------------------------------

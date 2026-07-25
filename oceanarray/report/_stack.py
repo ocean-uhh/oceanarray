@@ -178,6 +178,12 @@ _STACK_HTML_TEMPLATE = """\
 <img class="fig" src="data:image/png;base64,{{ fig_sal_b64 }}" alt="Salinity time series">
 {% endif %}
 
+{% if fig_dissolved_oxygen_b64 %}
+<h2 id="dissolved-oxygen">Dissolved oxygen (all instruments)</h2>
+<p class="note">One line per instrument with dissolved oxygen data (SBE ODO sensor); QC flags &ge; 3 masked. Units: µmol L⁻¹. % saturation available in per-instrument reports.</p>
+<img class="fig" src="data:image/png;base64,{{ fig_dissolved_oxygen_b64 }}" alt="Dissolved oxygen time series">
+{% endif %}
+
 <!-- Velocity time series -->
 {% if fig_east_vel_b64 %}
 <h2 id="vel">East velocity (U)</h2>
@@ -262,7 +268,7 @@ _STACK_HTML_TEMPLATE = """\
 
 {% if fig_ts_stack_b64 %}
 <h2 id="ts">T-S diagram</h2>
-<p class="note">One colour per instrument. Bad-flagged samples (QC flag &ge; 4) excluded. Labels show serial number and height above bottom.</p>
+<p class="note">Left: scatter coloured by pressure. Middle: 2-D count heatmap. Right (when oxygen data present): scatter coloured by O₂ saturation (%). Bad (flag&nbsp;4) and missing (flag&nbsp;9) excluded; interpolated pressure (flag&nbsp;8) retained.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_ts_stack_b64 }}" alt="T-S diagram">
 {% endif %}
 
@@ -711,6 +717,14 @@ def generate_stack_page(
             if "salinity" in ds
             else None
         )
+        fig_dissolved_oxygen_b64 = (
+            _ts_fig(
+                "dissolved_oxygen",
+                f"Dissolved oxygen ({ds['dissolved_oxygen'].attrs.get('units', 'µmol/L')})",
+            )
+            if "dissolved_oxygen" in ds
+            else None
+        )
         fig_east_vel_b64 = (
             _ts_fig("east_velocity", "U — East velocity (m/s)")
             if "east_velocity" in ds
@@ -866,6 +880,7 @@ def generate_stack_page(
             fig_north_vel_b64=fig_north_vel_b64,
             fig_up_vel_b64=fig_up_vel_b64,
             fig_turbidity_b64=fig_turbidity_b64,
+            fig_dissolved_oxygen_b64=fig_dissolved_oxygen_b64,
             fig_rose_grid_b64=fig_rose_grid_b64,
             rose_img_width=rose_img_width,
             rose_declination_note=rose_declination_note,

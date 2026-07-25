@@ -429,6 +429,25 @@ _CF_ATTRS: Dict[str, Dict[str, str]] = {
         "standard_name": "sea_water_turbidity",
         "long_name": "Turbidity",
     },
+    "dissolved_oxygen": {
+        "standard_name": "mole_concentration_of_dissolved_molecular_oxygen_in_sea_water",
+        "long_name": "Dissolved Oxygen",
+        "units": "umol/L",
+    },
+    "oxygen_saturation_pct": {
+        "long_name": "Dissolved Oxygen Percent Saturation",
+        "units": "%",
+    },
+    "apparent_oxygen_utilization": {
+        "standard_name": "apparent_oxygen_utilization",
+        "long_name": "Apparent Oxygen Utilization",
+        "units": "umol/kg",
+    },
+    "dissolved_oxygen_ml_l": {
+        "standard_name": "mole_concentration_of_dissolved_molecular_oxygen_in_sea_water",
+        "long_name": "Dissolved Oxygen",
+        "units": "mL/L",
+    },
 }
 
 
@@ -1001,7 +1020,9 @@ def _apply_enu_velocity_qc(
 
     Propagates up_velocity_qc (flag 3 or 4) to east_velocity_qc and
     north_velocity_qc: if vertical velocity is implausibly large the whole
-    3-D velocity measurement is suspect/bad.
+    3-D velocity measurement is suspect/bad.  Full bidirectional unification
+    (large east/north flags → up_velocity_qc) is done by _unify_velocity_qc,
+    which must be called after _apply_tilt_qc.
     """
     enu_gr = {
         k: v
@@ -1021,6 +1042,32 @@ def _apply_enu_velocity_qc(
                 ds[qc_varname] = xr.Variable(
                     ds[vel_var].dims, merged, attrs=dict(ds[qc_varname].attrs)
                 )
+    return ds
+
+
+def _unify_velocity_qc(ds: xr.Dataset) -> xr.Dataset:
+    """Unify ENU velocity QC flags so all three components share the worst flag.
+
+    After gross-range, up-velocity propagation, and tilt QC, each component may
+    carry different flags.  A large east/north velocity flags only that component;
+    tilt flags all three; up-velocity flags east and north but not itself from the
+    east/north gross-range test.  This function computes the element-wise worst flag
+    across east_velocity_qc, north_velocity_qc, and up_velocity_qc, then writes
+    that combined flag back to all three.  The result: masking on any single
+    component produces an identical, consistent velocity mask.
+    """
+    keys = [
+        v
+        for v in ("east_velocity_qc", "north_velocity_qc", "up_velocity_qc")
+        if v in ds.data_vars
+    ]
+    if not keys:
+        return ds
+    combined = np.ones(ds[keys[0]].shape, dtype=np.int8)
+    for k in keys:
+        combined = _merge_flags(combined, ds[k].values.astype(np.int8))
+    for k in keys:
+        ds[k] = xr.Variable(ds[k].dims, combined.copy(), attrs=dict(ds[k].attrs))
     return ds
 
 
@@ -1522,6 +1569,122 @@ def _apply_adcp_velocity_qc(
     return ds
 
 
+def _derive_oxygen_saturation(ds: "xr.Dataset") -> "xr.Dataset":
+    """Compute O2 % saturation and AOU from dissolved_oxygen, temperature, salinity, pressure.
+
+    Requires dissolved_oxygen (µmol/L), temperature (°C), salinity (PSU), and pressure
+    (dbar) all present in *ds*.  Returns *ds* unchanged when any variable is missing or
+    when gsw is unavailable.
+
+    Unit conversion uses in-situ **seawater** density from ``gsw.rho(SA, CT, p)``
+    (kg m⁻³) — NOT freshwater density (~1000 kg m⁻³).  Seawater density at typical
+    mooring conditions is ~1025–1028 kg m⁻³, giving a ~2.5 % correction relative to
+    freshwater.  This correction is oceanographically significant and must not be skipped.
+
+    lon/lat for ``gsw.SA_from_SP`` are taken from global attrs (default 0.0 if absent;
+    the SA error from a wrong position is typically < 0.05 g kg⁻¹ at open-ocean sites).
+
+    Derived variables stored
+    ------------------------
+    oxygen_saturation_pct : %
+        100 × O2_measured(µmol kg⁻¹) / O2sol(µmol kg⁻¹)
+        where O2sol is from ``gsw.O2sol_SP_pt(SP, pt)``.
+    apparent_oxygen_utilization : µmol kg⁻¹
+        O2sol − O2_measured (positive = oxygen-depleted water).
+    """
+    required = {"dissolved_oxygen", "temperature", "salinity", "pressure"}
+    if not required.issubset(ds.data_vars):
+        return ds
+    try:
+        import gsw
+    except ImportError:
+        return ds
+
+    O2_L = ds["dissolved_oxygen"].values.astype(float)
+    t = ds["temperature"].values.astype(float)
+    SP = ds["salinity"].values.astype(float)
+    p = ds["pressure"].values.astype(float)
+    try:
+        lon = float(ds.attrs.get("longitude", 0.0))
+    except (ValueError, TypeError):
+        lon = 0.0
+    try:
+        lat = float(ds.attrs.get("latitude", 0.0))
+    except (ValueError, TypeError):
+        lat = 0.0
+
+    # Mask already-flagged dissolved oxygen so bad values produce NaN saturation
+    # rather than spurious negative percentages that would then back-propagate.
+    if "dissolved_oxygen_qc" in ds.data_vars:
+        _do_qc = ds["dissolved_oxygen_qc"].values.astype(np.int8)
+        O2_L = O2_L.copy()
+        O2_L[np.isin(_do_qc, [4, 9])] = np.nan
+
+    SA = gsw.SA_from_SP(SP, p, lon, lat)
+    CT = gsw.CT_from_t(SA, t, p)
+    pt = gsw.pt0_from_t(SA, t, p)
+
+    O2sol = gsw.O2sol_SP_pt(SP, pt)  # µmol/kg at equilibrium
+    rho_sw = gsw.rho(SA, CT, p)  # kg/m³ in-situ seawater density
+    O2_kg = O2_L / (rho_sw / 1000.0)  # µmol/kg measured (divides by kg/L)
+
+    pct_sat = 100.0 * O2_kg / O2sol
+    aou = O2sol - O2_kg
+
+    # Back-flag: pct_sat < 0 is physically impossible (negative dissolved oxygen).
+    # Set saturation to NaN and flag the underlying dissolved_oxygen as bad (4).
+    neg_sat = np.isfinite(pct_sat) & (pct_sat < 0.0)
+    n_neg = int(np.sum(neg_sat))
+    if n_neg > 0:
+        pct_sat[neg_sat] = np.nan
+        aou[neg_sat] = np.nan
+        if "dissolved_oxygen_qc" in ds.data_vars:
+            do_qc = ds["dissolved_oxygen_qc"].values.astype(np.int8).copy()
+            do_qc[neg_sat] = np.int8(4)
+            ds["dissolved_oxygen_qc"] = xr.Variable(
+                ds["dissolved_oxygen_qc"].dims,
+                do_qc,
+                attrs=dict(ds["dissolved_oxygen_qc"].attrs),
+            )
+
+    ds = ds.assign(
+        oxygen_saturation_pct=xr.Variable(
+            "time",
+            pct_sat.astype(np.float32),
+            {
+                "long_name": "Dissolved Oxygen Percent Saturation",
+                "units": "%",
+                "comment": (
+                    "100 × O2_meas / O2sol. O2_meas converted from µmol/L to µmol/kg "
+                    "using in-situ seawater density gsw.rho(SA,CT,p); "
+                    "O2sol = gsw.O2sol_SP_pt(SP, pt0). "
+                    f"Back-flagged {n_neg} sample(s) where pct_sat < 0 as bad (flag 4)."
+                    if n_neg
+                    else (
+                        "100 × O2_meas / O2sol. O2_meas converted from µmol/L to µmol/kg "
+                        "using in-situ seawater density gsw.rho(SA,CT,p); "
+                        "O2sol = gsw.O2sol_SP_pt(SP, pt0)."
+                    )
+                ),
+            },
+        ),
+        apparent_oxygen_utilization=xr.Variable(
+            "time",
+            aou.astype(np.float32),
+            {
+                "long_name": "Apparent Oxygen Utilization",
+                "standard_name": "apparent_oxygen_utilization",
+                "units": "umol/kg",
+                "comment": (
+                    "AOU = O2sol - O2_meas (µmol/kg); positive = undersaturated "
+                    "(oxygen consumed). Uses in-situ seawater density for µmol/L → µmol/kg."
+                ),
+            },
+        ),
+    )
+    return ds
+
+
 class Stage3Processor:
     """Pressure interpolation + QARTOD QC for all mooring instruments."""
 
@@ -1908,6 +2071,65 @@ class Stage3Processor:
             else:
                 ds = _apply_qc_tests(ds, gr_cfg, sp_cfg, qc_attrs, flat_line=fl_cfg)
 
+            # ── Post-QC pressure check ─────────────────────────────────
+            # If QC (e.g. flat-line test) just flagged ALL pressure values as
+            # bad and this instrument was not already a pressure target, treat
+            # it as one now: interpolate from the other sources on the mooring.
+            # This catches stuck-sensor faults that only become visible after
+            # the flat-line / gross-range tests run — which is why the pre-scan
+            # source/target classification cannot catch them.
+            # Note: if this instrument was already used as a source for a
+            # previously processed target, those targets will have received bad
+            # pressure values.  To fix that, re-run stage 3 on the full mooring
+            # once this instrument's fault is known (e.g. add pressure_qc: 4 to
+            # the YAML so it is excluded from sources at the outset).
+            if (
+                not is_target
+                and "pressure_qc" in ds.data_vars
+                and "pressure" in ds.data_vars
+            ):
+                _pqc = ds["pressure_qc"].values.astype(np.int8)
+                _n_total = len(_pqc)
+                _n_bad = int(np.sum(np.isin(_pqc, [4, 9])))
+                _frac_bad = _n_bad / _n_total if _n_total > 0 else 0.0
+                # Trigger interpolation when > 70% of values are bad.  The flat-line
+                # test leaves the first fail_n samples as flag 1/3 (window startup),
+                # so strict all-bad checking would never fire for a fully stuck sensor.
+                if _frac_bad > 0.70:
+                    _other_sources = [s for s in sources if s["serial"] != serial]
+                    if _other_sources:
+                        self._log(
+                            f"  WARNING: {serial} — {_frac_bad:.0%} of pressure values "
+                            f"flagged bad by QC (flat-line or gross-range); replacing "
+                            f"entire pressure record with interpolation from "
+                            f"{len(_other_sources)} source(s). "
+                            f"Re-run stage 3 on the full mooring with "
+                            f"'pressure_qc: 4' in the YAML entry for {serial} "
+                            f"so it is excluded from sources from the start."
+                        )
+                        # Temporarily set YAML pressure flag to 4 so that
+                        # _interpolate_pressure stores pressure_orig_qc = 4
+                        # (the actual QC reason), not the YAML default of 0.
+                        info["qc_flags"]["pressure"] = 4
+                        ds, method = self._interpolate_pressure(
+                            ds,
+                            info,
+                            _other_sources,
+                            target_time,
+                            pressure_bad_flag=True,
+                            qc_attrs=qc_attrs,
+                        )
+                        history_notes.append(
+                            f"stage3 pressure interpolated post-QC "
+                            f"({_frac_bad:.0%} pressure_qc=4/9 after QC) — {method}"
+                        )
+                    else:
+                        self._log(
+                            f"  WARNING: {serial} — {_frac_bad:.0%} of pressure flagged "
+                            f"bad but no other pressure sources on this mooring; "
+                            f"pressure remains bad-flagged."
+                        )
+
             # ── Fold T/C/P parent QC into salinity_qc ─────────────────
             ds = _merge_salinity_parent_qc(ds, qc_attrs)
 
@@ -1982,6 +2204,16 @@ class Stage3Processor:
                         f"tilt≥{tilt_cfg['fail_threshold']}°→bad): "
                         f"suspect={n_tilt_susp}, bad={n_tilt_bad}"
                     )
+
+            # ── Unify ENU velocity QC ──────────────────────────────────
+            # After tilt + gross-range QC, combine worst flag across all three
+            # ENU components and write it back to all three so masking on any
+            # single component (east, north, or up) gives an identical result.
+            # This catches e.g. large east/north currents (>3 m/s suspect) that
+            # would otherwise leave up_velocity_qc unflagged.
+            if ds.attrs.get("coordinate_system") == "ENU":
+                ds = _unify_velocity_qc(ds)
+
             if ds.attrs.get("coordinate_system") == "ENU" and coord_sys_before != "ENU":
                 _ba = ds.attrs.get("nortek_beam_angle", "?")
                 _ba_src = ds.attrs.get("nortek_beam_angle_source", "")
@@ -2026,6 +2258,9 @@ class Stage3Processor:
             entry = f"{stamp}: " + " | ".join(history_notes)
             existing = ds.attrs.get("history", "")
             ds.attrs["history"] = f"{existing}; {entry}" if existing else entry
+
+            # Derive O2 % saturation and AOU when dissolved_oxygen + T/S/P are present.
+            ds = _derive_oxygen_saturation(ds)
 
             # Normalize CF standard_name and long_name for known physics variables.
             # Only fills in missing attrs — never overwrites values already set.

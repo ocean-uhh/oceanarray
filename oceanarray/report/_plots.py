@@ -162,24 +162,25 @@ def _plot_aquadopp_quick(ds: "xr.Dataset") -> "plt.Figure":
 
 # Canonical variable order for all instrument plots.
 _CANONICAL_PANELS: List[Tuple] = [
-    ("pressure", "Pressure [dbar]", "tab:green", True),
-    ("pressure_1", "Pressure 1 [dbar]", "tab:green", True),
-    ("temperature", "Temperature [°C]", "tab:red", False),
-    ("conductivity", "Conductivity [mS/cm]", "tab:blue", False),
-    ("salinity", "Salinity [PSU]", "tab:cyan", False),
-    ("east_velocity", "East vel. [m/s]", "tab:blue", False),
-    ("north_velocity", "North vel. [m/s]", "tab:orange", False),
-    ("up_velocity", "Up vel. [m/s]", "tab:cyan", False),
-    ("velocity_beam1", "Beam 1 vel. [m/s]", "tab:blue", False),
-    ("velocity_beam2", "Beam 2 vel. [m/s]", "tab:orange", False),
-    ("velocity_beam3", "Beam 3 vel. [m/s]", "tab:cyan", False),
-    ("tilt", "Tilt [°]", "tab:red", False),
-    ("pitch", "Pitch [°]", "tab:purple", False),
-    ("roll", "Roll [°]", "#8B4513", False),
-    ("heading", "Heading [°]", "tab:gray", False),
-    ("speed_of_sound", "Sound speed [m/s]", "tab:olive", False),
+    ("pressure", "Pressure (dbar)", "tab:green", True),
+    ("pressure_1", "Pressure 1 (dbar)", "tab:green", True),
+    ("temperature", "Temperature (°C)", "tab:red", False),
+    ("conductivity", "Conductivity (mS cm⁻¹)", "tab:blue", False),
+    ("salinity", "Salinity (PSU)", "tab:cyan", False),
+    ("east_velocity", "East velocity (m s⁻¹)", "tab:blue", False),
+    ("north_velocity", "North velocity (m s⁻¹)", "tab:orange", False),
+    ("up_velocity", "Up velocity (m s⁻¹)", "tab:cyan", False),
+    ("velocity_beam1", "Beam 1 velocity (m s⁻¹)", "tab:blue", False),
+    ("velocity_beam2", "Beam 2 velocity (m s⁻¹)", "tab:orange", False),
+    ("velocity_beam3", "Beam 3 velocity (m s⁻¹)", "tab:cyan", False),
+    ("tilt", "Tilt (°)", "tab:red", False),
+    ("pitch", "Pitch (°)", "tab:purple", False),
+    ("roll", "Roll (°)", "#8B4513", False),
+    ("heading", "Heading (°)", "tab:gray", False),
+    ("speed_of_sound", "Sound speed (m s⁻¹)", "tab:olive", False),
     ("turbidity", "Turbidity (NTU)", "tab:brown", False),
-    ("battery_voltage", "Battery [V]", "tab:pink", False),
+    ("dissolved_oxygen", "Dissolved oxygen (µmol L⁻¹)", "steelblue", False),
+    ("battery_voltage", "Battery (V)", "tab:pink", False),
 ]
 
 _COMPACT_PANEL_VARS: frozenset = frozenset({"battery_voltage", "speed_of_sound"})
@@ -374,6 +375,17 @@ def _build_fig_from_ds(
                     ncol=3,
                     framealpha=0.8,
                 )
+
+        # Twin right y-axis: O2 % saturation alongside dissolved oxygen concentration.
+        # Uses in-situ seawater density for the µmol/L → µmol/kg conversion (see
+        # _derive_oxygen_saturation in stage3.py); error vs freshwater density ~2.5%.
+        if vname == "dissolved_oxygen" and "oxygen_saturation_pct" in ds.data_vars:
+            ax2 = ax.twinx()
+            sat = ds["oxygen_saturation_pct"].values.astype(float)
+            ax2.plot(time, sat, color="darkorange", linewidth=0.6, alpha=0.75, zorder=0)
+            ax2.set_ylabel("O₂ sat. (%)", color="darkorange")
+            ax2.tick_params(axis="y", labelcolor="darkorange")
+            ax2.axhline(100.0, color="darkorange", lw=0.5, ls="--", alpha=0.4)
 
     serial = (
         ds["serial_number"].item()
@@ -1037,11 +1049,13 @@ def _ts_heatmap_panel(
 
 
 def _make_ts_diagram(nc_path: Path) -> Optional[str]:
-    """Two-panel T-S diagram: scatter by pressure (left) and 2-D count heatmap (right)."""
+    """T-S diagram: scatter by pressure, 2-D count heatmap, and (when present) scatter by O2 saturation."""
     try:
+        import matplotlib.colors as mcolors
         import matplotlib.pyplot as plt
         import xarray as xr
         from .. import parameters as P
+        from ..utilities import _nice_colorbar_bounds
 
         plt.style.use(str(P.MPLSTYLE))
         ds = xr.open_dataset(nc_path, decode_timedelta=False).load()
@@ -1059,7 +1073,7 @@ def _make_ts_diagram(nc_path: Path) -> Optional[str]:
 
         if "pressure" in ds.data_vars:
             C = ds["pressure"].values.astype(float)
-            cbar_label = "Pressure [dbar]"
+            cbar_label = "Pressure (dbar)"
             cmap_sc = "viridis_r"
         else:
             C = np.arange(len(T), dtype=float)
@@ -1088,8 +1102,17 @@ def _make_ts_diagram(nc_path: Path) -> Optional[str]:
         sal_units = ds["salinity"].attrs.get("units", "PSU")
         tmp_units = ds["temperature"].attrs.get("units", "°C")
 
-        fig, (ax_l, ax_r) = plt.subplots(1, 2, figsize=(13, 5), constrained_layout=True)
+        has_sat = "oxygen_saturation_pct" in ds.data_vars
+        sat_data = ds["oxygen_saturation_pct"].values.astype(float) if has_sat else None
 
+        ncols = 3 if has_sat else 2
+        fig, axes = plt.subplots(
+            1, ncols, figsize=(5.5 * ncols, 4.5), constrained_layout=True
+        )
+        ax_l, ax_r = axes[0], axes[1]
+        ax_sat = axes[2] if has_sat else None
+
+        # Panel 1: T-S scatter coloured by pressure
         vmin = np.nanpercentile(C[finite], 5)
         vmax = np.nanpercentile(C[finite], 95)
         sc = ax_l.scatter(
@@ -1123,11 +1146,42 @@ def _make_ts_diagram(nc_path: Path) -> Optional[str]:
         if suspect_mask.any() or bad_mask.any():
             ax_l.legend(loc="best", framealpha=0.8)
         _add_sigma0_contours(ax_l, S[finite], T[finite])
-        ax_l.set_xlabel(f"Salinity [{sal_units}]")
-        ax_l.set_ylabel(f"Temperature [{tmp_units}]")
-        ax_l.set_title("T-S scatter (colour = pressure)")
+        ax_l.set_xlabel(f"Salinity ({sal_units})")
+        ax_l.set_ylabel(f"Temperature ({tmp_units})")
+        ax_l.set_title("T-S (colour = pressure)")
 
+        # Panel 2: count heatmap
         _ts_heatmap_panel(ax_r, fig, S[finite], T[finite])
+
+        # Panel 3: T-S scatter coloured by O2 saturation (when available)
+        if ax_sat is not None and sat_data is not None:
+            sat_finite = good_mask & np.isfinite(sat_data)
+            if sat_finite.any():
+                sv = sat_data[sat_finite]
+                bounds_s = _nice_colorbar_bounds(
+                    float(np.nanpercentile(sv, 2)),
+                    float(np.nanpercentile(sv, 98)),
+                    n=11,
+                )
+                norm_s = mcolors.BoundaryNorm(bounds_s, ncolors=256)
+                sc_s = ax_sat.scatter(
+                    S[sat_finite],
+                    T[sat_finite],
+                    c=sv,
+                    cmap="BrBG",
+                    norm=norm_s,
+                    s=4,
+                    linewidths=0,
+                    alpha=0.6,
+                    zorder=2,
+                    rasterized=True,
+                )
+                cb_s = fig.colorbar(sc_s, ax=ax_sat, ticks=bounds_s, pad=0.02)
+                cb_s.set_label("O₂ saturation (%)")
+                _add_sigma0_contours(ax_sat, S[sat_finite], T[sat_finite])
+            ax_sat.set_xlabel(f"Salinity ({sal_units})")
+            ax_sat.set_ylabel(f"Temperature ({tmp_units})")
+            ax_sat.set_title("T-S (colour = O₂ sat.)")
 
         b64 = _fig_to_base64(fig)
         plt.close(fig)
@@ -1648,7 +1702,10 @@ def _make_grid_fig_b64(
 # ---------------------------------------------------------------------------
 
 
-def _make_grid_hydro_b64(ds: "xr.Dataset") -> Optional[str]:
+def _make_grid_hydro_b64(
+    ds: "xr.Dataset",
+    var_bounds: "Optional[dict]" = None,
+) -> Optional[str]:
     """Stacked temperature / salinity pcolormesh panels for the grid report.
 
     Both panels have pressure (dbar) on the Y-axis (inverted, surface at top).
@@ -1670,6 +1727,11 @@ def _make_grid_hydro_b64(ds: "xr.Dataset") -> Optional[str]:
     ----------
     ds : xr.Dataset
         Gridded mooring dataset with dimensions ``(time, pressure)``.
+    var_bounds : dict, optional
+        Pre-computed colorbar limits keyed by variable name, e.g.
+        ``{"t_lim": (vmin, vmax), "s_lim": (vmin, vmax), "o2_lim": (vmin, vmax)}``.
+        When a key is present its limits are used instead of computing from the data.
+        Intended for passing the T-S diagram axis limits so both figures share scales.
 
     Returns
     -------
@@ -1684,8 +1746,15 @@ def _make_grid_hydro_b64(ds: "xr.Dataset") -> Optional[str]:
     import xarray as _xr
     from .. import parameters as P
 
+    if var_bounds is None:
+        var_bounds = {}
+
     panels = []
-    for var, cmap in [("temperature", "RdYlBu_r"), ("salinity", "YlGnBu_r")]:
+    for var, cmap in [
+        ("temperature", "RdYlBu_r"),
+        ("salinity", "YlGnBu_r"),
+        ("oxygen_saturation_pct", "BrBG"),
+    ]:
         if var not in ds.data_vars:
             continue
         panels.append((var, cmap))
@@ -1734,9 +1803,19 @@ def _make_grid_hydro_b64(ds: "xr.Dataset") -> Optional[str]:
         # carries the full CF phrase "sea water temperature" which is verbose
         # for a plot heading.  The colorbar label keeps the full long_name.
         title = var.replace("_", " ").capitalize()
-        _vmin = float(np.nanpercentile(data, P.COLORBAR_PLOW))
-        _vmax = float(np.nanpercentile(data, P.COLORBAR_PHIGH))
-        bounds = _nice_colorbar_bounds(_vmin, _vmax, n=20)
+        _lim_key = {
+            "temperature": "t_lim",
+            "salinity": "s_lim",
+            "oxygen_saturation_pct": "o2_lim",
+        }.get(var)
+        _passed = var_bounds.get(_lim_key) if _lim_key else None
+        if _passed is not None:
+            _vmin, _vmax = _passed
+        else:
+            _vmin = float(np.nanpercentile(data, P.COLORBAR_PLOW))
+            _vmax = float(np.nanpercentile(data, P.COLORBAR_PHIGH))
+        _n = 11 if var == "oxygen_saturation_pct" else 20
+        bounds = _nice_colorbar_bounds(_vmin, _vmax, n=_n)
         norm = mcolors.BoundaryNorm(bounds, ncolors=256)
         pc = ax.pcolormesh(
             time, pressure, data, shading="nearest", cmap=cmap, norm=norm
@@ -2095,10 +2174,20 @@ def _make_instrument_rose_b64(nc_path: Path) -> Optional[str]:
 
 
 def _make_stack_ts_diagram(ds: "xr.Dataset") -> Optional[str]:
-    """Two-panel T-S diagram for a stacked dataset."""
+    """T-S diagram for a stacked dataset: scatter-by-pressure, count heatmap, and (when present) scatter-by-AOU.
+
+    Panels are arranged in a single row.  The AOU panel is included when
+    ``apparent_oxygen_utilization`` is present in *ds* (written by stage3 for
+    instruments with dissolved oxygen data).
+
+    QC masking: bad (flag 4) and missing (flag 9) excluded; interpolated
+    pressure (flag 8) is kept as usable colour data.
+    """
     try:
+        import matplotlib.colors as mcolors
         import matplotlib.pyplot as plt
         from .. import parameters as P
+        from ..utilities import _nice_colorbar_bounds
 
         if "temperature" not in ds.data_vars or "salinity" not in ds.data_vars:
             return None
@@ -2106,18 +2195,22 @@ def _make_stack_ts_diagram(ds: "xr.Dataset") -> Optional[str]:
         T_all = ds["temperature"].values.copy().astype(float)
         S_all = ds["salinity"].values.copy().astype(float)
         if "temperature_qc" in ds.data_vars:
-            T_all[ds["temperature_qc"].values >= 4] = np.nan
+            _tqc = ds["temperature_qc"].values.astype(float)
+            T_all[(_tqc == 4) | (_tqc == 9)] = np.nan
         if "salinity_qc" in ds.data_vars:
-            S_all[ds["salinity_qc"].values >= 4] = np.nan
+            _sqc = ds["salinity_qc"].values.astype(float)
+            S_all[(_sqc == 4) | (_sqc == 9)] = np.nan
 
         T_flat = T_all.ravel()
         S_flat = S_all.ravel()
 
+        # Pressure: keep flag 8 (interpolated) — only bad (4) and missing (9) excluded.
         P_flat: Optional[np.ndarray] = None
         if "pressure" in ds.data_vars:
             P_arr = ds["pressure"].values.astype(float)
             if "pressure_qc" in ds.data_vars:
-                P_arr[ds["pressure_qc"].values >= 4] = np.nan
+                _pqc = ds["pressure_qc"].values.astype(float)
+                P_arr[(_pqc == 4) | (_pqc == 9)] = np.nan
             P_flat = P_arr.ravel()
 
         finite = np.isfinite(T_flat) & np.isfinite(S_flat)
@@ -2126,28 +2219,45 @@ def _make_stack_ts_diagram(ds: "xr.Dataset") -> Optional[str]:
         if finite.sum() < 5:
             return None
 
-        plt.style.use(str(P.MPLSTYLE))
-        fig, (ax_l, ax_r) = plt.subplots(1, 2, figsize=(13, 5), constrained_layout=True)
+        # O2 saturation: optional third panel.
+        SAT_flat: Optional[np.ndarray] = None
+        if "oxygen_saturation_pct" in ds.data_vars:
+            SAT_flat = ds["oxygen_saturation_pct"].values.astype(float).ravel()
 
+        has_sat = SAT_flat is not None and np.isfinite(SAT_flat).any()
+        ncols = 3 if has_sat else 2
+        fig_w = 5.5 * ncols  # ~5.5 in per panel keeps them compact in a row
+        plt.style.use(str(P.MPLSTYLE))
+        fig, axes = plt.subplots(
+            1, ncols, figsize=(fig_w, 4.5), constrained_layout=True
+        )
+
+        ax_scatter, ax_heat = axes[0], axes[1]
+        ax_sat = axes[2] if has_sat else None
+
+        # --- Left panel: T-S scatter coloured by pressure ---
         if P_flat is not None:
-            vmin = np.nanpercentile(P_flat[finite], 5)
-            vmax = np.nanpercentile(P_flat[finite], 95)
-            sc = ax_l.scatter(
+            pv = P_flat[finite]
+            vmin = float(np.nanpercentile(pv, 2))
+            vmax = float(np.nanpercentile(pv, 98))
+            bounds_p = _nice_colorbar_bounds(vmin, vmax, n=20)
+            norm_p = mcolors.BoundaryNorm(bounds_p, ncolors=256)
+            sc_p = ax_scatter.scatter(
                 S_flat[finite],
                 T_flat[finite],
-                c=P_flat[finite],
+                c=pv,
                 cmap="viridis_r",
-                vmin=vmin,
-                vmax=vmax,
+                norm=norm_p,
                 s=2,
                 linewidths=0,
                 alpha=0.5,
                 zorder=2,
                 rasterized=True,
             )
-            fig.colorbar(sc, ax=ax_l, label="Pressure [dbar]", fraction=0.046, pad=0.04)
+            cb_p = fig.colorbar(sc_p, ax=ax_scatter, ticks=bounds_p, pad=0.02)
+            cb_p.set_label("Pressure (dbar)")
         else:
-            ax_l.scatter(
+            ax_scatter.scatter(
                 S_flat[finite],
                 T_flat[finite],
                 s=2,
@@ -2155,12 +2265,42 @@ def _make_stack_ts_diagram(ds: "xr.Dataset") -> Optional[str]:
                 alpha=0.4,
                 rasterized=True,
             )
-        _add_sigma0_contours(ax_l, S_flat[finite], T_flat[finite])
-        ax_l.set_xlabel("Practical salinity")
-        ax_l.set_ylabel("Temperature (°C)")
-        ax_l.set_title("T-S scatter (colour = pressure)")
+        _add_sigma0_contours(ax_scatter, S_flat[finite], T_flat[finite])
+        ax_scatter.set_xlabel("Practical salinity")
+        ax_scatter.set_ylabel("Temperature (°C)")
+        ax_scatter.set_title("T-S (colour = pressure)")
 
-        _ts_heatmap_panel(ax_r, fig, S_flat[finite], T_flat[finite])
+        # --- Middle panel: count heatmap ---
+        _ts_heatmap_panel(ax_heat, fig, S_flat[finite], T_flat[finite])
+
+        # --- Right panel: T-S scatter coloured by O2 saturation ---
+        if ax_sat is not None and SAT_flat is not None:
+            sat_finite = finite & np.isfinite(SAT_flat)
+            sat_v = SAT_flat[sat_finite]
+            bounds_s = _nice_colorbar_bounds(
+                float(np.nanpercentile(sat_v, 2)),
+                float(np.nanpercentile(sat_v, 98)),
+                n=11,
+            )
+            norm_s = mcolors.BoundaryNorm(bounds_s, ncolors=256)
+            sc_s = ax_sat.scatter(
+                S_flat[sat_finite],
+                T_flat[sat_finite],
+                c=sat_v,
+                cmap="YlGnBu",
+                norm=norm_s,
+                s=2,
+                linewidths=0,
+                alpha=0.5,
+                zorder=2,
+                rasterized=True,
+            )
+            cb_s = fig.colorbar(sc_s, ax=ax_sat, ticks=bounds_s, pad=0.02)
+            cb_s.set_label("O₂ saturation (%)")
+            _add_sigma0_contours(ax_sat, S_flat[sat_finite], T_flat[sat_finite])
+            ax_sat.set_xlabel("Practical salinity")
+            ax_sat.set_ylabel("Temperature (°C)")
+            ax_sat.set_title("T-S (colour = O₂ sat.)")
 
         b64 = _fig_to_base64(fig)
         plt.close(fig)
@@ -2169,30 +2309,128 @@ def _make_stack_ts_diagram(ds: "xr.Dataset") -> Optional[str]:
         return None
 
 
-def _make_grid_ts_diagram(ds: "xr.Dataset", n_bins: int = 80) -> Optional[str]:
-    """T-S heat map for a gridded dataset — half-page width."""
+def _make_grid_ts_diagram(
+    ds: "xr.Dataset", n_bins: int = 60
+) -> "tuple[Optional[str], dict]":
+    """T-S diagram for gridded mooring data.
+
+    Left panel: 2-D count heatmap (log₁₀ samples per T-S bin).
+    Right panel (when ``oxygen_saturation_pct`` is present): median O₂ saturation
+    per T-S bin, computed with ``scipy.stats.binned_statistic_2d``.  Bins with
+    fewer than 5 samples are masked white.
+
+    This lets you see which water masses (T-S combinations) are oxygen-rich vs
+    oxygen-depleted at this mooring — a compact water-mass characterisation.
+
+    Returns
+    -------
+    tuple of (b64_str or None, bounds_dict)
+        ``bounds_dict`` contains the axis/colorbar limits computed from the data so
+        the hydro pcolormesh panels can share the same scales:
+
+        - ``"t_lim"`` : (vmin, vmax) for temperature
+        - ``"s_lim"`` : (vmin, vmax) for salinity
+        - ``"o2_lim"`` : (vmin, vmax) for oxygen_saturation_pct, or None
+
+    """
     try:
+        import matplotlib.colors as mcolors
         import matplotlib.pyplot as plt
+        from scipy.stats import binned_statistic_2d
         from .. import parameters as P
+        from ..utilities import _nice_colorbar_bounds
 
         if "temperature" not in ds.data_vars or "salinity" not in ds.data_vars:
-            return None
+            return None, {}
 
         T = ds["temperature"].values.astype(float).ravel()
         S = ds["salinity"].values.astype(float).ravel()
         finite = np.isfinite(T) & np.isfinite(S)
         if finite.sum() < 10:
-            return None
+            return None, {}
 
+        # Axis limits from the data — returned to caller so hydro panels share scales.
+        s_lo = float(np.nanpercentile(S[finite], 0.01))
+        s_hi = float(np.nanpercentile(S[finite], 99.99))
+        t_lo = float(np.nanpercentile(T[finite], 0.01))
+        t_hi = float(np.nanpercentile(T[finite], 99.99))
+        ts_bounds = {"t_lim": (t_lo, t_hi), "s_lim": (s_lo, s_hi), "o2_lim": None}
+
+        has_o2 = "oxygen_saturation_pct" in ds.data_vars
+        O2 = (
+            ds["oxygen_saturation_pct"].values.astype(float).ravel() if has_o2 else None
+        )
+        o2_valid = (
+            finite & np.isfinite(O2) if (O2 is not None) else np.zeros_like(finite)
+        )
+        has_o2 = has_o2 and o2_valid.any()
+
+        ncols = 2 if has_o2 else 1
         plt.style.use(str(P.MPLSTYLE))
-        fig, ax = plt.subplots(figsize=(6, 5), constrained_layout=True)
-        _ts_heatmap_panel(ax, fig, S[finite], T[finite], n_bins=n_bins)
-        ax.set_title("T-S heat map (sample counts per bin)")
+        fig, axes = plt.subplots(
+            1, ncols, figsize=(6 * ncols, 5), constrained_layout=True
+        )
+        if ncols == 1:
+            axes = [axes]
+
+        # Panel 1: count heatmap
+        _ts_heatmap_panel(axes[0], fig, S[finite], T[finite], n_bins=n_bins)
+        axes[0].set_title("T-S count (log₁₀ samples per bin)")
+
+        # Panel 2: median O2 saturation per T-S bin
+        if has_o2 and O2 is not None:
+            s_edges = np.linspace(s_lo, s_hi, n_bins + 1)
+            t_edges = np.linspace(t_lo, t_hi, n_bins + 1)
+
+            o2_med, _, _, _ = binned_statistic_2d(
+                S[o2_valid],
+                T[o2_valid],
+                O2[o2_valid],
+                statistic="median",
+                bins=[s_edges, t_edges],
+            )
+            cnt, _, _, _ = binned_statistic_2d(
+                S[o2_valid],
+                T[o2_valid],
+                O2[o2_valid],
+                statistic="count",
+                bins=[s_edges, t_edges],
+            )
+            # o2_med shape is (n_s, n_t); transpose to (n_t, n_s) for pcolormesh
+            populated = cnt >= 5
+            o2_masked = np.ma.masked_where(~populated | ~np.isfinite(o2_med), o2_med)
+
+            valid_vals = o2_med[populated & np.isfinite(o2_med)]
+            if valid_vals.size:
+                o2_vmin = float(np.nanpercentile(valid_vals, 2))
+                o2_vmax = float(np.nanpercentile(valid_vals, 98))
+                ts_bounds["o2_lim"] = (o2_vmin, o2_vmax)
+                bounds = _nice_colorbar_bounds(o2_vmin, o2_vmax, n=11)
+                norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+                cmap = plt.cm.BrBG.copy()
+                cmap.set_bad("white")
+                pc = axes[1].pcolormesh(
+                    s_edges,
+                    t_edges,
+                    o2_masked.T,
+                    cmap=cmap,
+                    norm=norm,
+                    shading="flat",
+                )
+                cb = fig.colorbar(pc, ax=axes[1], ticks=bounds, pad=0.02)
+                cb.set_label("Median O₂ saturation (%)")
+                _add_sigma0_contours(axes[1], S[o2_valid], T[o2_valid])
+                axes[1].set_xlim(s_lo, s_hi)
+                axes[1].set_ylim(t_lo, t_hi)
+            axes[1].set_xlabel("Practical salinity")
+            axes[1].set_ylabel("Temperature (°C)")
+            axes[1].set_title("Median O₂ saturation per T-S bin")
+
         b64 = _fig_to_base64(fig)
         plt.close(fig)
-        return b64
+        return b64, ts_bounds
     except Exception:
-        return None
+        return None, {}
 
 
 def _make_velocity_iqr_profile_b64(ds: "xr.Dataset") -> Optional[str]:
