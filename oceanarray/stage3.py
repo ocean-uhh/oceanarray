@@ -951,13 +951,23 @@ def _apply_qc_tests(
                 continue
             suspect_n = int(fl_cfg.get("suspect_n", 3))
             fail_n = int(fl_cfg.get("fail_n", 10))
-            _fl_result = qartod.flat_line_test(
-                inp=data,
-                tinp=time_s,
-                suspect_threshold=int(suspect_n * dt_s),
-                fail_threshold=int(fail_n * dt_s),
-                tolerance=float(fl_cfg.get("tolerance", 0.0)),
-            )
+            try:
+                _fl_result = qartod.flat_line_test(
+                    inp=data,
+                    tinp=time_s,
+                    suspect_threshold=int(suspect_n * dt_s),
+                    fail_threshold=int(fail_n * dt_s),
+                    tolerance=float(fl_cfg.get("tolerance", 0.0)),
+                )
+            except (ValueError, OverflowError) as _fl_err:
+                import warnings
+
+                warnings.warn(
+                    f"flat_line_test skipped for '{varname}': {_fl_err}",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
+                continue
             # flat_line_test may return a masked array or plain ndarray depending
             # on the ioos_qc version; handle both.
             fl_flags = (
