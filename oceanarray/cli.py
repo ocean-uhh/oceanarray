@@ -640,6 +640,92 @@ def cmd_list(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_logsheet(args: "argparse.Namespace") -> int:
+    """Generate fieldwork logsheet PDFs for a mooring or cal-dip cast.
+
+    Reads ``cruise_config.yaml`` and ``instruments.yaml`` from ``--config-dir``,
+    or supply paths directly via ``--logsheet-config`` and ``--inventory``.
+    Mooring YAMLs are located via ``--proc-dir`` or ``mooring_yaml_map`` in
+    ``cruise_config.yaml``.
+    """
+    import sys
+    from pathlib import Path
+    from .logsheets import (
+        build_caldip_setup,
+        build_caldip_download,
+        build_recovery,
+        build_mooring_download,
+        build_deployment_setup,
+    )
+    from .logsheets._config import resolve_config, load_yaml
+
+    config_dir = Path(args.logsheet_config_dir) if args.logsheet_config_dir else None
+    inventory_path = Path(args.logsheet_inventory) if args.logsheet_inventory else None
+    logsheet_config_path = Path(args.logsheet_config) if args.logsheet_config else None
+    output_dir = Path(args.logsheet_output_dir)
+    _, proc_root, _ = _parse_dirs(args)
+
+    cfg = resolve_config(
+        config_dir=config_dir,
+        inventory_path=inventory_path,
+        logsheet_config_path=logsheet_config_path,
+        output_dir=output_dir,
+        proc_dir=proc_root,
+    )
+    fmt = args.logsheet_format
+
+    if args.logsheet_all:
+        if not cfg.cruise_config_path.exists():
+            print(
+                "Error: --all requires cruise_config.yaml; "
+                "provide --logsheet-config or --config-dir",
+                file=sys.stderr,
+            )
+            return 1
+        cruise_cfg = load_yaml(cfg.cruise_config_path)
+        for cast_id in cruise_cfg.get("casts", {}):
+            _status("section", f"caldip-setup {cast_id}")
+            build_caldip_setup(cast_id, cfg, fmt=fmt)
+            _status("section", f"caldip-download {cast_id}")
+            build_caldip_download(cast_id, cfg, fmt=fmt)
+        for mooring in cruise_cfg.get("moorings_to_recover", []):
+            _status("section", f"mooring-download {mooring}")
+            build_mooring_download(mooring, cfg, fmt=fmt)
+            _status("section", f"mooring-recovery {mooring}")
+            build_recovery(mooring, cfg, fmt=fmt)
+        for mooring in cruise_cfg.get("moorings_to_deploy", []):
+            _status("section", f"mooring-setup {mooring}")
+            build_deployment_setup(mooring, cfg, fmt=fmt)
+        return 0
+
+    ltype = args.logsheet_type
+    if not ltype:
+        print("Error: --type is required (or use --all)", file=sys.stderr)
+        return 1
+
+    if ltype in ("caldip-setup", "caldip-download"):
+        if not args.logsheet_cast:
+            print(f"Error: --cast is required for --type {ltype}", file=sys.stderr)
+            return 1
+        if ltype == "caldip-setup":
+            build_caldip_setup(args.logsheet_cast, cfg, fmt=fmt)
+        else:
+            build_caldip_download(args.logsheet_cast, cfg, fmt=fmt)
+
+    elif ltype in ("mooring-download", "mooring-recovery", "mooring-setup"):
+        if not args.logsheet_mooring:
+            print(f"Error: --mooring is required for --type {ltype}", file=sys.stderr)
+            return 1
+        if ltype == "mooring-download":
+            build_mooring_download(args.logsheet_mooring, cfg, fmt=fmt)
+        elif ltype == "mooring-recovery":
+            build_recovery(args.logsheet_mooring, cfg, fmt=fmt)
+        else:
+            build_deployment_setup(args.logsheet_mooring, cfg, fmt=fmt)
+
+    return 0
+
+
 def _add_dir_args(p: "argparse.ArgumentParser", raw_needed: bool = True) -> None:
     """Add directory arguments to a subparser.
 
@@ -1081,6 +1167,92 @@ def build_parser() -> argparse.ArgumentParser:
         help="Filter output: 'instruments' or 'file-types' (default: show both).",
     )
     p_list.set_defaults(func=cmd_list)
+
+    p_logsheet = sub.add_parser(
+        "logsheet",
+        help="Generate fieldwork logsheet PDFs (recovery, download, deployment, cal-dip).",
+        description=(
+            "Generate PDF or LaTeX logsheets for mooring fieldwork operations. "
+            "Supply --config-dir (pointing to a directory with cruise_config.yaml "
+            "and instruments.yaml), or pass --logsheet-config and --inventory directly. "
+            "LaTeX templates and column definitions are bundled with the package."
+        ),
+    )
+    p_logsheet.add_argument(
+        "--type",
+        dest="logsheet_type",
+        metavar="TYPE",
+        choices=[
+            "caldip-setup",
+            "caldip-download",
+            "mooring-download",
+            "mooring-recovery",
+            "mooring-setup",
+        ],
+        help=(
+            "Sheet type: caldip-setup, caldip-download, mooring-download, "
+            "mooring-recovery, mooring-setup."
+        ),
+    )
+    p_logsheet.add_argument(
+        "--mooring",
+        dest="logsheet_mooring",
+        metavar="MOORING",
+        help="Mooring name, e.g. dsG3_1_2026 (required for mooring sheet types).",
+    )
+    p_logsheet.add_argument(
+        "--cast",
+        dest="logsheet_cast",
+        metavar="CAST",
+        help="Cast ID, e.g. B1 (required for caldip sheet types).",
+    )
+    p_logsheet.add_argument(
+        "--config-dir",
+        dest="logsheet_config_dir",
+        metavar="DIR",
+        help=(
+            "Directory containing cruise_config.yaml and instruments.yaml. "
+            "Shorthand for --logsheet-config DIR/cruise_config.yaml "
+            "--inventory DIR/instruments.yaml."
+        ),
+    )
+    p_logsheet.add_argument(
+        "--inventory",
+        dest="logsheet_inventory",
+        metavar="PATH",
+        help="Path to instruments.yaml (or instrument_inventory.csv).",
+    )
+    p_logsheet.add_argument(
+        "--logsheet-config",
+        dest="logsheet_config",
+        metavar="PATH",
+        help=(
+            "Path to cruise_config.yaml. Optional; paths/filenames left blank "
+            "on the sheet if absent."
+        ),
+    )
+    p_logsheet.add_argument(
+        "--output-dir",
+        dest="logsheet_output_dir",
+        metavar="DIR",
+        default="logsheets",
+        help="Directory where PDFs are written (default: ./logsheets/).",
+    )
+    p_logsheet.add_argument(
+        "--format",
+        dest="logsheet_format",
+        choices=["pdf", "tex"],
+        default="pdf",
+        help="Output format: pdf (compile via pdflatex) or tex (LaTeX source only).",
+    )
+    p_logsheet.add_argument(
+        "--all",
+        action="store_true",
+        dest="logsheet_all",
+        help="Generate all sheet types for every cast and mooring in cruise_config.yaml.",
+    )
+    _add_dir_args(p_logsheet, raw_needed=False)
+    p_logsheet.set_defaults(func=cmd_logsheet)
 
     return parser
 

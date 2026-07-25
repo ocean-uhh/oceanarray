@@ -28,44 +28,50 @@ Contents
 
    quickstart
    installation <setup>
-   directory_structure
-   yaml_configuration
-   cli_reference
-   migration
-   reports
+
 
 .. toctree::
    :maxdepth: 2
    :caption: Processing framework
 
    processing_framework
+   reports
+   cli_reference
+   directory_structure
+   yaml_configuration
+   file_naming_conventions
 
 .. toctree::
    :maxdepth: 1
-   :caption: Methods — instruments
+   :caption: Stage 1 2 3 - Instrument
 
-   Data Acquisition <methods/acquisition>
-   Standardisation (Stage 1) <methods/standardisation>
-   Clock Offset Analysis <clock_offset>
-   Trim to Deployment (Stage 2) <methods/trimming>
-   Automatic QC (Stage 3) <methods/auto_qc>
-   Coordinate Transform (Nortek) <methods/nortek_coordinate_transform>
-
-.. toctree::
-   :maxdepth: 1
-   :caption: Methods — moorings
-
-   Grid in Time (Stack) <methods/time_gridding>
-   Grid Vertically <methods/vertical_gridding>
+   0. Data Acquisition <methods/acquisition>
+   1. Standardisation <methods/standardisation>
+   2. Clock Offset Analysis (optional) <clock_offset>
+   2. Trim to Deployment   <methods/trimming>
+   3. Automatic QC  <methods/auto_qc>
+   3. Apply Calibration  <methods/calibration>
+   3. Coordinate Transform   <methods/nortek_coordinate_transform>
 
 .. toctree::
    :maxdepth: 1
-   :caption: Methods — planned
+   :caption: Stack & Grid - Moorings
 
-   Apply Calibration (Stage 3.5) <methods/calibration>
-   Convert to OceanSITES (Stage 4) <methods/conversion>
-   Combine Deployments <methods/concatenation>
-   Multi-site Merging <methods/multisite_merging>
+   Stack into one NetCDF <methods/time_gridding>
+   Grid onto pressure <methods/vertical_gridding>
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Logsheets
+
+   Fieldwork Logsheets <logsheets>
+
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Caldips
+
+   Calibration dips <calibration_dips>
 
 .. toctree::
    :maxdepth: 1
@@ -73,13 +79,23 @@ Contents
 
    GitHub Repo <https://github.com/ocean-uhh/oceanarray>
    Python API <oceanarray>
+   project_structure
+   migration
+
+
    oceanarray_format
    OceanSITES manual <oceanSITES_manual>
-   Calibration dips <calibration_dips>
-   project_structure
-   style_guide
-   roadmap
    Legacy modules <legacy>
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Development
+
+   roadmap
+   style_guide
+   Convert to OceanSITES (Stage 4) <methods/conversion>
+   Combine Deployments <methods/concatenation>
+   Multi-site Merging <methods/multisite_merging>
 
 
 Indices and Tables

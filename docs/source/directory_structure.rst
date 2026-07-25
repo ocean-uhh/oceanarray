@@ -129,35 +129,6 @@ for a full description of the YAML fields and a minimal working example.
 File naming conventions
 -----------------------
 
-All output files use the mooring name and, where applicable, the instrument
-serial number from the YAML.  The naming convention is:
-
-.. list-table::
-   :header-rows: 1
-   :widths: 35 65
-
-   * - File
-     - Description
-   * - ``{mooring}_{serial}_stage1.nc``
-     - Raw-faithful CF-NetCDF; no QC applied
-   * - ``{mooring}_{serial}_stage2.nc``
-     - Trimmed to deployment window; clock correction applied
-   * - ``{mooring}_{serial}_stage3.nc``
-     - QC flags added; derived variables (e.g. salinity); Aquadopp velocity in
-       earth coordinates; magnetic declination correction applied
-   * - ``{mooring}_stack.nc``
-     - All instruments resampled onto a common 60-second time grid and stacked
-       into a single file with a depth dimension
-   * - ``{mooring}_grid.nc``
-     - Stack file interpolated onto a regular pressure grid
-   * - ``{mooring}_{timestamp}_{stage}.mooring.log``
-     - Processing log for one run of one stage; timestamp format is
-       ``YYYYMMDD_HHMMSS``
-   * - ``{mooring}_report.html``
-     - HTML summary report for the whole mooring
-   * - ``{mooring}_{serial}_report.html``
-     - Per-instrument HTML report
-
-The ``{serial}`` component uses the value of the ``serial`` field in the
-YAML instrument entry.  If the serial contains a trailing ``*`` (used in
-some instrument identifiers), the ``*`` is stripped from the filename.
+See :doc:`file_naming_conventions` for the full reference, including both raw
+instrument file names (mooring recovery vs calibration-dip conventions) and
+processed output file names (stage NC files, stack, grid, reports, logs).

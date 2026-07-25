@@ -13,13 +13,14 @@ import pytest
 import xarray as xr
 
 pytest.importorskip("seasenselib", reason="seasenselib not installed")
-pytestmark = pytest.mark.needs_seasenselib
 
 from oceanarray.time_gridding import (
     TimeGriddingProcessor,
     process_multiple_moorings_time_gridding,
     time_gridding_mooring,
 )
+
+pytestmark = pytest.mark.needs_seasenselib
 
 
 def create_mock_instrument_dataset(

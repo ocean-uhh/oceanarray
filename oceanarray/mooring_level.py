@@ -1087,7 +1087,11 @@ class MooringStacker:
         # OceanSITES convention: time is the unlimited (first) dimension.
         ds_out = ds_out.transpose("time", "N_LEVELS")
         ds_out = cast_output_dtypes(ds_out)
-        _enc = {v: {"zlib": True, "complevel": 5} for v in ds_out.data_vars}
+        _enc = {
+            v: {"zlib": True, "complevel": 5}
+            for v in ds_out.data_vars
+            if ds_out[v].dtype.kind not in ("O", "U", "S")
+        }
         ds_out.to_netcdf(output_path, encoding=_enc)
         _status("file", self._rel(output_path))
         return True
@@ -1354,7 +1358,11 @@ class MooringGridder:
         if output_path.exists():
             output_path.unlink()
         ds_out = cast_output_dtypes(ds_out)
-        _enc = {v: {"zlib": True, "complevel": 5} for v in ds_out.data_vars}
+        _enc = {
+            v: {"zlib": True, "complevel": 5}
+            for v in ds_out.data_vars
+            if ds_out[v].dtype.kind not in ("O", "U", "S")
+        }
         ds_out.to_netcdf(output_path, encoding=_enc)
         _status("file", self._rel(output_path))
         return True

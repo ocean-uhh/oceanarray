@@ -36,7 +36,13 @@ oceanarray = "oceanarray.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["oceanarray"]
+include = ["oceanarray", "oceanarray.*"]
+
+[tool.setuptools.package-data]
+oceanarray = [
+  "logsheets/data/column_defs.yaml",
+  "logsheets/data/latex_templates/*.tex.j2",
+]
 
 [tool.setuptools.dynamic]
 dependencies = { file = [
@@ -130,3 +136,12 @@ ignore = [
 # Nortek header parsers use except Exception: pass to handle malformed/missing files.
 # Stage1 also has TRY003 for a single ValueError with a descriptive message.
 "oceanarray/stage1.py" = ["BLE001", "TRY003"]
+# Logsheets modules: builders use sys.exit() for user-facing errors (CLI tool pattern),
+# BLE001/TRY for broad catches in _firmware.py, ANN/D deferred (internal impl files).
+"oceanarray/logsheets/_config.py" = ["BLE001", "TRY003", "ANN", "D"]
+"oceanarray/logsheets/_columns.py" = ["BLE001", "TRY003", "ANN", "D"]
+"oceanarray/logsheets/__init__.py" = ["D"]
+"oceanarray/logsheets/_firmware.py" = ["BLE001", "TRY003", "TRY300", "ANN", "D"]
+"oceanarray/logsheets/_latex.py" = ["BLE001", "TRY003", "ANN", "D"]
+"oceanarray/logsheets/_render.py" = ["BLE001", "TRY003", "ANN", "D"]
+"oceanarray/logsheets/builders/*.py" = ["BLE001", "TRY003", "TRY002", "ANN", "D", "ARG001"]

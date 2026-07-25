@@ -4,115 +4,18 @@
 CLI Reference
 ===================
 
-``oceanarray run`` is the recommended entry point for full pipeline processing
-once the YAML is set up and tested.  For initial processing and quality
-control, run stages individually with ``oceanarray process``.
+The typical workflow is: validate the YAML, run ``oceanarray process`` stage by
+stage, inspect with ``oceanarray report``, combine with ``oceanarray stack`` and
+``oceanarray grid``, then use ``oceanarray run`` to reproduce the full pipeline
+in one command.  ``oceanarray logsheet`` covers fieldwork logistics and is
+independent of the processing pipeline.
 
-All subcommands accept a mooring name as the first positional argument.
-The mooring name must match the ``name`` field in the YAML and is used to
-locate the YAML file at ``{proc_dir}/{mooring}/{mooring}.mooring.yaml``.
+All processing subcommands accept a mooring name as the first positional
+argument.  The mooring name is used to locate the YAML file at
+``{proc_dir}/{mooring}/{mooring}.mooring.yaml``.
 
 Without ``--force``, every subcommand skips any output file that already
 exists.  Add ``--force`` to overwrite.
-
-----
-
-``oceanarray list``
---------------------
-
-List the moorings found in the processed directory.  A quick way to confirm
-that ``--proc-dir`` is pointing at the right place.
-
-**Synopsis**
-
-.. code-block:: text
-
-   oceanarray list [--proc-dir DIR]
-
-**Example**
-
-.. code-block:: bash
-
-   oceanarray list --proc-dir /data/cruise2026/proc
-
-----
-
-``oceanarray run``
-------------------
-
-Run the complete processing pipeline in one command: stages 1, 2, and 3,
-followed by stack, grid, and all report pages.  Continues past individual
-instrument failures — check the processing logs in
-``{proc_dir}/{mooring}/processing_logs/`` for details.
-
-Use ``oceanarray run`` only after confirming that stage 1 can read all raw
-files and that the ``deployment_time`` / ``recovery_time`` values in the
-YAML produce the correct trim (verified with ``oceanarray process --stage 2``
-and a quick report inspection).
-
-**Synopsis**
-
-.. code-block:: text
-
-   oceanarray run MOORING [--raw-dir DIR] [--proc-dir DIR]
-                          [--dt SECONDS] [--dp DBAR]
-                          [--p-start DBAR] [--p-end DBAR]
-                          [--serial SN ...] [--force]
-
-**Flags**
-
-.. list-table::
-   :header-rows: 1
-   :widths: 25 10 15 50
-
-   * - Flag
-     - Type
-     - Default
-     - Description
-   * - ``--raw-dir DIR``
-     - path
-     - (required)
-     - Cruise-level raw data directory.
-   * - ``--proc-dir DIR``
-     - path
-     - (required)
-     - Cruise-level processed data directory.
-   * - ``--dt SECONDS``
-     - integer
-     - 60
-     - Time step for the stack output (seconds).
-   * - ``--dp DBAR``
-     - number
-     - 20
-     - Pressure step for the grid output (dbar).
-   * - ``--p-start DBAR``
-     - number
-     - 200
-     - Shallowest pressure level in the grid (dbar).
-   * - ``--p-end DBAR``
-     - number
-     - 1000
-     - Deepest pressure level in the grid (dbar).
-   * - ``--serial SN``
-     - string (repeat)
-     - (all)
-     - Restrict processing and per-instrument reports to these serial numbers.
-   * - ``--force``
-     - flag
-     - off
-     - Overwrite existing output files at every stage.
-
-**Output created**
-
-All stage NC files, ``{mooring}_stack.nc``, ``{mooring}_grid.nc``,
-mooring summary report, stack report, grid report, and per-instrument
-reports.
-
-**Example**
-
-.. code-block:: bash
-
-   oceanarray run dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --force
 
 ----
 
@@ -240,6 +143,86 @@ Run all three stages:
 
 ----
 
+``oceanarray report``
+----------------------
+
+Generate HTML reports for a mooring.  Without any report-type flags,
+generates only the mooring summary page.  See :doc:`reports` for a
+description of what each report page contains.
+
+**Synopsis**
+
+.. code-block:: text
+
+   oceanarray report MOORING [--raw-dir DIR] [--proc-dir DIR]
+                             [-o DIR] [--instruments] [--stack]
+                             [--grid] [--serial SN ...] [--force]
+
+**Flags**
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 10 10 55
+
+   * - Flag
+     - Type
+     - Default
+     - Description
+   * - ``--raw-dir DIR``
+     - path
+     - (required)
+     - Cruise-level raw data directory.
+   * - ``--proc-dir DIR``
+     - path
+     - (required)
+     - Cruise-level processed data directory.
+   * - ``-o DIR``
+     - path
+     - ``{proc_dir}/{mooring}/report/``
+     - Override the output directory for HTML files.
+   * - ``--instruments``
+     - flag
+     - off
+     - Generate per-instrument report pages (one per instrument in the YAML).
+   * - ``--stack``
+     - flag
+     - off
+     - Generate the stack report (requires ``_stack.nc``).
+   * - ``--grid``
+     - flag
+     - off
+     - Generate the grid report (requires ``_grid.nc``).
+   * - ``--serial SN``
+     - string (repeat)
+     - (all)
+     - Restrict per-instrument pages to specific serial numbers.
+   * - ``--force``
+     - flag
+     - off
+     - Regenerate reports even if HTML files already exist.
+
+**Output created**
+
+``{mooring}_report.html`` (always), plus optional
+``{mooring}_stack_report.html``, ``{mooring}_grid_report.html``, and
+``report/instrument/{mooring}_{serial}_report.html``.
+
+**Examples**
+
+Summary and per-instrument pages:
+
+.. code-block:: bash
+
+   oceanarray report dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --instruments
+
+All report types:
+
+.. code-block:: bash
+
+   oceanarray report dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --instruments --stack --grid
+
+----
+
 ``oceanarray stack``
 ---------------------
 
@@ -362,26 +345,33 @@ suspect or bad are treated the same as good data unless they are already NaN.
 
 ----
 
-``oceanarray report``
-----------------------
+``oceanarray run``
+------------------
 
-Generate HTML reports for a mooring.  Without any report-type flags,
-generates only the mooring summary page.  See :doc:`reports` for a
-description of what each report page contains.
+Run the complete processing pipeline in one command: stages 1, 2, and 3,
+followed by stack, grid, and all report pages.  Continues past individual
+instrument failures — check the processing logs in
+``{proc_dir}/{mooring}/processing_logs/`` for details.
+
+Use ``oceanarray run`` only after confirming that stage 1 can read all raw
+files and that the ``deployment_time`` / ``recovery_time`` values in the
+YAML produce the correct trim (verified with ``oceanarray process --stage 2``
+and a quick report inspection).
 
 **Synopsis**
 
 .. code-block:: text
 
-   oceanarray report MOORING [--raw-dir DIR] [--proc-dir DIR]
-                             [-o DIR] [--instruments] [--stack]
-                             [--grid] [--serial SN ...] [--force]
+   oceanarray run MOORING [--raw-dir DIR] [--proc-dir DIR]
+                          [--dt SECONDS] [--dp DBAR]
+                          [--p-start DBAR] [--p-end DBAR]
+                          [--serial SN ...] [--force]
 
 **Flags**
 
 .. list-table::
    :header-rows: 1
-   :widths: 25 10 10 55
+   :widths: 25 10 15 50
 
    * - Flag
      - Type
@@ -395,50 +385,162 @@ description of what each report page contains.
      - path
      - (required)
      - Cruise-level processed data directory.
-   * - ``-o DIR``
-     - path
-     - ``{proc_dir}/{mooring}/report/``
-     - Override the output directory for HTML files.
-   * - ``--instruments``
-     - flag
-     - off
-     - Generate per-instrument report pages (one per instrument in the YAML).
-   * - ``--stack``
-     - flag
-     - off
-     - Generate the stack report (requires ``_stack.nc``).
-   * - ``--grid``
-     - flag
-     - off
-     - Generate the grid report (requires ``_grid.nc``).
+   * - ``--dt SECONDS``
+     - integer
+     - 60
+     - Time step for the stack output (seconds).
+   * - ``--dp DBAR``
+     - number
+     - 20
+     - Pressure step for the grid output (dbar).
+   * - ``--p-start DBAR``
+     - number
+     - 200
+     - Shallowest pressure level in the grid (dbar).
+   * - ``--p-end DBAR``
+     - number
+     - 1000
+     - Deepest pressure level in the grid (dbar).
    * - ``--serial SN``
      - string (repeat)
      - (all)
-     - Restrict per-instrument pages to specific serial numbers.
+     - Restrict processing and per-instrument reports to these serial numbers.
    * - ``--force``
      - flag
      - off
-     - Regenerate reports even if HTML files already exist.
+     - Overwrite existing output files at every stage.
 
 **Output created**
 
-``{mooring}_report.html`` (always), plus optional
-``{mooring}_stack_report.html``, ``{mooring}_grid_report.html``, and
-``report/instrument/{mooring}_{serial}_report.html``.
+All stage NC files, ``{mooring}_stack.nc``, ``{mooring}_grid.nc``,
+mooring summary report, stack report, grid report, and per-instrument
+reports.
+
+**Example**
+
+.. code-block:: bash
+
+   oceanarray run dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --force
+
+----
+
+``oceanarray logsheet``
+------------------------
+
+Generate PDF logsheets for mooring fieldwork and calibration-dip casts.
+See :doc:`logsheets` for a full description of sheet types and configuration.
+
+**Synopsis**
+
+.. code-block:: text
+
+   oceanarray logsheet [--type TYPE] [--mooring MOORING] [--cast CAST]
+                       [--config-dir DIR] [--inventory PATH]
+                       [--logsheet-config PATH]
+                       [--output-dir DIR] [--format {pdf,tex}]
+                       [--all]
+                       [--proc-dir DIR]
+
+**Flags**
+
+.. list-table::
+   :header-rows: 1
+   :widths: 28 10 12 50
+
+   * - Flag
+     - Type
+     - Default
+     - Description
+   * - ``--type TYPE``
+     - string
+     - (required)
+     - Sheet type: ``caldip-setup``, ``caldip-download``, ``mooring-download``,
+       ``mooring-recovery``, or ``mooring-setup``.
+   * - ``--mooring MOORING``
+     - string
+     - —
+     - Mooring name (required for mooring sheet types).
+   * - ``--cast CAST``
+     - string
+     - —
+     - Cast name, e.g. ``B1`` (required for caldip sheet types).
+   * - ``--config-dir DIR``
+     - path
+     - ``$LOGSHEETS_CONFIG_DIR`` or ``./``
+     - Directory containing ``logsheet_config.yaml`` and
+       ``instrument_inventory.csv``.
+   * - ``--inventory PATH``
+     - path
+     - ``{config-dir}/instrument_inventory.csv``
+     - Explicit path to the instrument inventory CSV (overrides ``--config-dir``).
+   * - ``--logsheet-config PATH``
+     - path
+     - ``{config-dir}/logsheet_config.yaml``
+     - Explicit path to the logsheet YAML (overrides ``--config-dir``).
+   * - ``--output-dir DIR``
+     - path
+     - ``./logsheets/``
+     - Directory where PDF (or TeX) files are written.
+   * - ``--format {pdf,tex}``
+     - string
+     - ``pdf``
+     - Output format: compile to PDF (requires ``pdflatex``) or write LaTeX
+       source only.
+   * - ``--all``
+     - flag
+     - off
+     - Generate all sheet types for every cast and mooring listed in
+       ``logsheet_config.yaml``.
+   * - ``--proc-dir DIR``
+     - path
+     - (required for mooring sheets)
+     - Cruise-level processed data directory (used to locate mooring YAMLs).
 
 **Examples**
 
-Summary and per-instrument pages:
+Caldip setup sheet for cast B1:
 
 .. code-block:: bash
 
-   oceanarray report dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --instruments
+   oceanarray logsheet --type caldip-setup --cast B1 \
+       --config-dir config/ --proc-dir /data/proc
 
-All report types:
+Mooring recovery log:
 
 .. code-block:: bash
 
-   oceanarray report dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --instruments --stack --grid
+   oceanarray logsheet --type mooring-recovery --mooring dsG3_1_2026 \
+       --config-dir config/ --proc-dir /data/proc
+
+All sheets for every cast and mooring:
+
+.. code-block:: bash
+
+   oceanarray logsheet --all --config-dir config/ --proc-dir /data/proc
+
+----
+
+``oceanarray list``
+--------------------
+
+Print a reference table of allowed ``instrument:`` and ``file_type:`` values
+for mooring YAML configuration.  Use this to look up the correct reader name
+for a given instrument type, or to check which ``instrument:`` values are
+recognised.
+
+Does not require a mooring name, ``--raw-dir``, or ``--proc-dir``.
+
+**Synopsis**
+
+.. code-block:: text
+
+   oceanarray list
+
+**Example**
+
+.. code-block:: bash
+
+   oceanarray list
 
 ----
 

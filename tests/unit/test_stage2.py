@@ -13,7 +13,6 @@ import pytest
 import xarray as xr
 
 pytest.importorskip("seasenselib", reason="seasenselib not installed")
-pytestmark = pytest.mark.needs_seasenselib
 
 from oceanarray.stage2 import (
     Stage2Processor,
@@ -22,6 +21,8 @@ from oceanarray.stage2 import (
     process_multiple_moorings_stage2,
     stage2_mooring,
 )
+
+pytestmark = pytest.mark.needs_seasenselib
 
 
 class TestStage2Processor:

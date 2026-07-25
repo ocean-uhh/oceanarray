@@ -937,6 +937,18 @@ def _apply_qc_tests(
             # Convert datetime64 → float seconds since epoch for ioos_qc
             time_s = time_vals.astype("datetime64[s]").astype(float)
             dt_s = float(np.nanmedian(np.diff(time_s))) if len(time_s) > 1 else 60.0
+            if dt_s <= 0:
+                # All timestamps are identical (or single record); ioos_qc would
+                # divide by zero inside flat_line_test — skip the test.
+                import warnings
+
+                warnings.warn(
+                    f"flat_line_test skipped for '{varname}': median time interval is "
+                    f"{dt_s:.1f} s (all timestamps identical?)",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
+                continue
             suspect_n = int(fl_cfg.get("suspect_n", 3))
             fail_n = int(fl_cfg.get("fail_n", 10))
             _fl_result = qartod.flat_line_test(
