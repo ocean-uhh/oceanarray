@@ -9,7 +9,13 @@ from pathlib import Path
 import pytest
 import yaml
 
-from oceanarray.logsheets import build_caldip_setup, build_recovery
+from oceanarray.logsheets import (
+    build_caldip_download,
+    build_caldip_setup,
+    build_deployment_setup,
+    build_mooring_download,
+    build_recovery,
+)
 from oceanarray.logsheets._columns import (
     apply_download_convention,
     format_data_path_note,
@@ -573,3 +579,100 @@ class TestBuildCaldipSetupSmoke:
         out = build_caldip_setup("N1", cfg, fmt="tex")
         content = out.read_text()
         assert "Cast N1" in content
+
+    def test_caldip_yaml_path_uses_name_as_label(self, logsheet_config_dir, tmp_path):
+        cfg = _make_cfg(logsheet_config_dir, None, tmp_path)
+        caldip = {
+            "name": "Cast X1",
+            "cruise": "TestCruise",
+            "instruments": [{"serial": 26261, "instrument": "microcat"}],
+        }
+        out = build_caldip_setup("x1.caldip.yaml", cfg, fmt="tex", caldip_yaml=caldip)
+        assert "Cast X1" in out.read_text()
+
+
+class TestBuildCaldipDownloadSmoke:
+    def test_tex_file_written(self, logsheet_config_dir, tmp_path):
+        cfg = _make_cfg(logsheet_config_dir, None, tmp_path)
+        out = build_caldip_download("N1", cfg, fmt="tex")
+        assert out.exists()
+        assert out.suffix == ".tex"
+
+    def test_tex_contains_cast_label(self, logsheet_config_dir, tmp_path):
+        cfg = _make_cfg(logsheet_config_dir, None, tmp_path)
+        out = build_caldip_download("N1", cfg, fmt="tex")
+        assert "Cast N1" in out.read_text()
+
+    def test_caldip_yaml_instruments_list(self, logsheet_config_dir, tmp_path):
+        cfg = _make_cfg(logsheet_config_dir, None, tmp_path)
+        caldip = {
+            "name": "Cast X1",
+            "cruise": "TestCruise",
+            "instruments": [{"serial": 26261, "instrument": "microcat"}],
+        }
+        out = build_caldip_download(
+            "x1.caldip.yaml", cfg, fmt="tex", caldip_yaml=caldip
+        )
+        assert "Cast X1" in out.read_text()
+
+    def test_missing_serial_produces_warning(self, logsheet_config_dir, tmp_path):
+        cfg = _make_cfg(logsheet_config_dir, None, tmp_path)
+        caldip = {
+            "name": "Cast W1",
+            "instruments": [{"serial": 99999, "instrument": "microcat"}],
+        }
+        out = build_caldip_download(
+            "w1.caldip.yaml", cfg, fmt="tex", caldip_yaml=caldip
+        )
+        # File still written; unknown serial produces a warning in the sheet.
+        assert out.exists()
+
+
+class TestBuildMooringDownloadSmoke:
+    def test_tex_file_written(self, logsheet_config_dir, mooring_yaml, tmp_path):
+        cfg = _make_cfg(logsheet_config_dir, mooring_yaml, tmp_path)
+        out = build_mooring_download("testMooring", cfg, fmt="tex")
+        assert out.exists()
+        assert out.suffix == ".tex"
+
+    def test_tex_contains_mooring_name(
+        self, logsheet_config_dir, mooring_yaml, tmp_path
+    ):
+        cfg = _make_cfg(logsheet_config_dir, mooring_yaml, tmp_path)
+        out = build_mooring_download("testMooring", cfg, fmt="tex")
+        assert "testMooring" in out.read_text()
+
+    def test_missing_mooring_yaml_still_produces_output(
+        self, logsheet_config_dir, tmp_path
+    ):
+        proc_dir = tmp_path / "empty_proc"
+        proc_dir.mkdir()
+        cfg = _make_cfg(logsheet_config_dir, proc_dir, tmp_path)
+        out = build_mooring_download("testMooring", cfg, fmt="tex")
+        assert out.exists()
+
+
+class TestBuildDeploymentSetupSmoke:
+    def test_tex_file_written(self, logsheet_config_dir, mooring_yaml, tmp_path):
+        cfg = _make_cfg(logsheet_config_dir, mooring_yaml, tmp_path)
+        out = build_deployment_setup("testMooring", cfg, fmt="tex")
+        assert out.exists()
+        assert out.suffix == ".tex"
+
+    def test_tex_contains_mooring_name(
+        self, logsheet_config_dir, mooring_yaml, tmp_path
+    ):
+        cfg = _make_cfg(logsheet_config_dir, mooring_yaml, tmp_path)
+        out = build_deployment_setup("testMooring", cfg, fmt="tex")
+        assert "testMooring" in out.read_text()
+
+    def test_missing_mooring_yaml_raises_system_exit(
+        self, logsheet_config_dir, tmp_path
+    ):
+        # deployment_setup requires the mooring YAML to exist — it cannot
+        # generate a sheet without the instrument list.
+        proc_dir = tmp_path / "empty_proc"
+        proc_dir.mkdir()
+        cfg = _make_cfg(logsheet_config_dir, proc_dir, tmp_path)
+        with pytest.raises(SystemExit):
+            build_deployment_setup("testMooring", cfg, fmt="tex")
