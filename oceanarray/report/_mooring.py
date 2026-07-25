@@ -1091,8 +1091,9 @@ class MooringReport:
                         yaml_interval_s is not None
                         and nc_info
                         and not nc_info.get("error")
+                        and nc_info.get("dt_s") is not None  # key present
                         and nc_info.get("dt_s") == nc_info.get("dt_s")  # False for NaN
-                        and abs(float(yaml_interval_s) - float(nc_info.get("dt_s", 0)))
+                        and abs(float(yaml_interval_s) - float(nc_info["dt_s"]))
                         > max(5.0, float(yaml_interval_s) * 0.1)
                     ),
                     "stopped_early": stopped_early,

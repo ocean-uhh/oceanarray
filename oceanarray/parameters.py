@@ -154,8 +154,10 @@ QC_SPIKE: dict = {
 # fail_n    : flag FAIL when stuck for this many consecutive samples
 # tolerance : maximum allowed change that is still considered "flat" (default 0)
 #
-# ioos_qc converts suspect_n / fail_n to seconds using the median sample
-# interval at runtime.  Override per mooring via ``qc_flat_line`` YAML key.
+# In ``_apply_qc_tests`` (stage3.py), ``suspect_n`` / ``fail_n`` are multiplied
+# by the median inter-sample interval (seconds) before being passed to
+# ``ioos_qc.qartod.flat_line_test``, which takes its thresholds in seconds.
+# Override per mooring via ``qc_flat_line`` YAML key.
 # ---------------------------------------------------------------------------
 QC_FLAT_LINE: dict = {
     # tolerance must be > 0: ioos_qc flags when range < tolerance over the

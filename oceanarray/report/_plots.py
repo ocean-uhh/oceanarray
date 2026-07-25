@@ -185,9 +185,9 @@ _CANONICAL_PANELS: List[Tuple] = [
 _COMPACT_PANEL_VARS: frozenset = frozenset({"battery_voltage", "speed_of_sound"})
 _COMPACT_PANEL_HEIGHT: float = 1.5
 
-# Variables rendered with a log₁₀ y-axis.  Non-positive values are masked to
-# NaN before plotting so matplotlib's log scale does not error or clip to zero.
-_LOG_SCALE_VARS: frozenset = frozenset({"turbidity"})
+# Variables plotted with both a line and individual dots so that sparse or
+# near-zero samples (e.g. turbidity = 0 NTU between events) are visible.
+_DOT_LINE_VARS: frozenset = frozenset({"turbidity"})
 
 
 def _instrument_panels(
@@ -322,10 +322,9 @@ def _build_fig_from_ds(
             continue
 
         data = ds[vname].values.astype(float)
-        # Mask non-positive values before plotting on a log scale
-        if vname in _LOG_SCALE_VARS:
-            data = np.where(data > 0, data, np.nan)
         ax.plot(time, data, color=color, linewidth=0.6, zorder=1)
+        if vname in _DOT_LINE_VARS:
+            ax.plot(time, data, ".", color=color, markersize=2, linewidth=0, zorder=2)
         if "velocity" in vname and not invert:
             ax.axhline(0, color="k", linewidth=0.4, linestyle="--", zorder=0)
         if vname == "tilt":
@@ -349,9 +348,7 @@ def _build_fig_from_ds(
             )
             ax.legend(loc="upper right", framealpha=0.8)
         ax.set_ylabel(label)
-        if vname in _LOG_SCALE_VARS:
-            ax.set_yscale("log")
-        elif invert:
+        if invert:
             vmin, vmax = float(np.nanmin(data)), float(np.nanmax(data))
             pad = max((vmax - vmin) * 0.1, 0.5)
             ax.set_ylim(vmax + pad, vmin - pad)
@@ -562,9 +559,6 @@ def _make_windows_fig(
                     return
 
                 data = ds[vname].values.astype(float)
-                # Mask non-positive values before plotting on a log scale
-                if vname in _LOG_SCALE_VARS:
-                    data = np.where(data > 0, data, np.nan)
                 t, d = time[mask], data[mask]
                 if len(t) < 2:
                     ax.set_visible(False)
@@ -578,8 +572,6 @@ def _make_windows_fig(
                         _suspect_t, color="tab:orange", lw=0.9, ls="--", zorder=2
                     )
                     ax.axhline(_fail_t, color="tab:red", lw=0.9, ls="--", zorder=2)
-                if vname in _LOG_SCALE_VARS:
-                    ax.set_yscale("log")
                 # ylim for inverted variables is set from the outer loop using the
                 # combined range of both panels, so we do not set it here.
                 if show_qc and f"{vname}_qc" in ds.data_vars:
