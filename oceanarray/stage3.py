@@ -533,23 +533,36 @@ def _tilt_from_span(qc_ranges: Dict[str, Any]) -> Dict[str, float]:
 def _load_qc_config(
     mooring_cfg: Dict[str, Any],
     entry: Dict[str, Any],
-) -> tuple[Dict, Dict, Dict]:
-    """Return (gross_range, spike, tilt) configs for one instrument.
+) -> tuple[Dict, Dict, Dict, Dict]:
+    """Return QC threshold dicts for one instrument.
 
-    Precedence: package defaults → mooring YAML → instrument YAML entry.
+    Returns a 4-tuple ``(gross_range, spike, tilt, flat_line)`` built from
+    package defaults with mooring-level and then instrument-level YAML
+    overrides applied (later values win).
 
-    Tilt thresholds can be set either via the unified ``qc_ranges`` key
-    (using ``fail_span``/``suspect_span`` like all other variables) or via
-    the legacy ``tilt_qc`` key.  ``tilt_qc`` takes precedence over
-    ``qc_ranges.tilt`` at the same level.  Either way, ``tilt`` is stripped
-    from the gross-range dict so it is not passed to the QARTOD gross-range
-    test runner.
+    ``gross_range`` and ``spike`` map variable names (e.g. ``"temperature"``,
+    ``"pressure"``) to threshold dicts understood by ``_apply_qc_tests``.
+    ``tilt`` holds ``suspect_threshold`` / ``fail_threshold`` in degrees,
+    used to flag Aquadopp velocity data when the instrument is tilted beyond
+    acceptable limits.  ``flat_line`` maps variable names to
+    ``{suspect_n, fail_n, tolerance}`` dicts for the stuck-sensor test.
+
+    YAML override keys:
+
+    * ``qc_ranges`` (mooring or instrument level) — gross-range and tilt spans
+    * ``qc_spike`` — spike thresholds
+    * ``tilt_qc`` — tilt thresholds (takes precedence over ``qc_ranges.tilt``)
+    * ``qc_flat_line`` — stuck-sensor thresholds
+
+    ``tilt`` is stripped from the gross-range dict before returning so it is
+    not passed to the QARTOD gross-range test runner.
     """
     from . import parameters as P
 
     gr = copy.deepcopy(P.QC_GROSS_RANGE)
     sp = copy.deepcopy(P.QC_SPIKE)
     tilt = copy.deepcopy(P.QC_TILT)
+    fl = copy.deepcopy(P.QC_FLAT_LINE)
 
     # Mooring-level overrides
     if "qc_ranges" in mooring_cfg:
@@ -559,6 +572,8 @@ def _load_qc_config(
         sp = _deep_merge(sp, mooring_cfg["qc_spike"])
     if "tilt_qc" in mooring_cfg:
         tilt.update(mooring_cfg["tilt_qc"])
+    if "qc_flat_line" in mooring_cfg:
+        fl = _deep_merge(fl, mooring_cfg["qc_flat_line"])
 
     # Instrument-level overrides
     if "qc_ranges" in entry:
@@ -568,12 +583,14 @@ def _load_qc_config(
         sp = _deep_merge(sp, entry["qc_spike"])
     if "tilt_qc" in entry:
         tilt.update(entry["tilt_qc"])
+    if "qc_flat_line" in entry:
+        fl = _deep_merge(fl, entry["qc_flat_line"])
 
     # Remove tilt from the gross-range dict — it is handled separately and
     # is not a valid QARTOD gross-range variable.
     gr.pop("tilt", None)
 
-    return gr, sp, tilt
+    return gr, sp, tilt, fl
 
 
 # Velocity variable names in both beam and ENU coordinate systems.
@@ -822,26 +839,45 @@ def _apply_qc_tests(
     gross_range: Dict[str, Any],
     spike: Dict[str, Any],
     qc_attrs: Dict[str, Any],
+    flat_line: Optional[Dict[str, Any]] = None,
 ) -> xr.Dataset:
-    """Apply QARTOD gross-range and spike tests, writing *_qc variables.
+    """Apply QARTOD gross-range, spike, and flat-line tests, writing ``*_qc`` variables.
 
-    Existing *_qc variables (e.g., pressure_qc=8 from interpolation) are
-    merged with the new test flags using priority ordering (worst flag wins).
+    Three QARTOD tests are applied in sequence; the worst flag across all
+    tests wins for each sample:
 
-    The applied thresholds are stored as attributes on each ``{var}_qc``
-    variable so that downstream tools (reports, histogram overlays) can
-    display exactly what was used without re-reading the YAML:
+    * **Gross-range**: flags values outside physically plausible bounds as
+      SUSPECT (3) or BAD (4) — e.g. temperature below -2.5 °C or above 40 °C.
+    * **Spike**: flags isolated outliers that deviate from the surrounding
+      record by more than a threshold — e.g. a brief salinity glitch from
+      biofouling or a pressure transient.
+    * **Flat-line** (stuck-sensor): flags runs of consecutive samples where
+      the value does not change by more than ``tolerance`` — e.g. a pressure
+      sensor frozen at 0 dbar after a failure.  Threshold is expressed in
+      sample counts (``suspect_n``, ``fail_n``) and converted to seconds
+      using the median sample interval.  Applied by default to pressure only
+      (see ``parameters.QC_FLAT_LINE``).
+
+    Pre-existing ``*_qc`` values (e.g. ``pressure_qc = 8`` set by the
+    pressure-interpolation step in the stack) are preserved: the worst flag
+    across the incoming value and the new test flags is written to the output.
+
+    Provenance: the thresholds actually applied are stored as attributes on
+    each ``{var}_qc`` variable so the treatment can be reconstructed from
+    the NetCDF file alone, without re-reading the YAML:
 
     * ``qc_gross_range_fail_min`` / ``qc_gross_range_fail_max``
     * ``qc_gross_range_suspect_min`` / ``qc_gross_range_suspect_max``
     * ``qc_spike_suspect_threshold`` / ``qc_spike_fail_threshold``
+    * ``qc_flat_line_suspect_count`` / ``qc_flat_line_fail_count``
     """
     from ioos_qc import qartod
 
+    _flat = flat_line or {}
     test_vars = [
         v
         for v in ds.data_vars
-        if (v in gross_range or v in spike) and not v.endswith("_qc")
+        if (v in gross_range or v in spike or v in _flat) and not v.endswith("_qc")
     ]
 
     for varname in test_vars:
@@ -876,6 +912,30 @@ def _apply_qc_tests(
             )
             flags_list.append(sp_flags)
 
+        if varname in _flat and "time" in ds:
+            fl_cfg = _flat[varname]
+            time_vals = ds["time"].values
+            # Convert datetime64 → float seconds since epoch for ioos_qc
+            time_s = time_vals.astype("datetime64[s]").astype(float)
+            dt_s = float(np.nanmedian(np.diff(time_s))) if len(time_s) > 1 else 60.0
+            suspect_n = int(fl_cfg.get("suspect_n", 3))
+            fail_n = int(fl_cfg.get("fail_n", 10))
+            _fl_result = qartod.flat_line_test(
+                inp=data,
+                tinp=time_s,
+                suspect_threshold=int(suspect_n * dt_s),
+                fail_threshold=int(fail_n * dt_s),
+                tolerance=float(fl_cfg.get("tolerance", 0.0)),
+            )
+            # flat_line_test may return a masked array or plain ndarray depending
+            # on the ioos_qc version; handle both.
+            fl_flags = (
+                _fl_result.filled(9)
+                if hasattr(_fl_result, "filled")
+                else np.where(np.isnan(_fl_result.astype(float)), 9, _fl_result)
+            ).astype(np.int8)
+            flags_list.append(fl_flags)
+
         new_flags = _merge_flags(*flags_list)
 
         qc_varname = f"{varname}_qc"
@@ -908,6 +968,12 @@ def _apply_qc_tests(
                 threshold_attrs["qc_spike_fail_threshold"] = float(
                     scfg["fail_threshold"]
                 )
+        if varname in _flat:
+            fl_cfg = _flat[varname]
+            threshold_attrs["qc_flat_line_suspect_count"] = int(
+                fl_cfg.get("suspect_n", 3)
+            )
+            threshold_attrs["qc_flat_line_fail_count"] = int(fl_cfg.get("fail_n", 10))
 
         ds[qc_varname] = xr.Variable(
             ds[varname].dims,
@@ -1578,7 +1644,7 @@ class Stage3Processor:
                 for key, val in entry.items()
                 if key.endswith("_qc") and isinstance(val, int)
             }
-            gr_cfg, sp_cfg, tilt_cfg = _load_qc_config(mooring_config, entry)
+            gr_cfg, sp_cfg, tilt_cfg, fl_cfg = _load_qc_config(mooring_config, entry)
             # Parse optional hab_segments: list of {from: ISO, hab: float}
             # Stored as sorted list of (np.datetime64, float) breakpoints.
             raw_segs = entry.get("hab_segments", [])
@@ -1605,6 +1671,7 @@ class Stage3Processor:
                     "gross_range": gr_cfg,
                     "spike": sp_cfg,
                     "tilt": tilt_cfg,
+                    "flat_line": fl_cfg,
                     "entry": entry,
                     "lat": _mooring_lat,
                     "lon": _mooring_lon,
@@ -1828,15 +1895,18 @@ class Stage3Processor:
             # ── QARTOD QC tests (temperature, conductivity, salinity, …) ─
             gr_cfg = info["gross_range"]
             sp_cfg = info["spike"]
+            fl_cfg = info["flat_line"]
             # For ADCP, exclude 2-D velocity vars from the ioos_qc path
             # (gross_range_test expects 1-D input); velocity QC is handled
             # below by _apply_adcp_velocity_qc.
             if is_adcp:
                 _ENU_KEYS = {"east_velocity", "north_velocity", "up_velocity"}
                 gr_cfg_scalar = {k: v for k, v in gr_cfg.items() if k not in _ENU_KEYS}
-                ds = _apply_qc_tests(ds, gr_cfg_scalar, sp_cfg, qc_attrs)
+                ds = _apply_qc_tests(
+                    ds, gr_cfg_scalar, sp_cfg, qc_attrs, flat_line=fl_cfg
+                )
             else:
-                ds = _apply_qc_tests(ds, gr_cfg, sp_cfg, qc_attrs)
+                ds = _apply_qc_tests(ds, gr_cfg, sp_cfg, qc_attrs, flat_line=fl_cfg)
 
             # ── Fold T/C/P parent QC into salinity_qc ─────────────────
             ds = _merge_salinity_parent_qc(ds, qc_attrs)

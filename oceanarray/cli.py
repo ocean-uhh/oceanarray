@@ -1088,5 +1088,30 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     """Entry point for the ``oceanarray`` command-line tool."""
     parser = build_parser()
-    args = parser.parse_args()
+    args, _unknown = parser.parse_known_args()
+    if _unknown:
+        _raw_dir_unknowns = []
+        _other_unknowns = []
+        _skip_next = False
+        for _i, _tok in enumerate(_unknown):
+            if _skip_next:
+                _skip_next = False
+                continue
+            if _tok == "--raw-dir":
+                _raw_dir_unknowns.append(_tok)
+                if _i + 1 < len(_unknown) and not _unknown[_i + 1].startswith("--"):
+                    _raw_dir_unknowns.append(_unknown[_i + 1])
+                    _skip_next = True
+            elif _tok.startswith("--raw-dir="):
+                _raw_dir_unknowns.append(_tok)
+            else:
+                _other_unknowns.append(_tok)
+        if _raw_dir_unknowns:
+            print(
+                f"oceanarray: WARNING: --raw-dir is not used by this subcommand "
+                f"and will be ignored ({' '.join(_raw_dir_unknowns)})",
+                file=sys.stderr,
+            )
+        if _other_unknowns:
+            parser.error(f"unrecognized arguments: {' '.join(_other_unknowns)}")
     sys.exit(args.func(args))

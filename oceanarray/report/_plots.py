@@ -178,12 +178,16 @@ _CANONICAL_PANELS: List[Tuple] = [
     ("roll", "Roll [°]", "#8B4513", False),
     ("heading", "Heading [°]", "tab:gray", False),
     ("speed_of_sound", "Sound speed [m/s]", "tab:olive", False),
-    ("turbidity", "Turbidity [NTU]", "tab:brown", False),
+    ("turbidity", "Turbidity (NTU)", "tab:brown", False),
     ("battery_voltage", "Battery [V]", "tab:pink", False),
 ]
 
 _COMPACT_PANEL_VARS: frozenset = frozenset({"battery_voltage", "speed_of_sound"})
 _COMPACT_PANEL_HEIGHT: float = 1.5
+
+# Variables plotted with both a line and individual dots so that sparse or
+# near-zero samples (e.g. turbidity = 0 NTU between events) are visible.
+_DOT_LINE_VARS: frozenset = frozenset({"turbidity"})
 
 
 def _instrument_panels(
@@ -319,6 +323,8 @@ def _build_fig_from_ds(
 
         data = ds[vname].values.astype(float)
         ax.plot(time, data, color=color, linewidth=0.6, zorder=1)
+        if vname in _DOT_LINE_VARS:
+            ax.plot(time, data, ".", color=color, markersize=2, linewidth=0, zorder=2)
         if "velocity" in vname and not invert:
             ax.axhline(0, color="k", linewidth=0.4, linestyle="--", zorder=0)
         if vname == "tilt":
@@ -1723,7 +1729,11 @@ def _make_grid_hydro_b64(ds: "xr.Dataset") -> Optional[str]:
         da = ds[var]
         data = da.transpose("pressure", "time").values
         units = da.attrs.get("units", "")
-        label = da.attrs.get("long_name", var)
+        long_name = da.attrs.get("long_name", var)
+        # Use the variable name (tidied) as the panel title — long_name often
+        # carries the full CF phrase "sea water temperature" which is verbose
+        # for a plot heading.  The colorbar label keeps the full long_name.
+        title = var.replace("_", " ").capitalize()
         _vmin = float(np.nanpercentile(data, P.COLORBAR_PLOW))
         _vmax = float(np.nanpercentile(data, P.COLORBAR_PHIGH))
         bounds = _nice_colorbar_bounds(_vmin, _vmax, n=20)
@@ -1732,10 +1742,10 @@ def _make_grid_hydro_b64(ds: "xr.Dataset") -> Optional[str]:
             time, pressure, data, shading="nearest", cmap=cmap, norm=norm
         )
         cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=bounds[::2])
-        cb.set_label(f"{label} ({units})" if units else label)
+        cb.set_label(f"{long_name} ({units})" if units else long_name)
         ax.invert_yaxis()
         ax.set_ylabel("Pressure (dbar)")
-        ax.set_title(label, loc="left")
+        ax.set_title(title, loc="left")
         ax.grid(True, linestyle="--", linewidth=0.3, alpha=0.4)
 
     axes[-1, 0].xaxis.set_major_locator(locator)
@@ -2760,29 +2770,29 @@ def _make_grid_trajectory_b64(ds: "xr.Dataset") -> Optional[str]:
 def _make_grid_timeseries_b64(ds: "xr.Dataset") -> Optional[str]:
     """Velocity time series at the depth of maximum time-mean current speed.
 
-    Three stacked panels (shared time axis, all in m s⁻¹):
+    Two stacked panels (shared time axis):
 
-    - **Speed** (black): ``sqrt(east² + north²)``; always ≥ 0.
-    - **East velocity** (Okabe-Ito blue #0072B2): positive = eastward flow (geographic
-      ENU, after magnetic declination correction).
-    - **North velocity** (Okabe-Ito orange #E69F00): positive = flow toward True North.
+    - **Speed** (black, m s⁻¹): ``sqrt(east² + north²)``; always ≥ 0.
+    - **East and North velocity** (same axes, m s⁻¹): east in Okabe-Ito blue
+      (#0072B2), north in Okabe-Ito orange (#E69F00).  Both signed components
+      are plotted together so the relationship between along- and cross-stream
+      flow is immediately visible.
 
-    The target pressure level is chosen automatically as the level with the highest
-    time-mean current speed.  This heuristic selects the most energetic depth in the
-    record and is not guaranteed to be oceanographically meaningful.  The selected
-    pressure is annotated in the figure title.
+    The target pressure level is chosen automatically as the level with the
+    highest time-mean current speed and at least 70 % non-NaN coverage.  The
+    selected pressure is annotated in the figure title.
 
     Parameters
     ----------
     ds : xr.Dataset
-        Gridded dataset with dimensions ``(time, pressure)`` containing at minimum
-        ``east_velocity`` and ``north_velocity`` in m s⁻¹.
+        Gridded dataset with dimensions ``(time, pressure)`` containing at
+        minimum ``east_velocity`` and ``north_velocity`` in m s⁻¹.
 
     Returns
     -------
     str or None
-        Base64-encoded PNG for HTML embedding, or None if horizontal velocity data are
-        absent.
+        Base64-encoded PNG for HTML embedding, or None if horizontal velocity
+        data are absent.
 
     """
     import warnings
@@ -2805,7 +2815,16 @@ def _make_grid_timeseries_b64(ds: "xr.Dataset") -> Optional[str]:
         mean_spd = np.nanmean(spd, axis=0)  # (pressure,)
     if not np.any(np.isfinite(mean_spd)):
         return None
-    k_max = int(np.nanargmax(mean_spd))
+
+    # Only consider levels with at least 70 % non-NaN values so that a
+    # depth covered only briefly does not win on spuriously high mean speed.
+    n_time = spd.shape[0]
+    coverage = np.sum(np.isfinite(spd), axis=0) / n_time  # fraction per level
+    eligible = coverage >= 0.70
+    if not np.any(eligible):
+        eligible = np.ones(len(pressure), dtype=bool)  # fall back: no restriction
+    candidate_spd = np.where(eligible, mean_spd, np.nan)
+    k_max = int(np.nanargmax(candidate_spd))
     p_target = float(pressure[k_max])
 
     spd_ts = spd[:, k_max]
@@ -2813,20 +2832,21 @@ def _make_grid_timeseries_b64(ds: "xr.Dataset") -> Optional[str]:
     north_ts = north[:, k_max]
 
     plt.style.use(str(P.MPLSTYLE))
-    fig, axs = plt.subplots(3, 1, figsize=(10, 6), sharex=True)
+    fig, axs = plt.subplots(2, 1, figsize=(10, 5), sharex=True)
     _C_EAST = "#0072B2"
     _C_NORTH = "#E69F00"
 
+    # Panel 0: speed
     axs[0].plot(time_vals, spd_ts, color="k", linewidth=0.8)
     axs[0].set_ylabel("Speed (m s⁻¹)")
+    axs[0].set_ylim(bottom=0)
 
+    # Panel 1: east and north on the same axes
     axs[1].plot(time_vals, east_ts, color=_C_EAST, linewidth=0.8, label="East")
-    axs[1].axhline(0, color="k", linewidth=0.4, linestyle="--", alpha=0.4)
-    axs[1].set_ylabel("East vel. (m s⁻¹)")
-
-    axs[2].plot(time_vals, north_ts, color=_C_NORTH, linewidth=0.8, label="North")
-    axs[2].axhline(0, color="k", linewidth=0.4, linestyle="--", alpha=0.4)
-    axs[2].set_ylabel("North vel. (m s⁻¹)")
+    axs[1].plot(time_vals, north_ts, color=_C_NORTH, linewidth=0.8, label="North")
+    axs[1].axhline(0, color="k", linewidth=0.4, linestyle="--", alpha=0.4, zorder=0)
+    axs[1].set_ylabel("Velocity (m s⁻¹)")
+    axs[1].legend(loc="upper right", framealpha=0.8)
 
     for ax in axs:
         ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.4)

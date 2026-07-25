@@ -197,6 +197,12 @@ _STACK_HTML_TEMPLATE = """\
 <img class="fig" src="data:image/png;base64,{{ fig_up_vel_b64 }}" alt="Vertical velocity time series">
 {% endif %}
 
+{% if fig_turbidity_b64 %}
+<h2 id="turbidity">Turbidity</h2>
+<p class="note">One line per instrument with turbidity data; QC flags &ge; 3 masked. Dots overlaid to reveal individual samples near zero. Units from file attrs (verify: NTU, FTU, or V depending on sensor).</p>
+<img class="fig" src="data:image/png;base64,{{ fig_turbidity_b64 }}" alt="Turbidity time series">
+{% endif %}
+
 {% if fig_aquadopp_tilt_b64 %}
 <h2 id="tilt">Aquadopp tilt (|pitch| / |roll| / pressure estimate)</h2>
 <p class="note">
@@ -621,6 +627,7 @@ def generate_stack_page(
             invert: bool = False,
             hlines: Optional[List[tuple]] = None,
             exclude_types: Optional[set] = None,
+            dot_overlay: bool = False,
         ) -> Optional[str]:
             if varname not in ds.data_vars:
                 return None
@@ -641,6 +648,10 @@ def generate_stack_page(
                     continue
                 plotted = True
                 ax.plot(time_ds, y, color=color, lw=0.7, alpha=0.85, label=f"{serial}")
+                if dot_overlay:
+                    ax.plot(
+                        time_ds, y, ".", color=color, markersize=2, linewidth=0, alpha=0.85
+                    )
             if not plotted:
                 plt.close(fig)
                 return None
@@ -707,6 +718,15 @@ def generate_stack_page(
         fig_up_vel_b64 = (
             _ts_fig("up_velocity", "W — Up velocity (m/s)")
             if "up_velocity" in ds
+            else None
+        )
+        fig_turbidity_b64 = (
+            _ts_fig(
+                "turbidity",
+                f"Turbidity ({ds['turbidity'].attrs.get('units', 'NTU')})",
+                dot_overlay=True,
+            )
+            if "turbidity" in ds
             else None
         )
 
@@ -839,6 +859,7 @@ def generate_stack_page(
             fig_east_vel_b64=fig_east_vel_b64,
             fig_north_vel_b64=fig_north_vel_b64,
             fig_up_vel_b64=fig_up_vel_b64,
+            fig_turbidity_b64=fig_turbidity_b64,
             fig_rose_grid_b64=fig_rose_grid_b64,
             rose_img_width=rose_img_width,
             rose_declination_note=rose_declination_note,

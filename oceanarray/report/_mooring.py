@@ -321,8 +321,8 @@ _HTML_TEMPLATE = """\
       <th>First sample</th>
       <th>Last sample</th>
       <th>N records</th>
-      <th>YAML&nbsp;Δt</th>
-      <th>Obs&nbsp;Δt&nbsp;(p90)</th>
+      <th title="Observed p90 sample interval (s); * = differs from YAML value by &gt;10%">Δt&nbsp;(s)</th>
+      <th title="Pressure range from stage-2/3 trimmed record, excluding non-positive values">P range (dbar)</th>
       <th style="text-align:center">T</th>
       <th style="text-align:center">C</th>
       <th style="text-align:center">P</th>
@@ -345,16 +345,20 @@ _HTML_TEMPLATE = """\
         <td>{{ instr.nc.t_end }}</td>
         <td class="num">{{ "{:,}".format(instr.nc.n_records) }}</td>
         <td class="num">
-          {% if instr.yaml_interval_s is not none %}
-            {{ instr.yaml_interval_s }}
+          {% set dt = instr.nc.dt_s %}
+          {% if dt == dt %}{# NaN check: NaN != NaN #}
+            {{ "%.0f"|format(dt) }}{% if instr.dt_mismatch %}<span title="YAML: {{ instr.yaml_interval_s }} s" style="color:#e67e22;font-weight:bold"> *</span>{% endif %}
           {% else %}
             <span class="none-note">—</span>
           {% endif %}
         </td>
         <td class="num">
-          {% set dt = instr.nc.dt_s %}
-          {% if dt == dt %}{# NaN check: NaN != NaN #}
-            {{ "%.0f"|format(dt) }}
+          {% if instr.nc.p_min is not none and instr.nc.p_max is not none %}
+            {% if instr.nc.get("pressure_interpolated") %}
+              <em title="pressure interpolated">({{ "%.0f"|format(instr.nc.p_min) }}, {{ "%.0f"|format(instr.nc.p_max) }})</em>
+            {% else %}
+              ({{ "%.0f"|format(instr.nc.p_min) }}, {{ "%.0f"|format(instr.nc.p_max) }})
+            {% endif %}
           {% else %}
             <span class="none-note">—</span>
           {% endif %}
@@ -377,6 +381,26 @@ _HTML_TEMPLATE = """\
     {% endfor %}
   </tbody>
 </table>
+
+{% set dt_mismatches = instruments | selectattr("dt_mismatch") | list %}
+{% if dt_mismatches %}
+<p style="font-size:0.82rem;color:#555;margin-top:0.4rem;">
+  <span style="color:#e67e22;font-weight:bold">*</span> Δt mismatch (YAML vs observed p90):
+  {% for instr in dt_mismatches %}
+    <br>&nbsp;&nbsp;<span style="font-family:monospace">{{ instr.serial }}</span>:
+    YAML gives Δt of {{ instr.yaml_interval_s }}&thinsp;s;
+    stage file shows Δt of {{ "%.0f"|format(instr.nc.dt_s) }}&thinsp;s.
+  {% endfor %}
+</p>
+{% endif %}
+
+{% if grid_p_start is not none and grid_p_end is not none %}
+<p style="font-size:0.82rem;color:#555;margin-top:0.8rem;">
+  Recommended pressure range for <code>oceanarray grid</code>, derived from the
+  min/max pressure across all instruments (rounded outward to the nearest 20&thinsp;dbar):
+</p>
+<pre style="background:#f4f4f4;border:1px solid #ddd;border-radius:4px;padding:0.5em 0.8em;font-size:0.85rem;display:inline-block;user-select:all;cursor:text">--p-start {{ grid_p_start }} --p-end {{ grid_p_end }}</pre>
+{% endif %}
 
 <!-- ══════════════════════════════════════ 3.5 DEPLOYMENT TIMING ══ -->
 <h2 id="timing">3.5 &mdash; Deployment timing</h2>
@@ -999,10 +1023,40 @@ class MooringReport:
                     else (False, "file missing")
                 )
             else:
-                raw_path_str = ""
-                raw_exists = False
-                readable = False
-                readable_note = "no filename in YAML"
+                # Try auto-guessing filename from standard naming conventions
+                # (same logic as MooringProcessor._guess_instrument_filename).
+                # Skip guessing for instruments marked skip:true — they won't
+                # be processed and there's nothing useful to report.
+                _guessed = None
+                if self._raw_dir is not None and not entry.get("skip"):
+                    from oceanarray.stage1 import MooringProcessor as _S1
+
+                    _raw_mooring = self._raw_dir / mooring_name
+                    _guessed = _S1._guess_instrument_filename(  # noqa: SLF001
+                        entry, mooring_name, _raw_mooring, None
+                    )
+                if _guessed is not None:
+                    _gfname, _gftype, _ghdr = _guessed
+                    file_type = file_type or _gftype
+                    _gpath = self._raw_dir / mooring_name / instr_type / _gfname
+                    if not _gpath.exists():
+                        _gpath = self._raw_dir / mooring_name / _gfname
+                    raw_path_str = (
+                        str(_gpath.relative_to(self._raw_dir))
+                        if _gpath.exists()
+                        else f"(auto) {_gfname}"
+                    )
+                    raw_exists = _gpath.exists()
+                    readable, readable_note = (
+                        _check_readable(_gpath, file_type)
+                        if raw_exists
+                        else (False, "auto-guessed file not found")
+                    )
+                else:
+                    raw_path_str = ""
+                    raw_exists = False
+                    readable = False
+                    readable_note = "no filename in YAML"
 
             nc_info = _read_instrument_info(proc_dir, instr_type, mooring_name, serial)
 
@@ -1033,6 +1087,15 @@ class MooringReport:
                     "readable": readable,
                     "readable_note": readable_note,
                     "yaml_interval_s": yaml_interval_s,
+                    "dt_mismatch": bool(
+                        yaml_interval_s is not None
+                        and nc_info
+                        and not nc_info.get("error")
+                        and nc_info.get("dt_s") is not None  # key present
+                        and nc_info.get("dt_s") == nc_info.get("dt_s")  # False for NaN
+                        and abs(float(yaml_interval_s) - float(nc_info["dt_s"]))
+                        > max(5.0, float(yaml_interval_s) * 0.1)
+                    ),
                     "stopped_early": stopped_early,
                     "skipped": bool(entry.get("skip")),
                     "skip_reason": entry.get("skip_reason", ""),
@@ -1060,6 +1123,33 @@ class MooringReport:
             )
 
         instruments.sort(key=lambda x: x["hab"])
+
+        # Compute recommended --p-start / --p-end for `oceanarray grid`.
+        # Collect finite min/max pressure values from instruments that have real
+        # pressure data (exclude stuck-at-zero sensors: p_max must be > 20 dbar).
+        _all_pmin: List[float] = []
+        _all_pmax: List[float] = []
+        for _instr in instruments:
+            _nc = _instr.get("nc") or {}
+            _pmin = _nc.get("p_min")
+            _pmax = _nc.get("p_max")
+            if (
+                _pmin is not None
+                and _pmax is not None
+                and np.isfinite(_pmin)
+                and np.isfinite(_pmax)
+                and _pmax > 20.0  # skip stuck-at-zero sensors
+            ):
+                _all_pmin.append(_pmin)
+                _all_pmax.append(_pmax)
+
+        grid_p_start: Optional[int] = None
+        grid_p_end: Optional[int] = None
+        if _all_pmin and _all_pmax:
+            import math
+
+            grid_p_start = int(math.floor(min(_all_pmin) / 20.0) * 20)
+            grid_p_end = int(math.ceil(max(_all_pmax) / 20.0) * 20)
 
         # Compute recommended YAML deployment/recovery times from all instruments.
         # Start: latest suggested start UTC (most conservative — all instruments
@@ -1167,6 +1257,8 @@ class MooringReport:
             "yaml_recover_time": (
                 recover_dt.strftime("%Y-%m-%dT%H:%M") if recover_dt else None
             ),
+            "grid_p_start": grid_p_start,
+            "grid_p_end": grid_p_end,
             "stack_exists": stack_exists,
             "grid_exists": grid_exists,
             "any_clock_correction": any_clock,
