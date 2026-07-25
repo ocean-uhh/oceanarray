@@ -113,7 +113,10 @@ QC_GROSS_RANGE: dict = {
     # Turbidity: negative values are physically impossible (no lower bound in nature).
     # Upper bound is generous — coastal resuspension events can reach 1000 NTU.
     # Override per mooring if the sensor range is known to be tighter.
-    "turbidity": {"fail_span": (0.0, 4000.0), "suspect_span": (0.0, 1000.0)},  # NTU
+    "turbidity": {
+        "fail_span": (-10.0, 4000.0),
+        "suspect_span": (-5.0, 1000.0),
+    },  # NTU; lower bounds unverified — sensors can read slightly negative near zero
     # Dissolved oxygen (SBE ODO sensor, µmol/L).  Deep North Atlantic: 200–320 µmol/L.
     # Negative values are physically impossible → fail.  >500 µmol/L is unrealistic
     # even near the surface (photosynthetic supersaturation ~350–400 µmol/L).

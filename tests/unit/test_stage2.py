@@ -12,6 +12,9 @@ import pandas as pd
 import pytest
 import xarray as xr
 
+pytest.importorskip("seasenselib", reason="seasenselib not installed")
+pytestmark = pytest.mark.needs_seasenselib
+
 from oceanarray.stage2 import (
     Stage2Processor,
     _parse_clock_str,

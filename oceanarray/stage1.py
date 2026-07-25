@@ -1353,9 +1353,28 @@ class MooringProcessor:
                                     "nortek-csv",
                                     _hdr_rel,
                                 )
+                # Also try the .aqd binary directly (nortek-aqd format).
+                # These may live in aquadopp/ OR legacy nortek/ subdirs.
+                _aqd_roots = [
+                    *[r / "aquadopp" for r in [raw_mooring_dir] if r is not None],
+                    *[r / "nortek" for r in [raw_mooring_dir] if r is not None],
+                    *([raw_mooring_dir] if raw_mooring_dir is not None else []),
+                ]
+                for _root in _aqd_roots:
+                    if _root is None or not _root.is_dir():
+                        continue
+                    for _aqd in sorted(_root.glob(f"A{raw_serial}*.aqd")):
+                        _hdr = _aqd.with_suffix(".hdr")
+                        return (
+                            _aqd.name,
+                            "nortek-aqd",
+                            _hdr.name if _hdr.exists() else None,
+                        )
+                    _tried_400.append(str(_root / f"A{raw_serial}*.aqd"))
                 if log_fn:
                     log_fn(
-                        f"AUTO-FILENAME: no converted_raw/A{raw_serial}*/ found for "
+                        f"AUTO-FILENAME: no converted_raw/A{raw_serial}*/ or "
+                        f"A{raw_serial}*.aqd found for "
                         f"aquadopp {raw_serial} — tried:\n  " + "\n  ".join(_tried_400)
                     )
                 return None
@@ -1478,15 +1497,33 @@ class MooringProcessor:
         serial = str(instrument_config.get("serial", "unknown"))
         _status("instr", f"{instrument_name} {serial}")
 
+        # 'nortek' as an instrument directory name is deprecated — always use 'aquadopp'.
+        dir_name = instrument_name
+        if instrument_name == "nortek":
+            self._log_print(
+                f"WARNING: instrument='nortek' is deprecated (serial {serial}); "
+                f"update YAML to instrument='aquadopp'. Using 'aquadopp/' directory."
+            )
+            dir_name = "aquadopp"
+
         if raw_mooring_dir is not None:
             # New layout: {raw_dir}/{mooring}/{instrument}/filename
-            input_file = raw_mooring_dir / instrument_name / filename
+            input_file = raw_mooring_dir / dir_name / filename
+            # Backward-compat: file may still live in legacy 'nortek/' subdir
+            if not input_file.exists() and dir_name == "aquadopp":
+                _nortek_alt = raw_mooring_dir / "nortek" / filename
+                if _nortek_alt.exists():
+                    self._log_print(
+                        f"INFO: {filename} found in legacy 'nortek/' subdir "
+                        f"(serial {serial}); consider renaming to 'aquadopp/'."
+                    )
+                    input_file = _nortek_alt
         else:
             # Legacy layout: {base_dir}/raw/{instrument}/{mooring}/filename
-            input_file = input_dir / instrument_name / mooring_name / filename
+            input_file = input_dir / dir_name / mooring_name / filename
 
         # Create output directory
-        output_inst_dir = output_path / instrument_name
+        output_inst_dir = output_path / dir_name
         output_inst_dir.mkdir(parents=True, exist_ok=True)
         if not output_inst_dir.exists():
             self._log_print(f"Created directory: {output_inst_dir}")
@@ -1555,14 +1592,19 @@ class MooringProcessor:
         )
         if file_type in ("nortek-aqd", "nortek-ascii", "nortek-csv") and header_key:
             instrument_name = instrument_config.get("instrument", "unknown")
+            # 'nortek' is a deprecated instrument name; files live in 'aquadopp/' dir.
+            instr_dir = "aquadopp" if instrument_name == "nortek" else instrument_name
             mooring_name = yaml_data.get("name", "")
             if raw_mooring_dir is not None:
                 # New layout: header sits next to the data file
-                header_file = str(raw_mooring_dir / instrument_name / header_key)
+                header_file = str(raw_mooring_dir / instr_dir / header_key)
+                # Backward-compat: header may still live in legacy 'nortek/' subdir
+                if not Path(header_file).exists():
+                    _nortek_hdr = raw_mooring_dir / "nortek" / header_key
+                    if _nortek_hdr.exists():
+                        header_file = str(_nortek_hdr)
             else:
-                header_file = str(
-                    input_dir / instrument_name / mooring_name / header_key
-                )
+                header_file = str(input_dir / instr_dir / mooring_name / header_key)
 
         # Normalize date format for sbe-ascii files if needed
         read_path = input_file

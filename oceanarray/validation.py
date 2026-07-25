@@ -255,7 +255,7 @@ def validate_mooring_yaml(yaml_path: str) -> List[ValidationIssue]:
             issues.append(
                 ValidationIssue(
                     "ERROR",
-                    f"{prefix} instrument='{instrument}' is a model name, not a directory name — use '{correct}'",
+                    f"{prefix} instrument='{instrument}' is deprecated — use '{correct}' instead",
                 )
             )
         elif instrument not in VALID_INSTRUMENTS:
