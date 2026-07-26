@@ -26,10 +26,6 @@ from ._plots import (
     _make_aquadopp_speed_profile,
     _make_adcp_trajectories_b64,
     _make_analog_timeseries,
-    _make_knockdown_pressure_b64,
-    _make_knockdown_hab_b64,
-    _make_knockdown_displacement_b64,
-    _make_knockdown_anomaly_b64,
 )
 from .. import parameters as P
 
@@ -133,7 +129,6 @@ _STACK_HTML_TEMPLATE = """\
   {% if fig_rose_grid_b64 %}<a href="#roses">Current roses</a>{% endif %}
   {% if fig_spacing_b64 %}<a href="#spacing">Spacing</a>{% endif %}
   {% if fig_clock_check_b64 %}<a href="#clock-check">Clock check</a>{% endif %}
-  {% if fig_knockdown_pressure_b64 or fig_knockdown_hab_b64 or fig_knockdown_displacement_b64 or fig_knockdown_anomaly_b64 %}<a href="#knockdown">Knockdown</a>{% endif %}
   <a href="#dims">Dimensions</a>
   <a href="#vars">Variables</a>
 </nav>
@@ -314,57 +309,6 @@ _STACK_HTML_TEMPLATE = """\
   if stage&#8209;3 is not yet available).  Instruments without temperature are omitted.
 </p>
 <img class="fig" src="data:image/png;base64,{{ fig_clock_check_b64 }}" alt="Clock alignment check">
-{% endif %}
-
-{% if fig_knockdown_pressure_b64 or fig_knockdown_hab_b64 or fig_knockdown_anomaly_b64 %}
-<h2 id="knockdown">Mooring knockdown</h2>
-{% if fig_knockdown_pressure_b64 or fig_knockdown_hab_b64 %}
-<p class="note">
-  <strong>Left</strong>: nominal design depth (x-axis, deep instruments to the left) vs. measured
-  pressure (y-axis, increasing downward).  The dashed diagonal is the 1:1 reference — instruments
-  on it are at their design depth.  Boxes that drop <em>below</em> the diagonal were pulled deeper
-  than nominal by current drag (knockdown).
-  <strong>Right</strong>: nominal HAB in metres (x-axis, surface to the right) vs. the same
-  measured pressure (y-axis).  The dashed line shows the expected pressure for each HAB
-  (pressure&nbsp;=&nbsp;water&nbsp;depth&nbsp;&minus;&nbsp;HAB).  Departure below the line
-  can be used to estimate horizontal displacement:
-  x&nbsp;&asymp;&nbsp;&radic;(hab<sub>nom</sub>&sup2;&nbsp;&minus;&nbsp;hab<sub>meas</sub>&sup2;).
-  Interpolated pressure (QC&nbsp;flag&nbsp;8) excluded from both.
-</p>
-<div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-start">
-  {% if fig_knockdown_pressure_b64 %}
-  <img style="max-width:48%;border:1px solid #dce;border-radius:4px" src="data:image/png;base64,{{ fig_knockdown_pressure_b64 }}" alt="Knockdown pressure">
-  {% endif %}
-  {% if fig_knockdown_hab_b64 %}
-  <img style="max-width:48%;border:1px solid #dce;border-radius:4px" src="data:image/png;base64,{{ fig_knockdown_hab_b64 }}" alt="Knockdown HAB">
-  {% endif %}
-</div>
-{% endif %}
-{% if fig_knockdown_displacement_b64 %}
-<p class="note" style="margin-top:0.8rem">
-  Estimated horizontal displacement (m) vs. measured pressure (dbar) for each instrument
-  across all time steps (left: per-instrument scatter; right: normalised density heatmap,
-  each instrument weighted equally).
-  Displacement&nbsp;&asymp;&nbsp;&radic;(hab<sub>nom</sub>&sup2;&nbsp;&minus;&nbsp;hab<sub>meas</sub>&sup2;),
-  where hab<sub>meas</sub>&nbsp;=&nbsp;water&nbsp;depth&nbsp;&minus;&nbsp;pressure.
-  This is a rigid-pendulum approximation (mooring line pivots at the anchor); the true
-  catenary displacement under distributed drag is somewhat smaller.
-  Axes are scaled equally (100&thinsp;m on x&nbsp;=&nbsp;100&thinsp;dbar on y).
-</p>
-<img class="fig" style="max-width:100%" src="data:image/png;base64,{{ fig_knockdown_displacement_b64 }}" alt="Horizontal displacement scatter">
-{% endif %}
-{% if fig_knockdown_anomaly_b64 %}
-<p class="note" style="margin-top:0.8rem">
-  IQR of pressure anomaly (measured &minus; nominal) per instrument.  Positive = instrument deeper
-  than nominal design depth (knocked down).  Box colour indicates median knockdown magnitude:
-  <span style="color:mediumseagreen">green</span> &lt;&nbsp;100&nbsp;dbar,
-  <span style="color:goldenrod">yellow</span> 100–200&nbsp;dbar,
-  <span style="color:darkorange">amber</span> 200–300&nbsp;dbar,
-  <span style="color:firebrick">red</span> &gt;&nbsp;300&nbsp;dbar.
-  Interpolated pressure (QC&nbsp;flag&nbsp;8) excluded.
-</p>
-<img class="fig" style="max-width:50%" src="data:image/png;base64,{{ fig_knockdown_anomaly_b64 }}" alt="Knockdown anomaly">
-{% endif %}
 {% endif %}
 
 <!-- ══ NetCDF dimensions ══ -->
@@ -912,11 +856,6 @@ def generate_stack_page(
         fig_trajectories_b64 = _make_multi_aquadopp_trajectories(ds)
         fig_adcp_trajectories_b64 = _make_adcp_trajectories_b64(ds)
         fig_speed_profile_b64 = _make_aquadopp_speed_profile(ds)
-        fig_knockdown_pressure_b64 = _make_knockdown_pressure_b64(ds)
-        fig_knockdown_hab_b64 = _make_knockdown_hab_b64(ds)
-        fig_knockdown_displacement_b64 = _make_knockdown_displacement_b64(ds)
-        fig_knockdown_anomaly_b64 = _make_knockdown_anomaly_b64(ds)
-
         # Clock alignment check: one temperature trace per instrument zoomed to
         # first/last 30 min.  Build {serial: path} preferring stage3 over stage2.
         proc_dir = stack_path.parent
@@ -996,10 +935,6 @@ def generate_stack_page(
             fig_adcp_trajectories_b64=fig_adcp_trajectories_b64,
             fig_speed_profile_b64=fig_speed_profile_b64,
             fig_clock_check_b64=fig_clock_check_b64,
-            fig_knockdown_pressure_b64=fig_knockdown_pressure_b64,
-            fig_knockdown_hab_b64=fig_knockdown_hab_b64,
-            fig_knockdown_displacement_b64=fig_knockdown_displacement_b64,
-            fig_knockdown_anomaly_b64=fig_knockdown_anomaly_b64,
             fig_analog_b64=fig_analog_b64,
             generated=ctx["generated"],
             proc_machine=ctx.get("proc_machine", ""),

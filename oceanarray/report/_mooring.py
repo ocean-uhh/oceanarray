@@ -32,7 +32,7 @@ from ._html_helpers import (
 )
 from ._grid import generate_grid_page
 from ._instrument import generate_instrument_pages
-from ._plots import _make_clock_check_b64
+from ._plots import _make_clock_check_b64, _make_knockdown_hab_b64, _make_knockdown_anomaly_b64
 from ._stack import generate_stack_page
 from ..utilities import extract_inline_instruments
 
