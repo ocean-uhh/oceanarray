@@ -8,14 +8,28 @@ requires = [
 
 [project]
 name = "oceanarray"
-description = "Example template project for docs, pip install and git"
+description = "Multi-stage processing pipeline for moored oceanographic observations: raw instrument files to QC-flagged CF-compliant NetCDF with automated HTML reports."
 readme = "README.md"
 license = { file = "LICENSE" }
 maintainers = [
   { name = "Eleanor Frajka-Williams", email = "eleanorfrajka@gmail.com" },
 ]
 requires-python = ">=3.9"
+keywords = [
+  "oceanography",
+  "mooring",
+  "ADCP",
+  "CTD",
+  "NetCDF",
+  "QC",
+  "oceanographic-data",
+  "AMOC",
+]
 classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Oceanography",
+  "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
@@ -26,9 +40,10 @@ dynamic = [
   "dependencies",
   "version",
 ]
-urls.documentation = "https://github.com/ocean-uhh/oceanarray"
-urls.homepage = "https://github.com/ocean-uhh/oceanarray"
-urls.repository = "https://github.com/ocean-uhh/oceanarray"
+urls.Documentation = "https://ocean-uhh.github.io/oceanarray"
+urls.Homepage = "https://github.com/ocean-uhh/oceanarray"
+urls.Repository = "https://github.com/ocean-uhh/oceanarray"
+urls."Issue Tracker" = "https://github.com/ocean-uhh/oceanarray/issues"
 
 
 [project.scripts]

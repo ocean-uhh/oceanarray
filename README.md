@@ -12,29 +12,43 @@ OceanArray implements a multi-stage processing pipeline for mooring data, contro
 
 ## Installation
 
-### Using conda (recommended)
+```bash
+pip install oceanarray
+```
+
+Then install `seasenselib` (required for reading raw instrument files; available on PyPI
+but needs `--no-deps` to avoid version conflicts):
+
+```bash
+pip install pyrsktools pycnv
+pip install seasenselib --no-deps
+```
+
+### From source (conda)
 
 ```bash
 git clone https://github.com/ocean-uhh/oceanarray.git
 cd oceanarray
-conda create -n oceanarray python=3.12
+conda create -n oceanarray python=3.11
 conda activate oceanarray
 pip install -r requirements-dev.txt
 pip install -e .
+pip install pyrsktools pycnv && pip install seasenselib --no-deps
 ```
 
-### Using pip + venv
+### From source (venv)
 
 ```bash
 git clone https://github.com/ocean-uhh/oceanarray.git
 cd oceanarray
-python3.12 -m venv venv
+python3.11 -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements-dev.txt
 pip install -e .
+pip install pyrsktools pycnv && pip install seasenselib --no-deps
 ```
 
-> **Python version**: Python 3.10–3.12 is supported. Python 3.13+ has not been
+> **Python version**: Python 3.9–3.12 is supported. Python 3.13+ has not been
 > tested with all dependencies and is not recommended.
 
 ## Quick start
@@ -238,8 +252,9 @@ By default only the main mooring summary is generated (fast).  Use flags to opt 
 | Instrument | File types | Variables |
 |------------|------------|-----------|
 | Sea-Bird SBE37 MicroCAT | `sbe-cnv`, `sbe-asc`, `sbe-ascii` | T, C, P |
-| Nortek Aquadopp | `nortek-ascii`, `nortek-csv` | U, V, W, P, T |
-| RBR Solo / Duet | `rbr-rsk` | T (Solo), T+C (Duet) |
+| Nortek Aquadopp | `nortek-aqd`, `nortek-ascii`, `nortek-csv` | U, V, W, P, T |
+| RBR Solo / Duet | `rbr-rsk`, `rbr-dat` | T (Solo), T+C (Duet) |
+| RDI WorkHorse ADCP | `rdi-raw` | U, V, W (all bins) |
 
 ## Configuration
 
@@ -265,7 +280,6 @@ deployment_time: "2026-05-07T17:05:00"
 recovery_cruise: OdB                # if absent, deployment_cruise is repeated
 recovery_ship: Odon de Buen
 recovery_time: "2026-07-10T17:45:00"
-directory: raw/                     # subdirectory of basedir containing raw instrument files
 
 # QC overrides apply at mooring level (all instruments) or per instrument in clamp.
 # qc_ranges, qc_spike, and tilt_qc can appear at either level.
@@ -369,12 +383,15 @@ Instrument-level values override mooring-level values for that instrument only; 
 
 ## Python API
 
+> **Note**: the CLI (`oceanarray process`, `stack`, `grid`, `report`) is the primary
+> interface and is stable.  The Python API is available but may change between minor
+> versions while the package is in beta.
+
 ```python
 from oceanarray.stage1 import MooringProcessor
 from oceanarray.stage2 import Stage2Processor
 from oceanarray.stage3 import Stage3Processor
 from oceanarray.mooring_level import MooringStacker, MooringGridder
-from oceanarray.report import MooringReport
 
 base = '/path/to/data'
 mooring = 'dsG3_1_2026'
@@ -384,7 +401,6 @@ Stage2Processor(base).process_mooring(mooring)
 Stage3Processor(base).process_mooring(mooring)
 MooringStacker(base).stack(mooring)
 MooringGridder(base).grid(mooring)
-MooringReport(base).generate(mooring, outdir='outputs/')          # add stack=True or grid=True for optional pages
 ```
 
 ## Project structure
