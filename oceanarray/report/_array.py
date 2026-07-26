@@ -104,7 +104,6 @@ def _make_array_map_b64(
         plt.style.use(str(P.MPLSTYLE))
 
         lats = [r["lat"] for r in rows if r["lat"] is not None]
-        lons = [r["lon"] for r in rows if r["lon"] is not None]
         if len(lats) < 1:
             return None
 
@@ -114,24 +113,25 @@ def _make_array_map_b64(
         fig, ax = plt.subplots(figsize=(6, 5))
         ax.set_aspect(aspect)
 
+        import matplotlib.colors as _mcolors
+
         _tab20 = plt.get_cmap("tab20")
         for idx, r in enumerate(rows):
             if r["lat"] is None or r["lon"] is None:
                 continue
             color = _tab20(idx % 20)
+            r["color_hex"] = _mcolors.to_hex(color)
             ax.scatter(r["lon"], r["lat"], s=60, color=color, zorder=3)
-            ax.annotate(
-                r["mooring"],
-                (r["lon"], r["lat"]),
-                textcoords="offset points",
-                xytext=(5, 3),
-                fontsize=10,
-                color=color,
-            )
-
-        # Flip x-axis if all longitudes are negative (western hemisphere)
-        if lons and all(lon < 0 for lon in lons):
-            ax.invert_xaxis()
+            # Only label moorings that have been recovered
+            if r.get("_recover_dt") is not None:
+                ax.annotate(
+                    r["mooring"],
+                    (r["lon"], r["lat"]),
+                    textcoords="offset points",
+                    xytext=(5, 3),
+                    fontsize=10,
+                    color=color,
+                )
 
         ax.set_xlabel("Longitude (°)")
         ax.set_ylabel("Latitude (°)")
@@ -226,7 +226,7 @@ _ARRAY_HTML_TEMPLATE = """\
   <tbody>
   {% for r in moorings %}
   <tr>
-    <td class="num">{{ r.position }}</td>
+    <td class="num">{% if r.color_hex %}<span style="display:inline-block;width:0.75em;height:0.75em;border-radius:50%;background:{{ r.color_hex }};margin-right:0.35em;vertical-align:middle"></span>{% endif %}{{ r.position }}</td>
     <td><strong>{{ r.mooring }}</strong></td>
     <td class="num">{{ "%.4f"|format(r.lat) if r.lat is not none else "—" }}</td>
     <td class="num">{{ "%.4f"|format(r.lon) if r.lon is not none else "—" }}</td>
@@ -342,6 +342,7 @@ def generate_array_report(
                 "mooring": mooring_id,
                 "lat": lat,
                 "lon": lon,
+                "color_hex": None,
                 "waterdepth": mcfg.get("waterdepth"),
                 "deploy_time": deploy_dt.strftime("%Y-%m-%d %H:%M")
                 if deploy_dt

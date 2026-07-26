@@ -170,6 +170,7 @@ def plot_knockdown_pressure(
     ax.legend(fontsize=9, loc="upper left")
     ax.set_xlabel("Nominal pressure (dbar)")
     ax.set_ylabel("Measured pressure (dbar)")
+    ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.5)
 
     plt.tight_layout()
     return fig
