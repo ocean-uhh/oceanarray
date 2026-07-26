@@ -1,4 +1,4 @@
-"""oceanarray.logsheets.builders.caldip_download
+"""oceanarray.logsheet.builders.caldip_download
 ===============================================
 Build caldip-download PDF logsheets.
 """

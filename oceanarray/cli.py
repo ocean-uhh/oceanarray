@@ -374,7 +374,7 @@ def cmd_grid(args: argparse.Namespace) -> int:
 
     Reads ``{mooring}_stack.nc`` (produced by ``oceanarray stack``) and
     interpolates scalar variables onto a regular pressure axis between
-    ``--p-start`` and ``--p-end`` dbar at ``--dp`` dbar spacing.  Writes
+    ``--pmin`` and ``--pmax`` dbar at ``--dp`` dbar spacing.  Writes
     ``{mooring}_grid.nc`` in the proc directory.
 
     Prerequisite: ``oceanarray stack`` must have completed successfully.
@@ -389,8 +389,8 @@ def cmd_grid(args: argparse.Namespace) -> int:
     )
     ok = gridder.grid(
         args.mooring,
-        p_start=args.p_start,
-        p_end=args.p_end,
+        p_start=args.pmin,
+        p_end=args.pmax,
         dp=args.dp,
         force=args.force,
     )
@@ -442,8 +442,8 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     grid_args = _ap.Namespace(
         mooring=args.mooring,
-        p_start=args.p_start,
-        p_end=args.p_end,
+        pmin=args.pmin,
+        pmax=args.pmax,
         dp=args.dp,
         force=args.force,
         **_dirs,
@@ -650,14 +650,14 @@ def cmd_logsheet(args: "argparse.Namespace") -> int:
     """
     import sys
     from pathlib import Path
-    from .logsheets import (
+    from .logsheet import (
         build_caldip_setup,
         build_caldip_download,
         build_recovery,
         build_mooring_download,
         build_deployment_setup,
     )
-    from .logsheets._config import resolve_config, load_yaml
+    from .logsheet._config import resolve_config, load_yaml
 
     config_dir = Path(args.logsheet_config_dir) if args.logsheet_config_dir else None
     inventory_path = Path(args.logsheet_inventory) if args.logsheet_inventory else None
@@ -954,18 +954,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_grid.add_argument("mooring", help="Mooring name, e.g. dsG3_1_2026")
     _add_dir_args(p_grid, raw_needed=False)
     p_grid.add_argument(
-        "--p-start",
+        "--pmin",
         type=float,
         default=200.0,
-        dest="p_start",
         metavar="DBAR",
         help="Shallowest pressure level (default: 200)",
     )
     p_grid.add_argument(
-        "--p-end",
+        "--pmax",
         type=float,
         default=1000.0,
-        dest="p_end",
         metavar="DBAR",
         help="Deepest pressure level (default: 1000)",
     )
@@ -1012,18 +1010,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Pressure grid spacing in dbar (default: 20)",
     )
     p_run.add_argument(
-        "--p-start",
+        "--pmin",
         type=float,
         default=200.0,
-        dest="p_start",
         metavar="DBAR",
         help="Shallowest pressure level for grid (default: 200)",
     )
     p_run.add_argument(
-        "--p-end",
+        "--pmax",
         type=float,
         default=1000.0,
-        dest="p_end",
         metavar="DBAR",
         help="Deepest pressure level for grid (default: 1000)",
     )

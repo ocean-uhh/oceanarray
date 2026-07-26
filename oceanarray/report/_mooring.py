@@ -399,7 +399,7 @@ _HTML_TEMPLATE = """\
   Recommended pressure range for <code>oceanarray grid</code>, derived from the
   min/max pressure across all instruments (rounded outward to the nearest 20&thinsp;dbar):
 </p>
-<pre style="background:#f4f4f4;border:1px solid #ddd;border-radius:4px;padding:0.5em 0.8em;font-size:0.85rem;display:inline-block;user-select:all;cursor:text">--p-start {{ grid_p_start }} --p-end {{ grid_p_end }}</pre>
+<pre style="background:#f4f4f4;border:1px solid #ddd;border-radius:4px;padding:0.5em 0.8em;font-size:0.85rem;display:inline-block;user-select:all;cursor:text">--pmin {{ grid_p_start }} --pmax {{ grid_p_end }}</pre>
 {% endif %}
 
 <!-- ══════════════════════════════════════ 3.5 DEPLOYMENT TIMING ══ -->

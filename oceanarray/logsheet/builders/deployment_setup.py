@@ -1,4 +1,4 @@
-"""oceanarray.logsheets.builders.deployment_setup
+"""oceanarray.logsheet.builders.deployment_setup
 ================================================
 Build setup-deployment PDF logsheets.
 """

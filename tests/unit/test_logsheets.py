@@ -1,4 +1,4 @@
-"""Unit tests for oceanarray.logsheets (no pdflatex required).
+"""Unit tests for oceanarray.logsheet (no pdflatex required).
 
 Builder smoke tests use fmt="tex" so they only write LaTeX source and
 never invoke pdflatex.
@@ -9,26 +9,26 @@ from pathlib import Path
 import pytest
 import yaml
 
-from oceanarray.logsheets import (
+from oceanarray.logsheet import (
     build_caldip_download,
     build_caldip_setup,
     build_deployment_setup,
     build_mooring_download,
     build_recovery,
 )
-from oceanarray.logsheets._columns import (
+from oceanarray.logsheet._columns import (
     apply_download_convention,
     format_data_path_note,
     resolve_columns,
 )
-from oceanarray.logsheets._config import (
+from oceanarray.logsheet._config import (
     DEFAULT_COLUMN_DEFS,
     DEFAULT_TEMPLATES_DIR,
     resolve_config,
     sn_to_entry,
 )
-from oceanarray.logsheets._firmware import fw_group
-from oceanarray.logsheets._latex import (
+from oceanarray.logsheet._firmware import fw_group
+from oceanarray.logsheet._latex import (
     colspec_from_cols,
     data_row,
     example_data_row,
@@ -362,8 +362,8 @@ class TestResolveConfig:
 
 class TestLoadInstrumentsCSV:
     def test_csv_parsed_correctly(self, tmp_path):
-        from oceanarray.logsheets._config import load_instruments, LogsheetsConfig
-        from oceanarray.logsheets._config import (
+        from oceanarray.logsheet._config import load_instruments, LogsheetsConfig
+        from oceanarray.logsheet._config import (
             DEFAULT_COLUMN_DEFS,
             DEFAULT_TEMPLATES_DIR,
         )
@@ -389,8 +389,8 @@ class TestLoadInstrumentsCSV:
         assert instruments[("microcat", 26261)]["serial"] == 26261
 
     def test_csv_skips_rows_with_blank_type_or_serial(self, tmp_path):
-        from oceanarray.logsheets._config import load_instruments, LogsheetsConfig
-        from oceanarray.logsheets._config import (
+        from oceanarray.logsheet._config import load_instruments, LogsheetsConfig
+        from oceanarray.logsheet._config import (
             DEFAULT_COLUMN_DEFS,
             DEFAULT_TEMPLATES_DIR,
         )

@@ -1,4 +1,4 @@
-"""oceanarray.logsheets._columns
+"""oceanarray.logsheet._columns
 ================================
 Column resolution from the ``column_library``, download-convention
 substitution, and data-path note formatting.

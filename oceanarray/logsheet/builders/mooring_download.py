@@ -1,4 +1,4 @@
-"""oceanarray.logsheets.builders.mooring_download
+"""oceanarray.logsheet.builders.mooring_download
 ================================================
 Build mooring-download PDF logsheets (all instrument types).
 """

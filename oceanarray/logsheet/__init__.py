@@ -1,5 +1,5 @@
-"""oceanarray.logsheets
-=====================
+"""oceanarray.logsheet
+====================
 Generate fieldwork logsheet PDFs from mooring YAML configuration files.
 
 Bundled defaults
@@ -27,8 +27,8 @@ Example:
 -------
 ::
 
-    from oceanarray.logsheets import build_recovery
-    from oceanarray.logsheets._config import resolve_config
+    from oceanarray.logsheet import build_recovery
+    from oceanarray.logsheet._config import resolve_config
     from pathlib import Path
 
     cfg = resolve_config(
