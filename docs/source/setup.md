@@ -38,10 +38,8 @@ immediately without reinstalling.
 
 ## Install seasenselib
 
-`oceanarray` reads raw instrument files via `seasenselib`, which is a separate
-package not distributed on PyPI.
-
-`seasenselib` declares version constraints on some of its dependencies
+`oceanarray` reads raw instrument files via `seasenselib`, which is available
+on PyPI but declares version constraints on some of its dependencies
 (`pyrsktools`, `pycnv`, `pyproj`) that can conflict with the rest of the
 oceanarray environment.  Install those packages first — letting pip satisfy
 them against oceanarray's own requirements — then install `seasenselib` without

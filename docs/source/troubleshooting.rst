@@ -16,7 +16,7 @@ Installation problems
 seasenselib dependency conflicts (pyrsktools, pycnv, pyproj)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``seasenselib`` declares version constraints on several packages
+``seasenselib`` is on PyPI but declares version constraints on several packages
 (``pyrsktools``, ``pycnv``, ``pyproj``) that can conflict with the rest of the
 oceanarray environment when pip tries to resolve everything at once.
 
