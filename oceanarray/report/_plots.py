@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
 if TYPE_CHECKING:
     import matplotlib.pyplot as plt
@@ -2749,12 +2749,46 @@ def _make_rose_grid_b64(
                 north_all[_qc >= 3] = np.nan
 
     has_vel = [np.any(np.isfinite(east_all[:, i])) for i in range(east_all.shape[1])]
-    aqd_idx = [i for i in range(len(serial_list)) if i < len(has_vel) and has_vel[i]]
+    hab_vals = ds.coords["hab"].values if "hab" in ds.coords else None
+
+    # Split by instrument type: ADCP bins are capped at 4 per serial (top, 2 mid,
+    # bottom by HAB), single-point instruments (Aquadopp, etc.) keep all.
+    instr_type_vals = ds["instrument_type"].values if "instrument_type" in ds else None
+    _all_cand = [i for i in range(len(serial_list)) if i < len(has_vel) and has_vel[i]]
+
+    aqd_idx: list[int] = []
+    if instr_type_vals is not None:
+        # Non-ADCP: all levels with velocity
+        aqd_idx = [i for i in _all_cand if str(instr_type_vals[i]).upper() != "ADCP"]
+
+        # ADCP: group by serial, select ≤4 representative bins by HAB
+        from collections import defaultdict
+
+        adcp_by_serial: dict[str, list[int]] = defaultdict(list)
+        for i in _all_cand:
+            if str(instr_type_vals[i]).upper() == "ADCP":
+                ser = str(serial_list[i]) if i < len(serial_list) else "?"
+                adcp_by_serial[ser].append(i)
+
+        _ADCP_PCTS = [0, 33, 67, 100]
+        for _idxs in adcp_by_serial.values():
+            # Sort by HAB so percentile picks are spatially meaningful
+            if hab_vals is not None:
+                _idxs = sorted(_idxs, key=lambda k: hab_vals[k])
+            n_b = len(_idxs)
+            selected: list[int] = []
+            for pct in _ADCP_PCTS:
+                k = int(round(pct / 100 * (n_b - 1)))
+                k = max(0, min(n_b - 1, k))
+                if _idxs[k] not in selected:
+                    selected.append(_idxs[k])
+            aqd_idx.extend(selected)
+    else:
+        aqd_idx = _all_cand
+
     n = len(aqd_idx)
     if n == 0:
         return None
-
-    hab_vals = ds.coords["hab"].values if "hab" in ds.coords else None
 
     ncols = min(n, 4)
     nrows = math.ceil(n / ncols)
@@ -2964,8 +2998,8 @@ def _make_grid_trajectory_b64(ds: "xr.Dataset") -> Optional[str]:
         v = np.nan_to_num(north[:, k], nan=0.0)
         if not np.any(east[:, k][np.isfinite(east[:, k])]):
             continue
-        x = np.concatenate([[0.0], np.cumsum(u[:-1] * dt)])
-        y = np.concatenate([[0.0], np.cumsum(v[:-1] * dt)])
+        x = np.concatenate([[0.0], np.cumsum(u[:-1] * dt)]) / 1000.0
+        y = np.concatenate([[0.0], np.cumsum(v[:-1] * dt)]) / 1000.0
         trajs.append((float(p_val), x, y))
 
     if not trajs:
@@ -2993,8 +3027,8 @@ def _make_grid_trajectory_b64(ds: "xr.Dataset") -> Optional[str]:
     ax.plot(0, 0, "o", color="black", markersize=6, zorder=6, label="Start")
     ax.legend(fontsize=8, loc="upper left")
     ax.autoscale_view()
-    ax.set_xlabel("East displacement (m)")
-    ax.set_ylabel("North displacement (m)")
+    ax.set_xlabel("East displacement (km)")
+    ax.set_ylabel("North displacement (km)")
     ax.axhline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
     ax.axvline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
     ax.set_aspect("equal", adjustable="box")
@@ -3878,14 +3912,15 @@ def _make_adcp_hodograph_b64(
 
 
 def _make_grid_hodograph_b64(
-    ds: "xr.Dataset", lp_days: float = 4.0, smooth_hours: float = 24.0
+    ds: "xr.Dataset", smooth_hours: float = 24.0
 ) -> Optional[str]:
     """Two-depth hodograph for the grid report.
 
     Takes an already-loaded xr.Dataset (not a path).  Picks the pressure levels
     nearest the 25th and 75th percentile of the valid gridded pressure range and
-    renders a 2×2 figure (same layout as the ADCP hodograph).  Returns None if
-    east/north velocity are absent or fewer than two valid levels exist.
+    renders a 1×2 figure (shallow / deep, each showing the ``smooth_hours``-smoothed
+    hodograph).  Returns None if east/north velocity are absent or fewer than two
+    valid levels exist.
     """
     try:
         import matplotlib.pyplot as plt
@@ -3945,32 +3980,80 @@ def _make_grid_hodograph_b64(
         label_shallow = f"{int(pressure[i_shallow])} dbar"
         label_deep = f"{int(pressure[i_deep])} dbar"
 
-        plt.style.use(str(P.MPLSTYLE))
-        fig, axes = plt.subplots(2, 2, figsize=(13, 9))
-        fig.subplots_adjust(hspace=0.55, wspace=0.45)
+        from oceanarray.plotters._helpers import tukey_smooth
 
-        _draw_hodograph_pair(
-            axes[0, 0],
-            axes[0, 1],
-            east_2d[:, i_shallow],
-            north_2d[:, i_shallow],
-            f"Shallow ({label_shallow})",
-            smooth_hours,
-            lp_days,
-            units,
-            dt_s,
-        )
-        _draw_hodograph_pair(
-            axes[1, 0],
-            axes[1, 1],
-            east_2d[:, i_deep],
-            north_2d[:, i_deep],
-            f"Deep ({label_deep})",
-            smooth_hours,
-            lp_days,
-            units,
-            dt_s,
-        )
+        smooth_n = max(3, int(round(smooth_hours * 3600.0 / dt_s)))
+
+        plt.style.use(str(P.MPLSTYLE))
+        fig, (ax_shallow, ax_deep) = plt.subplots(1, 2, figsize=(13, 6))
+        fig.subplots_adjust(wspace=0.45)
+
+        for ax, i_lev, label in [
+            (ax_shallow, i_shallow, f"Shallow ({label_shallow})"),
+            (ax_deep, i_deep, f"Deep ({label_deep})"),
+        ]:
+            e_sm = tukey_smooth(east_2d[:, i_lev], smooth_n)
+            n_sm = tukey_smooth(north_2d[:, i_lev], smooth_n)
+            mask = np.isfinite(e_sm) & np.isfinite(n_sm)
+            if mask.sum() < 2:
+                ax.text(
+                    0.5,
+                    0.5,
+                    "No data",
+                    transform=ax.transAxes,
+                    ha="center",
+                    va="center",
+                )
+                ax.set_title(label, fontsize=9)
+                continue
+            e_v, n_v = e_sm[mask], n_sm[mask]
+            t_frac = np.linspace(0.0, 1.0, len(east_2d[:, i_lev]))[mask]
+            lim = max(np.nanmax(np.abs(e_v)), np.nanmax(np.abs(n_v)), 1e-9) * 1.1
+            step = max(1, len(e_v) // 2000)
+            pts = np.array([e_v[::step], n_v[::step]]).T.reshape(-1, 1, 2)
+            segs = np.concatenate([pts[:-1], pts[1:]], axis=1)
+            from matplotlib.collections import LineCollection
+            import matplotlib.colors as mcolors
+
+            norm_lc = mcolors.Normalize(0.0, 1.0)
+            lc = LineCollection(segs, cmap="plasma", norm=norm_lc, lw=0.9, alpha=0.85)
+            lc.set_array(t_frac[::step][:-1])
+            ax.add_collection(lc)
+            sm = plt.cm.ScalarMappable(cmap="plasma", norm=norm_lc)
+            sm.set_array([])
+            cb = fig.colorbar(sm, ax=ax, shrink=0.75, pad=0.03, aspect=20)
+            cb.set_label("Time →", size=8)
+            cb.ax.set_yticks([0, 1])
+            cb.ax.set_yticklabels(["start", "end"], size=7)
+            ax.scatter(
+                e_v[0],
+                n_v[0],
+                s=50,
+                c="lime",
+                marker="o",
+                edgecolors="black",
+                linewidths=0.7,
+                zorder=5,
+            )
+            ax.scatter(
+                e_v[-1],
+                n_v[-1],
+                s=55,
+                c="red",
+                marker="s",
+                edgecolors="black",
+                linewidths=0.7,
+                zorder=5,
+            )
+            ax.set_xlim(-lim, lim)
+            ax.set_ylim(-lim, lim)
+            ax.set_aspect("equal")
+            ax.axhline(0, color="#888", lw=0.7)
+            ax.axvline(0, color="#888", lw=0.7)
+            ax.set_xlabel(f"East ({units})")
+            ax.set_ylabel(f"North ({units})")
+            ax.set_title(f"{label} — {smooth_hours:.0f}-h smoothed", fontsize=9)
+            ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.3)
 
         b64 = _fig_to_base64(fig)
         plt.close(fig)
@@ -4047,6 +4130,139 @@ def _make_analog_timeseries(nc_path: "Path", analog_vars: "List[str]") -> Option
         fig.autofmt_xdate(rotation=30, ha="right")
         fig.tight_layout()
         ds.close()
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _make_knockdown_pressure_b64(ds: "xr.Dataset") -> Optional[str]:
+    """IQR of measured pressure vs. nominal pressure, for the stack report.
+
+    Thin Tier-3 wrapper around
+    ``plotters._diagnostic.plot_knockdown_pressure``.  Takes an already-loaded
+    xarray.Dataset (not a path).
+
+    Returns a base64-encoded PNG string or None when no data are available.
+    """
+    try:
+        import matplotlib.pyplot as plt
+        from oceanarray.plotters._diagnostic import plot_knockdown_pressure
+
+        fig = plot_knockdown_pressure(ds)
+        if fig is None:
+            return None
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _make_knockdown_hab_b64(ds: "xr.Dataset") -> Optional[str]:
+    """IQR of measured HAB vs. nominal HAB, for the stack report.
+
+    Thin Tier-3 wrapper around
+    ``plotters._diagnostic.plot_knockdown_hab``.  Takes an already-loaded
+    xarray.Dataset (not a path).
+
+    Returns a base64-encoded PNG string or None when no data are available.
+    """
+    try:
+        import matplotlib.pyplot as plt
+        from oceanarray.plotters._diagnostic import plot_knockdown_hab
+
+        fig = plot_knockdown_hab(ds)
+        if fig is None:
+            return None
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _make_knockdown_displacement_b64(ds: "xr.Dataset") -> Optional[str]:
+    """Scatter of estimated horizontal displacement vs. measured pressure.
+
+    Thin Tier-3 wrapper around
+    ``plotters._diagnostic.plot_knockdown_displacement``.
+
+    Returns a base64-encoded PNG string or None when no data are available.
+    """
+    try:
+        import matplotlib.pyplot as plt
+        from oceanarray.plotters._diagnostic import plot_knockdown_displacement
+
+        fig = plot_knockdown_displacement(ds)
+        if fig is None:
+            return None
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _make_knockdown_anomaly_b64(ds: "xr.Dataset") -> Optional[str]:
+    """IQR of pressure anomaly (measured − nominal) per instrument, for the stack report.
+
+    Thin Tier-3 wrapper around
+    ``plotters._diagnostic.plot_knockdown_anomaly``.  Takes an already-loaded
+    xarray.Dataset (not a path).
+
+    Returns a base64-encoded PNG string or None when no data are available.
+    """
+    try:
+        import matplotlib.pyplot as plt
+        from oceanarray.plotters._diagnostic import plot_knockdown_anomaly
+
+        fig = plot_knockdown_anomaly(ds)
+        if fig is None:
+            return None
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _make_clock_check_b64(
+    nc_paths: "Dict[str, Any]",
+    deploy_dt: "Any",
+    recover_dt: "Any",
+    window_minutes: int = 30,
+) -> Optional[str]:
+    """Overlaid temperature comparison at deployment start/end, for the mooring summary.
+
+    Thin Tier-3 wrapper around
+    ``plotters._diagnostic.plot_clock_offset_check``.
+
+    Parameters
+    ----------
+    nc_paths : dict of {serial: Path}
+        Paths to stage-2 or stage-3 NetCDF files keyed by serial number.
+    deploy_dt : datetime or None
+        Deployment start time (UTC).
+    recover_dt : datetime or None
+        Recovery time (UTC).
+    window_minutes : int
+        Duration of each zoom window in minutes (default 30).
+
+    Returns
+    -------
+    str or None
+        Base64-encoded PNG for HTML embedding, or None.
+
+    """
+    try:
+        import matplotlib.pyplot as plt
+        from oceanarray.plotters._diagnostic import plot_clock_offset_check
+
+        fig = plot_clock_offset_check(nc_paths, deploy_dt, recover_dt, window_minutes)
+        if fig is None:
+            return None
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64

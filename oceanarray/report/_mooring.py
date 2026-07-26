@@ -13,9 +13,11 @@ import yaml
 from ._html_helpers import (
     _check_readable,
     _duration_str,
+    _find_array_report_href,
     _fmt_dt,
     _get_proc_dir,
     _load_pdf_b64,
+    _instrument_report_exists,
     _nav_buttons_html,
     _parse_dt,
     _raw_file_path,
@@ -30,6 +32,7 @@ from ._html_helpers import (
 )
 from ._grid import generate_grid_page
 from ._instrument import generate_instrument_pages
+from ._plots import _make_clock_check_b64
 from ._stack import generate_stack_page
 from ..utilities import extract_inline_instruments
 
@@ -618,6 +621,17 @@ recovery_time:   '{{ yaml_recover_time or '?' }}'</textarea>
   </tbody>
 </table>
 
+{% if fig_clock_check_b64 %}
+<h3 style="font-size:0.9rem;margin-top:1.2rem;">Clock alignment check</h3>
+<p class="note">
+  Overlaid temperature records zoomed to the first and last 30 minutes of the deployment.
+  If instrument clocks are misaligned the temperature curves will appear shifted in time.
+  Data are from stage&#8209;3 (or stage&#8209;2 if stage&#8209;3 is not yet available).
+  Instruments with no temperature data are omitted.
+</p>
+<img class="fig" src="data:image/png;base64,{{ fig_clock_check_b64 }}" alt="Clock alignment check">
+{% endif %}
+
 <!-- ══════════════════════════════════════ 5. SENSOR CALIBRATION ══ -->
 <h2 id="calibration">5 &mdash; Sensor calibration</h2>
 <style>
@@ -937,6 +951,15 @@ class MooringReport:
                 serials=serials,
                 raw_dir=self._raw_dir,
             )
+            # Instrument pages are now on disk — re-check existence and re-render
+            # the mooring summary so serial-number links work on first run.
+            if out_dir is not None:
+                for instr in ctx["instruments"]:
+                    instr["report_exists"] = _instrument_report_exists(
+                        out_dir, mooring_name, instr["serial"]
+                    )
+                html = self._render(ctx)
+                output_path.write_text(html, encoding="utf-8")
 
         if grid:
             grid_path = proc_dir / f"{mooring_name}_grid.nc"
@@ -1217,6 +1240,24 @@ class MooringReport:
 
         any_clock = any(i["clock"]["has_correction"] for i in instruments)
 
+        # Build {serial: nc_path} for the clock-offset comparison figure.
+        # Prefer stage3 over stage2 (clock correction was applied in stage2 and
+        # is preserved in stage3, so either works for comparing alignment).
+        _clock_nc_paths: Dict[str, Path] = {}
+        for _instr in instruments:
+            _s = _instr["serial"]
+            _itype = _instr["instr_type"]
+            _base = proc_dir / _itype / f"{mooring_name}_{_s}"
+            _s3 = Path(str(_base) + "_stage3.nc")
+            _s2 = Path(str(_base) + "_stage2.nc")
+            if _s3.exists():
+                _clock_nc_paths[_s] = _s3
+            elif _s2.exists():
+                _clock_nc_paths[_s] = _s2
+        fig_clock_check_b64 = _make_clock_check_b64(
+            _clock_nc_paths, deploy_dt, recover_dt
+        )
+
         def _combined(deploy_key: str, recover_key: str, legacy_key: str) -> str:
             d = cfg.get(deploy_key) or cfg.get(legacy_key, "—")
             r = cfg.get(recover_key) or cfg.get(legacy_key) or d
@@ -1262,12 +1303,14 @@ class MooringReport:
             "stack_exists": stack_exists,
             "grid_exists": grid_exists,
             "any_clock_correction": any_clock,
+            "fig_clock_check_b64": fig_clock_check_b64,
             "nav_buttons": _nav_buttons_html(
                 mooring_name,
                 instruments,
                 stack_exists=stack_exists,
                 grid_exists=grid_exists,
                 current_report="summary",
+                array_report_href=_find_array_report_href(out_dir),
             ),
             "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
             "proc_machine": socket.gethostname().split(".")[0],

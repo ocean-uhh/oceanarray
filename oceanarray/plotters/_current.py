@@ -69,8 +69,8 @@ def plot_temperature_trajectory(
         [(time[i] - time[i - 1]) / np.timedelta64(1, "s") for i in range(1, len(time))],
         dtype=float,
     )
-    x = np.concatenate([[0.0], np.cumsum(u[:-1] * dt)])
-    y = np.concatenate([[0.0], np.cumsum(v[:-1] * dt)])
+    x = np.concatenate([[0.0], np.cumsum(u[:-1] * dt)]) / 1000.0
+    y = np.concatenate([[0.0], np.cumsum(v[:-1] * dt)]) / 1000.0
 
     temp = ds[temp_var].values
     units = ds[temp_var].attrs.get("units", "")
@@ -85,8 +85,8 @@ def plot_temperature_trajectory(
         y,
         color_data=temp,
         cmap="coolwarm",
-        xlabel="East displacement (m)",
-        ylabel="North displacement (m)",
+        xlabel="East displacement (km)",
+        ylabel="North displacement (km)",
         colorbar_label=colorbar_label,
         title=title,
     )
@@ -210,8 +210,8 @@ def plot_multi_aquadopp_trajectories(
     for i in aqd_idx:
         u = np.nan_to_num(ds[u_var].values[:, i], nan=0.0)
         v = np.nan_to_num(ds[v_var].values[:, i], nan=0.0)
-        x = np.concatenate([[0.0], np.cumsum(u[:-1] * dt)])
-        y = np.concatenate([[0.0], np.cumsum(v[:-1] * dt)])
+        x = np.concatenate([[0.0], np.cumsum(u[:-1] * dt)]) / 1000.0
+        y = np.concatenate([[0.0], np.cumsum(v[:-1] * dt)]) / 1000.0
         temp = ds[temp_var].values[:, i] if has_temp else None
         trajs.append((i, x, y, temp))
         if temp is not None:
@@ -220,9 +220,13 @@ def plot_multi_aquadopp_trajectories(
     cmap = plt.get_cmap("coolwarm")
     if has_temp and all_temps:
         flat = np.concatenate(all_temps)
-        _bounds = _nice_colorbar_bounds(
-            float(np.nanmin(flat)), float(np.nanmax(flat)), n=20
-        )
+        _tmin = float(np.nanmin(flat))
+        _tmax = float(np.nanmax(flat))
+        _bounds = _nice_colorbar_bounds(_tmin, _tmax, n=20)
+        # Enforce minimum tick spacing of 0.5 °C so labels don't crowd
+        if len(_bounds) > 1 and (_bounds[1] - _bounds[0]) < 0.5:
+            _n_t = max(2, int((_tmax - _tmin) / 0.5))
+            _bounds = _nice_colorbar_bounds(_tmin, _tmax, n=_n_t)
     else:
         _bounds = _nice_colorbar_bounds(0.0, 1.0, n=20)
     norm: mcolors.BoundaryNorm = mcolors.BoundaryNorm(_bounds, ncolors=256)
@@ -284,8 +288,8 @@ def plot_multi_aquadopp_trajectories(
         )
 
     ax.autoscale_view()
-    ax.set_xlabel("East displacement (m)")
-    ax.set_ylabel("North displacement (m)")
+    ax.set_xlabel("East displacement (km)")
+    ax.set_ylabel("North displacement (km)")
     ax.axhline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
     ax.axvline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
     ax.set_aspect("equal", adjustable="box")
@@ -651,8 +655,14 @@ def plot_adcp_trajectories(
             v[pqc >= 3] = np.nan
 
         # NaN → 0 for integration (no displacement during missing pings)
-        x = np.concatenate([[0.0], np.cumsum(np.nan_to_num(u[:-1], nan=0.0) * dt)])
-        y = np.concatenate([[0.0], np.cumsum(np.nan_to_num(v[:-1], nan=0.0) * dt)])
+        x = (
+            np.concatenate([[0.0], np.cumsum(np.nan_to_num(u[:-1], nan=0.0) * dt)])
+            / 1000.0
+        )
+        y = (
+            np.concatenate([[0.0], np.cumsum(np.nan_to_num(v[:-1], nan=0.0) * dt)])
+            / 1000.0
+        )
         trajs.append((float(habs[i]), x, y))
         hab_all.append(float(habs[i]))
 
@@ -662,6 +672,10 @@ def plot_adcp_trajectories(
     hab_min, hab_max = min(hab_all), max(hab_all)
     cmap = plt.get_cmap("viridis")
     _bounds = _nice_colorbar_bounds(hab_min, hab_max, n=20)
+    # Enforce minimum tick spacing of 50 m so labels don't crowd
+    if len(_bounds) > 1 and (_bounds[1] - _bounds[0]) < 50.0:
+        _n_hab = max(2, int((hab_max - hab_min) / 50.0))
+        _bounds = _nice_colorbar_bounds(hab_min, hab_max, n=_n_hab)
     norm: mcolors.BoundaryNorm = mcolors.BoundaryNorm(_bounds, ncolors=256)
 
     fig, ax = plt.subplots(figsize=(6, 5))
@@ -680,8 +694,8 @@ def plot_adcp_trajectories(
     ax.plot(0, 0, "o", color="black", markersize=7, zorder=6, label="Start")
     ax.legend(fontsize=8, loc="upper left")
     ax.autoscale_view()
-    ax.set_xlabel("East displacement (m)")
-    ax.set_ylabel("North displacement (m)")
+    ax.set_xlabel("East displacement (km)")
+    ax.set_ylabel("North displacement (km)")
     ax.axhline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
     ax.axvline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
     ax.set_aspect("equal", adjustable="box")

@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 from ._html_helpers import (
     _duration_str,
     _file_info,
+    _find_array_report_href,
     _nav_buttons_html,
     _parse_dt,
     _parse_history,
@@ -730,6 +731,9 @@ def generate_instrument_pages(
                 grid_exists=grid_exists,
                 current_report=serial,
                 in_instrument_subdir=True,
+                array_report_href=_find_array_report_href(
+                    out_dir, in_instrument_subdir=True
+                ),
             ),
             "generated": generated,
             "proc_machine": proc_machine,
