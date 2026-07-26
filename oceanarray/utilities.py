@@ -519,9 +519,20 @@ def cast_output_dtypes(ds: xr.Dataset) -> xr.Dataset:
         var = ds[vname]
         target = find_best_dtype(vname, var)
         if np.dtype(target) != var.dtype:
-            updates[vname] = xr.Variable(
-                var.dims, var.values.astype(target), attrs=var.attrs
-            )
+            if np.issubdtype(np.dtype(target), np.integer) and np.issubdtype(
+                var.dtype, np.floating
+            ):
+                # NaN cannot be represented as an integer; replace before cast.
+                # QC variables use 9 (CF "missing value"); other integer vars use 0.
+                fill_val = 9 if (vname.endswith("_qc") or "flag" in vname) else 0
+                safe_vals = np.where(np.isfinite(var.values), var.values, fill_val)
+                updates[vname] = xr.Variable(
+                    var.dims, safe_vals.astype(target), attrs=var.attrs
+                )
+            else:
+                updates[vname] = xr.Variable(
+                    var.dims, var.values.astype(target), attrs=var.attrs
+                )
     if not updates:
         return ds
     return ds.assign(updates)

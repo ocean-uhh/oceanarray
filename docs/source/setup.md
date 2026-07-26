@@ -7,19 +7,54 @@ dependencies and is not recommended for production use.
 
 ## Install oceanarray
 
+`oceanarray` is not distributed on PyPI.  Create an isolated Python
+environment first, then clone and install from source.
+
+### Option A — conda
+
 ```bash
-pip install oceanarray
+conda create -n oceanarray python=3.11
+conda activate oceanarray
 ```
+
+### Option B — venv
+
+```bash
+python -m venv venv
+source venv/bin/activate        # macOS / Linux
+# venv\Scripts\activate         # Windows
+```
+
+### Clone and install (after activating either environment)
+
+```bash
+git clone https://github.com/ocean-uhh/oceanarray
+cd oceanarray
+pip install -e .
+```
+
+The `-e` flag installs in editable mode so that any local changes take effect
+immediately without reinstalling.
 
 ## Install seasenselib
 
 `oceanarray` reads raw instrument files via `seasenselib`, which is a separate
-package not distributed on PyPI. Install it following the instructions provided
-with your copy of the library.
+package not distributed on PyPI.
+
+`seasenselib` declares version constraints on some of its dependencies
+(`pyrsktools`, `pycnv`, `pyproj`) that can conflict with the rest of the
+oceanarray environment.  Install those packages first — letting pip satisfy
+them against oceanarray's own requirements — then install `seasenselib` without
+its dependency resolver:
+
+```bash
+pip install pyrsktools pycnv
+pip install seasenselib --no-deps
+```
 
 Without `seasenselib`, stage 1 processing cannot run.  Stages 2–3 and
 mooring-level processing (stack, grid, reports) can still run on existing
-NetCDF files.
+NetCDF files.  See [Troubleshooting](troubleshooting.rst) if the install fails.
 
 ## Optional: RDI ADCP support
 
@@ -42,13 +77,11 @@ If this prints a version string, the installation is complete.  See the
 
 ---
 
-## Development install
+## Development dependencies
 
-For contributors or users who want to modify the source code:
+For contributors who want to run the test suite or build the documentation:
 
 ```bash
-git clone https://github.com/ocean-uhh/oceanarray
-cd oceanarray
 pip install -e ".[dev]"
 ```
 
@@ -58,5 +91,4 @@ Run the test suite to verify:
 pytest
 ```
 
-Code must pass `ruff check .` and `black .` before committing.  See
-`project_structure.md` for an overview of the code layout.
+Code must pass `ruff check .` before committing.

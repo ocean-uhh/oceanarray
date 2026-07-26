@@ -7,7 +7,13 @@ from typing import Any, Dict
 
 import numpy as np
 
-from ._html_helpers import _nav_buttons_html, _parse_history, _read_nc_metadata, _status
+from ._html_helpers import (
+    _find_array_report_href,
+    _nav_buttons_html,
+    _parse_history,
+    _read_nc_metadata,
+    _status,
+)
 from ._plots import (
     _make_grid_hydro_b64,
     _make_grid_hodograph_b64,
@@ -490,6 +496,7 @@ def generate_grid_page(
                 stack_exists=stack_exists,
                 grid_exists=True,
                 current_report="grid",
+                array_report_href=_find_array_report_href(out_dir),
             ),
             cruise=ctx.get("cruise", "—"),
             ship=ctx.get("ship", "—"),

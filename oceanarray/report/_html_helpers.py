@@ -39,7 +39,7 @@ def _parse_dt(s: Optional[str]) -> Optional[datetime]:
     """Parse clock timestamp: HH:MM:SS, YYYYMMDDTHH:MM:SS, or standard ISO."""
     if not s:
         return None
-    s = str(s).strip().replace("Z", "+00:00")
+    s = str(s).strip().replace("Z", "+00:00").replace(" UTC", "")
     if re.match(r"^\d{2}:\d{2}:\d{2}", s) and "T" not in s:
         s = f"2000-01-01T{s}"
     m = re.match(r"^(\d{4})(\d{2})(\d{2})T(\d{2}:\d{2}:\d{2}.*)$", s)
@@ -767,6 +767,96 @@ def _stage_file_details(
     return rows
 
 
+def _instrument_report_href(
+    mooring_name: str,
+    serial: str,
+    in_instrument_subdir: bool = False,
+) -> str:
+    """Return the relative href for a per-instrument HTML report.
+
+    Instrument reports live at ``report/instrument/{mooring}_{serial}_report.html``.
+    The prefix differs depending on which report is linking to them:
+
+    - Summary / Stack / Grid (in ``report/``): prefix is ``instrument/``
+    - Another instrument report (in ``report/instrument/``): no prefix needed
+
+    Parameters
+    ----------
+    mooring_name : str
+        Mooring identifier used in the report filename.
+    serial : str
+        Instrument serial number.
+    in_instrument_subdir : bool
+        ``True`` when linking from a per-instrument report.
+        ``False`` (default) when linking from summary, stack, or grid reports.
+
+    Returns
+    -------
+    str
+        Relative href string, e.g. ``"instrument/dsG3_1_2026_26261_report.html"``.
+
+    """
+    import html as _html
+
+    prefix = "" if in_instrument_subdir else "instrument/"
+    return (
+        f"{prefix}{_html.escape(mooring_name)}_{_html.escape(str(serial))}_report.html"
+    )
+
+
+def _instrument_report_exists(out_dir: Path, mooring_name: str, serial: str) -> bool:
+    """Return True if the per-instrument report file already exists on disk.
+
+    Parameters
+    ----------
+    out_dir : Path
+        The report output directory (i.e. ``proc_dir / "report"``).
+    mooring_name : str
+        Mooring identifier used in the report filename.
+    serial : str
+        Instrument serial number.
+
+    """
+    return (out_dir / "instrument" / f"{mooring_name}_{serial}_report.html").exists()
+
+
+def _find_array_report_href(
+    out_dir: Path, in_instrument_subdir: bool = False
+) -> Optional[str]:
+    """Return a relative href to the array report if one exists in the top-level proc dir.
+
+    Parameters
+    ----------
+    out_dir : Path
+        Directory where the current report will be written.  Expected to be
+        ``{proc_dir}/{mooring}/report/`` (default) or ``{proc_dir}/{mooring}/``.
+    in_instrument_subdir : bool
+        True when the caller is a per-instrument report one level deeper.
+
+    Returns
+    -------
+    str or None
+        Relative href string (e.g. ``"../../dsG3_2026_array_report.html"``),
+        or None if no ``*_array_report.html`` exists.
+
+    """
+    if out_dir is None:
+        return None
+    # Navigate up to the top-level proc dir (above the mooring dir)
+    candidate = out_dir
+    # go up past report/ (if present) and mooring dir
+    for _ in range(3 if in_instrument_subdir else 2):
+        candidate = candidate.parent
+    matches = sorted(
+        p for p in candidate.glob("*_array_report.html") if not p.name.startswith(".")
+    )
+    if not matches:
+        return None
+    depth = 3 if in_instrument_subdir else 2
+    prefix = "../" * depth
+    return f"{prefix}{matches[0].name}"
+
+
 def _nav_buttons_html(
     mooring_name: str,
     instruments: List[Dict[str, Any]],
@@ -774,6 +864,7 @@ def _nav_buttons_html(
     grid_exists: bool = True,
     current_report: str = "",
     in_instrument_subdir: bool = False,
+    array_report_href: Optional[str] = None,
 ) -> str:
     """Return an HTML navigation snippet for injection into report masthead cards.
 
@@ -799,6 +890,11 @@ def _nav_buttons_html(
         be prefixed with ``../`` and instrument-to-instrument links will remain
         flat.  When ``False`` (default, used by Summary/Stack/Grid reports),
         instrument links are prefixed with ``instrument/``.
+    array_report_href : str or None
+        Relative href to the array-level report (e.g.
+        ``"../../dsG3_2026_array_report.html"``).  When provided an "Array"
+        pill is prepended to Row 1.  Pass the result of
+        ``_find_array_report_href(out_dir)`` at each call site.
 
     Returns
     -------
@@ -842,9 +938,14 @@ def _nav_buttons_html(
 
     parts = ['<div style="margin-top:0.65rem">']
 
-    # Row 1: report-level navigation (Summary / Stack / Grid)
+    # Row 1: report-level navigation (Array / Summary / Stack / Grid)
     parts.append('<div style="margin-bottom:0.25rem">')
     parts.append(f'<span style="{_LABEL}">Reports:</span>')
+    if array_report_href:
+        parts.append(
+            f'<a href="{_html.escape(array_report_href)}" '
+            f'style="{_BTN}background:#5d6d7e">Array</a>'
+        )
     parts.append(
         _pill(
             "Summary", f"{_pfx}{mn}_report.html", "#1a3a5c", current_report == "summary"

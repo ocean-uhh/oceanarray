@@ -246,14 +246,13 @@ INSTRUMENT_ABBREV = {
 # ---------------------------------------------------------------------------
 INSTRUMENT_FILE_TYPES: dict = {
     "microcat": ["sbe-cnv", "sbe-ascii", "sbe-hex"],
-    "aquadopp": ["nortek-ascii", "nortek-csv"],
+    "aquadopp": ["nortek-aqd", "nortek-ascii", "nortek-csv"],
     "tr1050": ["rbr-hex"],  # RBR TR-1050 thermistor chain
     "rbrsolo": ["rbr-rsk"],  # RBR soloT — single-channel temperature
     "rbrduet": ["rbr-rsk"],  # RBR duet — temperature + pressure or T+C
     "seapoint": ["rbr-rsk"],  # Seapoint turbidity sensor via RBR logger
     "ADCP": [
         "rdi-raw",  # RDI Workhorse / Sentinel via dolfyn (mhkit[dolfyn] required)
-        "nortek-ascii",
         "adcp-matlab-rdadcp",
         "adcp-matlab-uhhds",
     ],  # Generic ADCP (instrument: ADCP in YAML — note uppercase)
@@ -265,7 +264,6 @@ KNOWN_INSTRUMENT_TYPES: frozenset = frozenset(INSTRUMENT_FILE_TYPES.keys())
 # File types that seasenselib accepts but are deprecated, experimental, or
 # not tied to a primary instrument: value above.
 EXTRA_FILE_TYPES: dict = {
-    "nortek-aqd": "aquadopp / ADCP (DEPRECATED alias; use nortek-ascii or nortek-csv)",
     "nortek-csv-oa": "aquadopp (DEPRECATED internal reader; use nortek-csv)",
     "rbr-dat": "RBR instruments (not in current seasenselib; use rbr-rsk)",
     "rbr-matlab-legacy": "RBR instruments (DEPRECATED legacy format)",

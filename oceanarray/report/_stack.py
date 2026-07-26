@@ -9,12 +9,17 @@ import numpy as np
 
 from ._html_helpers import (
     _fig_to_base64,
+    _find_array_report_href,
+    _instrument_report_exists,
+    _instrument_report_href,
     _nav_buttons_html,
+    _parse_dt,
     _parse_history,
     _read_nc_metadata,
     _status,
 )
 from ._plots import (
+    _make_clock_check_b64,
     _make_rose_grid_b64,
     _make_stack_ts_diagram,
     _make_multi_aquadopp_trajectories,
@@ -123,6 +128,7 @@ _STACK_HTML_TEMPLATE = """\
   {% if fig_ts_stack_b64 %}<a href="#ts">T-S diagram</a>{% endif %}
   {% if fig_rose_grid_b64 %}<a href="#roses">Current roses</a>{% endif %}
   {% if fig_spacing_b64 %}<a href="#spacing">Spacing</a>{% endif %}
+  {% if fig_clock_check_b64 %}<a href="#clock-check">Clock check</a>{% endif %}
   <a href="#dims">Dimensions</a>
   <a href="#vars">Variables</a>
 </nav>
@@ -149,7 +155,7 @@ _STACK_HTML_TEMPLATE = """\
   <tr>
     <td>{{ loop.index0 }}</td>
     <td>{{ row.instr_type }}</td>
-    <td><a href="{{ mooring_name }}_{{ row.serial }}_report.html">{{ row.serial }}</a></td>
+    <td>{% if row.report_exists %}<a href="{{ row.report_href }}">{{ row.serial }}</a>{% else %}{{ row.serial }}{% endif %}</td>
     <td>{{ row.hab }}</td>
     <td>{{ row.depth }}</td>
   </tr>
@@ -238,7 +244,7 @@ _STACK_HTML_TEMPLATE = """\
   </div>
   {% endif %}
   {% if fig_adcp_trajectories_b64 %}
-  <div style="flex:1;min-width:280px">
+  <div style="flex:0 0 50%;max-width:50%">
     <p style="text-align:center;font-weight:600;margin-bottom:0.3rem">ADCP</p>
     <img class="fig" style="max-width:100%;width:100%" src="data:image/png;base64,{{ fig_adcp_trajectories_b64 }}" alt="ADCP trajectories">
   </div>
@@ -291,7 +297,18 @@ _STACK_HTML_TEMPLATE = """\
 {% if fig_spacing_b64 %}
 <h2 id="spacing">Adjacent instrument spacing</h2>
 <p class="note">Distribution of pressure differences between adjacent instrument pairs (pairs &lt; 2 dbar apart excluded as co-located).</p>
-<img class="fig" src="data:image/png;base64,{{ fig_spacing_b64 }}" alt="Instrument spacing histogram">
+<img style="max-width:33%;border:1px solid #dce;border-radius:4px" src="data:image/png;base64,{{ fig_spacing_b64 }}" alt="Instrument spacing histogram">
+{% endif %}
+
+{% if fig_clock_check_b64 %}
+<h2 id="clock-check">Clock alignment check</h2>
+<p class="note">
+  Temperature records from all instruments overlaid, zoomed to the first and last
+  30&thinsp;minutes of the deployment.  A horizontal shift between curves indicates
+  a clock offset between instruments.  Data are from stage&#8209;3 (or stage&#8209;2
+  if stage&#8209;3 is not yet available).  Instruments without temperature are omitted.
+</p>
+<img class="fig" src="data:image/png;base64,{{ fig_clock_check_b64 }}" alt="Clock alignment check">
 {% endif %}
 
 <!-- ══ NetCDF dimensions ══ -->
@@ -611,13 +628,18 @@ def generate_stack_page(
         instr_rows = []
         for i in range(n_instr):
             depth = f"{waterdepth - habs[i]:.0f}" if waterdepth else "—"
+            _ser = str(serials[i])
             instr_rows.append(
                 {
-                    "serial": serials[i],
+                    "serial": _ser,
                     "instr_type": instr_types[i],
                     "hab": f"{habs[i]:.1f}",
                     "depth": depth,
                     "stage": "",
+                    "report_href": _instrument_report_href(mooring_name, _ser),
+                    "report_exists": _instrument_report_exists(
+                        out_dir, mooring_name, _ser
+                    ),
                 }
             )
 
@@ -750,12 +772,8 @@ def generate_stack_page(
             else None
         )
 
-        fig_rose_grid_b64 = _make_rose_grid_b64(ds, _serial_list)
+        fig_rose_grid_b64, _n_rose = _make_rose_grid_b64(ds, _serial_list)
         # Width cap: 33% for 1 panel, 50% for 2, 66% for 3, 83% for 4, 100% for 5+
-        _n_rose = 0
-        if "east_velocity" in ds.data_vars:
-            _ev = ds["east_velocity"].values
-            _n_rose = sum(np.any(np.isfinite(_ev[:, i])) for i in range(_ev.shape[1]))
         _rose_w_map = {1: "33", 2: "50", 3: "66", 4: "83"}
         rose_img_width = _rose_w_map.get(_n_rose, "100")
 
@@ -816,7 +834,7 @@ def generate_stack_page(
                     valid = spacing[np.isfinite(spacing) & (spacing >= 2.0)]
                     all_spacings.extend(valid.tolist())
                 if all_spacings:
-                    fig_sp, ax_sp = plt.subplots(figsize=(8, 4))
+                    fig_sp, ax_sp = plt.subplots(figsize=(4, 3))
                     ax_sp.hist(
                         all_spacings, bins=60, color="steelblue", edgecolor="white"
                     )
@@ -834,6 +852,25 @@ def generate_stack_page(
         fig_trajectories_b64 = _make_multi_aquadopp_trajectories(ds)
         fig_adcp_trajectories_b64 = _make_adcp_trajectories_b64(ds)
         fig_speed_profile_b64 = _make_aquadopp_speed_profile(ds)
+        # Clock alignment check: one temperature trace per instrument zoomed to
+        # first/last 30 min.  Build {serial: path} preferring stage3 over stage2.
+        proc_dir = stack_path.parent
+        _clock_nc_paths: Dict[str, Path] = {}
+        for i in range(n_instr):
+            _s = str(serials[i])
+            _itype = str(instr_types[i])
+            _base = proc_dir / _itype / f"{mooring_name}_{_s}"
+            _s3 = Path(str(_base) + "_stage3.nc")
+            _s2 = Path(str(_base) + "_stage2.nc")
+            if _s3.exists():
+                _clock_nc_paths[_s] = _s3
+            elif _s2.exists():
+                _clock_nc_paths[_s] = _s2
+        _deploy_dt = _parse_dt(ctx.get("deploy_time"))
+        _recover_dt = _parse_dt(ctx.get("recover_time"))
+        fig_clock_check_b64 = _make_clock_check_b64(
+            _clock_nc_paths, _deploy_dt, _recover_dt
+        )
 
         ds.close()
 
@@ -855,6 +892,7 @@ def generate_stack_page(
                 stack_exists=True,
                 grid_exists=grid_exists,
                 current_report="stack",
+                array_report_href=_find_array_report_href(out_dir),
             ),
             cruise=ctx.get("cruise", "—"),
             ship=ctx.get("ship", "—"),
@@ -892,6 +930,7 @@ def generate_stack_page(
             fig_trajectories_b64=fig_trajectories_b64,
             fig_adcp_trajectories_b64=fig_adcp_trajectories_b64,
             fig_speed_profile_b64=fig_speed_profile_b64,
+            fig_clock_check_b64=fig_clock_check_b64,
             fig_analog_b64=fig_analog_b64,
             generated=ctx["generated"],
             proc_machine=ctx.get("proc_machine", ""),

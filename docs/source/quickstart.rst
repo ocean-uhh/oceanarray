@@ -20,24 +20,41 @@ write Python code.
 Prerequisites
 -------------
 
-**Python 3.10 or later** is required.  Install the package and its
-scientific dependencies:
+**Python 3.10 or later** is required.  First create an isolated environment,
+then clone and install from source.
+
+**Option A — conda**
 
 .. code-block:: bash
 
-   pip install oceanarray
+   conda create -n oceanarray python=3.11
+   conda activate oceanarray
+
+**Option B — venv**
+
+.. code-block:: bash
+
+   python -m venv venv
+   source venv/bin/activate        # macOS / Linux
+   # venv\Scripts\activate         # Windows
+
+**Clone and install** (after activating either environment):
+
+.. code-block:: bash
+
+   git clone https://github.com/ocean-uhh/oceanarray
+   cd oceanarray
+   pip install -e .
 
 ``oceanarray`` reads raw instrument files via the ``seasenselib`` library,
-which is a separate install:
-
-.. code-block:: bash
-
-   pip install seasenselib
+which is also not on PyPI.  Install it following the instructions provided
+with your copy of the library.
 
 .. note::
 
-   ``seasenselib`` is not distributed on PyPI.  Follow the installation
-   instructions provided with your copy of the library.
+   Without ``seasenselib``, stage 1 processing (raw file ingestion) cannot
+   run.  Stages 2–3, stack, grid, and report generation work on existing
+   NetCDF files without it.
 
 If you need to process RDI WorkHorse ADCP files (``file_type: rdi-raw``),
 install the optional ``dolfyn`` dependency:

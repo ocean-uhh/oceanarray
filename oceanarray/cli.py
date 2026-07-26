@@ -307,15 +307,34 @@ def cmd_plot(args: argparse.Namespace) -> int:
 
 
 def cmd_report(args: argparse.Namespace) -> int:
-    """Generate HTML quality-control reports for a mooring.
+    """Generate HTML quality-control reports for a mooring or an array.
 
-    By default produces only the mooring summary page (``{mooring}_report.html``).
-    Add flags to generate additional pages:
+    Without ``--array``: generates the mooring summary page (and optionally
+    ``--instruments``, ``--stack``, ``--grid`` pages) for a single mooring.
 
-    - ``--instruments``: one page per instrument (in ``report/instrument/``).
-    - ``--stack``: stack report (``{mooring}_stack_report.html``).
-    - ``--grid``: pressure-gridded report (``{mooring}_grid_report.html``).
+    With ``--array``: the positional argument is treated as a path to an
+    ``*.array.yaml`` file and an array-level HTML index is generated linking
+    all mooring reports.  Other report flags are ignored in array mode.
     """
+    from pathlib import Path
+
+    _, proc_root, _ = _parse_dirs(args)
+
+    if getattr(args, "array", False):
+        from .report._array import generate_array_report
+
+        # Resolve the YAML path: try as-given first, then relative to proc_dir.
+        _yaml_path = Path(args.mooring)
+        if not _yaml_path.exists() and not _yaml_path.is_absolute():
+            _yaml_path = proc_root / args.mooring
+        _status("section", f"Array report: {_yaml_path.name}")
+        result = generate_array_report(
+            array_yaml_path=_yaml_path,
+            proc_dir=proc_root,
+            force=args.force,
+        )
+        return 0 if result else 1
+
     from .report import MooringReport
 
     raw_dir, proc_root, legacy = _parse_dirs(args)
@@ -329,14 +348,15 @@ def cmd_report(args: argparse.Namespace) -> int:
             proc_dir=str(proc_root),
             raw_dir=str(raw_dir) if raw_dir else None,
         )
+    all_reports = getattr(args, "all_reports", False)
     result = reporter.generate(
         args.mooring,
         force=args.force,
         outdir=getattr(args, "outdir", None),
         serials=serials,
-        instruments=args.instruments or bool(serials),
-        grid=args.grid,
-        stack=args.stack,
+        instruments=all_reports or args.instruments or bool(serials),
+        grid=all_reports or args.grid,
+        stack=all_reports or args.stack,
     )
     return 0 if result else 1
 
@@ -630,11 +650,13 @@ def cmd_list(args: argparse.Namespace) -> int:
                 print(f"  {ft:<{instr_col}}  {note}")
 
         print()
-        print("  Notes:")
-        print("    instrument:  human-readable name stored in instrument_type")
-        print("                 coordinates; drives Aquadopp-specific plots,")
+        print("  Mooring YAML fields for each instrument entry:")
+        print("    instrument:  name from the table above; stored as instrument_type")
+        print("                 in the NetCDF output.  Drives Aquadopp-specific plots,")
         print("                 declination correction, and tilt QC.")
         print("    file_type:   selects the seasenselib reader for stage 1.")
+        print("    header:      path to the Nortek .hdr file (aquadopp only); required")
+        print("                 for beam→XYZ coordinate transformation.")
         print()
 
     return 0
@@ -915,6 +937,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="Generate per-instrument page(s) for these serial number(s) only "
         "(implies --instruments for the listed serials)",
     )
+    p_report.add_argument(
+        "--all",
+        "-A",
+        action="store_true",
+        default=False,
+        dest="all_reports",
+        help="Generate all report pages: equivalent to --stack --grid --instruments",
+    )
+    p_report.add_argument(
+        "--array",
+        action="store_true",
+        default=False,
+        help="Treat the positional argument as a *.array.yaml path and generate an "
+        "array-level HTML index linking all mooring reports.",
+    )
     p_report.set_defaults(func=cmd_report)
 
     p_stack = sub.add_parser(
@@ -947,7 +984,9 @@ def build_parser() -> argparse.ArgumentParser:
         description=(
             "Reads {mooring}_stack.nc and interpolates temperature, salinity, and other\n"
             "scalar fields onto a uniform pressure grid, producing {mooring}_grid.nc.\n"
-            "Run after 'oceanarray stack'."
+            "Run after 'oceanarray stack'.\n\n"
+            "Example:\n"
+            "  oceanarray grid MOORING --proc-dir /data/proc --pmin 100 --pmax 2000 --dp 20"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
