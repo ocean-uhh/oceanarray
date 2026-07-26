@@ -1,4 +1,4 @@
-"""oceanarray.logsheets._latex
+"""oceanarray.logsheet._latex
 ============================
 LaTeX escaping, column-spec building, and row-rendering helpers.
 """

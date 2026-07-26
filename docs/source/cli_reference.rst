@@ -300,7 +300,7 @@ suspect or bad are treated the same as good data unless they are already NaN.
 .. code-block:: text
 
    oceanarray grid MOORING [--proc-dir DIR] [--dp DBAR]
-                           [--p-start DBAR] [--p-end DBAR] [--force]
+                           [--pmin DBAR] [--pmax DBAR] [--force]
 
 **Flags**
 
@@ -320,11 +320,11 @@ suspect or bad are treated the same as good data unless they are already NaN.
      - number
      - 20
      - Pressure grid spacing in dbar.
-   * - ``--p-start DBAR``
+   * - ``--pmin DBAR``
      - number
      - 200
      - Shallowest pressure level (dbar).
-   * - ``--p-end DBAR``
+   * - ``--pmax DBAR``
      - number
      - 1000
      - Deepest pressure level (dbar).
@@ -341,7 +341,7 @@ suspect or bad are treated the same as good data unless they are already NaN.
 
 .. code-block:: bash
 
-   oceanarray grid dsG3_1_2026 --proc-dir /data/proc --dp 20 --p-start 100 --p-end 2000
+   oceanarray grid dsG3_1_2026 --proc-dir /data/proc --dp 20 --pmin 100 --pmax 2000
 
 ----
 
@@ -364,7 +364,7 @@ and a quick report inspection).
 
    oceanarray run MOORING [--raw-dir DIR] [--proc-dir DIR]
                           [--dt SECONDS] [--dp DBAR]
-                          [--p-start DBAR] [--p-end DBAR]
+                          [--pmin DBAR] [--pmax DBAR]
                           [--serial SN ...] [--force]
 
 **Flags**
@@ -393,11 +393,11 @@ and a quick report inspection).
      - number
      - 20
      - Pressure step for the grid output (dbar).
-   * - ``--p-start DBAR``
+   * - ``--pmin DBAR``
      - number
      - 200
      - Shallowest pressure level in the grid (dbar).
-   * - ``--p-end DBAR``
+   * - ``--pmax DBAR``
      - number
      - 1000
      - Deepest pressure level in the grid (dbar).

@@ -1,4 +1,4 @@
-"""oceanarray.logsheets._render
+"""oceanarray.logsheet._render
 ==============================
 Jinja2 environment factory and PDF compilation helper.
 """

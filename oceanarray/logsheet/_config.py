@@ -1,4 +1,4 @@
-"""oceanarray.logsheets._config
+"""oceanarray.logsheet._config
 =============================
 Path resolution, YAML loading helpers, and instrument registry access.
 

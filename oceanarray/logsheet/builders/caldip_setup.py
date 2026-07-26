@@ -1,4 +1,4 @@
-"""oceanarray.logsheets.builders.caldip_setup
+"""oceanarray.logsheet.builders.caldip_setup
 ============================================
 Build caldip-setup PDF logsheets.
 """

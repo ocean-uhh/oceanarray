@@ -6,17 +6,12 @@
    :caption: API Reference
 
    readers
-   acquisition
-   trimming
-   calibration
-   filtering
-   gridding
-   stitching
-   transports
    writers
+   plotters
+   trimming
+   transports
    tools
    utilities
-   plotters
 
 Load and process moored oceanographic time series data from raw instrument format to array-integrated transport products.
 
@@ -50,6 +45,15 @@ Tools for plotting mooring time series, profile sections, and transport products
    :members:
    :undoc-members:
 
+logsheet
+^^^^^^^^
+Generate fieldwork logsheet PDFs for mooring deployments/recoveries and
+calibration-dip casts.
+
+.. automodule:: oceanarray.logsheet
+   :members:
+   :undoc-members:
+
 Instrument Processing
 ----------------------
 
@@ -63,54 +67,59 @@ Trim instrument records to the deployment window and flag out-of-bounds values.
    :undoc-members:
 
 
-stage 2 - trimming
-^^^^^^^^^^^^^^^^^^^
-Trim instrument records to the deployment window and flag out-of-bounds values.
+stage 2 - trimming and clock correction
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Trim to deployment window and apply linear clock-offset/drift correction.
 
 .. automodule:: oceanarray.stage2
    :members:
    :undoc-members:
 
-calibration
-^^^^^^^^^^^
-Apply post-cruise calibration offsets derived from shipboard CTD comparisons.
+stage 3 - QC, rotation, and derived variables
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Apply gross-range and spike QC flags, rotate ADCP velocities to ENU, apply
+magnetic declination correction, and compute derived quantities (salinity,
+density, current speed/direction).
 
-.. automodule:: oceanarray.calibration
+.. automodule:: oceanarray.stage3
    :members:
    :undoc-members:
 
-convertOS
-^^^^^^^^^
-Convert to OceanSites format.
+clock offset
+^^^^^^^^^^^^
+Cross-correlation and lag-analysis tools for estimating clock offsets between
+co-located instruments.
 
-.. automodule:: oceanarray.convertOS
+.. automodule:: oceanarray.clock_offset
    :members:
    :undoc-members:
 
 Mooring Processing
-----------------------
+------------------
 
-Step 1 - time_gridding
-^^^^^^^^^^^^^^^^^^^^^^^
-Apply Butterworth filters to remove tides and smooth high-frequency noise.
+time gridding / stacking
+^^^^^^^^^^^^^^^^^^^^^^^^^
+Interpolate multiple instruments onto a common time grid and stack into a
+single mooring dataset (``oceanarray stack``).
 
 .. automodule:: oceanarray.time_gridding
    :members:
    :undoc-members:
 
-Step 2 - vertical gridding
-^^^^^^^^^^^
-Vertically interpolate T/S/P data onto a common pressure grid using climatological constraints.
+vertical gridding
+^^^^^^^^^^^^^^^^^
+Interpolate stacked mooring data onto a regular pressure grid
+(``oceanarray grid``).  See :class:`~oceanarray.mooring_level.MooringGridder`.
 
-.. automodule:: oceanarray.vertical_gridding
+.. automodule:: oceanarray.mooring_level
    :members:
    :undoc-members:
 
-Step 3 - stitching
-^^^^^^^^^^^^^^^^^^^
-Concatenate deployments and interpolate onto a continuous time base.
+validation
+^^^^^^^^^^
+Validate mooring YAML configuration files and check instrument type names.
 
-.. automodule:: oceanarray.stitching
+.. automodule:: oceanarray.validation
    :members:
    :undoc-members:
 
@@ -145,4 +154,12 @@ General utilities for file management, logging, and parsing ASCII metadata.
    :members:
    :undoc-members:
 
+plotter
+^^^^^^^
+Legacy per-instrument plotting functions (use ``oceanarray.plotters`` for new
+code; this module is retained for backward compatibility).
+
+.. automodule:: oceanarray.plotter
+   :members:
+   :undoc-members:
 

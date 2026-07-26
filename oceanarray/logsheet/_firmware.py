@@ -1,4 +1,4 @@
-"""oceanarray.logsheets._firmware
+"""oceanarray.logsheet._firmware
 ================================
 MicroCAT firmware group detection and display labels.
 """

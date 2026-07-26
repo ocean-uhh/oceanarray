@@ -1,4 +1,4 @@
-"""oceanarray.logsheets.builders.recovery
+"""oceanarray.logsheet.builders.recovery
 =========================================
 Build mooring-recovery logsheet PDFs.
 """

@@ -96,6 +96,51 @@ Stage 2 checks for common problems and emits warnings:
 Processing continues past individual instrument failures; check
 ``{proc_dir}/{mooring}/processing_logs/`` for details.
 
+3.5 Auto-detection of deployment window
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If ``deployment_time`` or ``recovery_time`` is absent from the mooring YAML (or
+left as ``null``), Stage 2 attempts to detect the in-water period automatically
+by looking for the pressure transition at deployment (instrument sinks from
+surface to depth) and at recovery (instrument rises back to surface).
+
+The suggested times are printed as a **WARNING** in the console output and are
+also visible in the mooring summary HTML report under the *Deployment timing*
+section.  They are stored as global attributes in the Stage 2 NetCDF file:
+
+- ``suggested_deployment_time_utc``
+- ``suggested_recovery_time_utc``
+
+**Stage 2 never silently uses the auto-detected window as the trim boundary.**
+You must copy the suggested times into the mooring YAML and rerun:
+
+.. code-block:: text
+
+   Recommended workflow
+   --------------------
+   1.  Run Stage 1:   oceanarray process MOORING --stage 1
+   2.  Run Stage 2:   oceanarray process MOORING --stage 2
+       → Read suggested deployment/recovery times from the console WARNING
+         or from the mooring summary report (Deployment timing section).
+   3.  Edit mooring YAML:
+           deployment_time: "2026-05-01T18:23:00"   # ← paste suggested value
+           recovery_time:   "2026-07-10T06:47:00"   # ← paste suggested value
+   4.  Rerun Stage 2 (--force to overwrite):
+           oceanarray process MOORING --stage 2 --force
+
+**Interpreting the 6 h window plots** in the mooring summary report:
+
+Each instrument shows two panels — the first and last 6 hours of data.
+Two vertical lines are drawn:
+
+- **Green** = value set in the YAML (``deployment_time`` / ``recovery_time``)
+- **Orange** = Stage 2 auto-detected suggestion
+
+If the orange line is absent from the end-window panel the suggested recovery
+time falls outside the plotted range, most commonly because the YAML
+``recovery_time`` was set earlier than the data transition.  Update
+``recovery_time`` to the suggested value and rerun.
+
 6. What comes next
 ------------------
 
