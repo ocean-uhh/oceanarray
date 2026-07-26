@@ -244,7 +244,7 @@ _STACK_HTML_TEMPLATE = """\
   </div>
   {% endif %}
   {% if fig_adcp_trajectories_b64 %}
-  <div style="flex:1;min-width:280px">
+  <div style="flex:0 0 50%;max-width:50%">
     <p style="text-align:center;font-weight:600;margin-bottom:0.3rem">ADCP</p>
     <img class="fig" style="max-width:100%;width:100%" src="data:image/png;base64,{{ fig_adcp_trajectories_b64 }}" alt="ADCP trajectories">
   </div>
@@ -772,12 +772,8 @@ def generate_stack_page(
             else None
         )
 
-        fig_rose_grid_b64 = _make_rose_grid_b64(ds, _serial_list)
+        fig_rose_grid_b64, _n_rose = _make_rose_grid_b64(ds, _serial_list)
         # Width cap: 33% for 1 panel, 50% for 2, 66% for 3, 83% for 4, 100% for 5+
-        _n_rose = 0
-        if "east_velocity" in ds.data_vars:
-            _ev = ds["east_velocity"].values
-            _n_rose = sum(np.any(np.isfinite(_ev[:, i])) for i in range(_ev.shape[1]))
         _rose_w_map = {1: "33", 2: "50", 3: "66", 4: "83"}
         rose_img_width = _rose_w_map.get(_n_rose, "100")
 

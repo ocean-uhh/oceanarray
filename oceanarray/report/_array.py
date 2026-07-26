@@ -197,7 +197,6 @@ _ARRAY_HTML_TEMPLATE = """\
     {% if project %}<div><dt>Project</dt><dd>{{ project }}</dd></div>{% endif %}
     {% if deploy_time %}<div><dt>Deployment</dt><dd>{{ deploy_time }}</dd></div>{% endif %}
     {% if recover_time %}<div><dt>Recovery</dt><dd>{{ recover_time }}</dd></div>{% endif %}
-    {% if overall_duration_days is not none %}<div><dt>Duration</dt><dd>{{ overall_duration_days }} days</dd></div>{% endif %}
     <div><dt>Moorings</dt><dd>{{ moorings | length }}</dd></div>
   </dl>
 </div>
@@ -367,19 +366,6 @@ def generate_array_report(
     deploy_dt_arr = _parse_dt(array_cfg.get("deployment_time"))
     recover_dt_arr = _parse_dt(array_cfg.get("recovery_time"))
 
-    # Overall duration: prefer array-level times; fall back to min/max across moorings.
-    import math as _math
-
-    _all_deploys = [r["_deploy_dt"] for r in rows if r.get("_deploy_dt")]
-    _all_recovers = [r["_recover_dt"] for r in rows if r.get("_recover_dt")]
-    _t0 = deploy_dt_arr or (min(_all_deploys) if _all_deploys else None)
-    _t1 = recover_dt_arr or (max(_all_recovers) if _all_recovers else None)
-    if _t0 and _t1 and _t1 > _t0:
-        _span_days = (_t1 - _t0).total_seconds() / 86400.0
-        overall_duration_days = _math.floor(_span_days * 10) / 10
-    else:
-        overall_duration_days = None
-
     ctx = {
         "array_name": array_name,
         "year": array_cfg.get("year"),
@@ -388,7 +374,6 @@ def generate_array_report(
         "project": array_cfg.get("project"),
         "deploy_time": deploy_dt_arr.strftime("%Y-%m-%d") if deploy_dt_arr else "",
         "recover_time": recover_dt_arr.strftime("%Y-%m-%d") if recover_dt_arr else "",
-        "overall_duration_days": overall_duration_days,
         "moorings": rows,
         "fig_map_b64": fig_map_b64,
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),

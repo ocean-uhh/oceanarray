@@ -39,12 +39,22 @@ immediately without reinstalling.
 ## Install seasenselib
 
 `oceanarray` reads raw instrument files via `seasenselib`, which is a separate
-package not distributed on PyPI.  Install it following the instructions
-provided with your copy of the library.
+package not distributed on PyPI.
+
+`seasenselib` declares version constraints on some of its dependencies
+(`pyrsktools`, `pycnv`, `pyproj`) that can conflict with the rest of the
+oceanarray environment.  Install those packages first — letting pip satisfy
+them against oceanarray's own requirements — then install `seasenselib` without
+its dependency resolver:
+
+```bash
+pip install pyrsktools pycnv
+pip install seasenselib --no-deps
+```
 
 Without `seasenselib`, stage 1 processing cannot run.  Stages 2–3 and
 mooring-level processing (stack, grid, reports) can still run on existing
-NetCDF files.
+NetCDF files.  See [Troubleshooting](troubleshooting.rst) if the install fails.
 
 ## Optional: RDI ADCP support
 

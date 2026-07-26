@@ -2720,14 +2720,22 @@ def _make_grid_n2_b64(ds: "xr.Dataset", lat: float = 0.0) -> Optional[str]:
 def _make_rose_grid_b64(
     ds: "xr.Dataset",
     serial_list: list,
-) -> Optional[str]:
-    """Grid of current roses (max 4 per row) for instruments with ENU velocity data."""
+) -> tuple:
+    """Grid of current roses (max 4 per row) for instruments with ENU velocity data.
+
+    Returns
+    -------
+    tuple[str | None, int]
+        ``(base64_png, n_panels)`` — base64 image string (or ``None`` on failure)
+        and the number of rose panels rendered.
+
+    """
     import math
     import matplotlib.pyplot as plt
     from .. import parameters as P
 
     if "east_velocity" not in ds.data_vars or "north_velocity" not in ds.data_vars:
-        return None
+        return None, 0
 
     east_all = ds["east_velocity"].values.copy()
     north_all = ds["north_velocity"].values.copy()
@@ -2753,7 +2761,13 @@ def _make_rose_grid_b64(
 
     # Split by instrument type: ADCP bins are capped at 4 per serial (top, 2 mid,
     # bottom by HAB), single-point instruments (Aquadopp, etc.) keep all.
-    instr_type_vals = ds["instrument_type"].values if "instrument_type" in ds else None
+    # The variable may be "instrument_type" (mooring_level) or "instrument" (time_gridding).
+    _type_var = (
+        "instrument_type"
+        if "instrument_type" in ds
+        else ("instrument" if "instrument" in ds else None)
+    )
+    instr_type_vals = ds[_type_var].values if _type_var is not None else None
     _all_cand = [i for i in range(len(serial_list)) if i < len(has_vel) and has_vel[i]]
 
     aqd_idx: list[int] = []
@@ -2788,7 +2802,7 @@ def _make_rose_grid_b64(
 
     n = len(aqd_idx)
     if n == 0:
-        return None
+        return None, 0
 
     ncols = min(n, 4)
     nrows = math.ceil(n / ncols)
@@ -2819,7 +2833,7 @@ def _make_rose_grid_b64(
     plt.tight_layout()
     b64 = _fig_to_base64(fig)
     plt.close(fig)
-    return b64
+    return b64, n
 
 
 def _make_grid_rose_b64(ds: "xr.Dataset", max_roses: int = 4) -> Optional[str]:

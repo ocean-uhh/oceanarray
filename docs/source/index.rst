@@ -28,6 +28,7 @@ Contents
 
    quickstart
    installation <setup>
+   troubleshooting
 
 
 .. toctree::
