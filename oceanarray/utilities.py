@@ -497,6 +497,56 @@ def drop_all_zero_vars(ds: xr.Dataset, prefixes: list[str]) -> xr.Dataset:
     return ds.drop_vars(to_drop) if to_drop else ds
 
 
+def period_axis_ticks(
+    p_min_days: float, p_max_days: float
+) -> tuple[list[float], list[str]]:
+    """Return human-readable period tick values and labels for a log-period axis.
+
+    Canonical tick list covers 1 min through 1 yr.  Only ticks within
+    ``[p_min_days, p_max_days]`` are returned.  Intended for spectral and
+    wavelet period axes (both x and y) so that all figures share the same tick
+    positions.
+
+    Parameters
+    ----------
+    p_min_days:
+        Minimum visible period in days (Nyquist end of the axis).
+    p_max_days:
+        Maximum visible period in days (long-period end of the axis).
+
+    Returns
+    -------
+    tuple[list[float], list[str]]
+        Pair of (values_in_days, labels) filtered to the visible range.
+
+    """
+    _candidates: list[tuple[float, str]] = [
+        (1.0 / 1440, "1min"),
+        (2.0 / 1440, "2min"),
+        (5.0 / 1440, "5min"),
+        (10.0 / 1440, "10min"),
+        (30.0 / 1440, "30min"),
+        (1.0 / 24, "1h"),
+        (2.0 / 24, "2h"),
+        (6.0 / 24, "6h"),
+        (12.0 / 24, "12h"),
+        (1.0, "1d"),
+        (2.0, "2d"),
+        (4.0, "4d"),
+        (7.0, "7d"),
+        (14.0, "14d"),
+        (20.0, "20d"),
+        (30.0, "30d"),
+        (90.0, "90d"),
+        (180.0, "180d"),
+        (365.0, "1yr"),
+    ]
+    filtered = [(v, lbl) for v, lbl in _candidates if p_min_days <= v <= p_max_days]
+    if not filtered:
+        return [], []
+    return [v for v, _ in filtered], [lbl for _, lbl in filtered]
+
+
 def cast_output_dtypes(ds: xr.Dataset) -> xr.Dataset:
     """Cast every variable in *ds* to its optimal storage dtype.
 

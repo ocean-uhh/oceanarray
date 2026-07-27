@@ -502,12 +502,13 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
                 _ref_s = str(ref_serials[i]) if ref_serials is not None else "?"
                 _ref_note = f"  [ref: s/n {_ref_s} @ {ref_habs[i]:.0f} m]"
             ax_ts.set_title(f"s/n {serial}  ({hab:.0f} m hab){_ref_note}")
-            ax_ts.legend(
-                loc="upper left",
-                bbox_to_anchor=(1.01, 1.0),
-                borderaxespad=0,
-                framealpha=0.8,
-            )
+            if ax_ts.get_legend_handles_labels()[0]:
+                ax_ts.legend(
+                    loc="upper left",
+                    bbox_to_anchor=(1.01, 1.0),
+                    borderaxespad=0,
+                    framealpha=0.8,
+                )
 
             if row < n_panels - 1:
                 ax_ts.tick_params(labelbottom=False)
@@ -825,7 +826,10 @@ def generate_stack_page(
         if "pressure" in ds.data_vars and n_instr > 1:
             try:
                 pres_arr = ds["pressure"].values  # (time, N_LEVELS)
-                med_p = np.nanmedian(pres_arr, axis=0)  # one value per N_LEVELS
+                with np.errstate(all="ignore"):
+                    med_p = np.nanmedian(
+                        pres_arr, axis=0
+                    )  # one value per N_LEVELS; NaN when level fully gapped
                 sort_idx = np.argsort(med_p)
                 pres_sorted = pres_arr[:, sort_idx]
                 all_spacings: list = []
