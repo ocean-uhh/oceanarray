@@ -31,9 +31,10 @@ git clone https://github.com/ocean-uhh/oceanarray.git
 cd oceanarray
 conda create -n oceanarray python=3.11
 conda activate oceanarray
-pip install -r requirements-dev.txt
 pip install -e .
-pip install pyrsktools pycnv && pip install seasenselib --no-deps
+pip install -r requirements-dev.txt
+pip install pyrsktools pycnv
+pip install seasenselib --no-deps
 ```
 
 ### From source (venv)
@@ -43,9 +44,10 @@ git clone https://github.com/ocean-uhh/oceanarray.git
 cd oceanarray
 python3.11 -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
-pip install -r requirements-dev.txt
 pip install -e .
-pip install pyrsktools pycnv && pip install seasenselib --no-deps
+pip install -r requirements-dev.txt
+pip install pyrsktools pycnv
+pip install seasenselib --no-deps
 ```
 
 > **Python version**: Python 3.9–3.12 is supported. Python 3.13+ has not been

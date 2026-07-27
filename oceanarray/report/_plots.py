@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 import numpy as np
 
 from ._html_helpers import _QC_MARKER, _QC_LABELS, _fig_to_base64
-from ..utilities import _nice_colorbar_bounds
+from ..utilities import _nice_colorbar_bounds, period_axis_ticks
 
 
 # ---------------------------------------------------------------------------
@@ -1200,119 +1200,234 @@ def _make_spectrum_fig_b64(
     da_temp: "xr.DataArray",
     dt_seconds: float,
     lat: float = 0.0,
+    hf_segment_days: float = 1.0,
+    hf_x_max_days: float = 3.0,
 ) -> Optional[str]:
-    """Welch PSD of gridded temperature, one line per depth level coloured by pressure."""
+    """Two-panel Welch PSD of gridded temperature, one line per depth level.
+
+    Left panel: low-frequency overview using 14-day Hann windows.
+    Right panel: high-frequency zoom using ``hf_segment_days`` Hann windows,
+    giving more (shorter) windows and a smoother estimate at tidal and inertial
+    frequencies.
+
+    Parameters
+    ----------
+    da_temp:
+        Gridded temperature DataArray with dimensions (pressure, time).
+    dt_seconds:
+        Uniform time step of the grid in seconds.
+    lat:
+        Mooring latitude in decimal degrees; used to compute the inertial
+        frequency marker.  Pass 0 to omit.
+    hf_segment_days:
+        Window length for the HF panel in days.  Default 2 days (~180 windows
+        per year, ~7× more than the LF panel).  Reduce to focus on higher
+        frequencies, e.g. ``hf_segment_days=1/24`` for 1-hour windows on
+        sub-hourly data.
+    hf_x_max_days:
+        Upper x-axis limit (longest period shown) for the HF panel in days.
+        When ≤ 3 the HF x-axis is displayed in hours; otherwise in days.
+
+    Notes
+    -----
+    The LF panel uses gap-filled interpolation before calling ``welch_psd``
+    (current behaviour).  The HF panel uses ``welch_psd_gapaware``, which
+    operates only on contiguous finite runs and skips any window that straddles
+    a gap — avoiding the low-pass bias that linear interpolation introduces at
+    high frequencies.
+
+    To switch the LF panel to gap-aware as well, replace the two lines in the
+    computation loop that read::
+
+        col_filled = col.copy()
+        if not good.all():
+            col_filled = np.interp(...)
+        f, p = welch_psd(col_filled, dt_days, segment_length_lf)
+
+    with the single line::
+
+        f, p, _ = welch_psd_gapaware(col, dt_days, segment_length_lf)
+
+    """
     try:
         import matplotlib.pyplot as plt
         import matplotlib.colors as mcolors
         from matplotlib.transforms import blended_transform_factory
         import numpy as np
-        from scipy import signal as _signal
-
-        def welch_psd(
-            x: "np.ndarray",
-            dt_days: float,
-            segment_length: int,
-            overlap: float = 0.5,
-            window: str = "hann",
-        ) -> "tuple[np.ndarray, np.ndarray]":
-            fs = 1.0 / dt_days
-            noverlap = int(round(overlap * segment_length))
-            f, p = _signal.welch(
-                x,
-                fs=fs,
-                window=window,
-                nperseg=segment_length,
-                noverlap=noverlap,
-                detrend="linear",
-                scaling="density",
-            )
-            return f, p
+        from ..tools import welch_psd, welch_psd_gapaware
 
         from .. import parameters as P
 
         if da_temp.dims[0] != "pressure":
             da_temp = da_temp.transpose("pressure", ...)
         arr = da_temp.values
-        if "pressure" in da_temp.coords:
-            press_vals = da_temp.coords["pressure"].values.astype(float)
-        else:
-            press_vals = np.arange(arr.shape[0], dtype=float)
+        press_vals = (
+            da_temp.coords["pressure"].values.astype(float)
+            if "pressure" in da_temp.coords
+            else np.arange(arr.shape[0], dtype=float)
+        )
 
         n_lev, n_time = arr.shape
         dt_days = dt_seconds / 86400.0
 
-        seg_14d = max(128, int(14.0 / dt_days))
-        segment_length = min(seg_14d, max(n_time // 4, 128))
+        # LF: 14-day Hann windows
+        seg_lf = max(128, int(14.0 / dt_days))
+        segment_length_lf = min(seg_lf, max(n_time // 4, 128))
 
-        # Select at most 8 evenly-spaced valid levels
-        _MAX_LEVELS = 8
-        valid_lev_idx = [
-            k for k in range(n_lev) if np.sum(np.isfinite(arr[k, :])) >= segment_length
+        # HF: hf_segment_days Hann windows (caller controls this)
+        seg_hf = max(8, int(hf_segment_days / dt_days))
+        segment_length_hf = min(seg_hf, max(n_time // 4, 8))
+
+        # Level selection: pick levels near multiples of 100 dbar that have enough
+        # finite samples for at least one LF Welch window.  For each 100-dbar target
+        # the nearest valid level is used; targets with no level within 75 dbar are
+        # skipped.  Levels are kept in ascending pressure order so the colormap
+        # (light = shallow, dark = deep) matches the legend from top to bottom.
+        _candidates = [
+            (k, press_vals[k])
+            for k in range(n_lev)
+            if np.sum(np.isfinite(arr[k, :])) >= segment_length_lf
         ]
-        if len(valid_lev_idx) > _MAX_LEVELS:
-            sel = np.linspace(0, len(valid_lev_idx) - 1, _MAX_LEVELS, dtype=int)
-            valid_lev_idx = [valid_lev_idx[i] for i in sel]
+        if _candidates:
+            _cp = np.array([pv for _, pv in _candidates])
+            _lo100 = int(np.ceil(_cp.min() / 100.0)) * 100
+            _hi100 = int(np.floor(_cp.max() / 100.0)) * 100
+            _seen_k: set = set()
+            valid_lev_idx = []
+            for _tgt in np.arange(_lo100, _hi100 + 1, 100.0):
+                _bi = int(np.argmin(np.abs(_cp - _tgt)))
+                _k = _candidates[_bi][0]
+                if _k not in _seen_k and np.abs(_cp[_bi] - _tgt) <= 75.0:
+                    _seen_k.add(_k)
+                    valid_lev_idx.append(_k)
+        else:
+            valid_lev_idx = []
 
-        freq_out = None
-        psds, press_plotted = [], []
+        freq_lf = freq_hf = None
+        psds_lf, press_plotted_lf = [], []
+        psds_hf, press_plotted_hf = [], []
+        hf_total_wins = 0
         for k in valid_lev_idx:
             col = arr[k, :].copy()
             good = np.isfinite(col)
-            if not good.all():
-                col = np.interp(np.arange(n_time), np.where(good)[0], col[good])
-            freq, psd = welch_psd(col, dt_days, segment_length=segment_length)
-            if freq_out is None:
-                freq_out = freq
-            psds.append(psd)
-            press_plotted.append(press_vals[k])
 
-        if freq_out is None or not psds:
+            # LF: gap-fill then Welch.  To switch to gap-aware, replace these two
+            # lines with: f, p, _ = welch_psd_gapaware(col, dt_days, segment_length_lf)
+            col_filled = col.copy()
+            if not good.all():
+                col_filled = np.interp(np.arange(n_time), np.where(good)[0], col[good])
+            f, p = welch_psd(col_filled, dt_days, segment_length_lf)
+            if freq_lf is None:
+                freq_lf = f
+            psds_lf.append(p)
+            press_plotted_lf.append(press_vals[k])
+
+            # HF: gap-aware — only windows within contiguous finite runs
+            f_hf, p_hf, n_w = welch_psd_gapaware(col, dt_days, segment_length_hf)
+            if f_hf is not None:
+                if freq_hf is None:
+                    freq_hf = f_hf
+                psds_hf.append(p_hf)
+                press_plotted_hf.append(press_vals[k])
+                hf_total_wins += n_w
+            # else: no contiguous run long enough for an HF window at this level — skip silently
+
+        if freq_lf is None or not psds_lf:
             return None
 
-        markers = [
+        if not psds_hf:
+            print(
+                f"  NOTE: temperature spectrum HF — no valid windows at any level "
+                f"(segment={segment_length_hf} samples = {hf_segment_days:.3g} d); "
+                f"HF panel will be blank"
+            )
+
+        # Window counts for subplot titles
+        n_win_lf = max(1, 2 * n_time // segment_length_lf - 1)
+        # HF: actual windows used (gap-aware), averaged across contributing levels
+        n_win_hf = hf_total_wins // max(1, len(psds_hf)) if psds_hf else 0
+
+        # LF markers (periods in days)
+        lf_markers = [
             ("M2", 1.0 / 1.9323, "#c0392b"),
-            ("K1", 23.93 / 24.0, "#e67e22"),
             ("1.8d", 1.8, "#7f8c8d"),
             ("4d", 4.0, "#95a5a6"),
+        ]
+        # HF markers — tuples are (label, period_days, color, y_axes).
+        # M2 label is raised (y=0.15) so it clears the f label (y=0.03) at high
+        # latitudes where the inertial period approaches the M2 semidiurnal period.
+        hf_markers = [
+            ("M2", 1.0 / 1.9323, "#c0392b", 0.15),
+            ("9min", 9.0 / 1440.0, "#7f8c8d", 0.03),
         ]
         if lat != 0.0:
             import gsw as _gsw
 
-            f_inert = abs(_gsw.f(lat))
-            f_inert_cpd = f_inert * 86400.0 / (2.0 * np.pi)
-            markers.append(("f", 1.0 / f_inert_cpd, "#27ae60"))
+            f_inert_cpd = abs(_gsw.f(lat)) * 86400.0 / (2.0 * np.pi)
+            inert_period_d = 1.0 / f_inert_cpd
+            lf_markers.append(("f", inert_period_d, "#27ae60"))
+            hf_markers.append(("f", inert_period_d, "#27ae60", 0.03))
 
-        p_arr = np.array(press_plotted)
+        p_arr = np.array(press_plotted_lf)
         p_min, p_max = p_arr.min(), p_arr.max()
         if p_min == p_max:
             p_min -= 1.0
             p_max += 1.0
-        cmap = plt.get_cmap("Blues_r")
+        # Blues (not reversed): shallow → light blue, deep → dark blue.
+        # Clip the lightest 25 % so shallow levels are never near-white.
+        # Adjust the 0.25 start value to taste: higher = all lines darker.
+        _blues = plt.get_cmap("Blues")
+        cmap = mcolors.LinearSegmentedColormap.from_list(
+            "Blues_dark", _blues(np.linspace(0.25, 1.0, 256))
+        )
         norm = mcolors.Normalize(vmin=p_min, vmax=p_max)
 
-        plt.style.use(str(P.MPLSTYLE))
-        fig, ax = plt.subplots(figsize=(11, 5))
-
         nyq_period = 2.0 * dt_days
-        x_min = nyq_period
-        x_max = min(30.0, n_time * dt_days / 2.0)
 
-        fmask = (freq_out > 0) & (freq_out <= 1.0 / nyq_period)
-        freq_plot = freq_out[fmask]
-        period_plot = 1.0 / freq_plot
+        # HF x-axis: switch to hours when the range is ≤ 3 days (tidal focus)
+        use_hours = hf_x_max_days <= 3.0
+        hf_scale = 24.0 if use_hours else 1.0
+        hf_unit = "hours" if use_hours else "days"
+        hf_seg_hours = hf_segment_days * 24.0
+        hf_seg_label = (
+            f"{int(hf_seg_hours)}-hour"
+            if hf_seg_hours == int(hf_seg_hours)
+            else f"{hf_seg_hours:.3g}-hour"
+        )
 
-        for psd, p in zip(psds, press_plotted):
-            ax.loglog(period_plot, psd[fmask], color=cmap(norm(p)), lw=0.8, alpha=0.75)
+        from matplotlib.ticker import NullLocator
 
-        idx_1d = np.argmin(np.abs(freq_plot - 1.0))
-        median_at_1d = float(np.median([psd[fmask][idx_1d] for psd in psds]))
+        plt.style.use(str(P.MPLSTYLE))
+        fig, (ax_lf, ax_hf) = plt.subplots(1, 2, figsize=(14, 5))
+
+        x_min_lf = max(nyq_period, 10.0 / 1440.0)  # right edge: Nyquist or 10 min
+        # Left edge = longest period Welch can estimate = 1/min_freq = window length
+        x_max_lf = 1.0 / float(freq_lf[freq_lf > 0].min())
+        x_min_hf = nyq_period
+        x_max_hf = hf_segment_days  # exactly one HF window length
+
+        fmask_lf = (freq_lf > 0) & (freq_lf <= 1.0 / nyq_period)
+        freq_plot_lf = freq_lf[fmask_lf]
+        period_plot_lf = 1.0 / freq_plot_lf
+
+        # ── LF panel ──
+        for psd, pv in zip(psds_lf, press_plotted_lf):
+            ax_lf.loglog(
+                period_plot_lf,
+                psd[fmask_lf],
+                color=cmap(norm(pv)),
+                lw=0.8,
+                alpha=0.75,
+                label=f"{pv:.0f} dbar",
+            )
+
+        idx_1d = np.argmin(np.abs(freq_plot_lf - 1.0))
+        median_at_1d = float(np.median([psd[fmask_lf][idx_1d] for psd in psds_lf]))
         if np.isfinite(median_at_1d) and median_at_1d > 0:
-            ref_periods = np.array([x_min, x_max])
-            ref_psd = median_at_1d * ref_periods**2
-            ax.loglog(
-                ref_periods,
-                ref_psd,
+            ref_p = np.array([x_min_lf, x_max_lf])
+            ax_lf.loglog(
+                ref_p,
+                median_at_1d * ref_p**2,
                 color="k",
                 lw=0.9,
                 ls="--",
@@ -1320,36 +1435,131 @@ def _make_spectrum_fig_b64(
                 label="−2 slope",
             )
 
-        ax.set_xlim(x_max, x_min)
-
-        trans = blended_transform_factory(ax.transData, ax.transAxes)
-        for label, period_d, color in markers:
-            if x_min <= period_d <= x_max:
-                ax.axvline(period_d, color=color, lw=1.0, ls="--", alpha=0.65)
-                ax.text(
-                    period_d,
+        ax_lf.set_xlim(x_max_lf, x_min_lf)
+        ax_lf.set_ylim(1e-6, 1e2)
+        _lf_tv, _lf_tl = period_axis_ticks(x_min_lf, x_max_lf)
+        ax_lf.set_xticks(_lf_tv)
+        ax_lf.set_xticklabels(_lf_tl)
+        ax_lf.xaxis.set_minor_locator(NullLocator())
+        trans_lf = blended_transform_factory(ax_lf.transData, ax_lf.transAxes)
+        for lbl, pd_d, clr in lf_markers:
+            if x_min_lf <= pd_d <= x_max_lf:
+                ax_lf.axvline(pd_d, color=clr, lw=1.0, ls="--", alpha=0.65)
+                ax_lf.text(
+                    pd_d,
                     0.03,
-                    label,
+                    lbl,
                     rotation=90,
                     va="bottom",
                     ha="center",
-                    color=color,
-                    transform=trans,
+                    color=clr,
+                    transform=trans_lf,
                     bbox=dict(
                         boxstyle="round,pad=0.1", fc="white", ec="none", alpha=0.6
                     ),
                 )
 
-        ax.set_ylim(1e-6, 1e2)
-        ax.set_xlabel("Period (days)")
-        ax.set_ylabel("PSD (°C² cpd⁻¹)")
-        ax.set_title("Temperature power spectrum (Welch per depth level)")
-        ax.legend(loc="lower left")
+        ax_lf.set_xlabel("Period")
+        ax_lf.set_ylabel("PSD (°C² cpd⁻¹)")
+        ax_lf.set_title(f"Low-frequency — 14-day windows (~{n_win_lf} windows)")
+        # Single shared legend — depth labels from LF lines serve both panels
+        ax_lf.legend(
+            loc="upper right", title="Depth", fontsize="small", title_fontsize="small"
+        )
 
-        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-        sm.set_array([])
-        cbar = fig.colorbar(sm, ax=ax, pad=0.02)
-        cbar.set_label("Pressure (dbar)")
+        # ── HF panel ──
+        if psds_hf and freq_hf is not None:
+            fmask_hf = (freq_hf > 0) & (freq_hf <= 1.0 / nyq_period)
+            freq_plot_hf = freq_hf[fmask_hf]
+            period_plot_hf = 1.0 / freq_plot_hf
+
+            for psd, pv in zip(psds_hf, press_plotted_hf):
+                ax_hf.loglog(
+                    period_plot_hf * hf_scale,
+                    psd[fmask_hf],
+                    color=cmap(norm(pv)),
+                    lw=0.8,
+                    alpha=0.75,
+                )
+
+            # -2 slope anchored at geometric midpoint of the HF x range
+            _log_mid = np.sqrt(x_min_hf * x_max_hf)
+            _idx_mid = np.argmin(np.abs(period_plot_hf - _log_mid))
+            _med_mid = float(np.median([psd[fmask_hf][_idx_mid] for psd in psds_hf]))
+            if np.isfinite(_med_mid) and _med_mid > 0:
+                ref_p_hf = np.array([x_min_hf, x_max_hf])
+                ax_hf.loglog(
+                    ref_p_hf * hf_scale,
+                    _med_mid * (ref_p_hf / _log_mid) ** 2,
+                    color="k",
+                    lw=0.9,
+                    ls="--",
+                    alpha=0.35,
+                    label="−2 slope",
+                )
+
+            trans_hf = blended_transform_factory(ax_hf.transData, ax_hf.transAxes)
+            for lbl, pd_d, clr, y_lbl in hf_markers:
+                pd_scaled = pd_d * hf_scale
+                lo, hi = x_min_hf * hf_scale, x_max_hf * hf_scale
+                if lo <= pd_scaled <= hi:
+                    ax_hf.axvline(pd_scaled, color=clr, lw=1.0, ls="--", alpha=0.65)
+                    ax_hf.text(
+                        pd_scaled,
+                        y_lbl,
+                        lbl,
+                        rotation=90,
+                        va="bottom",
+                        ha="center",
+                        color=clr,
+                        transform=trans_hf,
+                        bbox=dict(
+                            boxstyle="round,pad=0.1", fc="white", ec="none", alpha=0.6
+                        ),
+                    )
+
+        else:
+            ax_hf.text(
+                0.5,
+                0.5,
+                "No valid windows\n(all data gapped)",
+                transform=ax_hf.transAxes,
+                ha="center",
+                va="center",
+                color="gray",
+            )
+
+        ax_hf.set_xlim(x_max_hf * hf_scale, x_min_hf * hf_scale)
+        ax_hf.set_ylim(1e-8, 1e2)
+        _hf_ticks_h = [  # (period_hours, label) — edit here to adjust tick positions
+            (48.0, "2d"),
+            (24.0, "1d"),
+            (12.0, "12h"),
+            (6.0, "6h"),
+            (2.0, "2h"),
+            (1.0, "1h"),
+            (0.5, "30min"),
+            (10.0 / 60, "10min"),
+            (5.0 / 60, "5min"),
+            (2.0 / 60, "2min"),
+        ]
+        _lo_hf, _hi_hf = x_min_hf * hf_scale, x_max_hf * hf_scale
+        _hf_t = [
+            (ph / 24.0 * hf_scale, lbl)
+            for ph, lbl in _hf_ticks_h
+            if _lo_hf <= ph / 24.0 * hf_scale <= _hi_hf
+        ]
+        ax_hf.set_xticks([v for v, _ in _hf_t])
+        ax_hf.set_xticklabels([lbl for _, lbl in _hf_t], rotation=45, ha="right")
+        ax_hf.xaxis.set_minor_locator(NullLocator())
+        ax_hf.set_xlabel(f"Period ({hf_unit})")
+        ax_hf.set_ylabel("PSD (°C² cpd⁻¹)")
+        n_win_hf_label = str(n_win_hf) if psds_hf else "0"
+        ax_hf.set_title(
+            f"High-frequency — {hf_seg_label} windows ({n_win_hf_label} windows, gap-aware)"
+        )
+
+        fig.suptitle("Temperature power spectrum (Welch PSD per depth level)")
 
         plt.tight_layout()
         b64 = _fig_to_base64(fig)
@@ -1357,6 +1567,187 @@ def _make_spectrum_fig_b64(
         return b64
     except Exception as exc:
         print(f"  WARNING: spectrum figure failed: {exc}")
+        return None
+
+
+def _make_wavelet_fig_b64(
+    da_temp: "xr.DataArray",
+    dt_seconds: float,
+    wavelet: str = "morlet",
+) -> Optional[str]:
+    """Continuous wavelet transform scalogram for gridded temperature.
+
+    Produces three stacked wavelet + time-series panel pairs.  Depth levels are
+    selected from 100-dbar multiples that have **at least 75 % data coverage**
+    (sparse near-bottom levels are excluded).  Levels within 100 dbar of the
+    shallowest valid level are also excluded to avoid gappy near-surface data.
+    From the remaining candidates the deepest, an upper-middle, and a
+    lower-middle level are chosen (biased toward the deeper water column).
+
+    Each wavelet panel shows log10(Morlet power) as a filled contour plot; the
+    gap-aware cone of influence (COI) is hatched — this covers both the record
+    edges and the COI wings that spread out from every data gap.  The y-axis is
+    trimmed per-panel to the longest period that is reliable at any time step, so
+    gappier levels automatically get a tighter period range.  A 95 % significance
+    contour is drawn in black (falls back to white-noise background if AR(1)
+    estimation fails).  Below each wavelet panel a short temperature time series
+    for that depth level shares the x-axis.
+
+    Parameters
+    ----------
+    da_temp:
+        Gridded temperature DataArray with dimensions ``(pressure, time)``.
+    dt_seconds:
+        Sample interval in seconds.
+    wavelet:
+        ``"morlet"`` (default, Morlet ω₀=6) or ``"mexican_hat"``.
+
+    Returns
+    -------
+    str or None
+        Base-64-encoded PNG, or None on failure.
+
+    """
+    try:
+        import matplotlib.pyplot as plt
+
+        from oceanarray import parameters as P
+        from oceanarray.plotters._section import wavelet_panel
+        from oceanarray.tools import compute_cwt
+
+        plt.style.use(str(P.MPLSTYLE))
+
+        if da_temp.dims[0] != "pressure":
+            da_temp = da_temp.transpose("pressure", ...)
+        arr = da_temp.values
+        press_vals = (
+            da_temp.coords["pressure"].values.astype(float)
+            if "pressure" in da_temp.coords
+            else np.arange(arr.shape[0], dtype=float)
+        )
+        n_lev, _n_time = arr.shape
+
+        # --- level selection: 100-dbar multiples with ≥75 % data coverage ---
+        # The 75 % threshold is much stricter than "at least one window" so that
+        # sparse levels (e.g. a deep instrument with only a few days of data) are
+        # excluded.  Levels near the seabed often have patchy records; requiring
+        # 75 % coverage means the wavelet estimate is based on most of the deployment.
+        _min_coverage = int(0.75 * _n_time)
+        _candidates = [
+            (k, press_vals[k])
+            for k in range(n_lev)
+            if np.sum(np.isfinite(arr[k, :])) >= _min_coverage
+        ]
+        if not _candidates:
+            return None
+
+        _cp = np.array([pv for _, pv in _candidates])
+        _lo100 = int(np.ceil(_cp.min() / 100.0)) * 100
+        _hi100 = int(np.floor(_cp.max() / 100.0)) * 100
+        _seen_k: set = set()
+        _valid_idx: list = []
+        for _tgt in np.arange(_lo100, _hi100 + 1, 100.0):
+            _bi = int(np.argmin(np.abs(_cp - _tgt)))
+            _k = _candidates[_bi][0]
+            if _k not in _seen_k and np.abs(_cp[_bi] - _tgt) <= 75.0:
+                _seen_k.add(_k)
+                _valid_idx.append(_k)
+
+        if not _valid_idx:
+            return None
+
+        # Exclude levels within 100 dbar of the shallowest valid level —
+        # near-surface data tends to be gappy and the wavelet is unreliable there.
+        _shallowest_p = press_vals[_valid_idx[0]]
+        _deep_idx = [k for k in _valid_idx if press_vals[k] >= _shallowest_p + 100.0]
+
+        if not _deep_idx:
+            _deep_idx = _valid_idx  # fall back if nothing passes the filter
+
+        # Pick 3 levels biased toward mid-to-deep water.
+        # Start from max(0, N-5) so that when there are many levels we skip
+        # the shallowest portion, e.g. [300..900] → pick 500, 700, 900.
+        n_v = len(_deep_idx)
+        if n_v >= 3:
+            _start = max(0, n_v - 5)
+            _idxs = np.round(np.linspace(_start, n_v - 1, 3)).astype(int)
+            sel = [_deep_idx[i] for i in _idxs]
+        elif n_v == 2:
+            sel = [_deep_idx[0], _deep_idx[1]]
+        else:
+            sel = [_deep_idx[0]]
+
+        # Time axis — use coordinate if present, else integer index
+        if "time" in da_temp.coords:
+            times = da_temp.coords["time"].values
+        else:
+            times = np.arange(_n_time)
+
+        # --- compute CWT for each selected level ---
+        results = []
+        for k in sel:
+            pv = press_vals[k]
+            cwt_out = compute_cwt(arr[k, :], dt_seconds, wavelet=wavelet)
+            results.append((pv, cwt_out))
+
+        # --- figure: short T time series above each tall wavelet panel ---
+        # The time series sits above so the high-frequency variability visible
+        # by eye can be compared directly to the top (short-period) rows of the
+        # scalogram below it.
+        from matplotlib.gridspec import GridSpec
+
+        n_panels = len(results)
+        # height ratios: 1 part time series, 3 parts wavelet, per level
+        hr = [1, 3] * n_panels
+        fig = plt.figure(figsize=(14, 4.5 * n_panels))
+        gs = GridSpec(2 * n_panels, 1, figure=fig, height_ratios=hr, hspace=0.08)
+
+        tax: list = []  # time series axes (top of each pair)
+        wax: list = []  # wavelet axes (bottom of each pair)
+        for i in range(n_panels):
+            _sharex = tax[0] if tax else None
+            tax.append(fig.add_subplot(gs[2 * i, 0], sharex=_sharex))
+            wax.append(fig.add_subplot(gs[2 * i + 1, 0], sharex=tax[-1]))
+
+        mappable = None
+        for i, (pv, cwt_out) in enumerate(results):
+            # Temperature time series (top)
+            ts = arr[sel[i], :]
+            tax[i].plot(times, ts, lw=0.6, color="0.3")
+            tax[i].set_ylabel("T (°C)", fontsize="small")
+            tax[i].tick_params(labelsize="small")
+            tax[i].set_title(f"{pv:.0f} dbar", fontsize="small")
+            plt.setp(tax[i].get_xticklabels(), visible=False)
+
+            # Wavelet scalogram (bottom)
+            mappable = wavelet_panel(
+                wax[i],
+                times,
+                cwt_out["periods"],
+                cwt_out["power"],
+                cwt_out["effective_coi"],
+                signif=cwt_out["signif"],
+            )
+            if i < n_panels - 1:
+                plt.setp(wax[i].get_xticklabels(), visible=False)
+            else:
+                wax[i].set_xlabel("Time")
+
+        if mappable is not None:
+            # Pass all axes (wavelet + time series) so matplotlib shrinks them
+            # all equally, keeping each wavelet panel aligned with its T panel.
+            cbar = fig.colorbar(mappable, ax=wax + tax, fraction=0.02, pad=0.04)
+            cbar.set_label("log₁₀(power) (°C² d)")
+
+        import warnings as _warnings
+
+        with _warnings.catch_warnings():
+            _warnings.simplefilter("ignore", UserWarning)
+            fig.tight_layout()
+        b64 = _fig_to_base64(fig)
+        return b64
+    except Exception as exc:
+        print(f"  WARNING: wavelet figure failed: {exc}")
         return None
 
 
@@ -1496,6 +1887,42 @@ def _make_grid_rotary_spectrum_b64(
         x_max = min(30.0, n_time * dt_days / 2.0)
         fmask = (freq_out > 0) & (freq_out <= 1.0 / nyq_period)
         period_plot = 1.0 / freq_out[fmask]
+        freq_pm = freq_out[fmask]
+
+        # Effective DOF for the Welch estimate (Hann window, 50 % overlap ≈ 1.5× segments)
+        # Used for the 95 % significance threshold on the rotary coefficient.
+        n_segments = max(1.0, (n_time - noverlap) / (segment_length - noverlap))
+        K_eff = max(2.0, 1.5 * n_segments)
+        from scipy.stats import f as _f_dist
+
+        _dof_half = max(2, int(round(K_eff)))
+        _F_crit = _f_dist.ppf(0.975, _dof_half, _dof_half)
+        r_sig_95 = (_F_crit - 1.0) / (_F_crit + 1.0)
+
+        # Log-band average of the rotary coefficient — average S_CW and S_CCW
+        # within each band first, then compute r, to avoid ratio noise.
+        n_bands = max(12, min(25, len(period_plot) // 5))
+        _log_edges = np.linspace(
+            np.log10(period_plot.min()), np.log10(period_plot.max()), n_bands + 1
+        )
+        p_band_centers = 10 ** (0.5 * (_log_edges[:-1] + _log_edges[1:]))
+        r_banded_list: "List[np.ndarray]" = []
+        for _scw, _sccw in zip(s_cw_list, s_ccw_list):
+            _scw_f, _sccw_f = _scw[fmask], _sccw[fmask]
+            _rb = np.full(n_bands, np.nan)
+            for _i in range(n_bands):
+                # band edges in frequency: small period → high freq
+                _f_lo = 1.0 / 10 ** _log_edges[_i]
+                _f_hi = 1.0 / 10 ** _log_edges[_i + 1]
+                _f_lo, _f_hi = min(_f_lo, _f_hi), max(_f_lo, _f_hi)
+                _mb = (freq_pm >= _f_lo) & (freq_pm <= _f_hi)
+                if _mb.sum() > 0:
+                    _cw_m = _scw_f[_mb].mean()
+                    _ccw_m = _sccw_f[_mb].mean()
+                    _d = _cw_m + _ccw_m
+                    if _d > 0:
+                        _rb[_i] = (_ccw_m - _cw_m) / _d
+            r_banded_list.append(_rb)
 
         # Tidal/inertial frequency markers
         markers = [
@@ -1550,7 +1977,13 @@ def _make_grid_rotary_spectrum_b64(
                     ),
                 )
         ax_spec.set_xlim(x_max, x_min)
-        ax_spec.set_xlabel("Period (days)")
+        _rot_tv, _rot_tl = period_axis_ticks(x_min, x_max)
+        from matplotlib.ticker import NullLocator as _NL
+
+        ax_spec.set_xticks(_rot_tv)
+        ax_spec.set_xticklabels(_rot_tl, rotation=45, ha="right")
+        ax_spec.xaxis.set_minor_locator(_NL())
+        ax_spec.set_xlabel("Period")
         ax_spec.set_ylabel("PSD (m² s⁻² cpd⁻¹)")
         ax_spec.set_title("Rotary spectra")
         ax_spec.legend(
@@ -1565,11 +1998,28 @@ def _make_grid_rotary_spectrum_b64(
         cbar_cw = fig.colorbar(sm_cw, ax=ax_spec, pad=0.03, shrink=0.85)
         cbar_cw.set_label("Pressure (dbar) — CW")
 
-        # Panel 2: Rotary coefficient r
-        for r, p in zip(r_list, press_plotted):
-            ax_rot.semilogx(
-                period_plot, r[fmask], color=cmap_ccw(norm_p(p)), lw=1.0, alpha=0.85
-            )
+        # Panel 2: Rotary coefficient r — raw (thin) + band-averaged (thick) + significance
+        for r, r_banded, p in zip(r_list, r_banded_list, press_plotted):
+            col = cmap_ccw(norm_p(p))
+            # Raw per-bin r: thin, semi-transparent
+            ax_rot.semilogx(period_plot, r[fmask], color=col, lw=0.5, alpha=0.25)
+            # Log-band averaged r: thick main line
+            valid_b = np.isfinite(r_banded)
+            if valid_b.any():
+                ax_rot.semilogx(
+                    p_band_centers[valid_b],
+                    r_banded[valid_b],
+                    color=col,
+                    lw=2.0,
+                    alpha=0.9,
+                    marker="o",
+                    ms=3,
+                )
+
+        # 95 % significance band (grey shading + dashed lines)
+        ax_rot.axhspan(-r_sig_95, r_sig_95, color="#7f8c8d", alpha=0.08, zorder=0)
+        ax_rot.axhline(r_sig_95, color="#7f8c8d", lw=1.0, ls="--", alpha=0.7)
+        ax_rot.axhline(-r_sig_95, color="#7f8c8d", lw=1.0, ls="--", alpha=0.7)
 
         trans2 = blended_transform_factory(ax_rot.transData, ax_rot.transAxes)
         for label, period_d, color in markers:
@@ -1588,12 +2038,15 @@ def _make_grid_rotary_spectrum_b64(
                         boxstyle="round,pad=0.1", fc="white", ec="none", alpha=0.6
                     ),
                 )
-        ax_rot.axhline(0, color="k", lw=0.8, ls="--", alpha=0.5)
+        ax_rot.axhline(0, color="k", lw=0.8, ls="-", alpha=0.4)
         ax_rot.set_xlim(x_max, x_min)
+        ax_rot.set_xticks(_rot_tv)
+        ax_rot.set_xticklabels(_rot_tl, rotation=45, ha="right")
+        ax_rot.xaxis.set_minor_locator(_NL())
         ax_rot.set_ylim(-1.1, 1.1)
-        ax_rot.set_xlabel("Period (days)")
+        ax_rot.set_xlabel("Period")
         ax_rot.set_ylabel("Rotary coefficient r")
-        ax_rot.set_title("r = (CCW − CW) / (CCW + CW)")
+        ax_rot.set_title(f"r = (CCW − CW) / (CCW + CW)  [DOF ≈ {2 * _dof_half}]")
         ax_rot.text(
             0.02,
             0.97,
@@ -1611,6 +2064,21 @@ def _make_grid_rotary_spectrum_b64(
             va="bottom",
             ha="left",
             color="#c0392b",
+        )
+        ax_rot.legend(
+            handles=[
+                Line2D(
+                    [0],
+                    [0],
+                    color="#7f8c8d",
+                    lw=1.0,
+                    ls="--",
+                    label=f"95 % sig. (|r| > {r_sig_95:.2f})",
+                )
+            ],
+            loc="upper right",
+            fontsize=9,
+            framealpha=0.7,
         )
         sm_ccw = plt.cm.ScalarMappable(cmap=cmap_ccw, norm=norm_p)
         sm_ccw.set_array([])
@@ -3204,6 +3672,410 @@ def _make_isopycnal_fig_b64(
         ax.set_xlabel("Time")
         if levels:
             ax.legend(loc="upper right", framealpha=0.8)
+        plt.tight_layout()
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception:
+        return None
+
+
+def _make_isopycnal_ts_fig_b64(ds_iso: "xr.Dataset") -> Optional[str]:
+    """Return base64 PNG: isopycnal height-above-seabed time series.
+
+    Plots a 1-hour running median of each σ₀ surface's height above seabed.
+    NaN gaps break the line naturally (pandas rolling preserves NaN boundaries).
+    Colormap: Blues — light blue = lower density (shallower), dark = denser (deeper).
+
+    Parameters
+    ----------
+    ds_iso:
+        Output of :func:`~oceanarray.tools.isopycnal_dataset` — must contain
+        ``isopycnal_height`` ``(sigma0_level, time)`` and the ``sigma0_level``
+        coordinate.
+
+    Returns
+    -------
+    str or None
+        Base64-encoded PNG, or ``None`` if rendering fails.
+
+    """
+    try:
+        import pandas as pd
+        import matplotlib.pyplot as plt
+        import matplotlib.colors as mcolors
+        import matplotlib.dates as mdates
+        from .. import parameters as P
+
+        if "isopycnal_height" not in ds_iso or "sigma0_level" not in ds_iso.coords:
+            return None
+
+        sigma_vals = ds_iso["sigma0_level"].values
+        time_vals = ds_iso["time"].values
+        height = ds_iso["isopycnal_height"].values  # (n_sigma, time)
+
+        if not np.any(np.isfinite(height)):
+            return None
+
+        # 1-hour rolling window in samples
+        dt_s = float(
+            np.nanmedian(np.diff(time_vals).astype("timedelta64[s]").astype(float))
+        )
+        window = max(1, int(round(3600.0 / dt_s)))
+
+        n_levels = len(sigma_vals)
+        cmap = plt.get_cmap("Blues")
+        # offset from 0.25 to avoid near-white; upper end capped at 0.95
+        color_norms = np.linspace(0.25, 0.95, max(n_levels, 1))
+        colors = [cmap(v) for v in color_norms]
+
+        plt.style.use(str(P.MPLSTYLE))
+        fig, ax = plt.subplots(figsize=(13, 4))
+
+        for i, (sval, col) in enumerate(zip(sigma_vals, colors)):
+            h = height[i, :]
+            h_med = (
+                pd.Series(h)
+                .rolling(window, center=True, min_periods=max(1, window // 2))
+                .median()
+                .values
+            )
+            ax.plot(time_vals, h_med, color=col, lw=1.0, label=f"σ₀ = {sval:.2f}")
+
+        if n_levels <= 8:
+            ax.legend(loc="upper right", framealpha=0.8, fontsize=9)
+        else:
+            bounds = _nice_colorbar_bounds(
+                float(sigma_vals.min()), float(sigma_vals.max()), n=min(n_levels, 20)
+            )
+            norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+            sm = plt.cm.ScalarMappable(cmap="Blues", norm=norm)
+            sm.set_array([])
+            cb = fig.colorbar(sm, ax=ax, ticks=bounds, shrink=0.85, pad=0.02)
+            cb.set_label("σ₀ (kg m⁻³)")
+
+        ax.set_ylabel("Height above seabed (m)")
+        locator = mdates.AutoDateLocator()
+        ax.xaxis.set_major_locator(locator)
+        ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+        ax.set_xlabel("Time")
+        plt.tight_layout()
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception:
+        return None
+
+
+def _make_isopycnal_coverage_fig_b64(ds: "xr.Dataset") -> Optional[str]:
+    """Return base64 PNG: three-panel isopycnal diagnostic.
+
+    **Panel 0 — Distribution**: horizontal histogram of all gridded σ₀ values
+    (all time steps × all pressure levels), binned at 0.1 kg m⁻³.  Shows how the
+    water column is distributed in density space.
+
+    **Panel 1 — Coverage**: for each σ₀ value at 0.1 kg m⁻³ spacing, the percentage
+    of valid time steps during which the target surface lies within the measured column
+    (``min(sigma0_column) ≤ target ≤ max(sigma0_column)``).  Colour-coded:
+    green ≥ 80 %, amber 50–80 %, red < 50 %.  Dashed reference at 80 %.
+
+    **Panel 2 — Depth distribution**: for each target surface, the median height above
+    seabed (or pressure when ``waterdepth`` is unavailable), with the IQR
+    (25th–75th percentile) as a thick bar and the 5th–95th percentile as a thin whisker.
+
+    The shared y-axis (σ₀) is clipped to the 2.5th–99.99th percentile of the
+    distribution — this removes rare light-water outliers from the top while retaining
+    all of the dense water at the bottom.  Currently selected ``P.SIGMA_GRID`` targets
+    are marked with orange diamonds (panel 1) and dotted guide lines (panel 2).
+
+    Parameters
+    ----------
+    ds:
+        Gridded mooring xr.Dataset containing a variable whose name starts with
+        ``"sigma"`` and has ``pressure`` and ``time`` dimensions.
+
+    Returns
+    -------
+    str or None
+        Base64-encoded PNG, or ``None`` if rendering fails.
+
+    """
+    try:
+        import warnings as _warnings
+        import matplotlib.pyplot as plt
+        from matplotlib.lines import Line2D
+        from .. import parameters as P
+        from ..tools import isopycnal_pressure_series
+
+        # Find the first sigma variable with pressure + time dims
+        sv = next(
+            (
+                v
+                for v in ds.data_vars
+                if v.startswith("sigma")
+                and "pressure" in ds[v].dims
+                and "time" in ds[v].dims
+            ),
+            None,
+        )
+        if sv is None:
+            return None
+
+        da_tp = ds[sv].transpose("time", "pressure")
+        sigma0_tp = da_tp.values.astype(float)  # (n_time, n_p)
+        pressure_arr = da_tp.coords["pressure"].values.astype(float)  # (n_p,)
+
+        # All finite sigma0 values (flattened) — used for the histogram and y limits
+        all_sigma = sigma0_tp.ravel()
+        all_sigma = all_sigma[np.isfinite(all_sigma)]
+        if len(all_sigma) < 10:
+            return None
+
+        # Y-axis limits: 2.5th pct cuts rare light-water outliers; 99.99th keeps all
+        # dense water.  These limits are shared across all three panels via sharey.
+        y_lo = float(np.percentile(all_sigma, 2.5))
+        y_hi = float(np.percentile(all_sigma, 99.99))
+
+        # Histogram bins aligned to round σ₀ multiples of 0.1 so that bar centres
+        # sit at 27.0, 27.1, 27.2 … rather than between them.
+        c_lo = np.ceil(y_lo * 10) / 10  # first centre ≥ y_lo
+        c_hi = np.floor(y_hi * 10) / 10  # last  centre ≤ y_hi
+        hist_centers = np.round(np.arange(c_lo, c_hi + 0.05, 0.1), 1)
+        hist_edges = np.concatenate([[hist_centers[0] - 0.05], hist_centers + 0.05])
+        hist_counts, _ = np.histogram(all_sigma, bins=hist_edges)
+        hist_pct = hist_counts / hist_counts.sum() * 100.0
+
+        # Column min/max per time step — All-NaN rows (knockdown) return NaN harmlessly
+        with _warnings.catch_warnings():
+            _warnings.simplefilter("ignore", RuntimeWarning)
+            s_min = np.nanmin(sigma0_tp, axis=1)  # (n_time,)
+            s_max = np.nanmax(sigma0_tp, axis=1)
+
+        valid = np.isfinite(s_min) & np.isfinite(s_max)
+        n_valid = int(valid.sum())
+        if n_valid == 0:
+            return None
+
+        s_min_v = s_min[valid]
+        s_max_v = s_max[valid]
+
+        # Coverage/distribution targets share the same round centres as the histogram
+        targets = hist_centers
+        pct = np.array(
+            [
+                100.0 * np.sum((s_min_v <= tgt) & (s_max_v >= tgt)) / n_valid
+                for tgt in targets
+            ]
+        )
+
+        # Isopycnal depth distribution
+        iso_p = isopycnal_pressure_series(
+            sigma0_tp, pressure_arr, targets
+        )  # (n_time, n_tgt)
+
+        try:
+            waterdepth = float(ds.attrs.get("waterdepth", ""))
+        except (ValueError, TypeError):
+            waterdepth = float("nan")
+        use_hab = np.isfinite(waterdepth) and waterdepth > 0
+
+        if use_hab:
+            iso_z = waterdepth - iso_p
+            iso_z[iso_z < 0] = np.nan
+            xlbl2 = "Height above seabed (m)"
+        else:
+            iso_z = iso_p
+            xlbl2 = "Pressure (dbar)"
+
+        with _warnings.catch_warnings():
+            _warnings.simplefilter("ignore", RuntimeWarning)
+            med = np.nanmedian(iso_z, axis=0)
+            q25 = np.nanpercentile(iso_z, 25, axis=0)
+            q75 = np.nanpercentile(iso_z, 75, axis=0)
+            q05 = np.nanpercentile(iso_z, 5, axis=0)
+            q95 = np.nanpercentile(iso_z, 95, axis=0)
+
+        def _bar_color(p: float) -> str:
+            if p >= 80:
+                return "#27ae60"
+            if p >= 50:
+                return "#f39c12"
+            return "#e74c3c"
+
+        bar_colors = [_bar_color(p) for p in pct]
+        selected = getattr(P, "SIGMA_GRID", np.array([]))
+
+        plt.style.use(str(P.MPLSTYLE))
+        fig_h = max(2.5, len(targets) * 0.22)
+        fig, (ax0, ax1, ax2) = plt.subplots(
+            1,
+            3,
+            figsize=(14, fig_h),
+            sharey=True,
+            constrained_layout=True,
+            gridspec_kw={"width_ratios": [0.8, 1.0, 1.2]},
+        )
+
+        # ---- Panel 0: sigma0 histogram ----
+        ax0.barh(hist_centers, hist_pct, height=0.09, color="#7fb3d3", edgecolor="none")
+        # Guide lines for selected targets
+        for tgt in selected:
+            ax0.axhline(tgt, color="#e67e22", lw=0.6, ls=":", zorder=3)
+        ax0.set_xlabel("Occurrence (%)")
+        ax0.set_ylabel(f"σ₀ (kg m⁻³)  [{sv}]")
+        ax0.set_title("Distribution")
+        ax0.set_ylim(y_lo, y_hi)
+        ax0.invert_yaxis()
+
+        # ---- Panel 1: coverage bars ----
+        ax1.barh(targets, pct, height=0.08, color=bar_colors, edgecolor="none")
+        ax1.axvline(80, color="#7f8c8d", lw=1.0, ls="--", label="80 %")
+        for tgt in selected:
+            nearest_idx = int(np.argmin(np.abs(targets - tgt)))
+            if abs(targets[nearest_idx] - tgt) < 0.06:
+                ax1.plot(
+                    pct[nearest_idx],
+                    targets[nearest_idx],
+                    marker="D",
+                    ms=6,
+                    color="#e67e22",
+                    zorder=5,
+                    label=f"σ₀={tgt:.1f}" if tgt == selected[0] else "_",
+                )
+        ax1.set_xlabel("Time present (%)")
+        ax1.set_xlim(0, 105)
+        ax1.tick_params(axis="y", which="both", left=False)
+        ax1.legend(loc="lower right", fontsize=9, framealpha=0.7)
+        ax1.set_title("Coverage")
+
+        # ---- Panel 2: depth distribution ----
+        valid_med = np.isfinite(med)
+        if valid_med.any():
+            ax2.hlines(
+                targets[valid_med],
+                q05[valid_med],
+                q95[valid_med],
+                lw=1.0,
+                color="#95a5a6",
+                zorder=2,
+            )
+            ax2.hlines(
+                targets[valid_med],
+                q25[valid_med],
+                q75[valid_med],
+                lw=3.5,
+                color="#2980b9",
+                zorder=3,
+            )
+            ax2.plot(
+                med[valid_med],
+                targets[valid_med],
+                "o",
+                ms=4,
+                color="#1a5276",
+                zorder=4,
+            )
+            for tgt in selected:
+                nearest_idx = int(np.argmin(np.abs(targets - tgt)))
+                if abs(targets[nearest_idx] - tgt) < 0.06 and np.isfinite(
+                    med[nearest_idx]
+                ):
+                    ax2.axhline(tgt, color="#e67e22", lw=0.6, ls=":", zorder=1)
+        ax2.set_xlabel(xlbl2)
+        ax2.set_title("Depth distribution")
+        if not use_hab:
+            ax2.invert_xaxis()
+        ax2.tick_params(axis="y", which="both", left=False)
+        legend_elems = [
+            Line2D([0], [0], color="#1a5276", marker="o", ms=4, lw=0, label="Median"),
+            Line2D([0], [0], color="#2980b9", lw=3.5, label="IQR (25–75 %)"),
+            Line2D([0], [0], color="#95a5a6", lw=1, label="5–95 %"),
+        ]
+        ax2.legend(handles=legend_elems, loc="lower right", fontsize=9, framealpha=0.7)
+
+        b64 = _fig_to_base64(fig)
+        plt.close(fig)
+        return b64
+    except Exception:
+        return None
+
+
+def _make_overflow_temperature_fig_b64(ds: "xr.Dataset") -> Optional[str]:
+    """Return base64 PNG: temperature time series at ~100 m above the seabed.
+
+    Selects the grid pressure level nearest to ``waterdepth - 100`` dbar and
+    plots a 1-hour running median temperature time series.  Returns ``None``
+    if ``waterdepth`` is missing, temperature is absent, or all values are NaN.
+
+    Parameters
+    ----------
+    ds:
+        Gridded mooring xr.Dataset.  Must have a ``waterdepth`` global
+        attribute (metres) and a ``temperature`` variable with ``pressure``
+        and ``time`` dimensions.
+
+    Returns
+    -------
+    str or None
+        Base64-encoded PNG, or ``None`` if rendering fails.
+
+    """
+    try:
+        import pandas as pd
+        import matplotlib.pyplot as plt
+        import matplotlib.dates as mdates
+        from .. import parameters as P
+
+        if "temperature" not in ds or "pressure" not in ds.coords:
+            return None
+
+        try:
+            waterdepth = float(ds.attrs.get("waterdepth", ""))
+        except (ValueError, TypeError):
+            waterdepth = float("nan")
+        if not (np.isfinite(waterdepth) and waterdepth > 0):
+            return None
+
+        target_p = waterdepth - 100.0
+        pressure_vals = ds["pressure"].values
+        # Clamp to grid range if target is outside it
+        target_p = float(np.clip(target_p, pressure_vals.min(), pressure_vals.max()))
+        nearest_idx = int(np.argmin(np.abs(pressure_vals - target_p)))
+        actual_p = float(pressure_vals[nearest_idx])
+
+        da_temp = ds["temperature"].isel(pressure=nearest_idx)
+        time_vals = da_temp["time"].values
+        temp_vals = da_temp.values.astype(float)
+
+        if not np.any(np.isfinite(temp_vals)):
+            return None
+
+        dt_s = float(
+            np.nanmedian(np.diff(time_vals).astype("timedelta64[s]").astype(float))
+        )
+        window = max(1, int(round(3600.0 / dt_s)))
+        temp_med = (
+            pd.Series(temp_vals)
+            .rolling(window, center=True, min_periods=max(1, window // 2))
+            .median()
+            .values
+        )
+
+        plt.style.use(str(P.MPLSTYLE))
+        fig, ax = plt.subplots(figsize=(13, 3))
+        ax.plot(time_vals, temp_med, color="#1a3a5c", lw=1.0)
+        ax.set_ylabel("Temperature (°C)")
+        hab = waterdepth - actual_p
+        ax.set_title(
+            f"{actual_p:.0f} dbar  ({hab:.0f} m above seabed)",
+            fontsize=10,
+            loc="left",
+            pad=4,
+        )
+        locator = mdates.AutoDateLocator()
+        ax.xaxis.set_major_locator(locator)
+        ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+        ax.set_xlabel("Time")
         plt.tight_layout()
         b64 = _fig_to_base64(fig)
         plt.close(fig)

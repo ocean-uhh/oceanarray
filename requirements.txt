@@ -18,6 +18,9 @@ ioos_qc
 # RDI ADCP reader (rdi-raw file type) requires dolfyn via mhkit
 dolfyn  # or: pip install "mhkit[dolfyn]"
 
+# Wavelet analysis (grid report temperature scalogram)
+pycwt  # Torrence & Compo 1998 CWT; Morlet and Mexican hat wavelets
+
 # seasenselib is installed separately: pip install -e seasenselib
 
 # Logsheets (oceanarray logsheet subcommand)

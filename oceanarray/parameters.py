@@ -20,6 +20,8 @@ is sufficient.
 
 from pathlib import Path
 
+import numpy as np
+
 # ---------------------------------------------------------------------------
 # Matplotlib style path (used by plotters via plt.style.use)
 # ---------------------------------------------------------------------------
@@ -55,6 +57,12 @@ DENSITY_COLORMAP = "BuPu"  # ColorBrewer sequential: light-cyan → dark-purple
 # Iso-density contour lines overlaid on sigma pcolormesh plots.
 # Set to [] to suppress.  Values are in kg m-3 (above 1000).
 SIGMA_CONTOUR_LEVELS = [27.7, 27.8]
+# Isopycnal tracking: default σ₀ target values for the grid report
+# height-above-seabed time series.  Override via --sig-level on the CLI.
+# Values are σ₀ (potential density anomaly referenced to 0 dbar, kg m⁻³).
+# To track σ₂ surfaces instead, set sigma_var in the mooring YAML and supply
+# the corresponding density values here.  (Future: --sig-ref flag.)
+SIGMA_GRID: np.ndarray = np.array([27.7])
 
 # Colors for instrument types in stack-level time series plots.
 # Keys match the 'instrument' field in the mooring YAML.

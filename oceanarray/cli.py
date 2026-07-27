@@ -320,6 +320,13 @@ def cmd_report(args: argparse.Namespace) -> int:
 
     _, proc_root, _ = _parse_dirs(args)
 
+    sig_level = getattr(args, "sig_level", None)
+    if sig_level is not None:
+        import numpy as _np
+        from . import parameters as _P
+
+        _P.SIGMA_GRID = _np.array(sorted(sig_level))
+
     if getattr(args, "array", False):
         from .report._array import generate_array_report
 
@@ -951,6 +958,18 @@ def build_parser() -> argparse.ArgumentParser:
         default=False,
         help="Treat the positional argument as a *.array.yaml path and generate an "
         "array-level HTML index linking all mooring reports.",
+    )
+    p_report.add_argument(
+        "--sig-level",
+        nargs="+",
+        type=float,
+        default=None,
+        metavar="SIG",
+        dest="sig_level",
+        help="σ₀ target values (kg m⁻³, referenced to 0 dbar) for isopycnal "
+        "height-above-seabed tracking in the grid report.  Pass one or more "
+        "values; they are sorted before use.  Example: --sig-level 27.5 27.7 27.9  "
+        "(default: 27.7).",
     )
     p_report.set_defaults(func=cmd_report)
 

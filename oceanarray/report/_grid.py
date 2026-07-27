@@ -25,8 +25,11 @@ from ._plots import (
     _make_grid_ts_diagram,
     _make_grid_n2_b64,
     _make_grid_velocity_stacked_b64,
-    _make_isopycnal_fig_b64,
+    _make_isopycnal_coverage_fig_b64,
+    _make_isopycnal_ts_fig_b64,
+    _make_overflow_temperature_fig_b64,
     _make_spectrum_fig_b64,
+    _make_wavelet_fig_b64,
     _make_velocity_iqr_profile_b64,
 )
 from .. import parameters as P
@@ -134,7 +137,9 @@ _GRID_HTML_TEMPLATE = """\
   {% if fig_grid_traj_b64 %}<a href="#grid-traj">Particle trajectory</a>{% endif %}
   {% if fig_grid_ts_b64 %}<a href="#grid-ts">Velocity time series</a>{% endif %}
   {% if fig_sigma_b64 or fig_n2_b64 %}<a href="#strat">Stratification</a>{% endif %}
+  {% if sigma_sections or fig_overflow_temp_b64 or fig_isopycnal_coverage_b64 %}<a href="#overflow">Overflow</a>{% endif %}
   {% if fig_spectrum_b64 %}<a href="#spectrum">Power spectrum</a>{% endif %}
+  {% if fig_wavelet_b64 %}<a href="#wavelet">Wavelet</a>{% endif %}
   {% if fig_rotary_b64 %}<a href="#rotary">Rotary spectrum</a>{% endif %}
   <a href="#vars">Variables</a>
 </nav>
@@ -174,7 +179,7 @@ _GRID_HTML_TEMPLATE = """\
 <h2 id="ts">T-S diagram</h2>
 <p class="note">Left: log₁₀(count+1) per T-S bin. Right (when O₂ present): median O₂ saturation per T-S bin — bins with &lt;5 samples masked. Colour scale: BrBG (brown=low, teal=high).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" src="data:image/png;base64,{{ fig_ts_grid_b64 }}" alt="T-S diagram">
+<img class="fig" style="max-width:50%" src="data:image/png;base64,{{ fig_ts_grid_b64 }}" alt="T-S diagram">
 </details>
 {% endif %}
 
@@ -243,28 +248,49 @@ _GRID_HTML_TEMPLATE = """\
 </details>
 {% endif %}
 
-{% for sec in sigma_sections %}
-{% if sec.isopycnal_zoom_b64 %}
-<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;">Isopycnal depths &mdash; {{ sec.name }} (3-day zoom, unfiltered)</h3>
-<p class="note">3-day window centred on deployment midpoint &bull; raw gridded data.</p>
+{% if sigma_sections or fig_overflow_temp_b64 or fig_isopycnal_coverage_b64 %}
+<h2 id="overflow">Overflow <a class="top-link" href="#top">↑ top</a></h2>
+{% endif %}
+
+{% if fig_isopycnal_coverage_b64 %}
+<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;">Isopycnal coverage diagnostic</h3>
+<p class="note">Percentage of time steps during which each σ₀ surface (0.1&nbsp;kg&nbsp;m⁻³ spacing) lies within the measured column range. Green&nbsp;≥&nbsp;80&nbsp;%; amber&nbsp;50–80&nbsp;%; red&nbsp;&lt;&nbsp;50&nbsp;%. Orange diamond&nbsp;= current <code>--sig-level</code> target. Dashed line&nbsp;=&nbsp;80&nbsp;% threshold. NaN gaps in the tracking figure above correspond to times when the isopycnal is outside the measured range (pycnocline above the shallowest grid level, or below the deepest).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" src="data:image/png;base64,{{ sec.isopycnal_zoom_b64 }}" alt="Isopycnal depths zoom">
+<img class="fig" src="data:image/png;base64,{{ fig_isopycnal_coverage_b64 }}" alt="Isopycnal coverage diagnostic">
 </details>
 {% endif %}
+
+{% for sec in sigma_sections %}
 {% if sec.isopycnal_b64 %}
-<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;">Isopycnal depths &mdash; {{ sec.name }} (full record, 24 h Tukey filtered)</h3>
-<p class="note">Full deployment &bull; 24 h Tukey (α=0.5) moving-average applied before contouring.</p>
+<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;">Isopycnal height above seabed &mdash; {{ sec.name }}</h3>
+<p class="note">Height above seabed (m) of each target σ₀ surface through time. Tracked by linear interpolation in density space from the gridded {{ sec.name }} field; 1-hour running median applied. NaN where the surface outcrops or is outside the observed range. Light blue = lighter water (shallower); dark blue = denser water (deeper). Targets set by <code>--sig-level</code> (default σ₀&nbsp;=&nbsp;27.70).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" src="data:image/png;base64,{{ sec.isopycnal_b64 }}" alt="Isopycnal depths">
+<img class="fig" src="data:image/png;base64,{{ sec.isopycnal_b64 }}" alt="Isopycnal height above seabed">
 </details>
 {% endif %}
 {% endfor %}
 
+{% if fig_overflow_temp_b64 %}
+<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;">Temperature ~100 m above seabed</h3>
+<p class="note">1-hour running median temperature at the grid pressure level nearest to 100&nbsp;m above the seabed. Level and height-above-seabed shown in figure title.</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,{{ fig_overflow_temp_b64 }}" alt="Temperature near seabed">
+</details>
+{% endif %}
+
 {% if fig_spectrum_b64 %}
 <h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;" id="spectrum">Temperature power spectrum</h3>
-<p class="note">Welch PSD (Hann window, 14-day segments, 50% overlap). One line per depth level; colour indicates pressure (shallow = light blue, deep = dark blue). Dashed vertical lines mark tidal and inertial frequencies. Dashed black line: &minus;2 spectral slope reference.</p>
+<p class="note"><strong>Left:</strong> low-frequency overview — 14-day Hann windows, 50&nbsp;% overlap. <strong>Right:</strong> high-frequency zoom — 1-day windows (~14&times; more windows, smoother tidal/inertial estimate); x-axis in hours. LF markers: M2, 1.8&nbsp;d, 4&nbsp;d, f. HF markers: M2 (12.4&nbsp;h), f (inertial). Dashed black line: &minus;2 spectral slope. Colour encodes pressure (light blue = shallow, dark blue = deep). Window length controllable via <code>hf_segment_days</code> in <code>_make_spectrum_fig_b64</code>.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,{{ fig_spectrum_b64 }}" alt="Temperature power spectrum">
+</details>
+{% endif %}
+
+{% if fig_wavelet_b64 %}
+<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;" id="wavelet">Temperature wavelet scalogram</h3>
+<p class="note">Continuous wavelet transform (Morlet, &omega;<sub>0</sub>&nbsp;=&nbsp;6; Torrence &amp; Compo 1998).  Three depth levels: 2nd from top, middle, 2nd from bottom of the 100-dbar-multiple valid levels.  Colour shows log<sub>10</sub>(power) (°C²&nbsp;d); hatched grey region = cone of influence (edge-affected); hatched cross region = gap-filled data; black contour = 95&nbsp;% significance against red noise.</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,{{ fig_wavelet_b64 }}" alt="Temperature wavelet scalogram">
 </details>
 {% endif %}
 
@@ -425,40 +451,34 @@ def generate_grid_page(
                     pass
         fig_n2_b64 = _make_grid_n2_b64(ds, lat=_lat_n2)
 
-        # Stratification: sigma0 stacked panel + isopycnal time series
+        # Stratification: sigma0 stacked panel + isopycnal height time series
         fig_sigma_b64 = _make_grid_sigma_b64(ds)
         sigma_sections = []
+        _sigma_grid = getattr(P, "SIGMA_GRID", None)
         for sv in [
             v
             for v in ds.data_vars
             if v.startswith("sigma") and "pressure" in ds[v].dims
         ]:
-            da = ds[sv]
-            label = da.attrs.get("long_name", sv)
-            _dt_s = float(ds.attrs.get("dt_seconds", 60))
-            _filter_s = max(3, int(24 * 3600 / _dt_s))
-            _n_t = da.sizes["time"]
-            _zoom_center = _n_t // 2
-            _zoom_n = max(3, int(3 * 24 * 3600 / _dt_s))
+            label = ds[sv].attrs.get("long_name", sv)
+            iso_b64 = None
+            try:
+                from ..tools import isopycnal_dataset as _iso_ds
+
+                ds_iso = _iso_ds(ds, sigma_var=sv, sigma_grid=_sigma_grid)
+                iso_b64 = _make_isopycnal_ts_fig_b64(ds_iso)
+            except Exception:
+                pass
             sigma_sections.append(
                 {
                     "name": sv,
                     "label": label,
-                    "isopycnal_zoom_b64": _make_isopycnal_fig_b64(
-                        da,
-                        P.SIGMA_CONTOUR_LEVELS,
-                        zoom_center_idx=_zoom_center,
-                        zoom_n=_zoom_n,
-                    )
-                    if P.SIGMA_CONTOUR_LEVELS
-                    else None,
-                    "isopycnal_b64": _make_isopycnal_fig_b64(
-                        da, P.SIGMA_CONTOUR_LEVELS, filter_samples=_filter_s
-                    )
-                    if P.SIGMA_CONTOUR_LEVELS
-                    else None,
+                    "isopycnal_b64": iso_b64,
                 }
             )
+
+        fig_overflow_temp_b64 = _make_overflow_temperature_fig_b64(ds)
+        fig_isopycnal_coverage_b64 = _make_isopycnal_coverage_fig_b64(ds)
 
         fig_spectrum_b64 = None
         _lat = 0.0
@@ -472,11 +492,13 @@ def generate_grid_page(
                     break
                 except Exception:
                     pass
+        fig_wavelet_b64 = None
         if "temperature" in ds:
             _dt_s = float(ds.attrs.get("dt_seconds", 3600))
             fig_spectrum_b64 = _make_spectrum_fig_b64(
                 ds["temperature"], _dt_s, lat=_lat
             )
+            fig_wavelet_b64 = _make_wavelet_fig_b64(ds["temperature"], _dt_s)
 
         fig_rotary_b64 = _make_grid_rotary_spectrum_b64(ds, lat=_lat)
 
@@ -516,12 +538,15 @@ def generate_grid_page(
             fig_vel_stacked_b64=fig_vel_stacked_b64,
             sigma_sections=sigma_sections,
             fig_sigma_b64=fig_sigma_b64,
+            fig_overflow_temp_b64=fig_overflow_temp_b64,
+            fig_isopycnal_coverage_b64=fig_isopycnal_coverage_b64,
             fig_vel_iqr_b64=fig_vel_iqr_b64,
             fig_grid_rose_b64=fig_grid_rose_b64,
             fig_grid_hodograph_b64=fig_grid_hodograph_b64,
             fig_grid_traj_b64=fig_grid_traj_b64,
             fig_grid_ts_b64=fig_grid_ts_b64,
             fig_spectrum_b64=fig_spectrum_b64,
+            fig_wavelet_b64=fig_wavelet_b64,
             fig_rotary_b64=fig_rotary_b64,
             fig_ts_grid_b64=fig_ts_grid_b64,
             fig_n2_b64=fig_n2_b64,

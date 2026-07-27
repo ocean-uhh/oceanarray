@@ -245,8 +245,14 @@ def plot_multi_aquadopp_trajectories(
             )
             lc.set_array(temp[:-1])
             ax.add_collection(lc)
-            end_color = cmap(
-                norm(float(np.nanmedian(temp[-max(1, len(temp) // 20) :])))
+            _tail = temp[-max(1, len(temp) // 20) :]
+            _tail_finite = _tail[np.isfinite(_tail)]
+            if _tail_finite.size == 0:
+                _tail_finite = temp[np.isfinite(temp)]
+            end_color = (
+                cmap(norm(float(_tail_finite.mean())))
+                if _tail_finite.size > 0
+                else cmap(0.5)
             )
         else:
             ax.plot(x, y, linewidth=1.5, alpha=0.85)
