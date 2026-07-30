@@ -939,8 +939,9 @@ def cmd_stub(args: argparse.Namespace) -> int:
     mooring_dir = proc_dir / mooring
     out_path = mooring_dir / f"{mooring}.mooring.yaml"
 
-    if out_path.exists() and not args.force:
-        print(f"ERROR: {out_path} already exists. Use --force to overwrite.")
+    if out_path.exists():
+        print(f"ERROR: {out_path} already exists.")
+        print("Rename or delete the existing file before generating a new stub.")
         return 1
 
     mooring_dir.mkdir(parents=True, exist_ok=True)
@@ -1635,12 +1636,6 @@ def build_parser() -> argparse.ArgumentParser:
         metavar="DIR",
         required=True,
         help="Cruise-level processed output directory (stub is written to {proc_dir}/{mooring}/).",
-    )
-    p_stub.add_argument(
-        "--force",
-        action="store_true",
-        default=False,
-        help="Overwrite an existing .mooring.yaml.",
     )
     p_stub.set_defaults(func=cmd_stub)
 
