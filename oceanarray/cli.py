@@ -4,6 +4,7 @@ import argparse
 import sys
 from pathlib import Path
 from .utilities import _status
+from ._version import __version__
 
 
 def _resolve_basedir(basedir: str) -> str:
@@ -327,6 +328,41 @@ def cmd_report(args: argparse.Namespace) -> int:
 
         _P.SIGMA_GRID = _np.array(sorted(sig_level))
 
+    report_dir = getattr(args, "report_dir", None)
+
+    if getattr(args, "dry_run", False):
+        import yaml as _yaml
+        from .utilities import extract_inline_instruments
+
+        _status("section", f"Report (dry run): {args.mooring}")
+        proc_dir = proc_root / args.mooring
+        yaml_path = proc_dir / f"{args.mooring}.mooring.yaml"
+        all_reports = getattr(args, "all_reports", False)
+        do_instruments = all_reports or getattr(args, "instruments", False)
+        do_stack = all_reports or getattr(args, "stack", False)
+        do_grid = all_reports or getattr(args, "grid", False)
+        mooring_html = proc_dir / f"{args.mooring}_report.html"
+        print(f"Summary:  {mooring_html}  ({'exists' if mooring_html.exists() else 'new'})")
+        if do_stack:
+            p = proc_dir / f"{args.mooring}_stack_report.html"
+            print(f"Stack:    {p}  ({'exists' if p.exists() else 'new'})")
+        if do_grid:
+            p = proc_dir / f"{args.mooring}_grid_report.html"
+            print(f"Grid:     {p}  ({'exists' if p.exists() else 'new'})")
+        if do_instruments and yaml_path.exists():
+            with open(yaml_path) as fh:
+                cfg = _yaml.safe_load(fh)
+            instrument_list = list(cfg.get("clamp", cfg.get("instruments", [])))
+            instrument_list += extract_inline_instruments(cfg.get("inline", []))
+            for entry in instrument_list:
+                if not isinstance(entry, dict):
+                    continue
+                serial = str(entry.get("serial", "")).split(",")[0].strip()
+                instr_type = entry.get("instrument", "unknown")
+                p = proc_dir / "instrument" / f"{args.mooring}_{serial}_report.html"
+                print(f"  Instrument {instr_type:12s} s/n {serial:8s}  {p.name}  ({'exists' if p.exists() else 'new'})")
+        return 0
+
     if getattr(args, "array", False):
         from .report._array import generate_array_report
 
@@ -339,6 +375,7 @@ def cmd_report(args: argparse.Namespace) -> int:
             array_yaml_path=_yaml_path,
             proc_dir=proc_root,
             force=args.force,
+            report_dir=Path(report_dir) if report_dir else None,
         )
         return 0 if result else 1
 
@@ -349,22 +386,37 @@ def cmd_report(args: argparse.Namespace) -> int:
     _status("section", f"Report: {args.mooring}")
     serials = getattr(args, "serial", None)
     if legacy:
-        reporter = MooringReport(basedir)
+        reporter = MooringReport(basedir, report_dir=report_dir)
     else:
         reporter = MooringReport(
             proc_dir=str(proc_root),
             raw_dir=str(raw_dir) if raw_dir else None,
+            report_dir=report_dir,
         )
     all_reports = getattr(args, "all_reports", False)
     result = reporter.generate(
         args.mooring,
         force=args.force,
+        skip_existing=getattr(args, "skip_existing", False),
         outdir=getattr(args, "outdir", None),
         serials=serials,
         instruments=all_reports or args.instruments or bool(serials),
         grid=all_reports or args.grid,
         stack=all_reports or args.stack,
     )
+    if getattr(args, "cruise_table", False):
+        from .report._recovery_table import generate_recovery_table
+
+        mooring_proc = proc_root / args.mooring
+        out_dir = Path(getattr(args, "outdir", None) or (
+            Path(report_dir) / args.mooring if report_dir else mooring_proc
+        ))
+        generate_recovery_table(
+            mooring_name=args.mooring,
+            proc_dir=mooring_proc,
+            out_path=out_dir / f"{args.mooring}_recovery_table.html",
+            force=args.force,
+        )
     return 0 if result else 1
 
 
@@ -379,10 +431,49 @@ def cmd_stack(args: argparse.Namespace) -> int:
     Prerequisite: stage 1 and 2 (and ideally stage 3) must have completed for all
     instruments before running this command.
     """
-    from .mooring_level import MooringStacker
+    from .mooring_level import MooringStacker, _best_nc
+    from .utilities import extract_inline_instruments
+    import yaml as _yaml
 
     _, proc_root, legacy = _parse_dirs(args)
     basedir = _resolve_basedir(args.basedir) if legacy else None
+    proc_dir = (
+        Path(_get_proc_root(basedir)) / args.mooring if legacy else proc_root / args.mooring
+    )
+
+    if getattr(args, "dry_run", False):
+        _status("section", f"Stack (dry run): {args.mooring}")
+        yaml_path = proc_dir / f"{args.mooring}.mooring.yaml"
+        if not yaml_path.exists():
+            print(f"ERROR: config not found: {yaml_path}")
+            return 1
+        with open(yaml_path) as fh:
+            cfg = _yaml.safe_load(fh)
+        instrument_list = list(cfg.get("clamp", cfg.get("instruments", [])))
+        instrument_list += extract_inline_instruments(cfg.get("inline", []))
+        would_include = []
+        missing = []
+        for entry in instrument_list:
+            if not isinstance(entry, dict):
+                continue
+            if entry.get("hab") is None and entry.get("hab_bottom") is None:
+                continue
+            serial = str(entry.get("serial", "")).split(",")[0].strip()
+            instr_type = entry.get("instrument", "unknown")
+            nc = _best_nc(proc_dir, instr_type, args.mooring, serial)
+            if nc is not None:
+                would_include.append(f"  INCLUDE  {instr_type:12s}  s/n {serial:8s}  {nc.name}")
+            else:
+                missing.append(f"  MISSING  {instr_type:12s}  s/n {serial:8s}  (no stage2/stage3 file)")
+        out_path = proc_dir / f"{args.mooring}_stack.nc"
+        print(f"Output would be: {out_path}")
+        print(f"  {'EXISTS' if out_path.exists() else 'does not exist'} (--force {'required' if out_path.exists() and not args.force else 'not needed'})")
+        for line in would_include:
+            print(line)
+        for line in missing:
+            print(f"  WARNING: {line.strip()}")
+        return 0
+
     _status("section", f"Stack: {args.mooring}")
     if legacy:
         stacker = MooringStacker(basedir)
@@ -410,6 +501,21 @@ def cmd_grid(args: argparse.Namespace) -> int:
 
     _, proc_root, legacy = _parse_dirs(args)
     basedir = _resolve_basedir(args.basedir) if legacy else None
+
+    if getattr(args, "dry_run", False):
+        _status("section", f"Grid (dry run): {args.mooring}")
+        proc_dir = (
+            Path(_get_proc_root(basedir)) / args.mooring if legacy else proc_root / args.mooring
+        )
+        stack_nc = proc_dir / f"{args.mooring}_stack.nc"
+        out_nc = proc_dir / f"{args.mooring}_grid.nc"
+        print(f"Input:  {stack_nc}  ({'EXISTS' if stack_nc.exists() else 'MISSING'})")
+        print(f"Output: {out_nc}  ({'exists' if out_nc.exists() else 'does not exist'})")
+        print(f"Grid:   pmin={args.pmin} dbar  pmax={args.pmax} dbar  dp={args.dp} dbar")
+        if not stack_nc.exists():
+            print("WARNING: stack file missing — run 'oceanarray stack' first.")
+        return 0
+
     _status("section", f"Grid: {args.mooring}")
     gridder = (
         MooringGridder(basedir) if legacy else MooringGridder(proc_dir=str(proc_root))
@@ -819,6 +925,132 @@ def _add_dir_args(p: "argparse.ArgumentParser", raw_needed: bool = True) -> None
     )
 
 
+def cmd_stub(args: argparse.Namespace) -> int:
+    """Create a skeleton mooring YAML in {proc_dir}/{mooring}/{mooring}.mooring.yaml."""
+    try:
+        from ruamel.yaml import YAML
+        from ruamel.yaml.comments import CommentedMap, CommentedSeq
+    except ImportError:
+        print("ERROR: ruamel.yaml is required for 'oceanarray stub'. Install it with: pip install ruamel.yaml")
+        return 1
+
+    proc_dir = Path(args.proc_dir)
+    mooring = args.mooring
+    mooring_dir = proc_dir / mooring
+    out_path = mooring_dir / f"{mooring}.mooring.yaml"
+
+    if out_path.exists():
+        print(f"ERROR: {out_path} already exists.")
+        print("Rename or delete the existing file before generating a new stub.")
+        return 1
+
+    mooring_dir.mkdir(parents=True, exist_ok=True)
+
+    # --- top-level metadata ---
+    doc = CommentedMap()
+    doc["name"] = mooring
+    doc.yaml_add_eol_comment("mooring identifier (matches directory and filename)", "name")
+    doc["year"] = None
+    doc.yaml_add_eol_comment("deployment year, e.g. 2026", "year")
+    doc["waterdepth"] = None
+    doc.yaml_add_eol_comment("water depth at anchor in metres", "waterdepth")
+    doc["deployment_cruise"] = None
+    doc.yaml_add_eol_comment("cruise ID, e.g. MSM142", "deployment_cruise")
+    doc["deployment_ship"] = None
+    doc.yaml_add_eol_comment("ship name, e.g. MS Merian", "deployment_ship")
+    doc["recovery_cruise"] = None
+    doc.yaml_add_eol_comment("cruise ID at recovery (omit if same cruise)", "recovery_cruise")
+    doc["recovery_ship"] = None
+    doc.yaml_add_eol_comment("ship name at recovery (omit if same ship)", "recovery_ship")
+    doc["latitude"] = None
+    doc.yaml_add_eol_comment("planned position, e.g. 65 29.840 N", "latitude")
+    doc["longitude"] = None
+    doc.yaml_add_eol_comment("planned position, e.g. 029 24.600 W", "longitude")
+    doc["deployment_time"] = None
+    doc.yaml_add_eol_comment("ISO-8601, e.g. '2026-05-07T17:06'", "deployment_time")
+    doc["recovery_time"] = None
+    doc.yaml_add_eol_comment("ISO-8601, e.g. '2026-07-10T17:45'", "recovery_time")
+
+    # --- clamp entries: one template block per instrument type ---
+    clamp: CommentedSeq = CommentedSeq()
+
+    def _instr(fields: dict) -> CommentedMap:
+        m = CommentedMap()
+        for k, v in fields.items():
+            m[k] = v
+        return m
+
+    clamp.append(_instr({
+        "instrument": "aquadopp",
+        "serial": None,
+        "hab": None,
+        "sample_interval_seconds": None,
+        "filename": None,
+        "file_type": "nortek-aqd",
+        "header": None,
+        "clock_offset": 0,
+        "computer_clock_at_recovery": None,
+        "instrument_clock_at_recovery": None,
+    }))
+    clamp[-1].yaml_add_eol_comment("height above bottom (m) of transducer", "hab")
+    clamp[-1].yaml_add_eol_comment(".hdr file for T-matrix (same base name if null)", "header")
+    clamp[-1].yaml_add_eol_comment("seconds; computer time minus instrument time at recovery", "clock_offset")
+
+    clamp.append(_instr({
+        "instrument": "microcat",
+        "serial": None,
+        "hab": None,
+        "sample_interval_seconds": None,
+        "filename": None,
+        "file_type": "sbe-cnv",
+        "clock_offset": 0,
+        "computer_clock_at_recovery": None,
+        "instrument_clock_at_recovery": None,
+    }))
+
+    clamp.append(_instr({
+        "instrument": "rbrsolo",
+        "serial": None,
+        "hab": None,
+        "sample_interval_seconds": None,
+        "filename": None,
+        "file_type": "rbr-rsk",
+        "clock_offset": 0,
+        "computer_clock_at_recovery": None,
+        "instrument_clock_at_recovery": None,
+    }))
+
+    clamp.append(_instr({
+        "instrument": "ADCP",
+        "serial": None,
+        "hab_bottom": None,
+        "hab_top": None,
+        "sample_interval_seconds": None,
+        "filename": None,
+        "file_type": "rdi-raw",
+        "orientation": "down",
+        "clock_offset": 0,
+        "computer_clock_at_recovery": None,
+        "instrument_clock_at_recovery": None,
+    }))
+    clamp[-1].yaml_add_eol_comment("HAB of transducer face (downward-looking)", "hab_bottom")
+    clamp[-1].yaml_add_eol_comment("HAB of top of housing", "hab_top")
+    clamp[-1].yaml_add_eol_comment("down or up", "orientation")
+
+    doc["clamp"] = clamp
+
+    yaml = YAML()
+    yaml.default_flow_style = False
+    yaml.width = 120
+
+    with open(out_path, "w") as fh:
+        yaml.dump(doc, fh)
+
+    print(f"Wrote stub: {out_path}")
+    print("Edit the file to fill in metadata and instrument details, then delete unused clamp entries.")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build and return the top-level argument parser for the oceanarray CLI."""
     epilog = (
@@ -840,6 +1072,18 @@ def build_parser() -> argparse.ArgumentParser:
         description="Oceanographic mooring data processing.",
         epilog=epilog,
         formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="Enable verbose output.",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -913,6 +1157,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Directory for the HTML report (default: proc/{mooring}/ inside basedir)",
     )
     p_report.add_argument(
+        "--report-dir",
+        default=None,
+        dest="report_dir",
+        metavar="DIR",
+        help="Central directory for all mooring reports.  Each mooring's pages are "
+        "written to DIR/{mooring}/ instead of proc/{mooring}/report/, making the "
+        "whole report tree portable.  Also used as the output root for --array.",
+    )
+    p_report.add_argument(
         "--force", action="store_true", help="Overwrite existing report"
     )
     p_report.add_argument(
@@ -960,6 +1213,14 @@ def build_parser() -> argparse.ArgumentParser:
         "array-level HTML index linking all mooring reports.",
     )
     p_report.add_argument(
+        "--cruise-table",
+        action="store_true",
+        default=False,
+        dest="cruise_table",
+        help="Generate a standalone, print-optimised HTML recovery table for use in "
+        "cruise reports (one per mooring: {mooring}_recovery_table.html).",
+    )
+    p_report.add_argument(
         "--sig-level",
         nargs="+",
         type=float,
@@ -970,6 +1231,22 @@ def build_parser() -> argparse.ArgumentParser:
         "height-above-seabed tracking in the grid report.  Pass one or more "
         "values; they are sorted before use.  Example: --sig-level 27.5 27.7 27.9  "
         "(default: 27.7).",
+    )
+    p_report.add_argument(
+        "-n",
+        "--dry-run",
+        action="store_true",
+        dest="dry_run",
+        default=False,
+        help="Show which report files would be generated (no files written).",
+    )
+    p_report.add_argument(
+        "--skip-existing",
+        action="store_true",
+        dest="skip_existing",
+        default=False,
+        help="Skip any output file that already exists, regardless of source mtime "
+        "(old behaviour; use --force to always regenerate).",
     )
     p_report.set_defaults(func=cmd_report)
 
@@ -994,6 +1271,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_stack.add_argument(
         "--force", action="store_true", help="Overwrite existing output file"
+    )
+    p_stack.add_argument(
+        "-n",
+        "--dry-run",
+        action="store_true",
+        dest="dry_run",
+        default=False,
+        help="Show which instruments would be stacked (no files written).",
     )
     p_stack.set_defaults(func=cmd_stack)
 
@@ -1034,6 +1319,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_grid.add_argument(
         "--force", action="store_true", help="Overwrite existing output file"
+    )
+    p_grid.add_argument(
+        "-n",
+        "--dry-run",
+        action="store_true",
+        dest="dry_run",
+        default=False,
+        help="Show what would be generated (no files written).",
     )
     p_grid.set_defaults(func=cmd_grid)
 
@@ -1326,6 +1619,25 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_dir_args(p_logsheet, raw_needed=False)
     p_logsheet.set_defaults(func=cmd_logsheet)
+
+    p_stub = sub.add_parser(
+        "stub",
+        help="Create a skeleton mooring YAML file.",
+        description=(
+            "Create {proc_dir}/{mooring}/{mooring}.mooring.yaml with commented template\n"
+            "fields for all mandatory metadata and one example entry per instrument type.\n"
+            "Edit the file to fill in real values and delete unused instrument blocks."
+        ),
+    )
+    p_stub.add_argument("mooring", help="Mooring name, e.g. dsG3_1_2026")
+    p_stub.add_argument(
+        "--proc-dir",
+        dest="proc_dir",
+        metavar="DIR",
+        required=True,
+        help="Cruise-level processed output directory (stub is written to {proc_dir}/{mooring}/).",
+    )
+    p_stub.set_defaults(func=cmd_stub)
 
     return parser
 

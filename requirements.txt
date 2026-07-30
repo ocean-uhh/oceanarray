@@ -26,3 +26,6 @@ pycwt  # Torrence & Compo 1998 CWT; Morlet and Mexican hat wavelets
 # Logsheets (oceanarray logsheet subcommand)
 jinja2>=3.0       # LaTeX template rendering
 packaging>=21.0   # MicroCAT firmware version comparison
+
+# YAML stub generation (oceanarray stub subcommand)
+ruamel.yaml>=0.18  # preserves inline comments on write

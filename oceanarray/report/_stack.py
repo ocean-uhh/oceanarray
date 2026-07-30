@@ -16,6 +16,7 @@ from ._html_helpers import (
     _parse_dt,
     _parse_history,
     _read_nc_metadata,
+    _should_skip,
     _status,
 )
 from ._plots import (
@@ -598,10 +599,11 @@ def generate_stack_page(
     out_dir: Path,
     force: bool,
     base_dir: Path,
+    skip_existing: bool = False,
 ) -> None:
     """Generate a stack report HTML page with pressure and T time series."""
     out_path = out_dir / f"{mooring_name}_stack_report.html"
-    if out_path.exists() and not force:
+    if _should_skip(out_path, force, skip_existing, stack_path):
         _status("skip", str(out_path.relative_to(base_dir)))
         return
 

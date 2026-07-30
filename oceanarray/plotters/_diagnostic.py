@@ -455,7 +455,7 @@ def plot_knockdown_displacement(
     valid = np.isfinite(all_x) & np.isfinite(all_p)
     all_x, all_p = all_x[valid], all_p[valid]
 
-    x_max = float(np.nanmax(all_x)) if len(all_x) else 1.0
+    x_max = max(float(np.nanmax(all_x)) if len(all_x) else 1.0, 1.0)
     p_max = float(np.nanmax(all_p)) * 1.05 if len(all_p) else 1.0
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5), sharey=True, sharex=True)
