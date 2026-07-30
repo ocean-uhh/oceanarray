@@ -12,6 +12,7 @@ from ._html_helpers import (
     _nav_buttons_html,
     _parse_history,
     _read_nc_metadata,
+    _should_skip,
     _status,
 )
 from ._plots import (
@@ -394,10 +395,11 @@ def generate_grid_page(
     out_dir: Path,
     force: bool,
     base_dir: Path,
+    skip_existing: bool = False,
 ) -> None:
     """Generate a grid report HTML page with T/S pcolormesh figures."""
     out_path = out_dir / f"{mooring_name}_grid_report.html"
-    if out_path.exists() and not force:
+    if _should_skip(out_path, force, skip_existing, grid_path):
         _status("skip", str(out_path.relative_to(base_dir)))
         return
 

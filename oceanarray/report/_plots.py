@@ -1350,6 +1350,7 @@ def _make_spectrum_fig_b64(
         # LF markers (periods in days)
         lf_markers = [
             ("M2", 1.0 / 1.9323, "#c0392b"),
+            ("K1", 23.9345 / 24.0, "#e67e22"),
             ("1.8d", 1.8, "#7f8c8d"),
             ("4d", 4.0, "#95a5a6"),
         ]
@@ -1404,7 +1405,7 @@ def _make_spectrum_fig_b64(
         # Left edge = longest period Welch can estimate = 1/min_freq = window length
         x_max_lf = 1.0 / float(freq_lf[freq_lf > 0].min())
         x_min_hf = nyq_period
-        x_max_hf = hf_segment_days  # exactly one HF window length
+        x_max_hf = min(hf_x_max_days, hf_segment_days)
 
         fmask_lf = (freq_lf > 0) & (freq_lf <= 1.0 / nyq_period)
         freq_plot_lf = freq_lf[fmask_lf]
@@ -3707,10 +3708,13 @@ def _make_isopycnal_ts_fig_b64(ds_iso: "xr.Dataset") -> Optional[str]:
         import matplotlib.dates as mdates
         from .. import parameters as P
 
-        if "isopycnal_height" not in ds_iso or "sigma0_level" not in ds_iso.coords:
+        sigma_dim = next(
+            (c for c in ds_iso.coords if c != "time" and "level" in c), None
+        )
+        if "isopycnal_height" not in ds_iso or sigma_dim is None:
             return None
 
-        sigma_vals = ds_iso["sigma0_level"].values
+        sigma_vals = ds_iso[sigma_dim].values
         time_vals = ds_iso["time"].values
         height = ds_iso["isopycnal_height"].values  # (n_sigma, time)
 

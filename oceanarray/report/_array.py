@@ -14,7 +14,17 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-from ._html_helpers import _duration_str, _fig_to_base64, _parse_dt, _status
+import numpy as np
+
+from ._html_helpers import (
+    _duration_str,
+    _fig_to_base64,
+    _parse_dt,
+    _read_instrument_info,
+    _safe_serial,
+    _stage_files,
+    _status,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -201,12 +211,19 @@ _ARRAY_HTML_TEMPLATE = """\
   </dl>
 </div>
 
+<p class="note" style="margin:0 0 0.8rem">
+  Jump to:
+  <a href="#moorings">Moorings</a> &bull;
+  <a href="#type-summary">Instrument summary</a> &bull;
+  <a href="#completeness">Completeness</a>
+</p>
+
 {% if fig_map_b64 %}
 <h2>Mooring positions</h2>
 <img class="fig" src="data:image/png;base64,{{ fig_map_b64 }}" alt="Array map">
 {% endif %}
 
-<h2>Moorings</h2>
+<h2 id="moorings">Moorings</h2>
 <table>
   <thead>
     <tr>
@@ -236,15 +253,15 @@ _ARRAY_HTML_TEMPLATE = """\
     <td class="num">{{ r.n_instruments }}</td>
     <td>
       {% if r.report_exists %}
-        <a class="btn btn-sum" href="{{ r.mooring }}/report/{{ r.mooring }}_report.html">Summary</a>
+        <a class="btn btn-sum" href="{{ r.report_href }}">Summary</a>
       {% else %}
         <span class="btn btn-miss">Summary</span>
       {% endif %}
       {% if r.stack_exists %}
-        <a class="btn btn-stk" href="{{ r.mooring }}/report/{{ r.mooring }}_stack_report.html">Stack</a>
+        <a class="btn btn-stk" href="{{ r.stack_href }}">Stack</a>
       {% endif %}
       {% if r.grid_exists %}
-        <a class="btn btn-grd" href="{{ r.mooring }}/report/{{ r.mooring }}_grid_report.html">Grid</a>
+        <a class="btn btn-grd" href="{{ r.grid_href }}">Grid</a>
       {% endif %}
     </td>
   </tr>
@@ -252,9 +269,216 @@ _ARRAY_HTML_TEMPLATE = """\
   </tbody>
 </table>
 
+{% if type_summary %}
+<h2 id="type-summary">Instrument type summary</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Type</th>
+      <th class="num">Deployed</th>
+      <th class="num">Complete&nbsp;(Stage&nbsp;3&nbsp;✓)</th>
+      <th class="num">Skipped&nbsp;/&nbsp;no&nbsp;raw</th>
+      <th class="num">Stopped&nbsp;early</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for row in type_summary %}
+  <tr>
+    <td>{{ row.itype }}</td>
+    <td class="num">{{ row.deployed }}</td>
+    <td class="num">{{ row.complete }}</td>
+    <td class="num">{{ row.skipped }}</td>
+    <td class="num">{{ row.stopped_early }}</td>
+    <td>{{ row.notes }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
+{% if mooring_completeness %}
+<h2 id="completeness">Data completeness by mooring</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Mooring</th>
+      <th class="num">Depth&nbsp;(m)</th>
+      <th class="num">Deployed</th>
+      <th class="num">Complete</th>
+      <th class="num">Skipped</th>
+      <th class="num">Stopped&nbsp;early</th>
+      <th>Deployment&nbsp;(UTC)</th>
+      <th>Recovery&nbsp;(UTC)</th>
+      <th class="num">Duration</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for row in mooring_completeness %}
+  <tr>
+    <td><strong>{{ row.mooring }}</strong></td>
+    <td class="num">{{ row.waterdepth if row.waterdepth else "—" }}</td>
+    <td class="num">{{ row.deployed }}</td>
+    <td class="num">{{ row.complete }}</td>
+    <td class="num">{{ row.skipped }}</td>
+    <td class="num">{{ row.stopped_early }}</td>
+    <td>{{ row.deploy_time }}</td>
+    <td>{{ row.recover_time }}</td>
+    <td class="num">{{ row.duration }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+
 </body>
 </html>
 """
+
+
+# ---------------------------------------------------------------------------
+# Instrument status helpers
+# ---------------------------------------------------------------------------
+
+_TYPE_ORDER = [
+    "microcat", "aquadopp", "rbrsolo", "tr1050", "seapoint", "adcp", "ADCP",
+]
+
+
+def _collect_mooring_instruments(
+    proc_dir: Path,
+    mooring_id: str,
+    mcfg: Dict[str, Any],
+    recover_dt: Any,
+) -> List[Dict[str, Any]]:
+    """Return a lightweight instrument status list for array-level tables.
+
+    Parameters
+    ----------
+    proc_dir : Path
+        Cruise-level processed directory (mooring dir is ``proc_dir/mooring_id``).
+    mooring_id : str
+        Mooring identifier.
+    mcfg : dict
+        Parsed mooring YAML.
+    recover_dt : datetime or None
+        YAML recovery time used for stopped-early detection.
+
+    """
+    from ..utilities import extract_inline_instruments
+
+    mooring_proc = proc_dir / mooring_id
+    waterdepth = mcfg.get("waterdepth")
+    entries = list(mcfg.get("clamp", mcfg.get("instruments", [])))
+    entries += extract_inline_instruments(mcfg.get("inline", []))
+
+    results = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        serial = _safe_serial(entry.get("serial", ""))
+        itype = entry.get("instrument", "unknown")
+        hab = entry.get("hab") or entry.get("hab_bottom") or entry.get("hab_top")
+        try:
+            hab = float(hab) if hab is not None else None
+        except (TypeError, ValueError):
+            hab = None
+        depth = (
+            float(waterdepth) - hab
+            if (waterdepth is not None and hab is not None)
+            else None
+        )
+
+        skipped = bool(entry.get("skip"))
+        skip_reason = entry.get("skip_reason") or ("skip: true" if skipped else "")
+
+        stages = _stage_files(mooring_proc, itype, mooring_id, serial)
+        stage1_exists = bool(stages.get("stage1"))
+        stage3_exists = bool(stages.get("stage3"))
+
+        no_raw = not skipped and not stage1_exists
+
+        nc_info = _read_instrument_info(mooring_proc, itype, mooring_id, serial)
+        t_end = nc_info.get("t_end") if nc_info and not nc_info.get("error") else None
+        t_end_raw = (
+            nc_info.get("t_end_raw") if nc_info and not nc_info.get("error") else None
+        )
+        n_records = (
+            nc_info.get("n_records") if nc_info and not nc_info.get("error") else None
+        )
+
+        stopped_early = False
+        if recover_dt and t_end_raw is not None:
+            rec_np = np.datetime64(
+                recover_dt.replace(tzinfo=None).isoformat(), "ns"
+            )
+            gap_s = float((rec_np - t_end_raw) / np.timedelta64(1, "s"))
+            stopped_early = gap_s > 12 * 3600
+
+        complete = stage3_exists and not skipped and not stopped_early and not no_raw
+
+        results.append(
+            {
+                "serial": serial,
+                "itype": itype,
+                "hab": hab,
+                "depth": depth,
+                "skipped": skipped or no_raw,
+                "skip_reason": skip_reason if skipped else ("no raw file" if no_raw else ""),
+                "stopped_early": stopped_early,
+                "complete": complete,
+                "n_records": n_records,
+                "t_end": t_end,
+            }
+        )
+    return results
+
+
+def _build_type_summary(
+    mooring_instruments: List[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """Aggregate per-instrument records into a per-type summary table.
+
+    Parameters
+    ----------
+    mooring_instruments : list of dict
+        Flat list of instrument dicts from :func:`_collect_mooring_instruments`
+        across all moorings.
+
+    """
+    from collections import defaultdict
+
+    counts: Dict[str, Dict[str, int]] = defaultdict(
+        lambda: {"deployed": 0, "complete": 0, "skipped": 0, "stopped_early": 0}
+    )
+    for instr in mooring_instruments:
+        itype = instr["itype"].lower()
+        counts[itype]["deployed"] += 1
+        if instr["complete"]:
+            counts[itype]["complete"] += 1
+        if instr["skipped"]:
+            counts[itype]["skipped"] += 1
+        if instr["stopped_early"]:
+            counts[itype]["stopped_early"] += 1
+
+    # Sort: canonical order first, then alphabetical remainder
+    canonical = [t.lower() for t in _TYPE_ORDER]
+    all_types = list(counts.keys())
+    ordered = [t for t in canonical if t in all_types] + sorted(
+        t for t in all_types if t not in canonical
+    )
+
+    return [
+        {
+            "itype": itype,
+            "deployed": counts[itype]["deployed"],
+            "complete": counts[itype]["complete"],
+            "skipped": counts[itype]["skipped"],
+            "stopped_early": counts[itype]["stopped_early"],
+            "notes": "",
+        }
+        for itype in ordered
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -267,6 +491,7 @@ def generate_array_report(
     proc_dir: Path,
     out_path: Optional[Path] = None,
     force: bool = False,
+    report_dir: Optional[Path] = None,
 ) -> Optional[Path]:
     """Generate an HTML array-level summary report from an array YAML file.
 
@@ -279,9 +504,19 @@ def generate_array_report(
         ``proc_dir / mooring_id``.
     out_path : Path, optional
         Output HTML path.  Defaults to
-        ``proc_dir / "{array_name}_array_report.html"``.
+        ``proc_dir / "{array_name}_array_report.html"`` (or
+        ``report_dir / "{array_name}_array_report.html"`` when *report_dir* is
+        set).
     force : bool
         Overwrite existing output file.
+    report_dir : Path, optional
+        Central report directory.  When provided, each mooring's reports are
+        expected under ``report_dir / mooring_id /`` (the layout produced by
+        ``oceanarray report --report-dir``).  The array report itself is
+        written to ``report_dir / "{array_name}_array_report.html"`` and the
+        per-mooring links use the shorter relative path
+        ``{mooring}/{mooring}_report.html``.  When absent (default), the
+        legacy layout ``{mooring}/report/{mooring}_report.html`` is assumed.
 
     Returns
     -------
@@ -306,7 +541,8 @@ def generate_array_report(
     array_name = array_cfg.get("name", array_yaml_path.stem)
 
     if out_path is None:
-        out_path = proc_dir / f"{array_name}_array_report.html"
+        _out_root = report_dir if report_dir is not None else proc_dir
+        out_path = _out_root / f"{array_name}_array_report.html"
 
     if out_path.exists() and not force:
         _status("skip", str(out_path))
@@ -314,6 +550,8 @@ def generate_array_report(
 
     mooring_entries = array_cfg.get("moorings", [])
     rows: List[Dict[str, Any]] = []
+    all_instruments: List[Dict[str, Any]] = []  # flat list across all moorings
+    mooring_completeness: List[Dict[str, Any]] = []
 
     for pos_idx, entry in enumerate(mooring_entries, start=1):
         mooring_id = entry.get("mooring", "")
@@ -334,7 +572,15 @@ def generate_array_report(
         deploy_dt = _parse_dt(mcfg.get("deployment_time"))
         recover_dt = _parse_dt(mcfg.get("recovery_time"))
 
-        report_dir = proc_dir / mooring_id / "report"
+        if report_dir is not None:
+            # Centralised layout: report_dir/{mooring}/{mooring}_report.html
+            mooring_rpt_dir = report_dir / mooring_id
+            _href_prefix = mooring_id
+        else:
+            # Legacy layout: proc_dir/{mooring}/report/{mooring}_report.html
+            mooring_rpt_dir = proc_dir / mooring_id / "report"
+            _href_prefix = f"{mooring_id}/report"
+
         rows.append(
             {
                 "position": entry.get("position", str(pos_idx)),
@@ -353,11 +599,43 @@ def generate_array_report(
                 "_deploy_dt": deploy_dt,
                 "_recover_dt": recover_dt,
                 "n_instruments": _count_instruments(mcfg),
-                "report_exists": (report_dir / f"{mooring_id}_report.html").exists(),
-                "stack_exists": (
-                    report_dir / f"{mooring_id}_stack_report.html"
+                "report_exists": (
+                    mooring_rpt_dir / f"{mooring_id}_report.html"
                 ).exists(),
-                "grid_exists": (report_dir / f"{mooring_id}_grid_report.html").exists(),
+                "stack_exists": (
+                    mooring_rpt_dir / f"{mooring_id}_stack_report.html"
+                ).exists(),
+                "grid_exists": (
+                    mooring_rpt_dir / f"{mooring_id}_grid_report.html"
+                ).exists(),
+                "report_href": f"{_href_prefix}/{mooring_id}_report.html",
+                "stack_href": f"{_href_prefix}/{mooring_id}_stack_report.html",
+                "grid_href": f"{_href_prefix}/{mooring_id}_grid_report.html",
+            }
+        )
+
+        # Collect per-instrument status for summary tables
+        instrs = _collect_mooring_instruments(proc_dir, mooring_id, mcfg, recover_dt)
+        all_instruments.extend(instrs)
+        n_deployed = len(instrs)
+        n_complete = sum(1 for i in instrs if i["complete"])
+        n_skipped = sum(1 for i in instrs if i["skipped"])
+        n_early = sum(1 for i in instrs if i["stopped_early"])
+        mooring_completeness.append(
+            {
+                "mooring": mooring_id,
+                "waterdepth": mcfg.get("waterdepth"),
+                "deployed": n_deployed,
+                "complete": n_complete,
+                "skipped": n_skipped,
+                "stopped_early": n_early,
+                "deploy_time": deploy_dt.strftime("%Y-%m-%d %H:%M")
+                if deploy_dt
+                else "—",
+                "recover_time": recover_dt.strftime("%Y-%m-%d %H:%M")
+                if recover_dt
+                else "—",
+                "duration": _duration_str(deploy_dt, recover_dt),
             }
         )
 
@@ -376,6 +654,8 @@ def generate_array_report(
         "recover_time": recover_dt_arr.strftime("%Y-%m-%d") if recover_dt_arr else "",
         "moorings": rows,
         "fig_map_b64": fig_map_b64,
+        "type_summary": _build_type_summary(all_instruments),
+        "mooring_completeness": mooring_completeness,
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
     }
 

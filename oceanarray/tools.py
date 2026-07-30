@@ -821,16 +821,17 @@ def isopycnal_dataset(
     else:
         iso_h = np.full_like(iso_p, np.nan)
 
+    dim_name = f"{sigma_var}_level"
     return xr.Dataset(
         {
             "isopycnal_pressure": xr.DataArray(
                 iso_p.T,
-                dims=["sigma0_level", "time"],
+                dims=[dim_name, "time"],
                 attrs={"units": "dbar", "long_name": "Isopycnal pressure"},
             ),
             "isopycnal_height": xr.DataArray(
                 iso_h.T,
-                dims=["sigma0_level", "time"],
+                dims=[dim_name, "time"],
                 attrs={
                     "units": "m",
                     "long_name": "Isopycnal height above seabed",
@@ -838,9 +839,9 @@ def isopycnal_dataset(
             ),
         },
         coords={
-            "sigma0_level": xr.DataArray(
+            dim_name: xr.DataArray(
                 sigma_grid,
-                dims=["sigma0_level"],
+                dims=[dim_name],
                 attrs={
                     "units": "kg m-3",
                     "long_name": f"Potential density anomaly ({sigma_var})",

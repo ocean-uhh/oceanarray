@@ -203,6 +203,29 @@ _QC_MARKER: Dict[int, dict] = {
 }
 
 
+def _should_skip(
+    output: Path,
+    force: bool,
+    skip_existing: bool,
+    *sources: Path,
+) -> bool:
+    """Decide whether to skip regenerating *output*.
+
+    Three-mode logic (matching ctd_report CLI design):
+    - force=True          → never skip
+    - skip_existing=True  → skip if output exists (old behaviour)
+    - default             → skip only if output is newer than all *sources*
+    """
+    if force:
+        return False
+    if not output.exists():
+        return False
+    if skip_existing:
+        return True
+    out_mtime = output.stat().st_mtime
+    return not any(s.exists() and s.stat().st_mtime > out_mtime for s in sources)
+
+
 def _fig_to_base64(fig: Any) -> str:
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=110, bbox_inches="tight")

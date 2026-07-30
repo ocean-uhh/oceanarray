@@ -19,6 +19,7 @@ from ._html_helpers import (
     _read_qc_summary,
     _read_qc_thresholds,
     _safe_serial,
+    _should_skip,
     _stage_file_details,
 )
 from ._plots import (
@@ -553,6 +554,7 @@ def generate_instrument_pages(
     base_dir: Path,
     serials: Optional[List[str]] = None,
     raw_dir: Optional[Path] = None,
+    skip_existing: bool = False,
 ) -> None:
     """Generate one HTML quality-control report page per instrument.
 
@@ -616,15 +618,18 @@ def generate_instrument_pages(
             print(f"{prefix}  [skipped — no processed files]")
             continue
 
-        if out_path.exists() and not force:
-            print(f"{prefix}  {out_path.name}  [exists]")
-            continue
-
         _base = proc_dir / instr_type / f"{mooring_name}_{serial}"
         stage3_nc = Path(str(_base) + "_stage3.nc")
         stage3_nc = stage3_nc if stage3_nc.exists() else None
         _stage2_nc = Path(str(_base) + "_stage2.nc")
         _stage1_nc = Path(str(_base) + "_stage1.nc")
+        _source_nc = next(
+            (p for p in [stage3_nc, _stage2_nc, _stage1_nc] if p is not None and p.exists()),
+            None,
+        )
+        if _should_skip(out_path, force, skip_existing, *([_source_nc] if _source_nc else [])):
+            print(f"{prefix}  {out_path.name}  [skip]")
+            continue
         best_nc = (
             stage3_nc
             or (_stage2_nc if _stage2_nc.exists() else None)
