@@ -1,3 +1,5 @@
+"""NetCDF write helpers for OceanSITES-compliant mooring datasets."""
+
 from numbers import Number
 from pathlib import Path
 
@@ -6,8 +8,10 @@ import xarray as xr
 
 
 def save_dataset(ds: xr.Dataset, output_file: str = "../test.nc") -> bool:
-    """Attempts to save the dataset to a NetCDF file. If a TypeError occurs due to invalid attribute values,
-    it converts the invalid attributes to strings and retries the save operation.
+    """Save a dataset to NetCDF, converting unsupported attribute types on retry.
+
+    If a TypeError occurs due to invalid attribute values, converts the offending
+    attributes to strings and retries the save operation.
 
     Parameters
     ----------
@@ -56,7 +60,7 @@ def save_dataset(ds: xr.Dataset, output_file: str = "../test.nc") -> bool:
     return True
 
 
-def save_OS_instrument(ds: xr.Dataset, data_dir: Path):
+def save_OS_instrument(ds: xr.Dataset, data_dir: Path) -> Path:
     """Save OceanSITES dataset to netCDF using the 'id' global attribute as filename.
 
     Parameters

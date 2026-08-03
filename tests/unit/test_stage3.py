@@ -3,7 +3,9 @@
 import numpy as np
 import xarray as xr
 
-from oceanarray.stage3 import _apply_declination_to_enu
+from oceanarray.instrument.coordinate import (
+    apply_declination_to_enu as _apply_declination_to_enu,
+)
 
 
 def _make_enu_dataset():
@@ -53,10 +55,10 @@ def test_declination_guard_only_triggers_on_unknown_source():
 # _merge_flags
 # ---------------------------------------------------------------------------
 
-from oceanarray.stage3 import (  # noqa: E402 — grouped imports after fixtures
-    _load_qc_config,
+from oceanarray.instrument.qc import (  # noqa: E402 — grouped imports after fixtures
+    load_qc_config as _load_qc_config,
     _merge_flags,
-    _merge_salinity_parent_qc,
+    merge_salinity_parent_qc as _merge_salinity_parent_qc,
     _tilt_from_span,
 )
 
@@ -166,7 +168,7 @@ def test_load_qc_config_instrument_override_wins_over_mooring():
 
 import pandas as pd  # noqa: E402 — needed for date_range in helpers below
 
-from oceanarray.stage3 import _apply_qc_tests  # noqa: E402
+from oceanarray.instrument.qc import apply_qc_tests as _apply_qc_tests  # noqa: E402
 
 
 def _make_pressure_dataset(n=50, stuck=False, out_of_range=False):

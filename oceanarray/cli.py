@@ -170,9 +170,9 @@ def cmd_process(args: argparse.Namespace) -> int:
     - ``--plot``: save a PNG overview plot for each instrument alongside the
       stage2 NetCDF file in the proc directory.
     """
-    from .stage1 import MooringProcessor
-    from .stage2 import Stage2Processor
-    from .stage3 import Stage3Processor
+    from .instrument.stage1 import MooringProcessor
+    from .instrument.stage2 import Stage2Processor
+    from .instrument.stage3 import Stage3Processor
 
     raw_dir, proc_root, legacy = _parse_dirs(args)
     basedir = _resolve_basedir(args.basedir) if legacy else None
@@ -274,7 +274,7 @@ def cmd_plot(args: argparse.Namespace) -> int:
     """
     from pathlib import Path
     from .plotters import plot_mooring_timeseries
-    from . import parameters as P
+    from .config import parameters as P
 
     _, proc_root, _ = _parse_dirs(args)
 
@@ -324,7 +324,7 @@ def cmd_report(args: argparse.Namespace) -> int:
     sig_level = getattr(args, "sig_level", None)
     if sig_level is not None:
         import numpy as _np
-        from . import parameters as _P
+        from .config import parameters as _P
 
         _P.SIGMA_GRID = _np.array(sorted(sig_level))
 
@@ -342,7 +342,9 @@ def cmd_report(args: argparse.Namespace) -> int:
         do_stack = all_reports or getattr(args, "stack", False)
         do_grid = all_reports or getattr(args, "grid", False)
         mooring_html = proc_dir / f"{args.mooring}_report.html"
-        print(f"Summary:  {mooring_html}  ({'exists' if mooring_html.exists() else 'new'})")
+        print(
+            f"Summary:  {mooring_html}  ({'exists' if mooring_html.exists() else 'new'})"
+        )
         if do_stack:
             p = proc_dir / f"{args.mooring}_stack_report.html"
             print(f"Stack:    {p}  ({'exists' if p.exists() else 'new'})")
@@ -360,7 +362,9 @@ def cmd_report(args: argparse.Namespace) -> int:
                 serial = str(entry.get("serial", "")).split(",")[0].strip()
                 instr_type = entry.get("instrument", "unknown")
                 p = proc_dir / "instrument" / f"{args.mooring}_{serial}_report.html"
-                print(f"  Instrument {instr_type:12s} s/n {serial:8s}  {p.name}  ({'exists' if p.exists() else 'new'})")
+                print(
+                    f"  Instrument {instr_type:12s} s/n {serial:8s}  {p.name}  ({'exists' if p.exists() else 'new'})"
+                )
         return 0
 
     if getattr(args, "array", False):
@@ -408,9 +412,10 @@ def cmd_report(args: argparse.Namespace) -> int:
         from .report._recovery_table import generate_recovery_table
 
         mooring_proc = proc_root / args.mooring
-        out_dir = Path(getattr(args, "outdir", None) or (
-            Path(report_dir) / args.mooring if report_dir else mooring_proc
-        ))
+        out_dir = Path(
+            getattr(args, "outdir", None)
+            or (Path(report_dir) / args.mooring if report_dir else mooring_proc)
+        )
         generate_recovery_table(
             mooring_name=args.mooring,
             proc_dir=mooring_proc,
@@ -431,14 +436,17 @@ def cmd_stack(args: argparse.Namespace) -> int:
     Prerequisite: stage 1 and 2 (and ideally stage 3) must have completed for all
     instruments before running this command.
     """
-    from .mooring_level import MooringStacker, _best_nc
+    from .mooring.stack import MooringStacker
+    from .mooring.helpers import _best_nc
     from .utilities import extract_inline_instruments
     import yaml as _yaml
 
     _, proc_root, legacy = _parse_dirs(args)
     basedir = _resolve_basedir(args.basedir) if legacy else None
     proc_dir = (
-        Path(_get_proc_root(basedir)) / args.mooring if legacy else proc_root / args.mooring
+        Path(_get_proc_root(basedir)) / args.mooring
+        if legacy
+        else proc_root / args.mooring
     )
 
     if getattr(args, "dry_run", False):
@@ -462,12 +470,18 @@ def cmd_stack(args: argparse.Namespace) -> int:
             instr_type = entry.get("instrument", "unknown")
             nc = _best_nc(proc_dir, instr_type, args.mooring, serial)
             if nc is not None:
-                would_include.append(f"  INCLUDE  {instr_type:12s}  s/n {serial:8s}  {nc.name}")
+                would_include.append(
+                    f"  INCLUDE  {instr_type:12s}  s/n {serial:8s}  {nc.name}"
+                )
             else:
-                missing.append(f"  MISSING  {instr_type:12s}  s/n {serial:8s}  (no stage2/stage3 file)")
+                missing.append(
+                    f"  MISSING  {instr_type:12s}  s/n {serial:8s}  (no stage2/stage3 file)"
+                )
         out_path = proc_dir / f"{args.mooring}_stack.nc"
         print(f"Output would be: {out_path}")
-        print(f"  {'EXISTS' if out_path.exists() else 'does not exist'} (--force {'required' if out_path.exists() and not args.force else 'not needed'})")
+        print(
+            f"  {'EXISTS' if out_path.exists() else 'does not exist'} (--force {'required' if out_path.exists() and not args.force else 'not needed'})"
+        )
         for line in would_include:
             print(line)
         for line in missing:
@@ -497,7 +511,7 @@ def cmd_grid(args: argparse.Namespace) -> int:
 
     Prerequisite: ``oceanarray stack`` must have completed successfully.
     """
-    from .mooring_level import MooringGridder
+    from .mooring.grid import MooringGridder
 
     _, proc_root, legacy = _parse_dirs(args)
     basedir = _resolve_basedir(args.basedir) if legacy else None
@@ -505,13 +519,19 @@ def cmd_grid(args: argparse.Namespace) -> int:
     if getattr(args, "dry_run", False):
         _status("section", f"Grid (dry run): {args.mooring}")
         proc_dir = (
-            Path(_get_proc_root(basedir)) / args.mooring if legacy else proc_root / args.mooring
+            Path(_get_proc_root(basedir)) / args.mooring
+            if legacy
+            else proc_root / args.mooring
         )
         stack_nc = proc_dir / f"{args.mooring}_stack.nc"
         out_nc = proc_dir / f"{args.mooring}_grid.nc"
         print(f"Input:  {stack_nc}  ({'EXISTS' if stack_nc.exists() else 'MISSING'})")
-        print(f"Output: {out_nc}  ({'exists' if out_nc.exists() else 'does not exist'})")
-        print(f"Grid:   pmin={args.pmin} dbar  pmax={args.pmax} dbar  dp={args.dp} dbar")
+        print(
+            f"Output: {out_nc}  ({'exists' if out_nc.exists() else 'does not exist'})"
+        )
+        print(
+            f"Grid:   pmin={args.pmin} dbar  pmax={args.pmax} dbar  dp={args.dp} dbar"
+        )
         if not stack_nc.exists():
             print("WARNING: stack file missing — run 'oceanarray stack' first.")
         return 0
@@ -602,7 +622,7 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 def cmd_validate(args: argparse.Namespace) -> int:
     """Validate one or more mooring YAML files."""
-    from .validation import print_validation_report
+    from .config.validation import print_validation_report
 
     all_ok = True
     for yaml_path in args.yaml:
@@ -738,7 +758,7 @@ def cmd_animate(args: argparse.Namespace) -> int:
 
 def cmd_list(args: argparse.Namespace) -> int:
     """Print allowed instrument types and file_type values for mooring YAML files."""
-    from . import parameters as P
+    from .config import parameters as P
 
     topic = getattr(args, "topic", None)
 
@@ -931,7 +951,9 @@ def cmd_stub(args: argparse.Namespace) -> int:
         from ruamel.yaml import YAML
         from ruamel.yaml.comments import CommentedMap, CommentedSeq
     except ImportError:
-        print("ERROR: ruamel.yaml is required for 'oceanarray stub'. Install it with: pip install ruamel.yaml")
+        print(
+            "ERROR: ruamel.yaml is required for 'oceanarray stub'. Install it with: pip install ruamel.yaml"
+        )
         return 1
 
     proc_dir = Path(args.proc_dir)
@@ -949,7 +971,9 @@ def cmd_stub(args: argparse.Namespace) -> int:
     # --- top-level metadata ---
     doc = CommentedMap()
     doc["name"] = mooring
-    doc.yaml_add_eol_comment("mooring identifier (matches directory and filename)", "name")
+    doc.yaml_add_eol_comment(
+        "mooring identifier (matches directory and filename)", "name"
+    )
     doc["year"] = None
     doc.yaml_add_eol_comment("deployment year, e.g. 2026", "year")
     doc["waterdepth"] = None
@@ -959,9 +983,13 @@ def cmd_stub(args: argparse.Namespace) -> int:
     doc["deployment_ship"] = None
     doc.yaml_add_eol_comment("ship name, e.g. MS Merian", "deployment_ship")
     doc["recovery_cruise"] = None
-    doc.yaml_add_eol_comment("cruise ID at recovery (omit if same cruise)", "recovery_cruise")
+    doc.yaml_add_eol_comment(
+        "cruise ID at recovery (omit if same cruise)", "recovery_cruise"
+    )
     doc["recovery_ship"] = None
-    doc.yaml_add_eol_comment("ship name at recovery (omit if same ship)", "recovery_ship")
+    doc.yaml_add_eol_comment(
+        "ship name at recovery (omit if same ship)", "recovery_ship"
+    )
     doc["latitude"] = None
     doc.yaml_add_eol_comment("planned position, e.g. 65 29.840 N", "latitude")
     doc["longitude"] = None
@@ -980,60 +1008,82 @@ def cmd_stub(args: argparse.Namespace) -> int:
             m[k] = v
         return m
 
-    clamp.append(_instr({
-        "instrument": "aquadopp",
-        "serial": None,
-        "hab": None,
-        "sample_interval_seconds": None,
-        "filename": None,
-        "file_type": "nortek-aqd",
-        "header": None,
-        "clock_offset": 0,
-        "computer_clock_at_recovery": None,
-        "instrument_clock_at_recovery": None,
-    }))
+    clamp.append(
+        _instr(
+            {
+                "instrument": "aquadopp",
+                "serial": None,
+                "hab": None,
+                "sample_interval_seconds": None,
+                "filename": None,
+                "file_type": "nortek-aqd",
+                "header": None,
+                "clock_offset": 0,
+                "computer_clock_at_recovery": None,
+                "instrument_clock_at_recovery": None,
+            }
+        )
+    )
     clamp[-1].yaml_add_eol_comment("height above bottom (m) of transducer", "hab")
-    clamp[-1].yaml_add_eol_comment(".hdr file for T-matrix (same base name if null)", "header")
-    clamp[-1].yaml_add_eol_comment("seconds; computer time minus instrument time at recovery", "clock_offset")
+    clamp[-1].yaml_add_eol_comment(
+        ".hdr file for T-matrix (same base name if null)", "header"
+    )
+    clamp[-1].yaml_add_eol_comment(
+        "seconds; computer time minus instrument time at recovery", "clock_offset"
+    )
 
-    clamp.append(_instr({
-        "instrument": "microcat",
-        "serial": None,
-        "hab": None,
-        "sample_interval_seconds": None,
-        "filename": None,
-        "file_type": "sbe-cnv",
-        "clock_offset": 0,
-        "computer_clock_at_recovery": None,
-        "instrument_clock_at_recovery": None,
-    }))
+    clamp.append(
+        _instr(
+            {
+                "instrument": "microcat",
+                "serial": None,
+                "hab": None,
+                "sample_interval_seconds": None,
+                "filename": None,
+                "file_type": "sbe-cnv",
+                "clock_offset": 0,
+                "computer_clock_at_recovery": None,
+                "instrument_clock_at_recovery": None,
+            }
+        )
+    )
 
-    clamp.append(_instr({
-        "instrument": "rbrsolo",
-        "serial": None,
-        "hab": None,
-        "sample_interval_seconds": None,
-        "filename": None,
-        "file_type": "rbr-rsk",
-        "clock_offset": 0,
-        "computer_clock_at_recovery": None,
-        "instrument_clock_at_recovery": None,
-    }))
+    clamp.append(
+        _instr(
+            {
+                "instrument": "rbrsolo",
+                "serial": None,
+                "hab": None,
+                "sample_interval_seconds": None,
+                "filename": None,
+                "file_type": "rbr-rsk",
+                "clock_offset": 0,
+                "computer_clock_at_recovery": None,
+                "instrument_clock_at_recovery": None,
+            }
+        )
+    )
 
-    clamp.append(_instr({
-        "instrument": "ADCP",
-        "serial": None,
-        "hab_bottom": None,
-        "hab_top": None,
-        "sample_interval_seconds": None,
-        "filename": None,
-        "file_type": "rdi-raw",
-        "orientation": "down",
-        "clock_offset": 0,
-        "computer_clock_at_recovery": None,
-        "instrument_clock_at_recovery": None,
-    }))
-    clamp[-1].yaml_add_eol_comment("HAB of transducer face (downward-looking)", "hab_bottom")
+    clamp.append(
+        _instr(
+            {
+                "instrument": "ADCP",
+                "serial": None,
+                "hab_bottom": None,
+                "hab_top": None,
+                "sample_interval_seconds": None,
+                "filename": None,
+                "file_type": "rdi-raw",
+                "orientation": "down",
+                "clock_offset": 0,
+                "computer_clock_at_recovery": None,
+                "instrument_clock_at_recovery": None,
+            }
+        )
+    )
+    clamp[-1].yaml_add_eol_comment(
+        "HAB of transducer face (downward-looking)", "hab_bottom"
+    )
     clamp[-1].yaml_add_eol_comment("HAB of top of housing", "hab_top")
     clamp[-1].yaml_add_eol_comment("down or up", "orientation")
 
@@ -1047,7 +1097,9 @@ def cmd_stub(args: argparse.Namespace) -> int:
         yaml.dump(doc, fh)
 
     print(f"Wrote stub: {out_path}")
-    print("Edit the file to fill in metadata and instrument details, then delete unused clamp entries.")
+    print(
+        "Edit the file to fill in metadata and instrument details, then delete unused clamp entries."
+    )
     return 0
 
 
@@ -1406,7 +1458,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_plot.add_argument(
         "--colormap",
         default=None,
-        help=f"Matplotlib colormap (default: {__import__('oceanarray.parameters', fromlist=['DEFAULT_COLORMAP']).DEFAULT_COLORMAP})",
+        help=f"Matplotlib colormap (default: {__import__('oceanarray.config.parameters', fromlist=['DEFAULT_COLORMAP']).DEFAULT_COLORMAP})",
     )
     p_plot.add_argument(
         "--markersize",

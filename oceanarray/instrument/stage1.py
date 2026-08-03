@@ -12,8 +12,8 @@ import xarray as xr
 import yaml
 import seasenselib
 from seasenselib.writers import NetCdfWriter
-from .utilities import _status, cast_output_dtypes, extract_inline_instruments
-from . import parameters as P
+from oceanarray.utilities import _status, cast_output_dtypes, extract_inline_instruments
+from oceanarray import parameters as P
 
 # Suppress noisy INFO/WARNING messages from seasenselib/pycnv.
 logging.getLogger("seasenselib").setLevel(logging.WARNING)
@@ -253,7 +253,7 @@ class MooringProcessor:
 
     def _setup_logging(self, mooring_name: str, output_path: Path) -> None:
         """Set up logging for the processing run using global config."""
-        from .logger import setup_stage_logging
+        from oceanarray.logger import setup_stage_logging
 
         self.log_file = setup_stage_logging(mooring_name, "stage1", output_path)
 
@@ -359,7 +359,7 @@ class MooringProcessor:
                 DeprecationWarning,
                 stacklevel=4,
             )
-            from .readers import load_nortek_csv
+            from oceanarray.tools.readers import load_nortek_csv
 
             ds = load_nortek_csv(file_path, header_file=header_path)
             coord_system = ds.attrs.get("coordinate_system")
@@ -372,7 +372,7 @@ class MooringProcessor:
             return self._normalize_nortek_variables(ds, coord_system=coord_system)
 
         if file_type == "rbr-hex-oa":
-            from .read_rbr_hex import read_rbr_hex
+            from oceanarray.read_rbr_hex import read_rbr_hex
 
             ds = read_rbr_hex(file_path)
             # Rename column-derived physical variables to canonical oceanarray names.
@@ -1624,7 +1624,7 @@ class MooringProcessor:
         if file_type == "rdi-raw":
             dataset = self._normalize_rdi_raw(dataset, instrument_config)
 
-        # Store Nortek pressure sensor calibration coefficients from .hdr as attrs
+        # Store Nortek pressure sensor calibration coefficients from oceanarray.hdr as attrs
         if file_type in ("nortek-aqd", "nortek-ascii") and header_file:
             pcal = _parse_nortek_pressure_cal(Path(header_file))
             for k, v in pcal.items():

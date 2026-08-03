@@ -1,8 +1,15 @@
 """Clock offset analysis functions for oceanographic instrument data.
 
+Promoted from the top-level ``oceanarray/clock_offset.py``; backward-compatible
+re-exports live at ``oceanarray/clock_offset.py``.
+
 This module provides functions to analyze and detect clock offsets between
 different instruments on the same mooring by comparing deployment timing
 and performing lag correlation analysis.
+
+Naming conventions updated from the original module:
+- YAML key ``instruments`` → ``clamp``
+- file suffix ``_raw`` → ``_stage2``
 """
 
 import os
@@ -12,11 +19,13 @@ import pandas as pd
 import xarray as xr
 import yaml
 
-from oceanarray import tools
+from oceanarray.analysis._science import lag_correlation
 from oceanarray.legacy import find_deployment
 
 
-def load_mooring_instruments(mooring_name, base_dir, output_path, file_suffix="_raw"):  # noqa: ARG001
+def load_mooring_instruments(
+    mooring_name, base_dir, output_path, file_suffix="_stage2"
+):  # noqa: ARG001
     """Load all instruments for a mooring from netCDF files and enrich with YAML metadata.
 
     Parameters
@@ -24,11 +33,11 @@ def load_mooring_instruments(mooring_name, base_dir, output_path, file_suffix="_
     mooring_name : str
         Name of the mooring (e.g., 'dsE_1_2018')
     base_dir : str
-        Base directory path
+        Base directory path (currently unused — reserved for future use)
     output_path : str
         Path to processed data directory
     file_suffix : str, optional
-        File suffix to use ('_raw' or '_use'), default '_raw'
+        File suffix to use (e.g. '_stage2', '_stage3'), default '_stage2'
 
     Returns
     -------
@@ -44,8 +53,15 @@ def load_mooring_instruments(mooring_name, base_dir, output_path, file_suffix="_
     with open(moor_yaml, "r") as f:
         moor_yaml_data = yaml.safe_load(f)
 
+    # Support both new key 'clamp' and legacy key 'instruments'
+    instrument_list = moor_yaml_data.get("clamp", moor_yaml_data.get("instruments", []))
+    if not instrument_list:
+        raise KeyError(  # noqa: TRY003
+            f"Mooring YAML {moor_yaml} has neither 'clamp' nor 'instruments' key."
+        )
+
     datasets = []
-    for i in moor_yaml_data["instruments"]:
+    for i in instrument_list:
         fname = mooring_name + "_" + str(i["serial"]) + file_suffix + ".nc"
         rawfile = proc_dir + "/" + i["instrument"] + "/" + fname
 
@@ -385,7 +401,7 @@ def perform_lag_correlation_analysis(combined_ds, ref_index=0, sub_sample=5):
         temp_i_sub = combined_ds["temperature"][:, i].values[::sub_sample]
         coff = combined_ds["clock_offset"][i].values
 
-        corrs_sub = tools.lag_correlation(ref_temp_sub, temp_i_sub, max_lag_sub)
+        corrs_sub = lag_correlation(ref_temp_sub, temp_i_sub, max_lag_sub)
 
         max_corr_idx = np.nanargmax(corrs_sub)
         max_corr = corrs_sub[max_corr_idx]
@@ -548,6 +564,7 @@ def plot_deployment_boundaries(
         Figure size for each plot, default (12, 4)
 
     """
+    import matplotlib.dates as mdates
     import matplotlib.pyplot as plt
 
     start_times = combined_ds["start_time"].values
@@ -661,9 +678,6 @@ def plot_deployment_boundaries(
             ax.set_title(f"{title} - {instruments[i]} at {depths[i]:.0f}m")
             ax.legend(loc="best")
             ax.grid(True, alpha=0.3)
-
-            # Format x-axis for better readability
-            import matplotlib.dates as mdates
 
             ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M:%S"))
             ax.xaxis.set_major_locator(

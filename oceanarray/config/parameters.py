@@ -25,7 +25,7 @@ import numpy as np
 # ---------------------------------------------------------------------------
 # Matplotlib style path (used by plotters via plt.style.use)
 # ---------------------------------------------------------------------------
-MPLSTYLE = Path(__file__).parent / "oceanarray.mplstyle"
+MPLSTYLE = Path(__file__).parent.parent / "oceanarray.mplstyle"
 
 # ---------------------------------------------------------------------------
 # Figure sizes for plot types that differ from the mplstyle default (8×4)

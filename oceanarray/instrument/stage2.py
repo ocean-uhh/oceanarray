@@ -47,7 +47,7 @@ import xarray as xr
 import yaml
 from seasenselib.writers import NetCdfWriter
 
-from .utilities import (
+from oceanarray.utilities import (
     _status,
     cast_output_dtypes,
     drop_all_zero_vars,
@@ -321,7 +321,7 @@ class Stage2Processor:
 
     def _setup_logging(self, mooring_name: str, output_path: Path) -> None:
         """Set up logging for the processing run using global config."""
-        from .logger import setup_stage_logging
+        from oceanarray.logger import setup_stage_logging
 
         self.log_file = setup_stage_logging(mooring_name, "stage2", output_path)
 
@@ -931,7 +931,7 @@ class Stage2Processor:
             self._log_print(f"Final time range: {start_time} to {end_time}")
 
             # Tag with QC convention so downstream tools know the flag vocabulary
-            from . import parameters as _P
+            from oceanarray import parameters as _P
 
             dataset.attrs.setdefault("qc_convention", _P.QC_CONVENTION)
 

@@ -1,3 +1,5 @@
+"""NetCDF and legacy-format readers for mooring instrument data."""
+
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
@@ -15,6 +17,7 @@ def load_dataset(
     source: Union[str, Path, List[Union[str, Path]]],
 ) -> Union[xr.Dataset, List[xr.Dataset]]:
     """Load one or more observational data files and return as xarray Datasets.
+
     Dispatches based on file extension or known formats.
 
     Parameters

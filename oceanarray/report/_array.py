@@ -341,7 +341,13 @@ _ARRAY_HTML_TEMPLATE = """\
 # ---------------------------------------------------------------------------
 
 _TYPE_ORDER = [
-    "microcat", "aquadopp", "rbrsolo", "tr1050", "seapoint", "adcp", "ADCP",
+    "microcat",
+    "aquadopp",
+    "rbrsolo",
+    "tr1050",
+    "seapoint",
+    "adcp",
+    "ADCP",
 ]
 
 
@@ -409,9 +415,7 @@ def _collect_mooring_instruments(
 
         stopped_early = False
         if recover_dt and t_end_raw is not None:
-            rec_np = np.datetime64(
-                recover_dt.replace(tzinfo=None).isoformat(), "ns"
-            )
+            rec_np = np.datetime64(recover_dt.replace(tzinfo=None).isoformat(), "ns")
             gap_s = float((rec_np - t_end_raw) / np.timedelta64(1, "s"))
             stopped_early = gap_s > 12 * 3600
 
@@ -424,7 +428,9 @@ def _collect_mooring_instruments(
                 "hab": hab,
                 "depth": depth,
                 "skipped": skipped or no_raw,
-                "skip_reason": skip_reason if skipped else ("no raw file" if no_raw else ""),
+                "skip_reason": skip_reason
+                if skipped
+                else ("no raw file" if no_raw else ""),
                 "stopped_early": stopped_early,
                 "complete": complete,
                 "n_records": n_records,

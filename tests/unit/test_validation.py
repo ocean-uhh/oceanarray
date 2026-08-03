@@ -2,7 +2,7 @@
 
 import yaml
 
-from oceanarray.validation import validate_mooring_yaml
+from oceanarray.config.validation import validate_mooring_yaml
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -586,3 +586,83 @@ def cast_output_dtypes(ds: xr.Dataset) -> xr.Dataset:
     if not updates:
         return ds
     return ds.assign(updates)
+
+
+# ---------------------------------------------------------------------------
+# Geographic coordinate helpers
+# ---------------------------------------------------------------------------
+
+
+def _dms_to_deg(s: str) -> float:
+    """Parse 'DD MM.mmm N/S/E/W' or a plain float string to decimal degrees."""
+    s = s.strip()
+    try:
+        return float(s)
+    except ValueError:
+        pass
+    parts = s.upper().split()
+    hemi = parts[-1] if parts[-1] in ("N", "S", "E", "W") else None
+    nums = parts[:-1] if hemi else parts
+    val = sum(float(x) / 60.0**i for i, x in enumerate(nums))
+    if hemi in ("S", "W"):
+        val = -val
+    return val
+
+
+def parse_latlon(cfg: dict) -> tuple[float, float]:
+    """Return (lat, lon) in decimal degrees from a mooring config dict.
+
+    Parameters
+    ----------
+    cfg : dict
+        Mooring configuration dictionary (from a ``.mooring.yaml`` file).
+
+    Returns
+    -------
+    tuple[float, float]
+        ``(latitude, longitude)`` in decimal degrees.
+
+    """
+    lat, lon, _ = parse_latlon_with_source(cfg)
+    return lat, lon
+
+
+def parse_latlon_with_source(cfg: dict) -> tuple[float, float, str]:
+    """Return (lat, lon, source_key) from a mooring config dict.
+
+    source_key is the YAML key pair used, e.g. ``'seabed_latitude/seabed_longitude'``,
+    or ``'unknown (defaulting to 0, 0)'`` if none found.
+
+    Zero values (lat == 0 and lon == 0) are treated as unfilled placeholders and
+    skipped so that a later key with a real location is used instead.
+
+    Parameters
+    ----------
+    cfg : dict
+        Mooring configuration dictionary (from a ``.mooring.yaml`` file).
+
+    Returns
+    -------
+    tuple[float, float, str]
+        ``(latitude, longitude, source_key)`` where source_key identifies which
+        YAML key pair was used.
+
+    """
+    for lat_key, lon_key in [
+        ("seabed_latitude", "seabed_longitude"),
+        ("deployment_latitude", "deployment_longitude"),
+        ("planned_latitude", "planned_longitude"),
+        ("latitude", "longitude"),
+    ]:
+        lat_s = cfg.get(lat_key)
+        lon_s = cfg.get(lon_key)
+        if lat_s is not None and lon_s is not None:
+            try:
+                lat_v = _dms_to_deg(str(lat_s))
+                lon_v = _dms_to_deg(str(lon_s))
+            except Exception:  # noqa: BLE001  — _dms_to_deg parse failure; try next key
+                continue
+            if lat_v == 0.0 and lon_v == 0.0:
+                continue  # treat (0, 0) as an unfilled placeholder
+            return lat_v, lon_v, f"{lat_key}/{lon_key}"
+    return 0.0, 0.0, "unknown (defaulting to 0, 0)"
