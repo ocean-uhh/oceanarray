@@ -11,7 +11,7 @@ import yaml
 
 pytest.importorskip("seasenselib", reason="seasenselib not installed")
 
-from oceanarray.stage1 import (
+from oceanarray.instrument.stage1 import (
     MooringProcessor,
     process_multiple_moorings,
     stage1_mooring,
@@ -282,7 +282,7 @@ class TestMooringProcessor:
 class TestConvenienceFunctions:
     """Test convenience functions."""
 
-    @patch("oceanarray.stage1.MooringProcessor")
+    @patch("oceanarray.instrument.stage1.MooringProcessor")
     def test_stage1_mooring(self, mock_processor_class):
         """Test backwards compatibility function."""
         mock_processor = Mock()
@@ -295,7 +295,7 @@ class TestConvenienceFunctions:
         mock_processor_class.assert_called_once_with("/test/dir")
         mock_processor.process_mooring.assert_called_once_with("test_mooring", None)
 
-    @patch("oceanarray.stage1.MooringProcessor")
+    @patch("oceanarray.instrument.stage1.MooringProcessor")
     def test_process_multiple_moorings(self, mock_processor_class):
         """Test batch processing function."""
         mock_processor = Mock()

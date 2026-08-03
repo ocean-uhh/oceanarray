@@ -942,13 +942,9 @@ def _build_issues(
                 rec_np = np.datetime64(
                     recover_dt.replace(tzinfo=None).isoformat(), "ns"
                 )
-                gap_s = float(
-                    (rec_np - nc["t_end_raw"]) / np.timedelta64(1, "s")
-                )
+                gap_s = float((rec_np - nc["t_end_raw"]) / np.timedelta64(1, "s"))
                 delta_h = f"{gap_s / 3600:.0f}"
-            expected = (
-                recover_dt.strftime("%Y-%m-%d %H:%M") if recover_dt else "?"
-            )
+            expected = recover_dt.strftime("%Y-%m-%d %H:%M") if recover_dt else "?"
             stopped_list.append(
                 {
                     "serial": serial,
@@ -1093,7 +1089,9 @@ class MooringReport:
         out_dir.mkdir(parents=True, exist_ok=True)
         output_path = out_dir / f"{mooring_name}_report.html"
         yaml_path = proc_dir / f"{mooring_name}.mooring.yaml"
-        source_ncs = list(proc_dir.glob("*/*_stage3.nc")) + list(proc_dir.glob("*/*_stage2.nc"))
+        source_ncs = list(proc_dir.glob("*/*_stage3.nc")) + list(
+            proc_dir.glob("*/*_stage2.nc")
+        )
         if _should_skip(output_path, force, skip_existing, yaml_path, *source_ncs):
             _status("skip", self._rel(output_path))
             return output_path
@@ -1139,7 +1137,12 @@ class MooringReport:
             grid_path = proc_dir / f"{mooring_name}_grid.nc"
             if grid_path.exists():
                 generate_grid_page(
-                    mooring_name, grid_path, ctx, out_dir, force, report_base_dir,
+                    mooring_name,
+                    grid_path,
+                    ctx,
+                    out_dir,
+                    force,
+                    report_base_dir,
                     skip_existing=skip_existing,
                 )
             else:
@@ -1149,7 +1152,12 @@ class MooringReport:
             stack_path = proc_dir / f"{mooring_name}_stack.nc"
             if stack_path.exists():
                 generate_stack_page(
-                    mooring_name, stack_path, ctx, out_dir, force, report_base_dir,
+                    mooring_name,
+                    stack_path,
+                    ctx,
+                    out_dir,
+                    force,
+                    report_base_dir,
                     skip_existing=skip_existing,
                 )
             else:
@@ -1228,7 +1236,7 @@ class MooringReport:
                 # be processed and there's nothing useful to report.
                 _guessed = None
                 if self._raw_dir is not None and not entry.get("skip"):
-                    from oceanarray.stage1 import MooringProcessor as _S1
+                    from oceanarray.instrument.stage1 import MooringProcessor as _S1
 
                     _raw_mooring = self._raw_dir / mooring_name
                     _guessed = _S1._guess_instrument_filename(  # noqa: SLF001

@@ -207,9 +207,7 @@ def _read_stage1_times(
     proc_dir: Path, instr_type: str, mooring: str, serial: str
 ) -> tuple:
     """Return (t_start_str, t_end_str) from the stage-1 NC, or ('—', '—')."""
-    stage1_path = (
-        proc_dir / instr_type / f"{mooring}_{serial}_stage1.nc"
-    )
+    stage1_path = proc_dir / instr_type / f"{mooring}_{serial}_stage1.nc"
     if not stage1_path.exists():
         return "—", "—"
     try:
@@ -231,9 +229,7 @@ def _read_stage2_times(
     proc_dir: Path, instr_type: str, mooring: str, serial: str
 ) -> tuple:
     """Return (t_start_str, t_end_str) from the stage-2 NC, or ('—', '—')."""
-    stage2_path = (
-        proc_dir / instr_type / f"{mooring}_{serial}_stage2.nc"
-    )
+    stage2_path = proc_dir / instr_type / f"{mooring}_{serial}_stage2.nc"
     if not stage2_path.exists():
         return "—", "—"
     try:
@@ -318,11 +314,7 @@ def _build_rows(
             continue
 
         instr_type = entry.get("instrument", "")
-        hab_raw = (
-            entry.get("hab")
-            or entry.get("hab_bottom")
-            or entry.get("hab_top")
-        )
+        hab_raw = entry.get("hab") or entry.get("hab_bottom") or entry.get("hab_top")
         try:
             hab = float(hab_raw) if hab_raw is not None else None
         except (TypeError, ValueError):
@@ -498,9 +490,7 @@ def generate_recovery_table(
         "year": cfg.get("year", ""),
         "waterdepth": cfg.get("waterdepth", "?"),
         "location": location,
-        "deploy_time": deploy_dt.strftime("%Y-%m-%d %H:%M UTC")
-        if deploy_dt
-        else "?",
+        "deploy_time": deploy_dt.strftime("%Y-%m-%d %H:%M UTC") if deploy_dt else "?",
         "recover_time": recover_dt.strftime("%Y-%m-%d %H:%M UTC")
         if recover_dt
         else "?",

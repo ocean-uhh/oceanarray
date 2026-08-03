@@ -14,7 +14,7 @@ import xarray as xr
 
 pytest.importorskip("seasenselib", reason="seasenselib not installed")
 
-from oceanarray.stage2 import (
+from oceanarray.instrument.stage2 import (
     Stage2Processor,
     _parse_clock_str,
     detect_deployment_window,
@@ -386,7 +386,7 @@ class TestErrorHandling:
 class TestConvenienceFunctions:
     """Test convenience functions - Version 2.0."""
 
-    @patch("oceanarray.stage2.Stage2Processor")
+    @patch("oceanarray.instrument.stage2.Stage2Processor")
     def test_stage2_mooring(self, mock_processor_class):
         """Test backwards compatibility function."""
         mock_processor = Mock()
@@ -400,7 +400,7 @@ class TestConvenienceFunctions:
         # stage2_mooring passes output_path as second arg (None by default)
         mock_processor.process_mooring.assert_called_once_with("test_mooring", None)
 
-    @patch("oceanarray.stage2.Stage2Processor")
+    @patch("oceanarray.instrument.stage2.Stage2Processor")
     def test_process_multiple_moorings_stage2(self, mock_processor_class):
         """Test batch processing function."""
         mock_processor = Mock()

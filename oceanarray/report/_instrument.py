@@ -624,10 +624,16 @@ def generate_instrument_pages(
         _stage2_nc = Path(str(_base) + "_stage2.nc")
         _stage1_nc = Path(str(_base) + "_stage1.nc")
         _source_nc = next(
-            (p for p in [stage3_nc, _stage2_nc, _stage1_nc] if p is not None and p.exists()),
+            (
+                p
+                for p in [stage3_nc, _stage2_nc, _stage1_nc]
+                if p is not None and p.exists()
+            ),
             None,
         )
-        if _should_skip(out_path, force, skip_existing, *([_source_nc] if _source_nc else [])):
+        if _should_skip(
+            out_path, force, skip_existing, *([_source_nc] if _source_nc else [])
+        ):
             print(f"{prefix}  {out_path.name}  [skip]")
             continue
         best_nc = (

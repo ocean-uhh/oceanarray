@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 import xarray as xr
 
-from oceanarray.writers import save_OS_instrument, save_dataset
+from oceanarray.tools.writers import save_OS_instrument, save_dataset
 
 
 def _simple_ds(n: int = 5) -> xr.Dataset:

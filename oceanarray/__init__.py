@@ -4,17 +4,17 @@ This package provides functions for processing, quality control, and analysis
 of oceanographic time series data from moorings and instruments.
 """
 
+from oceanarray.config import parameters
+
 __all__ = [
-    "clock_offset",
-    "detect_deployment_window",
-    "logsheet",
-    "plotters",
-    "readers",
-    "stage1",
-    "stage2",
-    "time_gridding",
+    # Subpackages (canonical locations)
+    "analysis",
+    "config",
+    "instrument",
+    "mooring",
     "tools",
-    "transports",
+    # Top-level modules
+    "parameters",
+    "plotters",
     "utilities",
-    "writers",
 ]
