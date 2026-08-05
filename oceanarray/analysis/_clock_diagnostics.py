@@ -24,8 +24,8 @@ from oceanarray.legacy import find_deployment
 
 
 def load_mooring_instruments(
-    mooring_name, base_dir, output_path, file_suffix="_stage2"
-):  # noqa: ARG001
+    mooring_name, base_dir, output_path, file_suffix="_stage2"  # noqa: ARG001
+):
     """Load all instruments for a mooring from netCDF files and enrich with YAML metadata.
 
     Parameters

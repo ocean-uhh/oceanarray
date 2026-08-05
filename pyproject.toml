@@ -55,6 +55,9 @@ include = ["oceanarray", "oceanarray.*"]
 
 [tool.setuptools.package-data]
 oceanarray = [
+  "oceanarray.mplstyle",
+  "config/*.yaml",
+  "config/legacy/*.yaml",
   "logsheet/data/column_defs.yaml",
   "logsheet/data/latex_templates/*.tex.j2",
 ]
@@ -127,19 +130,22 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["ANN", "D", "SLF001"]   # tests don't need type annotations, docstrings, or private-access guards
 "tests/legacy/**" = ["ANN", "D", "SLF001", "ARG001", "E741", "F841"]  # legacy tests: also allow unused fixture args, short variable names, unused locals
-# tools.py is being reorganised into analysis/ post-OdB; ANN/D deferred until then
+# tools.py reorganised into analysis/ (post-OdB PR #49); ANN/D deferred on legacy content
 "oceanarray/tools.py" = ["ANN", "D205"]
-# The following files move to tools/ or pipeline/ post-OdB; ANN/D deferred until then
+"oceanarray/analysis/_science.py" = ["ANN", "D"]
+"oceanarray/analysis/_clock_diagnostics.py" = ["ANN", "D"]
+# The following flat files moved to subpackages in PR #49; ANN/D deferred on legacy content
 "oceanarray/clock_offset.py" = ["ANN", "D"]
 "oceanarray/find_deployment.py" = ["ANN", "D"]
-"oceanarray/plotter.py" = ["ANN", "D"]          # legacy; renamed from plotters.py; migrates to plotters/ post-OdB
+"oceanarray/plotter.py" = ["ANN", "D"]          # legacy; renamed from plotters.py
 "oceanarray/plotters/__init__.py" = ["ANN", "D", "F401"]  # backward-compat shim re-exports
 "oceanarray/plotters/_primitives.py" = ["ANN", "D"]
 "oceanarray/plotters/_current.py" = ["ANN", "D"]
 "oceanarray/readers.py" = ["ANN", "D"]
 "oceanarray/writers.py" = ["ANN", "D"]
-# rapid_interp.py moves to legacy/ post-OdB; suppress everything until then
+# rapid_interp moved to tools/ in PR #49; suppress legacy issues until rewrite
 "oceanarray/rapid_interp.py" = ["ANN", "D", "F841", "SLF001", "TRY003", "BLE001"]
+"oceanarray/tools/rapid_interp.py" = ["ANN", "D", "F841", "SLF001", "TRY003", "BLE001"]
 # Report generators: every function wraps rendering in try/except → None on failure.
 # This is the established pattern for keeping HTML reports partially working on bad data.
 "oceanarray/report/_plots.py" = ["BLE001", "TRY300"]
@@ -151,6 +157,7 @@ ignore = [
 # Nortek header parsers use except Exception: pass to handle malformed/missing files.
 # Stage1 also has TRY003 for a single ValueError with a descriptive message.
 "oceanarray/stage1.py" = ["BLE001", "TRY003"]
+"oceanarray/instrument/stage1.py" = ["BLE001", "TRY003"]
 # Logsheets modules: builders use sys.exit() for user-facing errors (CLI tool pattern),
 # BLE001/TRY for broad catches in _firmware.py, ANN/D deferred (internal impl files).
 "oceanarray/logsheet/_config.py" = ["BLE001", "TRY003", "ANN", "D"]

@@ -122,12 +122,12 @@ _STACK_HTML_TEMPLATE = """\
   {% if fig_temp_b64 %}<a href="#temp">Temperature</a>{% endif %}
   {% if fig_sal_b64 %}<a href="#sal">Salinity</a>{% endif %}
   {% if fig_east_vel_b64 or fig_north_vel_b64 or fig_up_vel_b64 %}<a href="#vel">Velocity</a>{% endif %}
-  {% if fig_aquadopp_tilt_b64 %}<a href="#tilt">Tilt</a>{% endif %}
   {% if fig_trajectories_b64 or fig_adcp_trajectories_b64 %}<a href="#trajectories">Trajectories</a>{% endif %}
   {% if fig_speed_profile_b64 %}<a href="#speed-profile">Speed profile</a>{% endif %}
   {% if fig_analog_b64 %}<a href="#analog">Analog channels</a>{% endif %}
   {% if fig_ts_stack_b64 %}<a href="#ts">T-S diagram</a>{% endif %}
   {% if fig_rose_grid_b64 %}<a href="#roses">Current roses</a>{% endif %}
+  {% if fig_aquadopp_tilt_b64 %}<a href="#tilt">Tilt</a>{% endif %}
   {% if fig_spacing_b64 %}<a href="#spacing">Spacing</a>{% endif %}
   {% if fig_clock_check_b64 %}<a href="#clock-check">Clock check</a>{% endif %}
   <a href="#dims">Dimensions</a>
@@ -216,19 +216,6 @@ _STACK_HTML_TEMPLATE = """\
 <img class="fig" src="data:image/png;base64,{{ fig_turbidity_b64 }}" alt="Turbidity time series">
 {% endif %}
 
-{% if fig_aquadopp_tilt_b64 %}
-<h2 id="tilt">Aquadopp tilt (|pitch| / |roll| / pressure estimate)</h2>
-<p class="note">
-  One panel per Aquadopp (deep-first). Blue = |pitch|, green = |roll|, orange dashed = tilt
-  estimated from pressure difference between the Aquadopp and the nearest instrument &ge;10 m above
-  with valid pressure (arccos(&Delta;P / rope length)).  All curves are non-negative.
-  Horizontal lines: orange dashed = suspect threshold, red dotted = fail threshold (read from file attrs).
-  Pitch and roll are stored <em>unmasked</em> in the stack file; use <code>pitch_qc</code> /
-  <code>roll_qc</code> to filter. Plots show all available values.
-</p>
-<img class="fig" src="data:image/png;base64,{{ fig_aquadopp_tilt_b64 }}" alt="Aquadopp tilt panels">
-{% endif %}
-
 {% if fig_trajectories_b64 or fig_adcp_trajectories_b64 %}
 <h2 id="trajectories">Particle trajectories</h2>
 <p class="note">
@@ -295,6 +282,19 @@ _STACK_HTML_TEMPLATE = """\
 <img class="fig" style="max-width:{{ rose_img_width }}%" src="data:image/png;base64,{{ fig_rose_grid_b64 }}" alt="Current rose grid">
 {% endif %}
 
+{% if fig_aquadopp_tilt_b64 %}
+<h2 id="tilt">Aquadopp tilt (|pitch| / |roll| / pressure estimate)</h2>
+<p class="note">
+  One panel per Aquadopp (deep-first). Blue = |pitch|, green = |roll|, orange dashed = tilt
+  estimated from pressure difference between the Aquadopp and the nearest instrument &ge;10 m above
+  with valid pressure (arccos(&Delta;P / rope length)).  All curves are non-negative.
+  Horizontal lines: orange dashed = suspect threshold, red dotted = fail threshold (read from file attrs).
+  Pitch and roll are stored <em>unmasked</em> in the stack file; use <code>pitch_qc</code> /
+  <code>roll_qc</code> to filter. Plots show all available values.
+</p>
+<img class="fig" src="data:image/png;base64,{{ fig_aquadopp_tilt_b64 }}" alt="Aquadopp tilt panels">
+{% endif %}
+
 {% if fig_spacing_b64 %}
 <h2 id="spacing">Adjacent instrument spacing</h2>
 <p class="note">Distribution of pressure differences between adjacent instrument pairs (pairs &lt; 2 dbar apart excluded as co-located).</p>
@@ -305,7 +305,7 @@ _STACK_HTML_TEMPLATE = """\
 <h2 id="clock-check">Clock alignment check</h2>
 <p class="note">
   Temperature records from all instruments overlaid, zoomed to the first and last
-  30&thinsp;minutes of the deployment.  A horizontal shift between curves indicates
+  10&thinsp;minutes of the deployment.  A horizontal shift between curves indicates
   a clock offset between instruments.  Data are from stage&#8209;3 (or stage&#8209;2
   if stage&#8209;3 is not yet available).  Instruments without temperature are omitted.
 </p>

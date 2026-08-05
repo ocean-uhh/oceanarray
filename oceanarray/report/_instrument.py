@@ -591,6 +591,8 @@ def generate_instrument_pages(
         Cruise-level raw data directory for the new directory layout.  When given,
         raw file existence is checked at ``{raw_dir}/{mooring}/{instr_type}/filename``.
         When None, *base_dir* is used instead (legacy layout).
+    skip_existing : bool
+        If True, skip pages whose output file is newer than the source NetCDF.
 
     """
     mooring_report_link = f"../{mooring_name}_report.html"

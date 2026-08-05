@@ -37,9 +37,7 @@ Contents
 
    processing_framework
    reports
-   cli_reference
    directory_structure
-   yaml_configuration
    file_naming_conventions
 
 .. toctree::
@@ -80,13 +78,18 @@ Contents
 
    GitHub Repo <https://github.com/ocean-uhh/oceanarray>
    Python API <oceanarray>
+   cli_reference
+   yaml_configuration
    project_structure
-   migration
-
-
    oceanarray_format
    OceanSITES manual <oceanSITES_manual>
    Legacy modules <legacy>
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Changelog / Migration
+
+   migration
 
 .. toctree::
    :maxdepth: 1

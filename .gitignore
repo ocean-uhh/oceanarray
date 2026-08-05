@@ -31,8 +31,6 @@ matlab_calibration/
 
 logs/*log
 
-# Claude Code configuration
-.claude/
 
 # VSCode settings
 .vscode/*
