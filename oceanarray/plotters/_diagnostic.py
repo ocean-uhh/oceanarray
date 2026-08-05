@@ -542,7 +542,7 @@ def plot_clock_offset_check(
     nc_paths: "Dict[str, Path]",
     deploy_dt: "Optional[datetime]",
     recover_dt: "Optional[datetime]",
-    window_minutes: int = 30,
+    window_minutes: int = 10,
 ) -> "Optional[matplotlib.figure.Figure]":
     """Overlaid temperature time series zoomed to deployment start and end.
 
@@ -558,7 +558,8 @@ def plot_clock_offset_check(
     - **Right**: last ``window_minutes`` minutes before ``recover_dt``
 
     When ``deploy_dt`` or ``recover_dt`` is ``None``, only the available
-    window is produced.
+    window is produced.  A shared legend below both panels lists all
+    instruments.
 
     Parameters
     ----------
@@ -637,20 +638,14 @@ def plot_clock_offset_check(
     _tab20 = plt.get_cmap("tab20")
     colors = {s: _tab20(i % 20) for i, s in enumerate(series)}
 
+    plotted_serials: set = set()
     for ax, (t_lo, t_hi, title) in zip(axes, windows):
-        plotted = False
         for serial, (t, temp) in series.items():
             mask = (t >= t_lo) & (t <= t_hi) & np.isfinite(temp)
             if not np.any(mask):
                 continue
-            ax.plot(
-                t[mask],
-                temp[mask],
-                color=colors[serial],
-                lw=1.0,
-                label=str(serial),
-            )
-            plotted = True
+            ax.plot(t[mask], temp[mask], color=colors[serial], lw=1.0)
+            plotted_serials.add(serial)
 
         ax.set_title(title, fontsize=8)
         ax.set_xlabel("Time (UTC)")
@@ -660,8 +655,23 @@ def plot_clock_offset_check(
         ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
         ax.tick_params(axis="x", labelsize=7)
 
-        if plotted:
-            ax.legend(fontsize=6, loc="upper left")
+    if plotted_serials:
+        from matplotlib.lines import Line2D
+
+        handles = [
+            Line2D([0], [0], color=colors[s], lw=1.0, label=str(s))
+            for s in series
+            if s in plotted_serials
+        ]
+        fig.legend(
+            handles=handles,
+            loc="lower center",
+            ncol=min(len(handles), 6),
+            bbox_to_anchor=(0.5, -0.05),
+            fontsize=7,
+            frameon=True,
+        )
 
     plt.tight_layout()
+    fig.subplots_adjust(bottom=0.18)
     return fig

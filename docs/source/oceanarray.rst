@@ -5,41 +5,49 @@
    :maxdepth: 2
    :caption: API Reference
 
-   readers
-   writers
-   plotters
-   trimming
-   transports
-   tools
-   utilities
+   oceanarray
 
-Load and process moored oceanographic time series data from raw instrument format to array-integrated transport products.
+Load and process moored oceanographic time series data from raw instrument
+format to array-integrated products.
 
-Inputs and Outputs
-------------------
+I/O and shared tools
+---------------------
 
 readers
-^^^^^^^^^^^
-Shared utilities and base classes for loading raw instrument data.
+^^^^^^^
+Supplementary data readers (Nortek CSV, RODB legacy format).
 
-.. automodule:: oceanarray.readers
+.. automodule:: oceanarray.tools.readers
    :members:
    :undoc-members:
-
-
 
 writers
-^^^^^^^^^^^
-Write datasets to disk in standardized NetCDF format.
+^^^^^^^
+NetCDF output helpers.
 
-.. automodule:: oceanarray.writers
+.. automodule:: oceanarray.tools.writers
    :members:
    :undoc-members:
 
+rapid interpolation
+^^^^^^^^^^^^^^^^^^^
+Physics-informed vertical interpolation (RAPID array scheme).
+
+.. automodule:: oceanarray.tools.rapid_interp
+   :members:
+   :undoc-members:
+
+utilities
+^^^^^^^^^
+General utilities for file management, logging, and parsing ASCII metadata.
+
+.. automodule:: oceanarray.utilities
+   :members:
+   :undoc-members:
 
 plotters
-^^^^^^^^^^^
-Tools for plotting mooring time series, profile sections, and transport products.
+^^^^^^^^
+Tier-1 primitives and Tier-2 domain plotting functions.
 
 .. automodule:: oceanarray.plotters
    :members:
@@ -54,64 +62,104 @@ calibration-dip casts.
    :members:
    :undoc-members:
 
-Instrument Processing
+Instrument processing
 ----------------------
 
+stage 1 — standardisation
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+Convert raw instrument files (SeaBird, RBR, Nortek, RDI) to CF-NetCDF.
+Faithful to raw data; no QC.
 
-stage 1 - standardisation
-^^^^^^^^^^^^^^^^^^^^^^^^^
-Trim instrument records to the deployment window and flag out-of-bounds values.
-
-.. automodule:: oceanarray.stage1
+.. automodule:: oceanarray.instrument.stage1
    :members:
    :undoc-members:
 
-
-stage 2 - trimming and clock correction
+stage 2 — trimming and clock correction
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Trim to deployment window and apply linear clock-offset/drift correction.
+Trim to the deployment window; apply linear clock-offset/drift correction.
 
-.. automodule:: oceanarray.stage2
+.. automodule:: oceanarray.instrument.stage2
    :members:
    :undoc-members:
 
-stage 3 - QC, rotation, and derived variables
+stage 3 — QC, rotation, and derived variables
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Apply gross-range and spike QC flags, rotate ADCP velocities to ENU, apply
-magnetic declination correction, and compute derived quantities (salinity,
-density, current speed/direction).
+Apply QC flags, rotate ADCP velocities to ENU, apply magnetic declination
+correction, and compute derived quantities (salinity, density, speed/direction).
 
-.. automodule:: oceanarray.stage3
+.. automodule:: oceanarray.instrument.stage3
    :members:
    :undoc-members:
 
-clock offset
-^^^^^^^^^^^^
-Cross-correlation and lag-analysis tools for estimating clock offsets between
-co-located instruments.
+pressure
+^^^^^^^^
+Pressure interpolation helpers (HAB computation, gap-filling).
 
-.. automodule:: oceanarray.clock_offset
+.. automodule:: oceanarray.instrument.pressure
    :members:
    :undoc-members:
 
-Mooring Processing
-------------------
+qc
+^^
+QARTOD quality-control tests.
 
-time gridding / stacking
-^^^^^^^^^^^^^^^^^^^^^^^^^
+.. automodule:: oceanarray.instrument.qc
+   :members:
+   :undoc-members:
+
+coordinate
+^^^^^^^^^^
+Coordinate system transformations (BEAM → XYZ → ENU, magnetic declination).
+
+.. automodule:: oceanarray.instrument.coordinate
+   :members:
+   :undoc-members:
+
+caldip
+^^^^^^
+Cal-dip cast processing (stub; full implementation in progress).
+
+.. automodule:: oceanarray.instrument.caldip
+   :members:
+   :undoc-members:
+
+Mooring processing
+-------------------
+
+stack
+^^^^^
 Interpolate multiple instruments onto a common time grid and stack into a
 single mooring dataset (``oceanarray stack``).
 
-.. automodule:: oceanarray.time_gridding
+.. automodule:: oceanarray.mooring.stack
    :members:
    :undoc-members:
 
-vertical gridding
-^^^^^^^^^^^^^^^^^
+grid
+^^^^
 Interpolate stacked mooring data onto a regular pressure grid
-(``oceanarray grid``).  See :class:`~oceanarray.mooring_level.MooringGridder`.
+(``oceanarray grid``).
 
-.. automodule:: oceanarray.mooring_level
+.. automodule:: oceanarray.mooring.grid
+   :members:
+   :undoc-members:
+
+mooring helpers
+^^^^^^^^^^^^^^^
+Shared helpers for position parsing, HAB computation, and instrument metadata.
+
+.. automodule:: oceanarray.mooring.helpers
+   :members:
+   :undoc-members:
+
+Configuration and validation
+-----------------------------
+
+parameters
+^^^^^^^^^^
+Global processing parameters (QC thresholds, grid defaults, file paths).
+
+.. automodule:: oceanarray.config.parameters
    :members:
    :undoc-members:
 
@@ -119,47 +167,30 @@ validation
 ^^^^^^^^^^
 Validate mooring YAML configuration files and check instrument type names.
 
-.. automodule:: oceanarray.validation
+.. automodule:: oceanarray.config.validation
    :members:
    :undoc-members:
 
-Array Processing
-----------------------
+Analysis
+---------
 
-transports
-^^^^^^^^^^^
-Compute transport time series by integrating geostrophic velocity profiles and applying boundary corrections.
+analysis
+^^^^^^^^
+Science utilities: lag correlation, isopycnal tracking, wavelet analysis,
+power spectra.
 
-.. automodule:: oceanarray.transports
+.. automodule:: oceanarray.analysis
    :members:
    :undoc-members:
 
-General Tools and Utilities
----------------------------
-
-
-tools
-^^^^^^^^^^^
-Helper functions for unit conversion, time alignment, and quality control.
-
-.. automodule:: oceanarray.tools
-   :members:
-   :undoc-members:
-
-utilities
-^^^^^^^^^^^
-General utilities for file management, logging, and parsing ASCII metadata.
-
-.. automodule:: oceanarray.utilities
-   :members:
-   :undoc-members:
+Legacy
+-------
 
 plotter
 ^^^^^^^
-Legacy per-instrument plotting functions (use ``oceanarray.plotters`` for new
-code; this module is retained for backward compatibility).
+Legacy per-instrument plotting functions (use ``oceanarray.plotters`` for
+new code).
 
 .. automodule:: oceanarray.plotter
    :members:
    :undoc-members:
-

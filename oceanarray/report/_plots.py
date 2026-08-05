@@ -108,20 +108,20 @@ def _plot_aquadopp_quick(ds: "xr.Dataset") -> "plt.Figure":
     if enu:
         for vname, color in zip(enu, ["tab:blue", "tab:orange", "tab:cyan"]):
             label = (
-                vname.replace("_velocity", " vel.").replace("_", " ").title() + " [m/s]"
+                vname.replace("_velocity", " vel.").replace("_", " ").title() + " (m/s)"
             )
             panels.append((vname, label, color, False))
     else:
         for i, color in enumerate(["tab:blue", "tab:orange", "tab:cyan"], 1):
             vname = f"velocity_beam{i}"
             if vname in ds.data_vars:
-                panels.append((vname, f"Beam {i} vel. [m/s]", color, False))
+                panels.append((vname, f"Beam {i} vel. (m/s)", color, False))
 
     pvar = next((v for v in ("pressure", "pressure_1") if v in ds.data_vars), None)
     if pvar:
-        panels.append((pvar, "Pressure [dbar]", "tab:green", True))
+        panels.append((pvar, "Pressure (dbar)", "tab:green", True))
 
-    for vname, label in (("pitch", "Pitch [°]"), ("roll", "Roll [°]")):
+    for vname, label in (("pitch", "Pitch (°)"), ("roll", "Roll (°)")):
         if vname in ds.data_vars:
             panels.append((vname, label, "tab:purple", False))
 
@@ -213,7 +213,7 @@ def _instrument_panels(
             continue
         if do_combo:
             if vname == "pitch":
-                out.append(("_pitch_roll_combo", "Pitch & Roll [°]", None, False))
+                out.append(("_pitch_roll_combo", "Pitch & Roll (°)", None, False))
                 continue
             if vname == "roll":
                 continue
@@ -5122,7 +5122,7 @@ def _make_clock_check_b64(
     nc_paths: "Dict[str, Any]",
     deploy_dt: "Any",
     recover_dt: "Any",
-    window_minutes: int = 30,
+    window_minutes: int = 10,
 ) -> Optional[str]:
     """Overlaid temperature comparison at deployment start/end, for the mooring summary.
 
@@ -5138,7 +5138,7 @@ def _make_clock_check_b64(
     recover_dt : datetime or None
         Recovery time (UTC).
     window_minutes : int
-        Duration of each zoom window in minutes (default 30).
+        Duration of each zoom window in minutes (default 10).
 
     Returns
     -------

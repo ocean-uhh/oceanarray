@@ -562,10 +562,8 @@ def plot_aquadopp_speed_profile(
         bp["boxes"][0].set_facecolor("steelblue")
         bp["boxes"][0].set_alpha(0.6)
 
-        # Serial label to the right of the whisker end
-        q75 = np.percentile(spd_clean, 75)
-        iqr = q75 - np.percentile(spd_clean, 25)
-        whisker_end = q75 + 1.5 * iqr
+        # Serial label to the right of the actual whisker end (not the theoretical cap)
+        whisker_end = bp["whiskers"][1].get_xdata()[-1]
         ax.text(
             whisker_end * 1.02,
             hab,
