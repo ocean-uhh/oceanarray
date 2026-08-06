@@ -111,10 +111,8 @@ def _worst_flag(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     NaN inputs are treated as flag 9 (missing value) so that levels with no
     data are never silently promoted to flag 0 ("unknown").
     """
-    # rank[flag_value] gives priority; higher rank = worse flag
-    _rank = np.array(
-        [P.QC_MERGE_PRIORITY.get(f, 0) for f in range(10)], dtype=np.int8
-    )
+    # rank[flag_value] gives priority; higher rank = worse flag (shared LUT).
+    _rank = P.QC_MERGE_PRIORITY_LUT
     a = np.where(np.isfinite(a), a, 9.0)
     b = np.where(np.isfinite(b), b, 9.0)
     ai = np.clip(np.round(a).astype(np.int8), 0, 9)

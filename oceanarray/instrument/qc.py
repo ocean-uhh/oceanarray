@@ -80,9 +80,8 @@ def _merge_flags(*flag_arrays: np.ndarray) -> np.ndarray:
     Returns element-wise flag with highest priority (worst quality).
     Works on arrays of any shape (1-D time series or 2-D time×N_BINS).
     """
-    # Lookup table priority[flag] for flags 0-9, derived from _QC_PRIORITY so the
-    # ordering lives in exactly one place; unlisted flags (5, 6) → 0.
-    _priority = np.array([_QC_PRIORITY.get(f, 0) for f in range(10)], dtype=np.int8)
+    # priority[flag] for flags 0-9, from the shared single-source LUT.
+    _priority = P.QC_MERGE_PRIORITY_LUT
     result = np.asarray(flag_arrays[0], dtype=np.int8).copy()
     for fa in flag_arrays[1:]:
         fa = np.asarray(fa, dtype=np.int8)
@@ -107,7 +106,8 @@ def _ingest_qartod(result: Any) -> np.ndarray:
         arr = np.asarray(result, dtype=float)
         flags = np.where(np.isnan(arr), 9, arr)
     flags = np.asarray(flags).astype(np.int8)
-    return np.where(flags == 2, np.int8(0), flags).astype(np.int8)
+    # np.where over an int8 array and an int8 scalar is already int8.
+    return np.where(flags == 2, np.int8(0), flags)
 
 
 def set_qc_attrs(
@@ -139,8 +139,7 @@ def set_qc_attrs(
 
     """
     attrs: Dict[str, Any] = {
-        "long_name": f"quality flag for {var}",
-        "flag_values": np.array(P.QC_FLAG_VALUES, dtype="int8"),
+        "flag_values": P.QC_FLAG_VALUES_I8,
         "flag_meanings": P.QC_FLAG_MEANINGS,
         "conventions": P.QC_CONVENTION,
     }
@@ -149,7 +148,11 @@ def set_qc_attrs(
         attrs["standard_name"] = f"{std} status_flag"
     if extra:
         attrs.update(extra)
-    ds[f"{var}_qc"].attrs.update(attrs)
+    qc = ds[f"{var}_qc"]
+    qc.attrs.update(attrs)
+    # Preserve an author-supplied long_name (e.g. a standalone diagnostic flag
+    # like seabed_qc); only fill it when absent.
+    qc.attrs.setdefault("long_name", f"quality flag for {var}")
     return ds
 
 

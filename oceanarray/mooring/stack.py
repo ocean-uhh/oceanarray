@@ -494,7 +494,7 @@ class MooringStacker:
                             "Worst OceanSITES flag across east/north/up_velocity; "
                             "apply to the velocity components before use."
                         ),
-                        "flag_values": np.array(P.QC_FLAG_VALUES, dtype="int8"),
+                        "flag_values": P.QC_FLAG_VALUES_I8,
                         "flag_meanings": P.QC_FLAG_MEANINGS,
                         "conventions": P.QC_CONVENTION,
                     },

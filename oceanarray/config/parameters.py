@@ -106,6 +106,15 @@ QC_FLAG_MEANINGS = (
 # (5, 6 — not used in OceanSITES) fall back to priority 0.
 QC_MERGE_PRIORITY = {9: 7, 4: 6, 3: 5, 8: 4, 7: 3, 2: 2, 1: 1, 0: 0}
 
+# Precomputed lookup arrays (immutable; built once at import) so the merge
+# functions and flag-attr writers don't rebuild them on every call.
+# QC_MERGE_PRIORITY_LUT[flag] gives the merge priority for flags 0-9.
+QC_MERGE_PRIORITY_LUT = np.array(
+    [QC_MERGE_PRIORITY.get(f, 0) for f in range(10)], dtype="int8"
+)
+# flag_values as int8 (CF wants it to match the int8 flag variable dtype).
+QC_FLAG_VALUES_I8 = np.array(QC_FLAG_VALUES, dtype="int8")
+
 # ---------------------------------------------------------------------------
 # QARTOD gross-range test thresholds (global ocean defaults).
 #

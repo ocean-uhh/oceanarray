@@ -130,6 +130,22 @@ def test_merge_priority_single_source():
     np.testing.assert_array_equal(_worst_flag(a, b), _merge_flags(a, b))
 
 
+def test_set_qc_attrs_preserves_author_long_name():
+    """set_qc_attrs fills long_name only when absent — never clobbers a standalone
+    diagnostic flag's own long_name (e.g. seabed_qc), but still attaches the table."""
+    from oceanarray.instrument.qc import set_qc_attrs
+
+    ds = xr.Dataset(
+        {"seabed_qc": ("time", np.array([1, 1], dtype=np.int8))},
+        coords={"time": [0, 1]},
+    )
+    ds["seabed_qc"].attrs["long_name"] = "Seabed proximity QC flag"
+    set_qc_attrs(ds, "seabed")
+    assert ds["seabed_qc"].attrs["long_name"] == "Seabed proximity QC flag"
+    assert "flag_meanings" in ds["seabed_qc"].attrs
+    assert np.asarray(ds["seabed_qc"].attrs["flag_values"]).dtype == np.int8
+
+
 # ---------------------------------------------------------------------------
 # _tilt_from_span
 # ---------------------------------------------------------------------------
