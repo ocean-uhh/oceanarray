@@ -1,9 +1,64 @@
 """Shared fixtures and helpers for the test suite."""
 
+from pathlib import Path
+
+import matplotlib
+
+matplotlib.use("Agg")  # headless backend so figure tests run without a display
+
 import numpy as np
 import pandas as pd
 import pytest
 import xarray as xr
+
+#: Root of the committed real-data fixtures (trimmed dune2_1_2026 mooring).
+FIXTURE_PROC = Path(__file__).parent / "fixtures" / "proc" / "dune2_1_2026"
+
+#: Stage-3 NetCDF fixtures — real UHH instruments, one scalar (microcat) and
+#: one velocity (aquadopp), committed so plot tests run on real data in CI.
+MICROCAT_STAGE3 = FIXTURE_PROC / "microcat" / "dune2_1_2026_2941_stage3.nc"
+AQUADOPP_STAGE3 = FIXTURE_PROC / "aquadopp" / "dune2_1_2026_9920_stage3.nc"
+
+
+@pytest.fixture(autouse=True)
+def _raise_on_plot_error(monkeypatch):
+    """Make figure-generation failures raise during tests instead of vanishing.
+
+    Flips :data:`oceanarray.report._plots.RAISE_ON_PLOT_ERROR` on for the
+    duration of every test so a broken figure surfaces as a test failure rather
+    than a silently-absent panel. Reverted automatically by ``monkeypatch``.
+    """
+    from oceanarray.report import _plots
+
+    monkeypatch.setattr(_plots, "RAISE_ON_PLOT_ERROR", True, raising=False)
+
+
+@pytest.fixture
+def microcat_stage3_path() -> Path:
+    """Path to the committed microcat (serial 2941) stage-3 NetCDF fixture."""
+    return MICROCAT_STAGE3
+
+
+@pytest.fixture
+def aquadopp_stage3_path() -> Path:
+    """Path to the committed aquadopp (serial 9920) stage-3 NetCDF fixture."""
+    return AQUADOPP_STAGE3
+
+
+@pytest.fixture
+def microcat_stage3():
+    """Opened microcat stage-3 dataset; closed on teardown."""
+    ds = xr.open_dataset(MICROCAT_STAGE3)
+    yield ds
+    ds.close()
+
+
+@pytest.fixture
+def aquadopp_stage3():
+    """Opened aquadopp stage-3 dataset; closed on teardown."""
+    ds = xr.open_dataset(AQUADOPP_STAGE3)
+    yield ds
+    ds.close()
 
 
 def make_ts_dataset(
