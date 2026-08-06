@@ -7,6 +7,7 @@ logic is defined once rather than copied per stage.
 """
 
 import re
+import sys
 from pathlib import Path
 from typing import Any, Union
 
@@ -87,15 +88,16 @@ def stage_output_name(mooring: str, serial: Any, stage: int, tag: str = "") -> s
 
 
 def require_current_layout(proc_root: _PathLike, mooring: str) -> None:
-    """Raise if *proc_root* uses the removed legacy ``moor/proc`` layout.
+    """Raise if *proc_root* points at a removed legacy layout, naming the fix.
 
     Under the current layout the mooring directory is ``proc_root/<mooring>``.
-    The removed ``basedir`` layout nested it under
-    ``proc_root/moor/proc/<mooring>``.  When the current-layout directory is
-    absent but the legacy one is present, raise a message that names the fix
-    rather than letting processing fail later with "no files found".  If
-    neither exists this returns normally — a genuinely empty run is not this
-    function's concern.
+    The removed ``basedir`` mode nested it one level down — under either
+    ``proc_root/moor/proc/<mooring>`` or ``proc_root/proc/<mooring>`` (both
+    shapes the old ``cli._get_proc_root`` accepted).  When the current-layout
+    directory is absent but a legacy one is present, raise an error that names
+    the directory to use instead, rather than letting processing fail later with
+    "no files found".  If neither exists this returns normally — a genuinely
+    empty run is not this function's concern.
 
     Parameters
     ----------
@@ -107,21 +109,34 @@ def require_current_layout(proc_root: _PathLike, mooring: str) -> None:
     Raises
     ------
     LegacyLayoutError
-        If the legacy ``moor/proc/<mooring>`` directory exists but the
-        current ``<mooring>`` directory does not.
+        If a legacy ``<proc_root>/moor/proc/<mooring>`` or
+        ``<proc_root>/proc/<mooring>`` directory exists but the current
+        ``<proc_root>/<mooring>`` directory does not.
 
     """
     proc_root = Path(proc_root)
+    legacy_roots = (proc_root / "moor" / "proc", proc_root / "proc")
     if (proc_root / mooring).is_dir():
+        # Current layout is present.  Warn (do not fail) if a stale legacy copy
+        # also exists — a half-finished migration leaves two competing trees and
+        # the legacy one is silently ignored.
+        for legacy_root in legacy_roots:
+            if (legacy_root / mooring).is_dir():
+                print(
+                    f"WARNING: both the current '{proc_root / mooring}' and a "
+                    f"legacy '{legacy_root / mooring}' directory exist; the legacy "
+                    f"copy is ignored. Remove it to avoid confusion.",
+                    file=sys.stderr,
+                )
+                break
         return
-    legacy = proc_root / "moor" / "proc" / mooring
-    if legacy.is_dir():
-        raise LegacyLayoutError(  # noqa: TRY003
-            f"'{proc_root}' looks like a legacy 'moor/proc' layout, which is no "
-            f"longer supported (the 'basedir' option was removed). Point "
-            f"--proc-dir at '{proc_root / 'moor' / 'proc'}', or migrate the "
-            f"directory to the current layout (see MIGRATION-BASEDIR.md)."
-        )
+    for legacy_root in legacy_roots:
+        if (legacy_root / mooring).is_dir():
+            raise LegacyLayoutError(  # noqa: TRY003
+                f"--proc-dir points at an old-layout directory (found "
+                f"'{legacy_root / mooring}'). Use --proc-dir {legacy_root} "
+                f"instead (see MIGRATION-BASEDIR.md)."
+            )
 
 
 def safe_serial(serial: Any) -> str:

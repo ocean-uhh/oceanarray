@@ -10,17 +10,17 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import yaml
 
+from oceanarray import paths
+
 from ._html_helpers import (
     _check_readable,
     _duration_str,
     _find_array_report_href,
     _fmt_dt,
-    _get_proc_dir,
     _load_pdf_b64,
     _instrument_report_exists,
     _nav_buttons_html,
     _parse_dt,
-    _raw_file_path,
     _read_instrument_info,
     _read_qc_summary,
     _read_sensor_info,
@@ -1010,19 +1010,16 @@ class MooringReport:
 
     def __init__(
         self,
-        base_dir: Optional[str] = None,
         *,
-        proc_dir: Optional[str] = None,
+        proc_dir: str,
         raw_dir: Optional[str] = None,
         report_dir: Optional[str] = None,
     ) -> None:
-        """Initialize with base_dir (legacy) or proc_dir + optional raw_dir (new).
+        """Initialize with the cruise-level proc directory and optional raw/report dirs.
 
         Parameters
         ----------
-        base_dir : str, optional
-            Legacy: cruise-level base directory containing a ``proc/`` subdirectory.
-        proc_dir : str, optional
+        proc_dir : str
             Cruise-level processed output directory. Pipeline appends ``/{mooring}/``.
         raw_dir : str, optional
             Cruise-level raw data directory.  When provided, the report checks whether
@@ -1037,31 +1034,21 @@ class MooringReport:
             when both are supplied.
 
         """
-        if base_dir is not None:
-            self.base_dir: Optional[Path] = Path(base_dir)
-            self._proc_dir: Optional[Path] = None
-            self._raw_dir: Optional[Path] = None
-            self._legacy = True
-        else:
-            self.base_dir = None
-            self._proc_dir = Path(proc_dir) if proc_dir else None
-            self._raw_dir = Path(raw_dir) if raw_dir else None
-            self._legacy = False
+        self._proc_dir = Path(proc_dir) if proc_dir else None
+        self._raw_dir = Path(raw_dir) if raw_dir else None
         self._report_dir: Optional[Path] = Path(report_dir) if report_dir else None
 
     def _resolve_proc_dir(self, mooring_name: str) -> Path:
         """Return the mooring-level proc directory."""
-        if not self._legacy and self._proc_dir is not None:
-            return self._proc_dir / mooring_name
-        return _get_proc_dir(self.base_dir, mooring_name)
+        return paths.mooring_proc_dir(self._proc_dir, mooring_name)
 
     def _rel(self, path: Path) -> str:
-        """Return a short display path relative to base_dir or proc_dir."""
-        for root in (r for r in (self.base_dir, self._proc_dir) if r):
+        """Return a short display path relative to proc_dir."""
+        if self._proc_dir:
             try:
-                return str(path.relative_to(root))
+                return str(path.relative_to(self._proc_dir))
             except ValueError:
-                continue
+                pass
         return path.name
 
     def generate(
@@ -1102,8 +1089,8 @@ class MooringReport:
         with open(yaml_path) as f:
             cfg = yaml.safe_load(f)
 
-        # Resolve the base_dir used for raw file lookups in instrument pages
-        report_base_dir = self.base_dir or self._proc_dir or proc_dir.parent
+        # Display root for pretty-printing paths in the instrument/grid/stack pages.
+        display_root = self._proc_dir or proc_dir.parent
 
         ctx = self._build_context(mooring_name, cfg, proc_dir, yaml_path, out_dir)
         html = self._render(ctx)
@@ -1118,7 +1105,6 @@ class MooringReport:
                 proc_dir,
                 out_dir,
                 force,
-                report_base_dir,
                 serials=serials,
                 raw_dir=self._raw_dir,
                 skip_existing=skip_existing,
@@ -1142,7 +1128,7 @@ class MooringReport:
                     ctx,
                     out_dir,
                     force,
-                    report_base_dir,
+                    display_root,
                     skip_existing=skip_existing,
                 )
             else:
@@ -1157,7 +1143,7 @@ class MooringReport:
                     ctx,
                     out_dir,
                     force,
-                    report_base_dir,
+                    display_root,
                     skip_existing=skip_existing,
                 )
             else:
@@ -1176,7 +1162,6 @@ class MooringReport:
         deploy_dt = _parse_dt(cfg.get("deployment_time"))
         recover_dt = _parse_dt(cfg.get("recovery_time"))
         waterdepth = cfg.get("waterdepth")
-        raw_subdir = str(cfg.get("directory", "raw")).rstrip("/")
 
         instrument_list = list(cfg.get("clamp", cfg.get("instruments", [])))
         instrument_list += extract_inline_instruments(cfg.get("inline", []))
@@ -1210,25 +1195,23 @@ class MooringReport:
             file_type = entry.get("file_type", "")
             yaml_interval_s = entry.get("sample_interval_seconds")
 
-            if filename:
-                if self._legacy:
-                    raw_path = _raw_file_path(
-                        self.base_dir, raw_subdir, instr_type, mooring_name, filename
-                    )
-                    raw_path_str = str(raw_path.relative_to(self.base_dir))
-                elif self._raw_dir is not None:
-                    # New layout: {raw_dir}/{mooring}/{instrument}/filename
-                    raw_path = self._raw_dir / mooring_name / instr_type / filename
-                    raw_path_str = str(raw_path.relative_to(self._raw_dir))
-                else:
-                    raw_path = Path(filename)
-                    raw_path_str = filename
+            if filename and self._raw_dir is not None:
+                # New layout: {raw_dir}/{mooring}/{instrument}/filename
+                raw_path = self._raw_dir / mooring_name / instr_type / filename
+                raw_path_str = str(raw_path.relative_to(self._raw_dir))
                 raw_exists = raw_path.exists()
                 readable, readable_note = (
                     _check_readable(raw_path, file_type)
                     if raw_exists
                     else (False, "file missing")
                 )
+            elif filename:
+                # No raw_dir configured: the raw file's location is unknown.  Do
+                # NOT probe the filesystem — a bare filename resolves against the
+                # current working directory and would misreport existence.
+                raw_path_str = filename
+                raw_exists = False
+                readable, readable_note = (False, "not checked (no --raw-dir)")
             else:
                 # Try auto-guessing filename from standard naming conventions
                 # (same logic as MooringProcessor._guess_instrument_filename).

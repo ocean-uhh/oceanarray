@@ -598,13 +598,13 @@ def generate_stack_page(
     ctx: Dict[str, Any],
     out_dir: Path,
     force: bool,
-    base_dir: Path,
+    display_root: Path,
     skip_existing: bool = False,
 ) -> None:
     """Generate a stack report HTML page with pressure and T time series."""
     out_path = out_dir / f"{mooring_name}_stack_report.html"
     if _should_skip(out_path, force, skip_existing, stack_path):
-        _status("skip", str(out_path.relative_to(base_dir)))
+        _status("skip", str(out_path.relative_to(display_root)))
         return
 
     try:
@@ -942,6 +942,6 @@ def generate_stack_page(
             proc_machine=ctx.get("proc_machine", ""),
         )
         out_path.write_text(html, encoding="utf-8")
-        _status("file", str(out_path.relative_to(base_dir)))
+        _status("file", str(out_path.relative_to(display_root)))
     except Exception as exc:
         print(f"  ERROR generating stack report: {exc}")

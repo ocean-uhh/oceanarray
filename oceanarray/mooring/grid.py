@@ -6,8 +6,8 @@ import numpy as np
 import xarray as xr
 import yaml
 from seasenselib.writers import NetCdfWriter
+from oceanarray import paths
 from oceanarray.utilities import _status, cast_output_dtypes
-from oceanarray.mooring.helpers import _get_proc_dir
 
 
 class MooringGridder:
@@ -15,9 +15,8 @@ class MooringGridder:
 
     def __init__(
         self,
-        base_dir: Optional[str] = None,
         *,
-        proc_dir: Optional[str] = None,
+        proc_dir: str,
     ) -> None:
         """Interpolate a mooring stack onto a regular pressure grid.
 
@@ -28,34 +27,24 @@ class MooringGridder:
 
         Parameters
         ----------
-        base_dir : str, optional
-            Legacy: cruise-level base directory containing a ``proc/`` subdirectory.
-        proc_dir : str, optional
-            Cruise-level processed output directory. Pipeline appends ``/{mooring}/``.
+        proc_dir : str
+            Cruise-level processed output directory. The pipeline appends
+            ``/{mooring}/`` internally (see :func:`oceanarray.paths.mooring_proc_dir`).
 
         """
-        if base_dir is not None:
-            self.base_dir: Optional[Path] = Path(base_dir)
-            self._proc_dir: Optional[Path] = None
-            self._legacy = True
-        else:
-            self.base_dir = None
-            self._proc_dir = Path(proc_dir) if proc_dir else None
-            self._legacy = False
+        self._proc_dir = Path(proc_dir)
 
     def _resolve_proc_dir(self, mooring_name: str) -> Path:
         """Return the mooring-level proc directory."""
-        if not self._legacy and self._proc_dir is not None:
-            return self._proc_dir / mooring_name
-        return _get_proc_dir(self.base_dir, mooring_name)
+        return paths.mooring_proc_dir(self._proc_dir, mooring_name)
 
     def _rel(self, path: Path) -> str:
-        """Return a short display path relative to base_dir or proc_dir."""
-        for root in (r for r in (self.base_dir, self._proc_dir) if r):
+        """Return a short display path relative to proc_dir."""
+        if self._proc_dir:
             try:
-                return str(path.relative_to(root))
+                return str(path.relative_to(self._proc_dir))
             except ValueError:
-                continue
+                pass
         return path.name
 
     def grid(
@@ -296,9 +285,17 @@ class MooringGridder:
 class TimeGriddingProcessor:
     """Handles Step 1 processing: time gridding and optional filtering of mooring instruments."""
 
-    def __init__(self, base_dir: str) -> None:
-        """Initialize processor with base directory."""
-        self.base_dir = Path(base_dir)
+    def __init__(self, *, proc_dir: str) -> None:
+        """Initialize the processor with the cruise-level proc directory.
+
+        Parameters
+        ----------
+        proc_dir : str
+            Cruise-level processed output directory. The pipeline appends
+            ``/{mooring}/`` internally (see :func:`oceanarray.paths.mooring_proc_dir`).
+
+        """
+        self._proc_dir = Path(proc_dir)
         self.log_file = None
 
     def _setup_logging(self, mooring_name: str, output_path: Path) -> None:
@@ -1026,9 +1023,9 @@ class TimeGriddingProcessor:
             bool: True if processing completed successfully
 
         """
-        # Set up paths
+        # Set up paths — {proc_dir}/{mooring}/
         if output_path is None:
-            proc_dir = self.base_dir / "moor" / "proc" / mooring_name
+            proc_dir = paths.mooring_proc_dir(self._proc_dir, mooring_name)
         else:
             proc_dir = Path(output_path) / mooring_name
 
@@ -1128,7 +1125,7 @@ class TimeGriddingProcessor:
 
 def time_gridding_mooring(
     mooring_name: str,
-    basedir: str,
+    proc_dir: str,
     output_path: Optional[str] = None,
     file_suffix: str = "_stage2",
     filter_type: Optional[str] = None,
@@ -1138,7 +1135,7 @@ def time_gridding_mooring(
 
     Args:
         mooring_name: Name of the mooring to process
-        basedir: Base directory containing the data
+        proc_dir: Cruise-level processed output directory (appends /{mooring}/)
         output_path: Optional output path override
         file_suffix: Suffix for input files ('_stage2' or '_raw')
         filter_type: Optional time filtering to apply ('lowpass', 'detide', 'bandpass')
@@ -1148,7 +1145,7 @@ def time_gridding_mooring(
         bool: True if processing completed successfully
 
     """
-    processor = TimeGriddingProcessor(basedir)
+    processor = TimeGriddingProcessor(proc_dir=proc_dir)
     return processor.process_mooring(
         mooring_name,
         output_path,
@@ -1160,7 +1157,7 @@ def time_gridding_mooring(
 
 def process_multiple_moorings_time_gridding(
     mooring_list: List[str],
-    basedir: str,
+    proc_dir: str,
     file_suffix: str = "_stage2",
     filter_type: Optional[str] = None,
     filter_params: Optional[Dict[str, Any]] = None,
@@ -1169,7 +1166,7 @@ def process_multiple_moorings_time_gridding(
 
     Args:
         mooring_list: List of mooring names to process
-        basedir: Base directory containing the data
+        proc_dir: Cruise-level processed output directory (appends /{mooring}/)
         file_suffix: Suffix for input files ('_stage2' or '_raw')
         filter_type: Optional time filtering to apply ('lowpass', 'detide', 'bandpass')
         filter_params: Optional parameters for filtering
@@ -1178,7 +1175,7 @@ def process_multiple_moorings_time_gridding(
         Dict mapping mooring names to success status
 
     """
-    processor = TimeGriddingProcessor(basedir)
+    processor = TimeGriddingProcessor(proc_dir=proc_dir)
     results = {}
 
     for mooring_name in mooring_list:

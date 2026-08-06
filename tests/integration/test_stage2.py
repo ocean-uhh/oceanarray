@@ -32,7 +32,8 @@ class TestRealDataProcessing:
             )
 
         base_dir = tmp_path / "test_data"
-        proc_dir = base_dir / "moor" / "proc" / "test_mooring"
+        proc_root = base_dir / "proc"
+        proc_dir = proc_root / "test_mooring"
         microcat_dir = proc_dir / "microcat"
         microcat_dir.mkdir(parents=True)
 
@@ -43,7 +44,7 @@ class TestRealDataProcessing:
         test_yaml_file.write_text(yaml_config_file.read_text())
 
         return {
-            "base_dir": base_dir,
+            "proc_root": proc_root,
             "proc_dir": proc_dir,
             "raw_file": test_raw_file,
             "yaml_file": test_yaml_file,
@@ -52,7 +53,7 @@ class TestRealDataProcessing:
     def test_process_real_data_full_workflow(self, test_data_setup):
         """Test complete Stage 2 processing with real data - Version 2.0."""
         setup = test_data_setup
-        processor = Stage2Processor(str(setup["base_dir"]))
+        processor = Stage2Processor(proc_dir=str(setup["proc_root"]))
 
         result = processor.process_mooring("test_mooring")
 
@@ -101,7 +102,7 @@ class TestRealDataProcessing:
         with open(setup["yaml_file"], "w") as f:
             yaml.dump(config, f)
 
-        processor = Stage2Processor(str(setup["base_dir"]))
+        processor = Stage2Processor(proc_dir=str(setup["proc_root"]))
         result = processor.process_mooring("test_mooring")
 
         assert result is True
@@ -125,7 +126,7 @@ class TestRealDataProcessing:
 
         setup["raw_file"].unlink()
 
-        processor = Stage2Processor(str(setup["base_dir"]))
+        processor = Stage2Processor(proc_dir=str(setup["proc_root"]))
         result = processor.process_mooring("test_mooring")
 
         assert result is False
@@ -138,10 +139,10 @@ class TestRealDataProcessing:
     def test_process_missing_config(self, tmp_path):
         """Test processing with missing config file."""
         base_dir = tmp_path / "test_data"
-        proc_dir = base_dir / "moor" / "proc" / "test_mooring"
-        proc_dir.mkdir(parents=True)
+        proc_root = base_dir / "proc"
+        (proc_root / "test_mooring").mkdir(parents=True)
 
-        processor = Stage2Processor(str(base_dir))
+        processor = Stage2Processor(proc_dir=str(proc_root))
         result = processor.process_mooring("test_mooring")
 
         assert result is False

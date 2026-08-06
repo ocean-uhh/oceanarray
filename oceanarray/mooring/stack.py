@@ -1,7 +1,7 @@
 """MooringStacker: interpolate all instruments on a mooring onto a common time grid."""
 
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List
 import numpy as np
 import xarray as xr
 import yaml
@@ -13,11 +13,11 @@ from oceanarray.utilities import (
     extract_inline_instruments,
     parse_latlon,
 )
+from oceanarray import paths
 from oceanarray.mooring.helpers import (
     STACK_VARS,
     _safe_serial,
     _worst_flag,
-    _get_proc_dir,
     _best_nc,
     _detect_interval_s,
     _make_adcp_head_ds,
@@ -62,9 +62,8 @@ class MooringStacker:
 
     def __init__(
         self,
-        base_dir: Optional[str] = None,
         *,
-        proc_dir: Optional[str] = None,
+        proc_dir: str,
     ) -> None:
         """Resample all instruments from a mooring onto a common time axis.
 
@@ -75,34 +74,24 @@ class MooringStacker:
 
         Parameters
         ----------
-        base_dir : str, optional
-            Legacy: cruise-level base directory containing a ``proc/`` subdirectory.
-        proc_dir : str, optional
-            Cruise-level processed output directory. Pipeline appends ``/{mooring}/``.
+        proc_dir : str
+            Cruise-level processed output directory. The pipeline appends
+            ``/{mooring}/`` internally (see :func:`oceanarray.paths.mooring_proc_dir`).
 
         """
-        if base_dir is not None:
-            self.base_dir: Optional[Path] = Path(base_dir)
-            self._proc_dir: Optional[Path] = None
-            self._legacy = True
-        else:
-            self.base_dir = None
-            self._proc_dir = Path(proc_dir) if proc_dir else None
-            self._legacy = False
+        self._proc_dir = Path(proc_dir)
 
     def _resolve_proc_dir(self, mooring_name: str) -> Path:
         """Return the mooring-level proc directory."""
-        if not self._legacy and self._proc_dir is not None:
-            return self._proc_dir / mooring_name
-        return _get_proc_dir(self.base_dir, mooring_name)
+        return paths.mooring_proc_dir(self._proc_dir, mooring_name)
 
     def _rel(self, path: Path) -> str:
-        """Return a short display path relative to base_dir or proc_dir."""
-        for root in (r for r in (self.base_dir, self._proc_dir) if r):
+        """Return a short display path relative to proc_dir."""
+        if self._proc_dir:
             try:
-                return str(path.relative_to(root))
+                return str(path.relative_to(self._proc_dir))
             except ValueError:
-                continue
+                pass
         return path.name
 
     def stack(

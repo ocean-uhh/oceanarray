@@ -82,7 +82,7 @@ class TestTimeGriddingProcessor:
     @pytest.fixture
     def processor(self, temp_dir):
         """Create a TimeGriddingProcessor instance for testing."""
-        return TimeGriddingProcessor(str(temp_dir))
+        return TimeGriddingProcessor(proc_dir=str(temp_dir))
 
     @pytest.fixture
     def sample_yaml_data(self):
@@ -121,8 +121,8 @@ class TestTimeGriddingProcessor:
 
     def test_init(self, temp_dir):
         """Test TimeGriddingProcessor initialization."""
-        processor = TimeGriddingProcessor(str(temp_dir))
-        assert processor.base_dir == temp_dir
+        processor = TimeGriddingProcessor(proc_dir=str(temp_dir))
+        assert processor._proc_dir == temp_dir
         assert processor.log_file is None
 
     def test_setup_logging(self, processor, temp_dir):
@@ -342,7 +342,7 @@ class TestConvenienceFunctions:
         result = time_gridding_mooring("test_mooring", "/test/dir", file_suffix="_use")
 
         assert result is True
-        mock_processor_class.assert_called_once_with("/test/dir")
+        mock_processor_class.assert_called_once_with(proc_dir="/test/dir")
 
     @patch("oceanarray.mooring.grid.TimeGriddingProcessor")
     def test_process_multiple_moorings_time_gridding(self, mock_processor_class):
@@ -366,32 +366,31 @@ class TestErrorHandling:
 
     def test_missing_config_file(self, tmp_path):
         """Test handling of missing configuration file."""
-        base_dir = tmp_path / "test_data"
-        proc_dir = base_dir / "moor" / "proc" / "test_mooring"
-        proc_dir.mkdir(parents=True)
+        proc_root = tmp_path / "test_data"
+        (proc_root / "test_mooring").mkdir(parents=True)
 
-        processor = TimeGriddingProcessor(str(base_dir))
+        processor = TimeGriddingProcessor(proc_dir=str(proc_root))
         result = processor.process_mooring("test_mooring")
 
         assert result is False
 
     def test_invalid_yaml_file(self, tmp_path):
         """Test handling of invalid YAML file."""
-        base_dir = tmp_path / "test_data"
-        proc_dir = base_dir / "moor" / "proc" / "test_mooring"
-        proc_dir.mkdir(parents=True)
+        proc_root = tmp_path / "test_data"
+        mooring_dir = proc_root / "test_mooring"
+        mooring_dir.mkdir(parents=True)
 
-        invalid_yaml = proc_dir / "test_mooring.mooring.yaml"
+        invalid_yaml = mooring_dir / "test_mooring.mooring.yaml"
         invalid_yaml.write_text("invalid: yaml: content: [")
 
-        processor = TimeGriddingProcessor(str(base_dir))
+        processor = TimeGriddingProcessor(proc_dir=str(proc_root))
         result = processor.process_mooring("test_mooring")
 
         assert result is False
 
     def test_processing_directory_not_found(self, tmp_path):
         """Test handling when processing directory doesn't exist."""
-        processor = TimeGriddingProcessor(str(tmp_path))
+        processor = TimeGriddingProcessor(proc_dir=str(tmp_path))
         result = processor.process_mooring("nonexistent_mooring")
 
         assert result is False

@@ -52,9 +52,9 @@ For all current processing use:
 
 .. code-block:: bash
 
-   oceanarray process <mooring> --basedir /path/to/data   # Stages 1–3
-   oceanarray stack   <mooring> --basedir /path/to/data
-   oceanarray grid    <mooring> --basedir /path/to/data
-   oceanarray report  <mooring> --basedir /path/to/data --instruments --stack --grid
+   oceanarray process <mooring> --raw-dir /path/to/data/raw --proc-dir /path/to/data/proc   # Stages 1–3
+   oceanarray stack   <mooring> --proc-dir /path/to/data/proc
+   oceanarray grid    <mooring> --proc-dir /path/to/data/proc
+   oceanarray report  <mooring> --proc-dir /path/to/data/proc --instruments --stack --grid
 
 See :doc:`processing_framework` for the full pipeline description.

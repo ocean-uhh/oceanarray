@@ -3,8 +3,8 @@
 The ``instrument`` field in each clamp/instruments entry is used as a
 subdirectory name when reading raw files and writing processed output::
 
-    <basedir>/raw/<instrument>/<mooring_name>/<filename>
-    <basedir>/proc/<mooring_name>/<instrument>/<output>.nc
+    <raw-dir>/<mooring_name>/<instrument>/<filename>
+    <proc-dir>/<mooring_name>/<instrument>/<output>.nc
 
 Valid instrument names and their typical file types
 ----------------------------------------------------

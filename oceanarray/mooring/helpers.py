@@ -123,14 +123,6 @@ def _times_to_float(t: np.ndarray) -> np.ndarray:
     return t.astype("datetime64[ns]").astype(np.float64)
 
 
-def _get_proc_dir(base_dir: Path, mooring_name: str) -> Path:
-    proc = base_dir / "proc"
-    if not proc.is_dir():
-        legacy = base_dir / "moor" / "proc"
-        proc = legacy if legacy.is_dir() else proc
-    return proc / mooring_name
-
-
 def _best_nc(
     proc_dir: Path, instr_type: str, mooring_name: str, serial: str
 ) -> Optional[Path]:

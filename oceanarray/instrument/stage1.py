@@ -19,6 +19,7 @@ from oceanarray.utilities import (
     should_skip_regeneration,
 )
 from oceanarray import parameters as P
+from oceanarray import paths
 from oceanarray.paths import safe_serial
 
 # Suppress noisy INFO/WARNING messages from seasenselib/pycnv.
@@ -212,37 +213,21 @@ class MooringProcessor:
         "sbe-ascii": ["depth", "latitude", "longitude"],
     }
 
-    def __init__(
-        self,
-        base_dir: Optional[str] = None,
-        *,
-        raw_dir: Optional[str] = None,
-        proc_dir: Optional[str] = None,
-    ) -> None:
-        """Initialize processor with base directory (legacy) or raw_dir + proc_dir (new).
+    def __init__(self, *, raw_dir: str, proc_dir: str) -> None:
+        """Initialize the processor with cruise-level raw and proc directories.
 
         Parameters
         ----------
-        base_dir : str, optional
-            Legacy: cruise-level base directory (must contain a ``proc/`` subdirectory).
-        raw_dir : str, optional
-            Cruise-level raw data directory. Pipeline appends ``/{mooring}/`` internally.
-            Required together with ``proc_dir`` when not using ``base_dir``.
-        proc_dir : str, optional
-            Cruise-level processed output directory. Pipeline appends ``/{mooring}/``.
-            Required together with ``raw_dir`` when not using ``base_dir``.
+        raw_dir : str
+            Cruise-level raw data directory. The pipeline appends ``/{mooring}/``
+            internally (see :func:`oceanarray.paths.raw_mooring_dir`).
+        proc_dir : str
+            Cruise-level processed output directory. The pipeline appends
+            ``/{mooring}/`` internally (see :func:`oceanarray.paths.mooring_proc_dir`).
 
         """
-        if base_dir is not None:
-            self.base_dir: Optional[Path] = Path(base_dir)
-            self._raw_dir: Optional[Path] = None
-            self._proc_dir: Optional[Path] = None
-            self._legacy = True
-        else:
-            self.base_dir = None
-            self._raw_dir = Path(raw_dir) if raw_dir else None
-            self._proc_dir = Path(proc_dir) if proc_dir else None
-            self._legacy = False
+        self._raw_dir = Path(raw_dir)
+        self._proc_dir = Path(proc_dir)
         self.log_file = None
 
     def _setup_logging(self, mooring_name: str, output_path: Path) -> None:
@@ -273,8 +258,8 @@ class MooringProcessor:
                 print(*args, **kwargs, file=f)
 
     def _rel(self, path: Path) -> str:
-        """Return a short display path relative to base_dir, proc_dir, or raw_dir."""
-        roots = [r for r in (self.base_dir, self._proc_dir, self._raw_dir) if r]
+        """Return a short display path relative to proc_dir or raw_dir."""
+        roots = [r for r in (self._proc_dir, self._raw_dir) if r]
         for root in roots:
             try:
                 return str(path.relative_to(root))
@@ -1206,14 +1191,15 @@ class MooringProcessor:
         """Generate output filename for processed data."""
         file_type = instrument_config.get("file_type", "")
         filename = instrument_config.get("filename", "")
-        serial = self._safe_serial(instrument_config.get("serial", 0))
 
         # Handle special tag for ADCP matlab files
         tag = ""
         if file_type == "adcp-matlab":
             tag = self._find_file_tag(filename)
 
-        output_filename = f"{mooring_name}_{serial}{tag}_stage1.nc"
+        output_filename = paths.stage_output_name(
+            mooring_name, instrument_config.get("serial", 0), 1, tag
+        )
         return output_dir / output_filename
 
     def _get_netcdf_writer_params(self) -> Dict[str, Any]:
@@ -1512,7 +1498,8 @@ class MooringProcessor:
                     )
                     input_file = _nortek_alt
         else:
-            # Legacy layout: {base_dir}/raw/{instrument}/{mooring}/filename
+            # YAML 'directory:' absolute-path override:
+            # {directory}/{instrument}/{mooring}/filename
             input_file = input_dir / dir_name / mooring_name / filename
 
         # Create output directory
@@ -1781,18 +1768,11 @@ class MooringProcessor:
             bool: True if processing completed successfully, False otherwise
 
         """
-        # Set up paths — legacy (base_dir) or new (raw_dir + proc_dir)
-        if self._legacy:
-            if output_path is None:
-                proc = self.base_dir / "proc"
-                if not proc.is_dir():
-                    legacy_proc = self.base_dir / "moor" / "proc"
-                    proc = legacy_proc if legacy_proc.is_dir() else proc
-                output_path = proc / mooring_name
-            else:
-                output_path = Path(output_path) / mooring_name
+        # Output directory: {proc_dir}/{mooring}/
+        if output_path is None:
+            output_path = paths.mooring_proc_dir(self._proc_dir, mooring_name)
         else:
-            output_path = self._proc_dir / mooring_name
+            output_path = Path(output_path) / mooring_name
 
         output_path.mkdir(parents=True, exist_ok=True)
 
@@ -1812,25 +1792,19 @@ class MooringProcessor:
             self._log_print(f"ERROR: Failed to load configuration: {e}")
             return False
 
-        # Set up input directory
-        if self._legacy:
-            # Old layout: {base_dir}/{directory}/{instrument}/{mooring}/filename
-            input_dir = self.base_dir / yaml_data.get("directory", "raw")
+        # Set up input directory — {raw_dir}/{mooring}/{instrument}/filename.
+        # A YAML 'directory:' entry acts as an absolute-path override.
+        yaml_dir_override = yaml_data.get("directory")
+        if yaml_dir_override and Path(yaml_dir_override).is_absolute():
+            input_dir = Path(yaml_dir_override)
+            self._log_print(
+                f"WARNING: using 'directory: {yaml_dir_override}' from YAML "
+                f"as raw root override (ignoring --raw-dir)"
+            )
             raw_mooring_dir = None
         else:
-            # New layout: {raw_dir}/{mooring}/{instrument}/filename
-            # directory: in YAML acts as absolute-path override
-            yaml_dir_override = yaml_data.get("directory")
-            if yaml_dir_override and Path(yaml_dir_override).is_absolute():
-                input_dir = Path(yaml_dir_override)
-                self._log_print(
-                    f"WARNING: using 'directory: {yaml_dir_override}' from YAML "
-                    f"as raw root override (ignoring --raw-dir)"
-                )
-                raw_mooring_dir = None
-            else:
-                input_dir = None
-                raw_mooring_dir = self._raw_dir / mooring_name
+            input_dir = None
+            raw_mooring_dir = paths.raw_mooring_dir(self._raw_dir, mooring_name)
 
         if input_dir is not None and not input_dir.exists():
             self._log_print(f"ERROR: Input directory not found: {input_dir}")
@@ -1889,71 +1863,3 @@ class MooringProcessor:
         # Partial success is still success: instruments that processed are written
         # and the record summary reports which succeeded and which failed.
         return success_count > 0
-
-
-def stage1_mooring(
-    mooring_name: str, basedir: str, output_path: Optional[str] = None
-) -> bool:
-    """Process a single mooring's data (backwards compatibility function).
-
-    Args:
-        mooring_name: Name of the mooring to process
-        basedir: Base directory containing the data
-        output_path: Optional output path override
-
-    Returns:
-        bool: True if processing completed successfully
-
-    """
-    processor = MooringProcessor(basedir)
-    return processor.process_mooring(mooring_name, output_path)
-
-
-def process_multiple_moorings(mooring_list: List[str], basedir: str) -> Dict[str, bool]:
-    """Process multiple moorings.
-
-    Args:
-        mooring_list: List of mooring names to process
-        basedir: Base directory containing the data
-
-    Returns:
-        Dict mapping mooring names to success status
-
-    """
-    processor = MooringProcessor(basedir)
-    results = {}
-
-    for mooring_name in mooring_list:
-        print(f"\n{'=' * 50}")
-        print(f"Processing mooring {mooring_name}")
-        print(f"{'=' * 50}")
-
-        results[mooring_name] = processor.process_mooring(mooring_name)
-
-    return results
-
-
-# Example usage
-if __name__ == "__main__":
-    # Your mooring list
-    moorlist = [
-        "dsA_1_2018",
-        "dsB_1_2018",
-        "dsC_1_2018",
-        "dsD_1_2018",
-        "dsE_1_2018",
-        "dsF_1_2018",
-    ]
-
-    basedir = "/Users/eddifying/Dropbox/data/ifmro_mixsed/ds_data_eleanor/"
-
-    # Process all moorings
-    results = process_multiple_moorings(moorlist, basedir)
-
-    # Print summary
-    print(f"\n{'=' * 50}")
-    print("PROCESSING SUMMARY")
-    print(f"{'=' * 50}")
-    for mooring, success in results.items():
-        status = "SUCCESS" if success else "FAILED"
-        print(f"{mooring}: {status}")

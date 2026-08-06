@@ -5,7 +5,6 @@ Version: 2.0 - Fixed clock offset tests with proper array comparison and immutab
 
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch
 
 import numpy as np
 import pandas as pd
@@ -18,8 +17,6 @@ from oceanarray.instrument.stage2 import (
     Stage2Processor,
     _parse_clock_str,
     detect_deployment_window,
-    process_multiple_moorings_stage2,
-    stage2_mooring,
 )
 
 pytestmark = pytest.mark.needs_seasenselib
@@ -37,7 +34,7 @@ class TestStage2Processor:
     @pytest.fixture
     def processor(self, temp_dir):
         """Create a Stage2Processor instance for testing."""
-        return Stage2Processor(str(temp_dir))
+        return Stage2Processor(proc_dir=str(temp_dir))
 
     @pytest.fixture
     def sample_yaml_data(self):
@@ -84,8 +81,8 @@ class TestStage2Processor:
 
     def test_init(self, temp_dir):
         """Test Stage2Processor initialization."""
-        processor = Stage2Processor(str(temp_dir))
-        assert processor.base_dir == temp_dir
+        processor = Stage2Processor(proc_dir=str(temp_dir))
+        assert processor._proc_dir == temp_dir
         assert processor.log_file is None
 
     def test_setup_logging(self, processor, temp_dir):
@@ -365,12 +362,12 @@ class TestErrorHandling:
 
     def test_invalid_yaml_file(self, tmp_path):
         """Test handling of invalid YAML file."""
-        processor = Stage2Processor(str(tmp_path))
+        processor = Stage2Processor(proc_dir=str(tmp_path))
 
-        proc_dir = tmp_path / "moor" / "proc" / "test_mooring"
-        proc_dir.mkdir(parents=True)
+        mooring_dir = tmp_path / "test_mooring"
+        mooring_dir.mkdir(parents=True)
 
-        invalid_yaml = proc_dir / "test_mooring.mooring.yaml"
+        invalid_yaml = mooring_dir / "test_mooring.mooring.yaml"
         invalid_yaml.write_text("invalid: yaml: content: [")
 
         result = processor.process_mooring("test_mooring")
@@ -378,41 +375,9 @@ class TestErrorHandling:
 
     def test_processing_directory_not_found(self, tmp_path):
         """Test handling when processing directory doesn't exist."""
-        processor = Stage2Processor(str(tmp_path))
+        processor = Stage2Processor(proc_dir=str(tmp_path))
         result = processor.process_mooring("nonexistent_mooring")
         assert result is False
-
-
-class TestConvenienceFunctions:
-    """Test convenience functions - Version 2.0."""
-
-    @patch("oceanarray.instrument.stage2.Stage2Processor")
-    def test_stage2_mooring(self, mock_processor_class):
-        """Test backwards compatibility function."""
-        mock_processor = Mock()
-        mock_processor.process_mooring.return_value = True
-        mock_processor_class.return_value = mock_processor
-
-        result = stage2_mooring("test_mooring", "/test/dir")
-
-        assert result is True
-        mock_processor_class.assert_called_once_with("/test/dir")
-        # stage2_mooring passes output_path as second arg (None by default)
-        mock_processor.process_mooring.assert_called_once_with("test_mooring", None)
-
-    @patch("oceanarray.instrument.stage2.Stage2Processor")
-    def test_process_multiple_moorings_stage2(self, mock_processor_class):
-        """Test batch processing function."""
-        mock_processor = Mock()
-        mock_processor.process_mooring.side_effect = [True, False, True]
-        mock_processor_class.return_value = mock_processor
-
-        moorings = ["mooring1", "mooring2", "mooring3"]
-        results = process_multiple_moorings_stage2(moorings, "/test/dir")
-
-        expected = {"mooring1": True, "mooring2": False, "mooring3": True}
-        assert results == expected
-        assert mock_processor.process_mooring.call_count == 3
 
 
 class TestParseClockStr:
@@ -476,7 +441,7 @@ class TestResolveClockDrift:
 
     @pytest.fixture
     def processor(self, tmp_path):
-        return Stage2Processor(str(tmp_path))
+        return Stage2Processor(proc_dir=str(tmp_path))
 
     def test_option_b_standard_iso_instrument_slow(self, processor):
         cfg = {

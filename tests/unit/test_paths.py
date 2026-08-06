@@ -103,8 +103,27 @@ def test_require_current_layout_ok_when_empty(tmp_path):
     assert require_current_layout(tmp_path, "dsG3") is None
 
 
-def test_require_current_layout_raises_on_legacy(tmp_path):
-    """Legacy moor/proc/<mooring> present but current absent → clear error."""
+def test_require_current_layout_warns_when_both_present(tmp_path, capsys):
+    """Current + stale legacy dir both present → warn (don't fail); legacy ignored."""
+    (tmp_path / "dsG3").mkdir()
     (tmp_path / "moor" / "proc" / "dsG3").mkdir(parents=True)
-    with pytest.raises(LegacyLayoutError, match="legacy 'moor/proc' layout"):
+    assert require_current_layout(tmp_path, "dsG3") is None
+    err = capsys.readouterr().err
+    assert "both the current" in err and "legacy" in err
+
+
+def test_require_current_layout_raises_on_moor_proc(tmp_path):
+    """Legacy moor/proc/<mooring> present but current absent → error names the fix."""
+    (tmp_path / "moor" / "proc" / "dsG3").mkdir(parents=True)
+    with pytest.raises(LegacyLayoutError) as exc:
         require_current_layout(tmp_path, "dsG3")
+    # The message must name the directory to point --proc-dir at.
+    assert str(tmp_path / "moor" / "proc") in str(exc.value)
+
+
+def test_require_current_layout_raises_on_proc(tmp_path):
+    """The other legacy variant, proc/<mooring>, is also detected and named."""
+    (tmp_path / "proc" / "dsG3").mkdir(parents=True)
+    with pytest.raises(LegacyLayoutError) as exc:
+        require_current_layout(tmp_path, "dsG3")
+    assert str(tmp_path / "proc") in str(exc.value)

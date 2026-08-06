@@ -3,72 +3,70 @@
 import argparse
 import sys
 from pathlib import Path
+from . import paths
 from .utilities import _status
 from ._version import __version__
 
 
-def _resolve_basedir(basedir: str) -> str:
-    """Strip trailing 'moor' component if user passed data/moor/ instead of data/."""
-    p = Path(basedir)
-    if p.name == "moor":
-        return str(p.parent)
-    return str(p)
-
-
-def _get_proc_root(basedir: str) -> Path:
-    """Return basedir/proc, falling back to basedir/moor/proc for legacy layouts."""
-    base = Path(basedir)
-    proc = base / "proc"
-    if proc.is_dir():
-        return proc
-    legacy = base / "moor" / "proc"
-    return legacy if legacy.is_dir() else proc
-
-
 def _parse_dirs(
     args: "argparse.Namespace",
-) -> "tuple[Path | None, Path, bool]":
+) -> "tuple[Path | None, Path]":
     """Resolve raw and proc directories from CLI args.
 
     Returns
     -------
     raw_dir : Path or None
-        Cruise-level raw directory (``--raw-dir``). None in legacy mode.
+        Cruise-level raw directory (``--raw-dir``). None when a command does not
+        read raw files (stack, grid, report).
     proc_root : Path
         Cruise-level processed output directory.
-    legacy : bool
-        True when ``--basedir`` was used (deprecated path).
+
+    Raises
+    ------
+    SystemExit
+        If ``--basedir`` is supplied (removed; prints a migration message), or if
+        ``--proc-dir`` is not given.
 
     """
-    import warnings
-
     basedir = getattr(args, "basedir", None)
     raw_dir = getattr(args, "raw_dir", None)
     proc_dir = getattr(args, "proc_dir", None)
 
-    if raw_dir or proc_dir:
-        if not proc_dir:
-            raise SystemExit("ERROR: --proc-dir is required when --raw-dir is given.")  # noqa: TRY003
-        return Path(raw_dir) if raw_dir else None, Path(proc_dir), False
-
-    if not basedir:
+    if basedir:
         raise SystemExit(  # noqa: TRY003
-            "ERROR: supply either --raw-dir + --proc-dir (recommended) "
-            "or --basedir (deprecated)."
+            "ERROR: --basedir has been removed. Use --raw-dir + --proc-dir "
+            "(the mooring directory is now <proc-dir>/<mooring>, not "
+            "<basedir>/moor/proc/<mooring>). See MIGRATION-BASEDIR.md at the "
+            "repository root."
         )
-    basedir = _resolve_basedir(basedir)
-    warnings.warn(
-        "--basedir is deprecated; switch to --raw-dir and --proc-dir. "
-        "See MIGRATION-BASEDIR.md at the repository root.",
-        DeprecationWarning,
-        stacklevel=3,
-    )
-    return None, _get_proc_root(basedir), True
+
+    if not proc_dir:
+        raise SystemExit(  # noqa: TRY003
+            "ERROR: --proc-dir is required (and --raw-dir for stage 1)."
+        )
+    return Path(raw_dir) if raw_dir else None, Path(proc_dir)
 
 
-def _print_report(basedir: "str | None", mooring: str, legacy: bool = True) -> None:
-    """Print a per-instrument summary of stage1/stage2/stage3 NetCDF files for a mooring.
+def _parse_dirs_checked(
+    args: "argparse.Namespace",
+) -> "tuple[Path | None, Path]":
+    """Parse dirs and reject an old-layout ``--proc-dir`` for a mooring command.
 
+    Like :func:`_parse_dirs`, but also runs :func:`paths.require_current_layout`
+    on ``<proc-dir>/<args.mooring>`` so a legacy ``moor/proc`` (or ``proc``)
+    directory raises the migration error up front rather than failing later with
+    "no files found".  Use for every mooring-scoped subcommand; ``report --array``
+    is the exception (its positional is a YAML path, not a mooring name).
+    """
+    raw_dir, proc_root = _parse_dirs(args)
+    paths.require_current_layout(proc_root, args.mooring)
+    return raw_dir, proc_root
+
+
+def _print_report(proc_dir: Path) -> None:
+    """Print a per-instrument summary of stage1/stage2/stage3 NetCDF files.
+
+    *proc_dir* is the mooring-level processed directory (``<proc-dir>/<mooring>``).
     For each instrument, reports: serial number, record count (raw from stage1 vs
     processed from stage2/stage3), time span, nominal depth, sampling interval, and
     which geophysical variables are present (temperature, salinity, velocity, etc.).
@@ -76,11 +74,6 @@ def _print_report(basedir: "str | None", mooring: str, legacy: bool = True) -> N
     import datetime
     import numpy as np
     import xarray as xr
-
-    if legacy and basedir is not None:
-        proc_dir = _get_proc_root(basedir) / mooring
-    else:
-        proc_dir = Path(basedir) if basedir else Path(".")
 
     # Collect all processed files; prefer _stage3 > _use as the "best" file per serial
     use_files = sorted(proc_dir.rglob("*_stage2.nc"))
@@ -174,8 +167,7 @@ def cmd_process(args: argparse.Namespace) -> int:
     from .instrument.stage2 import Stage2Processor
     from .instrument.stage3 import Stage3Processor
 
-    raw_dir, proc_root, legacy = _parse_dirs(args)
-    basedir = _resolve_basedir(args.basedir) if legacy else None
+    raw_dir, proc_root = _parse_dirs_checked(args)
 
     # If --stage was not explicitly set and --report is the only action, skip processing
     stages = args.stage if (args.stage is not None or not args.report) else []
@@ -188,10 +180,9 @@ def cmd_process(args: argparse.Namespace) -> int:
 
     if 1 in stages:
         _status("section", f"Stage 1: {args.mooring}")
-        if legacy:
-            proc = MooringProcessor(basedir)
-        else:
-            proc = MooringProcessor(raw_dir=str(raw_dir), proc_dir=str(proc_root))
+        if raw_dir is None:
+            raise SystemExit("ERROR: --raw-dir is required for stage 1.")  # noqa: TRY003
+        proc = MooringProcessor(raw_dir=str(raw_dir), proc_dir=str(proc_root))
         ok = proc.process_mooring(args.mooring, serials=serials, force=args.force)
         if not ok:
             print("Stage 1 failed.")
@@ -199,10 +190,7 @@ def cmd_process(args: argparse.Namespace) -> int:
 
     if 2 in stages:
         _status("section", f"Stage 2: {args.mooring}")
-        if legacy:
-            s2 = Stage2Processor(basedir)
-        else:
-            s2 = Stage2Processor(proc_dir=str(proc_root))
+        s2 = Stage2Processor(proc_dir=str(proc_root))
         ok = s2.process_mooring(args.mooring, serials=serials, force=args.force)
         if not ok:
             print("Stage 2 failed.")
@@ -215,10 +203,7 @@ def cmd_process(args: argparse.Namespace) -> int:
             + (" — DRY RUN" if dry else "")
             + " ==="
         )
-        if legacy:
-            s3 = Stage3Processor(basedir)
-        else:
-            s3 = Stage3Processor(proc_dir=str(proc_root))
+        s3 = Stage3Processor(proc_dir=str(proc_root))
         ok = s3.process_mooring(
             args.mooring, serials=serials, force=args.force, dry_run=dry
         )
@@ -228,9 +213,7 @@ def cmd_process(args: argparse.Namespace) -> int:
 
     if args.report:
         _status("section", f"Record Summary: {args.mooring}")
-        _print_report(
-            basedir or str(proc_root / args.mooring), args.mooring, legacy=legacy
-        )
+        _print_report(proc_root / args.mooring)
 
     if args.plot:
         import matplotlib
@@ -242,11 +225,7 @@ def cmd_process(args: argparse.Namespace) -> int:
         from .plotters import plot_aquadopp_raw
 
         _status("section", f"Plotting: {args.mooring}")
-        proc_dir = (
-            _get_proc_root(basedir) / args.mooring
-            if legacy
-            else proc_root / args.mooring
-        )
+        proc_dir = proc_root / args.mooring
 
         for nc in sorted((proc_dir / "microcat").glob("*_stage2.nc")):
             ds = xr.open_dataset(nc, decode_timedelta=False)
@@ -276,7 +255,7 @@ def cmd_plot(args: argparse.Namespace) -> int:
     from .plotters import plot_mooring_timeseries
     from .config import parameters as P
 
-    _, proc_root, _ = _parse_dirs(args)
+    _, proc_root = _parse_dirs_checked(args)
 
     if args.colormap:
         P.DEFAULT_COLORMAP = args.colormap
@@ -319,7 +298,11 @@ def cmd_report(args: argparse.Namespace) -> int:
     """
     from pathlib import Path
 
-    _, proc_root, _ = _parse_dirs(args)
+    raw_dir, proc_root = _parse_dirs(args)
+    # Array mode treats the positional as a YAML path, not a mooring name, so the
+    # per-mooring layout check does not apply there.
+    if not getattr(args, "array", False):
+        paths.require_current_layout(proc_root, args.mooring)
 
     sig_level = getattr(args, "sig_level", None)
     if sig_level is not None:
@@ -385,18 +368,13 @@ def cmd_report(args: argparse.Namespace) -> int:
 
     from .report import MooringReport
 
-    raw_dir, proc_root, legacy = _parse_dirs(args)
-    basedir = _resolve_basedir(args.basedir) if legacy else None
     _status("section", f"Report: {args.mooring}")
     serials = getattr(args, "serial", None)
-    if legacy:
-        reporter = MooringReport(basedir, report_dir=report_dir)
-    else:
-        reporter = MooringReport(
-            proc_dir=str(proc_root),
-            raw_dir=str(raw_dir) if raw_dir else None,
-            report_dir=report_dir,
-        )
+    reporter = MooringReport(
+        proc_dir=str(proc_root),
+        raw_dir=str(raw_dir) if raw_dir else None,
+        report_dir=report_dir,
+    )
     all_reports = getattr(args, "all_reports", False)
     result = reporter.generate(
         args.mooring,
@@ -441,13 +419,8 @@ def cmd_stack(args: argparse.Namespace) -> int:
     from .utilities import extract_inline_instruments
     import yaml as _yaml
 
-    _, proc_root, legacy = _parse_dirs(args)
-    basedir = _resolve_basedir(args.basedir) if legacy else None
-    proc_dir = (
-        Path(_get_proc_root(basedir)) / args.mooring
-        if legacy
-        else proc_root / args.mooring
-    )
+    _, proc_root = _parse_dirs_checked(args)
+    proc_dir = proc_root / args.mooring
 
     if getattr(args, "dry_run", False):
         _status("section", f"Stack (dry run): {args.mooring}")
@@ -489,10 +462,7 @@ def cmd_stack(args: argparse.Namespace) -> int:
         return 0
 
     _status("section", f"Stack: {args.mooring}")
-    if legacy:
-        stacker = MooringStacker(basedir)
-    else:
-        stacker = MooringStacker(proc_dir=str(proc_root))
+    stacker = MooringStacker(proc_dir=str(proc_root))
     ok = stacker.stack(
         args.mooring,
         dt_seconds=args.dt,
@@ -513,16 +483,11 @@ def cmd_grid(args: argparse.Namespace) -> int:
     """
     from .mooring.grid import MooringGridder
 
-    _, proc_root, legacy = _parse_dirs(args)
-    basedir = _resolve_basedir(args.basedir) if legacy else None
+    _, proc_root = _parse_dirs_checked(args)
 
     if getattr(args, "dry_run", False):
         _status("section", f"Grid (dry run): {args.mooring}")
-        proc_dir = (
-            Path(_get_proc_root(basedir)) / args.mooring
-            if legacy
-            else proc_root / args.mooring
-        )
+        proc_dir = proc_root / args.mooring
         stack_nc = proc_dir / f"{args.mooring}_stack.nc"
         out_nc = proc_dir / f"{args.mooring}_grid.nc"
         print(f"Input:  {stack_nc}  ({'EXISTS' if stack_nc.exists() else 'MISSING'})")
@@ -537,9 +502,7 @@ def cmd_grid(args: argparse.Namespace) -> int:
         return 0
 
     _status("section", f"Grid: {args.mooring}")
-    gridder = (
-        MooringGridder(basedir) if legacy else MooringGridder(proc_dir=str(proc_root))
-    )
+    gridder = MooringGridder(proc_dir=str(proc_root))
     ok = gridder.grid(
         args.mooring,
         p_start=args.pmin,
@@ -656,11 +619,8 @@ def cmd_animate(args: argparse.Namespace) -> int:
 
     from .plotters import animate_hodograph
 
-    _, proc_root, legacy = _parse_dirs(args)
-    basedir = _resolve_basedir(args.basedir) if legacy else None
-    proc_dir = (
-        _get_proc_root(basedir) / args.mooring if legacy else proc_root / args.mooring
-    )
+    _, proc_root = _parse_dirs_checked(args)
+    proc_dir = proc_root / args.mooring
     serials = args.serial or []
 
     # Build {stem: best_nc} — stage3 preferred over stage2
@@ -901,8 +861,9 @@ def cmd_logsheet(args: "argparse.Namespace") -> int:
 def _add_dir_args(p: "argparse.ArgumentParser", raw_needed: bool = True) -> None:
     """Add directory arguments to a subparser.
 
-    Adds ``--raw-dir`` / ``--proc-dir`` (new layout) and the deprecated
-    ``--basedir`` flag.  When *raw_needed* is False (e.g. for ``stack``,
+    Adds ``--raw-dir`` / ``--proc-dir``, plus a hidden ``--basedir`` flag that
+    only exists to emit a migration message (see :func:`_parse_dirs`).  When
+    *raw_needed* is False (e.g. for ``stack``,
     ``grid``, ``report``, ``animate`` which operate on already-processed NetCDF
     files) ``--raw-dir`` is silently omitted and the argument defaults to None.
     Stage 1 processing requires raw instrument files and therefore sets
@@ -918,12 +879,14 @@ def _add_dir_args(p: "argparse.ArgumentParser", raw_needed: bool = True) -> None
 
     """
     grp = p.add_mutually_exclusive_group()
+    # --basedir is removed: it is accepted (undiscoverable in --help) only so we
+    # can print a migration message instead of an argparse "unrecognized argument"
+    # error.  See _parse_dirs.
     grp.add_argument(
         "--basedir",
         default=None,
         metavar="DIR",
-        help="[DEPRECATED] Root data directory (contains proc/). "
-        "Use --raw-dir + --proc-dir instead.",
+        help=argparse.SUPPRESS,
     )
     if raw_needed:
         p.add_argument(
@@ -1122,7 +1085,7 @@ def build_parser() -> argparse.ArgumentParser:
         "  oceanarray run MOORING --raw-dir /data/raw --proc-dir /data/proc --dp 20 --force\n"
         "\n"
         "Legacy (deprecated):\n"
-        "  oceanarray run MOORING --basedir /data --dp 20 --force\n"
+        "  oceanarray run MOORING --raw-dir /data/raw --proc-dir /data/proc --dp 20 --force\n"
         "  See MIGRATION-BASEDIR.md for migration instructions.\n"
     )
     parser = argparse.ArgumentParser(
@@ -1212,7 +1175,7 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         dest="outdir",
         metavar="DIR",
-        help="Directory for the HTML report (default: proc/{mooring}/ inside basedir)",
+        help="Directory for the HTML report (default: {proc-dir}/{mooring}/report/)",
     )
     p_report.add_argument(
         "--report-dir",
@@ -1729,4 +1692,8 @@ def main() -> None:
             )
         if _other_unknowns:
             parser.error(f"unrecognized arguments: {' '.join(_other_unknowns)}")
-    sys.exit(args.func(args))
+    try:
+        sys.exit(args.func(args))
+    except paths.LegacyLayoutError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        sys.exit(1)
