@@ -1,0 +1,43 @@
+# Test fixture — trimmed from the real dune2_1_2026 UHH mooring config.
+# Kept: the mooring-level header and the two instruments whose stage3 .nc files
+# are committed under microcat/ and aquadopp/ (serials 2941 and 9920).
+# Dropped: the other ~20 instruments and the full `inline:` hardware section
+# (mooring-line schematic), none of which these two fixtures exercise.
+# Values are faithful to the source config as of 2026-07-29.
+name: Dune2_1_2026 #needed, otherwise key error
+cleaname: dune2
+year: 2026
+waterdepth: 745
+cruise: OdB
+status: deployed
+ship: Odon de Buen
+deployment_time: '2026-07-11T20:30'
+recovery_time:   '2026-07-25T11:44'
+latitude: 65 43.913
+longitude: -27 48.000
+
+clamp:
+- serial: 2941
+  sample_interval_seconds: 60
+  label: SM
+  image: microcat.png
+  hab: 425
+  instrument: microcat
+  filename: 2941_recovery.asc
+  file_type: sbe-ascii
+  computer_clock_at_recovery: '20260725T13:23:40'
+  instrument_clock_at_recovery: '20260725T13:23:40'
+  clamp_id: '8'
+
+- serial: 9920*
+  sample_interval_seconds: 120
+  label: Aquadopp
+  image: aquadopp_beam_up.png
+  hab: 226
+  filename: 9920_recovery.dat
+  header: 9920_recovery.hdr
+  file_type: nortek-ascii
+  computer_clock_at_recovery: '20260725T13:13:20'
+  instrument_clock_at_recovery: '20260725T13:14:15'
+  instrument: aquadopp
+  clamp_id: '11'

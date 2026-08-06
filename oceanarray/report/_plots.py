@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple
 
@@ -13,6 +14,52 @@ import numpy as np
 
 from ._html_helpers import _QC_MARKER, _QC_LABELS, _fig_to_base64
 from ..utilities import _nice_colorbar_bounds, period_axis_ticks
+
+
+# ---------------------------------------------------------------------------
+# Silent-failure guard
+# ---------------------------------------------------------------------------
+
+#: When ``True``, figure-generation failures re-raise instead of returning
+#: ``None``. Off in production, where a single missing panel must not abort a
+#: whole report; the test suite turns it on via ``tests/conftest.py`` so a
+#: broken figure fails loudly instead of silently vanishing. Overridable at
+#: import time through the ``OCEANARRAY_RAISE_ON_PLOT_ERROR`` environment
+#: variable for debugging on real data, e.g.
+#: ``OCEANARRAY_RAISE_ON_PLOT_ERROR=1 oceanarray report ...``.
+RAISE_ON_PLOT_ERROR = os.environ.get("OCEANARRAY_RAISE_ON_PLOT_ERROR", "").lower() in (
+    "1",
+    "true",
+    "yes",
+)
+
+
+def _plot_failed(exc: Exception) -> None:
+    """Handle a figure-generation failure.
+
+    Re-raises ``exc`` when :data:`RAISE_ON_PLOT_ERROR` is enabled (tests,
+    debugging) and otherwise returns ``None`` so report generation degrades
+    gracefully instead of aborting on one broken panel.
+
+    Parameters
+    ----------
+    exc : Exception
+        The exception caught while building a figure.
+
+    Returns
+    -------
+    None
+        Always ``None`` when the guard is disabled.
+
+    Raises
+    ------
+    Exception
+        The original ``exc``, when :data:`RAISE_ON_PLOT_ERROR` is enabled.
+
+    """
+    if RAISE_ON_PLOT_ERROR:
+        raise exc
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -424,8 +471,8 @@ def _make_instrument_fig(
             return b64
         finally:
             ds.close()
-    except Exception:
-        return None
+    except Exception as exc:
+        return _plot_failed(exc)
 
 
 # ---------------------------------------------------------------------------
@@ -752,8 +799,8 @@ def _make_windows_fig(
             ds.close()
             if ds1 is not None:
                 ds1.close()
-    except Exception:
-        return None
+    except Exception as exc:
+        return _plot_failed(exc)
 
 
 # ---------------------------------------------------------------------------
@@ -967,8 +1014,8 @@ def _make_data_histogram(nc_path: Path) -> Optional[str]:
         plt.close(fig)
         ds.close()
         return b64
-    except Exception:
-        return None
+    except Exception as exc:
+        return _plot_failed(exc)
 
 
 # ---------------------------------------------------------------------------
@@ -1187,8 +1234,8 @@ def _make_ts_diagram(nc_path: Path) -> Optional[str]:
         plt.close(fig)
         ds.close()
         return b64
-    except Exception:
-        return None
+    except Exception as exc:
+        return _plot_failed(exc)
 
 
 # ---------------------------------------------------------------------------
@@ -2162,8 +2209,8 @@ def _make_grid_fig_b64(
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64
-    except Exception:
-        return None
+    except Exception as exc:
+        return _plot_failed(exc)
 
 
 # ---------------------------------------------------------------------------
@@ -2633,8 +2680,8 @@ def _make_instrument_rose_b64(nc_path: Path) -> Optional[str]:
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64
-    except Exception:
-        return None
+    except Exception as exc:
+        return _plot_failed(exc)
 
 
 # ---------------------------------------------------------------------------
@@ -2774,8 +2821,8 @@ def _make_stack_ts_diagram(ds: "xr.Dataset") -> Optional[str]:
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64
-    except Exception:
-        return None
+    except Exception as exc:
+        return _plot_failed(exc)
 
 
 def _make_grid_ts_diagram(
@@ -2898,8 +2945,8 @@ def _make_grid_ts_diagram(
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64, ts_bounds
-    except Exception:
-        return None, {}
+    except Exception as exc:
+        return _plot_failed(exc), {}
 
 
 def _make_velocity_iqr_profile_b64(ds: "xr.Dataset") -> Optional[str]:
@@ -3182,8 +3229,8 @@ def _make_grid_n2_b64(ds: "xr.Dataset", lat: float = 0.0) -> Optional[str]:
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64
-    except Exception:
-        return None
+    except Exception as exc:
+        return _plot_failed(exc)
 
 
 def _make_rose_grid_b64(
@@ -3677,8 +3724,8 @@ def _make_isopycnal_fig_b64(
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64
-    except Exception:
-        return None
+    except Exception as exc:
+        return _plot_failed(exc)
 
 
 def _make_isopycnal_ts_fig_b64(ds_iso: "xr.Dataset") -> Optional[str]:
@@ -3767,8 +3814,8 @@ def _make_isopycnal_ts_fig_b64(ds_iso: "xr.Dataset") -> Optional[str]:
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64
-    except Exception:
-        return None
+    except Exception as exc:
+        return _plot_failed(exc)
 
 
 def _make_isopycnal_coverage_fig_b64(ds: "xr.Dataset") -> Optional[str]:
@@ -4000,8 +4047,8 @@ def _make_isopycnal_coverage_fig_b64(ds: "xr.Dataset") -> Optional[str]:
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64
-    except Exception:
-        return None
+    except Exception as exc:
+        return _plot_failed(exc)
 
 
 def _make_overflow_temperature_fig_b64(ds: "xr.Dataset") -> Optional[str]:
@@ -4084,8 +4131,8 @@ def _make_overflow_temperature_fig_b64(ds: "xr.Dataset") -> Optional[str]:
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64
-    except Exception:
-        return None
+    except Exception as exc:
+        return _plot_failed(exc)
 
 
 # ---------------------------------------------------------------------------
@@ -4106,8 +4153,8 @@ def _make_temperature_trajectory(nc_path: str) -> Optional[str]:
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64
-    except Exception:  # noqa: BLE001  — plot is optional; bad data or missing vars → skip
-        return None
+    except Exception as exc:  # noqa: BLE001  — plot is optional; bad data or missing vars → skip
+        return _plot_failed(exc)
 
 
 def _make_speed_boxplot(nc_path: str) -> Optional[str]:
@@ -4122,8 +4169,8 @@ def _make_speed_boxplot(nc_path: str) -> Optional[str]:
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64
-    except Exception:  # noqa: BLE001  — plot is optional; bad data or missing vars → skip
-        return None
+    except Exception as exc:  # noqa: BLE001  — plot is optional; bad data or missing vars → skip
+        return _plot_failed(exc)
 
 
 def _make_hodograph_b64(nc_path: str) -> Optional[str]:
@@ -4143,8 +4190,8 @@ def _make_hodograph_b64(nc_path: str) -> Optional[str]:
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64
-    except Exception:  # noqa: BLE001  — file unreadable; skip section entirely
-        return None
+    except Exception as exc:  # noqa: BLE001  — file unreadable; skip section entirely
+        return _plot_failed(exc)
 
 
 def _make_multi_aquadopp_trajectories(ds: "xr.Dataset") -> Optional[str]:
@@ -4163,8 +4210,8 @@ def _make_multi_aquadopp_trajectories(ds: "xr.Dataset") -> Optional[str]:
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64
-    except Exception:  # noqa: BLE001  — plot is optional; no aquadopps or missing vars → skip
-        return None
+    except Exception as exc:  # noqa: BLE001  — plot is optional; no aquadopps or missing vars → skip
+        return _plot_failed(exc)
 
 
 def _make_aquadopp_speed_profile(ds: "xr.Dataset") -> Optional[str]:
@@ -4182,8 +4229,8 @@ def _make_aquadopp_speed_profile(ds: "xr.Dataset") -> Optional[str]:
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64
-    except Exception:  # noqa: BLE001  — plot is optional; no aquadopps or missing vars → skip
-        return None
+    except Exception as exc:  # noqa: BLE001  — plot is optional; no aquadopps or missing vars → skip
+        return _plot_failed(exc)
 
 
 def _make_adcp_trajectories_b64(ds: "xr.Dataset") -> Optional[str]:
@@ -4201,8 +4248,8 @@ def _make_adcp_trajectories_b64(ds: "xr.Dataset") -> Optional[str]:
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64
-    except Exception:  # noqa: BLE001  — plot is optional; no ADCP bins or missing vars → skip
-        return None
+    except Exception as exc:  # noqa: BLE001  — plot is optional; no ADCP bins or missing vars → skip
+        return _plot_failed(exc)
 
 
 def _make_adcp_velocity_b64(nc_path: str) -> Optional[str]:
@@ -4424,8 +4471,8 @@ def _make_adcp_velocity_b64(nc_path: str) -> Optional[str]:
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64
-    except Exception:  # noqa: BLE001  — plot is optional; missing vars or bad data → skip
-        return None
+    except Exception as exc:  # noqa: BLE001  — plot is optional; missing vars or bad data → skip
+        return _plot_failed(exc)
 
 
 def _draw_hodograph_pair(
@@ -4681,8 +4728,8 @@ def _make_adcp_rose_b64(nc_path: str) -> Optional[str]:
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64
-    except Exception:  # noqa: BLE001
-        return None
+    except Exception as exc:  # noqa: BLE001
+        return _plot_failed(exc)
 
 
 def _make_adcp_hodograph_b64(
@@ -4797,8 +4844,8 @@ def _make_adcp_hodograph_b64(
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64
-    except Exception:  # noqa: BLE001  — plot is optional; missing vars or bad data → skip
-        return None
+    except Exception as exc:  # noqa: BLE001  — plot is optional; missing vars or bad data → skip
+        return _plot_failed(exc)
 
 
 def _make_grid_hodograph_b64(
@@ -4948,8 +4995,8 @@ def _make_grid_hodograph_b64(
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64
-    except Exception:  # noqa: BLE001  — plot is optional; missing vars or bad data → skip
-        return None
+    except Exception as exc:  # noqa: BLE001  — plot is optional; missing vars or bad data → skip
+        return _plot_failed(exc)
 
 
 def _make_analog_timeseries(nc_path: "Path", analog_vars: "List[str]") -> Optional[str]:
@@ -5023,8 +5070,8 @@ def _make_analog_timeseries(nc_path: "Path", analog_vars: "List[str]") -> Option
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64
-    except Exception:  # noqa: BLE001
-        return None
+    except Exception as exc:  # noqa: BLE001
+        return _plot_failed(exc)
 
 
 def _make_knockdown_pressure_b64(ds: "xr.Dataset") -> Optional[str]:
@@ -5046,8 +5093,8 @@ def _make_knockdown_pressure_b64(ds: "xr.Dataset") -> Optional[str]:
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64
-    except Exception:  # noqa: BLE001
-        return None
+    except Exception as exc:  # noqa: BLE001
+        return _plot_failed(exc)
 
 
 def _make_knockdown_hab_b64(ds: "xr.Dataset") -> Optional[str]:
@@ -5069,8 +5116,8 @@ def _make_knockdown_hab_b64(ds: "xr.Dataset") -> Optional[str]:
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64
-    except Exception:  # noqa: BLE001
-        return None
+    except Exception as exc:  # noqa: BLE001
+        return _plot_failed(exc)
 
 
 def _make_knockdown_displacement_b64(ds: "xr.Dataset") -> Optional[str]:
@@ -5091,8 +5138,8 @@ def _make_knockdown_displacement_b64(ds: "xr.Dataset") -> Optional[str]:
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64
-    except Exception:  # noqa: BLE001
-        return None
+    except Exception as exc:  # noqa: BLE001
+        return _plot_failed(exc)
 
 
 def _make_knockdown_anomaly_b64(ds: "xr.Dataset") -> Optional[str]:
@@ -5114,8 +5161,8 @@ def _make_knockdown_anomaly_b64(ds: "xr.Dataset") -> Optional[str]:
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64
-    except Exception:  # noqa: BLE001
-        return None
+    except Exception as exc:  # noqa: BLE001
+        return _plot_failed(exc)
 
 
 def _make_clock_check_b64(
@@ -5156,5 +5203,5 @@ def _make_clock_check_b64(
         b64 = _fig_to_base64(fig)
         plt.close(fig)
         return b64
-    except Exception:  # noqa: BLE001
-        return None
+    except Exception as exc:  # noqa: BLE001
+        return _plot_failed(exc)
