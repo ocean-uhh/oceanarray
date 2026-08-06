@@ -14,7 +14,8 @@ if TYPE_CHECKING:
 import numpy as np
 
 from ._html_helpers import _QC_MARKER, _QC_LABELS, _fig_to_base64
-from ..utilities import _nice_colorbar_bounds, period_axis_ticks
+from ..plotters._primitives import colorbar_norm, date_axis, pressure_axis
+from ..utilities import period_axis_ticks
 
 log = logging.getLogger(__name__)
 
@@ -163,13 +164,11 @@ def _velocity_panel_style(
     import matplotlib.colors as mcolors
 
     if var in ("east_velocity", "north_velocity", "up_velocity", "error_velocity"):
-        bounds = _nice_colorbar_bounds(-div_abs_max, div_abs_max, n=20)
-        norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+        bounds, norm = colorbar_norm(vmin=-div_abs_max, vmax=div_abs_max)
         return bounds, norm, "Spectral_r", "m s⁻¹"
     if var == "current_speed":
         spd_max = float(np.percentile(finite_vals, 98)) if len(finite_vals) else 1.0
-        bounds = _nice_colorbar_bounds(0.0, max(spd_max, 1e-4), n=20)
-        norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+        bounds, norm = colorbar_norm(vmin=0.0, vmax=max(spd_max, 1e-4))
         return bounds, norm, "plasma", "m s⁻¹"
     if var == "current_direction":
         bounds = np.linspace(0, 360, 21)
@@ -178,12 +177,10 @@ def _velocity_panel_style(
     if var == "bin_pressure":
         p_lo = float(np.percentile(finite_vals, 2)) if len(finite_vals) else 0.0
         p_hi = float(np.percentile(finite_vals, 98)) if len(finite_vals) else 1000.0
-        bounds = _nice_colorbar_bounds(p_lo, p_hi, n=20)
-        norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+        bounds, norm = colorbar_norm(vmin=p_lo, vmax=p_hi)
         return bounds, norm, "PuRd", "dbar"
     # Unknown variable — fall back to diverging
-    bounds = _nice_colorbar_bounds(-div_abs_max, div_abs_max, n=20)
-    norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+    bounds, norm = colorbar_norm(vmin=-div_abs_max, vmax=div_abs_max)
     return bounds, norm, "Spectral_r", "m s⁻¹"
 
 
@@ -195,7 +192,6 @@ def _velocity_panel_style(
 def _plot_aquadopp_quick(ds: "xr.Dataset") -> "plt.Figure":
     """Quick-look figure for Aquadopp; handles beam and ENU naming, lowercase attitude."""
     import matplotlib.pyplot as plt
-    import matplotlib.dates as mdates
     from .. import parameters as P
 
     plt.style.use(str(P.MPLSTYLE))
@@ -250,9 +246,7 @@ def _plot_aquadopp_quick(ds: "xr.Dataset") -> "plt.Figure":
     depth = f"{ds['InstrDepth'].item():.0f} m" if "InstrDepth" in ds else "?"
     axs[0].set_title(f"Aquadopp s/n: {serial}  |  Target depth: {depth}")
     axs[-1].set_xlabel("Time")
-    loc = mdates.AutoDateLocator()
-    axs[-1].xaxis.set_major_locator(loc)
-    axs[-1].xaxis.set_major_formatter(mdates.ConciseDateFormatter(loc))
+    date_axis(axs[-1])
     plt.tight_layout()
     return fig
 
@@ -338,7 +332,6 @@ def _build_fig_from_ds(
 ) -> "Optional[plt.Figure]":
     """Render instrument panels from an already-loaded xarray Dataset."""
     import matplotlib.pyplot as plt
-    import matplotlib.dates as mdates
     from .. import parameters as P
 
     plt.style.use(str(P.MPLSTYLE))
@@ -500,9 +493,7 @@ def _build_fig_from_ds(
     axs[0].set_title(title)
 
     axs[-1].set_xlabel("Time")
-    loc = mdates.AutoDateLocator()
-    axs[-1].xaxis.set_major_locator(loc)
-    axs[-1].xaxis.set_major_formatter(mdates.ConciseDateFormatter(loc))
+    date_axis(axs[-1])
     plt.tight_layout()
     return fig
 
@@ -571,7 +562,6 @@ def draw_windows(
 
     """
     import matplotlib.pyplot as plt
-    import matplotlib.dates as mdates
     from matplotlib.gridspec import GridSpec
     import xarray as xr
 
@@ -657,9 +647,7 @@ def draw_windows(
                     ax.legend(loc="upper right", framealpha=0.8)
                 else:
                     ax.tick_params(labelleft=False)
-                loc = mdates.AutoDateLocator()
-                ax.xaxis.set_major_locator(loc)
-                ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(loc))
+                date_axis(ax)
                 ax.tick_params(axis="x")
                 return
 
@@ -687,9 +675,7 @@ def draw_windows(
                 ax.set_ylabel(label)
             else:
                 ax.tick_params(labelleft=False)
-            loc = mdates.AutoDateLocator()
-            ax.xaxis.set_major_locator(loc)
-            ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(loc))
+            date_axis(ax)
             ax.tick_params(axis="x")
 
         # Normalise vlines to numpy datetime64[ns] upfront.
@@ -1126,7 +1112,6 @@ def _ts_heatmap_panel(
     phi: float = 99.99,
 ) -> None:
     """Render a T-S 2-D count heatmap on *ax*."""
-    import matplotlib.colors as mcolors
     import matplotlib.pyplot as plt
 
     s_lo, s_hi = float(np.nanpercentile(S, plo)), float(np.nanpercentile(S, phi))
@@ -1139,8 +1124,7 @@ def _ts_heatmap_panel(
 
     vmin = float(np.nanmin(log_counts))
     vmax = float(np.nanmax(log_counts))
-    bounds = _nice_colorbar_bounds(vmin, vmax, n=20)
-    norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+    bounds, norm = colorbar_norm(vmin=vmin, vmax=vmax)
     cmap = plt.cm.YlOrRd.copy()
     cmap.set_bad("white")
     pc = ax.pcolormesh(
@@ -1172,7 +1156,6 @@ def draw_ts_diagram(nc_path: Path) -> "Optional[plt.Figure]":
         Figure, or None if temperature or salinity are absent.
 
     """
-    import matplotlib.colors as mcolors
     import matplotlib.pyplot as plt
     import xarray as xr
 
@@ -1275,12 +1258,11 @@ def draw_ts_diagram(nc_path: Path) -> "Optional[plt.Figure]":
         sat_finite = good_mask & np.isfinite(sat_data)
         if sat_finite.any():
             sv = sat_data[sat_finite]
-            bounds_s = _nice_colorbar_bounds(
-                float(np.nanpercentile(sv, 2)),
-                float(np.nanpercentile(sv, 98)),
+            bounds_s, norm_s = colorbar_norm(
+                vmin=float(np.nanpercentile(sv, 2)),
+                vmax=float(np.nanpercentile(sv, 98)),
                 n=11,
             )
-            norm_s = mcolors.BoundaryNorm(bounds_s, ncolors=256)
             sc_s = ax_sat.scatter(
                 S[sat_finite],
                 T[sat_finite],
@@ -2246,24 +2228,13 @@ def draw_grid_fig(
 
     """
     import matplotlib.pyplot as plt
-    import matplotlib.colors as mcolors
-    import matplotlib.dates as mdates
-    from .. import parameters as P
 
     time = da.coords["time"].values
     pressure = da.coords["pressure"].values
     data = da.transpose("pressure", "time").values
 
     fig, ax = plt.subplots(figsize=(13, 4))
-    _vmin = float(np.nanpercentile(data, P.COLORBAR_PLOW)) if vmin is None else vmin
-    _vmax = float(np.nanpercentile(data, P.COLORBAR_PHIGH)) if vmax is None else vmax
-    vmin, vmax = _vmin, _vmax
-    if symmetric:
-        abs_max = max(abs(vmin), abs(vmax), 1e-9)
-        vmin, vmax = -abs_max, abs_max
-
-    bounds = _nice_colorbar_bounds(vmin, vmax, n=20)
-    norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+    bounds, norm = colorbar_norm(data, vmin=vmin, vmax=vmax, symmetric=symmetric)
     if style == "contourf":
         pc = ax.contourf(time, pressure, data, levels=bounds, cmap=cmap, extend="both")
     else:
@@ -2283,11 +2254,8 @@ def draw_grid_fig(
         ax.clabel(ct, fmt="%.1f", fontsize=7, inline=True)
     cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=bounds)
     cb.set_label(f"{title} ({units})" if units else title)
-    ax.invert_yaxis()
-    ax.set_ylabel("Pressure (dbar)")
-    locator = mdates.AutoDateLocator()
-    ax.xaxis.set_major_locator(locator)
-    ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+    pressure_axis(ax)
+    date_axis(ax)
     ax.set_xlabel("Time")
     ax.set_title(f"{title} [{style}]")
     return fig
@@ -2362,10 +2330,7 @@ def draw_grid_hydro(
 
     """
     import matplotlib.pyplot as plt
-    import matplotlib.colors as mcolors
-    import matplotlib.dates as mdates
     import xarray as _xr
-    from .. import parameters as P
 
     if var_bounds is None:
         var_bounds = {}
@@ -2412,7 +2377,6 @@ def draw_grid_hydro(
     time = ds["time"].values
     n = len(panels)
     fig, axes = plt.subplots(n, 1, figsize=(13, 3.2 * n), sharex=True, squeeze=False)
-    locator = mdates.AutoDateLocator()
 
     for ax, (var, cmap) in zip(axes[:, 0], panels):
         da = ds[var]
@@ -2429,26 +2393,20 @@ def draw_grid_hydro(
             "oxygen_saturation_pct": "o2_lim",
         }.get(var)
         _passed = var_bounds.get(_lim_key) if _lim_key else None
-        if _passed is not None:
-            _vmin, _vmax = _passed
-        else:
-            _vmin = float(np.nanpercentile(data, P.COLORBAR_PLOW))
-            _vmax = float(np.nanpercentile(data, P.COLORBAR_PHIGH))
         _n = 11 if var == "oxygen_saturation_pct" else 20
-        bounds = _nice_colorbar_bounds(_vmin, _vmax, n=_n)
-        norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+        if _passed is not None:
+            bounds, norm = colorbar_norm(vmin=_passed[0], vmax=_passed[1], n=_n)
+        else:
+            bounds, norm = colorbar_norm(data, n=_n)
         pc = ax.pcolormesh(
             time, pressure, data, shading="nearest", cmap=cmap, norm=norm
         )
         cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=bounds[::2])
         cb.set_label(f"{long_name} ({units})" if units else long_name)
-        ax.invert_yaxis()
-        ax.set_ylabel("Pressure (dbar)")
+        pressure_axis(ax)
         ax.set_title(title, loc="left")
-        ax.grid(True, linestyle="--", linewidth=0.3, alpha=0.4)
 
-    axes[-1, 0].xaxis.set_major_locator(locator)
-    axes[-1, 0].xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+    date_axis(axes[-1, 0])
     return fig
 
 
@@ -2480,7 +2438,6 @@ def draw_grid_velocity_stacked(ds: "xr.Dataset") -> "Optional[plt.Figure]":
 
     """
     import matplotlib.pyplot as plt
-    import matplotlib.dates as mdates
 
     vel_vars = [
         "east_velocity",
@@ -2524,7 +2481,6 @@ def draw_grid_velocity_stacked(ds: "xr.Dataset") -> "Optional[plt.Figure]":
 
     n = len(present)
     fig, axes = plt.subplots(n, 1, figsize=(13, 3.2 * n), sharex=True, squeeze=False)
-    locator = mdates.AutoDateLocator()
 
     for ax, var in zip(axes[:, 0], present):
         data = ds[var].transpose("pressure", "time").values
@@ -2542,13 +2498,10 @@ def draw_grid_velocity_stacked(ds: "xr.Dataset") -> "Optional[plt.Figure]":
         )
         cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=bounds[::2])
         cb.set_label(cb_label)
-        ax.invert_yaxis()
-        ax.set_ylabel("Pressure (dbar)")
+        pressure_axis(ax)
         ax.set_title(_LABELS[var], loc="left")
-        ax.grid(True, linestyle="--", linewidth=0.3, alpha=0.4)
 
-    axes[-1, 0].xaxis.set_major_locator(locator)
-    axes[-1, 0].xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+    date_axis(axes[-1, 0])
     return fig
 
 
@@ -2564,8 +2517,6 @@ def draw_grid_sigma(ds: "xr.Dataset") -> "Optional[plt.Figure]":
 
     """
     import matplotlib.pyplot as plt
-    import matplotlib.colors as mcolors
-    import matplotlib.dates as mdates
     from .. import parameters as P
 
     sigma_vars = [
@@ -2578,29 +2529,22 @@ def draw_grid_sigma(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     time = ds["time"].values
     n = len(sigma_vars)
     fig, axes = plt.subplots(n, 1, figsize=(13, 3.2 * n), sharex=True, squeeze=False)
-    locator = mdates.AutoDateLocator()
 
     for ax, sv in zip(axes[:, 0], sigma_vars):
         da = ds[sv]
         data = da.transpose("pressure", "time").values
         units = da.attrs.get("units", "kg m⁻³")
         label = da.attrs.get("long_name", sv)
-        _vmin = float(np.nanpercentile(data, P.COLORBAR_PLOW))
-        _vmax = float(np.nanpercentile(data, P.COLORBAR_PHIGH))
-        bounds = _nice_colorbar_bounds(_vmin, _vmax, n=20)
-        norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+        bounds, norm = colorbar_norm(data)
         pc = ax.pcolormesh(
             time, pressure, data, shading="nearest", cmap=P.DENSITY_COLORMAP, norm=norm
         )
         cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=bounds[::2])
         cb.set_label(f"{label} ({units})" if units else label)
-        ax.invert_yaxis()
-        ax.set_ylabel("Pressure (dbar)")
+        pressure_axis(ax)
         ax.set_title(label, loc="left")
-        ax.grid(True, linestyle="--", linewidth=0.3, alpha=0.4)
 
-    axes[-1, 0].xaxis.set_major_locator(locator)
-    axes[-1, 0].xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+    date_axis(axes[-1, 0])
     return fig
 
 
@@ -2813,7 +2757,6 @@ def draw_stack_ts_diagram(ds: "xr.Dataset") -> "Optional[plt.Figure]":
         Figure, or None if temperature or salinity are absent.
 
     """
-    import matplotlib.colors as mcolors
     import matplotlib.pyplot as plt
 
     if "temperature" not in ds.data_vars or "salinity" not in ds.data_vars:
@@ -2862,10 +2805,10 @@ def draw_stack_ts_diagram(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     # --- Left panel: T-S scatter coloured by pressure ---
     if P_flat is not None:
         pv = P_flat[finite]
-        vmin = float(np.nanpercentile(pv, 2))
-        vmax = float(np.nanpercentile(pv, 98))
-        bounds_p = _nice_colorbar_bounds(vmin, vmax, n=20)
-        norm_p = mcolors.BoundaryNorm(bounds_p, ncolors=256)
+        bounds_p, norm_p = colorbar_norm(
+            vmin=float(np.nanpercentile(pv, 2)),
+            vmax=float(np.nanpercentile(pv, 98)),
+        )
         sc_p = ax_scatter.scatter(
             S_flat[finite],
             T_flat[finite],
@@ -2901,12 +2844,11 @@ def draw_stack_ts_diagram(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     if ax_sat is not None and SAT_flat is not None:
         sat_finite = finite & np.isfinite(SAT_flat)
         sat_v = SAT_flat[sat_finite]
-        bounds_s = _nice_colorbar_bounds(
-            float(np.nanpercentile(sat_v, 2)),
-            float(np.nanpercentile(sat_v, 98)),
+        bounds_s, norm_s = colorbar_norm(
+            vmin=float(np.nanpercentile(sat_v, 2)),
+            vmax=float(np.nanpercentile(sat_v, 98)),
             n=11,
         )
-        norm_s = mcolors.BoundaryNorm(bounds_s, ncolors=256)
         sc_s = ax_sat.scatter(
             S_flat[sat_finite],
             T_flat[sat_finite],
@@ -2965,10 +2907,8 @@ def draw_grid_ts_diagram(
         - ``"o2_lim"`` : (vmin, vmax) for oxygen_saturation_pct, or None
 
     """
-    import matplotlib.colors as mcolors
     import matplotlib.pyplot as plt
     from scipy.stats import binned_statistic_2d
-    from ..utilities import _nice_colorbar_bounds
 
     if "temperature" not in ds.data_vars or "salinity" not in ds.data_vars:
         return None
@@ -3028,8 +2968,7 @@ def draw_grid_ts_diagram(
             o2_vmin = float(np.nanpercentile(valid_vals, 2))
             o2_vmax = float(np.nanpercentile(valid_vals, 98))
             ts_bounds["o2_lim"] = (o2_vmin, o2_vmax)
-            bounds = _nice_colorbar_bounds(o2_vmin, o2_vmax, n=11)
-            norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+            bounds, norm = colorbar_norm(vmin=o2_vmin, vmax=o2_vmax, n=11)
             cmap = plt.cm.BrBG.copy()
             cmap.set_bad("white")
             pc = axes[1].pcolormesh(
@@ -3295,9 +3234,6 @@ def draw_grid_n2(ds: "xr.Dataset", lat: float = 0.0) -> "Optional[plt.Figure]":
     """
     import gsw
     import matplotlib.pyplot as plt
-    import matplotlib.dates as mdates
-    import matplotlib.colors as mcolors
-    from .. import parameters as P
 
     if "temperature" not in ds.data_vars or "salinity" not in ds.data_vars:
         return None
@@ -3326,20 +3262,14 @@ def draw_grid_n2(ds: "xr.Dataset", lat: float = 0.0) -> "Optional[plt.Figure]":
     N2_log = np.log10(np.maximum(N2, 1e-12))
 
     fig, ax = plt.subplots(figsize=(13, 4))
-    vmin = float(np.nanpercentile(N2_log[np.isfinite(N2_log)], P.COLORBAR_PLOW))
-    vmax = float(np.nanpercentile(N2_log[np.isfinite(N2_log)], P.COLORBAR_PHIGH))
-    bounds = _nice_colorbar_bounds(vmin, vmax, n=20)
-    norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+    bounds, norm = colorbar_norm(N2_log[np.isfinite(N2_log)])
     pc = ax.pcolormesh(
         time_vals, p_mid_1d, N2_log, shading="nearest", cmap="plasma_r", norm=norm
     )
     cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=bounds)
     cb.set_label("log₁₀(N²) [s⁻²]")
-    ax.invert_yaxis()
-    ax.set_ylabel("Pressure (dbar)")
-    locator = mdates.AutoDateLocator()
-    ax.xaxis.set_major_locator(locator)
-    ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+    pressure_axis(ax)
+    date_axis(ax)
     ax.set_xlabel("Time")
     ax.set_title("Buoyancy frequency squared N² [log₁₀ scale; purple = stratified]")
     return fig
@@ -3619,7 +3549,6 @@ def draw_grid_trajectory(ds: "xr.Dataset") -> "Optional[plt.Figure]":
 
     """
     import matplotlib.pyplot as plt
-    import matplotlib.colors as mcolors
     from matplotlib.collections import LineCollection
 
     if "east_velocity" not in ds.data_vars or "north_velocity" not in ds.data_vars:
@@ -3656,8 +3585,7 @@ def draw_grid_trajectory(ds: "xr.Dataset") -> "Optional[plt.Figure]":
         return None
 
     p_vals = [t[0] for t in trajs]
-    _bounds = _nice_colorbar_bounds(min(p_vals), max(p_vals), n=20)
-    norm: mcolors.BoundaryNorm = mcolors.BoundaryNorm(_bounds, ncolors=256)
+    _bounds, norm = colorbar_norm(vmin=min(p_vals), vmax=max(p_vals))
     cmap = plt.get_cmap("viridis_r")  # shallow (low p) → light; deep → dark
 
     fig, ax = plt.subplots(figsize=(6, 5))
@@ -3813,7 +3741,6 @@ def draw_isopycnal_fig(
 
     """
     import matplotlib.pyplot as plt
-    import matplotlib.dates as mdates
 
     da_tp = da.transpose("pressure", "time")
     time_vals = da_tp["time"].values
@@ -3846,11 +3773,8 @@ def draw_isopycnal_fig(
             pass
         ax.plot([], [], color=col, lw=1.2, label=f"σ₀ = {lev} kg m⁻³")
 
-    ax.invert_yaxis()
-    ax.set_ylabel("Pressure (dbar)")
-    locator = mdates.AutoDateLocator()
-    ax.xaxis.set_major_locator(locator)
-    ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+    pressure_axis(ax)
+    date_axis(ax)
     ax.set_xlabel("Time")
     if levels:
         ax.legend(loc="upper right", framealpha=0.8)
@@ -3894,8 +3818,6 @@ def draw_isopycnal_ts_fig(ds_iso: "xr.Dataset") -> "Optional[plt.Figure]":
     """
     import pandas as pd
     import matplotlib.pyplot as plt
-    import matplotlib.colors as mcolors
-    import matplotlib.dates as mdates
 
     sigma_dim = next((c for c in ds_iso.coords if c != "time" and "level" in c), None)
     if "isopycnal_height" not in ds_iso or sigma_dim is None:
@@ -3935,19 +3857,18 @@ def draw_isopycnal_ts_fig(ds_iso: "xr.Dataset") -> "Optional[plt.Figure]":
     if n_levels <= 8:
         ax.legend(loc="upper right", framealpha=0.8, fontsize=9)
     else:
-        bounds = _nice_colorbar_bounds(
-            float(sigma_vals.min()), float(sigma_vals.max()), n=min(n_levels, 20)
+        bounds, norm = colorbar_norm(
+            vmin=float(sigma_vals.min()),
+            vmax=float(sigma_vals.max()),
+            n=min(n_levels, 20),
         )
-        norm = mcolors.BoundaryNorm(bounds, ncolors=256)
         sm = plt.cm.ScalarMappable(cmap="Blues", norm=norm)
         sm.set_array([])
         cb = fig.colorbar(sm, ax=ax, ticks=bounds, shrink=0.85, pad=0.02)
         cb.set_label("σ₀ (kg m⁻³)")
 
     ax.set_ylabel("Height above seabed (m)")
-    locator = mdates.AutoDateLocator()
-    ax.xaxis.set_major_locator(locator)
-    ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+    date_axis(ax)
     ax.set_xlabel("Time")
     return fig
 
@@ -4208,7 +4129,6 @@ def draw_overflow_temperature_fig(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     """
     import pandas as pd
     import matplotlib.pyplot as plt
-    import matplotlib.dates as mdates
 
     if "temperature" not in ds or "pressure" not in ds.coords:
         return None
@@ -4255,9 +4175,7 @@ def draw_overflow_temperature_fig(ds: "xr.Dataset") -> "Optional[plt.Figure]":
         loc="left",
         pad=4,
     )
-    locator = mdates.AutoDateLocator()
-    ax.xaxis.set_major_locator(locator)
-    ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+    date_axis(ax)
     ax.set_xlabel("Time")
     return fig
 
@@ -4393,7 +4311,6 @@ def draw_adcp_velocity(nc_path: str) -> "Optional[plt.Figure]":
 
     """
     import matplotlib.pyplot as plt
-    import matplotlib.dates as mdates
     import xarray as xr
 
     # (varname, label, panel_type)  — panel_type: "div" | "seq" | "cyc"
@@ -4549,9 +4466,7 @@ def draw_adcp_velocity(nc_path: str) -> "Optional[plt.Figure]":
             else:
                 ax.set_ylim(0.0, range_max)
 
-        locator = mdates.AutoDateLocator()
-        axes[-1, 0].xaxis.set_major_locator(locator)
-        axes[-1, 0].xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+        date_axis(axes[-1, 0])
 
         return fig
 

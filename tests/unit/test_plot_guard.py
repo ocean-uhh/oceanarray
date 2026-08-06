@@ -227,7 +227,9 @@ def test_spectrum_fig_from_grid(grid_ds):
     import numpy as np
 
     dt_seconds = float(
-        np.median(np.diff(grid_ds["time"].values).astype("timedelta64[s]").astype(float))
+        np.median(
+            np.diff(grid_ds["time"].values).astype("timedelta64[s]").astype(float)
+        )
     )
     result = _plots._make_spectrum_fig_b64(grid_ds["temperature"], dt_seconds)
     assert result is not None

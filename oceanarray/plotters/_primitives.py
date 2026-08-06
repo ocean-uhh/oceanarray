@@ -172,3 +172,77 @@ def plot_trajectory(
     ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.4)
     fig.tight_layout()
     return fig
+
+
+def date_axis(ax: Any) -> None:
+    """Apply a concise auto-scaled date formatter to *ax*'s x-axis."""
+    locator = mdates.AutoDateLocator()
+    ax.xaxis.set_major_locator(locator)
+    ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+
+
+def pressure_axis(ax: Any) -> None:
+    """Configure *ax* as a standard pressure Y-axis: inverted, labelled, gridded."""
+    ax.invert_yaxis()
+    ax.set_ylabel("Pressure (dbar)")
+    ax.grid(True, linestyle="--", linewidth=0.3, alpha=0.4)
+
+
+def colorbar_norm(
+    data: Optional[np.ndarray] = None,
+    *,
+    vmin: Optional[float] = None,
+    vmax: Optional[float] = None,
+    n: int = 20,
+    symmetric: bool = False,
+) -> "tuple[np.ndarray, mcolors.BoundaryNorm]":
+    """Return ``(bounds, norm)`` for a discrete pcolormesh colorbar.
+
+    Computes percentile limits from *data* when *vmin* / *vmax* are not given.
+    Explicit *vmin* / *vmax* override the percentile calculation.  Pass
+    ``symmetric=True`` to force the range symmetric about zero.
+
+    Parameters
+    ----------
+    data : np.ndarray, optional
+        Source array used for percentile-based limit computation.  Ignored when
+        both *vmin* and *vmax* are given.
+    vmin, vmax : float, optional
+        Explicit color limits.  Either one or both may be supplied; the other
+        falls back to the percentile of *data*.
+    n : int
+        Target number of colorbar levels (default 20).
+    symmetric : bool
+        If ``True``, expand [vmin, vmax] to [−max, +max] before computing
+        bounds.
+
+    Returns
+    -------
+    bounds : np.ndarray
+        Boundary array for ``BoundaryNorm`` and colorbar ticks.
+    norm : matplotlib.colors.BoundaryNorm
+
+    Raises
+    ------
+    ValueError
+        If neither *data* nor both *vmin* and *vmax* are provided.
+
+    """
+    if vmin is None or vmax is None:
+        if data is None:
+            raise ValueError("Provide either data or both vmin and vmax.")  # noqa: TRY003
+        finite = data[np.isfinite(data)]
+        if finite.size == 0:
+            vmin = vmin if vmin is not None else 0.0
+            vmax = vmax if vmax is not None else 1.0
+        else:
+            if vmin is None:
+                vmin = float(np.nanpercentile(finite, P.COLORBAR_PLOW))
+            if vmax is None:
+                vmax = float(np.nanpercentile(finite, P.COLORBAR_PHIGH))
+    if symmetric:
+        abs_max = max(abs(float(vmin)), abs(float(vmax)), 1e-9)
+        vmin, vmax = -abs_max, abs_max
+    bounds = _nice_colorbar_bounds(float(vmin), float(vmax), n=n)
+    norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+    return bounds, norm
