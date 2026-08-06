@@ -8,7 +8,8 @@ from oceanarray.plotters import plot_microcat
 matplotlib.use("Agg")  # Use non-interactive backend for testing
 
 
-from oceanarray import plotters
+from oceanarray import inspect, plotters
+from oceanarray.tools.rapid_interp import plot_climatology
 
 
 def test_plot_qartod_summary_runs():
@@ -36,7 +37,7 @@ def test_plot_climatology_runs():
         },
         coords={"month": months},
     )
-    fig, ax = plotters.plot_climatology(clim_ds, var="dTdp")
+    fig, ax = plot_climatology(clim_ds, var="dTdp")
     assert fig is not None
     assert ax is not None
 
@@ -49,13 +50,13 @@ def test_show_variables_returns_styler():
         },
         coords={"TIME": pd.date_range("2021-01-01", periods=5)},
     )
-    result = plotters.show_variables(ds)
+    result = inspect.vars(ds)
     assert hasattr(result, "data") or hasattr(result, "render")
 
 
 def test_show_attributes_returns_dataframe():
     ds = xr.Dataset(attrs={"title": "Test Dataset", "institution": "Ocean Lab"})
-    df = plotters.show_attributes(ds)
+    df = inspect.attrs(ds)
     assert isinstance(df, pd.DataFrame)
     assert "Attribute" in df.columns
     assert "Value" in df.columns
@@ -171,8 +172,6 @@ def test_show_variables_on_xarray_dataset():
     import numpy as np
     import xarray as xr
 
-    from oceanarray import plotters
-
     time = np.arange("2023-01", "2023-01-10", dtype="datetime64[D]")
     ds = xr.Dataset(
         {
@@ -184,7 +183,7 @@ def test_show_variables_on_xarray_dataset():
     ds["temperature"].attrs["comment"] = "Surface temperature"
     ds["temperature"].attrs["standard_name"] = "sea_water_temperature"
 
-    styled = plotters.show_variables(ds)
+    styled = inspect.vars(ds)
     html = styled.to_html()
     assert "<table" in html  # crude but effective confirmation
 
@@ -192,13 +191,11 @@ def test_show_variables_on_xarray_dataset():
 def test_show_attributes_from_dataset():
     import xarray as xr
 
-    from oceanarray import plotters
-
     ds = xr.Dataset()
     ds.attrs["title"] = "Test Dataset"
     ds.attrs["institution"] = "Ocean Lab"
 
-    df = plotters.show_attributes(ds)
+    df = inspect.attrs(ds)
     assert "Attribute" in df.columns
     assert "Value" in df.columns
 
