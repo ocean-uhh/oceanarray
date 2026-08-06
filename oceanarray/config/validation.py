@@ -17,7 +17,7 @@ Valid instrument names and their typical file types
 | sbe16      | SeaBird SBE16 CTD            | sbe-cnv, sbe-hex       |
 | rbrsolo    | RBR Solo temperature         | rbr-rsk, rbr-dat       |
 | rbrduet    | RBR Duet CT                  | rbr-rsk, rbr-dat       |
-| aquadopp   | Nortek Aquadopp current meter| nortek-aqd, nortek-ascii, nortek-csv |
+| aquadopp   | Nortek Aquadopp current meter| nortek-raw, nortek-ascii, nortek-csv |
 | adcp       | Acoustic Doppler Current Prof| adcp-matlab            |
 | tr1050     | Turner TR-1050 (via RBR)     | rbr-matlab             |
 +------------+------------------------------+------------------------+
@@ -72,75 +72,26 @@ records what was applied and when.
 
 import re
 from pathlib import Path
-from typing import Any, Dict, List, NamedTuple
+from typing import Dict, List, NamedTuple
 
 import yaml
 
+from oceanarray import parameters as P
 
-VALID_INSTRUMENTS: Dict[str, Dict[str, Any]] = {
-    "microcat": {
-        "description": "SeaBird SBE37 CTD",
-        "typical_file_types": ["sbe-cnv", "sbe-ascii"],
-    },
-    "sbe56": {
-        "description": "SeaBird SBE56 temperature logger",
-        "typical_file_types": ["sbe-cnv"],
-    },
-    "sbe16": {
-        "description": "SeaBird SBE16 CTD",
-        "typical_file_types": ["sbe-cnv", "sbe-hex"],
-    },
-    "rbrsolo": {
-        "description": "RBR Solo temperature logger",
-        "typical_file_types": ["rbr-rsk", "rbr-dat"],
-    },
-    "rbrduet": {
-        "description": "RBR Duet CT logger",
-        "typical_file_types": ["rbr-rsk", "rbr-dat"],
-    },
-    "aquadopp": {
-        "description": "Nortek Aquadopp current meter",
-        "typical_file_types": ["nortek-aqd", "nortek-ascii"],
-    },
-    "adcp": {
-        "description": "Acoustic Doppler Current Profiler (lowercase; use 'ADCP' in YAML)",
-        "typical_file_types": ["rdi-raw", "adcp-matlab"],
-    },
-    "ADCP": {
-        "description": "Acoustic Doppler Current Profiler (RDI or similar)",
-        "typical_file_types": ["rdi-raw", "adcp-matlab"],
-    },
-    "tr1050": {
-        "description": "Turner TR-1050 fluorometer (via RBR logger)",
-        "typical_file_types": ["rbr-matlab", "rbr-hex-oa"],
-    },
-    "seapoint": {
-        "description": "Seapoint turbidity sensor (via RBR logger)",
-        "typical_file_types": ["rbr-rsk", "rbr-dat"],
-    },
-}
+
+# Instrument-type validity is single-sourced from ``parameters.KNOWN_INSTRUMENT_TYPES``
+# (derived from ``INSTRUMENT_FILE_TYPES``).  This keeps ``oceanarray list`` and
+# ``oceanarray validate`` in agreement; add new instrument types there, not here.
 
 KNOWN_ALIASES: Dict[str, str] = {
     "sbe37": "microcat",
     "nortek": "aquadopp",
 }
 
-VALID_FILE_TYPES = {
-    "sbe-cnv",
-    "sbe-asc",
-    "sbe-ascii",
-    "sbe-hex",
-    "nortek-aqd",
-    "nortek-ascii",
-    "nortek-csv",  # seasenselib reader (future)
-    "nortek-csv-oa",  # DEPRECATED: internal oceanarray CSV reader
-    "rbr-rsk",
-    "rbr-dat",
-    "rbr-matlab",
-    "adcp-matlab",
-    "rdi-raw",  # RDI ADCP raw binary; requires mhkit[dolfyn]
-    "rbr-hex-oa",  # internal oceanarray hex reader for TR-1050; use rbr-hex once seasenselib supports it
-}
+# Valid ``file_type:`` values are single-sourced from ``parameters.ALL_FILE_TYPES``
+# (union of ``INSTRUMENT_FILE_TYPES`` readers and ``EXTRA_FILE_TYPES``).  Add new
+# file types there, not here — this keeps ``validate`` and stage1 in agreement.
+VALID_FILE_TYPES = P.ALL_FILE_TYPES
 
 UNSUPPORTED_FILE_TYPES: Dict[str, str] = {}
 
@@ -258,12 +209,15 @@ def validate_mooring_yaml(yaml_path: str) -> List[ValidationIssue]:
                     f"{prefix} instrument='{instrument}' is deprecated — use '{correct}' instead",
                 )
             )
-        elif instrument not in VALID_INSTRUMENTS:
+        elif (
+            instrument not in P.KNOWN_INSTRUMENT_TYPES
+            and instrument.upper() != "ADCP"  # accept both 'adcp' and 'ADCP'
+        ):
             issues.append(
                 ValidationIssue(
                     "WARNING",
                     f"{prefix} instrument='{instrument}' is not in the known list: "
-                    f"{', '.join(sorted(VALID_INSTRUMENTS))}",
+                    f"{', '.join(sorted(P.KNOWN_INSTRUMENT_TYPES))}",
                 )
             )
 

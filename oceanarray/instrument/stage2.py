@@ -1094,6 +1094,11 @@ class Stage2Processor:
         self._log_print(
             f"Stage 2 completed: {success_count}/{total_count} instruments successful"
         )
+        if total_count == 0:
+            self._log_print("No instruments matched — nothing processed.")
+            return False
+        # Partial success is still success: instruments that processed are written
+        # and the record summary reports which succeeded and which failed.
         return success_count > 0
 
 

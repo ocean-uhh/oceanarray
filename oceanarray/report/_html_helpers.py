@@ -15,7 +15,12 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 
-from ..utilities import _nice_colorbar_bounds, _status  # noqa: F401  (re-exported)
+from ..paths import safe_serial
+from ..utilities import (  # noqa: F401  (re-exported)
+    _nice_colorbar_bounds,
+    _status,
+    should_skip_regeneration,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -24,7 +29,8 @@ from ..utilities import _nice_colorbar_bounds, _status  # noqa: F401  (re-export
 
 
 def _safe_serial(serial: Any) -> str:
-    return re.sub(r"[^\w\-]", "", str(serial))
+    """Return a filename-safe serial token (see :func:`oceanarray.paths.safe_serial`)."""
+    return safe_serial(serial)
 
 
 def _get_proc_dir(base_dir: Path, mooring_name: str) -> Path:
@@ -137,7 +143,7 @@ def _check_readable(file_path: Path, file_type: str) -> Tuple[bool, str]:
                 return True, "ok"
             return False, "no SeaBird header markers"
 
-        elif file_type in ("nortek-ascii", "nortek-aqd"):
+        elif file_type in ("nortek-ascii", "nortek-raw"):
             hdr = file_path.with_suffix(".hdr")
             if not hdr.exists():
                 candidates = list(file_path.parent.glob(file_path.stem + "*.hdr"))
@@ -209,21 +215,8 @@ def _should_skip(
     skip_existing: bool,
     *sources: Path,
 ) -> bool:
-    """Decide whether to skip regenerating *output*.
-
-    Three-mode logic (matching ctd_report CLI design):
-    - force=True          → never skip
-    - skip_existing=True  → skip if output exists (old behaviour)
-    - default             → skip only if output is newer than all *sources*
-    """
-    if force:
-        return False
-    if not output.exists():
-        return False
-    if skip_existing:
-        return True
-    out_mtime = output.stat().st_mtime
-    return not any(s.exists() and s.stat().st_mtime > out_mtime for s in sources)
+    """Decide whether to skip regenerating *output* (see :func:`should_skip_regeneration`)."""
+    return should_skip_regeneration(output, force, skip_existing, *sources)
 
 
 def _fig_to_base64(fig: Any) -> str:

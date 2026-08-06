@@ -119,7 +119,7 @@ def test_validate_nortek_alias_is_error(tmp_path):
             "instrument": "nortek",
             "serial": 1234,
             "filename": "f.dat",
-            "file_type": "nortek-aqd",
+            "file_type": "nortek-raw",
         }
     ]
     path = _write_yaml(tmp_path, data)

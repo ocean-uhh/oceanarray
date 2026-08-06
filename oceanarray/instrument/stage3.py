@@ -43,7 +43,6 @@ from __future__ import annotations
 
 import datetime
 import hashlib
-import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -51,6 +50,7 @@ import numpy as np
 import xarray as xr
 import yaml
 
+from oceanarray.paths import safe_serial
 from oceanarray.utilities import (
     cast_output_dtypes,
     drop_all_zero_vars,
@@ -83,7 +83,8 @@ from oceanarray.instrument.coordinate import (
 
 
 def _safe_serial(serial: Any) -> str:
-    return re.sub(r"[^\w\-]", "", str(serial))
+    """Return a filename-safe serial token (see :func:`oceanarray.paths.safe_serial`)."""
+    return safe_serial(serial)
 
 
 class Stage3Processor:
@@ -369,7 +370,12 @@ class Stage3Processor:
         self._log(
             f"Stage 3 complete: {success_count}/{len(instruments)} instruments written"
         )
-        return success_count == len(instruments)
+        if not instruments:
+            self._log("No instruments matched — nothing processed.")
+            return False
+        # Partial success is still success: instruments that processed are written
+        # and the record summary reports which succeeded and which failed.
+        return success_count > 0
 
     # ------------------------------------------------------------------
     def _process_instrument(

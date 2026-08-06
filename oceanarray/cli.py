@@ -1016,13 +1016,19 @@ def cmd_stub(args: argparse.Namespace) -> int:
                 "hab": None,
                 "sample_interval_seconds": None,
                 "filename": None,
-                "file_type": "nortek-aqd",
+                "file_type": "nortek-raw",
                 "header": None,
                 "clock_offset": 0,
                 "computer_clock_at_recovery": None,
                 "instrument_clock_at_recovery": None,
             }
         )
+    )
+    clamp[-1].yaml_add_eol_comment(
+        "if comma-separated (e.g. '16430, R01-024') the first token is the "
+        "primary serial used in filenames/output; the rest is beacon_id. "
+        "Characters illegal in filenames are stripped.",
+        "serial",
     )
     clamp[-1].yaml_add_eol_comment("height above bottom (m) of transducer", "hab")
     clamp[-1].yaml_add_eol_comment(

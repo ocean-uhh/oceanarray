@@ -2,10 +2,10 @@
 
 from pathlib import Path
 from typing import Any, Dict, Optional
-import re
 import numpy as np
 import xarray as xr
 from oceanarray import parameters as P
+from oceanarray.paths import safe_serial
 
 STACK_VARS = [
     "temperature",
@@ -74,14 +74,8 @@ _STACK_RAW: frozenset = frozenset(
 
 
 def _safe_serial(serial: Any) -> str:
-    """Sanitise a serial number string for use in filenames.
-
-    If the raw YAML value contains a comma (e.g. ``16430, R01-024``), only
-    the first comma-separated token is used — the remainder is a beacon ID
-    or annotation and is not part of the filename.
-    """
-    s = str(serial).split(",")[0]
-    return re.sub(r"[^\w\-]", "", s)
+    """Return a filename-safe serial token (see :func:`oceanarray.paths.safe_serial`)."""
+    return safe_serial(serial)
 
 
 def _apply_qc_mask(src_v: np.ndarray, ds: "xr.Dataset", vname: str) -> np.ndarray:

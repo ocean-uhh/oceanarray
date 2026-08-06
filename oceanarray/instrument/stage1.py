@@ -12,8 +12,14 @@ import xarray as xr
 import yaml
 import seasenselib
 from seasenselib.writers import NetCdfWriter
-from oceanarray.utilities import _status, cast_output_dtypes, extract_inline_instruments
+from oceanarray.utilities import (
+    _status,
+    cast_output_dtypes,
+    extract_inline_instruments,
+    should_skip_regeneration,
+)
 from oceanarray import parameters as P
+from oceanarray.paths import safe_serial
 
 # Suppress noisy INFO/WARNING messages from seasenselib/pycnv.
 logging.getLogger("seasenselib").setLevel(logging.WARNING)
@@ -187,34 +193,22 @@ def _parse_nortek_pressure_cal(hdr_path: Path) -> dict:
 class MooringProcessor:
     """Handles stage1 processing of mooring data."""
 
-    # Supported format keys for seasenselib.read() or internal readers
-    SUPPORTED_FILE_TYPES = {
-        "sbe-cnv",
-        "sbe-ascii",  # newer seasenselib ASCII reader (with date normalisation)
-        "nortek-aqd",
-        "nortek-ascii",
-        "nortek-csv",  # seasenselib reader (future; not yet implemented)
-        "nortek-csv-oa",  # DEPRECATED: internal oceanarray CSV reader; use nortek-csv once seasenselib supports it
-        "rbr-rsk",
-        "rbr-matlab-legacy",
-        "rbr-dat",
-        "rbr-hex",
-        "rbr-hex-oa",  # legacy internal reader — use rbr-hex instead
-        "sbe-hex",
-        "rdi-raw",  # RDI ADCP raw binary (requires mhkit[dolfyn])
-    }
+    # Supported format keys for seasenselib.read() or internal readers.
+    # Single-sourced from ``parameters.ALL_FILE_TYPES`` so the stage1 gate and the
+    # YAML validator cannot drift.  Add new file types to ``INSTRUMENT_FILE_TYPES``
+    # or ``EXTRA_FILE_TYPES`` in parameters, not here.  Note: some keys (e.g.
+    # ``nortek-csv``) are accepted vocabulary but not yet implemented by a reader.
+    SUPPORTED_FILE_TYPES = P.ALL_FILE_TYPES
 
     # Variables to remove for specific file types
     VARS_TO_REMOVE = {
         "sbe-cnv": ["potential_temperature", "julian_days_offset", "density"],
-        "sbe-asc": ["potential_temperature", "julian_days_offset", "density"],
         "sbe-ascii": ["potential_temperature", "julian_days_offset", "density"],
     }
 
     # Coordinates to remove for specific file types
     COORDS_TO_REMOVE = {
         "sbe-cnv": ["depth", "latitude", "longitude"],
-        "sbe-asc": ["depth", "latitude", "longitude"],
         "sbe-ascii": ["depth", "latitude", "longitude"],
     }
 
@@ -335,7 +329,7 @@ class MooringProcessor:
         Parameters
         ----------
         file_type:
-            One of ``SUPPORTED_FILE_TYPES`` (e.g. ``"nortek-aqd"``, ``"sbe-cnv"``).
+            One of ``SUPPORTED_FILE_TYPES`` (e.g. ``"nortek-raw"``, ``"sbe-cnv"``).
         file_path:
             Path to the raw instrument file.
         header_path:
@@ -389,7 +383,7 @@ class MooringProcessor:
             return ds
 
         kwargs = {}
-        if file_type in ("nortek-aqd", "nortek-ascii") and header_path:
+        if file_type in ("nortek-raw", "nortek-ascii") and header_path:
             kwargs["header_file"] = header_path
 
         ds = seasenselib.read(
@@ -398,7 +392,7 @@ class MooringProcessor:
             pipeline_skip_stages=["derivation"],
             **kwargs,
         )
-        if file_type in ("nortek-ascii", "nortek-aqd"):
+        if file_type in ("nortek-ascii", "nortek-raw"):
             if header_path:
                 coord_system = _parse_nortek_coord_system(Path(header_path))
             else:
@@ -642,7 +636,7 @@ class MooringProcessor:
         except Exception:
             return dataset
 
-        instr_serial = re.sub(r"[^\w]", "", str(instrument_config.get("serial", "")))
+        instr_serial = safe_serial(instrument_config.get("serial", ""))
 
         # Matches the start of a new calibration section or end-of-header markers
         _section_start = re.compile(
@@ -784,7 +778,7 @@ class MooringProcessor:
         if not cal_coeffs:
             return dataset
 
-        instr_serial = re.sub(r"[^\w]", "", str(instrument_config.get("serial", "")))
+        instr_serial = safe_serial(instrument_config.get("serial", ""))
 
         def _coeff_str(coeffs: Dict[str, Any]) -> str:
             return ", ".join(
@@ -924,7 +918,7 @@ class MooringProcessor:
         instrument serial (e.g. 7507).  Rename so all three SENSOR_* variables
         for one instrument share the same serial suffix.
         """
-        instr_serial = re.sub(r"[^\w]", "", str(instrument_config.get("serial", "")))
+        instr_serial = safe_serial(instrument_config.get("serial", ""))
         if not instr_serial:
             return dataset
         expected = f"SENSOR_PRES_{instr_serial}"
@@ -1201,10 +1195,10 @@ class MooringProcessor:
 
     @staticmethod
     def _safe_serial(serial: str) -> str:
-        """Strip characters that are illegal in filenames (e.g. '*' used as a YAML marker)."""
-        import re
+        """Return a filename-safe serial token (see :func:`oceanarray.paths.safe_serial`)."""
+        from oceanarray.paths import safe_serial
 
-        return re.sub(r"[^\w\-]", "", str(serial))
+        return safe_serial(serial)
 
     def _generate_output_filename(
         self, mooring_name: str, instrument_config: Dict[str, Any], output_dir: Path
@@ -1294,9 +1288,8 @@ class MooringProcessor:
         if not raw_serial or raw_serial == "unknown":
             return None
         # Strip illegal filename chars (e.g. '*' used as a YAML annotation marker)
-        import re as _re
 
-        raw_serial = _re.sub(r"[^\w\-]", "", raw_serial)
+        raw_serial = safe_serial(raw_serial)
 
         candidates: list = []  # list of (filename, file_type, header_or_None)
 
@@ -1353,7 +1346,7 @@ class MooringProcessor:
                                     "nortek-csv",
                                     _hdr_rel,
                                 )
-                # Also try the .aqd binary directly (nortek-aqd format).
+                # Also try the .aqd binary directly (nortek-raw format).
                 # These may live in aquadopp/ OR legacy nortek/ subdirs.
                 _aqd_roots = [
                     *[r / "aquadopp" for r in [raw_mooring_dir] if r is not None],
@@ -1367,7 +1360,7 @@ class MooringProcessor:
                         _hdr = _aqd.with_suffix(".hdr")
                         return (
                             _aqd.name,
-                            "nortek-aqd",
+                            "nortek-raw",
                             _hdr.name if _hdr.exists() else None,
                         )
                     _tried_400.append(str(_root / f"A{raw_serial}*.aqd"))
@@ -1533,8 +1526,10 @@ class MooringProcessor:
             mooring_name, instrument_config, output_inst_dir
         )
 
-        # Skip if output file already exists (unless forced)
-        if output_file.exists() and not force:
+        # Skip only if the output is present and newer than its raw input.
+        # The mooring YAML is deliberately NOT a staleness source: comment or
+        # spacing edits should not trigger reprocessing.  --force always regenerates.
+        if should_skip_regeneration(output_file, force, False, input_file):
             _status("skip", self._rel(output_file))
             return True
 
@@ -1590,7 +1585,7 @@ class MooringProcessor:
         header_key = instrument_config.get("header_file") or instrument_config.get(
             "header"
         )
-        if file_type in ("nortek-aqd", "nortek-ascii", "nortek-csv") and header_key:
+        if file_type in ("nortek-raw", "nortek-ascii", "nortek-csv") and header_key:
             instrument_name = instrument_config.get("instrument", "unknown")
             # 'nortek' is a deprecated instrument name; files live in 'aquadopp/' dir.
             instr_dir = "aquadopp" if instrument_name == "nortek" else instrument_name
@@ -1625,7 +1620,7 @@ class MooringProcessor:
             dataset = self._normalize_rdi_raw(dataset, instrument_config)
 
         # Store Nortek pressure sensor calibration coefficients from oceanarray.hdr as attrs
-        if file_type in ("nortek-aqd", "nortek-ascii") and header_file:
+        if file_type in ("nortek-raw", "nortek-ascii") and header_file:
             pcal = _parse_nortek_pressure_cal(Path(header_file))
             for k, v in pcal.items():
                 dataset.attrs[f"nortek_pressure_cal_{k}"] = v
@@ -1634,7 +1629,7 @@ class MooringProcessor:
         # then apply it to produce velocity_x/y/z (keeping beam vars for verification).
         # Old-format .hdr files use a "Transformation matrix" text block;
         # new-format .hdr and String Data.csv use GETXFAVG/GETXFBURST fields.
-        if file_type in ("nortek-aqd", "nortek-ascii", "nortek-csv") and header_file:
+        if file_type in ("nortek-raw", "nortek-ascii", "nortek-csv") and header_file:
             T_mat = _parse_nortek_T_matrix_hdr(Path(header_file))
             if T_mat is None:
                 T_mat = _parse_nortek_T_matrix_csv(Path(header_file))
@@ -1859,11 +1854,11 @@ class MooringProcessor:
 
         # Filter by serial if requested
         if serials:
-            safe_serials = {re.sub(r"[^\w\-]", "", str(s)) for s in serials}
+            safe_serials = {safe_serial(s) for s in serials}
             instrument_list = [
                 ic
                 for ic in instrument_list
-                if re.sub(r"[^\w\-]", "", str(ic.get("serial", ""))) in safe_serials
+                if safe_serial(ic.get("serial", "")) in safe_serials
             ]
             self._log_print(
                 f"Filtered to {len(instrument_list)} instrument(s) matching serial(s): {', '.join(serials)}"
@@ -1888,6 +1883,11 @@ class MooringProcessor:
         self._log_print(
             f"Completed processing: {success_count}/{total_count} instruments successful"
         )
+        if total_count == 0:
+            self._log_print("No instruments matched — nothing processed.")
+            return False
+        # Partial success is still success: instruments that processed are written
+        # and the record summary reports which succeeded and which failed.
         return success_count > 0
 
 

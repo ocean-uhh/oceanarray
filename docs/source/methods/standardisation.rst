@@ -37,7 +37,7 @@ The :class:`oceanarray.stage1.MooringProcessor` class supports multiple instrume
 
 - **Sea-Bird CNV files** (`sbe-cnv`): Standard SBE 37 MicroCAT output
 - **Sea-Bird ASCII files** (`sbe-asc`): Alternative SBE ASCII format
-- **Nortek AquaDopp** (`nortek-aqd`): Current meter data with header files
+- **Nortek AquaDopp** (`nortek-raw`): Current meter data with header files
 - **RBR RSK files** (`rbr-rsk`): RBR logger binary format
 - **RBR ASCII files** (`rbr-dat`): RBR text output
 

@@ -254,15 +254,16 @@ INSTRUMENT_ABBREV = {
 # ---------------------------------------------------------------------------
 INSTRUMENT_FILE_TYPES: dict = {
     "microcat": ["sbe-cnv", "sbe-ascii", "sbe-hex"],
-    "aquadopp": ["nortek-aqd", "nortek-ascii", "nortek-csv"],
+    "sbe56": ["sbe-cnv", "sbe-ascii"],  # SeaBird SBE56 temperature logger
+    "sbe16": ["sbe-cnv", "sbe-hex"],  # SeaBird SBE16 CTD
+    "aquadopp": ["nortek-raw", "nortek-ascii", "nortek-csv"],
     "tr1050": ["rbr-hex"],  # RBR TR-1050 thermistor chain
     "rbrsolo": ["rbr-rsk"],  # RBR soloT — single-channel temperature
     "rbrduet": ["rbr-rsk"],  # RBR duet — temperature + pressure or T+C
     "seapoint": ["rbr-rsk"],  # Seapoint turbidity sensor via RBR logger
     "ADCP": [
         "rdi-raw",  # RDI Workhorse / Sentinel via dolfyn (mhkit[dolfyn] required)
-        "adcp-matlab-rdadcp",
-        "adcp-matlab-uhhds",
+        "adcp-matlab",  # seasenselib auto-detects RD-ADCP vs UHHDS Matlab exports
     ],  # Generic ADCP (instrument: ADCP in YAML — note uppercase)
 }
 
@@ -270,9 +271,21 @@ INSTRUMENT_FILE_TYPES: dict = {
 KNOWN_INSTRUMENT_TYPES: frozenset = frozenset(INSTRUMENT_FILE_TYPES.keys())
 
 # File types that seasenselib accepts but are deprecated, experimental, or
-# not tied to a primary instrument: value above.
+# not tied to a primary ``instrument:`` value above.  These remain valid in a
+# mooring YAML but are not the recommended key for any current instrument class.
 EXTRA_FILE_TYPES: dict = {
     "nortek-csv-oa": "aquadopp (DEPRECATED internal reader; use nortek-csv)",
     "rbr-dat": "RBR instruments (not in current seasenselib; use rbr-rsk)",
+    "rbr-matlab": "RBR instruments (seasenselib Matlab reader)",
     "rbr-matlab-legacy": "RBR instruments (DEPRECATED legacy format)",
+    "rbr-hex-oa": "RBR TR-1050 (internal oceanarray hex reader; use rbr-hex)",
 }
+
+# Single source of truth for valid ``file_type:`` values in a mooring YAML.
+# Union of every per-instrument reader key with the extra/deprecated keys above.
+# ``validation.VALID_FILE_TYPES`` and ``stage1.SUPPORTED_FILE_TYPES`` both derive
+# from this — add a new file type to ``INSTRUMENT_FILE_TYPES`` or
+# ``EXTRA_FILE_TYPES``, never to those consumers.
+ALL_FILE_TYPES: frozenset = frozenset(
+    ft for fts in INSTRUMENT_FILE_TYPES.values() for ft in fts
+) | frozenset(EXTRA_FILE_TYPES)

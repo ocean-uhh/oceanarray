@@ -254,7 +254,7 @@ By default only the main mooring summary is generated (fast).  Use flags to opt 
 | Instrument | File types | Variables |
 |------------|------------|-----------|
 | Sea-Bird SBE37 MicroCAT | `sbe-cnv`, `sbe-asc`, `sbe-ascii` | T, C, P |
-| Nortek Aquadopp | `nortek-aqd`, `nortek-ascii`, `nortek-csv` | U, V, W, P, T |
+| Nortek Aquadopp | `nortek-raw`, `nortek-ascii`, `nortek-csv` | U, V, W, P, T |
 | RBR Solo / Duet | `rbr-rsk`, `rbr-dat` | T (Solo), T+C (Duet) |
 | RDI WorkHorse ADCP | `rdi-raw` | U, V, W (all bins) |
 

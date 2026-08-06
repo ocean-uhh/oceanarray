@@ -283,3 +283,57 @@ def test_nice_colorbar_bounds_salinity_range():
     assert len(bounds) == 21
     assert bounds[0] < 34.78 or np.isclose(bounds[0], 34.78, atol=0.1)
     assert bounds[-1] > 35.14 or np.isclose(bounds[-1], 35.14, atol=0.1)
+
+
+def _touch(path, mtime):
+    """Create *path* and set its modification time to *mtime* (epoch seconds)."""
+    path.write_text("x")
+    import os
+
+    os.utime(path, (mtime, mtime))
+
+
+def test_should_skip_regeneration_force(tmp_path):
+    """force=True never skips, even when the output is up to date."""
+    out = tmp_path / "out.nc"
+    src = tmp_path / "src.raw"
+    _touch(src, 100)
+    _touch(out, 200)
+    assert utilities.should_skip_regeneration(out, True, False, src) is False
+
+
+def test_should_skip_regeneration_missing_output(tmp_path):
+    """A non-existent output is never skipped."""
+    out = tmp_path / "out.nc"
+    src = tmp_path / "src.raw"
+    _touch(src, 100)
+    assert utilities.should_skip_regeneration(out, False, False, src) is False
+
+
+def test_should_skip_regeneration_skip_existing(tmp_path):
+    """skip_existing=True skips a present output regardless of source mtimes."""
+    out = tmp_path / "out.nc"
+    src = tmp_path / "src.raw"
+    _touch(out, 100)
+    _touch(src, 999)  # newer source, but skip_existing ignores mtimes
+    assert utilities.should_skip_regeneration(out, False, True, src) is True
+
+
+def test_should_skip_regeneration_stale_source(tmp_path):
+    """A source newer than the output forces regeneration (no skip)."""
+    out = tmp_path / "out.nc"
+    yaml = tmp_path / "m.mooring.yaml"
+    _touch(out, 100)
+    _touch(yaml, 200)  # e.g. edited YAML after the output was built
+    assert utilities.should_skip_regeneration(out, False, False, yaml) is False
+
+
+def test_should_skip_regeneration_up_to_date(tmp_path):
+    """An output newer than all sources is skipped."""
+    out = tmp_path / "out.nc"
+    src = tmp_path / "src.raw"
+    yaml = tmp_path / "m.mooring.yaml"
+    _touch(src, 100)
+    _touch(yaml, 100)
+    _touch(out, 200)
+    assert utilities.should_skip_regeneration(out, False, False, src, yaml) is True

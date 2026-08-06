@@ -145,14 +145,26 @@ class MooringGridder:
                 "roll",
             }
         )
-        grid_vars = [
+        # Variables eligible for gridding: physics vars on the (time, N_LEVELS)
+        # grid, excluding pressure and QC flags.  Compute once, then split into
+        # kept vs excluded so the two lists cannot drift (D2).
+        _grid_candidates = [
             v
             for v in ds.data_vars
             if v != "pressure"
             and ds[v].dims == ("time", "N_LEVELS")
             and not v.endswith("_qc")
-            and v not in _GRID_EXCLUDE
         ]
+        grid_vars = [v for v in _grid_candidates if v not in _GRID_EXCLUDE]
+
+        # Tell the operator which present physics variables were excluded from the
+        # grid rather than dropping them silently (D2).
+        _excluded = sorted(v for v in _grid_candidates if v in _GRID_EXCLUDE)
+        if _excluded:
+            print(
+                f"  NOTE: {len(_excluded)} variable(s) excluded from gridding "
+                f"(listed in _GRID_EXCLUDE): {', '.join(_excluded)}"
+            )
 
         stacked: Dict[str, np.ndarray] = {
             v: np.full((n_p, n_time), np.nan) for v in grid_vars

@@ -43,7 +43,7 @@ for your deployment before running any ``oceanarray`` command.
      - serial: "400115"
        instrument: aquadopp
        filename: A400115_dsG3.aqd
-       file_type: nortek-aqd
+       file_type: nortek-raw
        header_file: A400115_dsG3.hdr
        hab: 460
 
@@ -364,7 +364,7 @@ Valid values and their descriptions:
      - ``rbr-rsk``, ``rbr-dat``
    * - ``aquadopp``
      - Nortek Aquadopp current meter
-     - ``nortek-aqd``, ``nortek-ascii``, ``nortek-csv``
+     - ``nortek-raw``, ``nortek-ascii``, ``nortek-csv``
    * - ``ADCP``
      - RDI WorkHorse broadband ADCP
      - ``rdi-raw``
@@ -405,7 +405,7 @@ Valid ``file_type`` values
      - SeaBird HEX
      - SBE16
      -
-   * - ``nortek-aqd``
+   * - ``nortek-raw``
      - Nortek binary AQD
      - Aquadopp
      - Requires a matching ``.hdr`` file; supply path with ``header_file``

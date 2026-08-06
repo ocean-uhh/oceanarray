@@ -124,7 +124,7 @@ instruments is shown below.
      - serial: "400115"
        instrument: aquadopp
        filename: A400115_dsG3.aqd
-       file_type: nortek-aqd
+       file_type: nortek-raw
        header_file: A400115_dsG3.hdr
        hab: 460
 
