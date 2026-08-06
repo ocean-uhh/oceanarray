@@ -14,8 +14,17 @@ if TYPE_CHECKING:
 import numpy as np
 
 from ._html_helpers import _QC_MARKER, _QC_LABELS, _fig_to_base64
-from ..plotters._primitives import colorbar_norm, date_axis, pressure_axis
+from ..plotters._primitives import (
+    colorbar_norm,
+    date_axis,
+    hodograph_panel,
+    pcolormesh_panel,
+    pressure_axis,
+)
 from ..utilities import period_axis_ticks
+from ..analysis.vector import xyz_to_enu_2d, progressive_vector
+from ..analysis.tseries import filter_sigma_tukey
+from ..analysis.spectral import gonella_rotary_spectrum
 
 log = logging.getLogger(__name__)
 
@@ -1885,7 +1894,6 @@ def draw_grid_rotary_spectrum(
     from matplotlib.lines import Line2D
     from matplotlib.transforms import blended_transform_factory
     import numpy as np
-    from scipy import signal as _signal
 
     if "east_velocity" not in ds.data_vars or "north_velocity" not in ds.data_vars:
         return None
@@ -1954,23 +1962,9 @@ def draw_grid_rotary_spectrum(
                 break
             col[:] = np.interp(np.arange(n_time), np.where(good)[0], col[good])
         else:
-            _kw = dict(
-                fs=fs,
-                window="hann",
-                nperseg=segment_length,
-                noverlap=noverlap,
-                detrend="linear",
-                scaling="density",
+            f_uu, s_cw, s_ccw, r = gonella_rotary_spectrum(
+                u_col, v_col, fs, segment_length, noverlap
             )
-            f_uu, p_uu = _signal.welch(u_col, **_kw)
-            _, p_vv = _signal.welch(v_col, **_kw)
-            _, c_uv = _signal.csd(u_col, v_col, **_kw)
-            # Gonella (1972) rotary decomposition
-            q_uv = np.imag(c_uv)
-            s_cw = np.maximum((p_uu + p_vv + 2.0 * q_uv) / 4.0, 0.0)
-            s_ccw = np.maximum((p_uu + p_vv - 2.0 * q_uv) / 4.0, 0.0)
-            denom = s_cw + s_ccw
-            r = np.where(denom > 0, (s_ccw - s_cw) / denom, 0.0)
             if freq_out is None:
                 freq_out = f_uu
             s_cw_list.append(s_cw)
@@ -2394,17 +2388,22 @@ def draw_grid_hydro(
         }.get(var)
         _passed = var_bounds.get(_lim_key) if _lim_key else None
         _n = 11 if var == "oxygen_saturation_pct" else 20
-        if _passed is not None:
-            bounds, norm = colorbar_norm(vmin=_passed[0], vmax=_passed[1], n=_n)
-        else:
-            bounds, norm = colorbar_norm(data, n=_n)
-        pc = ax.pcolormesh(
-            time, pressure, data, shading="nearest", cmap=cmap, norm=norm
+        _vmin, _vmax = (_passed[0], _passed[1]) if _passed is not None else (None, None)
+        pcolormesh_panel(
+            fig,
+            ax,
+            data,
+            time,
+            pressure,
+            title=title,
+            cmap=cmap,
+            vmin=_vmin,
+            vmax=_vmax,
+            n=_n,
+            cb_label=f"{long_name} ({units})" if units else long_name,
+            title_loc="left",
+            date_fmt=False,
         )
-        cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=bounds[::2])
-        cb.set_label(f"{long_name} ({units})" if units else long_name)
-        pressure_axis(ax)
-        ax.set_title(title, loc="left")
 
     date_axis(axes[-1, 0])
     return fig
@@ -2535,14 +2534,18 @@ def draw_grid_sigma(ds: "xr.Dataset") -> "Optional[plt.Figure]":
         data = da.transpose("pressure", "time").values
         units = da.attrs.get("units", "kg m⁻³")
         label = da.attrs.get("long_name", sv)
-        bounds, norm = colorbar_norm(data)
-        pc = ax.pcolormesh(
-            time, pressure, data, shading="nearest", cmap=P.DENSITY_COLORMAP, norm=norm
+        pcolormesh_panel(
+            fig,
+            ax,
+            data,
+            time,
+            pressure,
+            title=label,
+            cmap=P.DENSITY_COLORMAP,
+            cb_label=f"{label} ({units})" if units else label,
+            title_loc="left",
+            date_fmt=False,
         )
-        cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=bounds[::2])
-        cb.set_label(f"{label} ({units})" if units else label)
-        pressure_axis(ax)
-        ax.set_title(label, loc="left")
 
     date_axis(axes[-1, 0])
     return fig
@@ -2624,31 +2627,6 @@ def _rose_ax(
     return spd_edges, colors
 
 
-def _xyz_to_enu_2d(
-    vx: np.ndarray,
-    vy: np.ndarray,
-    vz: np.ndarray,
-    heading_deg: np.ndarray,
-    pitch_deg: np.ndarray,
-    roll_deg: np.ndarray,
-    declination_deg: float = 0.0,
-) -> "tuple[np.ndarray, np.ndarray]":
-    """Rotate XYZ → ENU using the Nortek heading convention (vectorised)."""
-    h = np.radians(heading_deg - 90.0 + declination_deg)
-    p = np.radians(pitch_deg)
-    r = np.radians(roll_deg)
-    ch, sh = np.cos(h), np.sin(h)
-    cp, sp = np.cos(p), np.sin(p)
-    cr, sr = np.cos(r), np.sin(r)
-    east = (
-        ch * cp * vx + (-ch * sp * sr + sh * cr) * vy + (-ch * sp * cr - sh * sr) * vz
-    )
-    north = (
-        -sh * cp * vx + (sh * sp * sr + ch * cr) * vy + (sh * sp * cr - ch * sr) * vz
-    )
-    return east, north
-
-
 def draw_instrument_rose(nc_path: Path) -> "Optional[plt.Figure]":
     """Rose diagram grid for a single Aquadopp instrument; return Figure or None.
 
@@ -2675,7 +2653,7 @@ def draw_instrument_rose(nc_path: Path) -> "Optional[plt.Figure]":
         hdg = ds["heading"].values.astype(float)
         pch = ds["pitch"].values.astype(float)
         rll = ds["roll"].values.astype(float)
-        e_mag, n_mag = _xyz_to_enu_2d(vx_r, vy_r, vz_r, hdg, pch, rll, 0.0)
+        e_mag, n_mag = xyz_to_enu_2d(vx_r, vy_r, vz_r, hdg, pch, rll, 0.0)
         if np.any(np.isfinite(e_mag)):
             panels.append((e_mag, n_mag, "ENU magnetic\n(decl = 0°)", "Purples"))
 
@@ -3499,36 +3477,6 @@ def _make_grid_rose_b64(ds: "xr.Dataset", max_roses: int = 4) -> Optional[str]:
 # ---------------------------------------------------------------------------
 
 
-def _filter_sigma_tukey(
-    data: np.ndarray, window_samples: int, alpha: float = 0.5
-) -> np.ndarray:
-    """Apply a Tukey moving-average filter along axis=1 (time), NaN-aware."""
-    from scipy.signal import convolve
-    from scipy.signal.windows import tukey
-
-    w = tukey(window_samples, alpha=alpha).astype(np.float64)
-    w /= w.sum()
-    n_p, n_t = data.shape
-    result = data.copy()
-    for k in range(n_p):
-        col = data[k, :]
-        nan_mask = ~np.isfinite(col)
-        if nan_mask.all():
-            continue
-        if nan_mask.any():
-            xi = np.where(~nan_mask)[0]
-            yi = col[~nan_mask]
-            if len(xi) < 2:
-                continue
-            filled = np.interp(np.arange(n_t), xi, yi)
-        else:
-            filled = col.copy()
-        smoothed = convolve(filled, w, mode="same")
-        smoothed[nan_mask] = np.nan
-        result[k, :] = smoothed
-    return result
-
-
 def draw_grid_trajectory(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     """Pseudo-Lagrangian current-vector integral by pressure level for the grid report.
 
@@ -3571,15 +3519,7 @@ def draw_grid_trajectory(ds: "xr.Dataset") -> "Optional[plt.Figure]":
             _dv[_qc >= 3] = np.nan
 
     # Build one trajectory per pressure level; skip levels with all-NaN velocity
-    trajs = []  # (pressure_val, x_array, y_array)
-    for k, p_val in enumerate(pressure):
-        u = np.nan_to_num(east[:, k], nan=0.0)
-        v = np.nan_to_num(north[:, k], nan=0.0)
-        if not np.any(east[:, k][np.isfinite(east[:, k])]):
-            continue
-        x = np.concatenate([[0.0], np.cumsum(u[:-1] * dt)]) / 1000.0
-        y = np.concatenate([[0.0], np.cumsum(v[:-1] * dt)]) / 1000.0
-        trajs.append((float(p_val), x, y))
+    trajs = progressive_vector(east, north, dt, pressure)
 
     if not trajs:
         return None
@@ -3754,7 +3694,7 @@ def draw_isopycnal_fig(
         data = data[:, t0:t1]
 
     if filter_samples > 1 and data.shape[1] > filter_samples:
-        data = _filter_sigma_tukey(data, filter_samples)
+        data = filter_sigma_tukey(data, filter_samples)
 
     level_colors = ["#808080"] + ["black"] * (len(levels) - 1)
 
@@ -4515,7 +4455,6 @@ def _draw_hodograph_pair(
         Sample interval in seconds.
 
     """
-    import matplotlib.pyplot as plt
     import pandas as pd
     from oceanarray.plotters._helpers import tukey_smooth
 
@@ -4544,9 +4483,6 @@ def _draw_hodograph_pair(
     t_frac = np.linspace(0.0, 1.0, len(east_1d))
 
     def _draw(ax: Any, e: np.ndarray, n: np.ndarray, title: str) -> None:
-        from matplotlib.collections import LineCollection
-        import matplotlib.colors as mcolors
-
         mask = np.isfinite(e) & np.isfinite(n)
         if mask.sum() < 2:
             ax.text(
@@ -4554,63 +4490,7 @@ def _draw_hodograph_pair(
             )
             ax.set_title(title, fontsize=9)
             return
-
-        e_v = e[mask]
-        n_v = n[mask]
-        t_v = t_frac[mask]
-
-        lim = max(np.nanmax(np.abs(e_v)), np.nanmax(np.abs(n_v)), 1e-9) * 1.1
-
-        # Time-coloured line hodograph (thin to ≤2000 segments for performance)
-        step = max(1, len(e_v) // 2000)
-        e_t = e_v[::step]
-        n_t = n_v[::step]
-        t_t = t_v[::step]
-        pts = np.array([e_t, n_t]).T.reshape(-1, 1, 2)
-        segs = np.concatenate([pts[:-1], pts[1:]], axis=1)
-        norm_lc = mcolors.Normalize(0.0, 1.0)
-        lc = LineCollection(segs, cmap="plasma", norm=norm_lc, lw=0.9, alpha=0.85)
-        lc.set_array(t_t[:-1])
-        ax.add_collection(lc)
-
-        # Compact per-panel time colorbar
-        sm = plt.cm.ScalarMappable(cmap="plasma", norm=norm_lc)
-        sm.set_array([])
-        cb = ax.figure.colorbar(sm, ax=ax, shrink=0.75, pad=0.03, aspect=20)
-        cb.set_label("Time →", size=8)
-        cb.ax.set_yticks([0, 1])
-        cb.ax.set_yticklabels(["start", "end"], size=7)
-
-        # Start (lime circle) and end (red square) markers
-        ax.scatter(
-            e_v[0],
-            n_v[0],
-            s=50,
-            c="lime",
-            marker="o",
-            edgecolors="black",
-            linewidths=0.7,
-            zorder=5,
-        )
-        ax.scatter(
-            e_v[-1],
-            n_v[-1],
-            s=55,
-            c="red",
-            marker="s",
-            edgecolors="black",
-            linewidths=0.7,
-            zorder=5,
-        )
-        ax.set_xlim(-lim, lim)
-        ax.set_ylim(-lim, lim)
-        ax.set_aspect("equal")
-        ax.axhline(0, color="#888", lw=0.7)
-        ax.axvline(0, color="#888", lw=0.7)
-        ax.set_xlabel(f"East ({units})")
-        ax.set_ylabel(f"North ({units})")
-        ax.set_title(title, fontsize=9)
-        ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.3)
+        hodograph_panel(ax, e[mask], n[mask], t_frac[mask], title, units)
 
     _draw(ax_raw, e_sm, n_sm, f"{label} — raw ({smooth_hours:.0f}-h smoothed)")
     _draw(ax_eddy, e_eddy, n_eddy, f"{label} — eddy ({lp_days:.0f}-day LP removed)")
@@ -4962,63 +4842,19 @@ def draw_grid_hodograph(
         mask = np.isfinite(e_sm) & np.isfinite(n_sm)
         if mask.sum() < 2:
             ax.text(
-                0.5,
-                0.5,
-                "No data",
-                transform=ax.transAxes,
-                ha="center",
-                va="center",
+                0.5, 0.5, "No data", transform=ax.transAxes, ha="center", va="center"
             )
             ax.set_title(label, fontsize=9)
             continue
-        e_v, n_v = e_sm[mask], n_sm[mask]
         t_frac = np.linspace(0.0, 1.0, len(east_2d[:, i_lev]))[mask]
-        lim = max(np.nanmax(np.abs(e_v)), np.nanmax(np.abs(n_v)), 1e-9) * 1.1
-        step = max(1, len(e_v) // 2000)
-        pts = np.array([e_v[::step], n_v[::step]]).T.reshape(-1, 1, 2)
-        segs = np.concatenate([pts[:-1], pts[1:]], axis=1)
-        from matplotlib.collections import LineCollection
-        import matplotlib.colors as mcolors
-
-        norm_lc = mcolors.Normalize(0.0, 1.0)
-        lc = LineCollection(segs, cmap="plasma", norm=norm_lc, lw=0.9, alpha=0.85)
-        lc.set_array(t_frac[::step][:-1])
-        ax.add_collection(lc)
-        sm = plt.cm.ScalarMappable(cmap="plasma", norm=norm_lc)
-        sm.set_array([])
-        cb = fig.colorbar(sm, ax=ax, shrink=0.75, pad=0.03, aspect=20)
-        cb.set_label("Time →", size=8)
-        cb.ax.set_yticks([0, 1])
-        cb.ax.set_yticklabels(["start", "end"], size=7)
-        ax.scatter(
-            e_v[0],
-            n_v[0],
-            s=50,
-            c="lime",
-            marker="o",
-            edgecolors="black",
-            linewidths=0.7,
-            zorder=5,
+        hodograph_panel(
+            ax,
+            e_sm[mask],
+            n_sm[mask],
+            t_frac,
+            f"{label} — {smooth_hours:.0f}-h smoothed",
+            units,
         )
-        ax.scatter(
-            e_v[-1],
-            n_v[-1],
-            s=55,
-            c="red",
-            marker="s",
-            edgecolors="black",
-            linewidths=0.7,
-            zorder=5,
-        )
-        ax.set_xlim(-lim, lim)
-        ax.set_ylim(-lim, lim)
-        ax.set_aspect("equal")
-        ax.axhline(0, color="#888", lw=0.7)
-        ax.axvline(0, color="#888", lw=0.7)
-        ax.set_xlabel(f"East ({units})")
-        ax.set_ylabel(f"North ({units})")
-        ax.set_title(f"{label} — {smooth_hours:.0f}-h smoothed", fontsize=9)
-        ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.3)
 
     return fig
 

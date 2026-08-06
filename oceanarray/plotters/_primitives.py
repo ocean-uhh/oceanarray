@@ -36,13 +36,19 @@ def pcolormesh_panel(
     units: str = "",
     cmap: str = "RdYlBu_r",
     style: str = "pcolormesh",
+    vmin: Optional[float] = None,
+    vmax: Optional[float] = None,
+    n: int = 20,
+    cb_label: Optional[str] = None,
+    title_loc: str = "center",
+    date_fmt: bool = True,
 ) -> Any:
     """Draw one (pressure × time) field as a discrete-colorbar panel on *ax*.
 
-    A generic time–depth panel primitive: percentile colour limits, a discrete
-    ``BoundaryNorm`` colorbar (max 20 levels), inverted pressure axis, and a
-    concise date axis.  Extracted from the retired ``plotter.plot_grid`` so the
-    section/timeseries figures can share one implementation.
+    A generic time–depth panel primitive.  Computes percentile colour limits
+    from *data* unless *vmin* / *vmax* are supplied.  Applies a discrete
+    ``BoundaryNorm`` colorbar, an inverted pressure axis, and (optionally) a
+    concise date axis.
 
     Parameters
     ----------
@@ -55,45 +61,48 @@ def pcolormesh_panel(
     pressure : numpy.ndarray
         Pressure coordinate (length matching ``data``'s first axis).
     title : str
-        Panel title / colorbar label stem.
+        Panel title.
     units : str, optional
-        Units appended to the colorbar label. Default ``""``.
+        Units string appended to *cb_label* when *cb_label* is ``None``.
     cmap : str, optional
-        Colormap name. Default ``"RdYlBu_r"``.
+        Colormap name.  Default ``"RdYlBu_r"``.
     style : str, optional
         ``"pcolormesh"`` (default) or ``"contourf"``.
+    vmin, vmax : float, optional
+        Explicit colour limits.  Computed from data percentiles when omitted.
+    n : int, optional
+        Target number of colorbar levels.  Default 20.
+    cb_label : str, optional
+        Colorbar label.  Defaults to ``"{title} ({units})"`` or ``"{title}"``.
+    title_loc : str, optional
+        Horizontal alignment of the axes title.  Default ``"center"``.
+    date_fmt : bool, optional
+        When ``True`` (default), apply :func:`date_axis` to *ax*.  Pass
+        ``False`` for stacked panels where only the last axis needs the
+        formatter.
 
     Returns
     -------
     matplotlib collection
-        The pcolormesh/contourf artist, for a caller that wants the mappable.
+        The pcolormesh/contourf artist (useful for a shared colorbar).
 
     """
-    if not np.any(np.isfinite(data)):
-        # An all-NaN field has no percentile range; fall back to a unit span so
-        # the panel still renders (empty) instead of crashing in log10(nan).
-        vmin, vmax = 0.0, 1.0
-    else:
-        vmin, vmax = (
-            float(v)
-            for v in np.nanpercentile(data, [P.COLORBAR_PLOW, P.COLORBAR_PHIGH])
-        )
-    bounds = _nice_colorbar_bounds(vmin, vmax, n=20)
-    norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+    bounds, norm = colorbar_norm(data, vmin=vmin, vmax=vmax, n=n)
     if style == "contourf":
         pc = ax.contourf(time, pressure, data, levels=bounds, cmap=cmap, extend="both")
     else:
         pc = ax.pcolormesh(
             time, pressure, data, shading="nearest", cmap=cmap, norm=norm
         )
-    cb = fig.colorbar(pc, ax=ax, pad=0.02)
-    cb.set_label(f"{title} ({units})" if units else title)
-    ax.invert_yaxis()
-    ax.set_ylabel("Pressure (dbar)")
-    locator = mdates.AutoDateLocator()
-    ax.xaxis.set_major_locator(locator)
-    ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
-    ax.set_title(f"{title} [{style}]")
+    label = (
+        cb_label if cb_label is not None else (f"{title} ({units})" if units else title)
+    )
+    cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=bounds[::2])
+    cb.set_label(label)
+    pressure_axis(ax)
+    if date_fmt:
+        date_axis(ax)
+    ax.set_title(title, loc=title_loc)
     return pc
 
 
@@ -138,14 +147,13 @@ def plot_trajectory(
     if color_data is not None:
         points = np.array([x, y]).T.reshape(-1, 1, 2)
         segments = np.concatenate([points[:-1], points[1:]], axis=1)
-        vmin = np.nanmin(color_data)
-        vmax = np.nanmax(color_data)
-        bounds = _nice_colorbar_bounds(vmin, vmax, n=20)
-        norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+        bounds, norm = colorbar_norm(
+            vmin=float(np.nanmin(color_data)), vmax=float(np.nanmax(color_data))
+        )
         lc = LineCollection(segments, cmap=cmap, norm=norm, linewidth=1.5)
         lc.set_array(color_data[:-1])
         ax.add_collection(lc)
-        fig.colorbar(lc, ax=ax, label=colorbar_label, shrink=0.8, ticks=bounds)
+        fig.colorbar(lc, ax=ax, label=colorbar_label, shrink=0.8, ticks=bounds[::2])
         ax.set_xlim(
             np.nanmin(x) - 0.05 * (np.nanmax(x) - np.nanmin(x) + 1),
             np.nanmax(x) + 0.05 * (np.nanmax(x) - np.nanmin(x) + 1),
@@ -172,6 +180,85 @@ def plot_trajectory(
     ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.4)
     fig.tight_layout()
     return fig
+
+
+def hodograph_panel(
+    ax: Any,
+    e_v: np.ndarray,
+    n_v: np.ndarray,
+    t_frac: np.ndarray,
+    title: str,
+    units: str,
+) -> None:
+    """Draw a single velocity hodograph panel on *ax*.
+
+    Renders a time-coloured ``LineCollection`` trajectory (downsampled to
+    ≤ 2 000 segments for performance) with start/end markers and a compact
+    per-panel colorbar.  *e_v*, *n_v*, and *t_frac* must already be filtered
+    to the same finite-valid indices (no NaN, same length).
+
+    Parameters
+    ----------
+    ax : matplotlib Axes
+        Target axes to draw on.
+    e_v, n_v : np.ndarray
+        East and north velocity (finite values only, same length).
+    t_frac : np.ndarray
+        Fractional deployment time 0 → 1, same length as *e_v*.
+    title : str
+        Axes title (rendered at fontsize 9).
+    units : str
+        Velocity unit string appended to axis labels, e.g. ``"m s⁻¹"``.
+
+    """
+    from matplotlib.collections import LineCollection
+    import matplotlib.colors as mcolors
+
+    lim = max(float(np.nanmax(np.abs(e_v))), float(np.nanmax(np.abs(n_v))), 1e-9) * 1.1
+    step = max(1, len(e_v) // 2000)
+    pts = np.array([e_v[::step], n_v[::step]]).T.reshape(-1, 1, 2)
+    segs = np.concatenate([pts[:-1], pts[1:]], axis=1)
+    norm_lc = mcolors.Normalize(0.0, 1.0)
+    lc = LineCollection(segs, cmap="plasma", norm=norm_lc, lw=0.9, alpha=0.85)
+    lc.set_array(t_frac[::step][:-1])
+    ax.add_collection(lc)
+
+    sm = plt.cm.ScalarMappable(cmap="plasma", norm=norm_lc)
+    sm.set_array([])
+    cb = ax.figure.colorbar(sm, ax=ax, shrink=0.75, pad=0.03, aspect=20)
+    cb.set_label("Time →", size=8)
+    cb.ax.set_yticks([0, 1])
+    cb.ax.set_yticklabels(["start", "end"], size=7)
+
+    ax.scatter(
+        e_v[0],
+        n_v[0],
+        s=50,
+        c="lime",
+        marker="o",
+        edgecolors="black",
+        linewidths=0.7,
+        zorder=5,
+    )
+    ax.scatter(
+        e_v[-1],
+        n_v[-1],
+        s=55,
+        c="red",
+        marker="s",
+        edgecolors="black",
+        linewidths=0.7,
+        zorder=5,
+    )
+    ax.set_xlim(-lim, lim)
+    ax.set_ylim(-lim, lim)
+    ax.set_aspect("equal")
+    ax.axhline(0, color="#888", lw=0.7)
+    ax.axvline(0, color="#888", lw=0.7)
+    ax.set_xlabel(f"East ({units})")
+    ax.set_ylabel(f"North ({units})")
+    ax.set_title(title, fontsize=9)
+    ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.3)
 
 
 def date_axis(ax: Any) -> None:

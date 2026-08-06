@@ -134,6 +134,9 @@ ignore = [
 "oceanarray/tools.py" = ["ANN", "D205"]
 "oceanarray/analysis/_science.py" = ["ANN", "D"]
 "oceanarray/analysis/_clock_diagnostics.py" = ["ANN", "D"]
+# Phase-6 analysis submodules: contain legacy functions moved from _science.py; ANN deferred
+"oceanarray/analysis/hydrography.py" = ["ANN"]
+"oceanarray/analysis/tseries.py" = ["ANN"]
 # The following flat files moved to subpackages in PR #49; ANN/D deferred on legacy content
 "oceanarray/clock_offset.py" = ["ANN", "D"]
 "oceanarray/find_deployment.py" = ["ANN", "D"]
