@@ -9,9 +9,14 @@ import numpy as np
 import xarray as xr
 
 
-# Priority order for merging QC flags (higher priority = worse data quality).
-# 9=missing, 4=bad, 3=suspect, 8=interpolated, 2=prob-good, 1=good
-_QC_PRIORITY: Dict[int, int] = {9: 6, 4: 5, 3: 4, 8: 3, 2: 2, 1: 1, 0: 0}
+# Priority order for merging QC flags (higher priority wins = worse quality).
+# OceanSITES table 2, weakest to strongest:
+#   unknown(0) < good(1) < probably_good(2) < nominal(7) < interpolated(8)
+#   < potentially_correctable_bad(3) < bad(4) < missing(9)
+# Note unknown(0) is the *weakest* here (opposite of QARTOD, which ranks its
+# UNKNOWN=2 above GOOD): a point reads unknown only when nothing evaluated it.
+# Flag 7 (nominal_value) has no producer yet; it is slotted for completeness.
+_QC_PRIORITY: Dict[int, int] = {9: 7, 4: 6, 3: 5, 8: 4, 7: 3, 2: 2, 1: 1, 0: 0}
 
 # CF standard names and canonical long_names for known physics variables.
 # Applied as a normalization pass just before writing _stage3.nc so that all
@@ -78,15 +83,79 @@ def _merge_flags(*flag_arrays: np.ndarray) -> np.ndarray:
     Returns element-wise flag with highest priority (worst quality).
     Works on arrays of any shape (1-D time series or 2-D time×N_BINS).
     """
-    # Lookup table: priority[flag] for flags 0-9
-    # _QC_PRIORITY: {9:6, 4:5, 3:4, 8:3, 2:2, 1:1, 0:0}; unlisted flags → 0
-    _priority = np.array([0, 1, 2, 4, 5, 0, 0, 0, 3, 6], dtype=np.int8)
+    # Lookup table priority[flag] for flags 0-9, derived from _QC_PRIORITY so the
+    # ordering lives in exactly one place; unlisted flags (5, 6) → 0.
+    _priority = np.array([_QC_PRIORITY.get(f, 0) for f in range(10)], dtype=np.int8)
     result = np.asarray(flag_arrays[0], dtype=np.int8).copy()
     for fa in flag_arrays[1:]:
         fa = np.asarray(fa, dtype=np.int8)
         replace = _priority[fa.clip(0, 9)] > _priority[result.clip(0, 9)]
         result = np.where(replace, fa, result).astype(np.int8)
     return result
+
+
+def _ingest_qartod(result: Any) -> np.ndarray:
+    """Normalise one ioos_qc test result onto the OceanSITES flag table.
+
+    Folds the three steps every QARTOD test needs into one place: fill missing
+    entries with 9 (handling both ioos_qc return types — a masked array or a
+    plain ndarray, depending on version), cast to int8, and remap QARTOD
+    ``UNKNOWN(2)`` — "could not evaluate", e.g. ``spike_test`` at a record edge or
+    beside a gap — to OceanSITES ``unknown(0)``. Applied *before* merging, so a
+    point a test could not evaluate never asserts ``probably_good_data(2)``.
+    """
+    if hasattr(result, "filled"):
+        flags = result.filled(9)
+    else:
+        arr = np.asarray(result, dtype=float)
+        flags = np.where(np.isnan(arr), 9, arr)
+    flags = np.asarray(flags).astype(np.int8)
+    return np.where(flags == 2, np.int8(0), flags).astype(np.int8)
+
+
+def set_qc_attrs(
+    ds: xr.Dataset, var: str, extra: Optional[Dict[str, Any]] = None
+) -> xr.Dataset:
+    """Attach the OceanSITES flag attributes to ``{var}_qc`` in place.
+
+    The single owner of QC-flag metadata: call this wherever a ``_qc`` variable
+    is created or updated so the CF flag attributes cannot be forgotten. The flag
+    table is sourced from :mod:`oceanarray.parameters` (one source of truth) and
+    the full legal set is declared, not only the values present. The status-flag
+    ``standard_name`` (``"{parent} status_flag"``) is attached only when the parent
+    variable has a ``standard_name`` — it is skipped, never fabricated, when the
+    parent has none (``standard_name`` is an optional CF attribute).
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        Dataset containing both ``var`` and its ``{var}_qc`` companion.
+    var : str
+        Name of the data variable whose ``_qc`` companion is annotated.
+    extra : dict of str to Any, optional
+        Additional attributes to attach (e.g. QC threshold provenance).
+
+    Returns
+    -------
+    xarray.Dataset
+        *ds*, modified in place.
+
+    """
+    from oceanarray import parameters as P
+
+    attrs: Dict[str, Any] = {
+        "long_name": f"quality flag for {var}",
+        "flag_values": np.array(P.QC_FLAG_VALUES, dtype="int8"),
+        "flag_meanings": P.QC_FLAG_MEANINGS,
+        "conventions": P.QC_CONVENTION,
+    }
+    std = ds[var].attrs.get("standard_name") if var in ds.variables else None
+    if std:
+        attrs["standard_name"] = f"{std} status_flag"
+    if extra:
+        attrs.update(extra)
+    ds[f"{var}_qc"].attrs.update(attrs)
+    return ds
 
 
 def _deep_merge(base: Dict, override: Dict) -> Dict:
@@ -466,29 +535,27 @@ def apply_qc_tests(
 
         if varname in gross_range:
             cfg = gross_range[varname]
-            gr_flags = (
-                qartod.gross_range_test(
-                    inp=data,
-                    fail_span=tuple(cfg["fail_span"]),
-                    suspect_span=tuple(cfg.get("suspect_span", cfg["fail_span"])),
+            flags_list.append(
+                _ingest_qartod(
+                    qartod.gross_range_test(
+                        inp=data,
+                        fail_span=tuple(cfg["fail_span"]),
+                        suspect_span=tuple(cfg.get("suspect_span", cfg["fail_span"])),
+                    )
                 )
-                .filled(9)
-                .astype(np.int8)
             )
-            flags_list.append(gr_flags)
 
         if varname in spike:
             cfg = spike[varname]
-            sp_flags = (
-                qartod.spike_test(
-                    inp=data,
-                    suspect_threshold=cfg.get("suspect_threshold"),
-                    fail_threshold=cfg.get("fail_threshold"),
+            flags_list.append(
+                _ingest_qartod(
+                    qartod.spike_test(
+                        inp=data,
+                        suspect_threshold=cfg.get("suspect_threshold"),
+                        fail_threshold=cfg.get("fail_threshold"),
+                    )
                 )
-                .filled(9)
-                .astype(np.int8)
             )
-            flags_list.append(sp_flags)
 
         if varname in _flat and "time" in ds:
             fl_cfg = _flat[varname]
@@ -527,14 +594,7 @@ def apply_qc_tests(
                     stacklevel=2,
                 )
                 continue
-            # flat_line_test may return a masked array or plain ndarray depending
-            # on the ioos_qc version; handle both.
-            fl_flags = (
-                _fl_result.filled(9)
-                if hasattr(_fl_result, "filled")
-                else np.where(np.isnan(_fl_result.astype(float)), 9, _fl_result)
-            ).astype(np.int8)
-            flags_list.append(fl_flags)
+            flags_list.append(_ingest_qartod(_fl_result))
 
         new_flags = _merge_flags(*flags_list)
 

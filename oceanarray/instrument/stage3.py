@@ -72,6 +72,7 @@ from oceanarray.instrument.qc import (
     ensure_conductivity_units,
     load_qc_config,
     merge_salinity_parent_qc,
+    set_qc_attrs,
     unify_velocity_qc,
 )
 from oceanarray.instrument.coordinate import (
@@ -669,6 +670,12 @@ class Stage3Processor:
                     for _k, _v in _cf.items():
                         if _k not in ds[_vname].attrs:
                             ds[_vname].attrs[_k] = _v
+
+            # Normalize every _qc variable onto the OceanSITES flag table (single
+            # source of truth) and attach the status_flag standard_name — done
+            # after the CF pass above so each parent's standard_name is available.
+            for _qv in [v for v in ds.data_vars if v.endswith("_qc")]:
+                set_qc_attrs(ds, _qv[:-3])
 
             ds = drop_all_zero_vars(ds, ["amplitude_beam", "analog_input_"])
             cast_output_dtypes(ds).to_netcdf(l3_path)

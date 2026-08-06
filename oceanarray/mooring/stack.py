@@ -490,14 +490,12 @@ class MooringStacker:
                     {
                         "long_name": "Combined velocity QC flag (worst of east/north/up)",
                         "comment": (
-                            "OceanSITES flag: 1=good, 2=prob_good, 3=suspect, 4=bad, "
-                            "9=missing.  Apply to east/north/up_velocity before use."
+                            "Worst OceanSITES flag across east/north/up_velocity; "
+                            "apply to the velocity components before use."
                         ),
-                        "flag_values": "0 1 2 3 4 9",
-                        "flag_meanings": (
-                            "no_qc_performed good_data probably_good_data "
-                            "probably_bad_data bad_data missing_value"
-                        ),
+                        "flag_values": np.array(P.QC_FLAG_VALUES, dtype="int8"),
+                        "flag_meanings": P.QC_FLAG_MEANINGS,
+                        "conventions": P.QC_CONVENTION,
                     },
                 )
 

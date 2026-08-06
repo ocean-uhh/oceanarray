@@ -100,6 +100,19 @@ def test_merge_flags_three_arrays():
     np.testing.assert_array_equal(result, [1, 3, 4])
 
 
+def test_merge_flags_oceansites_ordering():
+    """OceanSITES ordering: interpolated(8) beats good(1) but loses to bad(4);
+    unknown(0) is the weakest flag, so good(1) beats unknown(0)."""
+    good = np.array([1, 1, 1, 8], dtype=np.int8)
+    other = np.array([8, 4, 0, 4], dtype=np.int8)
+    result = _merge_flags(good, other)
+    #   1 vs 8 -> 8 (interpolated overrides good)
+    #   1 vs 4 -> 4 (bad overrides good)
+    #   1 vs 0 -> 1 (good beats unknown; unknown is weakest)
+    #   8 vs 4 -> 4 (bad overrides interpolated)
+    np.testing.assert_array_equal(result, [8, 4, 1, 4])
+
+
 # ---------------------------------------------------------------------------
 # _tilt_from_span
 # ---------------------------------------------------------------------------
