@@ -7,6 +7,8 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import xarray as xr
 
+from oceanarray.instrument.qc import set_qc_attrs
+
 
 HAB_THRESHOLD = 2.0  # metres — use near-neighbour below this Δhab
 
@@ -165,7 +167,6 @@ def interpolate_pressure(
     sources: List[Dict[str, Any]],
     target_time: np.ndarray,
     pressure_bad_flag: bool,
-    qc_attrs: Dict[str, Any],
     log_fn: Optional[Any] = None,
 ) -> tuple[xr.Dataset, str]:
     """Interpolate pressure from sources onto target; return (ds, method_str).
@@ -201,8 +202,6 @@ def interpolate_pressure(
     pressure_bad_flag : bool
         When True, the original pressure is preserved as ``pressure_orig``
         and ``pressure_orig_qc`` before being replaced.
-    qc_attrs : dict
-        OceanSITES flag attribute dict written to ``pressure_qc``.
     log_fn : callable, optional
         Logging callback.
 
@@ -271,8 +270,12 @@ def interpolate_pressure(
         ds["pressure_orig_qc"] = xr.Variable(
             "time",
             np.full(len(ds["time"]), pressure_qc_val, dtype=np.int8),
-            attrs={"long_name": "quality flag for pressure_orig", **qc_attrs},
+            attrs={"long_name": "quality flag for pressure_orig"},
         )
+        # pressure_orig_qc is excluded from the stage3 flag-attr sweep (it keeps the
+        # pre-interpolation flag, kept distinct from the interpolated pressure_qc),
+        # so attach its OceanSITES flag attributes here.
+        set_qc_attrs(ds, "pressure_orig")
         ds = ds.drop_vars("pressure")
 
     ds["pressure"] = xr.Variable(
@@ -289,7 +292,7 @@ def interpolate_pressure(
     ds["pressure_qc"] = xr.Variable(
         "time",
         np.full(len(ds["time"]), 8, dtype=np.int8),
-        attrs={"long_name": "quality flag for pressure", **qc_attrs},
+        attrs={"long_name": "quality flag for pressure"},
     )
     return ds, method
 

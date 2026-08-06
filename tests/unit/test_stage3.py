@@ -100,6 +100,52 @@ def test_merge_flags_three_arrays():
     np.testing.assert_array_equal(result, [1, 3, 4])
 
 
+def test_merge_flags_oceansites_ordering():
+    """OceanSITES ordering: interpolated(8) beats good(1) but loses to bad(4);
+    unknown(0) is the weakest flag, so good(1) beats unknown(0)."""
+    good = np.array([1, 1, 1, 8], dtype=np.int8)
+    other = np.array([8, 4, 0, 4], dtype=np.int8)
+    result = _merge_flags(good, other)
+    #   1 vs 8 -> 8 (interpolated overrides good)
+    #   1 vs 4 -> 4 (bad overrides good)
+    #   1 vs 0 -> 1 (good beats unknown; unknown is weakest)
+    #   8 vs 4 -> 4 (bad overrides interpolated)
+    np.testing.assert_array_equal(result, [8, 4, 1, 4])
+
+
+def test_merge_priority_single_source():
+    """qc._merge_flags and mooring.helpers._worst_flag share ONE priority table.
+
+    Guards against the two merge paths drifting: both derive from
+    parameters.QC_MERGE_PRIORITY, so they must agree on every combination.
+    """
+    from oceanarray import parameters as P
+    from oceanarray.instrument.qc import _QC_PRIORITY
+    from oceanarray.mooring.helpers import _worst_flag
+
+    assert _QC_PRIORITY is P.QC_MERGE_PRIORITY
+    a = np.array([1, 8, 0, 3], dtype=np.int8)
+    b = np.array([8, 4, 1, 8], dtype=np.int8)
+    # _worst_flag must match _merge_flags element-wise for the same inputs.
+    np.testing.assert_array_equal(_worst_flag(a, b), _merge_flags(a, b))
+
+
+def test_set_qc_attrs_preserves_author_long_name():
+    """set_qc_attrs fills long_name only when absent — never clobbers a standalone
+    diagnostic flag's own long_name (e.g. seabed_qc), but still attaches the table."""
+    from oceanarray.instrument.qc import set_qc_attrs
+
+    ds = xr.Dataset(
+        {"seabed_qc": ("time", np.array([1, 1], dtype=np.int8))},
+        coords={"time": [0, 1]},
+    )
+    ds["seabed_qc"].attrs["long_name"] = "Seabed proximity QC flag"
+    set_qc_attrs(ds, "seabed")
+    assert ds["seabed_qc"].attrs["long_name"] == "Seabed proximity QC flag"
+    assert "flag_meanings" in ds["seabed_qc"].attrs
+    assert np.asarray(ds["seabed_qc"].attrs["flag_values"]).dtype == np.int8
+
+
 # ---------------------------------------------------------------------------
 # _tilt_from_span
 # ---------------------------------------------------------------------------
@@ -190,7 +236,7 @@ def test_apply_qc_tests_good_data():
     from oceanarray import parameters as P
 
     gr = {"pressure": P.QC_GROSS_RANGE["pressure"]}
-    result = _apply_qc_tests(ds, gr, {}, {})
+    result = _apply_qc_tests(ds, gr, {})
     assert "pressure_qc" in result.data_vars
     assert np.all(result["pressure_qc"].values == 1)
 
@@ -201,7 +247,7 @@ def test_apply_qc_tests_gross_range_flags_bad():
     from oceanarray import parameters as P
 
     gr = {"pressure": P.QC_GROSS_RANGE["pressure"]}
-    result = _apply_qc_tests(ds, gr, {}, {})
+    result = _apply_qc_tests(ds, gr, {})
     flags = result["pressure_qc"].values
     assert flags[10] == 4, f"expected BAD at index 10, got {flags[10]}"
     assert np.sum(flags == 4) == 1
@@ -213,7 +259,7 @@ def test_apply_qc_tests_threshold_attrs_stored():
     from oceanarray import parameters as P
 
     gr = {"pressure": P.QC_GROSS_RANGE["pressure"]}
-    result = _apply_qc_tests(ds, gr, {}, {})
+    result = _apply_qc_tests(ds, gr, {})
     attrs = result["pressure_qc"].attrs
     assert "qc_gross_range_fail_min" in attrs
     assert "qc_gross_range_fail_max" in attrs
@@ -234,7 +280,7 @@ def test_apply_qc_tests_flat_line_flags_fail():
     gr = {"pressure": P.QC_GROSS_RANGE["pressure"]}
     # Use package default tolerance (0.001), NOT 0.0 — see note above
     fl = {"pressure": P.QC_FLAT_LINE["pressure"]}
-    result = _apply_qc_tests(ds, gr, {}, {}, flat_line=fl)
+    result = _apply_qc_tests(ds, gr, {}, flat_line=fl)
     flags = result["pressure_qc"].values
     assert np.any(flags == 4), "expected at least one FAIL flag for stuck pressure"
 
@@ -255,7 +301,7 @@ def test_merge_salinity_parent_qc_bad_temp_propagates():
         },
         coords={"time": time},
     )
-    result = _merge_salinity_parent_qc(ds, {})
+    result = _merge_salinity_parent_qc(ds)
     assert result["salinity_qc"].values[2] == 4
 
 
@@ -270,7 +316,7 @@ def test_merge_salinity_parent_qc_pressure_flag8_ok():
         },
         coords={"time": time},
     )
-    result = _merge_salinity_parent_qc(ds, {})
+    result = _merge_salinity_parent_qc(ds)
     # flag 8 on pressure → salinity_qc should remain 1 (GOOD) not 8
     assert np.all(result["salinity_qc"].values == 1), (
         f"pressure flag=8 should not degrade salinity; got {result['salinity_qc'].values}"

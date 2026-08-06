@@ -343,7 +343,6 @@ def apply_adcp_seabed_qc(
     ds: xr.Dataset,
     water_depth_m: float,
     lat: float,
-    qc_attrs: Dict[str, Any],
     fail_margin_m: float = 20.0,
     log_fn: Any = None,
 ) -> xr.Dataset:
@@ -374,8 +373,6 @@ def apply_adcp_seabed_qc(
         If ≤ 0 the function is a no-op.
     lat : float
         Mooring latitude in decimal degrees, used by ``gsw.p_from_z``.
-    qc_attrs : dict
-        OceanSITES flag attribute dict written to ``seabed_qc``.
     fail_margin_m : float
         Margin below the seabed (in metres) that separates suspect (3) from bad (4).
         Default 20 m.  Bins between 0 and *fail_margin_m* below the seabed receive
@@ -426,7 +423,6 @@ def apply_adcp_seabed_qc(
                 f"(p={p_fail:.1f} dbar): flag 4 (bad). "
                 "Standalone — not merged into velocity_qc."
             ),
-            **qc_attrs,
         },
     )
 
@@ -443,7 +439,6 @@ def apply_adcp_seabed_qc(
 def apply_adcp_surface_qc(
     ds: xr.Dataset,
     lat: float,
-    qc_attrs: Dict[str, Any],
     suspect_margin_m: float = 20.0,
     log_fn: Any = None,
 ) -> xr.Dataset:
@@ -472,8 +467,6 @@ def apply_adcp_surface_qc(
         Stage 3 ADCP dataset containing ``bin_pressure(time, N_BINS)`` in dbar.
     lat : float
         Mooring latitude in decimal degrees, used by ``gsw.p_from_z``.
-    qc_attrs : dict
-        OceanSITES flag attribute dict written to ``surface_qc``.
     suspect_margin_m : float
         Depth (m) below the surface that defines the suspect zone.  Bins with
         0 < bin_pressure < p_from_z(-suspect_margin_m) receive flag 3; bins
@@ -517,7 +510,6 @@ def apply_adcp_surface_qc(
                 f"bins at or above surface (bin_pressure ≤ 0 dbar): flag 4 (bad). "
                 "Standalone — not merged into velocity_qc."
             ),
-            **qc_attrs,
         },
     )
 
@@ -535,7 +527,6 @@ def apply_adcp_velocity_qc(
     prcnt_gd_bad: float,
     prcnt_gd_suspect: float,
     error_vel_threshold: float,
-    qc_attrs: Dict[str, Any],
     log_fn: Any = None,
 ) -> xr.Dataset:
     """Apply QC to ADCP 2D velocity variables (time × N_BINS).
@@ -600,8 +591,6 @@ def apply_adcp_velocity_qc(
         (suspect). Percent.
     error_vel_threshold : float
         |error_velocity| above this → flag 4 (bad). m s⁻¹.
-    qc_attrs : dict
-        OceanSITES flag attribute dict written to every ``*_qc`` variable.
     log_fn : callable, optional
         Logging callback.
 
@@ -653,7 +642,6 @@ def apply_adcp_velocity_qc(
             flags,
             attrs={
                 "long_name": f"quality flag for {varname}",
-                **qc_attrs,
                 **threshold_attrs,
             },
         )
@@ -698,7 +686,6 @@ def apply_adcp_velocity_qc(
                     f"bad<{prcnt_gd_bad}%, suspect<{prcnt_gd_suspect}%. "
                     "Standalone — not merged into velocity_qc."
                 ),
-                **qc_attrs,
             },
         )
 
@@ -726,7 +713,6 @@ def apply_adcp_velocity_qc(
                     "Standalone — not merged into velocity_qc."
                 ),
                 "qc_threshold_fail_m_s": float(error_vel_threshold),
-                **qc_attrs,
             },
         )
 

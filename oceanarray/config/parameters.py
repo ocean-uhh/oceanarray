@@ -86,12 +86,34 @@ INSTRUMENT_COLORS = {
 # Applied to *_qc companion variables in _stage2.nc and stage 3 output.
 # ---------------------------------------------------------------------------
 QC_CONVENTION = "OceanSITES reference table 2"
-QC_FLAG_VALUES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+# Codes 5 (value_changed) and 6 are "not used" in OceanSITES table 2, so they are
+# omitted here — declaring them legal invites flags nothing downstream understands.
+# flag_meanings words correspond position-for-position with flag_values.
+QC_FLAG_VALUES = [0, 1, 2, 3, 4, 7, 8, 9]
 QC_FLAG_MEANINGS = (
-    "no_qc_performed good_data probably_good_data probably_bad_data "
-    "bad_data value_changed not_in_use nominal_value "
-    "interpolated_value missing_value"
+    "unknown good_data probably_good_data potentially_correctable_bad_data "
+    "bad_data nominal_value interpolated_value missing_value"
 )
+
+# Merge priority for combining two QC flags (worst wins). The single source of
+# truth for flag ordering — both instrument.qc._merge_flags and
+# mooring.helpers._worst_flag derive their lookup arrays from this dict.
+# Weakest to strongest:
+#   unknown(0) < good(1) < probably_good(2) < nominal(7) < interpolated(8)
+#   < potentially_correctable_bad(3) < bad(4) < missing(9)
+# unknown(0) is the weakest (opposite of QARTOD, which ranks its UNKNOWN=2 above
+# GOOD): a point reads unknown only when nothing evaluated it. Unlisted codes
+# (5, 6 — not used in OceanSITES) fall back to priority 0.
+QC_MERGE_PRIORITY = {9: 7, 4: 6, 3: 5, 8: 4, 7: 3, 2: 2, 1: 1, 0: 0}
+
+# Precomputed lookup arrays (immutable; built once at import) so the merge
+# functions and flag-attr writers don't rebuild them on every call.
+# QC_MERGE_PRIORITY_LUT[flag] gives the merge priority for flags 0-9.
+QC_MERGE_PRIORITY_LUT = np.array(
+    [QC_MERGE_PRIORITY.get(f, 0) for f in range(10)], dtype="int8"
+)
+# flag_values as int8 (CF wants it to match the int8 flag variable dtype).
+QC_FLAG_VALUES_I8 = np.array(QC_FLAG_VALUES, dtype="int8")
 
 # ---------------------------------------------------------------------------
 # QARTOD gross-range test thresholds (global ocean defaults).

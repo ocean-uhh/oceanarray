@@ -481,23 +481,22 @@ class MooringStacker:
                 else (0, 0)
             )
             if n_lev_v > 0:
-                vel_flag = np.ones((n_lev_v, n_t_v), dtype=np.float64)  # 1 = good
+                # int8 so flag_values (also int8) matches the variable dtype (CF).
+                vel_flag = np.ones((n_lev_v, n_t_v), dtype=np.int8)  # 1 = good
                 for _qk in _vel_qc_keys:
-                    vel_flag = _worst_flag(vel_flag, stacked[_qk]).astype(np.float64)
+                    vel_flag = _worst_flag(vel_flag, stacked[_qk]).astype(np.int8)
                 data_vars["velocity_flag"] = xr.Variable(
                     ("N_LEVELS", "time"),
                     vel_flag,
                     {
                         "long_name": "Combined velocity QC flag (worst of east/north/up)",
                         "comment": (
-                            "OceanSITES flag: 1=good, 2=prob_good, 3=suspect, 4=bad, "
-                            "9=missing.  Apply to east/north/up_velocity before use."
+                            "Worst OceanSITES flag across east/north/up_velocity; "
+                            "apply to the velocity components before use."
                         ),
-                        "flag_values": "0 1 2 3 4 9",
-                        "flag_meanings": (
-                            "no_qc_performed good_data probably_good_data "
-                            "probably_bad_data bad_data missing_value"
-                        ),
+                        "flag_values": P.QC_FLAG_VALUES_I8,
+                        "flag_meanings": P.QC_FLAG_MEANINGS,
+                        "conventions": P.QC_CONVENTION,
                     },
                 )
 
