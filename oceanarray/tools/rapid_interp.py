@@ -21,7 +21,7 @@ References
 
 import pathlib
 from datetime import datetime
-from typing import Tuple, Union
+from typing import Any, Tuple, Union
 
 import gsw
 import matplotlib.pyplot as plt
@@ -746,9 +746,9 @@ def plot_climatology(
     clim_ds: xr.Dataset,
     var: str = "dTdp",
     clim_ds_smoothed: "xr.Dataset | None" = None,
-    fig=None,
-    ax=None,
-):
+    fig: Any = None,
+    ax: Any = None,
+) -> Tuple[Any, Any]:
     """Plot the seasonal climatology of dT/dP or dS/dP, optionally with a smoothed overlay.
 
     Lives here because it visualises the climatological gradient field this module

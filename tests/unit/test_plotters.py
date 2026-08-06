@@ -78,6 +78,23 @@ def test_show_attributes_from_dataset():
     assert "Value" in df.columns
 
 
+def test_pcolormesh_panel_returns_mappable():
+    """pcolormesh_panel draws a (pressure × time) field and returns the mappable."""
+    import matplotlib.pyplot as plt
+
+    from oceanarray.plotters._primitives import pcolormesh_panel
+
+    time = np.arange("2023-01-01", "2023-01-11", dtype="datetime64[D]")
+    pressure = np.array([0.0, 50.0, 100.0, 150.0])
+    data = np.random.rand(pressure.size, time.size)  # shaped (pressure, time)
+
+    fig, ax = plt.subplots()
+    pc = pcolormesh_panel(fig, ax, data, time, pressure, title="Temp", units="°C")
+    assert pc is not None
+    assert ax.yaxis_inverted()  # pressure increases downward
+    plt.close(fig)
+
+
 def test_plot_trajectory_lc_array_length():
     """LineCollection colour array must have N-1 entries for N trajectory points."""
     import matplotlib.pyplot as plt
