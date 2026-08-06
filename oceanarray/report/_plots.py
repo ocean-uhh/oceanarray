@@ -1223,7 +1223,9 @@ def draw_ts_diagram(nc_path: Path) -> "Optional[plt.Figure]":
         sat_data = ds["oxygen_saturation_pct"].values.astype(float) if has_sat else None
 
     ncols = 3 if has_sat else 2
-    fig, axes = plt.subplots(1, ncols, figsize=(5.5 * ncols, 4.5), constrained_layout=True)
+    fig, axes = plt.subplots(
+        1, ncols, figsize=(5.5 * ncols, 4.5), constrained_layout=True
+    )
     ax_l, ax_r = axes[0], axes[1]
     ax_sat = axes[2] if has_sat else None
 
