@@ -47,6 +47,7 @@ import xarray as xr
 import yaml
 from seasenselib.writers import NetCdfWriter
 
+from oceanarray import paths
 from oceanarray.utilities import (
     _status,
     cast_output_dtypes,
@@ -279,12 +280,7 @@ def _find_nonnull_bounds(
 class Stage2Processor:
     """Handles Stage 2 processing: clock correction and temporal trimming."""
 
-    def __init__(
-        self,
-        base_dir: Optional[str] = None,
-        *,
-        proc_dir: Optional[str] = None,
-    ) -> None:
+    def __init__(self, *, proc_dir: str) -> None:
         """Apply clock-drift correction and trim records to the deployment window.
 
         Reads stage1 CF-NetCDF files, corrects instrument clock offsets using a
@@ -294,29 +290,21 @@ class Stage2Processor:
 
         Parameters
         ----------
-        base_dir : str, optional
-            Legacy: cruise-level base directory containing a ``proc/`` subdirectory.
-        proc_dir : str, optional
-            Cruise-level processed output directory. Pipeline appends ``/{mooring}/``.
+        proc_dir : str
+            Cruise-level processed output directory. The pipeline appends
+            ``/{mooring}/`` internally (see :func:`oceanarray.paths.mooring_proc_dir`).
 
         """
-        if base_dir is not None:
-            self.base_dir: Optional[Path] = Path(base_dir)
-            self._proc_dir: Optional[Path] = None
-            self._legacy = True
-        else:
-            self.base_dir = None
-            self._proc_dir = Path(proc_dir) if proc_dir else None
-            self._legacy = False
+        self._proc_dir = Path(proc_dir)
         self.log_file = None
 
     def _rel(self, path: Path) -> str:
-        """Return a short display path relative to base_dir or proc_dir."""
-        for root in (r for r in (self.base_dir, self._proc_dir) if r):
+        """Return a short display path relative to proc_dir."""
+        if self._proc_dir:
             try:
-                return str(path.relative_to(root))
+                return str(path.relative_to(self._proc_dir))
             except ValueError:
-                continue
+                pass
         return path.name
 
     def _setup_logging(self, mooring_name: str, output_path: Path) -> None:
@@ -1015,18 +1003,11 @@ class Stage2Processor:
             bool: True if processing completed successfully
 
         """
-        # Set up paths
-        if self._legacy:
-            if output_path is None:
-                proc = self.base_dir / "proc"
-                if not proc.is_dir():
-                    legacy_proc = self.base_dir / "moor" / "proc"
-                    proc = legacy_proc if legacy_proc.is_dir() else proc
-                proc_dir = proc / mooring_name
-            else:
-                proc_dir = Path(output_path) / mooring_name
+        # Set up paths — {proc_dir}/{mooring}/
+        if output_path is None:
+            proc_dir = paths.mooring_proc_dir(self._proc_dir, mooring_name)
         else:
-            proc_dir = self._proc_dir / mooring_name
+            proc_dir = Path(output_path) / mooring_name
 
         if not proc_dir.exists():
             print(f"ERROR: Processing directory not found: {proc_dir}")
@@ -1100,66 +1081,3 @@ class Stage2Processor:
         # Partial success is still success: instruments that processed are written
         # and the record summary reports which succeeded and which failed.
         return success_count > 0
-
-
-def stage2_mooring(
-    mooring_name: str, basedir: str, output_path: Optional[str] = None
-) -> bool:
-    """Process Stage 2 for a single mooring (backwards compatibility function).
-
-    Args:
-        mooring_name: Name of the mooring to process
-        basedir: Base directory containing the data
-        output_path: Optional output path override
-
-    Returns:
-        bool: True if processing completed successfully
-
-    """
-    processor = Stage2Processor(basedir)
-    return processor.process_mooring(mooring_name, output_path)
-
-
-def process_multiple_moorings_stage2(
-    mooring_list: List[str], basedir: str
-) -> Dict[str, bool]:
-    """Process Stage 2 for multiple moorings.
-
-    Args:
-        mooring_list: List of mooring names to process
-        basedir: Base directory containing the data
-
-    Returns:
-        Dict mapping mooring names to success status
-
-    """
-    processor = Stage2Processor(basedir)
-    results = {}
-
-    for mooring_name in mooring_list:
-        print(f"\n{'=' * 50}")
-        print(f"Processing Stage 2 for mooring {mooring_name}")
-        print(f"{'=' * 50}")
-
-        results[mooring_name] = processor.process_mooring(mooring_name)
-
-    return results
-
-
-# Example usage
-if __name__ == "__main__":
-    # Your mooring list
-    moorlist = ["dsE_1_2018"]
-
-    basedir = "/Users/eddifying/Dropbox/data/ifmro_mixsed/ds_data_eleanor/"
-
-    # Process all moorings
-    results = process_multiple_moorings_stage2(moorlist, basedir)
-
-    # Print summary
-    print(f"\n{'=' * 50}")
-    print("STAGE 2 PROCESSING SUMMARY")
-    print(f"{'=' * 50}")
-    for mooring, success in results.items():
-        status = "SUCCESS" if success else "FAILED"
-        print(f"{mooring}: {status}")

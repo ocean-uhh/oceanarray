@@ -174,6 +174,12 @@ _INSTRUMENT_HTML_TEMPLATE = """\
     <td class="num">{{ raw_file.size }}</td>
     <td>{{ raw_file.mtime }}</td>
   </tr>
+  {% elif raw_file.unknown %}
+  <tr>
+    <td>Raw</td>
+    <td class="mono">{{ raw_file.name }}</td>
+    <td colspan="2">&mdash; not checked (no --raw-dir)</td>
+  </tr>
   {% else %}
   <tr>
     <td>Raw</td>
@@ -551,7 +557,6 @@ def generate_instrument_pages(
     proc_dir: Path,
     out_dir: Path,
     force: bool,
-    base_dir: Path,
     serials: Optional[List[str]] = None,
     raw_dir: Optional[Path] = None,
     skip_existing: bool = False,
@@ -580,9 +585,6 @@ def generate_instrument_pages(
         Per-instrument pages are placed in ``out_dir/instrument/``.
     force : bool
         If True, regenerate pages that already exist.
-    base_dir : Path
-        Legacy cruise-level base directory.  Used to resolve raw file paths in
-        legacy mode (when *raw_dir* is None).
     serials : list of str, optional
         If provided, only generate pages for instruments whose serial number is in
         this list.  Useful for regenerating a single instrument without reprocessing
@@ -590,7 +592,7 @@ def generate_instrument_pages(
     raw_dir : Path, optional
         Cruise-level raw data directory for the new directory layout.  When given,
         raw file existence is checked at ``{raw_dir}/{mooring}/{instr_type}/filename``.
-        When None, *base_dir* is used instead (legacy layout).
+        When None, the raw file is not located on disk.
     skip_existing : bool
         If True, skip pages whose output file is newer than the source NetCDF.
 
@@ -698,25 +700,23 @@ def generate_instrument_pages(
 
         # File listing — raw source and stage1/2/3 NC files
         raw_filename = instr.get("filename", "")
-        if raw_filename:
-            if raw_dir is not None:
-                # New layout: {raw_dir}/{mooring}/{instrument}/filename
-                raw_file_path = raw_dir / mooring_name / instr_type / raw_filename
-            else:
-                # Legacy layout: {base_dir}/{directory}/{instrument}/filename
-                raw_file_path = (
-                    base_dir
-                    / str(cfg.get("directory", "raw")).rstrip("/")
-                    / instr_type
-                    / raw_filename
-                )
+        if raw_filename and raw_dir is not None:
+            # New layout: {raw_dir}/{mooring}/{instrument}/filename
+            raw_file = _file_info(raw_dir / mooring_name / instr_type / raw_filename)
+        elif raw_filename:
+            # No raw_dir configured: the raw file's location is unknown.  Do NOT
+            # probe the filesystem — a bare filename resolves against the current
+            # working directory and would misreport existence.  Mark it "not
+            # checked" rather than guess.
+            raw_file = {
+                "exists": False,
+                "unknown": True,
+                "name": raw_filename,
+                "size": "",
+                "mtime": "",
+            }
         else:
-            raw_file_path = Path("no_raw_file")
-        raw_file = (
-            _file_info(raw_file_path)
-            if raw_filename
-            else {"exists": False, "name": raw_filename or "—", "size": "", "mtime": ""}
-        )
+            raw_file = {"exists": False, "name": "—", "size": "", "mtime": ""}
         stage_files = _stage_file_details(proc_dir, instr_type, mooring_name, serial)
 
         ctx = {

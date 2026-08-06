@@ -639,7 +639,7 @@ def plot_mooring_timeseries(
     Parameters
     ----------
     proc_dir : Path
-        Path to the mooring's proc directory (e.g. ``<basedir>/proc``).
+        Path to the mooring's proc directory (e.g. ``<proc-dir>/<mooring>``).
     mooring : str
         Mooring name, e.g. ``dsG3_1_2026``.
     var_y : str

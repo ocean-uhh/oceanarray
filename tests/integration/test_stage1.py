@@ -17,18 +17,18 @@ class TestRealDataProcessing:
         """Set up test environment with real CNV data."""
         base_dir = tmp_path / "test_data"
 
-        # Create directory structure matching real layout:
-        # input_dir / instrument / mooring_name / filename
-        raw_dir = (
-            base_dir / "moor" / "raw" / "test_deployment" / "microcat" / "test_mooring"
-        )
-        proc_dir = base_dir / "moor" / "proc" / "test_mooring"
-        raw_dir.mkdir(parents=True)
+        # Current layout: {raw_dir}/{mooring}/{instrument}/filename and
+        # {proc_dir}/{mooring}/.
+        raw_root = base_dir / "raw"
+        proc_root = base_dir / "proc"
+        raw_mooring = raw_root / "test_mooring" / "microcat"
+        proc_dir = proc_root / "test_mooring"
+        raw_mooring.mkdir(parents=True)
         proc_dir.mkdir(parents=True)
 
         # Copy the real test data file
         test_data_source = Path("data/test_data.cnv")
-        test_data_dest = raw_dir / "test_data.cnv"
+        test_data_dest = raw_mooring / "test_data.cnv"
 
         if test_data_source.exists():
             test_data_dest.write_text(test_data_source.read_text())
@@ -47,7 +47,6 @@ class TestRealDataProcessing:
             "recovery_time": "2018-08-26T20:47:24",
             "seabed_latitude": "60 00.000 N",
             "seabed_longitude": "030 00.000 W",
-            "directory": "moor/raw/test_deployment/",
             "instruments": [
                 {
                     "instrument": "microcat",
@@ -67,8 +66,8 @@ class TestRealDataProcessing:
             yaml.dump(yaml_data, f)
 
         return {
-            "base_dir": base_dir,
-            "raw_dir": raw_dir,
+            "raw_root": raw_root,
+            "proc_root": proc_root,
             "proc_dir": proc_dir,
             "config_file": config_file,
             "data_file": test_data_dest,
@@ -78,7 +77,9 @@ class TestRealDataProcessing:
     def test_process_real_sbe_file(self, test_data_setup):
         """Test processing with real SBE CNV file."""
         setup = test_data_setup
-        processor = MooringProcessor(str(setup["base_dir"]))
+        processor = MooringProcessor(
+            raw_dir=str(setup["raw_root"]), proc_dir=str(setup["proc_root"])
+        )
 
         result = processor.process_mooring("test_mooring")
 
@@ -110,7 +111,9 @@ class TestRealDataProcessing:
 
         setup["data_file"].unlink()
 
-        processor = MooringProcessor(str(setup["base_dir"]))
+        processor = MooringProcessor(
+            raw_dir=str(setup["raw_root"]), proc_dir=str(setup["proc_root"])
+        )
         result = processor.process_mooring("test_mooring")
 
         assert result is False
@@ -123,7 +126,9 @@ class TestRealDataProcessing:
     def test_process_existing_output(self, test_data_setup):
         """Test processing when output file already exists."""
         setup = test_data_setup
-        processor = MooringProcessor(str(setup["base_dir"]))
+        processor = MooringProcessor(
+            raw_dir=str(setup["raw_root"]), proc_dir=str(setup["proc_root"])
+        )
 
         result1 = processor.process_mooring("test_mooring")
         assert result1 is True
@@ -138,10 +143,11 @@ class TestRealDataProcessing:
     def test_process_missing_config(self, tmp_path):
         """Test processing mooring with missing config file."""
         base_dir = tmp_path / "test_data"
-        proc_dir = base_dir / "moor" / "proc" / "test_mooring"
-        proc_dir.mkdir(parents=True)
+        raw_root = base_dir / "raw"
+        proc_root = base_dir / "proc"
+        (proc_root / "test_mooring").mkdir(parents=True)
 
-        processor = MooringProcessor(str(base_dir))
+        processor = MooringProcessor(raw_dir=str(raw_root), proc_dir=str(proc_root))
         result = processor.process_mooring("test_mooring")
 
         assert result is False

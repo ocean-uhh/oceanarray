@@ -50,6 +50,7 @@ import numpy as np
 import xarray as xr
 import yaml
 
+from oceanarray import paths
 from oceanarray.paths import safe_serial
 from oceanarray.utilities import (
     cast_output_dtypes,
@@ -92,9 +93,8 @@ class Stage3Processor:
 
     def __init__(
         self,
-        base_dir: Optional[str] = None,
         *,
-        proc_dir: Optional[str] = None,
+        proc_dir: str,
     ) -> None:
         """Apply QC flags, coordinate rotation, and derived variables to mooring data.
 
@@ -107,20 +107,12 @@ class Stage3Processor:
 
         Parameters
         ----------
-        base_dir : str, optional
-            Legacy: cruise-level base directory containing a ``proc/`` subdirectory.
-        proc_dir : str, optional
-            Cruise-level processed output directory. Pipeline appends ``/{mooring}/``.
+        proc_dir : str
+            Cruise-level processed output directory. The pipeline appends
+            ``/{mooring}/`` internally (see :func:`oceanarray.paths.mooring_proc_dir`).
 
         """
-        if base_dir is not None:
-            self.base_dir: Optional[Path] = Path(base_dir)
-            self._proc_dir: Optional[Path] = None
-            self._legacy = True
-        else:
-            self.base_dir = None
-            self._proc_dir = Path(proc_dir) if proc_dir else None
-            self._legacy = False
+        self._proc_dir = Path(proc_dir)
         self.log_file = None
 
     def _setup_logging(self, mooring_name: str, output_path: Path) -> None:
@@ -138,13 +130,7 @@ class Stage3Processor:
                 pass
 
     def _get_proc_dir(self, mooring_name: str) -> Path:
-        if not self._legacy and self._proc_dir is not None:
-            return self._proc_dir / mooring_name
-        proc = self.base_dir / "proc"
-        if not proc.is_dir():
-            legacy = self.base_dir / "moor" / "proc"
-            proc = legacy if legacy.is_dir() else proc
-        return proc / mooring_name
+        return paths.mooring_proc_dir(self._proc_dir, mooring_name)
 
     # ------------------------------------------------------------------
     def process_mooring(

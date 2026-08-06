@@ -33,14 +33,6 @@ def _safe_serial(serial: Any) -> str:
     return safe_serial(serial)
 
 
-def _get_proc_dir(base_dir: Path, mooring_name: str) -> Path:
-    proc = base_dir / "proc"
-    if not proc.is_dir():
-        legacy = base_dir / "moor" / "proc"
-        proc = legacy if legacy.is_dir() else proc
-    return proc / mooring_name
-
-
 def _parse_dt(s: Optional[str]) -> Optional[datetime]:
     """Parse clock timestamp: HH:MM:SS, YYYYMMDDTHH:MM:SS, or standard ISO."""
     if not s:
@@ -112,17 +104,6 @@ def _resolve_clock(entry: Dict[str, Any]) -> Dict[str, Any]:
         "instrument_time": _fmt_clock_str(str(inst_str)) if inst_str else None,
         "has_correction": offset_s != 0 or (drift_s is not None and drift_s != 0),
     }
-
-
-def _raw_file_path(
-    base_dir: Path,
-    raw_subdir: str,
-    instr_type: str,
-    mooring_name: str,
-    filename: str,
-) -> Path:
-    """Reconstruct the raw input file path exactly as stage1.py does."""
-    return base_dir / raw_subdir / instr_type / mooring_name / filename
 
 
 def _check_readable(file_path: Path, file_type: str) -> Tuple[bool, str]:

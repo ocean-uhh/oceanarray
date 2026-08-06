@@ -1,9 +1,9 @@
 # Migrating from --basedir to --raw-dir / --proc-dir
 
-The `--basedir` flag is deprecated.  All subcommands now accept
-`--raw-dir` and `--proc-dir` instead.  `--basedir` still works and
-will continue to work indefinitely, but it prints a `DeprecationWarning`
-on every invocation.
+The `--basedir` flag has been **removed**.  All subcommands now require
+`--raw-dir` and `--proc-dir` instead.  Passing `--basedir` prints a migration
+message naming the replacement and exits without processing.  This document
+explains how to convert an old `--basedir` layout to the current one.
 
 ---
 

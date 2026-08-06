@@ -133,17 +133,13 @@ and you want to migrate to::
 
 ----
 
-``--basedir`` still works
---------------------------
+``--basedir`` has been removed
+------------------------------
 
-The ``--basedir`` flag is still accepted and produces a deprecation warning
-rather than an error.  There is no urgent need to migrate all existing
-scripts immediately.  The flag may be removed in a future major version.
-
-When using ``--basedir``, raw files are expected in the instrument-first
-layout (``{basedir}/raw/{instrument}/{mooring}/``), so existing data
-directories do not need to be reorganised if you continue to use
-``--basedir`` for now.
+The ``--basedir`` flag no longer runs.  Passing it prints a migration message
+naming the replacement and exits without processing, so existing scripts that
+use it must be updated to ``--raw-dir`` + ``--proc-dir`` and the raw data moved
+to the mooring-first layout (see the mapping above).
 
 ----
 

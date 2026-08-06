@@ -18,7 +18,6 @@ from oceanarray.report._html_helpers import (
     _fmt_dt,
     _fmt_minmax,
     _fmt_size,
-    _get_proc_dir,
     _parse_dt,
     _parse_history,
     _read_nc_metadata,
@@ -137,19 +136,6 @@ class TestHtmlHelpers:
 
     def test_safe_serial_dot_stripped(self):
         assert _safe_serial("3.14") == "314"
-
-    # _get_proc_dir
-    def test_get_proc_dir_new_layout(self, tmp_path):
-        proc = tmp_path / "proc"
-        proc.mkdir()
-        result = _get_proc_dir(tmp_path, "TEST_M1")
-        assert result == proc / "TEST_M1"
-
-    def test_get_proc_dir_legacy_layout(self, tmp_path):
-        legacy = tmp_path / "moor" / "proc"
-        legacy.mkdir(parents=True)
-        result = _get_proc_dir(tmp_path, "TEST_M1")
-        assert result == legacy / "TEST_M1"
 
     # _parse_dt
     def test_parse_dt_iso(self):
@@ -493,7 +479,6 @@ class TestPageGenerators:
             setup["proc_dir"],
             setup["out_dir"],
             False,
-            setup["tmp_path"],
         )
         pages = list((setup["out_dir"] / "instrument").glob("*.html"))
         assert len(pages) >= 1
@@ -517,7 +502,6 @@ class TestPageGenerators:
             setup["proc_dir"],
             setup["out_dir"],
             False,
-            setup["tmp_path"],
         )
         pages = list((setup["out_dir"] / "instrument").glob("*.html"))
         assert any("1234" in p.name for p in pages)
@@ -560,7 +544,6 @@ class TestPageGenerators:
             proc_dir,
             out_dir,
             False,
-            tmp_path,
         )
 
     # generate_stack_page

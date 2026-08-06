@@ -68,7 +68,8 @@ class TestTimeGriddingIntegration:
     def test_data_setup(self, tmp_path):
         """Set up test environment with mock instrument files."""
         base_dir = tmp_path / "test_data"
-        proc_dir = base_dir / "moor" / "proc" / "test_mooring"
+        proc_root = base_dir / "proc"
+        proc_dir = proc_root / "test_mooring"
         proc_dir.mkdir(parents=True)
 
         yaml_data = {
@@ -105,7 +106,7 @@ class TestTimeGriddingIntegration:
             ds.to_netcdf(filepath)
 
         return {
-            "base_dir": base_dir,
+            "proc_root": proc_root,
             "proc_dir": proc_dir,
             "config_file": config_file,
             "yaml_data": yaml_data,
@@ -114,7 +115,7 @@ class TestTimeGriddingIntegration:
     def test_full_time_gridding_processing(self, test_data_setup):
         """Test complete time gridding processing workflow."""
         setup = test_data_setup
-        processor = TimeGriddingProcessor(str(setup["base_dir"]))
+        processor = TimeGriddingProcessor(proc_dir=str(setup["proc_root"]))
 
         result = processor.process_mooring("test_mooring")
 
@@ -153,7 +154,7 @@ class TestTimeGriddingIntegration:
         with open(setup["config_file"], "w") as f:
             yaml.dump(yaml_data, f)
 
-        processor = TimeGriddingProcessor(str(setup["base_dir"]))
+        processor = TimeGriddingProcessor(proc_dir=str(setup["proc_root"]))
         result = processor.process_mooring("test_mooring")
 
         assert result is True
@@ -167,7 +168,7 @@ class TestTimeGriddingIntegration:
     def test_different_sampling_rates_warning(self, test_data_setup):
         """Test warnings about different sampling rates."""
         setup = test_data_setup
-        processor = TimeGriddingProcessor(str(setup["base_dir"]))
+        processor = TimeGriddingProcessor(proc_dir=str(setup["proc_root"]))
 
         result = processor.process_mooring("test_mooring")
         assert result is True
@@ -180,7 +181,7 @@ class TestTimeGriddingIntegration:
     def test_filtering_parameter_detide(self, test_data_setup):
         """Test filtering integration with detide filter (not yet implemented)."""
         setup = test_data_setup
-        processor = TimeGriddingProcessor(str(setup["base_dir"]))
+        processor = TimeGriddingProcessor(proc_dir=str(setup["proc_root"]))
 
         result = processor.process_mooring("test_mooring", filter_type="detide")
 
@@ -195,8 +196,8 @@ class TestTimeGriddingIntegration:
 
     def test_no_valid_datasets(self, tmp_path):
         """Test handling when no valid datasets are found."""
-        base_dir = tmp_path / "test_data"
-        proc_dir = base_dir / "moor" / "proc" / "test_mooring"
+        proc_root = tmp_path / "test_data"
+        proc_dir = proc_root / "test_mooring"
         proc_dir.mkdir(parents=True)
 
         yaml_data = {
@@ -208,7 +209,7 @@ class TestTimeGriddingIntegration:
         with open(config_file, "w") as f:
             yaml.dump(yaml_data, f)
 
-        processor = TimeGriddingProcessor(str(base_dir))
+        processor = TimeGriddingProcessor(proc_dir=str(proc_root))
         result = processor.process_mooring("test_mooring")
 
         assert result is False
@@ -216,7 +217,7 @@ class TestTimeGriddingIntegration:
     def test_custom_variables_to_keep(self, test_data_setup):
         """Test processing with custom variable selection."""
         setup = test_data_setup
-        processor = TimeGriddingProcessor(str(setup["base_dir"]))
+        processor = TimeGriddingProcessor(proc_dir=str(setup["proc_root"]))
 
         result = processor.process_mooring("test_mooring", vars_to_keep=["temperature"])
         assert result is True

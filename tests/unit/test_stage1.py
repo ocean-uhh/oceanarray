@@ -2,7 +2,6 @@
 
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch
 
 import numpy as np
 import pytest
@@ -11,11 +10,7 @@ import yaml
 
 pytest.importorskip("seasenselib", reason="seasenselib not installed")
 
-from oceanarray.instrument.stage1 import (
-    MooringProcessor,
-    process_multiple_moorings,
-    stage1_mooring,
-)
+from oceanarray.instrument.stage1 import MooringProcessor
 
 pytestmark = pytest.mark.needs_seasenselib
 
@@ -34,7 +29,7 @@ class TestMooringProcessor:
         """Create a MooringProcessor instance for testing."""
         import logging
 
-        p = MooringProcessor(str(temp_dir))
+        p = MooringProcessor(raw_dir=str(temp_dir), proc_dir=str(temp_dir))
         yield p
         # Close any FileHandlers added to library loggers by _setup_logging so
         # Windows can delete the temp directory when the fixture tears down.
@@ -76,13 +71,14 @@ class TestMooringProcessor:
 
     def test_init(self, temp_dir):
         """Test MooringProcessor initialization."""
-        processor = MooringProcessor(str(temp_dir))
-        assert processor.base_dir == temp_dir
+        processor = MooringProcessor(raw_dir=str(temp_dir), proc_dir=str(temp_dir))
+        assert processor._proc_dir == temp_dir
+        assert processor._raw_dir == temp_dir
         assert processor.log_file is None
 
     def test_supported_file_types_completeness(self):
         """Test that SUPPORTED_FILE_TYPES contains expected format keys for seasenselib.read()."""
-        processor = MooringProcessor("/tmp")
+        processor = MooringProcessor(raw_dir="/tmp", proc_dir="/tmp")
         expected_types = [
             "sbe-cnv",
             "sbe-ascii",
@@ -279,50 +275,19 @@ class TestMooringProcessor:
         assert updated_ds.attrs["recovery_time"] == "YYYY-mm-ddTHH:MM:ss"
 
 
-class TestConvenienceFunctions:
-    """Test convenience functions."""
-
-    @patch("oceanarray.instrument.stage1.MooringProcessor")
-    def test_stage1_mooring(self, mock_processor_class):
-        """Test backwards compatibility function."""
-        mock_processor = Mock()
-        mock_processor.process_mooring.return_value = True
-        mock_processor_class.return_value = mock_processor
-
-        result = stage1_mooring("test_mooring", "/test/dir")
-
-        assert result is True
-        mock_processor_class.assert_called_once_with("/test/dir")
-        mock_processor.process_mooring.assert_called_once_with("test_mooring", None)
-
-    @patch("oceanarray.instrument.stage1.MooringProcessor")
-    def test_process_multiple_moorings(self, mock_processor_class):
-        """Test batch processing function."""
-        mock_processor = Mock()
-        mock_processor.process_mooring.side_effect = [True, False, True]
-        mock_processor_class.return_value = mock_processor
-
-        moorings = ["mooring1", "mooring2", "mooring3"]
-        results = process_multiple_moorings(moorings, "/test/dir")
-
-        expected = {"mooring1": True, "mooring2": False, "mooring3": True}
-        assert results == expected
-        assert mock_processor.process_mooring.call_count == 3
-
-
 class TestErrorHandling:
     """Test error handling scenarios."""
 
     def test_invalid_reader_type(self, tmp_path):
         """Test handling of invalid reader type."""
-        processor = MooringProcessor(str(tmp_path))
+        processor = MooringProcessor(raw_dir=str(tmp_path), proc_dir=str(tmp_path))
 
         with pytest.raises(ValueError, match="Unknown file type"):
             processor._read_file("invalid-type", "test.dat")
 
     def test_yaml_parsing_error(self, tmp_path):
         """Test handling of invalid YAML file."""
-        processor = MooringProcessor(str(tmp_path))
+        processor = MooringProcessor(raw_dir=str(tmp_path), proc_dir=str(tmp_path))
 
         invalid_yaml = tmp_path / "invalid.yaml"
         invalid_yaml.write_text("invalid: yaml: content: [")

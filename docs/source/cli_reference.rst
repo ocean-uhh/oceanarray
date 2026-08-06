@@ -673,15 +673,11 @@ be installed for GIF output.
 Deprecated flags
 ----------------
 
-``--basedir DIR``
-~~~~~~~~~~~~~~~~~
+``--basedir DIR`` (removed)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``--basedir`` flag is accepted by ``process``, ``stack``, ``grid``,
-``report``, and ``run`` for backward compatibility.  It expects raw files
-at ``{basedir}/raw/{instrument}/{mooring}/`` (instrument-first layout)
-and the YAML at ``{basedir}/proc/{mooring}/``.
-
-Using ``--basedir`` emits a deprecation warning.  New deployments should
-use ``--raw-dir`` and ``--proc-dir`` with the mooring-first layout instead.
+The ``--basedir`` flag has been **removed**.  Passing it prints a migration
+message naming the replacement and exits without processing.  Use
+``--raw-dir`` and ``--proc-dir`` with the mooring-first layout instead.
 
 See :doc:`migration` for step-by-step migration instructions.

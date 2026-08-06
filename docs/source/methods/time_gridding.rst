@@ -17,9 +17,9 @@ Python API
 
 .. code-block:: python
 
-   from oceanarray.mooring_level import MooringStacker
+   from oceanarray.mooring.stack import MooringStacker
 
-   MooringStacker(base_dir).stack(mooring_name, dt_seconds=60, force=False)
+   MooringStacker(proc_dir=proc_dir).stack(mooring_name, dt_seconds=60, force=False)
 
 Purpose
 -------
