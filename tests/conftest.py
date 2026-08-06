@@ -19,6 +19,10 @@ FIXTURE_PROC = Path(__file__).parent / "fixtures" / "proc" / "dune2_1_2026"
 MICROCAT_STAGE3 = FIXTURE_PROC / "microcat" / "dune2_1_2026_2941_stage3.nc"
 AQUADOPP_STAGE3 = FIXTURE_PROC / "aquadopp" / "dune2_1_2026_9920_stage3.nc"
 
+#: Gridded and stacked mooring fixtures — small real outputs from dune2_1_2026.
+GRID_NC = FIXTURE_PROC / "dune2_1_2026_grid.nc"
+STACK_NC = FIXTURE_PROC / "dune2_1_2026_stack.nc"
+
 
 @pytest.fixture(autouse=True)
 def _raise_on_plot_error(monkeypatch):
@@ -97,6 +101,34 @@ def make_ts_dataset(
     if with_conductivity:
         data["conductivity"] = ("time", rng.uniform(30.0, 40.0, n))
     return xr.Dataset(data, coords={"time": time})
+
+
+@pytest.fixture
+def grid_nc() -> Path:
+    """Path to the committed dune2_1_2026 grid NetCDF fixture."""
+    return GRID_NC
+
+
+@pytest.fixture
+def grid_ds():
+    """Opened dune2_1_2026 grid dataset; closed on teardown."""
+    ds = xr.open_dataset(GRID_NC)
+    yield ds
+    ds.close()
+
+
+@pytest.fixture
+def stack_nc() -> Path:
+    """Path to the committed dune2_1_2026 stack NetCDF fixture."""
+    return STACK_NC
+
+
+@pytest.fixture
+def stack_ds():
+    """Opened dune2_1_2026 stack dataset; closed on teardown."""
+    ds = xr.open_dataset(STACK_NC)
+    yield ds
+    ds.close()
 
 
 @pytest.fixture
