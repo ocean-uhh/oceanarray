@@ -50,9 +50,9 @@ from oceanarray.plotters._current import (  # noqa: F401
 from oceanarray.plotters._animation import animate_hodograph  # noqa: F401
 
 # ---------------------------------------------------------------------------
-# Backward-compat shim — re-exports from legacy plotter.py
-# Remove each entry here once the function has been migrated to a sub-module
-# and the corresponding function deleted from plotter.py.
+# Backward-compat shim — re-exports the three legacy plotter.py functions the
+# CLI still calls. These stay until the file-oriented `oceanarray plot <file>`
+# redesign (§11) replaces them; plotter.py is deleted then. Do not add entries.
 # ---------------------------------------------------------------------------
 from oceanarray.plotter import (  # noqa: F401
     plot_microcat_raw,
