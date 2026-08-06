@@ -78,6 +78,55 @@ def test_show_attributes_from_dataset():
     assert "Value" in df.columns
 
 
+def _write_sample_nc(path):
+    """Write a small netCDF file with one variable and two global attributes."""
+    ds = xr.Dataset(
+        {"temperature": ("TIME", np.arange(5.0))},
+        coords={"TIME": np.arange(5)},
+        attrs={"title": "Test", "institution": "Ocean Lab"},
+    )
+    ds["temperature"].attrs["units"] = "degC"
+    ds.to_netcdf(path)
+
+
+def test_inspect_vars_from_file_path(tmp_path):
+    """inspect.vars() opens a netCDF file path (regression: was xr.Dataset, now open_dataset)."""
+    nc = tmp_path / "m.nc"
+    _write_sample_nc(nc)
+    styled = inspect.vars(str(nc))
+    assert "temperature" in styled.to_html()
+    # File must be released so it can be reopened for writing afterwards.
+    xr.open_dataset(nc).close()
+
+
+def test_inspect_attrs_from_file_path(tmp_path):
+    """inspect.attrs() reads a netCDF file path and does not leak the handle."""
+    nc = tmp_path / "m.nc"
+    _write_sample_nc(nc)
+    df = inspect.attrs(str(nc))
+    assert set(df["Attribute"]) >= {"title", "institution"}
+    xr.open_dataset(nc).close()
+
+
+def test_inspect_vars_empty_dataset():
+    """inspect.vars() on a variable-less Dataset returns an empty table, not AttributeError."""
+    styled = inspect.vars(xr.Dataset())
+    assert len(styled.data) == 0
+
+
+def test_pcolormesh_panel_all_nan_slice():
+    """pcolormesh_panel renders an all-NaN field instead of crashing in log10(nan)."""
+    import matplotlib.pyplot as plt
+
+    from oceanarray.plotters._primitives import pcolormesh_panel
+
+    fig, ax = plt.subplots()
+    data = np.full((4, 6), np.nan)
+    pc = pcolormesh_panel(fig, ax, data, np.arange(6), np.arange(4), title="T")
+    assert pc is not None
+    plt.close(fig)
+
+
 def test_pcolormesh_panel_returns_mappable():
     """pcolormesh_panel draws a (pressure × time) field and returns the mappable."""
     import matplotlib.pyplot as plt

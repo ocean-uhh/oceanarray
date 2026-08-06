@@ -37,44 +37,41 @@ def vars(data: _Data) -> Any:  # noqa: A001  (deliberate: inspect.vars() reads w
     """
     if isinstance(data, str):
         print("information is based on file: {}".format(data))
-        dataset = xr.Dataset(data)
-        variables = dataset.variables
+        dataset = xr.open_dataset(data)
     elif isinstance(data, xr.Dataset):
         print("information is based on xarray Dataset")
-        variables = data.variables
+        dataset = data
     else:
         raise TypeError("Input data must be a file path (str) or an xarray Dataset")  # noqa: TRY003
 
-    info = {}
-    for i, key in enumerate(variables):
-        var = variables[key]
-        if isinstance(data, str):
-            dims = var.dimensions[0] if len(var.dimensions) == 1 else "string"
-            units = "" if not hasattr(var, "units") else var.units
-            comment = "" if not hasattr(var, "comment") else var.comment
-        else:
+    try:
+        info = {}
+        for i, key in enumerate(dataset.variables):
+            var = dataset.variables[key]
             dims = var.dims[0] if len(var.dims) == 1 else "string"
-            units = var.attrs.get("units", "")
-            comment = var.attrs.get("comment", "")
+            info[i] = {
+                "name": str(key),
+                "dims": dims,
+                "units": var.attrs.get("units", ""),
+                "comment": var.attrs.get("comment", ""),
+                "standard_name": var.attrs.get("standard_name", ""),
+                "dtype": str(var.dtype),
+            }
+    finally:
+        # Close only a dataset we opened here, never the caller's.
+        if isinstance(data, str):
+            dataset.close()
 
-        info[i] = {
-            "name": key,
-            "dims": dims,
-            "units": units,
-            "comment": comment,
-            "standard_name": var.attrs.get("standard_name", ""),
-            "dtype": str(var.dtype) if isinstance(data, str) else str(var.data.dtype),
-        }
-
-    df = DataFrame(info).T
-    dim = df.dims
+    columns = ["dims", "name", "units", "comment", "standard_name", "dtype"]
+    df = DataFrame(info).T if info else DataFrame(columns=columns)
+    dim = df["dims"]
     dim[dim.str.startswith("str")] = "string"
     df["dims"] = dim
 
     return (
         df.sort_values(["dims", "name"])
         .reset_index(drop=True)
-        .loc[:, ["dims", "name", "units", "comment", "standard_name", "dtype"]]
+        .loc[:, columns]
         .set_index("name")
         .style
     )
@@ -94,32 +91,27 @@ def attrs(data: _Data) -> Any:
         A table with columns ``Attribute``, ``Value``, and ``DType``.
 
     """
-    from netCDF4 import Dataset
-
     if isinstance(data, str):
         print("information is based on file: {}".format(data))
-        rootgrp = Dataset(data, "r", format="NETCDF4")
-        attributes = rootgrp.ncattrs()
-
-        def get_attr(key: str) -> Any:
-            return getattr(rootgrp, key)
-
+        dataset = xr.open_dataset(data)
     elif isinstance(data, xr.Dataset):
         print("information is based on xarray Dataset")
-        attributes = data.attrs.keys()
-
-        def get_attr(key: str) -> Any:  # type: ignore[no-redef]
-            return data.attrs[key]
-
+        dataset = data
     else:
         raise TypeError("Input data must be a file path (str) or an xarray Dataset")  # noqa: TRY003
 
-    info = {}
-    for i, key in enumerate(attributes):
-        info[i] = {
-            "Attribute": key,
-            "Value": get_attr(key),
-            "DType": type(get_attr(key)).__name__,
-        }
+    try:
+        info = {}
+        for i, key in enumerate(dataset.attrs):
+            value = dataset.attrs[key]
+            info[i] = {
+                "Attribute": key,
+                "Value": value,
+                "DType": type(value).__name__,
+            }
+    finally:
+        # Close only a dataset we opened here, never the caller's.
+        if isinstance(data, str):
+            dataset.close()
 
     return DataFrame(info).T

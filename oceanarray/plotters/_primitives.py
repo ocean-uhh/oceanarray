@@ -69,8 +69,15 @@ def pcolormesh_panel(
         The pcolormesh/contourf artist, for a caller that wants the mappable.
 
     """
-    vmin = float(np.nanpercentile(data, P.COLORBAR_PLOW))
-    vmax = float(np.nanpercentile(data, P.COLORBAR_PHIGH))
+    if not np.any(np.isfinite(data)):
+        # An all-NaN field has no percentile range; fall back to a unit span so
+        # the panel still renders (empty) instead of crashing in log10(nan).
+        vmin, vmax = 0.0, 1.0
+    else:
+        vmin, vmax = (
+            float(v)
+            for v in np.nanpercentile(data, [P.COLORBAR_PLOW, P.COLORBAR_PHIGH])
+        )
     bounds = _nice_colorbar_bounds(vmin, vmax, n=20)
     norm = mcolors.BoundaryNorm(bounds, ncolors=256)
     if style == "contourf":
