@@ -1097,7 +1097,9 @@ class Stage2Processor:
         if total_count == 0:
             self._log_print("No instruments matched — nothing processed.")
             return False
-        return success_count == total_count
+        # Partial success is still success: instruments that processed are written
+        # and the record summary reports which succeeded and which failed.
+        return success_count > 0
 
 
 def stage2_mooring(

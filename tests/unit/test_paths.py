@@ -32,19 +32,28 @@ def test_all_call_sites_agree():
     """Every ``_safe_serial`` copy in the pipeline must delegate to the same rule.
 
     Locks in the consolidation: a comma-bearing serial must resolve identically
-    across stage1, stage3, the report layer, and the mooring helpers.
+    across stage3, the report layer, and the mooring helpers.  (stage1 is covered
+    separately because importing it requires the optional ``seasenselib`` package.)
     """
-    from oceanarray.instrument.stage1 import MooringProcessor
     from oceanarray.instrument.stage3 import _safe_serial as s3
     from oceanarray.mooring.helpers import _safe_serial as h
     from oceanarray.report._html_helpers import _safe_serial as r
 
     raw = "16430, R01-024"
-    results = {
-        safe_serial(raw),
-        MooringProcessor._safe_serial(raw),
-        s3(raw),
-        h(raw),
-        r(raw),
-    }
+    results = {safe_serial(raw), s3(raw), h(raw), r(raw)}
     assert results == {"16430"}
+
+
+@pytest.mark.needs_seasenselib
+def test_stage1_call_site_agrees():
+    """stage1's ``_safe_serial`` static method delegates to the same rule.
+
+    Separated from :func:`test_all_call_sites_agree` because importing stage1
+    pulls in the optional ``seasenselib`` dependency.
+    """
+    pytest.importorskip("seasenselib")
+    from oceanarray.instrument.stage1 import MooringProcessor
+
+    assert MooringProcessor._safe_serial("16430, R01-024") == safe_serial(
+        "16430, R01-024"
+    )

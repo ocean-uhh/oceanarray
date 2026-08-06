@@ -86,7 +86,6 @@ from oceanarray import parameters as P
 KNOWN_ALIASES: Dict[str, str] = {
     "sbe37": "microcat",
     "nortek": "aquadopp",
-    "adcp": "ADCP",  # instrument type is upper-case in YAML (see CLAUDE.md)
 }
 
 # Valid ``file_type:`` values are single-sourced from ``parameters.ALL_FILE_TYPES``
@@ -210,7 +209,10 @@ def validate_mooring_yaml(yaml_path: str) -> List[ValidationIssue]:
                     f"{prefix} instrument='{instrument}' is deprecated — use '{correct}' instead",
                 )
             )
-        elif instrument not in P.KNOWN_INSTRUMENT_TYPES:
+        elif (
+            instrument not in P.KNOWN_INSTRUMENT_TYPES
+            and instrument.upper() != "ADCP"  # accept both 'adcp' and 'ADCP'
+        ):
             issues.append(
                 ValidationIssue(
                     "WARNING",

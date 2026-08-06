@@ -373,7 +373,9 @@ class Stage3Processor:
         if not instruments:
             self._log("No instruments matched — nothing processed.")
             return False
-        return success_count == len(instruments)
+        # Partial success is still success: instruments that processed are written
+        # and the record summary reports which succeeded and which failed.
+        return success_count > 0
 
     # ------------------------------------------------------------------
     def _process_instrument(

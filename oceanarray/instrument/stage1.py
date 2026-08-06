@@ -19,6 +19,7 @@ from oceanarray.utilities import (
     should_skip_regeneration,
 )
 from oceanarray import parameters as P
+from oceanarray.paths import safe_serial
 
 # Suppress noisy INFO/WARNING messages from seasenselib/pycnv.
 logging.getLogger("seasenselib").setLevel(logging.WARNING)
@@ -202,14 +203,12 @@ class MooringProcessor:
     # Variables to remove for specific file types
     VARS_TO_REMOVE = {
         "sbe-cnv": ["potential_temperature", "julian_days_offset", "density"],
-        "sbe-asc": ["potential_temperature", "julian_days_offset", "density"],
         "sbe-ascii": ["potential_temperature", "julian_days_offset", "density"],
     }
 
     # Coordinates to remove for specific file types
     COORDS_TO_REMOVE = {
         "sbe-cnv": ["depth", "latitude", "longitude"],
-        "sbe-asc": ["depth", "latitude", "longitude"],
         "sbe-ascii": ["depth", "latitude", "longitude"],
     }
 
@@ -637,7 +636,7 @@ class MooringProcessor:
         except Exception:
             return dataset
 
-        instr_serial = re.sub(r"[^\w]", "", str(instrument_config.get("serial", "")))
+        instr_serial = safe_serial(instrument_config.get("serial", ""))
 
         # Matches the start of a new calibration section or end-of-header markers
         _section_start = re.compile(
@@ -779,7 +778,7 @@ class MooringProcessor:
         if not cal_coeffs:
             return dataset
 
-        instr_serial = re.sub(r"[^\w]", "", str(instrument_config.get("serial", "")))
+        instr_serial = safe_serial(instrument_config.get("serial", ""))
 
         def _coeff_str(coeffs: Dict[str, Any]) -> str:
             return ", ".join(
@@ -919,7 +918,7 @@ class MooringProcessor:
         instrument serial (e.g. 7507).  Rename so all three SENSOR_* variables
         for one instrument share the same serial suffix.
         """
-        instr_serial = re.sub(r"[^\w]", "", str(instrument_config.get("serial", "")))
+        instr_serial = safe_serial(instrument_config.get("serial", ""))
         if not instr_serial:
             return dataset
         expected = f"SENSOR_PRES_{instr_serial}"
@@ -1289,9 +1288,8 @@ class MooringProcessor:
         if not raw_serial or raw_serial == "unknown":
             return None
         # Strip illegal filename chars (e.g. '*' used as a YAML annotation marker)
-        import re as _re
 
-        raw_serial = _re.sub(r"[^\w\-]", "", raw_serial)
+        raw_serial = safe_serial(raw_serial)
 
         candidates: list = []  # list of (filename, file_type, header_or_None)
 
@@ -1528,13 +1526,10 @@ class MooringProcessor:
             mooring_name, instrument_config, output_inst_dir
         )
 
-        # Skip only if the output is present and newer than both its raw input
-        # and the mooring YAML — editing either forces a rebuild.  --force always
-        # regenerates.  (Shared rule with the report layer; see B3.)
-        mooring_yaml = output_path / f"{mooring_name}.mooring.yaml"
-        if should_skip_regeneration(
-            output_file, force, False, input_file, mooring_yaml
-        ):
+        # Skip only if the output is present and newer than its raw input.
+        # The mooring YAML is deliberately NOT a staleness source: comment or
+        # spacing edits should not trigger reprocessing.  --force always regenerates.
+        if should_skip_regeneration(output_file, force, False, input_file):
             _status("skip", self._rel(output_file))
             return True
 
@@ -1859,11 +1854,11 @@ class MooringProcessor:
 
         # Filter by serial if requested
         if serials:
-            safe_serials = {re.sub(r"[^\w\-]", "", str(s)) for s in serials}
+            safe_serials = {safe_serial(s) for s in serials}
             instrument_list = [
                 ic
                 for ic in instrument_list
-                if re.sub(r"[^\w\-]", "", str(ic.get("serial", ""))) in safe_serials
+                if safe_serial(ic.get("serial", "")) in safe_serials
             ]
             self._log_print(
                 f"Filtered to {len(instrument_list)} instrument(s) matching serial(s): {', '.join(serials)}"
@@ -1891,7 +1886,9 @@ class MooringProcessor:
         if total_count == 0:
             self._log_print("No instruments matched — nothing processed.")
             return False
-        return success_count == total_count
+        # Partial success is still success: instruments that processed are written
+        # and the record summary reports which succeeded and which failed.
+        return success_count > 0
 
 
 def stage1_mooring(

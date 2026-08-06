@@ -274,7 +274,6 @@ KNOWN_INSTRUMENT_TYPES: frozenset = frozenset(INSTRUMENT_FILE_TYPES.keys())
 # not tied to a primary ``instrument:`` value above.  These remain valid in a
 # mooring YAML but are not the recommended key for any current instrument class.
 EXTRA_FILE_TYPES: dict = {
-    "sbe-asc": "SeaBird (legacy oceanarray alias for sbe-ascii)",
     "nortek-csv-oa": "aquadopp (DEPRECATED internal reader; use nortek-csv)",
     "rbr-dat": "RBR instruments (not in current seasenselib; use rbr-rsk)",
     "rbr-matlab": "RBR instruments (seasenselib Matlab reader)",
