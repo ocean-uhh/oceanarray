@@ -142,3 +142,110 @@ def test_make_instrument_fig_aquadopp(aquadopp_stage3_path):
 def test_build_fig_from_ds_microcat(microcat_stage3):
     """``_build_fig_from_ds`` returns a Figure for a microcat dataset."""
     assert _plots._build_fig_from_ds(microcat_stage3, "microcat") is not None
+
+
+def test_windows_fig_microcat(microcat_stage3_path):
+    """``_make_windows_fig`` builds a deployment-window figure for a microcat."""
+    result = _plots._make_windows_fig(microcat_stage3_path, "microcat")
+    assert result is not None
+
+
+# ---------------------------------------------------------------------------
+# render_b64 — constrained_layout detection
+# ---------------------------------------------------------------------------
+
+
+def test_render_b64_skips_tight_layout_for_constrained_layout_fig(monkeypatch):
+    """``render_b64`` does not call tight_layout on a constrained_layout figure.
+
+    Calling tight_layout on a figure with colorbars that used constrained_layout
+    raises RuntimeError.  ``render_b64`` must detect the layout engine and skip
+    the call to avoid this.
+    """
+    monkeypatch.setattr(_plots, "RAISE_ON_PLOT_ERROR", True)
+
+    def _make_constrained_with_colorbar():
+        import numpy as np
+
+        fig, ax = plt.subplots(constrained_layout=True)
+        pc = ax.pcolormesh(np.random.default_rng(0).random((4, 4)))
+        fig.colorbar(pc, ax=ax)
+        return fig
+
+    # Would raise RuntimeError if render_b64 incorrectly called tight_layout
+    result = _plots.render_b64(_make_constrained_with_colorbar)
+    assert result is not None
+
+
+# ---------------------------------------------------------------------------
+# Grid-level figures on real gridded data
+# ---------------------------------------------------------------------------
+
+#: Dataset-in grid figure functions that take only ``ds`` (no extra args).
+GRID_DS_FUNCS = [
+    "_make_grid_hydro_b64",
+    "_make_grid_velocity_stacked_b64",
+    "_make_grid_sigma_b64",
+    "_make_grid_rose_b64",
+    "_make_grid_trajectory_b64",
+    "_make_grid_timeseries_b64",
+    "_make_velocity_iqr_profile_b64",
+    "_make_grid_rotary_spectrum_b64",
+]
+
+
+@pytest.mark.parametrize("fn_name", GRID_DS_FUNCS)
+def test_grid_figure_functions(grid_ds, fn_name):
+    """Each grid figure function builds without tripping the guard."""
+    result = getattr(_plots, fn_name)(grid_ds)
+    assert result is not None
+
+
+def test_grid_fig_b64_temperature(grid_ds):
+    """``_make_grid_fig_b64`` builds a temperature pcolormesh panel."""
+    result = _plots._make_grid_fig_b64(
+        grid_ds["temperature"], "Temperature", "°C", "RdBu_r", symmetric=True
+    )
+    assert result is not None
+
+
+def test_grid_n2_b64(grid_ds):
+    """``_make_grid_n2_b64`` builds the N² profile figure."""
+    result = _plots._make_grid_n2_b64(grid_ds, lat=57.0)
+    assert result is not None
+
+
+def test_grid_ts_diagram_returns_tuple(grid_ds):
+    """``_make_grid_ts_diagram`` returns a (b64_str, bounds_dict) tuple."""
+    b64, bounds = _plots._make_grid_ts_diagram(grid_ds)
+    assert b64 is not None
+    assert "t_lim" in bounds and "s_lim" in bounds
+
+
+def test_spectrum_fig_from_grid(grid_ds):
+    """``_make_spectrum_fig_b64`` builds a power-spectrum figure from grid temperature."""
+    import numpy as np
+
+    dt_seconds = float(
+        np.median(np.diff(grid_ds["time"].values).astype("timedelta64[s]").astype(float))
+    )
+    result = _plots._make_spectrum_fig_b64(grid_ds["temperature"], dt_seconds)
+    assert result is not None
+
+
+# ---------------------------------------------------------------------------
+# Stack-level figures on real stacked data
+# ---------------------------------------------------------------------------
+
+
+def test_stack_ts_diagram(stack_ds):
+    """``_make_stack_ts_diagram`` builds a T-S figure from stacked mooring data."""
+    assert _plots._make_stack_ts_diagram(stack_ds) is not None
+
+
+def test_rose_grid_returns_tuple(stack_ds):
+    """``_make_rose_grid_b64`` returns a (b64_str, n_panels) tuple."""
+    serial_list = list(stack_ds["serial"].values)
+    b64, n = _plots._make_rose_grid_b64(stack_ds, serial_list)
+    assert b64 is not None
+    assert n > 0
