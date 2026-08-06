@@ -7,9 +7,18 @@ stage1/stage3/report filenames but ``"16430"`` via the stack path — the same
 instrument landing under two different filenames.
 """
 
+from pathlib import Path
+
 import pytest
 
-from oceanarray.paths import safe_serial
+from oceanarray.paths import (
+    LegacyLayoutError,
+    mooring_proc_dir,
+    raw_mooring_dir,
+    require_current_layout,
+    safe_serial,
+    stage_output_name,
+)
 
 
 @pytest.mark.parametrize(
@@ -57,3 +66,45 @@ def test_stage1_call_site_agrees():
     assert MooringProcessor._safe_serial("16430, R01-024") == safe_serial(
         "16430, R01-024"
     )
+
+
+def test_mooring_and_raw_dirs():
+    """Folder helpers append the mooring name to the cruise-level root."""
+    assert mooring_proc_dir("/data/proc", "dsG3") == Path("/data/proc/dsG3")
+    assert raw_mooring_dir("/data/raw", "dsG3") == Path("/data/raw/dsG3")
+    # str and Path roots behave identically
+    assert mooring_proc_dir(Path("/data/proc"), "dsG3") == mooring_proc_dir(
+        "/data/proc", "dsG3"
+    )
+
+
+@pytest.mark.parametrize(
+    ("mooring", "serial", "stage", "tag", "expected"),
+    [
+        ("dsG3", "16430", 1, "", "dsG3_16430_stage1.nc"),
+        ("dsG3", "16430, R01-024", 1, "", "dsG3_16430_stage1.nc"),  # serial cleaned
+        ("dsG3", 7507, 2, "", "dsG3_7507_stage2.nc"),  # int serial
+        ("wb2", "1234", 3, "_burst", "wb2_1234_burst_stage3.nc"),  # tag
+    ],
+)
+def test_stage_output_name(mooring, serial, stage, tag, expected):
+    """Output name follows {mooring}_{serial}{tag}_stage{N}.nc with a cleaned serial."""
+    assert stage_output_name(mooring, serial, stage, tag) == expected
+
+
+def test_require_current_layout_ok_when_current(tmp_path):
+    """No error when the current-layout mooring dir exists."""
+    (tmp_path / "dsG3").mkdir()
+    assert require_current_layout(tmp_path, "dsG3") is None
+
+
+def test_require_current_layout_ok_when_empty(tmp_path):
+    """No error when neither layout is present — an empty run is not this check's job."""
+    assert require_current_layout(tmp_path, "dsG3") is None
+
+
+def test_require_current_layout_raises_on_legacy(tmp_path):
+    """Legacy moor/proc/<mooring> present but current absent → clear error."""
+    (tmp_path / "moor" / "proc" / "dsG3").mkdir(parents=True)
+    with pytest.raises(LegacyLayoutError, match="legacy 'moor/proc' layout"):
+        require_current_layout(tmp_path, "dsG3")

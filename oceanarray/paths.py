@@ -1,13 +1,127 @@
 """Filesystem path and filename conventions for the oceanarray pipeline.
 
-Single source of truth for turning instrument serial numbers into
-filename-safe tokens.  As the pipeline's path handling is consolidated
-(removing ``basedir``), folder resolution and the output filename pattern
-are intended to move here too.
+Single source of truth for folder resolution, the stage output-filename
+pattern, and turning instrument serial numbers into filename-safe tokens.
+Every processing stage derives its read/write locations from here so the
+logic is defined once rather than copied per stage.
 """
 
 import re
-from typing import Any
+from pathlib import Path
+from typing import Any, Union
+
+_PathLike = Union[str, Path]
+
+
+class LegacyLayoutError(RuntimeError):
+    """Raised when a directory uses the removed ``moor/proc`` (``basedir``) layout."""
+
+
+def mooring_proc_dir(proc_root: _PathLike, mooring: str) -> Path:
+    """Return the mooring-level processed-data directory.
+
+    Under the current layout this is ``proc_root/<mooring>``.
+
+    Parameters
+    ----------
+    proc_root : str or Path
+        Cruise-level processed-data root (the ``--proc-dir`` value).
+    mooring : str
+        Mooring name.
+
+    Returns
+    -------
+    Path
+        ``proc_root/<mooring>``.
+
+    """
+    return Path(proc_root) / mooring
+
+
+def raw_mooring_dir(raw_root: _PathLike, mooring: str) -> Path:
+    """Return the mooring-level raw-data directory.
+
+    Under the current layout this is ``raw_root/<mooring>``.
+
+    Parameters
+    ----------
+    raw_root : str or Path
+        Cruise-level raw-data root (the ``--raw-dir`` value).
+    mooring : str
+        Mooring name.
+
+    Returns
+    -------
+    Path
+        ``raw_root/<mooring>``.
+
+    """
+    return Path(raw_root) / mooring
+
+
+def stage_output_name(mooring: str, serial: Any, stage: int, tag: str = "") -> str:
+    """Return the stage output filename for one instrument.
+
+    The pattern is ``{mooring}_{serial}{tag}_stage{N}.nc``.  The serial is
+    cleaned with :func:`safe_serial`, so the raw YAML value may be passed
+    directly.
+
+    Parameters
+    ----------
+    mooring : str
+        Mooring name.
+    serial : Any
+        Raw instrument serial (cleaned internally via :func:`safe_serial`).
+    stage : int
+        Processing stage number (1, 2, or 3).
+    tag : str, optional
+        Extra filename tag (e.g. the ADCP-matlab file tag). Default ``""``.
+
+    Returns
+    -------
+    str
+        The output filename, e.g. ``"dsG3_16430_stage1.nc"``.
+
+    """
+    return f"{mooring}_{safe_serial(serial)}{tag}_stage{stage}.nc"
+
+
+def require_current_layout(proc_root: _PathLike, mooring: str) -> None:
+    """Raise if *proc_root* uses the removed legacy ``moor/proc`` layout.
+
+    Under the current layout the mooring directory is ``proc_root/<mooring>``.
+    The removed ``basedir`` layout nested it under
+    ``proc_root/moor/proc/<mooring>``.  When the current-layout directory is
+    absent but the legacy one is present, raise a message that names the fix
+    rather than letting processing fail later with "no files found".  If
+    neither exists this returns normally — a genuinely empty run is not this
+    function's concern.
+
+    Parameters
+    ----------
+    proc_root : str or Path
+        Cruise-level processed-data root (the ``--proc-dir`` value).
+    mooring : str
+        Mooring name.
+
+    Raises
+    ------
+    LegacyLayoutError
+        If the legacy ``moor/proc/<mooring>`` directory exists but the
+        current ``<mooring>`` directory does not.
+
+    """
+    proc_root = Path(proc_root)
+    if (proc_root / mooring).is_dir():
+        return
+    legacy = proc_root / "moor" / "proc" / mooring
+    if legacy.is_dir():
+        raise LegacyLayoutError(  # noqa: TRY003
+            f"'{proc_root}' looks like a legacy 'moor/proc' layout, which is no "
+            f"longer supported (the 'basedir' option was removed). Point "
+            f"--proc-dir at '{proc_root / 'moor' / 'proc'}', or migrate the "
+            f"directory to the current layout (see MIGRATION-BASEDIR.md)."
+        )
 
 
 def safe_serial(serial: Any) -> str:
