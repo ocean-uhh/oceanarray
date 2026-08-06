@@ -86,7 +86,7 @@ class TestMooringProcessor:
         expected_types = [
             "sbe-cnv",
             "sbe-ascii",
-            "nortek-aqd",
+            "nortek-raw",
             "rbr-rsk",
             "rbr-dat",
         ]

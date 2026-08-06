@@ -154,6 +154,22 @@ class MooringGridder:
             and v not in _GRID_EXCLUDE
         ]
 
+        # Tell the operator which present physics variables were excluded from the
+        # grid rather than dropping them silently (D2).
+        _excluded = sorted(
+            v
+            for v in ds.data_vars
+            if ds[v].dims == ("time", "N_LEVELS")
+            and not v.endswith("_qc")
+            and v != "pressure"
+            and v in _GRID_EXCLUDE
+        )
+        if _excluded:
+            print(
+                f"  NOTE: {len(_excluded)} variable(s) excluded from gridding "
+                f"(listed in _GRID_EXCLUDE): {', '.join(_excluded)}"
+            )
+
         stacked: Dict[str, np.ndarray] = {
             v: np.full((n_p, n_time), np.nan) for v in grid_vars
         }

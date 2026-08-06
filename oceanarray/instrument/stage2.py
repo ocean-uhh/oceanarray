@@ -1094,7 +1094,10 @@ class Stage2Processor:
         self._log_print(
             f"Stage 2 completed: {success_count}/{total_count} instruments successful"
         )
-        return success_count > 0
+        if total_count == 0:
+            self._log_print("No instruments matched — nothing processed.")
+            return False
+        return success_count == total_count
 
 
 def stage2_mooring(

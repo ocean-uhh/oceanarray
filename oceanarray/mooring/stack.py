@@ -321,6 +321,9 @@ class MooringStacker:
         # Per-instrument scalar metadata: {varname: [value_for_instr0, value_for_instr1, ...]}
         scalar_meta: Dict[str, list] = {}  # populated during loop
         scalar_attrs: Dict[str, dict] = {}
+        # Stage-3 time-series variables not in STACK_VARS are dropped here; collect
+        # them so the operator is told rather than losing data silently (D2).
+        dropped_ts_vars: set = set()
 
         for i, info in enumerate(instruments):
             serials.append(info["serial"])
@@ -369,6 +372,13 @@ class MooringStacker:
                 if not var_attrs[vname] and vname in ds.data_vars:
                     var_attrs[vname] = dict(ds[vname].attrs)
 
+            # Track any time-series stage-3 variables that STACK_VARS omits.
+            dropped_ts_vars.update(
+                v
+                for v, da in ds.data_vars.items()
+                if "time" in da.dims and v not in STACK_VARS
+            )
+
             # Collect scalar (0-D) metadata variables — keep all instruments consistent
             for vname, da in ds.data_vars.items():
                 if da.dims:  # skip time-series variables
@@ -397,6 +407,14 @@ class MooringStacker:
             for vname in scalar_meta:
                 if len(scalar_meta[vname]) < i + 1:
                     scalar_meta[vname].append(None)
+
+        if dropped_ts_vars:
+            print(
+                f"  NOTE: {len(dropped_ts_vars)} stage-3 time-series variable(s) not in "
+                f"STACK_VARS were dropped from the stack: "
+                f"{', '.join(sorted(dropped_ts_vars))}. "
+                f"Add them to STACK_VARS in mooring/helpers.py to retain them."
+            )
 
         # Release cached ADCP parent datasets
         for _ds_adcp in _adcp_parent_datasets.values():
