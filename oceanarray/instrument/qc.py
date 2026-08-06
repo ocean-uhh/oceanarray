@@ -250,7 +250,6 @@ def load_qc_config(
 def apply_tilt_qc(
     ds: xr.Dataset,
     tilt_cfg: Dict[str, Any],
-    qc_attrs: Dict[str, Any],
 ) -> tuple[xr.Dataset, int, int]:
     """Flag velocity variables when pitch or roll exceeds QC thresholds.
 
@@ -352,7 +351,7 @@ def apply_tilt_qc(
         ds[qc_varname] = xr.Variable(
             ds[varname].dims,
             new_flags,
-            attrs={"long_name": f"quality flag for {varname}", **qc_attrs},
+            attrs={"long_name": f"quality flag for {varname}"},
         )
 
     return ds, n_suspect, n_bad
@@ -428,7 +427,6 @@ def compute_salinity_data(
 
 def merge_salinity_parent_qc(
     ds: xr.Dataset,
-    qc_attrs: Dict[str, Any],
 ) -> xr.Dataset:
     """Merge parent (T/C/P) QC flags into salinity_qc after QC tests have run.
 
@@ -471,7 +469,6 @@ def merge_salinity_parent_qc(
             **existing_attrs,
             "long_name": "quality flag for salinity",
             "comment": "QARTOD gross-range + worst of T/C/P parent flags",
-            **qc_attrs,
         },
     )
     return ds
@@ -481,7 +478,6 @@ def apply_qc_tests(
     ds: xr.Dataset,
     gross_range: Dict[str, Any],
     spike: Dict[str, Any],
-    qc_attrs: Dict[str, Any],
     flat_line: Optional[Dict[str, Any]] = None,
 ) -> xr.Dataset:
     """Apply QARTOD gross-range, spike, and flat-line tests, writing ``*_qc`` variables.
@@ -636,7 +632,6 @@ def apply_qc_tests(
             new_flags,
             attrs={
                 "long_name": f"quality flag for {varname}",
-                **qc_attrs,
                 **threshold_attrs,
             },
         )
@@ -647,7 +642,6 @@ def apply_qc_tests(
 def apply_enu_velocity_qc(
     ds: xr.Dataset,
     gr_cfg: Dict[str, Any],
-    qc_attrs: Dict[str, Any],
 ) -> xr.Dataset:
     """Apply QARTOD gross-range QC to ENU velocity vars and propagate w flags.
 
@@ -667,7 +661,7 @@ def apply_enu_velocity_qc(
         if k in ("east_velocity", "north_velocity", "up_velocity")
     }
     if enu_gr:
-        ds = apply_qc_tests(ds, enu_gr, {}, qc_attrs)
+        ds = apply_qc_tests(ds, enu_gr, {})
 
     if "up_velocity_qc" in ds.data_vars:
         up_flags = ds["up_velocity_qc"].values.astype(np.int8)

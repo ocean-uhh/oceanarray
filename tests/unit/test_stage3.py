@@ -236,7 +236,7 @@ def test_apply_qc_tests_good_data():
     from oceanarray import parameters as P
 
     gr = {"pressure": P.QC_GROSS_RANGE["pressure"]}
-    result = _apply_qc_tests(ds, gr, {}, {})
+    result = _apply_qc_tests(ds, gr, {})
     assert "pressure_qc" in result.data_vars
     assert np.all(result["pressure_qc"].values == 1)
 
@@ -247,7 +247,7 @@ def test_apply_qc_tests_gross_range_flags_bad():
     from oceanarray import parameters as P
 
     gr = {"pressure": P.QC_GROSS_RANGE["pressure"]}
-    result = _apply_qc_tests(ds, gr, {}, {})
+    result = _apply_qc_tests(ds, gr, {})
     flags = result["pressure_qc"].values
     assert flags[10] == 4, f"expected BAD at index 10, got {flags[10]}"
     assert np.sum(flags == 4) == 1
@@ -259,7 +259,7 @@ def test_apply_qc_tests_threshold_attrs_stored():
     from oceanarray import parameters as P
 
     gr = {"pressure": P.QC_GROSS_RANGE["pressure"]}
-    result = _apply_qc_tests(ds, gr, {}, {})
+    result = _apply_qc_tests(ds, gr, {})
     attrs = result["pressure_qc"].attrs
     assert "qc_gross_range_fail_min" in attrs
     assert "qc_gross_range_fail_max" in attrs
@@ -280,7 +280,7 @@ def test_apply_qc_tests_flat_line_flags_fail():
     gr = {"pressure": P.QC_GROSS_RANGE["pressure"]}
     # Use package default tolerance (0.001), NOT 0.0 — see note above
     fl = {"pressure": P.QC_FLAT_LINE["pressure"]}
-    result = _apply_qc_tests(ds, gr, {}, {}, flat_line=fl)
+    result = _apply_qc_tests(ds, gr, {}, flat_line=fl)
     flags = result["pressure_qc"].values
     assert np.any(flags == 4), "expected at least one FAIL flag for stuck pressure"
 
@@ -301,7 +301,7 @@ def test_merge_salinity_parent_qc_bad_temp_propagates():
         },
         coords={"time": time},
     )
-    result = _merge_salinity_parent_qc(ds, {})
+    result = _merge_salinity_parent_qc(ds)
     assert result["salinity_qc"].values[2] == 4
 
 
@@ -316,7 +316,7 @@ def test_merge_salinity_parent_qc_pressure_flag8_ok():
         },
         coords={"time": time},
     )
-    result = _merge_salinity_parent_qc(ds, {})
+    result = _merge_salinity_parent_qc(ds)
     # flag 8 on pressure → salinity_qc should remain 1 (GOOD) not 8
     assert np.all(result["salinity_qc"].values == 1), (
         f"pressure flag=8 should not degrade salinity; got {result['salinity_qc'].values}"

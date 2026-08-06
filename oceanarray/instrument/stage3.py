@@ -334,19 +334,9 @@ class Stage3Processor:
                 src["ds"] = None
 
         # ── Process every instrument ────────────────────────────────────
-        from oceanarray import parameters as P
-
-        _qc_attrs = {
-            "flag_values": P.QC_FLAG_VALUES,
-            "flag_meanings": P.QC_FLAG_MEANINGS,
-            "conventions": P.QC_CONVENTION,
-        }
-
         success_count = 0
         for info in instruments:
-            ok = self._process_instrument(
-                info, sources, targets, _qc_attrs, force=force
-            )
+            ok = self._process_instrument(info, sources, targets, force=force)
             if ok:
                 success_count += 1
 
@@ -370,7 +360,6 @@ class Stage3Processor:
         info: Dict[str, Any],
         sources: List[Dict[str, Any]],
         targets: List[Dict[str, Any]],
-        qc_attrs: Dict[str, Any],
         force: bool = False,
     ) -> bool:
         """Apply Stage 3 processing to one instrument's Stage 2 NetCDF.
@@ -381,7 +370,7 @@ class Stage3Processor:
            have pressure interpolated from *sources* (neighbours on the mooring).
         2. Conductivity unit normalisation and practical salinity computation
            (CTD/microcat instruments only).
-        3. QARTOD QC tests (gross-range, spike) using thresholds from *qc_attrs*.
+        3. QARTOD QC tests (gross-range, spike) using thresholds from the config.
         4. BEAM→ENU or XYZ→ENU coordinate transformation with magnetic declination
            correction (current meters / Aquadopp).
         5. Tilt QC — velocity flagged suspect/bad when pitch or roll exceed
@@ -442,7 +431,6 @@ class Stage3Processor:
                     sources,
                     target_time,
                     pressure_bad_flag,
-                    qc_attrs,
                     log_fn=self._log,
                 )
                 history_notes.append(
@@ -465,11 +453,9 @@ class Stage3Processor:
             if is_adcp:
                 _ENU_KEYS = {"east_velocity", "north_velocity", "up_velocity"}
                 gr_cfg_scalar = {k: v for k, v in gr_cfg.items() if k not in _ENU_KEYS}
-                ds = apply_qc_tests(
-                    ds, gr_cfg_scalar, sp_cfg, qc_attrs, flat_line=fl_cfg
-                )
+                ds = apply_qc_tests(ds, gr_cfg_scalar, sp_cfg, flat_line=fl_cfg)
             else:
-                ds = apply_qc_tests(ds, gr_cfg, sp_cfg, qc_attrs, flat_line=fl_cfg)
+                ds = apply_qc_tests(ds, gr_cfg, sp_cfg, flat_line=fl_cfg)
 
             # ── Post-QC pressure check ─────────────────────────────────
             # If QC (e.g. flat-line test) just flagged ALL pressure values as
@@ -517,7 +503,6 @@ class Stage3Processor:
                             _other_sources,
                             target_time,
                             pressure_bad_flag=True,
-                            qc_attrs=qc_attrs,
                             log_fn=self._log,
                         )
                         history_notes.append(
@@ -532,7 +517,7 @@ class Stage3Processor:
                         )
 
             # ── Fold T/C/P parent QC into salinity_qc ─────────────────
-            ds = merge_salinity_parent_qc(ds, qc_attrs)
+            ds = merge_salinity_parent_qc(ds)
 
             # ── BEAM / XYZ → ENU coordinate transform ─────────────────
             # Must run before tilt QC so east/north/up_velocity exist to be flagged.
@@ -566,7 +551,6 @@ class Stage3Processor:
                         prcnt_gd_bad=adcp_qc["percent_good_bad"],
                         prcnt_gd_suspect=adcp_qc["percent_good_suspect"],
                         error_vel_threshold=adcp_qc["error_velocity_threshold"],
-                        qc_attrs=qc_attrs,
                         log_fn=self._log,
                     )
                     ds = compute_adcp_bin_pressure(ds, info["lat"], log_fn=self._log)
@@ -574,17 +558,15 @@ class Stage3Processor:
                         ds,
                         water_depth_m=info.get("water_depth_m", 0.0),
                         lat=info["lat"],
-                        qc_attrs=qc_attrs,
                         log_fn=self._log,
                     )
                     ds = apply_adcp_surface_qc(
                         ds,
                         lat=info["lat"],
-                        qc_attrs=qc_attrs,
                         log_fn=self._log,
                     )
                 else:
-                    ds = apply_enu_velocity_qc(ds, gr_cfg, qc_attrs)
+                    ds = apply_enu_velocity_qc(ds, gr_cfg)
 
             # ── Tilt QC ────────────────────────────────────────────────
             # Flags all velocity variables when pitch+roll tilt exceeds threshold.
@@ -598,7 +580,7 @@ class Stage3Processor:
                     "tilt QC skipped for ADCP (percent_good+error_velocity QC applied instead)"
                 )
             else:
-                ds, n_tilt_susp, n_tilt_bad = apply_tilt_qc(ds, tilt_cfg, qc_attrs)
+                ds, n_tilt_susp, n_tilt_bad = apply_tilt_qc(ds, tilt_cfg)
                 if n_tilt_susp or n_tilt_bad:
                     history_notes.append(
                         f"tilt QC (tilt≥{tilt_cfg['suspect_threshold']}°→suspect, "
