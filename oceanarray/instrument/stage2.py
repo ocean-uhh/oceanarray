@@ -636,7 +636,7 @@ class Stage2Processor:
 
         # Extract serial number from filename
         filename = filepath.stem  # Remove .nc extension
-        for suffix in ("_stage1", "_stage2", "_raw"):
+        for suffix in ("_stage1", "_stage2"):
             if filename.endswith(suffix):
                 filename = filename[: -len(suffix)]
                 break

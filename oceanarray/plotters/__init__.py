@@ -23,14 +23,12 @@ Available now (pre-OdB):
 
 Legacy functions (from plotter.py — available via backward-compat shim):
 
-  plot_qartod_summary, plot_climatology, scatter_profile_vs_PRES,
-  pcolor_timeseries_by_depth, plot_timeseries_by_depth, plot_trim_windows,
-  plot_microcat_raw, plot_aquadopp_raw, plot_microcat,
-  show_variables, show_attributes, plot_mooring_timeseries, plot_grid
+  plot_microcat_raw, plot_aquadopp_raw, plot_mooring_timeseries
 
-As each legacy function is migrated into the appropriate sub-module, remove
-it from plotter.py and from the shim below.  See the migration checklist at
-.claude/plotters_update-20260718.md.
+These three are the only remaining plotter.py entries — kept alive for the
+CLI (``oceanarray plot`` / ``process --plot``) pending their redesign as a
+file-oriented ``oceanarray plot <file>`` (§11).  See the migration checklist
+at .claude/plotters_update-20260718.md.
 
 Future
 ------
@@ -52,25 +50,20 @@ from oceanarray.plotters._current import (  # noqa: F401
 from oceanarray.plotters._animation import animate_hodograph  # noqa: F401
 
 # ---------------------------------------------------------------------------
-# Backward-compat shim — re-exports from legacy plotter.py
-# Remove each entry here once the function has been migrated to a sub-module
-# and the corresponding function deleted from plotter.py.
+# Backward-compat shim — re-exports the three legacy plotter.py functions the
+# CLI still calls. These stay until the file-oriented `oceanarray plot <file>`
+# redesign (§11) replaces them; plotter.py is deleted then. Do not add entries.
 # ---------------------------------------------------------------------------
 from oceanarray.plotter import (  # noqa: F401
-    plot_qartod_summary,
-    plot_climatology,
-    scatter_profile_vs_PRES,
-    pcolor_timeseries_by_depth,
-    plot_timeseries_by_depth,
-    plot_trim_windows,
     plot_microcat_raw,
     plot_aquadopp_raw,
-    plot_microcat,
-    show_variables,
-    show_attributes,
     plot_mooring_timeseries,
-    plot_grid,
 )
+
+# Relocated out of plotter.py (2026-08-06):
+#   show_variables/show_attributes -> oceanarray.inspect.vars / .attrs
+#   plot_climatology               -> oceanarray.tools.rapid_interp.plot_climatology
+#   plot_grid._panel               -> plotters._primitives.pcolormesh_panel (plot_grid deleted)
 
 __all__ = [
     # New (pre-OdB)
@@ -81,17 +74,7 @@ __all__ = [
     "plot_hodograph",
     "animate_hodograph",
     # Legacy shim
-    "plot_qartod_summary",
-    "plot_climatology",
-    "scatter_profile_vs_PRES",
-    "pcolor_timeseries_by_depth",
-    "plot_timeseries_by_depth",
-    "plot_trim_windows",
     "plot_microcat_raw",
     "plot_aquadopp_raw",
-    "plot_microcat",
-    "show_variables",
-    "show_attributes",
     "plot_mooring_timeseries",
-    "plot_grid",
 ]

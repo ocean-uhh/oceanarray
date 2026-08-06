@@ -14,14 +14,87 @@ plot_polar_histogram, plot_timeseries.
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
 
 import matplotlib.colors as mcolors
+import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.collections import LineCollection
 
+from .. import parameters as P
 from ..utilities import _nice_colorbar_bounds
+
+
+def pcolormesh_panel(
+    fig: Any,
+    ax: Any,
+    data: np.ndarray,
+    time: np.ndarray,
+    pressure: np.ndarray,
+    title: str,
+    units: str = "",
+    cmap: str = "RdYlBu_r",
+    style: str = "pcolormesh",
+) -> Any:
+    """Draw one (pressure × time) field as a discrete-colorbar panel on *ax*.
+
+    A generic time–depth panel primitive: percentile colour limits, a discrete
+    ``BoundaryNorm`` colorbar (max 20 levels), inverted pressure axis, and a
+    concise date axis.  Extracted from the retired ``plotter.plot_grid`` so the
+    section/timeseries figures can share one implementation.
+
+    Parameters
+    ----------
+    fig, ax : matplotlib Figure and Axes
+        Target figure and axes to draw on.
+    data : numpy.ndarray
+        2-D field shaped ``(pressure, time)``.
+    time : numpy.ndarray
+        Time coordinate (length matching ``data``'s second axis).
+    pressure : numpy.ndarray
+        Pressure coordinate (length matching ``data``'s first axis).
+    title : str
+        Panel title / colorbar label stem.
+    units : str, optional
+        Units appended to the colorbar label. Default ``""``.
+    cmap : str, optional
+        Colormap name. Default ``"RdYlBu_r"``.
+    style : str, optional
+        ``"pcolormesh"`` (default) or ``"contourf"``.
+
+    Returns
+    -------
+    matplotlib collection
+        The pcolormesh/contourf artist, for a caller that wants the mappable.
+
+    """
+    if not np.any(np.isfinite(data)):
+        # An all-NaN field has no percentile range; fall back to a unit span so
+        # the panel still renders (empty) instead of crashing in log10(nan).
+        vmin, vmax = 0.0, 1.0
+    else:
+        vmin, vmax = (
+            float(v)
+            for v in np.nanpercentile(data, [P.COLORBAR_PLOW, P.COLORBAR_PHIGH])
+        )
+    bounds = _nice_colorbar_bounds(vmin, vmax, n=20)
+    norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+    if style == "contourf":
+        pc = ax.contourf(time, pressure, data, levels=bounds, cmap=cmap, extend="both")
+    else:
+        pc = ax.pcolormesh(
+            time, pressure, data, shading="nearest", cmap=cmap, norm=norm
+        )
+    cb = fig.colorbar(pc, ax=ax, pad=0.02)
+    cb.set_label(f"{title} ({units})" if units else title)
+    ax.invert_yaxis()
+    ax.set_ylabel("Pressure (dbar)")
+    locator = mdates.AutoDateLocator()
+    ax.xaxis.set_major_locator(locator)
+    ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+    ax.set_title(f"{title} [{style}]")
+    return pc
 
 
 def plot_trajectory(

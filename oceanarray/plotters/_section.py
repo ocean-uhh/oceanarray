@@ -1,7 +1,7 @@
 """Tier-2 domain wrappers for time × pressure section plots.
 
-Post-OdB: migrate the following from plotter.py and report/_plots.py:
-  plot_grid, pcolor_timeseries_by_depth, plot_grid_fig (was _make_grid_fig_b64),
+Post-OdB: migrate the following from report/_plots.py:
+  plot_grid_fig (was _make_grid_fig_b64),
   plot_isopycnal (was _make_isopycnal_fig_b64), plot_grid_n2 (was _make_grid_n2_b64).
 
 Tier-1 primitive: plot_section (data-agnostic, contour_da=None for any quantity).

@@ -166,3 +166,25 @@ The old `--basedir DIR` resolved paths as:
 The new `--raw-dir`/`--proc-dir` flags give you explicit control over
 each root, support mooring-first raw layout, and put logs in a
 `processing_logs/` subdirectory.
+
+---
+
+## If you call the Python API directly (notebooks / scripts)
+
+The same removal touched the Python entry points:
+
+- **Processor constructors are keyword-only and required.** Replace
+  `MooringProcessor(basedir)` with
+  `MooringProcessor(raw_dir=RAW, proc_dir=PROC)`, and
+  `Stage2Processor(basedir)` / `Stage3Processor` / `MooringStacker` /
+  `MooringGridder` / `MooringReport` / `TimeGriddingProcessor` with
+  `proc_dir=PROC` (add `raw_dir=RAW` for stage 1 and the report). A positional
+  or `base_dir=` call now raises `TypeError`.
+- **Removed convenience functions:** `stage1_mooring`,
+  `process_multiple_moorings`, `stage2_mooring`,
+  `process_multiple_moorings_stage2`. Use the `oceanarray` CLI, or loop over
+  moorings yourself constructing the processor directly.
+- **`time_gridding_mooring(mooring, proc_dir, ...)`** and
+  `process_multiple_moorings_time_gridding` — the second positional argument is
+  now the **proc root**, not a cruise base dir. Update call sites; a positional
+  `basedir` value will be silently misused as `proc_dir`.
