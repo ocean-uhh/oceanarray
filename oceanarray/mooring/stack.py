@@ -481,9 +481,10 @@ class MooringStacker:
                 else (0, 0)
             )
             if n_lev_v > 0:
-                vel_flag = np.ones((n_lev_v, n_t_v), dtype=np.float64)  # 1 = good
+                # int8 so flag_values (also int8) matches the variable dtype (CF).
+                vel_flag = np.ones((n_lev_v, n_t_v), dtype=np.int8)  # 1 = good
                 for _qk in _vel_qc_keys:
-                    vel_flag = _worst_flag(vel_flag, stacked[_qk]).astype(np.float64)
+                    vel_flag = _worst_flag(vel_flag, stacked[_qk]).astype(np.int8)
                 data_vars["velocity_flag"] = xr.Variable(
                     ("N_LEVELS", "time"),
                     vel_flag,

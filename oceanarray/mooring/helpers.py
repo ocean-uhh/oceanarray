@@ -102,13 +102,19 @@ def _apply_qc_mask(src_v: np.ndarray, ds: "xr.Dataset", vname: str) -> np.ndarra
 
 
 def _worst_flag(a: np.ndarray, b: np.ndarray) -> np.ndarray:
-    """Element-wise worst QC flag (9 > 4 > 3 > 8 > 2 > 1 > 0).
+    """Element-wise worst QC flag on the OceanSITES priority ordering.
 
+    Worst-wins using ``parameters.QC_MERGE_PRIORITY`` (weakest to strongest:
+    ``unknown(0) < good(1) < probably_good(2) < nominal(7) < interpolated(8)
+    < potentially_correctable_bad(3) < bad(4) < missing(9)``) — the same table
+    ``instrument.qc._merge_flags`` uses, so the two merge paths cannot drift.
     NaN inputs are treated as flag 9 (missing value) so that levels with no
-    data are never silently promoted to flag 0 ("no QC performed").
+    data are never silently promoted to flag 0 ("unknown").
     """
     # rank[flag_value] gives priority; higher rank = worse flag
-    _rank = np.array([0, 1, 2, 4, 5, 6, 6, 6, 3, 7], dtype=np.int8)
+    _rank = np.array(
+        [P.QC_MERGE_PRIORITY.get(f, 0) for f in range(10)], dtype=np.int8
+    )
     a = np.where(np.isfinite(a), a, 9.0)
     b = np.where(np.isfinite(b), b, 9.0)
     ai = np.clip(np.round(a).astype(np.int8), 0, 9)

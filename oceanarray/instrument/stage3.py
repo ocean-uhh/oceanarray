@@ -660,6 +660,23 @@ class Stage3Processor:
             existing = ds.attrs.get("history", "")
             ds.attrs["history"] = f"{existing}; {entry}" if existing else entry
 
+            # Record the QC treatment so it can be reconstructed from the output
+            # file alone: the flag convention, the worst-wins merge ordering, and
+            # the QARTOD -> OceanSITES ingest remap applied to every _qc variable.
+            from oceanarray import parameters as P
+
+            _priority_order = " < ".join(
+                str(f)
+                for f, _ in sorted(P.QC_MERGE_PRIORITY.items(), key=lambda kv: kv[1])
+            )
+            ds.attrs["qc_flag_convention"] = P.QC_CONVENTION
+            ds.attrs["qc_merge_rule"] = (
+                "worst flag wins; priority weakest to strongest: " + _priority_order
+            )
+            ds.attrs["qc_ingest_remap"] = (
+                "QARTOD not_evaluated(2) -> OceanSITES unknown(0) at test ingest"
+            )
+
             # Derive O2 % saturation and AOU when dissolved_oxygen + T/S/P are present.
             ds = derive_oxygen_saturation(ds)
 
@@ -674,7 +691,14 @@ class Stage3Processor:
             # Normalize every _qc variable onto the OceanSITES flag table (single
             # source of truth) and attach the status_flag standard_name — done
             # after the CF pass above so each parent's standard_name is available.
-            for _qv in [v for v in ds.data_vars if v.endswith("_qc")]:
+            # Skip *_orig_qc: those preserve the pre-interpolation flag (e.g. a bad
+            # original pressure = 4) and must stay distinct from the interpolated
+            # {var}_qc (e.g. 8), so they keep their own attrs.
+            for _qv in [
+                v
+                for v in ds.data_vars
+                if v.endswith("_qc") and not v.endswith("_orig_qc")
+            ]:
                 set_qc_attrs(ds, _qv[:-3])
 
             ds = drop_all_zero_vars(ds, ["amplitude_beam", "analog_input_"])

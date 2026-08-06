@@ -95,6 +95,17 @@ QC_FLAG_MEANINGS = (
     "bad_data nominal_value interpolated_value missing_value"
 )
 
+# Merge priority for combining two QC flags (worst wins). The single source of
+# truth for flag ordering — both instrument.qc._merge_flags and
+# mooring.helpers._worst_flag derive their lookup arrays from this dict.
+# Weakest to strongest:
+#   unknown(0) < good(1) < probably_good(2) < nominal(7) < interpolated(8)
+#   < potentially_correctable_bad(3) < bad(4) < missing(9)
+# unknown(0) is the weakest (opposite of QARTOD, which ranks its UNKNOWN=2 above
+# GOOD): a point reads unknown only when nothing evaluated it. Unlisted codes
+# (5, 6 — not used in OceanSITES) fall back to priority 0.
+QC_MERGE_PRIORITY = {9: 7, 4: 6, 3: 5, 8: 4, 7: 3, 2: 2, 1: 1, 0: 0}
+
 # ---------------------------------------------------------------------------
 # QARTOD gross-range test thresholds (global ocean defaults).
 #

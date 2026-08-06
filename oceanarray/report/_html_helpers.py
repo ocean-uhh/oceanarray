@@ -163,15 +163,19 @@ _QC_COLORS: Dict[int, str] = {
     2: "#a8e6cf",
     3: "#f39c12",
     4: "#e74c3c",
+    7: "#9b59b6",
     8: "#3498db",
     9: "#bdc3c7",
 }
+# Short display glosses of parameters.QC_FLAG_MEANINGS (OceanSITES table 2).
+# Keep the codes and wording consistent with that table.
 _QC_LABELS: Dict[int, str] = {
-    0: "no QC",
+    0: "unknown",
     1: "good",
     2: "prob. good",
-    3: "suspect",
+    3: "corr. bad",
     4: "bad",
+    7: "nominal",
     8: "interp.",
     9: "missing",
 }

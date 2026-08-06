@@ -8,15 +8,12 @@ from typing import Any, Dict, Optional
 import numpy as np
 import xarray as xr
 
+from oceanarray import parameters as P
 
-# Priority order for merging QC flags (higher priority wins = worse quality).
-# OceanSITES table 2, weakest to strongest:
-#   unknown(0) < good(1) < probably_good(2) < nominal(7) < interpolated(8)
-#   < potentially_correctable_bad(3) < bad(4) < missing(9)
-# Note unknown(0) is the *weakest* here (opposite of QARTOD, which ranks its
-# UNKNOWN=2 above GOOD): a point reads unknown only when nothing evaluated it.
-# Flag 7 (nominal_value) has no producer yet; it is slotted for completeness.
-_QC_PRIORITY: Dict[int, int] = {9: 7, 4: 6, 3: 5, 8: 4, 7: 3, 2: 2, 1: 1, 0: 0}
+# Merge priority for combining QC flags (higher priority wins = worse quality).
+# Single source of truth: parameters.QC_MERGE_PRIORITY, shared with
+# mooring.helpers._worst_flag so the two merge paths cannot drift.
+_QC_PRIORITY: Dict[int, int] = P.QC_MERGE_PRIORITY
 
 # CF standard names and canonical long_names for known physics variables.
 # Applied as a normalization pass just before writing _stage3.nc so that all
@@ -141,8 +138,6 @@ def set_qc_attrs(
         *ds*, modified in place.
 
     """
-    from oceanarray import parameters as P
-
     attrs: Dict[str, Any] = {
         "long_name": f"quality flag for {var}",
         "flag_values": np.array(P.QC_FLAG_VALUES, dtype="int8"),
@@ -215,8 +210,6 @@ def load_qc_config(
     ``tilt`` is stripped from the gross-range dict before returning so it is
     not passed to the QARTOD gross-range test runner.
     """
-    from oceanarray import parameters as P
-
     gr = copy.deepcopy(P.QC_GROSS_RANGE)
     sp = copy.deepcopy(P.QC_SPIKE)
     tilt = copy.deepcopy(P.QC_TILT)

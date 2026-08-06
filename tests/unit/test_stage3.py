@@ -113,6 +113,23 @@ def test_merge_flags_oceansites_ordering():
     np.testing.assert_array_equal(result, [8, 4, 1, 4])
 
 
+def test_merge_priority_single_source():
+    """qc._merge_flags and mooring.helpers._worst_flag share ONE priority table.
+
+    Guards against the two merge paths drifting: both derive from
+    parameters.QC_MERGE_PRIORITY, so they must agree on every combination.
+    """
+    from oceanarray import parameters as P
+    from oceanarray.instrument.qc import _QC_PRIORITY
+    from oceanarray.mooring.helpers import _worst_flag
+
+    assert _QC_PRIORITY is P.QC_MERGE_PRIORITY
+    a = np.array([1, 8, 0, 3], dtype=np.int8)
+    b = np.array([8, 4, 1, 8], dtype=np.int8)
+    # _worst_flag must match _merge_flags element-wise for the same inputs.
+    np.testing.assert_array_equal(_worst_flag(a, b), _merge_flags(a, b))
+
+
 # ---------------------------------------------------------------------------
 # _tilt_from_span
 # ---------------------------------------------------------------------------
