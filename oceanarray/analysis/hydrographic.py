@@ -15,7 +15,7 @@ import xarray as xr
 import gsw
 
 
-def calc_psal(ds):
+def calc_psal(ds: xr.Dataset) -> xr.Dataset:
     """Compute Practical Salinity from conductivity, temperature, and pressure.
 
     Uses the Gibbs SeaWater (GSW) toolbox: ``gsw.SP_from_C`` applies the
@@ -46,8 +46,12 @@ def calc_psal(ds):
 
 
 def find_cold_entry_exit(
-    time, temp, quantile=0.95, dwell_seconds=1800, smooth_window=5
-):
+    time: np.ndarray,
+    temp: np.ndarray,
+    quantile: float = 0.95,
+    dwell_seconds: int = 1800,
+    smooth_window: int = 5,
+) -> tuple[pd.Timestamp | None, pd.Timestamp | None, float]:
     """Identify first sustained entry into 'cold' regime and last sustained exit.
 
     Parameters
@@ -104,7 +108,7 @@ def find_cold_entry_exit(
     return time[s0], time[eL], thr
 
 
-def calc_ds_difference(ds1, ds2):
+def calc_ds_difference(ds1: xr.Dataset, ds2: xr.Dataset) -> xr.Dataset:
     """Compute the variable-by-variable difference between two time-matched datasets."""
     if not np.array_equal(ds1["TIME"].values, ds2["TIME"].values):
         raise ValueError("TIME grids do not match between datasets.")  # noqa: TRY003

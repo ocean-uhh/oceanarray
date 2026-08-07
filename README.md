@@ -390,19 +390,21 @@ Instrument-level values override mooring-level values for that instrument only; 
 > versions while the package is in beta.
 
 ```python
-from oceanarray.stage1 import MooringProcessor
-from oceanarray.stage2 import Stage2Processor
-from oceanarray.stage3 import Stage3Processor
-from oceanarray.mooring_level import MooringStacker, MooringGridder
+import oceanarray
 
-base = '/path/to/data'
 mooring = 'dsG3_1_2026'
+raw    = '/path/to/cruise/raw'
+proc   = '/path/to/cruise/proc'
 
-MooringProcessor(base).process_mooring(mooring)
-Stage2Processor(base).process_mooring(mooring)
-Stage3Processor(base).process_mooring(mooring)
-MooringStacker(base).stack(mooring)
-MooringGridder(base).grid(mooring)
+# Run all five pipeline stages (1, 2, 3, stack, grid)
+oceanarray.process(mooring, raw_dir=raw, proc_dir=proc)
+
+# Or run individual stages
+oceanarray.process(mooring, stage=1, raw_dir=raw, proc_dir=proc)
+oceanarray.process(mooring, stage=2, proc_dir=proc)
+oceanarray.process(mooring, stage=3, proc_dir=proc)
+oceanarray.process(mooring, stage='stack', proc_dir=proc)
+oceanarray.process(mooring, stage='grid',  proc_dir=proc)
 ```
 
 ## Project structure
@@ -410,20 +412,18 @@ MooringGridder(base).grid(mooring)
 ```
 oceanarray/
 ├── oceanarray/
-│   ├── stage1.py          # Raw → CF-NetCDF conversion
-│   ├── stage2.py          # Clock corrections + deployment trim
-│   ├── stage3.py          # Pressure interpolation + QARTOD QC
-│   ├── mooring_level.py   # Stack (N_LEVELS×time) and Grid (pressure×time)
-│   ├── report.py          # HTML mooring recovery report generator
-│   ├── parameters.py      # Package defaults (QC thresholds, colormaps, …)
-│   ├── plotters.py        # Visualisation
-│   ├── clock_offset.py    # Clock drift analysis
-│   ├── time_gridding.py   # Multi-instrument time gridding
-│   ├── readers.py         # Low-level format readers
-│   ├── writers.py         # NetCDF writers
-│   ├── logger.py          # Processing log system
-│   └── validation.py      # YAML and file format validation
+│   ├── processors/        # Pipeline stages (stage1–3, stack, grid, qc, coordinate, …)
+│   ├── analysis/          # Science utilities (QC, isopycnals, spectra, …)
+│   ├── plotters/          # Visualisation (current, timeseries, diagnostic, …)
+│   ├── report/            # HTML report generation
+│   ├── tools/             # Low-level I/O (readers, writers, interpolation)
+│   ├── config/            # Parameters, variable registry, YAML validation
+│   ├── cli.py             # Entry point — subcommand dispatch
+│   ├── paths.py           # Path resolution helpers
+│   └── utilities.py       # Shared utilities
 ├── tests/
+│   ├── unit/
+│   └── integration/
 ├── notebooks/
 └── docs/
 ```
@@ -431,9 +431,9 @@ oceanarray/
 ## Testing
 
 ```bash
-pytest                    # full suite
-pytest tests/test_stage1.py -v
-pytest --cov=oceanarray   # with coverage
+pytest                              # full suite
+pytest tests/unit -q                # unit tests only (no seasenselib needed)
+pytest --cov=oceanarray             # with coverage
 ```
 
 ## Documentation

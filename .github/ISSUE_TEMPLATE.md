@@ -1,7 +1,7 @@
 ---
 name: "🐛 Bug Report / 💡 Feature Request"
-about: "Report a bug or suggest an improvement for the amocarray project"
-title: "[Bug] <brief description>" or "[Feature] <brief description>"
+about: "Report a bug or suggest an improvement for oceanarray"
+title: "[Bug] <brief description>"
 labels: []
 assignees: []
 ---
@@ -33,24 +33,20 @@ If you can, include a minimal, reproducible example or link to a failing test.
 
 ## Environment
 
-- OS: [e.g., macOS 13.3, Ubuntu 22.04, etc.]
+- OS: [e.g., macOS 13.3, Ubuntu 22.04]
 - Python version: [e.g., 3.11]
-- amocarray version: [if applicable]
+- `oceanarray` version: [`pip show oceanarray`]
+- `seasenselib` version: [`pip show seasenselib`]
 - Virtualenv / Conda / System Python?: [env type]
 
 
 ## Checklist
 
-- [ ] I have checked the existing [issues](https://github.com/AMOCcommunity/amocarray/issues) to avoid duplicates.
+- [ ] I have checked the existing [issues](https://github.com/ocean-uhh/oceanarray/issues) to avoid duplicates.
 - [ ] I have included steps to reproduce the issue, if it's a bug.
 - [ ] I have described the motivation clearly, if it's a feature request.
 
 
 ## Additional context
 
-Add any other context or screenshots about the problem or feature request here.
-
----
-
-*This issue template was prepared with assistance from ChatGPT to support clear and collaborative development.*
-
+Add any other context or screenshots about the problem here.

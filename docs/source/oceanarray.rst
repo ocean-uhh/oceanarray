@@ -1,14 +1,21 @@
-:mod:`oceanarray API`
-======================
-
-.. toctree::
-   :maxdepth: 2
-   :caption: API Reference
-
-   oceanarray
+:mod:`oceanarray` API reference
+================================
 
 Load and process moored oceanographic time series data from raw instrument
 format to array-integrated products.
+
+Public entry point
+-------------------
+
+process
+^^^^^^^
+Top-level ``process()`` function, ``STAGES`` registry, and ``resolve_stage()``
+dispatcher.  These are the primary public API for driving the pipeline from
+Python code.
+
+.. automodule:: oceanarray.processors
+   :members:
+   :undoc-members:
 
 I/O and shared tools
 ---------------------
@@ -45,11 +52,11 @@ General utilities for file management, logging, and parsing ASCII metadata.
    :members:
    :undoc-members:
 
-plotters
-^^^^^^^^
-Tier-1 primitives and Tier-2 domain plotting functions.
+paths
+^^^^^
+Path resolution helpers for raw and processed directory trees.
 
-.. automodule:: oceanarray.plotters
+.. automodule:: oceanarray.paths
    :members:
    :undoc-members:
 
@@ -157,7 +164,8 @@ Configuration and validation
 
 parameters
 ^^^^^^^^^^
-Global processing parameters (QC thresholds, grid defaults, file paths).
+Global processing parameters (QC thresholds, grid defaults, file paths,
+variable registry).
 
 .. automodule:: oceanarray.config.parameters
    :members:
@@ -174,23 +182,121 @@ Validate mooring YAML configuration files and check instrument type names.
 Analysis
 ---------
 
-analysis
-^^^^^^^^
-Science utilities: lag correlation, isopycnal tracking, wavelet analysis,
-power spectra.
+science
+^^^^^^^
+QC routines: ``flag_salinity_outliers``, ``flag_temporal_spikes``,
+``flag_vertical_inconsistencies``, ``run_qc``.
 
-.. automodule:: oceanarray.analysis
+.. automodule:: oceanarray.analysis.science
    :members:
    :undoc-members:
 
-Legacy
--------
+hydrographic
+^^^^^^^^^^^^
+Salinity calculation, isopycnal tracking, cold-regime detection, and dataset
+differencing.
 
-plotter
+.. automodule:: oceanarray.analysis.hydrographic
+   :members:
+   :undoc-members:
+
+temporal
+^^^^^^^^
+Lag correlation, histogram-based split value, T/S downsampling, and Tukey
+time-series filtering.
+
+.. automodule:: oceanarray.analysis.temporal
+   :members:
+   :undoc-members:
+
+spectral
+^^^^^^^^
+Gonella rotary spectra, Welch PSD, and continuous wavelet transforms.
+
+.. automodule:: oceanarray.analysis.spectral
+   :members:
+   :undoc-members:
+
+vector
+^^^^^^
+XYZ→ENU rotation and progressive-vector trajectory computation.
+
+.. automodule:: oceanarray.analysis.vector
+   :members:
+   :undoc-members:
+
+Plotters
+---------
+
+primitives
+^^^^^^^^^^
+Tier-1 data-agnostic plot primitives (array-in / Figure-out).
+
+.. automodule:: oceanarray.plotters.primitives
+   :members:
+   :undoc-members:
+
+helpers
 ^^^^^^^
-Legacy per-instrument plotting functions (use ``oceanarray.plotters`` for
-new code).
+Shared colormap, normalisation, and style helpers used across Tier-2 modules.
 
-.. automodule:: oceanarray.plotter
+.. automodule:: oceanarray.plotters.helpers
+   :members:
+   :undoc-members:
+
+current
+^^^^^^^
+ADCP velocity plots: hodographs, current roses, stick plots, depth-time panels.
+
+.. automodule:: oceanarray.plotters.current
+   :members:
+   :undoc-members:
+
+timeseries
+^^^^^^^^^^
+Grid and mooring time-series figures: T/S/density pcolormesh, velocity panels,
+N² sections.
+
+.. automodule:: oceanarray.plotters.timeseries
+   :members:
+   :undoc-members:
+
+diagnostic
+^^^^^^^^^^
+Diagnostic plots: boxplots, clock-alignment checks, deployment-boundary windows.
+
+.. automodule:: oceanarray.plotters.diagnostic
+   :members:
+   :undoc-members:
+
+hydrography
+^^^^^^^^^^^
+T-S diagrams and isopycnal overlay figures.
+
+.. automodule:: oceanarray.plotters.hydrography
+   :members:
+   :undoc-members:
+
+spectrum
+^^^^^^^^
+Power spectra and rotary spectrum figures.
+
+.. automodule:: oceanarray.plotters.spectrum
+   :members:
+   :undoc-members:
+
+ts
+^^
+T-S scatter and density-coloured scatter figures.
+
+.. automodule:: oceanarray.plotters.ts
+   :members:
+   :undoc-members:
+
+animation
+^^^^^^^^^
+Animated GIF output via ``matplotlib.animation``.
+
+.. automodule:: oceanarray.plotters.animation
    :members:
    :undoc-members:
