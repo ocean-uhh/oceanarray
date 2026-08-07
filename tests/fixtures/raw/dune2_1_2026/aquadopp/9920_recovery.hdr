@@ -1,0 +1,174 @@
+[C:\Users\admin2\Desktop\Odon de Buen\dunes2_1_2026\9920_recovery.aqd]
+---------------------------------------------------------------------
+Number of measurements                9960
+Number of checksum errors             0
+Time of first measurement             11/07/2026 17:00:00
+Time of last measurement              25/07/2026 12:58:00
+
+User setup
+---------------------------------------------------------------------
+Measurement interval                  120 sec
+Sampling rate                         NORMAL
+Average interval                      3 sec
+Measurement load                      74 %
+Transmit pulse length                 0.75 m
+Blanking distance                     0.50 m
+Compass update rate                   5 sec
+Diagnostics measurements              ENABLED
+Diagnostics - Interval                43200 sec
+Diagnostics - Number of samples       20
+Diagnostics - Cell number             1
+Diagnostics - Number of pings         20
+Analog input 1                        NONE
+Raw magnetometer output               OFF
+External input 2                      NONE
+External input 3                      NONE
+Power output                          DISABLED
+Powerlevel                            HIGH
+Coordinate system                     BEAM
+Sound speed                           MEASURED
+Salinity                              35.0 ppt
+Distance between pings                10.00 m
+Number of beams                       3
+Number of pings per burst             17
+Software version                      1.40.16
+Deployment name                       9920
+Wrap mode                             OFF
+Deployment time                       11/07/2026 17:00:00
+Comments                              
+System1                               125
+System2                               55
+System3                               32
+System4                               437
+System5                               512
+System9                               0
+System10                              0
+System11                              0
+System12                              0
+System13                              0
+System14                              5
+System16                              1
+System17                              32
+System22                              43200
+System28                              20
+System29                              1
+System30                              20
+System31                              15618 15646 15673 15699
+System42                              0
+System43                              0
+System44                              0
+System45                              6
+Start command                         Recorder deployment
+CRC download                          ON
+
+Hardware configuration
+---------------------------------------------------------------------
+Serial number                         AQD 9920
+Hardware revision                     4 (E)
+Recorder size                         9 MByte
+Firmware version                      3.42
+Velocity range                        NORMAL
+Power output                          12V
+Sync signal data out delay            0 sec
+Sync signal power down delay          0 sec
+
+Head configuration
+---------------------------------------------------------------------
+Pressure sensor                       YES
+Compass                               YES
+Tilt sensor                           YES
+System 1                              1
+Head frequency                        2000 kHz
+Serial number                         A6L 5229
+Transformation matrix                 0.7356 -0.3677 -0.3677
+                                      0.0000 -0.6370 0.6370
+                                      0.7888 0.7888 0.7888
+Magnetometer calibration matrix       0.9910 0.0220 -0.0229
+                                      0.0220 1.0000 -0.0062
+                                      -0.0180 0.0304 0.9507
+Compass hard iron calibration         5 -90 10
+Pressure sensor calibration           0 12 64848 6424
+Number of beams                       3
+System5                               65 65 65 0
+System7                               -19553 440 11845 -102
+                                      -19933 595 11924 -116
+System8                               0 0 -1
+                                      0 1 0
+                                      1 0 0
+System9                               0 0 -1
+                                      0 -1 0
+                                      -1 0 0
+System10                              0 -1 1 0
+System11                              0 -1 -1 0
+System13                              1481 259 7128 10862
+System14                              -16627 934 10828 -128
+                                      -15446 -592 10825 -30
+System15                              32471 722 -750 722
+                                      32767 -203 -590 995
+                                      31151 5 -90 10
+                                      0 0 0 0
+System16                              0 0 0 0
+System17                              5461
+System18                              3600
+System19                              3600
+System20                              10000
+
+Data file format
+---------------------------------------------------------------------
+[C:\Users\admin2\Desktop\Odon de Buen\dunes2_1_2026\9920_recovery.dat]
+ 1   Month                            (1-12)
+ 2   Day                              (1-31)
+ 3   Year
+ 4   Hour                             (0-23)
+ 5   Minute                           (0-59)
+ 6   Second                           (0-59)
+ 7   Error code
+ 8   Status code
+ 9   Velocity (Beam1|X|East)          (m/s)
+10   Velocity (Beam2|Y|North)         (m/s)
+11   Velocity (Beam3|Z|Up)            (m/s)
+12   Amplitude (Beam1)                (counts)
+13   Amplitude (Beam2)                (counts)
+14   Amplitude (Beam3)                (counts)
+15   Battery voltage                  (V)
+16   Soundspeed                       (m/s)
+17   Soundspeed used                  (m/s)
+18   Heading                          (degrees)
+19   Pitch                            (degrees)
+20   Roll                             (degrees)
+21   Pressure                         (dbar)
+22   Pressure                         (m)
+23   Temperature                      (degrees C)
+24   Analog input 1
+25   Analog input 2
+26   Speed                            (m/s)
+27   Direction                        (degrees)
+---------------------------------------------------------------------
+[C:\Users\admin2\Desktop\Odon de Buen\dunes2_1_2026\9920_recovery.dia]
+ 1   Month                            (1-12)
+ 2   Day                              (1-31)
+ 3   Year
+ 4   Hour                             (0-23)
+ 5   Minute                           (0-59)
+ 6   Second                           (0-59)
+ 7   Error code
+ 8   Status code
+ 9   Velocity (Beam1|X|East)          (m/s)
+10   Velocity (Beam2|Y|North)         (m/s)
+11   Velocity (Beam3|Z|Up)            (m/s)
+12   Amplitude (Beam1)                (counts)
+13   Amplitude (Beam2)                (counts)
+14   Amplitude (Beam3)                (counts)
+15   Battery voltage                  (V)
+16   Soundspeed                       (m/s)
+17   Soundspeed used                  (m/s)
+18   Heading                          (degrees)
+19   Pitch                            (degrees)
+20   Roll                             (degrees)
+21   Pressure                         (dbar)
+22   Pressure                         (m)
+23   Temperature                      (degrees C)
+24   Analog input 1
+25   Analog input 2
+26   Speed                            (m/s)
+27   Direction                        (degrees)
