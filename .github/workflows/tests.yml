@@ -46,12 +46,16 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
+        # requirements-test.txt = requirements-dev.txt + the PyPI seasenselib
+        # release, so the golden integration tests (stage2/stage3/grid) run for
+        # real here rather than skipping.
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
+          pip install -r requirements-test.txt
 
       - name: Install oceanarray
         run: pip install -e . --no-deps --force-reinstall
 
       - name: Run integration tests
-        run: pytest tests/integration -m "not local and not needs_seasenselib" -q
+        # needs_seasenselib is NOT excluded here: seasenselib is installed above.
+        run: pytest tests/integration -m "not local" -q
