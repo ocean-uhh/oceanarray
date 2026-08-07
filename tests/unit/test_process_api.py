@@ -1,0 +1,184 @@
+"""Tests for the processors registry and public process() API."""
+
+import dataclasses
+
+import pytest
+
+from oceanarray.processors import STAGES, Stage, process, resolve_stage
+
+
+class TestStagesRegistry:
+    def test_has_five_stages(self):
+        assert len(STAGES) == 5
+
+    def test_stage_names(self):
+        names = [s.name for s in STAGES]
+        assert names == ["stage1", "stage2", "stage3", "stack", "grid"]
+
+    def test_numbered_stages(self):
+        numbered = [(s.name, s.number) for s in STAGES if s.number is not None]
+        assert numbered == [("stage1", 1), ("stage2", 2), ("stage3", 3)]
+
+    def test_unnumbered_stages(self):
+        unnumbered = [s.name for s in STAGES if s.number is None]
+        assert unnumbered == ["stack", "grid"]
+
+    def test_scopes(self):
+        scopes = {s.name: s.scope for s in STAGES}
+        assert scopes["stage1"] == "instrument"
+        assert scopes["stage2"] == "instrument"
+        assert scopes["stage3"] == "instrument"
+        assert scopes["stack"] == "mooring"
+        assert scopes["grid"] == "mooring"
+
+    def test_all_stages_have_callable_run(self):
+        for s in STAGES:
+            assert callable(s.run), f"{s.name}.run is not callable"
+
+    def test_stage_is_frozen(self):
+        s = STAGES[0]
+        with pytest.raises(dataclasses.FrozenInstanceError):
+            s.name = "changed"  # type: ignore[misc]
+
+
+class TestResolveStage:
+    @pytest.mark.parametrize("stage", [1, 2, 3])
+    def test_resolve_by_int(self, stage):
+        s = resolve_stage(stage)
+        assert s.number == stage
+
+    @pytest.mark.parametrize(
+        "name,expected",
+        [
+            ("stage1", "stage1"),
+            ("stage2", "stage2"),
+            ("stage3", "stage3"),
+            ("stack", "stack"),
+            ("grid", "grid"),
+        ],
+    )
+    def test_resolve_by_name(self, name, expected):
+        assert resolve_stage(name).name == expected
+
+    @pytest.mark.parametrize("name", ["STAGE1", "Stage2", "GRID", "Stack"])
+    def test_resolve_case_insensitive(self, name):
+        s = resolve_stage(name)
+        assert s.name == name.lower()
+
+    def test_integer_4_raises(self):
+        with pytest.raises(ValueError, match="unknown stage"):
+            resolve_stage(4)
+
+    def test_integer_0_raises(self):
+        with pytest.raises(ValueError, match="unknown stage"):
+            resolve_stage(0)
+
+    def test_unknown_name_raises(self):
+        with pytest.raises(ValueError, match="unknown stage"):
+            resolve_stage("bogus")
+
+    def test_error_message_lists_valid_values(self):
+        with pytest.raises(ValueError) as exc_info:
+            resolve_stage(99)
+        msg = str(exc_info.value)
+        assert "1" in msg
+        assert "grid" in msg
+
+
+def _make_spy(call_list: list, name: str, *, ok: bool = True):
+    """Return a Stage.run-compatible callable that appends *name* to *call_list*."""
+
+    def run(_mooring, _proc_dir, **_kw):
+        call_list.append(name)
+        return ok
+
+    return run
+
+
+def _patch_stages(monkeypatch, stages):
+    from oceanarray import processors
+
+    monkeypatch.setattr(processors, "STAGES", stages)
+
+
+class TestProcess:
+    def test_process_single_stage_by_int(self, tmp_path, monkeypatch):
+        calls = []
+        orig = STAGES
+        _patch_stages(
+            monkeypatch,
+            (
+                orig[0],
+                Stage("stage2", 2, "instrument", _make_spy(calls, "stage2")),
+                orig[2],
+                orig[3],
+                orig[4],
+            ),
+        )
+        result = process("test_mooring", stage=2, proc_dir=tmp_path)
+        assert result is True
+        assert calls == ["stage2"]
+
+    def test_process_all_stages_calls_each_in_order(self, tmp_path, monkeypatch):
+        call_order = []
+        patched = tuple(
+            Stage(s.name, s.number, s.scope, _make_spy(call_order, s.name))
+            for s in STAGES
+        )
+        _patch_stages(monkeypatch, patched)
+
+        result = process("my_mooring", proc_dir=tmp_path)
+        assert result is True
+        assert call_order == ["stage1", "stage2", "stage3", "stack", "grid"]
+
+    def test_process_returns_false_if_any_stage_fails(self, tmp_path, monkeypatch):
+        calls = []
+        patched = tuple(
+            Stage(
+                s.name,
+                s.number,
+                s.scope,
+                _make_spy(calls, s.name, ok=(s.name != "stage2")),
+            )
+            for s in STAGES
+        )
+        _patch_stages(monkeypatch, patched)
+
+        result = process("my_mooring", proc_dir=tmp_path)
+        assert result is False
+
+    def test_process_stage1_requires_raw_dir_via_registry(self, tmp_path):
+        """stage1 wrapper raises ValueError when raw_dir is not provided."""
+        from oceanarray.processors import _run_stage1
+
+        with pytest.raises(ValueError, match="raw_dir"):
+            _run_stage1("test_mooring", tmp_path, raw_dir=None, force=False)
+
+    def test_partial_success_continues_after_failure(self, tmp_path, monkeypatch):
+        """process() does not short-circuit on stage failure — all stages run."""
+        call_order = []
+        patched = (
+            Stage("stage1", 1, "instrument", _make_spy(call_order, "stage1", ok=False)),
+            Stage("stage2", 2, "instrument", _make_spy(call_order, "stage2")),
+            Stage("stage3", 3, "instrument", _make_spy(call_order, "stage3")),
+            Stage("stack", None, "mooring", _make_spy(call_order, "stack")),
+            Stage("grid", None, "mooring", _make_spy(call_order, "grid")),
+        )
+        _patch_stages(monkeypatch, patched)
+
+        result = process("my_mooring", proc_dir=tmp_path)
+        assert result is False
+        assert call_order == ["stage1", "stage2", "stage3", "stack", "grid"]
+
+    def test_process_by_stage_name(self, tmp_path, monkeypatch):
+        calls = []
+        patched = (
+            *STAGES[:3],
+            Stage("stack", None, "mooring", _make_spy(calls, "stack")),
+            STAGES[4],
+        )
+        _patch_stages(monkeypatch, patched)
+
+        result = process("my_mooring", stage="stack", proc_dir=tmp_path)
+        assert result is True
+        assert calls == ["stack"]

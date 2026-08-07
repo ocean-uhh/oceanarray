@@ -5,6 +5,7 @@ of oceanographic time series data from moorings and instruments.
 """
 
 from oceanarray.config import parameters
+from oceanarray.processors import process
 
 __all__ = [
     # Subpackages (canonical locations)
@@ -12,9 +13,12 @@ __all__ = [
     "config",
     "instrument",
     "mooring",
+    "processors",
     "tools",
     # Top-level modules
     "parameters",
     "plotters",
     "utilities",
+    # Public API
+    "process",
 ]
