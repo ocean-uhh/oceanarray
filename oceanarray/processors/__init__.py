@@ -93,10 +93,9 @@ def _run_stage1(
         Restrict to these serial numbers.
 
     """
-    from oceanarray.instrument.stage1 import MooringProcessor
-
     if raw_dir is None:
         raise ValueError("stage1 requires raw_dir")  # noqa: TRY003
+    from oceanarray.instrument.stage1 import MooringProcessor
     proc = MooringProcessor(raw_dir=str(raw_dir), proc_dir=str(proc_dir))
     return bool(proc.process_mooring(mooring, serials=serials, force=force))
 
