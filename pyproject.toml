@@ -130,27 +130,12 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["ANN", "D", "SLF001"]   # tests don't need type annotations, docstrings, or private-access guards
 "tests/legacy/**" = ["ANN", "D", "SLF001", "ARG001", "E741", "F841"]  # legacy tests: also allow unused fixture args, short variable names, unused locals
-# tools.py reorganised into analysis/ (post-OdB PR #49); ANN/D deferred on legacy content
-"oceanarray/tools.py" = ["ANN", "D205"]
-"oceanarray/analysis/_science.py" = ["ANN", "D"]
-"oceanarray/analysis/_clock_diagnostics.py" = ["ANN", "D"]
-# Phase-6 analysis submodules: contain legacy functions moved from _science.py; ANN deferred
-"oceanarray/analysis/hydrography.py" = ["ANN"]    # backward-compat shim
-"oceanarray/analysis/tseries.py" = ["ANN"]         # backward-compat shim
-"oceanarray/analysis/hydrographic.py" = ["ANN"]    # canonical; legacy content, ANN deferred
-"oceanarray/analysis/temporal.py" = ["ANN"]         # canonical; legacy content, ANN deferred
-# The following flat files moved to subpackages in PR #49; ANN/D deferred on legacy content
-"oceanarray/clock_offset.py" = ["ANN", "D"]
-"oceanarray/find_deployment.py" = ["ANN", "D"]
-"oceanarray/plotter.py" = ["ANN", "D"]          # legacy; renamed from plotters.py
+"oceanarray/analysis/clock.py" = ["ANN", "D"]  # unfinished module (plan §14); interface will change
+"oceanarray/analysis/hydrographic.py" = ["ANN"]  # canonical; legacy content moved from _science.py, ANN deferred
+"oceanarray/analysis/temporal.py" = ["ANN"]      # canonical; legacy content moved from _science.py, ANN deferred
+"oceanarray/plotter.py" = ["ANN", "D"]           # legacy; renamed from plotters.py
 "oceanarray/plotters/__init__.py" = ["ANN", "D", "F401"]  # backward-compat shim re-exports
-"oceanarray/plotters/_primitives.py" = ["ANN", "D"]
-"oceanarray/plotters/_current.py" = ["ANN", "D"]
-"oceanarray/readers.py" = ["ANN", "D"]
-"oceanarray/writers.py" = ["ANN", "D"]
-# rapid_interp moved to tools/ in PR #49; suppress legacy issues until rewrite
-"oceanarray/rapid_interp.py" = ["ANN", "D", "F841", "SLF001", "TRY003", "BLE001"]
-"oceanarray/tools/rapid_interp.py" = ["ANN", "D", "F841", "SLF001", "TRY003", "BLE001"]
+"oceanarray/tools/rapid_interp.py" = ["ANN", "D", "F841", "SLF001", "TRY003", "BLE001"]  # legacy physics code; rewrite deferred
 # Report generators: every function wraps rendering in try/except → None on failure.
 # This is the established pattern for keeping HTML reports partially working on bad data.
 "oceanarray/report/_plots.py" = ["BLE001", "TRY300"]
@@ -159,11 +144,7 @@ ignore = [
 "oceanarray/report/_instrument.py" = ["BLE001", "TRY300", "ARG001"]
 "oceanarray/report/_mooring.py" = ["BLE001", "TRY003", "TRY300"]
 "oceanarray/report/_stack.py" = ["BLE001", "TRY300", "ARG001", "F841"]
-# Nortek header parsers use except Exception: pass to handle malformed/missing files.
-# Stage1 also has TRY003 for a single ValueError with a descriptive message.
-"oceanarray/stage1.py" = ["BLE001", "TRY003"]
-"oceanarray/instrument/stage1.py" = ["BLE001", "TRY003"]
-# Logsheets modules: builders use sys.exit() for user-facing errors (CLI tool pattern),
+# Logsheet modules: builders use sys.exit() for user-facing errors (CLI tool pattern),
 # BLE001/TRY for broad catches in _firmware.py, ANN/D deferred (internal impl files).
 "oceanarray/logsheet/_config.py" = ["BLE001", "TRY003", "ANN", "D"]
 "oceanarray/logsheet/_columns.py" = ["BLE001", "TRY003", "ANN", "D"]

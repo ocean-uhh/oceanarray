@@ -14,7 +14,7 @@ from oceanarray.utilities import (
     parse_latlon,
 )
 from oceanarray import paths
-from oceanarray.mooring.helpers import (
+from oceanarray.processors.helpers import (
     STACK_VARS,
     _safe_serial,
     _worst_flag,

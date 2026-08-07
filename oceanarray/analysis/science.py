@@ -27,9 +27,10 @@ from oceanarray import utilities
 _log = logging.getLogger(__name__)
 
 
-def flag_salinity_outliers(ds, n_std=4):
-    """Flags PSAL values that are more than n_std standard deviations from the mean,
-    computed separately for each depth level.
+def flag_salinity_outliers(ds: xr.Dataset, n_std: float = 4) -> xr.DataArray:
+    """Flag PSAL values more than n_std standard deviations from the mean.
+
+    Computed separately for each depth level.
 
     Parameters
     ----------
@@ -60,10 +61,12 @@ def flag_salinity_outliers(ds, n_std=4):
     return flag
 
 
-def flag_temporal_spikes(ds, var="CNDC", threshold=5):
-    """Flags large absolute differences in time for each depth.
+def flag_temporal_spikes(
+    ds: xr.Dataset, var: str = "CNDC", threshold: float = 5
+) -> xr.DataArray:
+    """Flag large absolute differences in time for each depth.
 
-    threshold: maximum allowed difference in units of the variable
+    threshold: maximum allowed difference in units of the variable.
     """
     diff = np.abs(ds[var].diff("TIME", label="upper"))
     flag = diff > threshold
@@ -73,8 +76,11 @@ def flag_temporal_spikes(ds, var="CNDC", threshold=5):
     return flag.astype(bool)
 
 
-def flag_vertical_inconsistencies(ds, var="CNDC", threshold=2):
-    """Flags points that are very different from vertical neighbors.
+def flag_vertical_inconsistencies(
+    ds: xr.Dataset, var: str = "CNDC", threshold: float = 2
+) -> xr.DataArray:
+    """Flag points that are very different from vertical neighbors.
+
     threshold: max allowed difference between vertically adjacent sensors.
     """
     # Central difference approximation in depth
@@ -85,7 +91,7 @@ def flag_vertical_inconsistencies(ds, var="CNDC", threshold=2):
     return flag
 
 
-def run_qc(ds):
+def run_qc(ds: xr.Dataset) -> xr.Dataset:
     """Apply a sequence of QC tests and write combined CNDC_QC flag variable."""
     from oceanarray.analysis.hydrographic import calc_psal as _calc_psal
 

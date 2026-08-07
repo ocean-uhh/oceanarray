@@ -10,7 +10,7 @@ import yaml
 
 pytest.importorskip("seasenselib", reason="seasenselib not installed")
 
-from oceanarray.instrument.stage1 import MooringProcessor
+from oceanarray.processors.stage1 import MooringProcessor
 
 pytestmark = pytest.mark.needs_seasenselib
 

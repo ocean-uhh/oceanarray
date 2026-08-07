@@ -13,7 +13,7 @@ import xarray as xr
 
 pytest.importorskip("seasenselib", reason="seasenselib not installed")
 
-from oceanarray.instrument.stage2 import (
+from oceanarray.processors.stage2 import (
     Stage2Processor,
     _parse_clock_str,
     detect_deployment_window,

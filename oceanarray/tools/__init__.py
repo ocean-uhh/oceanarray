@@ -9,11 +9,11 @@ rapid_interp : Physics-informed vertical interpolation (RAPID array scheme).
 Science utilities from the legacy ``tools.py`` are re-exported here so that
 existing imports (``from oceanarray.tools import calc_ds_difference``,
 ``from oceanarray import tools; tools.lag_correlation(...)``) continue to work.
-New code should import from ``oceanarray.analysis._science`` directly.
+New code should import from ``oceanarray.analysis.science`` directly.
 """
 
 # Backward-compat re-exports from the old top-level tools.py
-from oceanarray.analysis._science import (  # noqa: F401
+from oceanarray.analysis.science import (  # noqa: F401
     calc_ds_difference,
     calc_psal,
     compute_cwt,

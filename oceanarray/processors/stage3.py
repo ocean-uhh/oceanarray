@@ -58,11 +58,11 @@ from oceanarray.utilities import (
     extract_inline_instruments,
 )
 
-from oceanarray.instrument.pressure import (
+from oceanarray.processors.pressure import (
     compute_adcp_bin_pressure,
     interpolate_pressure,
 )
-from oceanarray.instrument.qc import (
+from oceanarray.processors.qc import (
     _CF_ATTRS,
     apply_enu_velocity_qc,
     apply_qc_tests,
@@ -75,7 +75,7 @@ from oceanarray.instrument.qc import (
     set_qc_attrs,
     unify_velocity_qc,
 )
-from oceanarray.instrument.coordinate import (
+from oceanarray.processors.coordinate import (
     apply_adcp_seabed_qc,
     apply_adcp_surface_qc,
     apply_adcp_velocity_qc,

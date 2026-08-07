@@ -11,7 +11,7 @@ import pytest
 import xarray as xr
 import yaml
 
-from oceanarray.instrument.stage2 import Stage2Processor
+from oceanarray.processors.stage2 import Stage2Processor
 
 
 class TestRealDataProcessing:

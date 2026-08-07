@@ -70,7 +70,7 @@ stage 1 — standardisation
 Convert raw instrument files (SeaBird, RBR, Nortek, RDI) to CF-NetCDF.
 Faithful to raw data; no QC.
 
-.. automodule:: oceanarray.instrument.stage1
+.. automodule:: oceanarray.processors.stage1
    :members:
    :undoc-members:
 
@@ -78,7 +78,7 @@ stage 2 — trimming and clock correction
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Trim to the deployment window; apply linear clock-offset/drift correction.
 
-.. automodule:: oceanarray.instrument.stage2
+.. automodule:: oceanarray.processors.stage2
    :members:
    :undoc-members:
 
@@ -87,7 +87,7 @@ stage 3 — QC, rotation, and derived variables
 Apply QC flags, rotate ADCP velocities to ENU, apply magnetic declination
 correction, and compute derived quantities (salinity, density, speed/direction).
 
-.. automodule:: oceanarray.instrument.stage3
+.. automodule:: oceanarray.processors.stage3
    :members:
    :undoc-members:
 
@@ -95,7 +95,7 @@ pressure
 ^^^^^^^^
 Pressure interpolation helpers (HAB computation, gap-filling).
 
-.. automodule:: oceanarray.instrument.pressure
+.. automodule:: oceanarray.processors.pressure
    :members:
    :undoc-members:
 
@@ -103,7 +103,7 @@ qc
 ^^
 QARTOD quality-control tests.
 
-.. automodule:: oceanarray.instrument.qc
+.. automodule:: oceanarray.processors.qc
    :members:
    :undoc-members:
 
@@ -111,7 +111,7 @@ coordinate
 ^^^^^^^^^^
 Coordinate system transformations (BEAM → XYZ → ENU, magnetic declination).
 
-.. automodule:: oceanarray.instrument.coordinate
+.. automodule:: oceanarray.processors.coordinate
    :members:
    :undoc-members:
 
@@ -119,7 +119,7 @@ caldip
 ^^^^^^
 Cal-dip cast processing (stub; full implementation in progress).
 
-.. automodule:: oceanarray.instrument.caldip
+.. automodule:: oceanarray.processors.caldip
    :members:
    :undoc-members:
 
@@ -131,7 +131,7 @@ stack
 Interpolate multiple instruments onto a common time grid and stack into a
 single mooring dataset (``oceanarray stack``).
 
-.. automodule:: oceanarray.mooring.stack
+.. automodule:: oceanarray.processors.stack
    :members:
    :undoc-members:
 
@@ -140,7 +140,7 @@ grid
 Interpolate stacked mooring data onto a regular pressure grid
 (``oceanarray grid``).
 
-.. automodule:: oceanarray.mooring.grid
+.. automodule:: oceanarray.processors.grid
    :members:
    :undoc-members:
 
@@ -148,7 +148,7 @@ mooring helpers
 ^^^^^^^^^^^^^^^
 Shared helpers for position parsing, HAB computation, and instrument metadata.
 
-.. automodule:: oceanarray.mooring.helpers
+.. automodule:: oceanarray.processors.helpers
    :members:
    :undoc-members:
 

@@ -154,7 +154,7 @@ def _parse_nortek_T_matrix_csv(csv_path: Path) -> Optional[Dict[str, float]]:
                         result[key] = float(km.group(1))
             if len(result) == 9:
                 return result
-    except Exception:
+    except (OSError, ValueError, AttributeError):
         pass
     return None
 
@@ -186,7 +186,7 @@ def _parse_nortek_pressure_cal(hdr_path: Path) -> dict:
                 if m:
                     key = re.sub(r"\W+", "_", m.group(1).strip().lower()).strip("_")
                     cal[key] = m.group(2).strip()
-    except Exception:
+    except (OSError, AttributeError):
         pass
     return cal
 
@@ -327,7 +327,8 @@ class MooringProcessor:
 
         """
         if file_type not in self.SUPPORTED_FILE_TYPES:
-            raise ValueError(f"Unknown file type: {file_type}")
+            msg = f"Unknown file type: {file_type}"
+            raise ValueError(msg)
 
         if file_type == "nortek-csv-oa":
             import warnings
@@ -561,7 +562,7 @@ class MooringProcessor:
                     if len(_uv) == 1:
                         dataset.attrs.setdefault(_ca, float(_uv[0]))
                         dataset = dataset.drop_vars(_cv)
-                except Exception:
+                except (ValueError, TypeError):
                     pass
 
         # Drop pure scaffolding columns with no scientific value
@@ -618,7 +619,7 @@ class MooringProcessor:
 
         try:
             text = file_path.read_text(errors="ignore")
-        except Exception:
+        except OSError:
             return dataset
 
         instr_serial = safe_serial(instrument_config.get("serial", ""))
@@ -656,7 +657,7 @@ class MooringProcessor:
                     return datetime.datetime.strptime(raw, "%d-%b-%y").strftime(
                         "%Y-%m-%d"
                     )
-                except Exception:
+                except ValueError:
                     return raw
             return "—"
 
@@ -717,7 +718,7 @@ class MooringProcessor:
                 p_date = datetime.datetime.strptime(raw, "%d-%b-%y").strftime(
                     "%Y-%m-%d"
                 )
-            except Exception:
+            except ValueError:
                 p_date = raw
         sn_match = re.search(r"pressure\s+S/N\s+(\d+)", text, re.IGNORECASE)
         if sn_match:
@@ -1531,7 +1532,7 @@ class MooringProcessor:
                 input_dir,
                 raw_mooring_dir=raw_mooring_dir,
             )
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — external library (seasenselib) may raise any exception on malformed instrument data
             self._log_print(f"ERROR: Failed to process {self._rel(input_file)}: {e}")
             return False
 
@@ -1596,7 +1597,7 @@ class MooringProcessor:
         # Read data
         try:
             dataset = self._read_file(file_type, str(read_path), header_file)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — external library (seasenselib) may raise any exception on malformed instrument data
             self._log_print(f"EXCEPT: Error reading file {self._rel(input_file)}: {e}")
             return False
 
@@ -1788,7 +1789,7 @@ class MooringProcessor:
 
         try:
             yaml_data = self._load_mooring_config(config_file)
-        except Exception as e:
+        except (OSError, KeyError, ValueError) as e:
             self._log_print(f"ERROR: Failed to load configuration: {e}")
             return False
 

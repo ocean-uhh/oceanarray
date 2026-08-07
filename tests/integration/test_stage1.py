@@ -6,7 +6,7 @@ import pytest
 import xarray as xr
 import yaml
 
-from oceanarray.instrument.stage1 import MooringProcessor
+from oceanarray.processors.stage1 import MooringProcessor
 
 
 class TestRealDataProcessing:

@@ -163,9 +163,9 @@ def cmd_process(args: argparse.Namespace) -> int:
     - ``--plot``: save a PNG overview plot for each instrument alongside the
       stage2 NetCDF file in the proc directory.
     """
-    from .instrument.stage1 import MooringProcessor
-    from .instrument.stage2 import Stage2Processor
-    from .instrument.stage3 import Stage3Processor
+    from .processors.stage1 import MooringProcessor
+    from .processors.stage2 import Stage2Processor
+    from .processors.stage3 import Stage3Processor
 
     raw_dir, proc_root = _parse_dirs_checked(args)
 
@@ -414,8 +414,8 @@ def cmd_stack(args: argparse.Namespace) -> int:
     Prerequisite: stage 1 and 2 (and ideally stage 3) must have completed for all
     instruments before running this command.
     """
-    from .mooring.stack import MooringStacker
-    from .mooring.helpers import _best_nc
+    from .processors.stack import MooringStacker
+    from .processors.helpers import _best_nc
     from .utilities import extract_inline_instruments
     import yaml as _yaml
 
@@ -481,7 +481,7 @@ def cmd_grid(args: argparse.Namespace) -> int:
 
     Prerequisite: ``oceanarray stack`` must have completed successfully.
     """
-    from .mooring.grid import MooringGridder
+    from .processors.grid import MooringGridder
 
     _, proc_root = _parse_dirs_checked(args)
 
