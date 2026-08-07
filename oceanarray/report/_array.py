@@ -154,7 +154,6 @@ def _make_array_map_b64(
         return None
     else:
         return b64
-    return None
 
 
 # ---------------------------------------------------------------------------

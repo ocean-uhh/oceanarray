@@ -85,13 +85,6 @@ ignore = [
   "tests/*",
 ]
 
-[tool.pytest.ini_options]
-markers = [
-  "slow: marks tests as slow (deselect with -m 'not slow')",
-  "local: tests that require locally-mounted data drives or non-CI data files",
-  "needs_seasenselib: tests that require the seasenselib instrument reader package",
-]
-
 [tool.black]
 line-length = 88
 target-version = ['py39']

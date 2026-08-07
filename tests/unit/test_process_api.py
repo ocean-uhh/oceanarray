@@ -84,6 +84,21 @@ class TestResolveStage:
         assert "1" in msg
         assert "grid" in msg
 
+    def test_none_raises(self):
+        # None == None matches stack/grid (number=None) without the guard.
+        with pytest.raises(ValueError, match="unknown stage"):
+            resolve_stage(None)  # type: ignore[arg-type]
+
+    def test_true_raises(self):
+        # True == 1 in Python; without the guard, True returns stage1.
+        with pytest.raises(ValueError, match="unknown stage"):
+            resolve_stage(True)  # type: ignore[arg-type]
+
+    def test_false_raises(self):
+        # False == 0 in Python; 0 is not a valid stage number.
+        with pytest.raises(ValueError, match="unknown stage"):
+            resolve_stage(False)  # type: ignore[arg-type]
+
 
 def _make_spy(call_list: list, name: str, *, ok: bool = True):
     """Return a Stage.run-compatible callable that appends *name* to *call_list*."""
@@ -154,8 +169,10 @@ class TestProcess:
         with pytest.raises(ValueError, match="raw_dir"):
             _run_stage1("test_mooring", tmp_path, raw_dir=None, force=False)
 
-    def test_partial_success_continues_after_failure(self, tmp_path, monkeypatch):
-        """process() does not short-circuit on stage failure — all stages run."""
+    def test_instrument_stage_failure_does_not_skip_later_stages(
+        self, tmp_path, monkeypatch
+    ):
+        """Non-stack failure continues — only stack failure gates grid."""
         call_order = []
         patched = (
             Stage("stage1", 1, "instrument", _make_spy(call_order, "stage1", ok=False)),
@@ -169,6 +186,23 @@ class TestProcess:
         result = process("my_mooring", proc_dir=tmp_path)
         assert result is False
         assert call_order == ["stage1", "stage2", "stage3", "stack", "grid"]
+
+    def test_stack_failure_skips_grid(self, tmp_path, monkeypatch):
+        """Grid is skipped when stack fails — stack.nc is the input to grid."""
+        call_order = []
+        patched = (
+            Stage("stage1", 1, "instrument", _make_spy(call_order, "stage1")),
+            Stage("stage2", 2, "instrument", _make_spy(call_order, "stage2")),
+            Stage("stage3", 3, "instrument", _make_spy(call_order, "stage3")),
+            Stage("stack", None, "mooring", _make_spy(call_order, "stack", ok=False)),
+            Stage("grid", None, "mooring", _make_spy(call_order, "grid")),
+        )
+        _patch_stages(monkeypatch, patched)
+
+        result = process("my_mooring", proc_dir=tmp_path)
+        assert result is False
+        assert "grid" not in call_order
+        assert call_order == ["stage1", "stage2", "stage3", "stack"]
 
     def test_process_by_stage_name(self, tmp_path, monkeypatch):
         calls = []
