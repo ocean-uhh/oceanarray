@@ -152,6 +152,66 @@ def test_validate_no_filename_is_warning(tmp_path):
 
 
 # ---------------------------------------------------------------------------
+# File-type checks
+# ---------------------------------------------------------------------------
+
+
+def test_validate_deprecated_file_type_alias_is_warning(tmp_path):
+    """file_type='rbr-hex-oa' is a deprecated alias → WARNING pointing to rbr-hex."""
+    data = dict(_VALID_MINIMAL)
+    data["instruments"] = [
+        {
+            "instrument": "tr1050",
+            "serial": 13875,
+            "filename": "13875_recovery.hex",
+            "file_type": "rbr-hex-oa",
+        }
+    ]
+    path = _write_yaml(tmp_path, data)
+    issues = validate_mooring_yaml(path)
+    assert any(
+        "deprecated" in w.message and "rbr-hex" in w.message for w in _warnings(issues)
+    ), f"Expected rbr-hex-oa deprecation warning, got: {_warnings(issues)}"
+    # Deprecated-but-remappable, so it must not be a hard error.
+    assert not any("rbr-hex-oa" in e.message for e in _errors(issues))
+
+
+def test_validate_sbe_asc_alias_is_warning(tmp_path):
+    """file_type='sbe-asc' is a deprecated alias → WARNING pointing to sbe-ascii."""
+    data = dict(_VALID_MINIMAL)
+    data["instruments"] = [
+        {
+            "instrument": "microcat",
+            "serial": 7518,
+            "filename": "data.asc",
+            "file_type": "sbe-asc",
+        }
+    ]
+    path = _write_yaml(tmp_path, data)
+    issues = validate_mooring_yaml(path)
+    assert any(
+        "deprecated" in w.message and "sbe-ascii" in w.message
+        for w in _warnings(issues)
+    ), f"Expected sbe-asc deprecation warning, got: {_warnings(issues)}"
+
+
+def test_validate_unrecognised_file_type_is_warning(tmp_path):
+    """An unknown, non-alias file_type → 'not recognised' WARNING (not an error)."""
+    data = dict(_VALID_MINIMAL)
+    data["instruments"] = [
+        {
+            "instrument": "microcat",
+            "serial": 7518,
+            "filename": "data.xyz",
+            "file_type": "totally-bogus",
+        }
+    ]
+    path = _write_yaml(tmp_path, data)
+    issues = validate_mooring_yaml(path)
+    assert any("not recognised" in w.message for w in _warnings(issues))
+
+
+# ---------------------------------------------------------------------------
 # Clock-correction field checks
 # ---------------------------------------------------------------------------
 

@@ -138,11 +138,10 @@ from oceanarray.plotters.hydrography import (  # noqa: F401
 )
 
 # ---------------------------------------------------------------------------
-# Backward-compat shim — re-exports the three legacy plotter.py functions the
-# CLI still calls. These stay until the file-oriented `oceanarray plot <file>`
-# redesign (§11) replaces them; plotter.py is deleted then. Do not add entries.
+# Legacy CLI plot functions — stay until the file-oriented `oceanarray plot <file>`
+# redesign (§11) replaces them; _cli_legacy.py is deleted then. Do not add entries.
 # ---------------------------------------------------------------------------
-from oceanarray.plotter import (  # noqa: F401
+from oceanarray.plotters._cli_legacy import (  # noqa: F401
     plot_microcat_raw,
     plot_aquadopp_raw,
     plot_mooring_timeseries,

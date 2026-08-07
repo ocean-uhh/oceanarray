@@ -226,7 +226,16 @@ def validate_mooring_yaml(yaml_path: str) -> List[ValidationIssue]:
             and file_type not in VALID_FILE_TYPES
             and file_type != "TBD"
         ):
-            if file_type in UNSUPPORTED_FILE_TYPES:
+            if file_type in P.DEPRECATED_FILE_TYPE_ALIASES:
+                canonical = P.DEPRECATED_FILE_TYPE_ALIASES[file_type]
+                issues.append(
+                    ValidationIssue(
+                        "WARNING",
+                        f"{prefix} file_type='{file_type}' is deprecated — use "
+                        f"'{canonical}' instead (it is remapped automatically for now)",
+                    )
+                )
+            elif file_type in UNSUPPORTED_FILE_TYPES:
                 issues.append(
                     ValidationIssue(
                         "ERROR",

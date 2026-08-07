@@ -21,7 +21,6 @@ oceanarray/
 │   ├── clock_offset.py            # [core] Clock-offset detection and correction analysis
 │   ├── find_deployment.py         # [core] Deployment-window detection from pressure/temperature
 │   ├── readers.py                 # [core] Raw instrument file readers (SBE, RBR, Nortek, RDI)
-│   ├── read_rbr_hex.py            # [core] RBR hex-format reader
 │   ├── writers.py                 # [core] NetCDF writers and CF-attribute helpers
 │   ├── tools.py                   # [core] Core algorithms (lag correlation, QC primitives)
 │   ├── utilities.py               # [core] General helpers (_nice_colorbar_bounds, etc.)

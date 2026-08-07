@@ -300,14 +300,26 @@ EXTRA_FILE_TYPES: dict = {
     "rbr-dat": "RBR instruments (not in current seasenselib; use rbr-rsk)",
     "rbr-matlab": "RBR instruments (seasenselib Matlab reader)",
     "rbr-matlab-legacy": "RBR instruments (DEPRECATED legacy format)",
-    "rbr-hex-oa": "RBR TR-1050 (internal oceanarray hex reader; use rbr-hex)",
+}
+
+# Deprecated ``file_type:`` values that are silently remapped to a current type
+# at read time.  These are intentionally *not* part of ``ALL_FILE_TYPES`` so they
+# no longer appear in any public list (autodoc ``SUPPORTED_FILE_TYPES``, the
+# validator's "known types" message).  A YAML using one still loads: stage1
+# remaps it (with a DeprecationWarning) and the validator emits a deprecation
+# WARNING pointing to the canonical type.  ``rbr-hex-oa`` predates seasenselib's
+# ``rbr-hex`` support (its internal reader has been removed).
+DEPRECATED_FILE_TYPE_ALIASES: dict = {
+    "rbr-hex-oa": "rbr-hex",
+    "sbe-asc": "sbe-ascii",
 }
 
 # Single source of truth for valid ``file_type:`` values in a mooring YAML.
 # Union of every per-instrument reader key with the extra/deprecated keys above.
 # ``validation.VALID_FILE_TYPES`` and ``stage1.SUPPORTED_FILE_TYPES`` both derive
 # from this — add a new file type to ``INSTRUMENT_FILE_TYPES`` or
-# ``EXTRA_FILE_TYPES``, never to those consumers.
+# ``EXTRA_FILE_TYPES``, never to those consumers.  Deprecated aliases are
+# deliberately excluded (see ``DEPRECATED_FILE_TYPE_ALIASES``).
 ALL_FILE_TYPES: frozenset = frozenset(
     ft for fts in INSTRUMENT_FILE_TYPES.values() for ft in fts
 ) | frozenset(EXTRA_FILE_TYPES)

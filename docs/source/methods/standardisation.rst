@@ -36,7 +36,7 @@ The standardisation process is implemented in the :mod:`oceanarray.stage1` modul
 The :class:`oceanarray.stage1.MooringProcessor` class supports multiple instrument formats:
 
 - **Sea-Bird CNV files** (`sbe-cnv`): Standard SBE 37 MicroCAT output
-- **Sea-Bird ASCII files** (`sbe-asc`): Alternative SBE ASCII format
+- **Sea-Bird ASCII files** (`sbe-ascii`): Alternative SBE ASCII format
 - **Nortek AquaDopp** (`nortek-raw`): Current meter data with header files
 - **RBR RSK files** (`rbr-rsk`): RBR logger binary format
 - **RBR ASCII files** (`rbr-dat`): RBR text output

@@ -1,153 +1,86 @@
-"""Integration tests for oceanarray.stage1 — require real data files."""
+"""Integration tests for stage1 output fixtures.
+
+These tests assert structural and provenance properties of the committed stage1
+NetCDF files without running the processor (which requires seasenselib).  They
+catch regressions in the CF-NetCDF output format — missing variables, wrong
+dimension names, absent required attributes — that unit tests cannot reach
+because unit tests never touch a real instrument file.
+"""
 
 from pathlib import Path
 
+import numpy as np
 import pytest
 import xarray as xr
-import yaml
 
-from oceanarray.processors.stage1 import MooringProcessor
+FIXTURE_PROC = Path(__file__).parent.parent / "fixtures" / "proc" / "dune2_1_2026"
+
+MICROCAT_S1 = FIXTURE_PROC / "microcat" / "dune2_1_2026_2941_stage1.nc"
+AQUADOPP_S1 = FIXTURE_PROC / "aquadopp" / "dune2_1_2026_9920_stage1.nc"
 
 
-class TestRealDataProcessing:
-    """Integration tests using real data files."""
+class TestMicrocatStage1:
+    """Structural tests for the committed microcat (serial 2941) stage1 fixture."""
 
-    @pytest.fixture
-    def test_data_setup(self, tmp_path):
-        """Set up test environment with real CNV data."""
-        base_dir = tmp_path / "test_data"
+    @pytest.fixture(autouse=True)
+    def ds(self):
+        """Open and close the stage1 dataset around each test."""
+        self._ds = xr.open_dataset(MICROCAT_S1)
+        yield
+        self._ds.close()
 
-        # Current layout: {raw_dir}/{mooring}/{instrument}/filename and
-        # {proc_dir}/{mooring}/.
-        raw_root = base_dir / "raw"
-        proc_root = base_dir / "proc"
-        raw_mooring = raw_root / "test_mooring" / "microcat"
-        proc_dir = proc_root / "test_mooring"
-        raw_mooring.mkdir(parents=True)
-        proc_dir.mkdir(parents=True)
+    def test_time_dimension_present(self):
+        assert "time" in self._ds.sizes
 
-        # Copy the real test data file
-        test_data_source = Path("data/test_data.cnv")
-        test_data_dest = raw_mooring / "test_data.cnv"
+    def test_record_count(self):
+        assert self._ds.sizes["time"] == 19898
 
-        if test_data_source.exists():
-            test_data_dest.write_text(test_data_source.read_text())
-        else:
-            pytest.skip("Real test data file not found at data/test_data.cnv")
+    def test_core_variables_present(self):
+        for var in ("temperature", "conductivity"):
+            assert var in self._ds.data_vars, f"missing {var}"
 
-        # Create YAML config
-        yaml_data = {
-            "name": "test_mooring",
-            "waterdepth": 1000,
-            "longitude": -30.0,
-            "latitude": 60.0,
-            "deployment_latitude": "60 00.000 N",
-            "deployment_longitude": "030 00.000 W",
-            "deployment_time": "2018-08-12T08:00:00",
-            "recovery_time": "2018-08-26T20:47:24",
-            "seabed_latitude": "60 00.000 N",
-            "seabed_longitude": "030 00.000 W",
-            "instruments": [
-                {
-                    "instrument": "microcat",
-                    "serial": 7518,
-                    "depth": 100,
-                    "filename": "test_data.cnv",
-                    "file_type": "sbe-cnv",
-                    "clock_offset": 0,
-                    "start_time": "2018-08-12T08:00:00",
-                    "end_time": "2018-08-26T20:47:24",
-                }
-            ],
-        }
+    def test_serial_number_scalar(self):
+        assert "serial_number" in self._ds.data_vars
+        assert self._ds["serial_number"].dims == ()
 
-        config_file = proc_dir / "test_mooring.mooring.yaml"
-        with open(config_file, "w") as f:
-            yaml.dump(yaml_data, f)
+    def test_no_all_nan_temperature(self):
+        assert not np.all(np.isnan(self._ds["temperature"].values))
 
-        return {
-            "raw_root": raw_root,
-            "proc_root": proc_root,
-            "proc_dir": proc_dir,
-            "config_file": config_file,
-            "data_file": test_data_dest,
-            "yaml_data": yaml_data,
-        }
+    def test_sensor_metadata_scalars_present(self):
+        assert "SENSOR_TEMP_2941" in self._ds.data_vars
+        assert "SENSOR_CNDC_2941" in self._ds.data_vars
 
-    def test_process_real_sbe_file(self, test_data_setup):
-        """Test processing with real SBE CNV file."""
-        setup = test_data_setup
-        processor = MooringProcessor(
-            raw_dir=str(setup["raw_root"]), proc_dir=str(setup["proc_root"])
-        )
+    def test_processing_level_attr(self):
+        assert self._ds.attrs.get("processing_level") == "L1"
 
-        result = processor.process_mooring("test_mooring")
+    def test_processor_name_attr(self):
+        assert "processor_name" in self._ds.attrs
 
-        assert result is True
 
-        output_file = setup["proc_dir"] / "microcat" / "test_mooring_7518_stage1.nc"
-        assert output_file.exists()
+class TestAquadoppStage1:
+    """Structural tests for the committed aquadopp (serial 9920) stage1 fixture."""
 
-        with xr.open_dataset(output_file) as ds:
-            assert "temperature" in ds.data_vars
-            assert "pressure" in ds.data_vars
-            assert "salinity" in ds.data_vars
-            assert "time" in ds.coords
+    @pytest.fixture(autouse=True)
+    def ds(self):
+        self._ds = xr.open_dataset(AQUADOPP_S1)
+        yield
+        self._ds.close()
 
-            assert ds.attrs["mooring_name"] == "test_mooring"
-            assert ds["serial_number"].values == 7518
-            assert ds["instrument"].values == "microcat"
-            assert ds["InstrDepth"].values == 100
+    def test_time_dimension_present(self):
+        assert "time" in self._ds.sizes
 
-            assert len(ds.time) == 151
-            assert ds.temperature.min() > 15
-            assert ds.temperature.max() < 25
-            assert ds.pressure.min() >= -1
-            assert ds.pressure.max() < 2
+    def test_record_count(self):
+        assert self._ds.sizes["time"] == 9960
 
-    def test_process_missing_file(self, test_data_setup):
-        """Test processing when data file is missing."""
-        setup = test_data_setup
+    def test_beam_dimension_present(self):
+        assert "beam" in self._ds.sizes
 
-        setup["data_file"].unlink()
+    def test_velocity_variables_present(self):
+        for var in ("velocity_beam1", "velocity_beam2", "velocity_beam3"):
+            assert var in self._ds.data_vars, f"missing {var}"
 
-        processor = MooringProcessor(
-            raw_dir=str(setup["raw_root"]), proc_dir=str(setup["proc_root"])
-        )
-        result = processor.process_mooring("test_mooring")
+    def test_no_all_nan_velocity(self):
+        assert not np.all(np.isnan(self._ds["velocity_beam1"].values))
 
-        assert result is False
-
-        log_files = list(setup["proc_dir"].glob("processing_logs/*_stage1.log"))
-        assert len(log_files) == 1
-        log_content = log_files[0].read_text()
-        assert "Error reading file" in log_content
-
-    def test_process_existing_output(self, test_data_setup):
-        """Test processing when output file already exists."""
-        setup = test_data_setup
-        processor = MooringProcessor(
-            raw_dir=str(setup["raw_root"]), proc_dir=str(setup["proc_root"])
-        )
-
-        result1 = processor.process_mooring("test_mooring")
-        assert result1 is True
-
-        result2 = processor.process_mooring("test_mooring")
-        assert result2 is True
-
-        log_files = list(setup["proc_dir"].glob("processing_logs/*_stage1.log"))
-        log_content = log_files[-1].read_text()
-        assert "OUTFILE EXISTS" in log_content
-
-    def test_process_missing_config(self, tmp_path):
-        """Test processing mooring with missing config file."""
-        base_dir = tmp_path / "test_data"
-        raw_root = base_dir / "raw"
-        proc_root = base_dir / "proc"
-        (proc_root / "test_mooring").mkdir(parents=True)
-
-        processor = MooringProcessor(raw_dir=str(raw_root), proc_dir=str(proc_root))
-        result = processor.process_mooring("test_mooring")
-
-        assert result is False
+    def test_processing_level_attr(self):
+        assert self._ds.attrs.get("processing_level") == "L1"

@@ -182,3 +182,100 @@ class TestProcess:
         result = process("my_mooring", stage="stack", proc_dir=tmp_path)
         assert result is True
         assert calls == ["stack"]
+
+
+class TestRunWrappersNoSeasenselib:
+    """Wrapper bodies whose stage module does not import seasenselib.
+
+    These exercise the lazy import + processor instantiation + call inside
+    ``_run_stage3`` and ``_run_stack`` — the code the ``_patch_stages`` tests
+    above deliberately bypass — and run in CI (no seasenselib needed).
+    """
+
+    def test_run_stage3_instantiates_and_forwards(self, tmp_path, monkeypatch):
+        from unittest import mock
+
+        from oceanarray.processors import _run_stage3
+
+        inst = mock.MagicMock()
+        inst.process_mooring.return_value = True
+        cls = mock.MagicMock(return_value=inst)
+        monkeypatch.setattr("oceanarray.processors.stage3.Stage3Processor", cls)
+
+        assert _run_stage3("m", tmp_path, serials=["9"], force=True) is True
+        cls.assert_called_once_with(proc_dir=str(tmp_path))
+        inst.process_mooring.assert_called_once_with("m", serials=["9"], force=True)
+
+    def test_run_stack_instantiates_and_forwards(self, tmp_path, monkeypatch):
+        from unittest import mock
+
+        from oceanarray.processors import _run_stack
+
+        inst = mock.MagicMock()
+        inst.stack.return_value = True
+        cls = mock.MagicMock(return_value=inst)
+        monkeypatch.setattr("oceanarray.processors.stack.MooringStacker", cls)
+
+        assert _run_stack("m", tmp_path, dt_seconds=120, force=True) is True
+        cls.assert_called_once_with(proc_dir=str(tmp_path))
+        inst.stack.assert_called_once_with("m", dt_seconds=120, force=True)
+
+
+@pytest.mark.needs_seasenselib
+class TestRunWrappersSeasenselib:
+    """Wrapper bodies whose stage module imports seasenselib (local only).
+
+    stage1/stage2/grid modules ``import seasenselib`` at module top, so these
+    are marked and additionally guarded with ``importorskip`` to skip cleanly
+    when seasenselib is absent (e.g. the CI unit job).
+    """
+
+    def test_run_stage1_instantiates_and_forwards(self, tmp_path, monkeypatch):
+        pytest.importorskip("seasenselib")
+        from unittest import mock
+
+        from oceanarray.processors import _run_stage1
+
+        inst = mock.MagicMock()
+        inst.process_mooring.return_value = True
+        cls = mock.MagicMock(return_value=inst)
+        monkeypatch.setattr("oceanarray.processors.stage1.MooringProcessor", cls)
+
+        raw = tmp_path / "raw"
+        out = _run_stage1("m", tmp_path, raw_dir=raw, serials=["1"], force=False)
+        assert out is True
+        cls.assert_called_once_with(raw_dir=str(raw), proc_dir=str(tmp_path))
+        inst.process_mooring.assert_called_once_with("m", serials=["1"], force=False)
+
+    def test_run_stage2_instantiates_and_forwards(self, tmp_path, monkeypatch):
+        pytest.importorskip("seasenselib")
+        from unittest import mock
+
+        from oceanarray.processors import _run_stage2
+
+        inst = mock.MagicMock()
+        inst.process_mooring.return_value = True
+        cls = mock.MagicMock(return_value=inst)
+        monkeypatch.setattr("oceanarray.processors.stage2.Stage2Processor", cls)
+
+        assert _run_stage2("m", tmp_path, serials=["2"], force=True) is True
+        cls.assert_called_once_with(proc_dir=str(tmp_path))
+        inst.process_mooring.assert_called_once_with("m", serials=["2"], force=True)
+
+    def test_run_grid_instantiates_and_forwards(self, tmp_path, monkeypatch):
+        pytest.importorskip("seasenselib")
+        from unittest import mock
+
+        from oceanarray.processors import _run_grid
+
+        inst = mock.MagicMock()
+        inst.grid.return_value = True
+        cls = mock.MagicMock(return_value=inst)
+        monkeypatch.setattr("oceanarray.processors.grid.MooringGridder", cls)
+
+        out = _run_grid("m", tmp_path, p_start=100.0, p_end=500.0, dp=25.0, force=True)
+        assert out is True
+        cls.assert_called_once_with(proc_dir=str(tmp_path))
+        inst.grid.assert_called_once_with(
+            "m", p_start=100.0, p_end=500.0, dp=25.0, force=True
+        )

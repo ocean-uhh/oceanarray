@@ -305,8 +305,11 @@ class MooringProcessor:
     ) -> xr.Dataset:
         """Read a raw instrument file and return a normalised xarray Dataset.
 
-        Routes to the deprecated internal reader for ``nortek-csv-oa`` (with a
-        deprecation warning), or to ``seasenselib.read`` for all other types.
+        Deprecated aliases in ``parameters.DEPRECATED_FILE_TYPE_ALIASES`` (e.g.
+        ``rbr-hex-oa`` → ``rbr-hex``) are remapped to their current equivalent
+        first, with a deprecation warning. ``nortek-csv-oa`` then routes to the
+        deprecated internal reader (also with a warning); all other types go
+        straight to ``seasenselib.read``.
         For Nortek formats the coordinate system is parsed from *header_path* and
         ``_normalize_nortek_variables`` is called.  For ``sbe-hex``, the seasenselib
         output variable ``press`` is renamed to ``pressure`` for consistency.
@@ -326,6 +329,22 @@ class MooringProcessor:
         xarray.Dataset
 
         """
+        # Remap deprecated file_type aliases to their current equivalent before
+        # the membership check — aliases are intentionally excluded from
+        # SUPPORTED_FILE_TYPES so they no longer appear in any public list.
+        if file_type in P.DEPRECATED_FILE_TYPE_ALIASES:
+            import warnings
+
+            canonical = P.DEPRECATED_FILE_TYPE_ALIASES[file_type]
+            warnings.warn(
+                f"file_type '{file_type}' is deprecated and remapped to "
+                f"'{canonical}' automatically; update your mooring YAML to "
+                f"'{canonical}'.",
+                DeprecationWarning,
+                stacklevel=4,
+            )
+            file_type = canonical
+
         if file_type not in self.SUPPORTED_FILE_TYPES:
             msg = f"Unknown file type: {file_type}"
             raise ValueError(msg)
@@ -350,23 +369,6 @@ class MooringProcessor:
                 )
                 coord_system = "UNK"
             return self._normalize_nortek_variables(ds, coord_system=coord_system)
-
-        if file_type == "rbr-hex-oa":
-            from oceanarray.read_rbr_hex import read_rbr_hex
-
-            ds = read_rbr_hex(file_path)
-            # Rename column-derived physical variables to canonical oceanarray names.
-            # read_rbr_hex uses the column header as the variable name (e.g. "temp");
-            # raw ADC count variables are always named "channel_N" and kept as-is.
-            rename_map = {}
-            for v in list(ds.data_vars):
-                if v.startswith("channel_"):
-                    continue
-                if "temp" in v.lower():
-                    rename_map[v] = "temperature"
-            if rename_map:
-                ds = ds.rename(rename_map)
-            return ds
 
         kwargs = {}
         if file_type in ("nortek-raw", "nortek-ascii") and header_path:
