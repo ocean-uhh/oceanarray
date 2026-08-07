@@ -12,7 +12,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.11"]
-      fail-fast: false  # temporary: keep other OS jobs alive while Windows is being re-stabilised; revert to true once Windows is reliably green
+      fail-fast: true
 
     steps:
       - uses: actions/checkout@v4
