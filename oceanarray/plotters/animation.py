@@ -5,7 +5,7 @@ It relies on ``matplotlib.animation`` and requires the ``pillow`` package as a
 GIF writer.  ``scipy`` is required for the Tukey smoothing window.
 
 Future interactive equivalents (plotly, bokeh) should live in a companion
-``_interactive.py`` module so the animation and interactive layers stay
+``interactive.py`` module so the animation and interactive layers stay
 clearly distinct.
 
 Tier classification:  Tier-2 domain functions (xr.Dataset-in / file-out).
@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
-from oceanarray.plotters._helpers import tukey_smooth
+from oceanarray.plotters.helpers import tukey_smooth
 from oceanarray.utilities import _nice_colorbar_bounds
 
 

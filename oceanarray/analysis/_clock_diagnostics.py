@@ -19,7 +19,7 @@ import pandas as pd
 import xarray as xr
 import yaml
 
-from oceanarray.analysis._science import lag_correlation
+from oceanarray.analysis.temporal import lag_correlation
 from oceanarray.legacy import find_deployment
 
 
