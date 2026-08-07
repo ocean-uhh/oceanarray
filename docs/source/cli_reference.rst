@@ -104,8 +104,10 @@ The recommended sequence for a new mooring is:
 .. code-block:: text
 
    oceanarray process MOORING [--raw-dir DIR] [--proc-dir DIR]
-                              [--stage {1,2,3} ...] [--serial SN ...]
-                              [--force] [-n]
+                              [--stage {1,2,3,stack,grid} ...]
+                              [--dt SECONDS] [--dp DBAR]
+                              [--pmin DBAR] [--pmax DBAR]
+                              [--serial SN ...] [--force] [-n]
 
 **Flags**
 
@@ -119,17 +121,33 @@ The recommended sequence for a new mooring is:
      - Description
    * - ``--raw-dir DIR``
      - path
-     - (required)
+     - (required for stage 1)
      - Cruise-level raw data directory.
    * - ``--proc-dir DIR``
      - path
      - (required)
      - Cruise-level processed data directory.
-   * - ``--stage {1,2,3}``
-     - integer (repeat)
+   * - ``--stage``
+     - (repeat)
      - ``1 2``
-     - Which stage(s) to run.  Stage 3 must be explicitly requested.
-       Multiple stages may be listed: ``--stage 1 2 3``.
+     - Which stage(s) to run.  Accepts ``1``, ``2``, ``3``, ``stack``, and
+       ``grid`` in any combination: ``--stage 1 2 3 stack grid``.
+   * - ``--dt SECONDS``
+     - integer
+     - 60
+     - Stack time-grid interval in seconds (used when ``stack`` is in ``--stage``).
+   * - ``--dp DBAR``
+     - number
+     - 20
+     - Pressure grid spacing in dbar (used when ``grid`` is in ``--stage``).
+   * - ``--pmin DBAR``
+     - number
+     - 200
+     - Shallowest pressure level for grid (dbar).
+   * - ``--pmax DBAR``
+     - number
+     - 1000
+     - Deepest pressure level for grid (dbar).
    * - ``--serial SN``
      - string (repeat)
      - (all)
@@ -156,11 +174,15 @@ The recommended sequence for a new mooring is:
   interpolates pressure for instruments without a pressure port, rotates
   Aquadopp velocities to earth coordinates, and applies magnetic declination
   correction.  Writes ``{mooring}_{serial}_stage3.nc``.
+- **stack**: interpolates all instruments onto a common time axis and writes
+  ``{mooring}_stack.nc``.  Equivalent to ``oceanarray stack`` (now deprecated).
+- **grid**: interpolates the stack onto a regular pressure grid and writes
+  ``{mooring}_grid.nc``.  Equivalent to ``oceanarray grid`` (now deprecated).
 
 **Output created**
 
-``{mooring}_{serial}_stage{N}.nc`` in
-``{proc_dir}/{mooring}/{instrument}/``.
+Per-instrument: ``{mooring}_{serial}_stage{N}.nc`` in ``{proc_dir}/{mooring}/{instrument}/``.
+Mooring-level: ``{mooring}_stack.nc`` and ``{mooring}_grid.nc`` in ``{proc_dir}/{mooring}/``.
 
 **Examples**
 
@@ -176,11 +198,17 @@ Rerun stage 2 for a single instrument after updating the YAML:
 
    oceanarray process dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --stage 2 --serial 26261 --force
 
-Run all three stages:
+Full pipeline — all instrument stages plus stack and grid:
 
 .. code-block:: bash
 
-   oceanarray process dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --stage 1 2 3
+   oceanarray process dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --stage 1 2 3 stack grid
+
+Stack and grid only (after stages 1–3 already ran), non-default grid spacing:
+
+.. code-block:: bash
+
+   oceanarray process dsG3_1_2026 --proc-dir /data/proc --stage stack grid --dp 10 --pmin 100 --pmax 2000
 
 ----
 
@@ -316,8 +344,13 @@ Cruise recovery table:
 
 ----
 
-``oceanarray stack``
----------------------
+``oceanarray stack`` *(deprecated)*
+-------------------------------------
+
+.. deprecated:: 0.2.0
+
+   ``oceanarray stack`` is deprecated and will be removed in v0.3.0.
+   Use ``oceanarray process MOORING --stage stack`` instead.
 
 Combine individual instrument time series into a single mooring file by
 "stacking" them one above another, ordered by depth (derived from HAB).
@@ -378,11 +411,16 @@ nearest-neighbour; instruments sampling slower are interpolated linearly.
 
 ----
 
-``oceanarray grid``
---------------------
+``oceanarray grid`` *(deprecated)*
+------------------------------------
+
+.. deprecated:: 0.2.0
+
+   ``oceanarray grid`` is deprecated and will be removed in v0.3.0.
+   Use ``oceanarray process MOORING --stage grid`` instead.
 
 Interpolate the stack file onto a regular pressure grid.  Run after
-``oceanarray stack``.
+``oceanarray process MOORING --stage stack`` (or the deprecated ``oceanarray stack``).
 
 Values outside the depth range of available instruments at each time step
 are set to NaN.  QC flags from stage 3 are not consulted — data flagged
