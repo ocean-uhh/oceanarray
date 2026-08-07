@@ -4,6 +4,45 @@ All notable changes to oceanarray are documented here.
 
 ---
 
+## [0.2.0] — unreleased
+
+### Breaking changes
+
+- **`--basedir` removed** ([#52](https://github.com/ocean-uhh/oceanarray/pull/52)): use `--raw-dir` and `--proc-dir` instead. See the [migration guide](https://ocean-uhh.github.io/oceanarray/migration.html).
+- **`plotter.py` retired** ([#53](https://github.com/ocean-uhh/oceanarray/pull/53)): the monolithic `oceanarray/plotter.py` and all backward-compatibility re-export shims have been removed. Import from canonical modules (`oceanarray.plotters.current`, `oceanarray.plotters.timeseries`, etc.).
+- **Subpackage reorganisation** ([#49](https://github.com/ocean-uhh/oceanarray/pull/49), [#59](https://github.com/ocean-uhh/oceanarray/pull/59)): processing modules moved from `oceanarray/instrument/` and `oceanarray/mooring/` into `oceanarray.processors.*`. Top-level `oceanarray` imports unchanged; internal paths have moved.
+
+### New features
+
+- **`process()` public API** ([#58](https://github.com/ocean-uhh/oceanarray/pull/58)): `oceanarray.process(mooring_yaml, proc_dir, stages=…)` runs any combination of Stage 1–3, stack, and grid in a single call. `oceanarray.STAGES` is the registry of available stages.
+- **Array report** ([#48](https://github.com/ocean-uhh/oceanarray/pull/48)): `oceanarray report <array.yaml> --array` generates a multi-mooring HTML summary with smart rebuild (only re-renders sections whose NC files are newer than the existing report).
+- **Wave / frequency diagnostics** ([#47](https://github.com/ocean-uhh/oceanarray/pull/47)): rotary power spectra, near-inertial band energy, and wave diagnostics added to ADCP instrument reports.
+- **Release automation** ([#61](https://github.com/ocean-uhh/oceanarray/pull/61)): pushing a `v*` tag now auto-creates a draft GitHub release with PR-based release notes; publishing the draft triggers PyPI upload.
+
+### Bug fixes
+
+- **QC flags unified to OceanSITES table** ([#54](https://github.com/ocean-uhh/oceanarray/pull/54)): all QC flag values now use the standard OceanSITES convention (0 no QC, 1 good, 2 probably good, 3 probably bad, 4 bad, 9 missing). Previously mixed conventions caused flag collisions on merge.
+- **Plot regularisation** ([#50](https://github.com/ocean-uhh/oceanarray/pull/50)): fixed irregular time-axis sampling in instrument report figures.
+- **Turbidity `units=MISSING`** ([#61](https://github.com/ocean-uhh/oceanarray/pull/61)): stage1 now strips placeholder `units` strings (`"MISSING"`, `""`) written by the RBR RSK reader when the instrument database has no units entry, and emits a `UserWarning` so the operator can verify the sensor spec.
+
+### Deprecations
+
+- `file_type: rbr-hex-oa` remapped automatically to `rbr-hex` with a `DeprecationWarning`; update mooring YAMLs.
+- `file_type: sbe-asc` remapped automatically to `sbe-ascii`.
+
+### Refactoring
+
+- Single-source variable registries in `parameters.py`; `validation.py` derives from it ([#51](https://github.com/ocean-uhh/oceanarray/pull/51)).
+- Figure-returning shape for `report/_plots.py` ([#56](https://github.com/ocean-uhh/oceanarray/pull/56)); `draw_*` helpers relocated to `plotters/` ([#57](https://github.com/ocean-uhh/oceanarray/pull/57)).
+- Type annotations backfilled on `hydrographic.py` and `temporal.py`; two ANN per-file-ignores removed from `pyproject.toml`.
+
+### Tests
+
+- Integration chain tests (stage1 → stage2 → stage3 → stack → grid) over committed `dune2_1_2026` fixtures ([#60](https://github.com/ocean-uhh/oceanarray/pull/60)).
+- CI: integration job now installs seasenselib from PyPI; Windows and macOS unit jobs run seasenselib-free.
+
+---
+
 ## [0.1.0] — 2026-07-27
 
 First public release.

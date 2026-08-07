@@ -3,6 +3,7 @@
 import calendar
 import re
 import tempfile
+import warnings
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -1739,6 +1740,35 @@ class MooringProcessor:
                 dataset[_vname].attrs["units"] = str(_units)
             if _sn:
                 dataset[_vname].attrs["sensor_serial_number"] = str(_sn)
+
+        # Strip placeholder units written by the RSK reader when a channel's
+        # units field is absent from the instrument database.  Leave the attr
+        # absent (callers that need units must verify against the sensor spec).
+        _BAD_UNITS = {"MISSING", "missing", ""}
+        for _vname, _da in dataset.data_vars.items():
+            _u = _da.attrs.get("units")
+            if _u in _BAD_UNITS:
+                del dataset[_vname].attrs["units"]
+                warnings.warn(
+                    f"Variable '{_vname}': units attr was '{_u}' (placeholder from "
+                    f"instrument file) and has been removed.  Verify the sensor "
+                    f"specification and set units manually if required.",
+                    UserWarning,
+                    stacklevel=2,
+                )
+        # Warn when turbidity has no units at all — common for Seapoint sensors
+        # where the RSK channel table has no units entry.
+        if (
+            "turbidity" in dataset.data_vars
+            and "units" not in dataset["turbidity"].attrs
+        ):
+            warnings.warn(
+                "Variable 'turbidity' has no units attribute.  Typical units are "
+                "'FTU' (Seapoint) or 'NTU' (WET Labs).  Verify the sensor spec and "
+                "add a units attribute to the output file if required.",
+                UserWarning,
+                stacklevel=2,
+            )
 
         # Remove redundant seasenselib attrs that duplicate our own provenance fields
         for _redundant_attr in ("processor_level", "source_format_name"):

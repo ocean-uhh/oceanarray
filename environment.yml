@@ -1,9 +1,13 @@
-name: TEST
+name: oceanarray
 channels: [conda-forge]
 dependencies:
-  - python=3
+  - python=3.11
   - pip
   - pandoc
   - pip:
       - -r requirements.txt
       - -r requirements-dev.txt
+# seasenselib is not listed here because it requires --no-deps to avoid
+# version conflicts with pyrsktools.  Install it separately after activating:
+#   pip install pyrsktools pycnv
+#   pip install seasenselib --no-deps

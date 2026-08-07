@@ -164,8 +164,11 @@ def split_value(data: np.ndarray, nbins: int = 30) -> float:
 
 
 def downsample_to_sparse(
-    temp_profiles, salt_profiles, full_pressures, sparse_pressures
-):
+    temp_profiles: np.ndarray,
+    salt_profiles: np.ndarray,
+    full_pressures: np.ndarray,
+    sparse_pressures: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray]:
     """Downsample full T/S profiles to sparse pressure levels.
 
     Parameters

@@ -44,6 +44,47 @@ if any errors are found.
 
 ----
 
+``oceanarray init``
+-------------------
+
+Create a skeleton mooring YAML file with commented template fields for all
+mandatory metadata and one example entry per instrument type.  Edit the file
+to fill in real values and delete unused instrument blocks.  Typically run
+once, before ``oceanarray validate``.
+
+**Synopsis**
+
+.. code-block:: text
+
+   oceanarray init MOORING --proc-dir DIR
+
+**Flags**
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 10 15 50
+
+   * - Flag
+     - Type
+     - Default
+     - Description
+   * - ``--proc-dir DIR``
+     - path
+     - (required)
+     - Cruise-level processed data directory.  The stub is written to
+       ``{proc_dir}/{mooring}/{mooring}.mooring.yaml``.
+
+**Example**
+
+.. code-block:: bash
+
+   oceanarray init dsG3_1_2026 --proc-dir /data/proc
+
+Creates ``/data/proc/dsG3_1_2026/dsG3_1_2026.mooring.yaml`` (the directory
+is created if it does not exist).
+
+----
+
 ``oceanarray process``
 -----------------------
 
@@ -155,8 +196,11 @@ description of what each report page contains.
 .. code-block:: text
 
    oceanarray report MOORING [--raw-dir DIR] [--proc-dir DIR]
-                             [-o DIR] [--instruments] [--stack]
-                             [--grid] [--serial SN ...] [--force]
+                             [-o DIR] [--report-dir DIR]
+                             [--instruments] [--stack] [--grid] [--all]
+                             [--serial SN ...] [--array] [--cruise-table]
+                             [--sig-level SIG ...] [-n] [--force]
+                             [--skip-existing]
 
 **Flags**
 
@@ -180,6 +224,13 @@ description of what each report page contains.
      - path
      - ``{proc_dir}/{mooring}/report/``
      - Override the output directory for HTML files.
+   * - ``--report-dir DIR``
+     - path
+     - (none)
+     - Central directory for all mooring reports.  Each mooring's pages are
+       written to ``DIR/{mooring}/`` instead of ``proc/{mooring}/report/``,
+       making the whole report tree portable.  Also used as the output root
+       for ``--array``.
    * - ``--instruments``
      - flag
      - off
@@ -192,14 +243,44 @@ description of what each report page contains.
      - flag
      - off
      - Generate the grid report (requires ``_grid.nc``).
+   * - ``--all`` / ``-A``
+     - flag
+     - off
+     - Generate all report pages.  Equivalent to ``--stack --grid --instruments``.
    * - ``--serial SN``
      - string (repeat)
      - (all)
-     - Restrict per-instrument pages to specific serial numbers.
+     - Restrict per-instrument pages to specific serial numbers (implies
+       ``--instruments`` for those serials).
+   * - ``--array``
+     - flag
+     - off
+     - Treat the positional argument as a ``*.array.yaml`` path and generate
+       an array-level HTML index linking all mooring reports.
+   * - ``--cruise-table``
+     - flag
+     - off
+     - Generate a standalone, print-optimised HTML recovery table for use in
+       cruise reports (``{mooring}_recovery_table.html``).
+   * - ``--sig-level SIG``
+     - float (repeat)
+     - ``27.7``
+     - σ₀ target values (kg m⁻³, referenced to 0 dbar) for isopycnal
+       height-above-seabed tracking in the grid report.  Pass one or more
+       values: ``--sig-level 27.5 27.7 27.9``.
+   * - ``-n`` / ``--dry-run``
+     - flag
+     - off
+     - Show which report files would be generated without writing any.
    * - ``--force``
      - flag
      - off
      - Regenerate reports even if HTML files already exist.
+   * - ``--skip-existing``
+     - flag
+     - off
+     - Skip any output file that already exists, regardless of source mtime
+       (legacy behaviour; ``--force`` is the opposite and always regenerates).
 
 **Output created**
 
@@ -215,11 +296,23 @@ Summary and per-instrument pages:
 
    oceanarray report dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --instruments
 
-All report types:
+All report types (equivalent to ``--instruments --stack --grid``):
 
 .. code-block:: bash
 
-   oceanarray report dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --instruments --stack --grid
+   oceanarray report dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --all
+
+Array-level index across all moorings:
+
+.. code-block:: bash
+
+   oceanarray report cruise.array.yaml --array --report-dir /data/reports
+
+Cruise recovery table:
+
+.. code-block:: bash
+
+   oceanarray report dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --cruise-table
 
 ----
 

@@ -24,7 +24,7 @@ def test_build_parser_has_expected_subcommands():
     ]
     assert subparsers_actions, "parser has no subcommands"
     choices = set(subparsers_actions[0].choices.keys())
-    for cmd in ("process", "stack", "grid", "report", "validate", "stub", "run"):
+    for cmd in ("process", "stack", "grid", "report", "validate", "init", "run"):
         assert cmd in choices, f"subcommand '{cmd}' missing from parser"
 
 

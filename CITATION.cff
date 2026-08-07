@@ -1,11 +1,24 @@
 cff-version: 1.2.0
-message: "This is just a demo of CITATION.cff.  You do not need to cite this software."
+message: "If you use this software, please cite it using the metadata below."
 authors:
 - family-names: Frajka-Williams
   given-names: Eleanor
   orcid: https://orcid.org/0000-0001-8773-7838
   affiliation: University of Hamburg, Bundesstraße 53, 20146 Hamburg, Germany
 title: oceanarray
-version: 0.0.1
-date-released: 2025-06-07
+version: 0.2.0
+date-released: 2026-07-27
 url: https://github.com/ocean-uhh/oceanarray
+repository-code: https://github.com/ocean-uhh/oceanarray
+license: MIT
+abstract: >
+  Multi-stage processing pipeline for moored oceanographic array observations:
+  converts raw instrument files (Sea-Bird, RBR, Nortek, RDI) to QC-flagged,
+  CF-compliant NetCDF and generates self-contained HTML mooring recovery reports.
+keywords:
+  - oceanography
+  - mooring
+  - ADCP
+  - CTD
+  - NetCDF
+  - quality-control
