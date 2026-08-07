@@ -267,6 +267,12 @@ def resolve_stage(stage: int | str) -> Stage:
 
     """
     for s in STAGES:
+        # Guard bool before int: True == 1 and False == 0 in Python, so without
+        # the isinstance check, resolve_stage(True) would silently return stage1.
+        # Guard None before comparing to s.number: stack/grid have number=None,
+        # so None == None would silently return the first un-numbered stage.
+        if isinstance(stage, bool) or stage is None:
+            break
         if stage == s.number or (isinstance(stage, str) and stage.lower() == s.name):
             return s
     valid_ints = ", ".join(str(s.number) for s in STAGES if s.number is not None)
@@ -318,7 +324,11 @@ def process(
     )
 
     overall = True
+    skip_grid = False
     for s in stages_to_run:
+        if s.name == "grid" and skip_grid:
+            overall = False
+            continue
         ok = s.run(
             mooring,
             proc_dir,
@@ -328,4 +338,6 @@ def process(
         )
         if not ok:
             overall = False
+            if s.name == "stack":
+                skip_grid = True
     return overall

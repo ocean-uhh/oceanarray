@@ -38,9 +38,6 @@ if TYPE_CHECKING:
     import xr
 
 
-# TODO post-OdB: migrate plot_grid_fig, plot_isopycnal, plot_grid_n2
-
-
 def wavelet_panel(
     ax: "matplotlib.axes.Axes",
     times: np.ndarray,

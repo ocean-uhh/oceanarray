@@ -271,14 +271,6 @@ def _interval_s(seconds: Any) -> str:
         return str(int(float(seconds)))
     except (TypeError, ValueError):
         return ""
-    try:
-        s = float(seconds)
-        if s < 60:
-            return f"{s:.0f} s"
-        m = s / 60
-        return f"{m:.0f}" if m == int(m) else f"{m:.1f}"
-    except (TypeError, ValueError):
-        return ""
 
 
 # ---------------------------------------------------------------------------

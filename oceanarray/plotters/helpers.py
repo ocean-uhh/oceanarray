@@ -242,6 +242,3 @@ def _rose_ax(
     ax.set_rticks([])
     ax.set_title(title, pad=2)
     return spd_edges, colors
-
-
-# TODO post-OdB: migrate remaining items from plotter.py / report/_plots.py

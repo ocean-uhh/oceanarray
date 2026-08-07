@@ -39,8 +39,6 @@ if TYPE_CHECKING:
 
 from .primitives import colorbar_norm, date_axis, pressure_axis, pcolormesh_panel
 
-# TODO post-OdB: migrate from plotter.py / report/_plots.py
-
 
 def draw_grid_fig(
     da: "xr.DataArray",
