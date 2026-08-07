@@ -915,7 +915,7 @@ def cmd_stub(args: argparse.Namespace) -> int:
         from ruamel.yaml.comments import CommentedMap, CommentedSeq
     except ImportError:
         print(
-            "ERROR: ruamel.yaml is required for 'oceanarray stub'. Install it with: pip install ruamel.yaml"
+            "ERROR: ruamel.yaml is required for 'oceanarray init'. Install it with: pip install ruamel.yaml"
         )
         return 1
 
@@ -1107,6 +1107,25 @@ def build_parser() -> argparse.ArgumentParser:
         help="Enable verbose output.",
     )
     sub = parser.add_subparsers(dest="command", required=True)
+
+    p_stub = sub.add_parser(
+        "init",
+        help="Create a skeleton mooring YAML file.",
+        description=(
+            "Create {proc_dir}/{mooring}/{mooring}.mooring.yaml with commented template\n"
+            "fields for all mandatory metadata and one example entry per instrument type.\n"
+            "Edit the file to fill in real values and delete unused instrument blocks."
+        ),
+    )
+    p_stub.add_argument("mooring", help="Mooring name, e.g. dsG3_1_2026")
+    p_stub.add_argument(
+        "--proc-dir",
+        dest="proc_dir",
+        metavar="DIR",
+        required=True,
+        help="Cruise-level processed output directory (stub is written to {proc_dir}/{mooring}/).",
+    )
+    p_stub.set_defaults(func=cmd_stub)
 
     p_process = sub.add_parser(
         "process",
@@ -1640,25 +1659,6 @@ def build_parser() -> argparse.ArgumentParser:
     )
     _add_dir_args(p_logsheet, raw_needed=False)
     p_logsheet.set_defaults(func=cmd_logsheet)
-
-    p_stub = sub.add_parser(
-        "stub",
-        help="Create a skeleton mooring YAML file.",
-        description=(
-            "Create {proc_dir}/{mooring}/{mooring}.mooring.yaml with commented template\n"
-            "fields for all mandatory metadata and one example entry per instrument type.\n"
-            "Edit the file to fill in real values and delete unused instrument blocks."
-        ),
-    )
-    p_stub.add_argument("mooring", help="Mooring name, e.g. dsG3_1_2026")
-    p_stub.add_argument(
-        "--proc-dir",
-        dest="proc_dir",
-        metavar="DIR",
-        required=True,
-        help="Cruise-level processed output directory (stub is written to {proc_dir}/{mooring}/).",
-    )
-    p_stub.set_defaults(func=cmd_stub)
 
     return parser
 

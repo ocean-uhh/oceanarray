@@ -44,8 +44,8 @@ if any errors are found.
 
 ----
 
-``oceanarray stub``
---------------------
+``oceanarray init``
+-------------------
 
 Create a skeleton mooring YAML file with commented template fields for all
 mandatory metadata and one example entry per instrument type.  Edit the file
@@ -56,7 +56,7 @@ once, before ``oceanarray validate``.
 
 .. code-block:: text
 
-   oceanarray stub MOORING --proc-dir DIR
+   oceanarray init MOORING --proc-dir DIR
 
 **Flags**
 
@@ -78,7 +78,7 @@ once, before ``oceanarray validate``.
 
 .. code-block:: bash
 
-   oceanarray stub dsG3_1_2026 --proc-dir /data/proc
+   oceanarray init dsG3_1_2026 --proc-dir /data/proc
 
 Creates ``/data/proc/dsG3_1_2026/dsG3_1_2026.mooring.yaml`` (the directory
 is created if it does not exist).
