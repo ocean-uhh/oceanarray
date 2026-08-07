@@ -118,7 +118,7 @@ def test_pcolormesh_panel_all_nan_slice():
     """pcolormesh_panel renders an all-NaN field instead of crashing in log10(nan)."""
     import matplotlib.pyplot as plt
 
-    from oceanarray.plotters._primitives import pcolormesh_panel
+    from oceanarray.plotters.primitives import pcolormesh_panel
 
     fig, ax = plt.subplots()
     data = np.full((4, 6), np.nan)
@@ -131,7 +131,7 @@ def test_pcolormesh_panel_returns_mappable():
     """pcolormesh_panel draws a (pressure × time) field and returns the mappable."""
     import matplotlib.pyplot as plt
 
-    from oceanarray.plotters._primitives import pcolormesh_panel
+    from oceanarray.plotters.primitives import pcolormesh_panel
 
     time = np.arange("2023-01-01", "2023-01-11", dtype="datetime64[D]")
     pressure = np.array([0.0, 50.0, 100.0, 150.0])
@@ -149,7 +149,7 @@ def test_plot_trajectory_lc_array_length():
     import matplotlib.pyplot as plt
     from matplotlib.collections import LineCollection
 
-    from oceanarray.plotters._primitives import plot_trajectory
+    from oceanarray.plotters.primitives import plot_trajectory
 
     x = np.array([0.0, 1.0, 2.0, 3.0, 4.0])
     y = np.array([0.0, 1.0, 0.0, -1.0, 0.0])

@@ -4,11 +4,11 @@ Contains salinity/conductivity quality-control routines and a dataset
 processing helper.  Hydrographic, spectral, time-series, and vector
 utilities have been split into dedicated submodules:
 
-- :mod:`oceanarray.analysis.hydrography` — salinity calculation, isopycnal
+- :mod:`oceanarray.analysis.hydrographic` — salinity calculation, isopycnal
   tracking, cold-regime detection, dataset differencing.
 - :mod:`oceanarray.analysis.spectral` — Gonella rotary spectra, Welch PSD,
   continuous wavelet transforms.
-- :mod:`oceanarray.analysis.tseries` — lag correlation, split value,
+- :mod:`oceanarray.analysis.temporal` — lag correlation, split value,
   downsampling, Tukey filtering.
 - :mod:`oceanarray.analysis.vector` — XYZ→ENU rotation, progressive vector.
 
@@ -87,7 +87,7 @@ def flag_vertical_inconsistencies(ds, var="CNDC", threshold=2):
 
 def run_qc(ds):
     """Apply a sequence of QC tests and write combined CNDC_QC flag variable."""
-    from oceanarray.analysis.hydrography import calc_psal as _calc_psal
+    from oceanarray.analysis.hydrographic import calc_psal as _calc_psal
 
     if "PSAL" not in ds:
         ds = _calc_psal(ds)
@@ -146,7 +146,7 @@ def process_dataset(
     verticalnn.config.SPARSE_PRESSURES : Sparse pressure grid.
 
     """
-    from oceanarray.analysis.tseries import downsample_to_sparse as _downsample
+    from oceanarray.analysis.temporal import downsample_to_sparse as _downsample
 
     pres_key, time_key, pres_dim, time_dim = utilities.get_dims(ds)
 
@@ -209,9 +209,9 @@ def process_dataset(
 # ---------------------------------------------------------------------------
 # Backward-compat re-exports — import directly from the new modules in new code
 # ---------------------------------------------------------------------------
-from .tseries import lag_correlation, split_value, downsample_to_sparse  # noqa: F401, E402
+from .temporal import lag_correlation, split_value, downsample_to_sparse  # noqa: F401, E402
 from .spectral import compute_cwt, welch_psd, welch_psd_gapaware  # noqa: F401, E402
-from .hydrography import (  # noqa: F401, E402
+from .hydrographic import (  # noqa: F401, E402
     calc_psal,
     find_cold_entry_exit,
     calc_ds_difference,

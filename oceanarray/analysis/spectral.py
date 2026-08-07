@@ -2,6 +2,8 @@
 
 Provides rotary spectrum decomposition (Gonella 1972), Welch PSD estimates
 with and without gap-awareness, and continuous wavelet transforms.
+
+Pairs with :mod:`oceanarray.plotters.spectrum` for figure output.
 """
 
 from __future__ import annotations

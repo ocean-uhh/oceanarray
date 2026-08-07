@@ -4,7 +4,7 @@ These functions accept pre-processed arrays (not xarray Datasets) and have no
 knowledge of oceanographic variable naming conventions.  They are the lowest
 layer in the three-tier plotters architecture:
 
-  Tier 1: _primitives.py   — generic, array-in / Figure-out
+  Tier 1: primitives.py    — generic, array-in / Figure-out
   Tier 2: _current.py etc. — domain wrappers (xr.Dataset-in / Figure-out)
   Tier 3: report/_plots.py — thin wrappers (path-in / base64-out)
 
@@ -193,7 +193,7 @@ def hodograph_panel(
     """Draw a single velocity hodograph panel on *ax*.
 
     Renders a time-coloured ``LineCollection`` trajectory (downsampled to
-    ≤ 2 000 segments for performance) with start/end markers and a compact
+    <= 2 000 segments for performance) with start/end markers and a compact
     per-panel colorbar.  *e_v*, *n_v*, and *t_frac* must already be filtered
     to the same finite-valid indices (no NaN, same length).
 
@@ -204,30 +204,31 @@ def hodograph_panel(
     e_v, n_v : np.ndarray
         East and north velocity (finite values only, same length).
     t_frac : np.ndarray
-        Fractional deployment time 0 → 1, same length as *e_v*.
+        Fractional deployment time 0 -> 1, same length as *e_v*.
     title : str
         Axes title (rendered at fontsize 9).
     units : str
-        Velocity unit string appended to axis labels, e.g. ``"m s⁻¹"``.
+        Velocity unit string appended to axis labels, e.g. ``"m s^-1"``.
 
     """
     from matplotlib.collections import LineCollection
-    import matplotlib.colors as mcolors
 
     lim = max(float(np.nanmax(np.abs(e_v))), float(np.nanmax(np.abs(n_v))), 1e-9) * 1.1
     step = max(1, len(e_v) // 2000)
     pts = np.array([e_v[::step], n_v[::step]]).T.reshape(-1, 1, 2)
     segs = np.concatenate([pts[:-1], pts[1:]], axis=1)
-    norm_lc = mcolors.Normalize(0.0, 1.0)
+    bounds_lc, norm_lc = colorbar_norm(vmin=0.0, vmax=1.0, n=10)
     lc = LineCollection(segs, cmap="plasma", norm=norm_lc, lw=0.9, alpha=0.85)
     lc.set_array(t_frac[::step][:-1])
     ax.add_collection(lc)
 
     sm = plt.cm.ScalarMappable(cmap="plasma", norm=norm_lc)
     sm.set_array([])
-    cb = ax.figure.colorbar(sm, ax=ax, shrink=0.75, pad=0.03, aspect=20)
-    cb.set_label("Time →", size=8)
-    cb.ax.set_yticks([0, 1])
+    cb = ax.figure.colorbar(
+        sm, ax=ax, shrink=0.75, pad=0.03, aspect=20, ticks=bounds_lc
+    )
+    cb.set_label("Time ->", size=8)
+    cb.ax.set_yticks([0.0, 1.0])
     cb.ax.set_yticklabels(["start", "end"], size=7)
 
     ax.scatter(
@@ -300,7 +301,7 @@ def colorbar_norm(
     n : int
         Target number of colorbar levels (default 20).
     symmetric : bool
-        If ``True``, expand [vmin, vmax] to [−max, +max] before computing
+        If ``True``, expand [vmin, vmax] to [-max, +max] before computing
         bounds.
 
     Returns

@@ -1,7 +1,10 @@
 """Hydrographic analysis utilities for oceanographic mooring data.
 
-Provides salinity computation, isopycnal tracking, dataset differencing, and
-cold-regime detection functions extracted from the general science utilities.
+hydrographic.py provides salinity computation, isopycnal tracking, dataset
+differencing, and cold-regime detection functions extracted from the general
+science utilities.
+
+Pairs with :mod:`oceanarray.plotters.hydrography` for figure output.
 """
 
 from __future__ import annotations
@@ -157,7 +160,9 @@ def isopycnal_pressure_series(
     sigma0_tp:
         Shape ``(time, pressure)``.  NaN where missing.
     pressure:
-        1-D ascending array of pressure levels in dbar.
+        1-D array of pressure levels in dbar.  Need not be sorted — the
+        function sorts each time step's finite values by pressure before
+        scanning for crossings.
     sigma_grid:
         Target sigma0 values (kg m⁻³) at which to find the pressure.
 
@@ -182,6 +187,9 @@ def isopycnal_pressure_series(
             continue
         s_f = col[finite_mask]
         p_f = p[finite_mask]
+        sort_idx = np.argsort(p_f)
+        s_f = s_f[sort_idx]
+        p_f = p_f[sort_idx]
 
         # Upward crossings: pairs (j, j+1) where s_f[j] < target and
         # s_f[j+1] >= target.  This handles non-monotonic columns: isolated

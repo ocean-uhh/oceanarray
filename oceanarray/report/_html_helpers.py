@@ -157,16 +157,10 @@ def _check_readable(file_path: Path, file_type: str) -> Tuple[bool, str]:
 # QC colours (OceanSITES Reference Table 2)
 # ---------------------------------------------------------------------------
 
-_QC_COLORS: Dict[int, str] = {
-    0: "#999999",
-    1: "#27ae60",
-    2: "#a8e6cf",
-    3: "#f39c12",
-    4: "#e74c3c",
-    7: "#9b59b6",
-    8: "#3498db",
-    9: "#bdc3c7",
-}
+# Canonical definitions live in plotters/helpers.py (Tier 2) so both plotters/
+# and report/ can use them without a plotters→report circular import.
+from ..plotters.helpers import QC_COLORS as _QC_COLORS, QC_MARKER as _QC_MARKER  # noqa: E402, F401
+
 # Short display glosses of parameters.QC_FLAG_MEANINGS (OceanSITES table 2).
 # Keep the codes and wording consistent with that table.
 _QC_LABELS: Dict[int, str] = {
@@ -178,19 +172,6 @@ _QC_LABELS: Dict[int, str] = {
     7: "nominal",
     8: "interp.",
     9: "missing",
-}
-
-# Centralised marker style for QC overlay scatter points.
-_QC_MARKER: Dict[int, dict] = {
-    3: dict(
-        marker="+", c=_QC_COLORS[3], s=15, linewidths=0.8, zorder=3, rasterized=True
-    ),
-    4: dict(
-        marker="+", c=_QC_COLORS[4], s=15, linewidths=0.8, zorder=4, rasterized=True
-    ),
-    8: dict(
-        marker=".", c=_QC_COLORS[8], s=8, linewidths=0.5, zorder=2, rasterized=True
-    ),
 }
 
 

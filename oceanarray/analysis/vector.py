@@ -3,6 +3,8 @@
 Provides coordinate-system rotation (XYZ → ENU) and progressive-vector
 (pseudo-Lagrangian) trajectory computation extracted from instrument-specific
 processing code so they can be tested and reused independently.
+
+Pairs with :mod:`oceanarray.plotters.current` for figure output.
 """
 
 from __future__ import annotations
