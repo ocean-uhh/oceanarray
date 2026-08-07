@@ -374,14 +374,14 @@ class TestMooringReport:
         report = MooringReport(proc_dir=str(proc_dir / "proc"))
         out = report.generate("TEST_M1")
         assert out is not None
-        html = out.read_text()
+        html = out.read_text(encoding="utf-8")
         assert "TEST_M1" in html
 
     def test_generate_html_is_valid_html(self, proc_dir):
         report = MooringReport(proc_dir=str(proc_dir / "proc"))
         out = report.generate("TEST_M1")
         assert out is not None
-        html = out.read_text()
+        html = out.read_text(encoding="utf-8")
         assert "<!DOCTYPE html>" in html or "<html" in html
 
     def test_generate_skips_if_exists(self, proc_dir):
@@ -585,7 +585,9 @@ class TestPageGenerators:
         generate_stack_page(
             "TEST_M1", stack_nc, ctx, setup["out_dir"], False, setup["tmp_path"]
         )
-        html = (setup["out_dir"] / "TEST_M1_stack_report.html").read_text()
+        html = (setup["out_dir"] / "TEST_M1_stack_report.html").read_text(
+            encoding="utf-8"
+        )
         assert "TEST_M1" in html
 
     # generate_grid_page
@@ -627,5 +629,7 @@ class TestPageGenerators:
         generate_grid_page(
             "TEST_M1", grid_nc, ctx, setup["out_dir"], False, setup["tmp_path"]
         )
-        html = (setup["out_dir"] / "TEST_M1_grid_report.html").read_text()
+        html = (setup["out_dir"] / "TEST_M1_grid_report.html").read_text(
+            encoding="utf-8"
+        )
         assert "TEST_M1" in html

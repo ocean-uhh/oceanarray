@@ -12,7 +12,13 @@ import numpy as np
 import pytest
 import xarray as xr
 
+pytest.importorskip(
+    "seasenselib", reason="stage2 imports seasenselib.writers at module load"
+)
+
 from oceanarray.processors.stage2 import Stage2Processor
+
+pytestmark = pytest.mark.needs_seasenselib
 
 FIXTURE_PROC = Path(__file__).parent.parent / "fixtures" / "proc" / "dune2_1_2026"
 MOORING = "dune2_1_2026"

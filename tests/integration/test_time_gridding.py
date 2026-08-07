@@ -11,7 +11,13 @@ import pytest
 import xarray as xr
 import yaml
 
+pytest.importorskip(
+    "seasenselib", reason="grid imports seasenselib.writers at module load"
+)
+
 from oceanarray.processors.grid import TimeGriddingProcessor
+
+pytestmark = pytest.mark.needs_seasenselib
 
 
 def create_mock_instrument_dataset(
