@@ -296,5 +296,38 @@ class TestErrorHandling:
             processor._load_mooring_config(invalid_yaml)
 
 
+class TestRbrHexOaAlias:
+    """The deprecated rbr-hex-oa file_type is remapped to seasenselib rbr-hex."""
+
+    def test_rbr_hex_oa_remaps_to_rbr_hex_with_warning(self, tmp_path):
+        """_read_file warns and dispatches rbr-hex-oa to seasenselib as rbr-hex."""
+        from unittest import mock
+
+        processor = MooringProcessor(raw_dir=str(tmp_path), proc_dir=str(tmp_path))
+        fake_ds = xr.Dataset({"temperature": ("time", [1.0, 2.0])})
+
+        with mock.patch(
+            "oceanarray.processors.stage1.seasenselib.read", return_value=fake_ds
+        ) as mock_read:
+            with pytest.warns(DeprecationWarning, match="rbr-hex-oa"):
+                out = processor._read_file("rbr-hex-oa", "13875_recovery.hex")
+
+        # seasenselib.read was called with the remapped file_format, never rbr-hex-oa.
+        assert mock_read.call_args.kwargs["file_format"] == "rbr-hex"
+        assert "temperature" in out.data_vars
+
+    def test_rbr_hex_oa_removed_from_public_list(self):
+        """rbr-hex-oa is no longer advertised in SUPPORTED_FILE_TYPES...
+
+        ...but is still accepted via the deprecated-alias map (remapped at read
+        time). This keeps it out of autodoc / the validator's "known types"
+        message while old YAMLs continue to load.
+        """
+        from oceanarray import parameters as P
+
+        assert "rbr-hex-oa" not in MooringProcessor.SUPPORTED_FILE_TYPES
+        assert P.DEPRECATED_FILE_TYPE_ALIASES["rbr-hex-oa"] == "rbr-hex"
+
+
 if __name__ == "__main__":
     pytest.main([__file__])

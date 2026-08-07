@@ -1,4 +1,4 @@
-name: Run unit tests
+name: Run tests
 
 on:
   push:
@@ -6,13 +6,13 @@ on:
   pull_request:
 
 jobs:
-  test:
+  unit:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.11"]
-      fail-fast: true
+      fail-fast: false  # temporary: keep other OS jobs alive while Windows is being re-stabilised; revert to true once Windows is reliably green
 
     steps:
       - uses: actions/checkout@v4
@@ -33,3 +33,25 @@ jobs:
 
       - name: Run unit tests
         run: pytest tests/unit -m "not slow and not local and not needs_seasenselib" -q
+
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Install oceanarray
+        run: pip install -e . --no-deps --force-reinstall
+
+      - name: Run integration tests
+        run: pytest tests/integration -m "not local and not needs_seasenselib" -q

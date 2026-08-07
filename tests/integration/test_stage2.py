@@ -1,148 +1,105 @@
-"""Integration tests for oceanarray.stage2 — require real data files.
+"""Integration tests for Stage2Processor using committed fixture files.
 
-Version: 2.0 - Fixed date ranges to match actual test data.
+Runs stage2 (deployment trim + clock-drift correction) on the committed stage1
+NC fixtures and compares the output to the committed stage2 fixtures.  Verifies
+that the processor produces consistent output across code changes without
+requiring seasenselib.
 """
 
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 import pytest
 import xarray as xr
-import yaml
 
 from oceanarray.processors.stage2 import Stage2Processor
 
+FIXTURE_PROC = Path(__file__).parent.parent / "fixtures" / "proc" / "dune2_1_2026"
+MOORING = "dune2_1_2026"
 
-class TestRealDataProcessing:
-    """Integration tests using real data files - Version 2.0 with fixed date ranges."""
+MICROCAT_S2 = FIXTURE_PROC / "microcat" / f"{MOORING}_2941_stage2.nc"
+AQUADOPP_S2 = FIXTURE_PROC / "aquadopp" / f"{MOORING}_9920_stage2.nc"
 
-    @pytest.fixture
-    def test_data_setup(self, tmp_path):
-        """Set up test environment with real processed data."""
-        raw_data_file = Path("data/test_data_stage1.nc")
-        yaml_config_file = Path("data/test_mooring.yaml")
 
-        if not raw_data_file.exists() or not yaml_config_file.exists():
-            pytest.skip(
-                (
-                    "Real test data files not found. Expected files: "
-                    "data/test_data_stage1.nc, data/test_mooring.yaml"
-                )
-            )
+class TestStage2Microcat:
+    """Stage2 output for microcat (serial 2941) matches committed fixture."""
 
-        base_dir = tmp_path / "test_data"
-        proc_root = base_dir / "proc"
-        proc_dir = proc_root / "test_mooring"
-        microcat_dir = proc_dir / "microcat"
-        microcat_dir.mkdir(parents=True)
+    @pytest.fixture(autouse=True)
+    def run(self, proc_root_stage1):
+        """Run stage2 on the committed stage1 NC and open both outputs."""
+        proc = Stage2Processor(proc_dir=str(proc_root_stage1))
+        ok = proc.process_mooring(MOORING, force=True)
+        assert ok, "Stage2Processor.process_mooring returned False"
 
-        test_raw_file = microcat_dir / "test_mooring_7518_stage1.nc"
-        test_yaml_file = proc_dir / "test_mooring.mooring.yaml"
+        out_nc = proc_root_stage1 / MOORING / "microcat" / f"{MOORING}_2941_stage2.nc"
+        self._got = xr.open_dataset(out_nc)
+        self._ref = xr.open_dataset(MICROCAT_S2)
+        yield
+        self._got.close()
+        self._ref.close()
 
-        test_raw_file.write_bytes(raw_data_file.read_bytes())
-        test_yaml_file.write_text(yaml_config_file.read_text())
+    def test_time_records_trimmed(self):
+        assert self._got.sizes["time"] == self._ref.sizes["time"]
 
-        return {
-            "proc_root": proc_root,
-            "proc_dir": proc_dir,
-            "raw_file": test_raw_file,
-            "yaml_file": test_yaml_file,
-        }
+    def test_record_count(self):
+        assert self._got.sizes["time"] == 19635
 
-    def test_process_real_data_full_workflow(self, test_data_setup):
-        """Test complete Stage 2 processing with real data - Version 2.0."""
-        setup = test_data_setup
-        processor = Stage2Processor(proc_dir=str(setup["proc_root"]))
+    def test_temperature_matches_fixture(self):
+        np.testing.assert_array_equal(
+            self._got["temperature"].values,
+            self._ref["temperature"].values,
+        )
 
-        result = processor.process_mooring("test_mooring")
+    def test_conductivity_matches_fixture(self):
+        np.testing.assert_array_equal(
+            self._got["conductivity"].values,
+            self._ref["conductivity"].values,
+        )
 
-        assert result is True
+    def test_clock_offset_written(self):
+        assert "clock_offset" in self._got.data_vars
 
-        use_file = setup["proc_dir"] / "microcat" / "test_mooring_7518_stage2.nc"
-        assert use_file.exists()
+    def test_processing_level_attr(self):
+        assert self._got.attrs.get("processing_level") == "L1"
 
-        with xr.open_dataset(use_file) as ds:
-            assert "temperature" in ds.data_vars
-            assert "pressure" in ds.data_vars
-            assert "salinity" in ds.data_vars
-            assert "time" in ds.coords
+    def test_stage1_provenance_attrs_present(self):
+        assert "stage1_time_start" in self._got.attrs
+        assert "stage1_time_end" in self._got.attrs
 
-            assert "clock_offset" in ds.variables
-            assert ds["clock_offset"].values == 300  # 5 minutes from config
 
-            assert "timeS" not in ds.variables
+class TestStage2Aquadopp:
+    """Stage2 output for aquadopp (serial 9920) matches committed fixture."""
 
-            assert ds["serial_number"].values == 7518
-            assert ds["instrument"].values == "microcat"
+    @pytest.fixture(autouse=True)
+    def run(self, proc_root_stage1):
+        proc = Stage2Processor(proc_dir=str(proc_root_stage1))
+        ok = proc.process_mooring(MOORING, force=True)
+        assert ok, "Stage2Processor.process_mooring returned False"
 
-            with xr.open_dataset(setup["raw_file"]) as raw_ds:
-                assert len(ds.time) <= len(raw_ds.time)
+        out_nc = proc_root_stage1 / MOORING / "aquadopp" / f"{MOORING}_9920_stage2.nc"
+        self._got = xr.open_dataset(out_nc)
+        self._ref = xr.open_dataset(AQUADOPP_S2)
+        yield
+        self._got.close()
+        self._ref.close()
 
-                if len(ds.time) > 0 and len(raw_ds.time) > 0:
-                    time_diff = ds.time[0].values - raw_ds.time[0].values
-                    expected_diff = np.timedelta64(300, "s")  # 5 minutes
-                    assert abs(time_diff - expected_diff) < np.timedelta64(1, "s")
+    def test_time_records_trimmed(self):
+        assert self._got.sizes["time"] == self._ref.sizes["time"]
 
-    def test_process_with_modified_times(self, test_data_setup):
-        """Test processing with modified deployment/recovery times - Version 2.0 with correct dates."""
-        setup = test_data_setup
+    def test_record_count(self):
+        assert self._got.sizes["time"] == 9818
 
-        with open(setup["yaml_file"], "r") as f:
-            config = yaml.safe_load(f)
+    def test_beam_dimension_preserved(self):
+        assert self._got.sizes.get("beam") == 3
 
-        with xr.open_dataset(setup["raw_file"]) as raw_ds:
-            data_start = raw_ds.time.min().values
-            data_end = raw_ds.time.max().values
-            print(f"Raw data time range: {data_start} to {data_end}")
+    def test_velocity_beam1_matches_fixture(self):
+        np.testing.assert_array_equal(
+            self._got["velocity_beam1"].values,
+            self._ref["velocity_beam1"].values,
+        )
 
-        config["deployment_time"] = "2018-08-13T08:05:00"
-        config["recovery_time"] = "2018-08-13T08:15:00"
+    def test_clock_drift_seconds_written(self):
+        assert "clock_drift_seconds" in self._got.data_vars
 
-        with open(setup["yaml_file"], "w") as f:
-            yaml.dump(config, f)
-
-        processor = Stage2Processor(proc_dir=str(setup["proc_root"]))
-        result = processor.process_mooring("test_mooring")
-
-        assert result is True
-
-        use_file = setup["proc_dir"] / "microcat" / "test_mooring_7518_stage2.nc"
-        with xr.open_dataset(use_file) as ds:
-            with xr.open_dataset(setup["raw_file"]) as raw_ds:
-                assert len(ds.time) < len(raw_ds.time), (
-                    f"Expected trimmed data, got {len(ds.time)} vs {len(raw_ds.time)}"
-                )
-
-            deploy_time = pd.to_datetime("2018-08-13T08:05:00")
-            recover_time = pd.to_datetime("2018-08-13T08:15:00")
-
-            assert ds.time.min() >= np.datetime64(deploy_time)
-            assert ds.time.max() <= np.datetime64(recover_time)
-
-    def test_process_missing_raw_file(self, test_data_setup):
-        """Test processing when raw file is missing."""
-        setup = test_data_setup
-
-        setup["raw_file"].unlink()
-
-        processor = Stage2Processor(proc_dir=str(setup["proc_root"]))
-        result = processor.process_mooring("test_mooring")
-
-        assert result is False
-
-        log_files = list(setup["proc_dir"].glob("processing_logs/*_stage2.log"))
-        assert len(log_files) == 1
-        log_content = log_files[0].read_text()
-        assert "Raw file not found" in log_content
-
-    def test_process_missing_config(self, tmp_path):
-        """Test processing with missing config file."""
-        base_dir = tmp_path / "test_data"
-        proc_root = base_dir / "proc"
-        (proc_root / "test_mooring").mkdir(parents=True)
-
-        processor = Stage2Processor(proc_dir=str(proc_root))
-        result = processor.process_mooring("test_mooring")
-
-        assert result is False
+    def test_processing_level_attr(self):
+        assert self._got.attrs.get("processing_level") == "L1"
