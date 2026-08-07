@@ -1219,7 +1219,7 @@ class MooringReport:
                 # be processed and there's nothing useful to report.
                 _guessed = None
                 if self._raw_dir is not None and not entry.get("skip"):
-                    from oceanarray.instrument.stage1 import MooringProcessor as _S1
+                    from oceanarray.processors.stage1 import MooringProcessor as _S1
 
                     _raw_mooring = self._raw_dir / mooring_name
                     _guessed = _S1._guess_instrument_filename(  # noqa: SLF001

@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import xarray as xr
 
-from oceanarray.instrument.qc import set_qc_attrs
+from oceanarray.processors.qc import set_qc_attrs
 
 
 HAB_THRESHOLD = 2.0  # metres — use near-neighbour below this Δhab

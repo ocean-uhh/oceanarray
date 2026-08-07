@@ -11,8 +11,6 @@ __all__ = [
     # Subpackages (canonical locations)
     "analysis",
     "config",
-    "instrument",
-    "mooring",
     "processors",
     "tools",
     # Top-level modules

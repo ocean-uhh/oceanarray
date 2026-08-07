@@ -11,7 +11,7 @@ import pytest
 import xarray as xr
 import yaml
 
-from oceanarray.mooring.grid import TimeGriddingProcessor
+from oceanarray.processors.grid import TimeGriddingProcessor
 
 
 def create_mock_instrument_dataset(

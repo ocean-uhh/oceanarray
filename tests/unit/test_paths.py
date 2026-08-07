@@ -44,8 +44,8 @@ def test_all_call_sites_agree():
     across stage3, the report layer, and the mooring helpers.  (stage1 is covered
     separately because importing it requires the optional ``seasenselib`` package.)
     """
-    from oceanarray.instrument.stage3 import _safe_serial as s3
-    from oceanarray.mooring.helpers import _safe_serial as h
+    from oceanarray.processors.stage3 import _safe_serial as s3
+    from oceanarray.processors.helpers import _safe_serial as h
     from oceanarray.report._html_helpers import _safe_serial as r
 
     raw = "16430, R01-024"
@@ -61,7 +61,7 @@ def test_stage1_call_site_agrees():
     pulls in the optional ``seasenselib`` dependency.
     """
     pytest.importorskip("seasenselib")
-    from oceanarray.instrument.stage1 import MooringProcessor
+    from oceanarray.processors.stage1 import MooringProcessor
 
     assert MooringProcessor._safe_serial("16430, R01-024") == safe_serial(
         "16430, R01-024"
