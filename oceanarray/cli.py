@@ -211,6 +211,37 @@ def cmd_process(args: argparse.Namespace) -> int:
             print("Stage 3 failed.")
             overall_success = False
 
+    if "stack" in stages:
+        from .processors.stack import MooringStacker
+
+        _status("section", f"Stack: {args.mooring}")
+        stacker = MooringStacker(proc_dir=str(proc_root))
+        ok = stacker.stack(
+            args.mooring,
+            dt_seconds=args.dt,
+            force=args.force,
+        )
+        if not ok:
+            print("Stack failed.")
+            overall_success = False
+            stages = [s for s in stages if s != "grid"]
+
+    if "grid" in stages:
+        from .processors.grid import MooringGridder
+
+        _status("section", f"Grid: {args.mooring}")
+        gridder = MooringGridder(proc_dir=str(proc_root))
+        ok = gridder.grid(
+            args.mooring,
+            p_start=args.pmin,
+            p_end=args.pmax,
+            dp=args.dp,
+            force=args.force,
+        )
+        if not ok:
+            print("Grid failed.")
+            overall_success = False
+
     if args.report:
         _status("section", f"Record Summary: {args.mooring}")
         _print_report(proc_root / args.mooring)
@@ -414,6 +445,14 @@ def cmd_stack(args: argparse.Namespace) -> int:
     Prerequisite: stage 1 and 2 (and ideally stage 3) must have completed for all
     instruments before running this command.
     """
+    import warnings
+
+    warnings.warn(
+        "'oceanarray stack' is deprecated and will be removed in v0.3.0. "
+        "Use 'oceanarray process MOORING --stage stack' instead.",
+        DeprecationWarning,
+        stacklevel=1,
+    )
     from .processors.stack import MooringStacker
     from .processors.helpers import _best_nc
     from .utilities import extract_inline_instruments
@@ -481,6 +520,14 @@ def cmd_grid(args: argparse.Namespace) -> int:
 
     Prerequisite: ``oceanarray stack`` must have completed successfully.
     """
+    import warnings
+
+    warnings.warn(
+        "'oceanarray grid' is deprecated and will be removed in v0.3.0. "
+        "Use 'oceanarray process MOORING --stage grid' instead.",
+        DeprecationWarning,
+        stacklevel=1,
+    )
     from .processors.grid import MooringGridder
 
     _, proc_root = _parse_dirs_checked(args)
@@ -547,24 +594,24 @@ def cmd_run(args: argparse.Namespace) -> int:
     if cmd_process(process_args) != 0:
         overall_ok = False
 
-    stack_args = _ap.Namespace(
-        mooring=args.mooring,
-        dt=args.dt,
-        force=args.force,
-        **_dirs,
-    )
-    if cmd_stack(stack_args) != 0:
+    from .processors.stack import MooringStacker
+    from .processors.grid import MooringGridder
+
+    _sg_ns = _ap.Namespace(mooring=args.mooring, **_dirs)
+    _, _proc_root = _parse_dirs_checked(_sg_ns)
+
+    if not MooringStacker(proc_dir=str(_proc_root)).stack(
+        args.mooring, dt_seconds=args.dt, force=args.force
+    ):
         overall_ok = False
 
-    grid_args = _ap.Namespace(
-        mooring=args.mooring,
-        pmin=args.pmin,
-        pmax=args.pmax,
+    if not MooringGridder(proc_dir=str(_proc_root)).grid(
+        args.mooring,
+        p_start=args.pmin,
+        p_end=args.pmax,
         dp=args.dp,
         force=args.force,
-        **_dirs,
-    )
-    if cmd_grid(grid_args) != 0:
+    ):
         overall_ok = False
 
     report_args = _ap.Namespace(
@@ -858,6 +905,37 @@ def cmd_logsheet(args: "argparse.Namespace") -> int:
     return 0
 
 
+def _stage_token(value: str) -> "int | str":
+    """Convert a ``--stage`` token to int (1/2/3) or str ('stack'/'grid').
+
+    Parameters
+    ----------
+    value : str
+        Raw token from the command line.
+
+    Returns
+    -------
+    int | str
+        Integer stage number or the literal string ``'stack'`` / ``'grid'``.
+
+    Raises
+    ------
+    argparse.ArgumentTypeError
+        If *value* is not one of ``1``, ``2``, ``3``, ``stack``, or ``grid``.
+
+    """
+    if value in ("stack", "grid"):
+        return value
+    try:
+        return int(value)
+    except ValueError:
+        import argparse as _ap
+
+        raise _ap.ArgumentTypeError(  # noqa: B904, TRY003
+            f"invalid stage '{value}': choose from 1, 2, 3, stack, grid"
+        )
+
+
 def _add_dir_args(p: "argparse.ArgumentParser", raw_needed: bool = True) -> None:
     """Add directory arguments to a subparser.
 
@@ -1075,18 +1153,12 @@ def cmd_stub(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     """Build and return the top-level argument parser for the oceanarray CLI."""
     epilog = (
-        "Typical per-mooring workflow (new canonical layout):\n"
-        "  oceanarray process MOORING --raw-dir /data/raw --proc-dir /data/proc --stage 1 2 3\n"
-        "  oceanarray stack   MOORING --proc-dir /data/proc\n"
-        "  oceanarray grid    MOORING --proc-dir /data/proc --dp 20\n"
+        "Typical workflow:\n"
+        "  oceanarray process MOORING --raw-dir /data/raw --proc-dir /data/proc --stage 1 2 3 stack grid\n"
         "  oceanarray report  MOORING --raw-dir /data/raw --proc-dir /data/proc --instruments --stack --grid\n"
         "\n"
-        "Or run all steps in one command:\n"
-        "  oceanarray run MOORING --raw-dir /data/raw --proc-dir /data/proc --dp 20 --force\n"
-        "\n"
-        "Legacy (deprecated):\n"
-        "  oceanarray run MOORING --raw-dir /data/raw --proc-dir /data/proc --dp 20 --force\n"
-        "  See MIGRATION-BASEDIR.md for migration instructions.\n"
+        "Or in a single command:\n"
+        "  oceanarray run MOORING --raw-dir /data/raw --proc-dir /data/proc --dp 20\n"
     )
     parser = argparse.ArgumentParser(
         prog="oceanarray",
@@ -1143,13 +1215,41 @@ def build_parser() -> argparse.ArgumentParser:
     _add_dir_args(p_process, raw_needed=True)
     p_process.add_argument(
         "--stage",
-        type=int,
+        type=_stage_token,
         nargs="+",
-        choices=[1, 2, 3],
+        choices=[1, 2, 3, "stack", "grid"],
         default=None,
-        metavar="{1,2,3}",
+        metavar="{1,2,3,stack,grid}",
         help="Stage(s) to run (default: 1 2). "
-        "Stage 3 applies QC, coordinate rotation, and derived variables.",
+        "Use 'stack' and 'grid' for mooring-level steps.",
+    )
+    p_process.add_argument(
+        "--dt",
+        type=int,
+        default=60,
+        metavar="SECONDS",
+        help="Stack time-grid interval in seconds (default: 60)",
+    )
+    p_process.add_argument(
+        "--dp",
+        type=float,
+        default=20.0,
+        metavar="DBAR",
+        help="Pressure grid spacing in dbar (default: 20)",
+    )
+    p_process.add_argument(
+        "--pmin",
+        type=float,
+        default=200.0,
+        metavar="DBAR",
+        help="Shallowest pressure level for grid (default: 200)",
+    )
+    p_process.add_argument(
+        "--pmax",
+        type=float,
+        default=1000.0,
+        metavar="DBAR",
+        help="Deepest pressure level for grid (default: 1000)",
     )
     p_process.add_argument(
         "--plot",
@@ -1292,7 +1392,6 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_stack = sub.add_parser(
         "stack",
-        help="Mooring-level step 1: interpolate all instruments onto a common time axis → _stack.nc",
         description=(
             "Reads all _stage3.nc (or _stage2.nc) files for a mooring and interpolates\n"
             "every instrument onto a uniform time grid, producing {mooring}_stack.nc.\n"
@@ -1324,7 +1423,6 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_grid = sub.add_parser(
         "grid",
-        help="Mooring-level step 2: vertically interpolate stack onto a pressure grid → _grid.nc",
         description=(
             "Reads {mooring}_stack.nc and interpolates temperature, salinity, and other\n"
             "scalar fields onto a uniform pressure grid, producing {mooring}_grid.nc.\n"

@@ -14,6 +14,7 @@ All notable changes to oceanarray are documented here.
 
 ### New features
 
+- **`--stage stack grid` in `oceanarray process`**: the `--stage` flag now accepts `stack` and `grid` in addition to `1`, `2`, `3`. Run the full pipeline as `oceanarray process MOORING --stage 1 2 3 stack grid`. New flags `--dt`, `--dp`, `--pmin`, `--pmax` added to `process` (same defaults as `oceanarray run`).
 - **`process()` public API** ([#58](https://github.com/ocean-uhh/oceanarray/pull/58)): `oceanarray.process(mooring_yaml, proc_dir, stages=…)` runs any combination of Stage 1–3, stack, and grid in a single call. `oceanarray.STAGES` is the registry of available stages.
 - **Array report** ([#48](https://github.com/ocean-uhh/oceanarray/pull/48)): `oceanarray report <array.yaml> --array` generates a multi-mooring HTML summary with smart rebuild (only re-renders sections whose NC files are newer than the existing report).
 - **Wave / frequency diagnostics** ([#47](https://github.com/ocean-uhh/oceanarray/pull/47)): rotary power spectra, near-inertial band energy, and wave diagnostics added to ADCP instrument reports.
@@ -27,6 +28,8 @@ All notable changes to oceanarray are documented here.
 
 ### Deprecations
 
+- **`oceanarray stack`**: deprecated in favour of `oceanarray process MOORING --stage stack`. Emits `DeprecationWarning`. Will be removed in v0.3.0.
+- **`oceanarray grid`**: deprecated in favour of `oceanarray process MOORING --stage grid`. Emits `DeprecationWarning`. Will be removed in v0.3.0.
 - `file_type: rbr-hex-oa` remapped automatically to `rbr-hex` with a `DeprecationWarning`; update mooring YAMLs.
 - `file_type: sbe-asc` remapped automatically to `sbe-ascii`.
 

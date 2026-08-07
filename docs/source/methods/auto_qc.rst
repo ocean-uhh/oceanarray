@@ -98,6 +98,163 @@ Stage 3 applies the following tests, in order:
 QC is applied **after** pressure interpolation so that interpolated pressures also
 receive appropriate QC flags.
 
+Default thresholds
+------------------
+
+The values below are the package-wide defaults from ``oceanarray.config.parameters``
+(``QC_GROSS_RANGE``, ``QC_SPIKE``, ``QC_FLAT_LINE``, ``QC_TILT``, ``QC_ADCP``).
+They assume a fixed mooring in the deep ocean sampled at O(60–120 s); shallower or more
+energetic deployments may need tighter suspect thresholds.  Any entry can be overridden
+per instrument in the mooring YAML — see `Configuration`_ below.
+
+**Gross-range test** — values outside ``fail_span`` → flag 4; outside ``suspect_span`` → flag 3:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 12 18 18 27
+
+   * - Variable
+     - Unit
+     - Fail span
+     - Suspect span
+     - Notes
+   * - ``temperature``
+     - °C
+     - −2.5 to 40.0
+     - −2.0 to 35.0
+     -
+   * - ``conductivity``
+     - mS cm⁻¹
+     - 0.0 to 75.0
+     - 0.0 to 65.0
+     - ocean: 20–60
+   * - ``salinity``
+     - PSU
+     - 0.0 to 40.0
+     - 2.0 to 40.0
+     - open ocean: 30–38
+   * - ``pressure``
+     - dbar
+     - −5.0 to 7000.0
+     - −0.5 to 7000.0
+     -
+   * - ``east_velocity``
+     - m s⁻¹
+     - −5.0 to 5.0
+     - −3.0 to 3.0
+     -
+   * - ``north_velocity``
+     - m s⁻¹
+     - −5.0 to 5.0
+     - −3.0 to 3.0
+     -
+   * - ``up_velocity``
+     - m s⁻¹
+     - −1.0 to 1.0
+     - −0.5 to 0.5
+     -
+   * - ``turbidity``
+     - NTU
+     - −10.0 to 4000.0
+     - −5.0 to 1000.0
+     - coastal resuspension events can reach 1000 NTU
+   * - ``dissolved_oxygen``
+     - µmol L⁻¹
+     - 0.0 to 500.0
+     - 0.0 to 450.0
+     - SBE ODO; deep North Atlantic: 200–320
+   * - ``oxygen_saturation_pct``
+     - %
+     - 0.0 to 200.0
+     - 0.0 to 150.0
+     - > 200 % implies bubble entrainment or sensor fault
+
+**Spike test** — point *n* is spiked when |x[n] − (x[n-1]+x[n+1])/2| exceeds the threshold → flag 3:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 12 22 22 19
+
+   * - Variable
+     - Unit
+     - Suspect threshold
+     - Fail threshold
+     - Notes
+   * - ``temperature``
+     - °C
+     - 2.0
+     - 6.0
+     -
+   * - ``conductivity``
+     - mS cm⁻¹
+     - 2.0
+     - 5.0
+     - low spikes typical of biofouling
+   * - ``salinity``
+     - PSU
+     - 1.0
+     - 2.0
+     - timing artefacts on unpumped sensors
+   * - ``pressure``
+     - dbar
+     - 10.0
+     - 50.0
+     -
+   * - velocity variables
+     - m s⁻¹
+     - —
+     - —
+     - spike test not applied; burst-mode instruments generate false positives at
+       every burst boundary
+
+**Flat-line test** (pressure only) — value is considered stuck when it does not change
+by more than the tolerance over a contiguous window:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 25 25 25 25
+
+   * - Variable
+     - Suspect (samples)
+     - Fail (samples)
+     - Tolerance (dbar)
+   * - ``pressure``
+     - 3
+     - 10
+     - 0.001
+
+**Tilt QC** (Aquadopp only) — velocity variables are flagged when the instrument tilt
+exceeds the threshold:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 20 20 20
+
+   * - Test
+     - Suspect (°)
+     - Fail (°)
+     - Override key
+   * - Pitch/roll tilt
+     - 30.0
+     - 50.0
+     - ``tilt_qc`` in instrument YAML
+
+**ADCP percent-good and error-velocity QC** (RDI WorkHorse only) — applied per depth bin:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 30 30
+
+   * - Test
+     - Suspect threshold
+     - Fail threshold
+   * - Percent good (column 3, 4-beam solutions)
+     - < 50 %
+     - < 25 %
+   * - Error velocity
+     - —
+     - > 0.3 m s⁻¹
+
 Configuration
 -------------
 
@@ -124,7 +281,7 @@ instrument entry.  If absent, global defaults are used.
 The ``fail_span`` defines the *pass range* — values outside this range are flagged 4
 (fail).  Similarly for ``suspect_span`` → flag 3.
 
-See :doc:`../yaml_configuration` for the full ``qc_ranges`` reference and default values.
+See :doc:`../yaml_configuration` for the full ``qc_ranges`` YAML reference.
 
 Variables flagged
 -----------------
