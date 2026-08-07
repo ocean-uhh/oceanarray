@@ -1153,18 +1153,12 @@ def cmd_stub(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     """Build and return the top-level argument parser for the oceanarray CLI."""
     epilog = (
-        "Typical per-mooring workflow (new canonical layout):\n"
-        "  oceanarray process MOORING --raw-dir /data/raw --proc-dir /data/proc --stage 1 2 3\n"
-        "  oceanarray stack   MOORING --proc-dir /data/proc\n"
-        "  oceanarray grid    MOORING --proc-dir /data/proc --dp 20\n"
+        "Typical workflow:\n"
+        "  oceanarray process MOORING --raw-dir /data/raw --proc-dir /data/proc --stage 1 2 3 stack grid\n"
         "  oceanarray report  MOORING --raw-dir /data/raw --proc-dir /data/proc --instruments --stack --grid\n"
         "\n"
-        "Or run all steps in one command:\n"
-        "  oceanarray run MOORING --raw-dir /data/raw --proc-dir /data/proc --dp 20 --force\n"
-        "\n"
-        "Legacy (deprecated):\n"
-        "  oceanarray run MOORING --raw-dir /data/raw --proc-dir /data/proc --dp 20 --force\n"
-        "  See MIGRATION-BASEDIR.md for migration instructions.\n"
+        "Or in a single command:\n"
+        "  oceanarray run MOORING --raw-dir /data/raw --proc-dir /data/proc --dp 20\n"
     )
     parser = argparse.ArgumentParser(
         prog="oceanarray",
@@ -1398,7 +1392,6 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_stack = sub.add_parser(
         "stack",
-        help="Mooring-level step 1: interpolate all instruments onto a common time axis → _stack.nc",
         description=(
             "Reads all _stage3.nc (or _stage2.nc) files for a mooring and interpolates\n"
             "every instrument onto a uniform time grid, producing {mooring}_stack.nc.\n"
@@ -1430,7 +1423,6 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_grid = sub.add_parser(
         "grid",
-        help="Mooring-level step 2: vertically interpolate stack onto a pressure grid → _grid.nc",
         description=(
             "Reads {mooring}_stack.nc and interpolates temperature, salinity, and other\n"
             "scalar fields onto a uniform pressure grid, producing {mooring}_grid.nc.\n"
