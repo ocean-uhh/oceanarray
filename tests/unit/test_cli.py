@@ -90,3 +90,50 @@ def test_build_parser_parses_basic_args(args, attr, expected):
     parser = build_parser()
     ns = parser.parse_args(args)
     assert getattr(ns, attr) == expected
+
+
+class TestStageToken:
+    @pytest.mark.parametrize(
+        "value,expected",
+        [
+            ("1", 1),
+            ("2", 2),
+            ("3", 3),
+            ("stack", "stack"),
+            ("grid", "grid"),
+        ],
+    )
+    def test_valid_values(self, value, expected):
+        from oceanarray.cli import _stage_token
+
+        assert _stage_token(value) == expected
+
+    @pytest.mark.parametrize("value", ["4", "0", "bogus"])
+    def test_unknown_values_raise_argument_type_error(self, value):
+        import argparse
+
+        from oceanarray.cli import _stage_token
+
+        with pytest.raises(argparse.ArgumentTypeError):
+            _stage_token(value)
+
+    def test_stage1_alias_passes_type_conversion(self):
+        """'stage1' is a valid resolve_stage target so _stage_token returns it
+        as a string; argparse choices then rejects it (not in [1,2,3,'stack','grid'])."""
+        from oceanarray.cli import _stage_token
+
+        assert _stage_token("stage1") == "stage1"
+
+    def test_choices_derived_from_stages(self):
+        """choices= for --stage is derived from STAGES, not a hardcoded list."""
+        from oceanarray.processors import STAGES
+
+        parser = build_parser()
+        process_sub = parser._subparsers._actions[-1].choices["process"]
+        stage_action = next(
+            a
+            for a in process_sub._actions
+            if "--stage" in getattr(a, "option_strings", [])
+        )
+        expected = [s.number if s.number is not None else s.name for s in STAGES]
+        assert stage_action.choices == expected
