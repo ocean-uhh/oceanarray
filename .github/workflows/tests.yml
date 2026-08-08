@@ -32,7 +32,9 @@ jobs:
         run: pip install -e . --no-deps --force-reinstall
 
       - name: Run unit tests
-        run: pytest tests/unit -m "not slow and not local and not needs_seasenselib" -q
+        run: >
+          pytest tests/unit -m "not slow and not local and not needs_seasenselib" -q
+          ${{ matrix.os == 'ubuntu-latest' && '--cov=oceanarray --cov-report=term-missing --cov-fail-under=38' || '--no-cov' }}
 
   integration:
     runs-on: ubuntu-latest

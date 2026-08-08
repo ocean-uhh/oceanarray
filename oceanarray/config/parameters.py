@@ -10,9 +10,9 @@ figure sizes that differ from the per-plot mplstyle default.
 
 Import and reassign any value here to override it globally, e.g.::
 
-    import oceanarray.parameters as P
-    P.DOWNSAMPLE_SECONDS = 60
-    P.DEFAULT_COLORMAP = "viridis"
+    import oceanarray.parameters as params
+    params.DOWNSAMPLE_SECONDS = 60
+    params.DEFAULT_COLORMAP = "viridis"
 
 These values are read at call time, so assignment before calling a function
 is sufficient.
@@ -323,3 +323,223 @@ DEPRECATED_FILE_TYPE_ALIASES: dict = {
 ALL_FILE_TYPES: frozenset = frozenset(
     ft for fts in INSTRUMENT_FILE_TYPES.values() for ft in fts
 ) | frozenset(EXTRA_FILE_TYPES)
+
+# ---------------------------------------------------------------------------
+# Variable display registry
+# ---------------------------------------------------------------------------
+
+#: Display metadata for each physical variable.
+#:
+#: Each entry has:
+#:   ``label``         — human-readable name for plot titles and legends.
+#:   ``label_units``   — Unicode units string for plot axis labels (e.g. ``"°C"``).
+#:                       Use :func:`vlabel` to get the combined ``"Label (units)"``
+#:                       string.  Empty string for dimensionless quantities.
+#:   ``units``         — udunits-2 / CF-compliant ASCII units for NetCDF attributes
+#:                       (e.g. ``"degree_Celsius"``).  May differ from ``label_units``
+#:                       only in encoding (Unicode → ASCII).
+#:   ``standard_name`` — CF standard name.  ``None`` when no standard name exists
+#:                       (e.g. turbidity in NTU, which has no udunits-2 unit).
+#:   ``cmap``          — default matplotlib colormap name, or ``None`` for variables
+#:                       without a natural diverging / sequential convention.
+#:   ``valid_min``     — CF ``valid_min`` attribute written to NetCDF output (physically
+#:   ``valid_max``       valid range).  Present only where :file:`OS1_vocab_attrs.yaml`
+#:                       provides an authoritative value; absent for other variables.
+VARIABLES: dict[str, dict] = {
+    "temperature": {
+        "label": "Temperature",
+        "label_units": "°C",
+        "units": "degree_Celsius",
+        "standard_name": "sea_water_temperature",
+        "cmap": "RdBu_r",
+        "valid_min": -5.0,   # OS1_vocab_attrs.yaml TEMP
+        "valid_max": 42.0,
+    },
+    "conservative_temperature": {
+        "label": "Conservative temperature",
+        "label_units": "°C",
+        "units": "degree_Celsius",
+        "standard_name": "sea_water_conservative_temperature",
+        "cmap": "RdBu_r",
+        "valid_min": -5.0,   # same physical range as temperature
+        "valid_max": 42.0,
+    },
+    "conductivity": {
+        "label": "Conductivity",
+        "label_units": "mS cm⁻¹",
+        "units": "mS cm-1",
+        "standard_name": "sea_water_electrical_conductivity",
+        "cmap": None,
+        "valid_min": 0.0,    # OS1_vocab_attrs.yaml CNDC
+        "valid_max": 80.0,
+    },
+    "salinity": {
+        "label": "Salinity",
+        "label_units": "PSU",
+        "units": "1",  # PSS-78 is dimensionless per CF
+        "standard_name": "sea_water_practical_salinity",
+        "cmap": "YlGnBu_r",
+    },
+    "absolute_salinity": {
+        "label": "Absolute salinity",
+        "label_units": "g kg⁻¹",
+        "units": "g kg-1",
+        "standard_name": "sea_water_absolute_salinity",
+        "cmap": "YlGnBu_r",
+    },
+    "pressure": {
+        "label": "Pressure",
+        "label_units": "dbar",
+        "units": "dbar",
+        "standard_name": "sea_water_pressure",
+        "cmap": None,
+        "valid_min": 0.0,    # OS1_vocab_attrs.yaml PRES
+        "valid_max": 11000.0,
+    },
+    "depth": {
+        "label": "Depth",
+        "label_units": "m",
+        "units": "m",
+        "standard_name": "depth",
+        "cmap": None,
+        "valid_min": 0.0,    # OS1_vocab_attrs.yaml DEPTH
+        "valid_max": 12000.0,
+    },
+    "potential_density": {
+        "label": "σ₀",
+        "label_units": "kg m⁻³",
+        "units": "kg m-3",
+        # sea_water_sigma_theta = potential density anomaly referenced to 0 dbar
+        # (i.e. rho(T_potential, S, p=0) − 1000 kg m-3)
+        "standard_name": "sea_water_sigma_theta",
+        "cmap": "BuPu",
+    },
+    "u": {
+        "label": "Eastward velocity",
+        "label_units": "m s⁻¹",
+        "units": "m s-1",
+        "standard_name": "eastward_sea_water_velocity",
+        "cmap": "RdBu_r",
+    },
+    "v": {
+        "label": "Northward velocity",
+        "label_units": "m s⁻¹",
+        "units": "m s-1",
+        "standard_name": "northward_sea_water_velocity",
+        "cmap": "RdBu_r",
+    },
+    "w": {
+        "label": "Vertical velocity",
+        "label_units": "m s⁻¹",
+        "units": "m s-1",
+        "standard_name": "upward_sea_water_velocity",
+        "cmap": "RdBu_r",
+    },
+    "east_velocity": {
+        "label": "Eastward velocity",
+        "label_units": "m s⁻¹",
+        "units": "m s-1",
+        "standard_name": "eastward_sea_water_velocity",
+        "cmap": "RdBu_r",
+    },
+    "north_velocity": {
+        "label": "Northward velocity",
+        "label_units": "m s⁻¹",
+        "units": "m s-1",
+        "standard_name": "northward_sea_water_velocity",
+        "cmap": "RdBu_r",
+    },
+    "up_velocity": {
+        "label": "Upward velocity",
+        "label_units": "m s⁻¹",
+        "units": "m s-1",
+        "standard_name": "upward_sea_water_velocity",
+        "cmap": "RdBu_r",
+    },
+    "speed": {
+        "label": "Speed",
+        "label_units": "m s⁻¹",
+        "units": "m s-1",
+        "standard_name": "sea_water_speed",
+        "cmap": "plasma",
+    },
+    "dissolved_oxygen": {
+        "label": "Dissolved oxygen",
+        "label_units": "µmol L⁻¹",
+        "units": "umol L-1",
+        "standard_name": "mole_concentration_of_dissolved_molecular_oxygen_in_sea_water",
+        "cmap": "RdYlGn",
+    },
+    "dissolved_oxygen_ml_l": {
+        "label": "Dissolved oxygen",
+        "label_units": "mL L⁻¹",
+        "units": "mL L-1",
+        # Same standard_name as dissolved_oxygen — units field disambiguates.
+        "standard_name": "mole_concentration_of_dissolved_molecular_oxygen_in_sea_water",
+        "cmap": "RdYlGn",
+    },
+    "oxygen_saturation_pct": {
+        "label": "O₂ percent saturation",
+        "label_units": "%",
+        "units": "%",
+        # CF "fractional_saturation_of_oxygen_in_sea_water" is 0–1, not 0–100; no
+        # unambiguous standard_name for the percent form.
+        "standard_name": None,
+        "cmap": "RdYlGn",
+    },
+    "apparent_oxygen_utilization": {
+        "label": "Apparent oxygen utilization",
+        "label_units": "µmol kg⁻¹",
+        "units": "umol kg-1",
+        "standard_name": "apparent_oxygen_utilization",
+        "cmap": None,
+    },
+    "turbidity": {
+        "label": "Turbidity",
+        "label_units": "NTU",
+        "units": "NTU",  # NTU is not a udunits-2 unit; no udunits-2 equivalent exists
+        "standard_name": "sea_water_turbidity",
+        "cmap": "YlOrBr",
+    },
+    "n2": {
+        "label": "N²",
+        "label_units": "s⁻²",
+        "units": "s-2",
+        "standard_name": "square_of_brunt_vaisala_frequency_in_sea_water",
+        "cmap": "plasma",
+    },
+}
+
+#: Colormap lookup derived from :data:`VARIABLES` — single source of truth so
+#: the two cannot drift.  Excludes entries where ``cmap`` is ``None``.
+CMAPS_BY_VARIABLE: dict[str, str] = {
+    k: v["cmap"] for k, v in VARIABLES.items() if v.get("cmap") is not None
+}
+
+
+def vlabel(var: str, prefix: str = "") -> str:
+    """Return a matplotlib axis label for *var* from the :data:`VARIABLES` registry.
+
+    Format is ``"{prefix}Label (units)"`` when ``label_units`` is non-empty,
+    or ``"{prefix}Label"`` for dimensionless quantities.  The ``prefix`` is
+    prepended to the label component only, not the units, so
+    ``vlabel("temperature", prefix="Δ")`` produces ``"ΔTemperature (°C)"``.
+
+    Parameters
+    ----------
+    var : str
+        Variable name (key in :data:`VARIABLES`).
+    prefix : str, optional
+        Text prepended to the label component — e.g. ``"Gridded "`` or ``"Δ"``.
+
+    Returns
+    -------
+    str
+        Ready-to-use axis label.  Falls back to ``"{prefix}{var}"`` when *var*
+        is not in the registry so callers always get something useful.
+
+    """
+    entry = VARIABLES.get(var, {})
+    lbl = f"{prefix}{entry.get('label', var)}"
+    lu = entry.get("label_units", "")
+    return f"{lbl} ({lu})" if lu else lbl

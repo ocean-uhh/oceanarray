@@ -52,7 +52,6 @@ oceanarray/
 │   │
 │   ├── config/                    # Configuration files
 │   │   ├── OS1_var_names.yaml     # OceanSITES variable name mappings
-│   │   ├── OS1_vocab_attrs.yaml   # OceanSITES vocabulary and CF attributes
 │   │   ├── OS1_sensor_attrs.yaml  # OceanSITES sensor attributes
 │   │   ├── logging.yaml           # Logging configuration
 │   │   └── legacy/                # Legacy configuration files

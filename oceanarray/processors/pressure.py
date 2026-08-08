@@ -353,7 +353,7 @@ def compute_adcp_bin_pressure(
 
     """
     import gsw
-    from oceanarray import parameters as _P
+    from oceanarray import parameters as params
 
     if "pressure" not in ds.data_vars or "range" not in ds.coords:
         if log_fn:
@@ -382,7 +382,7 @@ def compute_adcp_bin_pressure(
     bin_p = p_trans[:, np.newaxis] + sign * dp[np.newaxis, :]  # (time, N_BINS)
 
     ds["bin_pressure"] = xr.Variable(
-        ("time", _P.ADCP_BIN_DIM),
+        ("time", params.ADCP_BIN_DIM),
         bin_p.astype(np.float32),
         attrs={
             "long_name": "pressure at ADCP bin",

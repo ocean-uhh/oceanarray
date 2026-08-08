@@ -19,7 +19,7 @@ from oceanarray.utilities import (
     extract_inline_instruments,
     should_skip_regeneration,
 )
-from oceanarray import parameters as P
+from oceanarray import parameters as params
 from oceanarray import paths
 from oceanarray.paths import safe_serial
 
@@ -30,7 +30,7 @@ logging.getLogger("pycnv").setLevel(logging.WARNING)
 
 
 # Re-export for backward compatibility; canonical definition is in parameters.py.
-ADCP_BIN_DIM: str = P.ADCP_BIN_DIM
+ADCP_BIN_DIM: str = params.ADCP_BIN_DIM
 
 
 def _dms_str_to_decimal(s: str) -> Optional[float]:
@@ -200,7 +200,7 @@ class MooringProcessor:
     # YAML validator cannot drift.  Add new file types to ``INSTRUMENT_FILE_TYPES``
     # or ``EXTRA_FILE_TYPES`` in parameters, not here.  Note: some keys (e.g.
     # ``nortek-csv``) are accepted vocabulary but not yet implemented by a reader.
-    SUPPORTED_FILE_TYPES = P.ALL_FILE_TYPES
+    SUPPORTED_FILE_TYPES = params.ALL_FILE_TYPES
 
     # Variables to remove for specific file types
     VARS_TO_REMOVE = {
@@ -333,10 +333,10 @@ class MooringProcessor:
         # Remap deprecated file_type aliases to their current equivalent before
         # the membership check — aliases are intentionally excluded from
         # SUPPORTED_FILE_TYPES so they no longer appear in any public list.
-        if file_type in P.DEPRECATED_FILE_TYPE_ALIASES:
+        if file_type in params.DEPRECATED_FILE_TYPE_ALIASES:
             import warnings
 
-            canonical = P.DEPRECATED_FILE_TYPE_ALIASES[file_type]
+            canonical = params.DEPRECATED_FILE_TYPE_ALIASES[file_type]
             warnings.warn(
                 f"file_type '{file_type}' is deprecated and remapped to "
                 f"'{canonical}' automatically; update your mooring YAML to "

@@ -32,7 +32,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from scipy.integrate import cumulative_trapezoid
 from scipy.interpolate import interp1d
 
-from oceanarray import parameters as P
+from oceanarray import parameters as params
 from oceanarray import utilities
 from oceanarray.logger import log_info
 
@@ -774,60 +774,60 @@ def plot_climatology(
         The figure and axes drawn on.
 
     """
-    plt.style.use(str(P.MPLSTYLE))
     if var not in clim_ds:
         raise ValueError(f"{var} not found in climatology dataset.")  # noqa: TRY003
 
-    if fig is None or ax is None:
-        fig, ax = plt.subplots(figsize=(10, 6))
+    with plt.style.context(str(params.MPLSTYLE)):
+        if fig is None or ax is None:
+            fig, ax = plt.subplots(figsize=(10, 6))
 
-    months = np.arange(1, 13)
-    # Seasonal colour cycle: cold → warm → cold.
-    colors = [
-        (0, 0, 1),  # Blue (January, cold)
-        (0, 0.5, 1),  # Light blue (Spring)
-        (0, 1, 0),  # Green (Early summer)
-        (1, 1, 0),  # Yellow (Mid-summer, warm)
-        (1, 0.5, 0),  # Orange (Late summer)
-        (1, 0, 0),  # Red (July, peak warmth)
-        (0.5, 0, 0.5),  # Purple (Autumn)
-        (0, 0, 1),  # Blue (December, cold again)
-    ]
-    seasonal_colormap = LinearSegmentedColormap.from_list(
-        "seasonal_cycle", colors, N=12
-    )
+        months = np.arange(1, 13)
+        # Seasonal colour cycle: cold → warm → cold.
+        colors = [
+            (0, 0, 1),  # Blue (January, cold)
+            (0, 0.5, 1),  # Light blue (Spring)
+            (0, 1, 0),  # Green (Early summer)
+            (1, 1, 0),  # Yellow (Mid-summer, warm)
+            (1, 0.5, 0),  # Orange (Late summer)
+            (1, 0, 0),  # Red (July, peak warmth)
+            (0.5, 0, 0.5),  # Purple (Autumn)
+            (0, 0, 1),  # Blue (December, cold again)
+        ]
+        seasonal_colormap = LinearSegmentedColormap.from_list(
+            "seasonal_cycle", colors, N=12
+        )
 
-    for month in months:
-        TEMP = clim_ds["TEMP"]
-        if clim_ds_smoothed is not None:
-            ax.plot(
-                TEMP,
-                clim_ds[var].sel(month=month),
-                color="grey",
-                alpha=0.4,
-                linewidth=1,
-            )
-            ax.plot(
-                TEMP,
-                clim_ds_smoothed[var].sel(month=month),
-                linewidth=1.5,
-                label=f"Month {month}",
-                color=seasonal_colormap(month - 1),
-            )
-        else:
-            ax.plot(
-                TEMP,
-                clim_ds[var].sel(month=month),
-                label=f"Month {month}",
-                color=seasonal_colormap(month - 1),
-                linewidth=1.5,
-            )
+        for month in months:
+            TEMP = clim_ds["TEMP"]
+            if clim_ds_smoothed is not None:
+                ax.plot(
+                    TEMP,
+                    clim_ds[var].sel(month=month),
+                    color="grey",
+                    alpha=0.4,
+                    linewidth=1,
+                )
+                ax.plot(
+                    TEMP,
+                    clim_ds_smoothed[var].sel(month=month),
+                    linewidth=1.5,
+                    label=f"Month {month}",
+                    color=seasonal_colormap(month - 1),
+                )
+            else:
+                ax.plot(
+                    TEMP,
+                    clim_ds[var].sel(month=month),
+                    label=f"Month {month}",
+                    color=seasonal_colormap(month - 1),
+                    linewidth=1.5,
+                )
 
-    ax.set_xlabel("Temperature (°C)")
-    ax.set_ylabel(f"{var} (per dbar)")
-    ax.set_title(f"Monthly {var} Climatology")
-    ax.legend(ncol=3, fontsize=8)
-    ax.grid(True)
-    plt.tight_layout()
+        ax.set_xlabel("Temperature (°C)")
+        ax.set_ylabel(f"{var} (per dbar)")
+        ax.set_title(f"Monthly {var} Climatology")
+        ax.legend(ncol=3, fontsize=8)
+        ax.grid(True)
+        plt.tight_layout()
 
-    return fig, ax
+        return fig, ax

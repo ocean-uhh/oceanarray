@@ -76,7 +76,7 @@ from typing import Dict, List, NamedTuple
 
 import yaml
 
-from oceanarray import parameters as P
+from oceanarray import parameters as params
 
 
 # Instrument-type validity is single-sourced from ``parameters.KNOWN_INSTRUMENT_TYPES``
@@ -91,7 +91,7 @@ KNOWN_ALIASES: Dict[str, str] = {
 # Valid ``file_type:`` values are single-sourced from ``parameters.ALL_FILE_TYPES``
 # (union of ``INSTRUMENT_FILE_TYPES`` readers and ``EXTRA_FILE_TYPES``).  Add new
 # file types there, not here — this keeps ``validate`` and stage1 in agreement.
-VALID_FILE_TYPES = P.ALL_FILE_TYPES
+VALID_FILE_TYPES = params.ALL_FILE_TYPES
 
 UNSUPPORTED_FILE_TYPES: Dict[str, str] = {}
 
@@ -210,14 +210,14 @@ def validate_mooring_yaml(yaml_path: str) -> List[ValidationIssue]:
                 )
             )
         elif (
-            instrument not in P.KNOWN_INSTRUMENT_TYPES
+            instrument not in params.KNOWN_INSTRUMENT_TYPES
             and instrument.upper() != "ADCP"  # accept both 'adcp' and 'ADCP'
         ):
             issues.append(
                 ValidationIssue(
                     "WARNING",
                     f"{prefix} instrument='{instrument}' is not in the known list: "
-                    f"{', '.join(sorted(P.KNOWN_INSTRUMENT_TYPES))}",
+                    f"{', '.join(sorted(params.KNOWN_INSTRUMENT_TYPES))}",
                 )
             )
 
@@ -226,8 +226,8 @@ def validate_mooring_yaml(yaml_path: str) -> List[ValidationIssue]:
             and file_type not in VALID_FILE_TYPES
             and file_type != "TBD"
         ):
-            if file_type in P.DEPRECATED_FILE_TYPE_ALIASES:
-                canonical = P.DEPRECATED_FILE_TYPE_ALIASES[file_type]
+            if file_type in params.DEPRECATED_FILE_TYPE_ALIASES:
+                canonical = params.DEPRECATED_FILE_TYPE_ALIASES[file_type]
                 issues.append(
                     ValidationIssue(
                         "WARNING",

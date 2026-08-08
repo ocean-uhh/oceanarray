@@ -44,6 +44,9 @@ from ..plotters.current import (
     draw_grid_hodograph,
 )
 from ..plotters.diagnostic import (
+    _CANONICAL_PANELS,
+    _COMPACT_PANEL_VARS,
+    _COMPACT_PANEL_HEIGHT,
     draw_windows,
     draw_data_histogram,
     draw_velocity_iqr_profile,
@@ -109,7 +112,13 @@ def _plot_failed(exc: Exception) -> None:
     return None
 
 
-def render_b64(draw: Callable[..., Any], /, *args: Any, **kwargs: Any) -> Optional[str]:
+def render_b64(
+    draw: Callable[..., Any],
+    /,
+    *args: Any,
+    optional: bool = False,
+    **kwargs: Any,
+) -> Optional[str]:
     """Run *draw* and return its Figure as a base64 PNG.
 
     *draw* must return a :class:`matplotlib.figure.Figure`, or ``None`` if the
@@ -124,6 +133,12 @@ def render_b64(draw: Callable[..., Any], /, *args: Any, **kwargs: Any) -> Option
         Figure-building function.  Called as ``draw(*args, **kwargs)``.
     *args
         Positional arguments forwarded to *draw*.
+    optional : bool, default False
+        When ``True``, a ``None`` return from *draw* is expected (e.g. the
+        panel requires data not present for all mooring types — ADCP file,
+        oxygen sensor, wave data).  When ``False`` (the default) a ``None``
+        return is treated as a defect and raises under
+        :data:`RAISE_ON_PLOT_ERROR`.
     **kwargs
         Keyword arguments forwarded to *draw*.
 
@@ -135,13 +150,19 @@ def render_b64(draw: Callable[..., Any], /, *args: Any, **kwargs: Any) -> Option
 
     """
     import matplotlib.pyplot as plt
-    from .. import parameters as P
+    from .. import parameters as params
 
     fig = None
     try:
-        with plt.style.context(str(P.MPLSTYLE)):
+        with plt.style.context(str(params.MPLSTYLE)):
             fig = draw(*args, **kwargs)
             if fig is None:
+                if RAISE_ON_PLOT_ERROR and not optional:
+                    raise ValueError(
+                        f"{getattr(draw, '__name__', draw)} returned None"
+                        " — panel dropped silently (pass optional=True if this"
+                        " panel is legitimately absent for some mooring types)"
+                    )
                 return None
             import matplotlib as _mpl
 
@@ -170,9 +191,8 @@ def render_b64(draw: Callable[..., Any], /, *args: Any, **kwargs: Any) -> Option
 def _plot_aquadopp_quick(ds: "xr.Dataset") -> "plt.Figure":
     """Quick-look figure for Aquadopp; handles beam and ENU naming, lowercase attitude."""
     import matplotlib.pyplot as plt
-    from .. import parameters as P
+    from .. import parameters as params
 
-    plt.style.use(str(P.MPLSTYLE))
     panels: List[Tuple] = []
 
     enu = [
@@ -201,63 +221,34 @@ def _plot_aquadopp_quick(ds: "xr.Dataset") -> "plt.Figure":
             panels.append((vname, label, "tab:purple", False))
 
     nrows = max(len(panels), 1)
-    fig, axs = plt.subplots(nrows, 1, figsize=(12, 3 * nrows), sharex=True)
-    if nrows == 1:
-        axs = [axs]
+    with plt.style.context(str(params.MPLSTYLE)):
+        fig, axs = plt.subplots(nrows, 1, figsize=(12, 3 * nrows), sharex=True)
+        if nrows == 1:
+            axs = [axs]
 
-    for ax, (vname, label, color, invert) in zip(axs, panels):
-        ax.plot(ds["time"], ds[vname], color=color, linewidth=0.5)
-        if "velocity" in vname:
-            ax.axhline(0, color="k", linewidth=0.5, linestyle="--")
-        ax.set_ylabel(label)
-        if invert:
-            vmin = float(ds[vname].min())
-            vmax = float(ds[vname].max())
-            pad = max((vmax - vmin) * 0.1, 0.5)
-            ax.set_ylim(vmax + pad, vmin - pad)
+        for ax, (vname, label, color, invert) in zip(axs, panels):
+            ax.plot(ds["time"], ds[vname], color=color, linewidth=0.5)
+            if "velocity" in vname:
+                ax.axhline(0, color="k", linewidth=0.5, linestyle="--")
+            ax.set_ylabel(label)
+            if invert:
+                vmin = float(ds[vname].min())
+                vmax = float(ds[vname].max())
+                pad = max((vmax - vmin) * 0.1, 0.5)
+                ax.set_ylim(vmax + pad, vmin - pad)
 
-    serial = (
-        ds["serial_number"].item()
-        if "serial_number" in ds
-        else ds.attrs.get("serial_number", "?")
-    )
-    depth = f"{ds['InstrDepth'].item():.0f} m" if "InstrDepth" in ds else "?"
-    axs[0].set_title(f"Aquadopp s/n: {serial}  |  Target depth: {depth}")
-    axs[-1].set_xlabel("Time")
-    date_axis(axs[-1])
-    plt.tight_layout()
-    return fig
+        serial = (
+            ds["serial_number"].item()
+            if "serial_number" in ds
+            else ds.attrs.get("serial_number", "?")
+        )
+        depth = f"{ds['InstrDepth'].item():.0f} m" if "InstrDepth" in ds else "?"
+        axs[0].set_title(f"Aquadopp s/n: {serial}  |  Target depth: {depth}")
+        axs[-1].set_xlabel("Time")
+        date_axis(axs[-1])
+        plt.tight_layout()
+        return fig
 
-
-# ---------------------------------------------------------------------------
-# Canonical panel order
-# ---------------------------------------------------------------------------
-
-# Canonical variable order for all instrument plots.
-_CANONICAL_PANELS: List[Tuple] = [
-    ("pressure", "Pressure (dbar)", "tab:green", True),
-    ("pressure_1", "Pressure 1 (dbar)", "tab:green", True),
-    ("temperature", "Temperature (°C)", "tab:red", False),
-    ("conductivity", "Conductivity (mS cm⁻¹)", "tab:blue", False),
-    ("salinity", "Salinity (PSU)", "tab:cyan", False),
-    ("east_velocity", "East velocity (m s⁻¹)", "tab:blue", False),
-    ("north_velocity", "North velocity (m s⁻¹)", "tab:orange", False),
-    ("up_velocity", "Up velocity (m s⁻¹)", "tab:cyan", False),
-    ("velocity_beam1", "Beam 1 velocity (m s⁻¹)", "tab:blue", False),
-    ("velocity_beam2", "Beam 2 velocity (m s⁻¹)", "tab:orange", False),
-    ("velocity_beam3", "Beam 3 velocity (m s⁻¹)", "tab:cyan", False),
-    ("tilt", "Tilt (°)", "tab:red", False),
-    ("pitch", "Pitch (°)", "tab:purple", False),
-    ("roll", "Roll (°)", "#8B4513", False),
-    ("heading", "Heading (°)", "tab:gray", False),
-    ("speed_of_sound", "Sound speed (m s⁻¹)", "tab:olive", False),
-    ("turbidity", "Turbidity (NTU)", "tab:brown", False),
-    ("dissolved_oxygen", "Dissolved oxygen (µmol L⁻¹)", "steelblue", False),
-    ("battery_voltage", "Battery (V)", "tab:pink", False),
-]
-
-_COMPACT_PANEL_VARS: frozenset = frozenset({"battery_voltage", "speed_of_sound"})
-_COMPACT_PANEL_HEIGHT: float = 1.5
 
 # Variables plotted with both a line and individual dots so that sparse or
 # near-zero samples (e.g. turbidity = 0 NTU between events) are visible.
@@ -310,9 +301,7 @@ def _build_fig_from_ds(
 ) -> "Optional[plt.Figure]":
     """Render instrument panels from an already-loaded xarray Dataset."""
     import matplotlib.pyplot as plt
-    from .. import parameters as P
-
-    plt.style.use(str(P.MPLSTYLE))
+    from .. import parameters as params
 
     _has_pitch = "pitch" in ds.data_vars
     _has_roll = "roll" in ds.data_vars
@@ -344,136 +333,145 @@ def _build_fig_from_ds(
     if not panels:
         return None
 
-    nrows = len(panels)
-    height_ratios = [
-        _COMPACT_PANEL_HEIGHT if vname in _COMPACT_PANEL_VARS else 3.0
-        for vname, *_ in panels
-    ]
-    fig, axs = plt.subplots(
-        nrows,
-        1,
-        figsize=(12, sum(height_ratios)),
-        gridspec_kw={"height_ratios": height_ratios},
-        sharex=True,
-    )
-    if nrows == 1:
-        axs = [axs]
+    with plt.style.context(str(params.MPLSTYLE)):
+        nrows = len(panels)
+        height_ratios = [
+            _COMPACT_PANEL_HEIGHT if vname in _COMPACT_PANEL_VARS else 3.0
+            for vname, *_ in panels
+        ]
+        fig, axs = plt.subplots(
+            nrows,
+            1,
+            figsize=(12, sum(height_ratios)),
+            gridspec_kw={"height_ratios": height_ratios},
+            sharex=True,
+        )
+        if nrows == 1:
+            axs = [axs]
 
-    time = ds["time"].values
+        time = ds["time"].values
 
-    for ax, (vname, label, color, invert) in zip(axs, panels):
-        if vname == "_pitch_roll_combo":
-            _suspect_t = float(ds.attrs.get("tilt_suspect_threshold", 20.0))
-            _fail_t = float(ds.attrs.get("tilt_fail_threshold", 30.0))
-            if "pitch" in ds.data_vars:
+        for ax, (vname, label, color, invert) in zip(axs, panels):
+            if vname == "_pitch_roll_combo":
+                _suspect_t = float(ds.attrs.get("tilt_suspect_threshold", 20.0))
+                _fail_t = float(ds.attrs.get("tilt_fail_threshold", 30.0))
+                if "pitch" in ds.data_vars:
+                    ax.plot(
+                        time,
+                        ds["pitch"].values.astype(float),
+                        color="tab:purple",
+                        lw=0.6,
+                        label="pitch",
+                        zorder=1,
+                    )
+                if "roll" in ds.data_vars:
+                    ax.plot(
+                        time,
+                        ds["roll"].values.astype(float),
+                        color="#8B4513",
+                        lw=0.6,
+                        label="roll",
+                        zorder=1,
+                    )
+                for _val, _c, _ls in [
+                    (_suspect_t, "tab:orange", "--"),
+                    (-_suspect_t, "tab:orange", "--"),
+                    (_fail_t, "tab:red", ":"),
+                    (-_fail_t, "tab:red", ":"),
+                ]:
+                    ax.axhline(_val, color=_c, lw=0.8, ls=_ls, zorder=0)
+                ax.set_ylabel(label)
+                ax.legend(loc="upper right", framealpha=0.8)
+                continue
+
+            data = ds[vname].values.astype(float)
+            ax.plot(time, data, color=color, linewidth=0.6, zorder=1)
+            if vname in _DOT_LINE_VARS:
                 ax.plot(
-                    time,
-                    ds["pitch"].values.astype(float),
-                    color="tab:purple",
-                    lw=0.6,
-                    label="pitch",
-                    zorder=1,
+                    time, data, ".", color=color, markersize=2, linewidth=0, zorder=2
                 )
-            if "roll" in ds.data_vars:
-                ax.plot(
-                    time,
-                    ds["roll"].values.astype(float),
-                    color="#8B4513",
-                    lw=0.6,
-                    label="roll",
-                    zorder=1,
+            if "velocity" in vname and not invert:
+                ax.axhline(0, color="k", linewidth=0.4, linestyle="--", zorder=0)
+            if vname == "tilt":
+                _suspect_t = float(ds.attrs.get("tilt_suspect_threshold", 20.0))
+                _fail_t = float(ds.attrs.get("tilt_fail_threshold", 30.0))
+                ax.axhline(
+                    _suspect_t,
+                    color="tab:orange",
+                    lw=0.9,
+                    ls="--",
+                    label=f"suspect {_suspect_t:.0f}°",
+                    zorder=2,
                 )
-            for _val, _c, _ls in [
-                (_suspect_t, "tab:orange", "--"),
-                (-_suspect_t, "tab:orange", "--"),
-                (_fail_t, "tab:red", ":"),
-                (-_fail_t, "tab:red", ":"),
-            ]:
-                ax.axhline(_val, color=_c, lw=0.8, ls=_ls, zorder=0)
+                ax.axhline(
+                    _fail_t,
+                    color="tab:red",
+                    lw=0.9,
+                    ls="--",
+                    label=f"fail {_fail_t:.0f}°",
+                    zorder=2,
+                )
+                ax.legend(loc="upper right", framealpha=0.8)
             ax.set_ylabel(label)
-            ax.legend(loc="upper right", framealpha=0.8)
-            continue
-
-        data = ds[vname].values.astype(float)
-        ax.plot(time, data, color=color, linewidth=0.6, zorder=1)
-        if vname in _DOT_LINE_VARS:
-            ax.plot(time, data, ".", color=color, markersize=2, linewidth=0, zorder=2)
-        if "velocity" in vname and not invert:
-            ax.axhline(0, color="k", linewidth=0.4, linestyle="--", zorder=0)
-        if vname == "tilt":
-            _suspect_t = float(ds.attrs.get("tilt_suspect_threshold", 20.0))
-            _fail_t = float(ds.attrs.get("tilt_fail_threshold", 30.0))
-            ax.axhline(
-                _suspect_t,
-                color="tab:orange",
-                lw=0.9,
-                ls="--",
-                label=f"suspect {_suspect_t:.0f}°",
-                zorder=2,
-            )
-            ax.axhline(
-                _fail_t,
-                color="tab:red",
-                lw=0.9,
-                ls="--",
-                label=f"fail {_fail_t:.0f}°",
-                zorder=2,
-            )
-            ax.legend(loc="upper right", framealpha=0.8)
-        ax.set_ylabel(label)
-        if invert:
-            vmin, vmax = float(np.nanmin(data)), float(np.nanmax(data))
-            pad = max((vmax - vmin) * 0.1, 0.5)
-            ax.set_ylim(vmax + pad, vmin - pad)
-        elif vname == "heading":
-            ax.set_ylim(0.0, 360.0)
-        elif "velocity" in vname:
-            _half = max(abs(float(np.nanmax(data))), abs(float(np.nanmin(data))), 1e-6)
-            ax.set_ylim(-_half, _half)
-
-        qc_var = f"{vname}_qc"
-        if show_qc and qc_var in ds.data_vars:
-            flags = ds[qc_var].values.astype(int)
-            for fval, mkw in _QC_MARKER.items():
-                mask = flags == fval
-                if mask.any():
-                    ax.scatter(time[mask], data[mask], label=_QC_LABELS[fval], **mkw)
-            handles, labels_list = ax.get_legend_handles_labels()
-            if handles:
-                ax.legend(
-                    handles,
-                    labels_list,
-                    loc="upper right",
-                    ncol=3,
-                    framealpha=0.8,
+            if invert:
+                vmin, vmax = float(np.nanmin(data)), float(np.nanmax(data))
+                pad = max((vmax - vmin) * 0.1, 0.5)
+                ax.set_ylim(vmax + pad, vmin - pad)
+            elif vname == "heading":
+                ax.set_ylim(0.0, 360.0)
+            elif "velocity" in vname:
+                _half = max(
+                    abs(float(np.nanmax(data))), abs(float(np.nanmin(data))), 1e-6
                 )
+                ax.set_ylim(-_half, _half)
 
-        # Twin right y-axis: O2 % saturation alongside dissolved oxygen concentration.
-        # Uses in-situ seawater density for the µmol/L → µmol/kg conversion (see
-        # _derive_oxygen_saturation in stage3.py); error vs freshwater density ~2.5%.
-        if vname == "dissolved_oxygen" and "oxygen_saturation_pct" in ds.data_vars:
-            ax2 = ax.twinx()
-            sat = ds["oxygen_saturation_pct"].values.astype(float)
-            ax2.plot(time, sat, color="darkorange", linewidth=0.6, alpha=0.75, zorder=0)
-            ax2.set_ylabel("O₂ sat. (%)", color="darkorange")
-            ax2.tick_params(axis="y", labelcolor="darkorange")
-            ax2.axhline(100.0, color="darkorange", lw=0.5, ls="--", alpha=0.4)
+            qc_var = f"{vname}_qc"
+            if show_qc and qc_var in ds.data_vars:
+                flags = ds[qc_var].values.astype(int)
+                for fval, mkw in _QC_MARKER.items():
+                    mask = flags == fval
+                    if mask.any():
+                        ax.scatter(
+                            time[mask], data[mask], label=_QC_LABELS[fval], **mkw
+                        )
+                handles, labels_list = ax.get_legend_handles_labels()
+                if handles:
+                    ax.legend(
+                        handles,
+                        labels_list,
+                        loc="upper right",
+                        ncol=3,
+                        framealpha=0.8,
+                    )
 
-    serial = (
-        ds["serial_number"].item()
-        if "serial_number" in ds
-        else ds.attrs.get("serial_number", "?")
-    )
-    depth = f"{ds['InstrDepth'].item():.0f} m" if "InstrDepth" in ds else "?"
-    title = f"{instr_type.title()} s/n: {serial}  |  Target depth: {depth}"
-    if title_suffix:
-        title += f"  [{title_suffix}]"
-    axs[0].set_title(title)
+            # Twin right y-axis: O2 % saturation alongside dissolved oxygen concentration.
+            # Uses in-situ seawater density for the µmol/L → µmol/kg conversion (see
+            # _derive_oxygen_saturation in stage3.py); error vs freshwater density ~2.5%.
+            if vname == "dissolved_oxygen" and "oxygen_saturation_pct" in ds.data_vars:
+                ax2 = ax.twinx()
+                sat = ds["oxygen_saturation_pct"].values.astype(float)
+                ax2.plot(
+                    time, sat, color="darkorange", linewidth=0.6, alpha=0.75, zorder=0
+                )
+                ax2.set_ylabel("O₂ sat. (%)", color="darkorange")
+                ax2.tick_params(axis="y", labelcolor="darkorange")
+                ax2.axhline(100.0, color="darkorange", lw=0.5, ls="--", alpha=0.4)
 
-    axs[-1].set_xlabel("Time")
-    date_axis(axs[-1])
-    plt.tight_layout()
-    return fig
+        serial = (
+            ds["serial_number"].item()
+            if "serial_number" in ds
+            else ds.attrs.get("serial_number", "?")
+        )
+        depth = f"{ds['InstrDepth'].item():.0f} m" if "InstrDepth" in ds else "?"
+        title = f"{instr_type.title()} s/n: {serial}  |  Target depth: {depth}"
+        if title_suffix:
+            title += f"  [{title_suffix}]"
+        axs[0].set_title(title)
+
+        axs[-1].set_xlabel("Time")
+        date_axis(axs[-1])
+        plt.tight_layout()
+        return fig
 
 
 def _make_instrument_fig(
@@ -502,7 +500,14 @@ def _make_windows_fig(
 ) -> Optional[str]:
     """Return base64 PNG: combined start + end window figure."""
     return render_b64(
-        draw_windows, nc_path, instr_type, hours, show_qc, vlines, stage1_nc
+        draw_windows,
+        nc_path,
+        instr_type,
+        hours,
+        show_qc,
+        vlines,
+        stage1_nc,
+        optional=True,
     )
 
 
@@ -513,7 +518,7 @@ def _make_data_histogram(nc_path: Path) -> Optional[str]:
 
 def _make_ts_diagram(nc_path: Path) -> Optional[str]:
     """Return base64 PNG: T-S diagram (scatter by pressure, heatmap, optional O2 panel)."""
-    return render_b64(draw_ts_diagram, nc_path)
+    return render_b64(draw_ts_diagram, nc_path, optional=True)
 
 
 def _make_grid_fig_b64(
@@ -544,7 +549,7 @@ def _make_grid_fig_b64(
 
 def _make_grid_sigma_b64(ds: "xr.Dataset") -> Optional[str]:
     """Stacked sigma0 pcolormesh panel(s) for the stratification section."""
-    return render_b64(draw_grid_sigma, ds)
+    return render_b64(draw_grid_sigma, ds, optional=True)
 
 
 def _make_grid_hydro_b64(
@@ -552,12 +557,12 @@ def _make_grid_hydro_b64(
     var_bounds: "Optional[dict]" = None,
 ) -> Optional[str]:
     """Return base64 PNG: stacked temperature / salinity pcolormesh panels."""
-    return render_b64(draw_grid_hydro, ds, var_bounds)
+    return render_b64(draw_grid_hydro, ds, var_bounds, optional=True)
 
 
 def _make_grid_velocity_stacked_b64(ds: "xr.Dataset") -> Optional[str]:
     """Stacked east / north / up velocity pcolormesh panels for the grid report."""
-    return render_b64(draw_grid_velocity_stacked, ds)
+    return render_b64(draw_grid_velocity_stacked, ds, optional=True)
 
 
 def _make_spectrum_fig_b64(
@@ -569,7 +574,13 @@ def _make_spectrum_fig_b64(
 ) -> Optional[str]:
     """Return base64 PNG: two-panel Welch PSD of gridded temperature."""
     return render_b64(
-        draw_spectrum, da_temp, dt_seconds, lat, hf_segment_days, hf_x_max_days
+        draw_spectrum,
+        da_temp,
+        dt_seconds,
+        lat,
+        hf_segment_days,
+        hf_x_max_days,
+        optional=True,
     )
 
 
@@ -579,7 +590,7 @@ def _make_wavelet_fig_b64(
     wavelet: str = "morlet",
 ) -> Optional[str]:
     """Return base64 PNG: continuous wavelet transform scalogram for gridded temperature."""
-    return render_b64(draw_wavelet, da_temp, dt_seconds, wavelet)
+    return render_b64(draw_wavelet, da_temp, dt_seconds, wavelet, optional=True)
 
 
 def _make_grid_rotary_spectrum_b64(
@@ -587,12 +598,12 @@ def _make_grid_rotary_spectrum_b64(
     lat: float = 0.0,
 ) -> Optional[str]:
     """Return base64 PNG: two-panel rotary velocity spectrum for the grid report."""
-    return render_b64(draw_grid_rotary_spectrum, ds, lat)
+    return render_b64(draw_grid_rotary_spectrum, ds, lat, optional=True)
 
 
 def _make_stack_ts_diagram(ds: "xr.Dataset") -> Optional[str]:
     """Return base64 PNG: T-S diagram for a stacked dataset."""
-    return render_b64(draw_stack_ts_diagram, ds)
+    return render_b64(draw_stack_ts_diagram, ds, optional=True)
 
 
 # ---------------------------------------------------------------------------
@@ -602,7 +613,7 @@ def _make_stack_ts_diagram(ds: "xr.Dataset") -> Optional[str]:
 
 def _make_instrument_rose_b64(nc_path: Path) -> Optional[str]:
     """Rose diagram grid for a single Aquadopp instrument."""
-    return render_b64(draw_instrument_rose, nc_path)
+    return render_b64(draw_instrument_rose, nc_path, optional=True)
 
 
 def _make_grid_ts_diagram(
@@ -619,17 +630,17 @@ def _make_grid_ts_diagram(
         fig, ts_bounds = result
         return fig
 
-    return render_b64(_draw), ts_bounds
+    return render_b64(_draw, optional=True), ts_bounds
 
 
 def _make_velocity_iqr_profile_b64(ds: "xr.Dataset") -> Optional[str]:
     """Return base64 PNG: percentile-profile figure for gridded ADCP velocity data."""
-    return render_b64(draw_velocity_iqr_profile, ds)
+    return render_b64(draw_velocity_iqr_profile, ds, optional=True)
 
 
 def _make_grid_n2_b64(ds: "xr.Dataset", lat: float = 0.0) -> Optional[str]:
     """Compute and plot buoyancy frequency squared N² on the pressure-time grid."""
-    return render_b64(draw_grid_n2, ds, lat)
+    return render_b64(draw_grid_n2, ds, lat, optional=True)
 
 
 def _make_rose_grid_b64(
@@ -647,22 +658,22 @@ def _make_rose_grid_b64(
         fig, n_panels = result
         return fig
 
-    return render_b64(_draw), n_panels
+    return render_b64(_draw, optional=True), n_panels
 
 
 def _make_grid_rose_b64(ds: "xr.Dataset", max_roses: int = 4) -> Optional[str]:
     """Grid of current roses, one per pressure level, for the grid report."""
-    return render_b64(draw_grid_rose, ds, max_roses)
+    return render_b64(draw_grid_rose, ds, max_roses, optional=True)
 
 
 def _make_grid_trajectory_b64(ds: "xr.Dataset") -> Optional[str]:
     """Pseudo-Lagrangian trajectory by pressure level for the grid report."""
-    return render_b64(draw_grid_trajectory, ds)
+    return render_b64(draw_grid_trajectory, ds, optional=True)
 
 
 def _make_grid_timeseries_b64(ds: "xr.Dataset") -> Optional[str]:
     """Return base64 PNG: velocity time series at depth of maximum mean speed."""
-    return render_b64(draw_grid_timeseries, ds)
+    return render_b64(draw_grid_timeseries, ds, optional=True)
 
 
 def _make_isopycnal_fig_b64(
@@ -676,23 +687,29 @@ def _make_isopycnal_fig_b64(
     if not levels:
         return None
     return render_b64(
-        draw_isopycnal_fig, da, levels, filter_samples, zoom_center_idx, zoom_n
+        draw_isopycnal_fig,
+        da,
+        levels,
+        filter_samples,
+        zoom_center_idx,
+        zoom_n,
+        optional=True,
     )
 
 
 def _make_isopycnal_ts_fig_b64(ds_iso: "xr.Dataset") -> Optional[str]:
     """Return base64 PNG: isopycnal height-above-seabed time series."""
-    return render_b64(draw_isopycnal_ts_fig, ds_iso)
+    return render_b64(draw_isopycnal_ts_fig, ds_iso, optional=True)
 
 
 def _make_isopycnal_coverage_fig_b64(ds: "xr.Dataset") -> Optional[str]:
     """Return base64 PNG: three-panel isopycnal diagnostic."""
-    return render_b64(draw_isopycnal_coverage, ds)
+    return render_b64(draw_isopycnal_coverage, ds, optional=True)
 
 
 def _make_overflow_temperature_fig_b64(ds: "xr.Dataset") -> Optional[str]:
     """Return base64 PNG: temperature time series at ~100 m above the seabed."""
-    return render_b64(draw_overflow_temperature_fig, ds)
+    return render_b64(draw_overflow_temperature_fig, ds, optional=True)
 
 
 # ---------------------------------------------------------------------------
@@ -710,7 +727,7 @@ def _make_temperature_trajectory(nc_path: str) -> Optional[str]:
         with xr.open_dataset(nc_path) as ds:
             return plot_temperature_trajectory(ds)
 
-    return render_b64(_draw)
+    return render_b64(_draw, optional=True)
 
 
 def _make_speed_boxplot(nc_path: str) -> Optional[str]:
@@ -722,7 +739,7 @@ def _make_speed_boxplot(nc_path: str) -> Optional[str]:
         with xr.open_dataset(nc_path) as ds:
             return plot_speed_boxplot(ds)
 
-    return render_b64(_draw)
+    return render_b64(_draw, optional=True)
 
 
 def _make_hodograph_b64(nc_path: str) -> Optional[str]:
@@ -750,7 +767,7 @@ def _make_multi_aquadopp_trajectories(ds: "xr.Dataset") -> Optional[str]:
     """
     from oceanarray.plotters.current import plot_multi_aquadopp_trajectories
 
-    return render_b64(plot_multi_aquadopp_trajectories, ds)
+    return render_b64(plot_multi_aquadopp_trajectories, ds, optional=True)
 
 
 def _make_aquadopp_speed_profile(ds: "xr.Dataset") -> Optional[str]:
@@ -760,7 +777,7 @@ def _make_aquadopp_speed_profile(ds: "xr.Dataset") -> Optional[str]:
     """
     from oceanarray.plotters.current import plot_aquadopp_speed_profile
 
-    return render_b64(plot_aquadopp_speed_profile, ds)
+    return render_b64(plot_aquadopp_speed_profile, ds, optional=True)
 
 
 def _make_adcp_trajectories_b64(ds: "xr.Dataset") -> Optional[str]:
@@ -770,12 +787,12 @@ def _make_adcp_trajectories_b64(ds: "xr.Dataset") -> Optional[str]:
     """
     from oceanarray.plotters.current import plot_adcp_trajectories
 
-    return render_b64(plot_adcp_trajectories, ds)
+    return render_b64(plot_adcp_trajectories, ds, optional=True)
 
 
 def _make_adcp_velocity_b64(nc_path: str) -> Optional[str]:
     """Return base64 PNG: stacked colour panels for ADCP per-instrument report."""
-    return render_b64(draw_adcp_velocity, nc_path)
+    return render_b64(draw_adcp_velocity, nc_path, optional=True)
 
 
 def _draw_hodograph_pair(
@@ -860,21 +877,23 @@ def _draw_hodograph_pair(
 
 def _make_adcp_rose_b64(nc_path: str) -> Optional[str]:
     """Return base64 PNG: ADCP current rose (depth-average + percentile bins)."""
-    return render_b64(draw_adcp_rose, nc_path)
+    return render_b64(draw_adcp_rose, nc_path, optional=True)
 
 
 def _make_adcp_hodograph_b64(
     nc_path: str, lp_days: float = 4.0, smooth_hours: float = 24.0
 ) -> Optional[str]:
     """Return base64 PNG: two-depth hodograph for an ADCP per-instrument report."""
-    return render_b64(draw_adcp_hodograph, nc_path, lp_days, smooth_hours)
+    return render_b64(
+        draw_adcp_hodograph, nc_path, lp_days, smooth_hours, optional=True
+    )
 
 
 def _make_grid_hodograph_b64(
     ds: "xr.Dataset", smooth_hours: float = 24.0
 ) -> Optional[str]:
     """Return base64 PNG: two-depth hodograph for the grid report."""
-    return render_b64(draw_grid_hodograph, ds, smooth_hours)
+    return render_b64(draw_grid_hodograph, ds, smooth_hours, optional=True)
 
 
 def _make_analog_timeseries(nc_path: "Path", analog_vars: "List[str]") -> Optional[str]:
@@ -886,7 +905,7 @@ def _make_analog_timeseries(nc_path: "Path", analog_vars: "List[str]") -> Option
     """
     if not analog_vars:
         return None
-    return render_b64(draw_analog_timeseries, nc_path, analog_vars)
+    return render_b64(draw_analog_timeseries, nc_path, analog_vars, optional=True)
 
 
 def _make_knockdown_pressure_b64(ds: "xr.Dataset") -> Optional[str]:
@@ -900,7 +919,7 @@ def _make_knockdown_pressure_b64(ds: "xr.Dataset") -> Optional[str]:
     """
     from oceanarray.plotters.diagnostic import plot_knockdown_pressure
 
-    return render_b64(plot_knockdown_pressure, ds)
+    return render_b64(plot_knockdown_pressure, ds, optional=True)
 
 
 def _make_knockdown_hab_b64(ds: "xr.Dataset") -> Optional[str]:
@@ -914,7 +933,7 @@ def _make_knockdown_hab_b64(ds: "xr.Dataset") -> Optional[str]:
     """
     from oceanarray.plotters.diagnostic import plot_knockdown_hab
 
-    return render_b64(plot_knockdown_hab, ds)
+    return render_b64(plot_knockdown_hab, ds, optional=True)
 
 
 def _make_knockdown_displacement_b64(ds: "xr.Dataset") -> Optional[str]:
@@ -927,7 +946,7 @@ def _make_knockdown_displacement_b64(ds: "xr.Dataset") -> Optional[str]:
     """
     from oceanarray.plotters.diagnostic import plot_knockdown_displacement
 
-    return render_b64(plot_knockdown_displacement, ds)
+    return render_b64(plot_knockdown_displacement, ds, optional=True)
 
 
 def _make_knockdown_anomaly_b64(ds: "xr.Dataset") -> Optional[str]:
@@ -941,7 +960,7 @@ def _make_knockdown_anomaly_b64(ds: "xr.Dataset") -> Optional[str]:
     """
     from oceanarray.plotters.diagnostic import plot_knockdown_anomaly
 
-    return render_b64(plot_knockdown_anomaly, ds)
+    return render_b64(plot_knockdown_anomaly, ds, optional=True)
 
 
 def _make_clock_check_b64(
@@ -975,5 +994,10 @@ def _make_clock_check_b64(
     from oceanarray.plotters.diagnostic import plot_clock_offset_check
 
     return render_b64(
-        plot_clock_offset_check, nc_paths, deploy_dt, recover_dt, window_minutes
+        plot_clock_offset_check,
+        nc_paths,
+        deploy_dt,
+        recover_dt,
+        window_minutes,
+        optional=True,
     )

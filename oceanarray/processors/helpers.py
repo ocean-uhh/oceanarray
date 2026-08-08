@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 import numpy as np
 import xarray as xr
-from oceanarray import parameters as P
+from oceanarray import parameters as params
 from oceanarray.paths import safe_serial
 
 STACK_VARS = [
@@ -112,7 +112,7 @@ def _worst_flag(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     data are never silently promoted to flag 0 ("unknown").
     """
     # rank[flag_value] gives priority; higher rank = worse flag (shared LUT).
-    _rank = P.QC_MERGE_PRIORITY_LUT
+    _rank = params.QC_MERGE_PRIORITY_LUT
     a = np.where(np.isfinite(a), a, 9.0)
     b = np.where(np.isfinite(b), b, 9.0)
     ai = np.clip(np.round(a).astype(np.int8), 0, 9)
@@ -207,7 +207,7 @@ def _make_adcp_head_ds(ds_parent: xr.Dataset) -> xr.Dataset:
 def _make_adcp_bin_ds(ds_parent: xr.Dataset, bin_idx: int) -> xr.Dataset:
     """Create a 1-D (time-only) point-instrument view of one ADCP range bin.
 
-    Slices the parent dataset at *bin_idx* along ``P.ADCP_BIN_DIM`` and replaces the
+    Slices the parent dataset at *bin_idx* along ``params.ADCP_BIN_DIM`` and replaces the
     transducer ``pressure`` with ``bin_pressure[:, bin_idx]`` so that this entry sits at
     the correct depth in the stack.  Computes derived scalar velocity quantities::
 
@@ -233,7 +233,7 @@ def _make_adcp_bin_ds(ds_parent: xr.Dataset, bin_idx: int) -> xr.Dataset:
     ds_parent : xr.Dataset
         Full ADCP stage-3 dataset.
     bin_idx : int
-        Zero-based index along the bin dimension (``P.ADCP_BIN_DIM``).  Index 0 is
+        Zero-based index along the bin dimension (``params.ADCP_BIN_DIM``).  Index 0 is
         the bin nearest the transducer face.
 
     Returns
@@ -243,7 +243,7 @@ def _make_adcp_bin_ds(ds_parent: xr.Dataset, bin_idx: int) -> xr.Dataset:
         at this bin and ``current_speed`` / ``current_direction`` added.
 
     """
-    bin_dim = P.ADCP_BIN_DIM
+    bin_dim = params.ADCP_BIN_DIM
     ds_bin = ds_parent.isel({bin_dim: bin_idx}, drop=True)
 
     # Drop head-only variables — these belong in the separate head entry

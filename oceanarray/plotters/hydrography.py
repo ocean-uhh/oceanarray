@@ -21,6 +21,7 @@ if TYPE_CHECKING:
 
 from .primitives import colorbar_norm, date_axis, pressure_axis
 from ..analysis.temporal import filter_sigma_tukey
+from .. import parameters as params
 
 
 def draw_isopycnal_fig(
@@ -160,7 +161,7 @@ def draw_isopycnal_ts_fig(ds_iso: "xr.Dataset") -> "Optional[plt.Figure]":
         sm = plt.cm.ScalarMappable(cmap="Blues", norm=norm)
         sm.set_array([])
         cb = fig.colorbar(sm, ax=ax, ticks=bounds, shrink=0.85, pad=0.02)
-        cb.set_label("σ₀ (kg m⁻³)")
+        cb.set_label(params.vlabel("potential_density"))
 
     ax.set_ylabel("Height above seabed (m)")
     date_axis(ax)
@@ -186,7 +187,7 @@ def draw_isopycnal_coverage(ds: "xr.Dataset") -> "Optional[plt.Figure]":
 
     The shared y-axis (σ₀) is clipped to the 2.5th–99.99th percentile of the
     distribution — this removes rare light-water outliers from the top while retaining
-    all of the dense water at the bottom.  Currently selected ``P.SIGMA_GRID`` targets
+    all of the dense water at the bottom.  Currently selected ``params.SIGMA_GRID`` targets
     are marked with orange diamonds (panel 1) and dotted guide lines (panel 2).
 
     Parameters
@@ -204,7 +205,6 @@ def draw_isopycnal_coverage(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     import warnings as _warnings
     import matplotlib.pyplot as plt
     from matplotlib.lines import Line2D
-    from .. import parameters as P
     from ..analysis.hydrographic import isopycnal_pressure_series
 
     # Find the first sigma variable with pressure + time dims
@@ -303,7 +303,7 @@ def draw_isopycnal_coverage(ds: "xr.Dataset") -> "Optional[plt.Figure]":
         return "#e74c3c"
 
     bar_colors = [_bar_color(p) for p in pct]
-    selected = getattr(P, "SIGMA_GRID", np.array([]))
+    selected = getattr(params, "SIGMA_GRID", np.array([]))
 
     fig_h = max(2.5, len(targets) * 0.22)
     fig, (ax0, ax1, ax2) = plt.subplots(
@@ -452,7 +452,7 @@ def draw_overflow_temperature_fig(ds: "xr.Dataset") -> "Optional[plt.Figure]":
 
     fig, ax = plt.subplots(figsize=(13, 3))
     ax.plot(time_vals, temp_med, color="#1a3a5c", lw=1.0)
-    ax.set_ylabel("Temperature (°C)")
+    ax.set_ylabel(params.vlabel("temperature"))
     hab = waterdepth - actual_p
     ax.set_title(
         f"{actual_p:.0f} dbar  ({hab:.0f} m above seabed)",

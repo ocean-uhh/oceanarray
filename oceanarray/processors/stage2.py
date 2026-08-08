@@ -919,9 +919,9 @@ class Stage2Processor:
             self._log_print(f"Final time range: {start_time} to {end_time}")
 
             # Tag with QC convention so downstream tools know the flag vocabulary
-            from oceanarray import parameters as _P
+            from oceanarray import parameters as params
 
-            dataset.attrs.setdefault("qc_convention", _P.QC_CONVENTION)
+            dataset.attrs.setdefault("qc_convention", params.QC_CONVENTION)
 
             # Suggested deployment window — only written when pressure detection succeeded.
             # All raw-clock attrs use the uncorrected instrument clock; _utc variants add

@@ -63,7 +63,6 @@ from oceanarray.processors.pressure import (
     interpolate_pressure,
 )
 from oceanarray.processors.qc import (
-    _CF_ATTRS,
     apply_enu_velocity_qc,
     apply_qc_tests,
     apply_tilt_qc,
@@ -405,7 +404,7 @@ class Stage3Processor:
         )
 
         try:
-            from oceanarray import parameters as P
+            from oceanarray import parameters as params
 
             ds = xr.open_dataset(nc_path, decode_timedelta=False).load()
 
@@ -544,7 +543,7 @@ class Stage3Processor:
             # ── ENU velocity QC + up→east/north flag propagation ──────
             if ds.attrs.get("coordinate_system") == "ENU":
                 if is_adcp:
-                    adcp_qc = P.QC_ADCP
+                    adcp_qc = params.QC_ADCP
                     ds = apply_adcp_velocity_qc(
                         ds,
                         gr_cfg=gr_cfg,
@@ -645,13 +644,15 @@ class Stage3Processor:
             # Record the QC treatment so it can be reconstructed from the output
             # file alone: the flag convention, the worst-wins merge ordering, and
             # the QARTOD -> OceanSITES ingest remap applied to every _qc variable.
-            from oceanarray import parameters as P
+            from oceanarray import parameters as params
 
             _priority_order = " < ".join(
                 str(f)
-                for f, _ in sorted(P.QC_MERGE_PRIORITY.items(), key=lambda kv: kv[1])
+                for f, _ in sorted(
+                    params.QC_MERGE_PRIORITY.items(), key=lambda kv: kv[1]
+                )
             )
-            ds.attrs["qc_flag_convention"] = P.QC_CONVENTION
+            ds.attrs["qc_flag_convention"] = params.QC_CONVENTION
             ds.attrs["qc_merge_rule"] = (
                 "worst flag wins; priority weakest to strongest: " + _priority_order
             )
@@ -662,13 +663,20 @@ class Stage3Processor:
             # Derive O2 % saturation and AOU when dissolved_oxygen + T/S/P are present.
             ds = derive_oxygen_saturation(ds)
 
-            # Normalize CF standard_name and long_name for known physics variables.
-            # Only fills in missing attrs — never overwrites values already set.
-            for _vname, _cf in _CF_ATTRS.items():
-                if _vname in ds.data_vars:
-                    for _k, _v in _cf.items():
-                        if _k not in ds[_vname].attrs:
-                            ds[_vname].attrs[_k] = _v
+            # Normalize CF attrs for known physics variables.
+            # Derived from params.VARIABLES — single source of truth for standard_name,
+            # long_name (label), and units.  Only fills missing attrs; never
+            # overwrites values already set by the reader or derive_* functions.
+            for _vname, _entry in params.VARIABLES.items():
+                if _vname not in ds.data_vars:
+                    continue
+                _vatrs = ds[_vname].attrs
+                if "standard_name" not in _vatrs and _entry.get("standard_name"):
+                    _vatrs["standard_name"] = _entry["standard_name"]
+                if "long_name" not in _vatrs and _entry.get("label"):
+                    _vatrs["long_name"] = _entry["label"]
+                if "units" not in _vatrs and _entry.get("units"):
+                    _vatrs["units"] = _entry["units"]
 
             # Normalize every _qc variable onto the OceanSITES flag table (single
             # source of truth) and attach the status_flag standard_name — done
