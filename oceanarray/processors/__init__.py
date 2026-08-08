@@ -301,9 +301,10 @@ def process(
         Mooring name (the subdirectory under *proc_dir*).
     stage : int, str, list of int/str, or None
         Which stage(s) to run — ``1``, ``2``, ``3``, ``"stage1"``, ``"stack"``,
-        ``"grid"``, etc.  Pass a list to run a specific subset in :data:`STAGES`
-        order.  ``None`` (the default) runs all five stages in :data:`STAGES`
-        order.
+        ``"grid"``, etc.  Pass a list to run a specific subset; the subset is
+        always executed in :data:`STAGES` order regardless of the order of
+        elements in the list.  ``None`` (the default) runs all five stages in
+        :data:`STAGES` order.
     proc_dir : path-like
         Processing root directory (parent containing per-mooring subdirectories).
     raw_dir : path-like, optional
@@ -326,7 +327,8 @@ def process(
     if stage is None:
         stages_to_run: tuple[Stage, ...] = STAGES
     elif isinstance(stage, (list, tuple)):
-        stages_to_run = tuple(resolve_stage(s) for s in stage)
+        _requested = {resolve_stage(s) for s in stage}
+        stages_to_run = tuple(s for s in STAGES if s in _requested)
     else:
         stages_to_run = (resolve_stage(stage),)
 

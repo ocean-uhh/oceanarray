@@ -241,6 +241,18 @@ class TestProcess:
         assert result is True
         assert calls == ["stack", "grid"]
 
+    def test_process_list_preserves_stages_order(self, tmp_path, monkeypatch):
+        """Input order is ignored — stages always run in STAGES order."""
+        calls = []
+        patched = tuple(
+            Stage(s.name, s.number, s.scope, _make_spy(calls, s.name)) for s in STAGES
+        )
+        _patch_stages(monkeypatch, patched)
+
+        result = process("my_mooring", stage=[2, 1], proc_dir=tmp_path)
+        assert result is True
+        assert calls == ["stage1", "stage2"]
+
     def test_process_empty_list_runs_nothing(self, tmp_path, monkeypatch):
         """stage=[] runs no stages and returns True."""
         calls = []
