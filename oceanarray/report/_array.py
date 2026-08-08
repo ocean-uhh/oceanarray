@@ -9,6 +9,7 @@ Entry point: :func:`generate_array_report`.
 
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -18,13 +19,13 @@ import numpy as np
 
 from ._html_helpers import (
     _duration_str,
-    _fig_to_base64,
     _parse_dt,
     _read_instrument_info,
     _safe_serial,
     _stage_files,
     _status,
 )
+from ._plots import render_b64
 
 
 # ---------------------------------------------------------------------------
@@ -107,32 +108,26 @@ def _make_array_map_b64(
     array_name: str,
 ) -> Optional[str]:
     """Return a base64-encoded PNG of mooring positions, or None on failure."""
-    try:
-        import matplotlib.pyplot as plt
-        from oceanarray import parameters as P
+    import matplotlib.pyplot as plt
+    import matplotlib.colors as _mcolors
 
-        plt.style.use(str(P.MPLSTYLE))
+    lats = [r["lat"] for r in rows if r["lat"] is not None]
+    if len(lats) < 1:
+        return None
 
-        lats = [r["lat"] for r in rows if r["lat"] is not None]
-        if len(lats) < 1:
-            return None
+    mean_lat_rad = float(__import__("math").radians(sum(lats) / len(lats)))
+    aspect = 1.0 / __import__("math").cos(mean_lat_rad)
 
-        mean_lat_rad = float(__import__("math").radians(sum(lats) / len(lats)))
-        aspect = 1.0 / __import__("math").cos(mean_lat_rad)
-
+    def _draw() -> "plt.Figure":
+        _tab20 = plt.get_cmap("tab20")
         fig, ax = plt.subplots(figsize=(6, 5))
         ax.set_aspect(aspect)
-
-        import matplotlib.colors as _mcolors
-
-        _tab20 = plt.get_cmap("tab20")
         for idx, r in enumerate(rows):
             if r["lat"] is None or r["lon"] is None:
                 continue
             color = _tab20(idx % 20)
             r["color_hex"] = _mcolors.to_hex(color)
             ax.scatter(r["lon"], r["lat"], s=60, color=color, zorder=3)
-            # Only label moorings that have been recovered
             if r.get("_recover_dt") is not None:
                 ax.annotate(
                     r["mooring"],
@@ -142,18 +137,14 @@ def _make_array_map_b64(
                     fontsize=10,
                     color=color,
                 )
-
         ax.set_xlabel("Longitude (°)")
         ax.set_ylabel("Latitude (°)")
         ax.set_title(array_name, fontsize=9)
         ax.grid(True, linestyle="--", linewidth=0.3, alpha=0.5)
         plt.tight_layout()
-        b64 = _fig_to_base64(fig)
-        plt.close(fig)
-    except Exception:  # noqa: BLE001
-        return None
-    else:
-        return b64
+        return fig
+
+    return render_b64(_draw, optional=True)
 
 
 # ---------------------------------------------------------------------------
@@ -537,7 +528,7 @@ def generate_array_report(
     proc_dir = Path(proc_dir)
 
     if not array_yaml_path.exists():
-        print(f"ERROR: array YAML not found: {array_yaml_path}")
+        warnings.warn(f"array YAML not found: {array_yaml_path}", stacklevel=2)
         return None
 
     with open(array_yaml_path) as fh:
@@ -569,9 +560,9 @@ def generate_array_report(
                 with open(mooring_yaml) as fh:
                     mcfg = yaml.safe_load(fh) or {}
             except Exception as exc:  # noqa: BLE001
-                print(f"WARNING: could not read {mooring_yaml}: {exc}")
+                warnings.warn(f"could not read {mooring_yaml}: {exc}", stacklevel=2)
         else:
-            print(f"WARNING: mooring YAML not found: {mooring_yaml}")
+            warnings.warn(f"mooring YAML not found: {mooring_yaml}", stacklevel=2)
 
         lat, lon = _lat_lon_from_cfg(mcfg)
         deploy_dt = _parse_dt(mcfg.get("deployment_time"))

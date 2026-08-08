@@ -69,6 +69,25 @@ def test_render_b64_closes_figure_on_success(monkeypatch):
     assert fig_num not in plt.get_fignums()
 
 
+def test_render_b64_none_optional_false_guard_on_raises(monkeypatch):
+    """``render_b64`` raises ``ValueError`` when *draw* returns ``None``, guard on, optional=False."""
+    monkeypatch.setattr(_plots, "RAISE_ON_PLOT_ERROR", True)
+    with pytest.raises(ValueError, match="returned None"):
+        _plots.render_b64(lambda: None, optional=False)
+
+
+def test_render_b64_none_optional_true_guard_on_returns_none(monkeypatch):
+    """``render_b64`` silently returns ``None`` when *draw* returns ``None`` and optional=True."""
+    monkeypatch.setattr(_plots, "RAISE_ON_PLOT_ERROR", True)
+    assert _plots.render_b64(lambda: None, optional=True) is None
+
+
+def test_render_b64_none_optional_false_guard_off_returns_none(monkeypatch):
+    """``render_b64`` returns ``None`` (no raise) when guard is off regardless of optional."""
+    monkeypatch.setattr(_plots, "RAISE_ON_PLOT_ERROR", False)
+    assert _plots.render_b64(lambda: None, optional=False) is None
+
+
 # ---------------------------------------------------------------------------
 # The guard mechanism itself
 # ---------------------------------------------------------------------------

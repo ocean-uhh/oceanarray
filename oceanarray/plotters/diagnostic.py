@@ -42,6 +42,8 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 import numpy as np
 
+from .. import parameters as params
+
 if TYPE_CHECKING:
     import matplotlib.figure
     import matplotlib.pyplot as plt
@@ -50,19 +52,26 @@ if TYPE_CHECKING:
 
 
 # ---------------------------------------------------------------------------
-# Canonical panel order (duplicated from report._plots; will centralise here
-# once the migration checklist in .claude/plotters_update-20260718.md lands)
+# Canonical panel order — single definition; imported by report._plots.
+# Labels for physical variables come from params.vlabel() so that VARIABLES is the
+# single source of truth.  Instrument-state variables (tilt, battery, etc.)
+# have no VARIABLES entry and are kept hardcoded.
 # ---------------------------------------------------------------------------
 
 _CANONICAL_PANELS: List[Tuple] = [
-    ("pressure", "Pressure (dbar)", "tab:green", True),
-    ("pressure_1", "Pressure 1 (dbar)", "tab:green", True),
-    ("temperature", "Temperature (°C)", "tab:red", False),
-    ("conductivity", "Conductivity (mS cm⁻¹)", "tab:blue", False),
-    ("salinity", "Salinity (PSU)", "tab:cyan", False),
-    ("east_velocity", "East velocity (m s⁻¹)", "tab:blue", False),
-    ("north_velocity", "North velocity (m s⁻¹)", "tab:orange", False),
-    ("up_velocity", "Up velocity (m s⁻¹)", "tab:cyan", False),
+    ("pressure", params.vlabel("pressure"), "tab:green", True),
+    (
+        "pressure_1",
+        f"Pressure 1 ({params.VARIABLES['pressure']['label_units']})",
+        "tab:green",
+        True,
+    ),
+    ("temperature", params.vlabel("temperature"), "tab:red", False),
+    ("conductivity", params.vlabel("conductivity"), "tab:blue", False),
+    ("salinity", params.vlabel("salinity"), "tab:cyan", False),
+    ("east_velocity", params.vlabel("east_velocity"), "tab:blue", False),
+    ("north_velocity", params.vlabel("north_velocity"), "tab:orange", False),
+    ("up_velocity", params.vlabel("up_velocity"), "tab:cyan", False),
     ("velocity_beam1", "Beam 1 velocity (m s⁻¹)", "tab:blue", False),
     ("velocity_beam2", "Beam 2 velocity (m s⁻¹)", "tab:orange", False),
     ("velocity_beam3", "Beam 3 velocity (m s⁻¹)", "tab:cyan", False),
@@ -71,8 +80,8 @@ _CANONICAL_PANELS: List[Tuple] = [
     ("roll", "Roll (°)", "#8B4513", False),
     ("heading", "Heading (°)", "tab:gray", False),
     ("speed_of_sound", "Sound speed (m s⁻¹)", "tab:olive", False),
-    ("turbidity", "Turbidity (NTU)", "tab:brown", False),
-    ("dissolved_oxygen", "Dissolved oxygen (µmol L⁻¹)", "steelblue", False),
+    ("turbidity", params.vlabel("turbidity"), "tab:brown", False),
+    ("dissolved_oxygen", params.vlabel("dissolved_oxygen"), "steelblue", False),
     ("battery_voltage", "Battery (V)", "tab:pink", False),
 ]
 
@@ -245,9 +254,7 @@ def plot_knockdown_pressure(
 
     import matplotlib.pyplot as plt
 
-    from oceanarray import parameters as P
-
-    plt.style.use(str(P.MPLSTYLE))
+    from oceanarray import parameters as params
 
     try:
         waterdepth = float(ds.attrs.get("waterdepth", 0) or 0)
@@ -264,46 +271,47 @@ def plot_knockdown_pressure(
     p_range = max(p_nom_vals) - min(p_nom_vals) if len(p_nom_vals) > 1 else 50.0
     box_width = max(5.0, p_range / (len(p_nom_vals) * 2))
 
-    fig, ax = plt.subplots(figsize=(5, 5))
+    with plt.style.context(str(params.MPLSTYLE)):
+        fig, ax = plt.subplots(figsize=(5, 5))
 
-    p_max_all = 0.0
-    for p_nom, _serial, actual_p in records:
-        bp = ax.boxplot(
-            actual_p,
-            vert=True,
-            positions=[p_nom],
-            widths=box_width,
-            patch_artist=True,
-            flierprops=dict(marker=".", markersize=2, alpha=0.25, color="grey"),
-            medianprops=dict(color="black", linewidth=1.5),
-            manage_ticks=False,
+        p_max_all = 0.0
+        for p_nom, _serial, actual_p in records:
+            bp = ax.boxplot(
+                actual_p,
+                vert=True,
+                positions=[p_nom],
+                widths=box_width,
+                patch_artist=True,
+                flierprops=dict(marker=".", markersize=2, alpha=0.25, color="grey"),
+                medianprops=dict(color="black", linewidth=1.5),
+                manage_ticks=False,
+            )
+            bp["boxes"][0].set_facecolor("steelblue")
+            bp["boxes"][0].set_alpha(0.6)
+            p_max_all = max(p_max_all, float(np.nanmax(actual_p)))
+
+        ax_max = max(p_max_all, max(p_nom_vals)) * 1.05
+        ax.set_xlim(ax_max, 0)  # deeper nominal pressure on the left
+        ax.set_ylim(0, ax_max)
+        ax.set_aspect("equal")
+        ax.invert_yaxis()  # deeper measured pressure at bottom
+
+        ax.plot(
+            [0, ax_max],
+            [0, ax_max],
+            color="dimgrey",
+            lw=0.8,
+            ls="--",
+            zorder=0,
+            label="actual = nominal",
         )
-        bp["boxes"][0].set_facecolor("steelblue")
-        bp["boxes"][0].set_alpha(0.6)
-        p_max_all = max(p_max_all, float(np.nanmax(actual_p)))
+        ax.legend(fontsize=9, loc="upper left")
+        ax.set_xlabel("Nominal pressure (dbar)")
+        ax.set_ylabel("Measured pressure (dbar)")
+        ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.5)
 
-    ax_max = max(p_max_all, max(p_nom_vals)) * 1.05
-    ax.set_xlim(ax_max, 0)  # deeper nominal pressure on the left
-    ax.set_ylim(0, ax_max)
-    ax.set_aspect("equal")
-    ax.invert_yaxis()  # deeper measured pressure at bottom
-
-    ax.plot(
-        [0, ax_max],
-        [0, ax_max],
-        color="dimgrey",
-        lw=0.8,
-        ls="--",
-        zorder=0,
-        label="actual = nominal",
-    )
-    ax.legend(fontsize=9, loc="upper left")
-    ax.set_xlabel("Nominal pressure (dbar)")
-    ax.set_ylabel("Measured pressure (dbar)")
-    ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.5)
-
-    plt.tight_layout()
-    return fig
+        plt.tight_layout()
+        return fig
 
 
 # ---------------------------------------------------------------------------
@@ -347,9 +355,7 @@ def plot_knockdown_hab(
 
     import matplotlib.pyplot as plt
 
-    from oceanarray import parameters as P
-
-    plt.style.use(str(P.MPLSTYLE))
+    from oceanarray import parameters as params
 
     try:
         waterdepth = float(ds.attrs.get("waterdepth", 0) or 0)
@@ -371,46 +377,47 @@ def plot_knockdown_hab(
     hab_range = max(hab_nom_vals) - min(hab_nom_vals) if len(hab_nom_vals) > 1 else 10.0
     box_width = max(2.0, hab_range / (len(hab_nom_vals) * 2))
 
-    fig, ax = plt.subplots(figsize=(5, 5))
+    with plt.style.context(str(params.MPLSTYLE)):
+        fig, ax = plt.subplots(figsize=(5, 5))
 
-    p_max_all = 0.0
-    for hab_nom, _serial, actual_p in hab_records:
-        bp = ax.boxplot(
-            actual_p,
-            vert=True,
-            positions=[hab_nom],
-            widths=box_width,
-            patch_artist=True,
-            flierprops=dict(marker=".", markersize=2, alpha=0.25, color="grey"),
-            medianprops=dict(color="black", linewidth=1.5),
-            manage_ticks=False,
+        p_max_all = 0.0
+        for hab_nom, _serial, actual_p in hab_records:
+            bp = ax.boxplot(
+                actual_p,
+                vert=True,
+                positions=[hab_nom],
+                widths=box_width,
+                patch_artist=True,
+                flierprops=dict(marker=".", markersize=2, alpha=0.25, color="grey"),
+                medianprops=dict(color="black", linewidth=1.5),
+                manage_ticks=False,
+            )
+            bp["boxes"][0].set_facecolor("steelblue")
+            bp["boxes"][0].set_alpha(0.6)
+            p_max_all = max(p_max_all, float(np.nanmax(actual_p)))
+
+        ax_max = max(p_max_all, waterdepth) * 1.05
+        ax.set_xlim(0, ax_max)  # low HAB (deep) on the left, surface on the right
+        ax.set_ylim(0, ax_max)
+        ax.set_aspect("equal")
+        ax.invert_yaxis()  # deeper (larger pressure) at bottom
+
+        # Reference line: expected pressure = waterdepth - hab
+        ax.plot(
+            [0, ax_max],
+            [waterdepth, waterdepth - ax_max],
+            color="dimgrey",
+            lw=0.8,
+            ls="--",
+            zorder=0,
+            label="expected pressure",
         )
-        bp["boxes"][0].set_facecolor("steelblue")
-        bp["boxes"][0].set_alpha(0.6)
-        p_max_all = max(p_max_all, float(np.nanmax(actual_p)))
+        ax.legend(fontsize=9, loc="upper right")
+        ax.set_xlabel("Nominal HAB (m)")
+        ax.set_ylabel("Measured pressure (dbar)")
 
-    ax_max = max(p_max_all, waterdepth) * 1.05
-    ax.set_xlim(0, ax_max)  # low HAB (deep) on the left, surface on the right
-    ax.set_ylim(0, ax_max)
-    ax.set_aspect("equal")
-    ax.invert_yaxis()  # deeper (larger pressure) at bottom
-
-    # Reference line: expected pressure = waterdepth - hab
-    ax.plot(
-        [0, ax_max],
-        [waterdepth, waterdepth - ax_max],
-        color="dimgrey",
-        lw=0.8,
-        ls="--",
-        zorder=0,
-        label="expected pressure",
-    )
-    ax.legend(fontsize=9, loc="upper right")
-    ax.set_xlabel("Nominal HAB (m)")
-    ax.set_ylabel("Measured pressure (dbar)")
-
-    plt.tight_layout()
-    return fig
+        plt.tight_layout()
+        return fig
 
 
 # ---------------------------------------------------------------------------
@@ -457,9 +464,7 @@ def plot_knockdown_anomaly(
 
     import matplotlib.pyplot as plt
 
-    from oceanarray import parameters as P
-
-    plt.style.use(str(P.MPLSTYLE))
+    from oceanarray import parameters as params
 
     try:
         waterdepth = float(ds.attrs.get("waterdepth", 0) or 0)
@@ -476,33 +481,34 @@ def plot_knockdown_anomaly(
     p_range = max(p_nom_vals) - min(p_nom_vals) if len(p_nom_vals) > 1 else 50.0
     box_width = max(5.0, p_range / (len(p_nom_vals) * 2))
 
-    fig, ax = plt.subplots(figsize=(5, max(3, len(records) * 0.4 + 1)))
+    with plt.style.context(str(params.MPLSTYLE)):
+        fig, ax = plt.subplots(figsize=(5, max(3, len(records) * 0.4 + 1)))
 
-    for p_nom, _serial, actual_p in records:
-        anomaly = actual_p - p_nom  # positive = knocked down deeper
-        median_anom = float(np.median(anomaly))
-        color = _kd_color(abs(median_anom))
+        for p_nom, _serial, actual_p in records:
+            anomaly = actual_p - p_nom  # positive = knocked down deeper
+            median_anom = float(np.median(anomaly))
+            color = _kd_color(abs(median_anom))
 
-        bp = ax.boxplot(
-            anomaly,
-            vert=False,
-            positions=[p_nom],
-            widths=box_width,
-            patch_artist=True,
-            flierprops=dict(marker=".", markersize=2, alpha=0.25, color="grey"),
-            medianprops=dict(color="black", linewidth=1.5),
-            manage_ticks=False,
-        )
-        bp["boxes"][0].set_facecolor(color)
-        bp["boxes"][0].set_alpha(0.7)
+            bp = ax.boxplot(
+                anomaly,
+                vert=False,
+                positions=[p_nom],
+                widths=box_width,
+                patch_artist=True,
+                flierprops=dict(marker=".", markersize=2, alpha=0.25, color="grey"),
+                medianprops=dict(color="black", linewidth=1.5),
+                manage_ticks=False,
+            )
+            bp["boxes"][0].set_facecolor(color)
+            bp["boxes"][0].set_alpha(0.7)
 
-    ax.invert_yaxis()
-    ax.axvline(0, color="k", lw=0.8, zorder=3)
-    ax.set_xlabel("Pressure anomaly (dbar) — positive = deeper than nominal")
-    ax.set_ylabel("Nominal pressure (dbar)")
+        ax.invert_yaxis()
+        ax.axvline(0, color="k", lw=0.8, zorder=3)
+        ax.set_xlabel("Pressure anomaly (dbar) — positive = deeper than nominal")
+        ax.set_ylabel("Nominal pressure (dbar)")
 
-    plt.tight_layout()
-    return fig
+        plt.tight_layout()
+        return fig
 
 
 # ---------------------------------------------------------------------------
@@ -547,10 +553,8 @@ def plot_knockdown_displacement(
     import matplotlib.colors as mcolors
     import matplotlib.pyplot as plt
 
-    from oceanarray import parameters as P
+    from oceanarray import parameters as params
     from oceanarray.utilities import _nice_colorbar_bounds
-
-    plt.style.use(str(P.MPLSTYLE))
 
     try:
         waterdepth = float(ds.attrs.get("waterdepth", 0) or 0)
@@ -588,79 +592,80 @@ def plot_knockdown_displacement(
     x_max = max(float(np.nanmax(all_x)) if len(all_x) else 1.0, 1.0)
     p_max = float(np.nanmax(all_p)) * 1.05 if len(all_p) else 1.0
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5), sharey=True, sharex=True)
+    with plt.style.context(str(params.MPLSTYLE)):
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5), sharey=True, sharex=True)
 
-    # --- left panel: scatter ---
-    for serial, x_thin, p_thin, color in scatter_data:
-        ax1.scatter(
-            x_thin,
-            p_thin,
-            s=4,
-            alpha=0.3,
-            color=color,
-            linewidths=0,
-            label=str(serial),
-            rasterized=True,
+        # --- left panel: scatter ---
+        for serial, x_thin, p_thin, color in scatter_data:
+            ax1.scatter(
+                x_thin,
+                p_thin,
+                s=4,
+                alpha=0.3,
+                color=color,
+                linewidths=0,
+                label=str(serial),
+                rasterized=True,
+            )
+        ax1.set_xlim(0, x_max)  # sharex propagates to ax2
+        ax1.set_xlabel("Horizontal displacement (m)")
+        ax1.set_ylabel("Measured pressure (dbar)")
+        ax1.legend(fontsize=9, loc="lower right", markerscale=3)
+        ax1.set_aspect("equal", adjustable="box")  # 100 m on x = 100 m on y
+        ax1.grid(True, linestyle="--", linewidth=0.4, alpha=0.5)
+
+        # Shared tick step so x and y gridlines fall at the same intervals
+        import matplotlib.ticker as mticker
+
+        _ax_range = max(x_max, p_max)
+        _step = next(
+            s for s in [10, 20, 25, 50, 100, 200, 250, 500, 1000] if _ax_range / s <= 6
         )
-    ax1.set_xlim(0, x_max)  # sharex propagates to ax2
-    ax1.set_xlabel("Horizontal displacement (m)")
-    ax1.set_ylabel("Measured pressure (dbar)")
-    ax1.legend(fontsize=9, loc="lower right", markerscale=3)
-    ax1.set_aspect("equal", adjustable="box")  # 100 m on x = 100 m on y
-    ax1.grid(True, linestyle="--", linewidth=0.4, alpha=0.5)
+        ax1.xaxis.set_major_locator(mticker.MultipleLocator(_step))
+        ax1.yaxis.set_major_locator(mticker.MultipleLocator(_step))
 
-    # Shared tick step so x and y gridlines fall at the same intervals
-    import matplotlib.ticker as mticker
+        # --- right panel: per-instrument normalised heatmap ---
+        # Each instrument's 2-D histogram is divided by its own total before
+        # summing, so all instruments contribute equally regardless of record length.
+        n_bins = 40
+        x_edges = np.linspace(0, x_max, n_bins + 1)
+        p_edges = np.linspace(0, p_max, n_bins + 1)
 
-    _ax_range = max(x_max, p_max)
-    _step = next(
-        s for s in [10, 20, 25, 50, 100, 200, 250, 500, 1000] if _ax_range / s <= 6
-    )
-    ax1.xaxis.set_major_locator(mticker.MultipleLocator(_step))
-    ax1.yaxis.set_major_locator(mticker.MultipleLocator(_step))
+        H_norm = np.zeros((n_bins, n_bins))
+        for x_arr, p_arr in zip(all_x_list, all_p_list):
+            valid_i = np.isfinite(x_arr) & np.isfinite(p_arr)
+            if not valid_i.sum():
+                continue
+            H_i, _, _ = np.histogram2d(
+                x_arr[valid_i], p_arr[valid_i], bins=[x_edges, p_edges]
+            )
+            total = H_i.sum()
+            if total > 0:
+                H_norm += H_i / total
+        H_norm[H_norm == 0] = np.nan
 
-    # --- right panel: per-instrument normalised heatmap ---
-    # Each instrument's 2-D histogram is divided by its own total before
-    # summing, so all instruments contribute equally regardless of record length.
-    n_bins = 40
-    x_edges = np.linspace(0, x_max, n_bins + 1)
-    p_edges = np.linspace(0, p_max, n_bins + 1)
+        h_vals = H_norm[np.isfinite(H_norm)]
+        if len(h_vals):
+            bounds = _nice_colorbar_bounds(
+                float(np.nanmin(h_vals)), float(np.nanpercentile(h_vals, 98)), n=15
+            )
+            norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+            mesh = ax2.pcolormesh(x_edges, p_edges, H_norm.T, norm=norm, cmap="YlOrRd")
+            fig.colorbar(
+                mesh,
+                ax=ax2,
+                ticks=bounds,
+                label="Normalised density (sum = 1 per instrument)",
+            )
 
-    H_norm = np.zeros((n_bins, n_bins))
-    for x_arr, p_arr in zip(all_x_list, all_p_list):
-        valid_i = np.isfinite(x_arr) & np.isfinite(p_arr)
-        if not valid_i.sum():
-            continue
-        H_i, _, _ = np.histogram2d(
-            x_arr[valid_i], p_arr[valid_i], bins=[x_edges, p_edges]
-        )
-        total = H_i.sum()
-        if total > 0:
-            H_norm += H_i / total
-    H_norm[H_norm == 0] = np.nan
+        ax2.set_ylim(0, p_max)  # sharey propagates this to ax1
+        ax2.set_aspect("equal", adjustable="box")
+        ax2.invert_yaxis()
+        ax2.set_xlabel("Horizontal displacement (m)")
+        ax2.grid(True, linestyle="--", linewidth=0.4, alpha=0.5, zorder=3)
 
-    h_vals = H_norm[np.isfinite(H_norm)]
-    if len(h_vals):
-        bounds = _nice_colorbar_bounds(
-            float(np.nanmin(h_vals)), float(np.nanpercentile(h_vals, 98)), n=15
-        )
-        norm = mcolors.BoundaryNorm(bounds, ncolors=256)
-        mesh = ax2.pcolormesh(x_edges, p_edges, H_norm.T, norm=norm, cmap="YlOrRd")
-        fig.colorbar(
-            mesh,
-            ax=ax2,
-            ticks=bounds,
-            label="Normalised density (sum = 1 per instrument)",
-        )
-
-    ax2.set_ylim(0, p_max)  # sharey propagates this to ax1
-    ax2.set_aspect("equal", adjustable="box")
-    ax2.invert_yaxis()
-    ax2.set_xlabel("Horizontal displacement (m)")
-    ax2.grid(True, linestyle="--", linewidth=0.4, alpha=0.5, zorder=3)
-
-    plt.tight_layout()
-    return fig
+        plt.tight_layout()
+        return fig
 
 
 # ---------------------------------------------------------------------------
@@ -717,9 +722,7 @@ def plot_clock_offset_check(
     import matplotlib.pyplot as plt
     import xarray as xr
 
-    from oceanarray import parameters as P
-
-    plt.style.use(str(P.MPLSTYLE))
+    from oceanarray import parameters as params
 
     _TEMP_VARS = ("temperature", "temp", "TEMP", "sea_water_temperature")
 
@@ -761,50 +764,51 @@ def plot_clock_offset_check(
         return None
 
     n_panels = len(windows)
-    fig, axes = plt.subplots(1, n_panels, figsize=(5 * n_panels, 3.5), sharey=False)
-    if n_panels == 1:
-        axes = [axes]
+    with plt.style.context(str(params.MPLSTYLE)):
+        fig, axes = plt.subplots(1, n_panels, figsize=(5 * n_panels, 3.5), sharey=False)
+        if n_panels == 1:
+            axes = [axes]
 
-    _tab20 = plt.get_cmap("tab20")
-    colors = {s: _tab20(i % 20) for i, s in enumerate(series)}
+        _tab20 = plt.get_cmap("tab20")
+        colors = {s: _tab20(i % 20) for i, s in enumerate(series)}
 
-    plotted_serials: set = set()
-    for ax, (t_lo, t_hi, title) in zip(axes, windows):
-        for serial, (t, temp) in series.items():
-            mask = (t >= t_lo) & (t <= t_hi) & np.isfinite(temp)
-            if not np.any(mask):
-                continue
-            ax.plot(t[mask], temp[mask], color=colors[serial], lw=1.0)
-            plotted_serials.add(serial)
+        plotted_serials: set = set()
+        for ax, (t_lo, t_hi, title) in zip(axes, windows):
+            for serial, (t, temp) in series.items():
+                mask = (t >= t_lo) & (t <= t_hi) & np.isfinite(temp)
+                if not np.any(mask):
+                    continue
+                ax.plot(t[mask], temp[mask], color=colors[serial], lw=1.0)
+                plotted_serials.add(serial)
 
-        ax.set_title(title, fontsize=8)
-        ax.set_xlabel("Time (UTC)")
-        ax.set_ylabel("Temperature (°C)")
-        locator = mdates.AutoDateLocator()
-        ax.xaxis.set_major_locator(locator)
-        ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
-        ax.tick_params(axis="x", labelsize=7)
+            ax.set_title(title, fontsize=8)
+            ax.set_xlabel("Time (UTC)")
+            ax.set_ylabel("Temperature (°C)")
+            locator = mdates.AutoDateLocator()
+            ax.xaxis.set_major_locator(locator)
+            ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+            ax.tick_params(axis="x", labelsize=7)
 
-    if plotted_serials:
-        from matplotlib.lines import Line2D
+        if plotted_serials:
+            from matplotlib.lines import Line2D
 
-        handles = [
-            Line2D([0], [0], color=colors[s], lw=1.0, label=str(s))
-            for s in series
-            if s in plotted_serials
-        ]
-        fig.legend(
-            handles=handles,
-            loc="lower center",
-            ncol=min(len(handles), 6),
-            bbox_to_anchor=(0.5, -0.05),
-            fontsize=7,
-            frameon=True,
-        )
+            handles = [
+                Line2D([0], [0], color=colors[s], lw=1.0, label=str(s))
+                for s in series
+                if s in plotted_serials
+            ]
+            fig.legend(
+                handles=handles,
+                loc="lower center",
+                ncol=min(len(handles), 6),
+                bbox_to_anchor=(0.5, -0.05),
+                fontsize=7,
+                frameon=True,
+            )
 
-    plt.tight_layout()
-    fig.subplots_adjust(bottom=0.18)
-    return fig
+        plt.tight_layout()
+        fig.subplots_adjust(bottom=0.18)
+        return fig
 
 
 # ---------------------------------------------------------------------------
@@ -1142,7 +1146,7 @@ def draw_data_histogram(nc_path: Path) -> "Optional[plt.Figure]":
     import math
     import matplotlib.pyplot as plt
     import xarray as xr
-    from .. import parameters as _P
+    from .. import parameters as params
 
     with xr.open_dataset(nc_path, decode_timedelta=False) as ds:
         ds.load()
@@ -1205,11 +1209,11 @@ def draw_data_histogram(nc_path: Path) -> "Optional[plt.Figure]":
             pg_thresholds = None
             if vname == "percent_good":
                 pg_thresholds = (
-                    _P.QC_ADCP["percent_good_bad"],
-                    _P.QC_ADCP["percent_good_suspect"],
+                    params.QC_ADCP["percent_good_bad"],
+                    params.QC_ADCP["percent_good_suspect"],
                 )
                 # Treat bins below bad threshold as "removed" for the histogram
-                kept_mask = all_mask & (data >= _P.QC_ADCP["percent_good_bad"])
+                kept_mask = all_mask & (data >= params.QC_ADCP["percent_good_bad"])
 
             all_data = data[all_mask]
             kept_data = data[kept_mask]

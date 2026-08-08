@@ -38,6 +38,7 @@ if TYPE_CHECKING:
     import xarray as xr
 
 from .primitives import colorbar_norm, date_axis, pressure_axis, pcolormesh_panel
+from .. import parameters as params
 
 
 def draw_grid_fig(
@@ -329,7 +330,7 @@ def draw_grid_sigma(ds: "xr.Dataset") -> "Optional[plt.Figure]":
 
     """
     import matplotlib.pyplot as plt
-    from .. import parameters as P
+    from .. import parameters as params
 
     sigma_vars = [
         v for v in ds.data_vars if v.startswith("sigma") and "pressure" in ds[v].dims
@@ -354,7 +355,7 @@ def draw_grid_sigma(ds: "xr.Dataset") -> "Optional[plt.Figure]":
             time,
             pressure,
             title=label,
-            cmap=P.DENSITY_COLORMAP,
+            cmap=params.DENSITY_COLORMAP,
             cb_label=f"{label} ({units})" if units else label,
             title_loc="left",
             date_fmt=False,
@@ -481,7 +482,7 @@ def draw_grid_timeseries(ds: "xr.Dataset") -> "Optional[plt.Figure]":
 
     # Panel 0: speed
     axs[0].plot(time_vals, spd_ts, color="k", linewidth=0.8)
-    axs[0].set_ylabel("Speed (m s⁻¹)")
+    axs[0].set_ylabel(params.vlabel("speed"))
     axs[0].set_ylim(bottom=0)
 
     # Panel 1: east and north on the same axes

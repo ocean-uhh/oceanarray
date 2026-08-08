@@ -323,10 +323,10 @@ class TestRbrHexOaAlias:
         time). This keeps it out of autodoc / the validator's "known types"
         message while old YAMLs continue to load.
         """
-        from oceanarray import parameters as P
+        from oceanarray import parameters as params
 
         assert "rbr-hex-oa" not in MooringProcessor.SUPPORTED_FILE_TYPES
-        assert P.DEPRECATED_FILE_TYPE_ALIASES["rbr-hex-oa"] == "rbr-hex"
+        assert params.DEPRECATED_FILE_TYPE_ALIASES["rbr-hex-oa"] == "rbr-hex"
 
 
 if __name__ == "__main__":

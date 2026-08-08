@@ -8,60 +8,12 @@ from typing import Any, Dict, Optional
 import numpy as np
 import xarray as xr
 
-from oceanarray import parameters as P
+from oceanarray import parameters as params
 
 # Merge priority for combining QC flags (higher priority wins = worse quality).
 # Single source of truth: parameters.QC_MERGE_PRIORITY, shared with
 # mooring.helpers._worst_flag so the two merge paths cannot drift.
-_QC_PRIORITY: Dict[int, int] = P.QC_MERGE_PRIORITY
-
-# CF standard names and canonical long_names for known physics variables.
-# Applied as a normalization pass just before writing _stage3.nc so that all
-# output files have consistent metadata regardless of which reader produced them.
-_CF_ATTRS: Dict[str, Dict[str, str]] = {
-    "temperature": {
-        "standard_name": "sea_water_temperature",
-        "long_name": "Temperature",
-        "units": "degrees_C",
-    },
-    "conductivity": {
-        "standard_name": "sea_water_electrical_conductivity",
-        "long_name": "Conductivity",
-    },
-    "salinity": {
-        "standard_name": "sea_water_practical_salinity",
-        "long_name": "Salinity",
-        "units": "1",
-    },
-    "pressure": {
-        "standard_name": "sea_water_pressure",
-        "long_name": "Pressure",
-        "units": "dbar",
-    },
-    "turbidity": {
-        "standard_name": "sea_water_turbidity",
-        "long_name": "Turbidity",
-    },
-    "dissolved_oxygen": {
-        "standard_name": "mole_concentration_of_dissolved_molecular_oxygen_in_sea_water",
-        "long_name": "Dissolved Oxygen",
-        "units": "umol/L",
-    },
-    "oxygen_saturation_pct": {
-        "long_name": "Dissolved Oxygen Percent Saturation",
-        "units": "%",
-    },
-    "apparent_oxygen_utilization": {
-        "standard_name": "apparent_oxygen_utilization",
-        "long_name": "Apparent Oxygen Utilization",
-        "units": "umol/kg",
-    },
-    "dissolved_oxygen_ml_l": {
-        "standard_name": "mole_concentration_of_dissolved_molecular_oxygen_in_sea_water",
-        "long_name": "Dissolved Oxygen",
-        "units": "mL/L",
-    },
-}
+_QC_PRIORITY: Dict[int, int] = params.QC_MERGE_PRIORITY
 
 # Velocity variable names in both beam and ENU coordinate systems.
 _VELOCITY_VARS = (
@@ -81,7 +33,7 @@ def _merge_flags(*flag_arrays: np.ndarray) -> np.ndarray:
     Works on arrays of any shape (1-D time series or 2-D time×N_BINS).
     """
     # priority[flag] for flags 0-9, from the shared single-source LUT.
-    _priority = P.QC_MERGE_PRIORITY_LUT
+    _priority = params.QC_MERGE_PRIORITY_LUT
     result = np.asarray(flag_arrays[0], dtype=np.int8).copy()
     for fa in flag_arrays[1:]:
         fa = np.asarray(fa, dtype=np.int8)
@@ -139,9 +91,9 @@ def set_qc_attrs(
 
     """
     attrs: Dict[str, Any] = {
-        "flag_values": P.QC_FLAG_VALUES_I8,
-        "flag_meanings": P.QC_FLAG_MEANINGS,
-        "conventions": P.QC_CONVENTION,
+        "flag_values": params.QC_FLAG_VALUES_I8,
+        "flag_meanings": params.QC_FLAG_MEANINGS,
+        "conventions": params.QC_CONVENTION,
     }
     std = ds[var].attrs.get("standard_name") if var in ds.variables else None
     if std:
@@ -213,10 +165,10 @@ def load_qc_config(
     ``tilt`` is stripped from the gross-range dict before returning so it is
     not passed to the QARTOD gross-range test runner.
     """
-    gr = copy.deepcopy(P.QC_GROSS_RANGE)
-    sp = copy.deepcopy(P.QC_SPIKE)
-    tilt = copy.deepcopy(P.QC_TILT)
-    fl = copy.deepcopy(P.QC_FLAT_LINE)
+    gr = copy.deepcopy(params.QC_GROSS_RANGE)
+    sp = copy.deepcopy(params.QC_SPIKE)
+    tilt = copy.deepcopy(params.QC_TILT)
+    fl = copy.deepcopy(params.QC_FLAT_LINE)
 
     # Mooring-level overrides
     if "qc_ranges" in mooring_cfg:
@@ -807,7 +759,7 @@ def derive_oxygen_saturation(ds: "xr.Dataset") -> "xr.Dataset":
             {
                 "long_name": "Apparent Oxygen Utilization",
                 "standard_name": "apparent_oxygen_utilization",
-                "units": "umol/kg",
+                "units": "umol kg-1",
                 "comment": (
                     "AOU = O2sol - O2_meas (µmol/kg); positive = undersaturated "
                     "(oxygen consumed). Uses in-situ seawater density for µmol/L → µmol/kg."

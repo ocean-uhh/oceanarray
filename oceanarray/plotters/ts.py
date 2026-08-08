@@ -9,6 +9,7 @@ import numpy as np
 
 from .primitives import colorbar_norm
 from .helpers import QC_MARKER as _QC_MARKER
+from .. import parameters as params
 
 if TYPE_CHECKING:
     import matplotlib.pyplot as plt
@@ -81,7 +82,7 @@ def _ts_heatmap_panel(
     ax.set_xlim(s_lo, s_hi)
     ax.set_ylim(t_lo, t_hi)
     ax.set_xlabel("Practical salinity")
-    ax.set_ylabel("Temperature (°C)")
+    ax.set_ylabel(params.vlabel("temperature"))
     ax.set_title("T-S heat map")
 
 
@@ -118,7 +119,7 @@ def draw_ts_diagram(nc_path: Path) -> "Optional[plt.Figure]":
 
         if "pressure" in ds.data_vars:
             C = ds["pressure"].values.astype(float)
-            cbar_label = "Pressure (dbar)"
+            cbar_label = params.vlabel("pressure")
             cmap_sc = "viridis_r"
         else:
             C = np.arange(len(T), dtype=float)
@@ -317,7 +318,7 @@ def draw_stack_ts_diagram(ds: "xr.Dataset") -> "Optional[plt.Figure]":
             rasterized=True,
         )
         cb_p = fig.colorbar(sc_p, ax=ax_scatter, ticks=bounds_p, pad=0.02)
-        cb_p.set_label("Pressure (dbar)")
+        cb_p.set_label(params.vlabel("pressure"))
     else:
         ax_scatter.scatter(
             S_flat[finite],
@@ -329,7 +330,7 @@ def draw_stack_ts_diagram(ds: "xr.Dataset") -> "Optional[plt.Figure]":
         )
     _add_sigma0_contours(ax_scatter, S_flat[finite], T_flat[finite])
     ax_scatter.set_xlabel("Practical salinity")
-    ax_scatter.set_ylabel("Temperature (°C)")
+    ax_scatter.set_ylabel(params.vlabel("temperature"))
     ax_scatter.set_title("T-S (colour = pressure)")
 
     # --- Middle panel: count heatmap ---
@@ -360,7 +361,7 @@ def draw_stack_ts_diagram(ds: "xr.Dataset") -> "Optional[plt.Figure]":
         cb_s.set_label("O₂ saturation (%)")
         _add_sigma0_contours(ax_sat, S_flat[sat_finite], T_flat[sat_finite])
         ax_sat.set_xlabel("Practical salinity")
-        ax_sat.set_ylabel("Temperature (°C)")
+        ax_sat.set_ylabel(params.vlabel("temperature"))
         ax_sat.set_title("T-S (colour = O₂ sat.)")
 
     return fig
@@ -475,7 +476,7 @@ def draw_grid_ts_diagram(
             axes[1].set_xlim(s_lo, s_hi)
             axes[1].set_ylim(t_lo, t_hi)
         axes[1].set_xlabel("Practical salinity")
-        axes[1].set_ylabel("Temperature (°C)")
+        axes[1].set_ylabel(params.vlabel("temperature"))
         axes[1].set_title("Median O₂ saturation per T-S bin")
 
     return fig, ts_bounds

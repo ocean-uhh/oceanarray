@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.collections import LineCollection
 
-from .. import parameters as P
+from .. import parameters as params
 from ..utilities import _nice_colorbar_bounds
 
 
@@ -272,7 +272,7 @@ def date_axis(ax: Any) -> None:
 def pressure_axis(ax: Any) -> None:
     """Configure *ax* as a standard pressure Y-axis: inverted, labelled, gridded."""
     ax.invert_yaxis()
-    ax.set_ylabel("Pressure (dbar)")
+    ax.set_ylabel(params.vlabel("pressure"))
     ax.grid(True, linestyle="--", linewidth=0.3, alpha=0.4)
 
 
@@ -325,9 +325,9 @@ def colorbar_norm(
             vmax = vmax if vmax is not None else 1.0
         else:
             if vmin is None:
-                vmin = float(np.nanpercentile(finite, P.COLORBAR_PLOW))
+                vmin = float(np.nanpercentile(finite, params.COLORBAR_PLOW))
             if vmax is None:
-                vmax = float(np.nanpercentile(finite, P.COLORBAR_PHIGH))
+                vmax = float(np.nanpercentile(finite, params.COLORBAR_PHIGH))
     if symmetric:
         abs_max = max(abs(float(vmin)), abs(float(vmax)), 1e-9)
         vmin, vmax = -abs_max, abs_max

@@ -5,7 +5,7 @@ from typing import Dict, List
 import numpy as np
 import xarray as xr
 import yaml
-from oceanarray import parameters as P
+from oceanarray import parameters as params
 from oceanarray.utilities import (
     _status,
     cast_output_dtypes,
@@ -26,7 +26,7 @@ from oceanarray.processors.helpers import (
     _linear_interp,
 )
 
-KNOWN_INSTRUMENT_TYPES: frozenset = P.KNOWN_INSTRUMENT_TYPES
+KNOWN_INSTRUMENT_TYPES: frozenset = params.KNOWN_INSTRUMENT_TYPES
 
 _SIGMA_META = {
     0: (
@@ -211,7 +211,7 @@ class MooringStacker:
                     expanded.append(info)
                     continue
             ds_adcp = _adcp_parent_datasets[nc_key]
-            bin_dim = P.ADCP_BIN_DIM
+            bin_dim = params.ADCP_BIN_DIM
             if bin_dim not in ds_adcp.dims:
                 print(
                     f"  WARNING: ADCP s/n {info['serial']} has no {bin_dim} dim "
@@ -418,7 +418,7 @@ class MooringStacker:
                 )
 
         # Compute potential density from stacked T, S, P
-        ref_p = int(mooring_config.get("density_reference", P.DENSITY_REFERENCE))
+        ref_p = int(mooring_config.get("density_reference", params.DENSITY_REFERENCE))
         if (
             "temperature" in data_vars
             and "salinity" in data_vars
@@ -494,9 +494,9 @@ class MooringStacker:
                             "Worst OceanSITES flag across east/north/up_velocity; "
                             "apply to the velocity components before use."
                         ),
-                        "flag_values": P.QC_FLAG_VALUES_I8,
-                        "flag_meanings": P.QC_FLAG_MEANINGS,
-                        "conventions": P.QC_CONVENTION,
+                        "flag_values": params.QC_FLAG_VALUES_I8,
+                        "flag_meanings": params.QC_FLAG_MEANINGS,
+                        "conventions": params.QC_CONVENTION,
                     },
                 )
 

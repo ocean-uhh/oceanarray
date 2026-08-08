@@ -397,7 +397,7 @@ def apply_adcp_seabed_qc(
         return ds
 
     import gsw
-    from oceanarray import parameters as _P
+    from oceanarray import parameters as params
 
     p_seabed = float(gsw.p_from_z(-water_depth_m, lat))
     p_fail = float(gsw.p_from_z(-(water_depth_m + fail_margin_m), lat))
@@ -412,7 +412,7 @@ def apply_adcp_seabed_qc(
     n_bad = int(np.sum(seabed_flags == 4))
 
     ds["seabed_qc"] = xr.Variable(
-        ("time", _P.ADCP_BIN_DIM),
+        ("time", params.ADCP_BIN_DIM),
         seabed_flags,
         {
             "long_name": "Seabed proximity QC flag",
@@ -487,7 +487,7 @@ def apply_adcp_surface_qc(
         return ds
 
     import gsw
-    from oceanarray import parameters as _P
+    from oceanarray import parameters as params
 
     p_suspect = float(gsw.p_from_z(-suspect_margin_m, lat))
 
@@ -500,7 +500,7 @@ def apply_adcp_surface_qc(
     n_bad = int(np.sum(surface_flags == 4))
 
     ds["surface_qc"] = xr.Variable(
-        ("time", _P.ADCP_BIN_DIM),
+        ("time", params.ADCP_BIN_DIM),
         surface_flags,
         {
             "long_name": "Sea surface proximity QC flag",
@@ -674,10 +674,10 @@ def apply_adcp_velocity_qc(
                 f"  ADCP percent_good QC (col-3 4-beam): bad={n_bad_pg}, suspect={n_susp_pg} "
                 f"(thresholds: bad<{prcnt_gd_bad}%, suspect<{prcnt_gd_suspect}%)"
             )
-        from oceanarray import parameters as _P
+        from oceanarray import parameters as params
 
         ds["percent_good_qc"] = xr.Variable(
-            ("time", _P.ADCP_BIN_DIM),
+            ("time", params.ADCP_BIN_DIM),
             pg_flags,
             attrs={
                 "long_name": "QC flag for ADCP percent good (4-beam solutions, column 3)",

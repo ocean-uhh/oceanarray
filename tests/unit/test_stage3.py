@@ -119,11 +119,11 @@ def test_merge_priority_single_source():
     Guards against the two merge paths drifting: both derive from
     parameters.QC_MERGE_PRIORITY, so they must agree on every combination.
     """
-    from oceanarray import parameters as P
+    from oceanarray import parameters as params
     from oceanarray.processors.qc import _QC_PRIORITY
     from oceanarray.processors.helpers import _worst_flag
 
-    assert _QC_PRIORITY is P.QC_MERGE_PRIORITY
+    assert _QC_PRIORITY is params.QC_MERGE_PRIORITY
     a = np.array([1, 8, 0, 3], dtype=np.int8)
     b = np.array([8, 4, 1, 8], dtype=np.int8)
     # _worst_flag must match _merge_flags element-wise for the same inputs.
@@ -233,9 +233,9 @@ def _make_pressure_dataset(n=50, stuck=False, out_of_range=False):
 def test_apply_qc_tests_good_data():
     """All-good pressure → all flags should be 1 (GOOD)."""
     ds = _make_pressure_dataset()
-    from oceanarray import parameters as P
+    from oceanarray import parameters as params
 
-    gr = {"pressure": P.QC_GROSS_RANGE["pressure"]}
+    gr = {"pressure": params.QC_GROSS_RANGE["pressure"]}
     result = _apply_qc_tests(ds, gr, {})
     assert "pressure_qc" in result.data_vars
     assert np.all(result["pressure_qc"].values == 1)
@@ -244,9 +244,9 @@ def test_apply_qc_tests_good_data():
 def test_apply_qc_tests_gross_range_flags_bad():
     """Single out-of-range spike → that sample is flagged 4 (BAD)."""
     ds = _make_pressure_dataset(out_of_range=True)
-    from oceanarray import parameters as P
+    from oceanarray import parameters as params
 
-    gr = {"pressure": P.QC_GROSS_RANGE["pressure"]}
+    gr = {"pressure": params.QC_GROSS_RANGE["pressure"]}
     result = _apply_qc_tests(ds, gr, {})
     flags = result["pressure_qc"].values
     assert flags[10] == 4, f"expected BAD at index 10, got {flags[10]}"
@@ -256,9 +256,9 @@ def test_apply_qc_tests_gross_range_flags_bad():
 def test_apply_qc_tests_threshold_attrs_stored():
     """Threshold values used must be stored as attrs on the _qc variable."""
     ds = _make_pressure_dataset()
-    from oceanarray import parameters as P
+    from oceanarray import parameters as params
 
-    gr = {"pressure": P.QC_GROSS_RANGE["pressure"]}
+    gr = {"pressure": params.QC_GROSS_RANGE["pressure"]}
     result = _apply_qc_tests(ds, gr, {})
     attrs = result["pressure_qc"].attrs
     assert "qc_gross_range_fail_min" in attrs
@@ -275,11 +275,11 @@ def test_apply_qc_tests_flat_line_flags_fail():
     change by more than 1 mbar.
     """
     ds = _make_pressure_dataset(n=50, stuck=True)
-    from oceanarray import parameters as P
+    from oceanarray import parameters as params
 
-    gr = {"pressure": P.QC_GROSS_RANGE["pressure"]}
+    gr = {"pressure": params.QC_GROSS_RANGE["pressure"]}
     # Use package default tolerance (0.001), NOT 0.0 — see note above
-    fl = {"pressure": P.QC_FLAT_LINE["pressure"]}
+    fl = {"pressure": params.QC_FLAT_LINE["pressure"]}
     result = _apply_qc_tests(ds, gr, {}, flat_line=fl)
     flags = result["pressure_qc"].values
     assert np.any(flags == 4), "expected at least one FAIL flag for stuck pressure"

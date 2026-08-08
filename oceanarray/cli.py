@@ -284,14 +284,14 @@ def cmd_plot(args: argparse.Namespace) -> int:
     """
     from pathlib import Path
     from .plotters import plot_mooring_timeseries
-    from .config import parameters as P
+    from .config import parameters as params
 
     _, proc_root = _parse_dirs_checked(args)
 
     if args.colormap:
-        P.DEFAULT_COLORMAP = args.colormap
+        params.DEFAULT_COLORMAP = args.colormap
     if args.downsample:
-        P.DOWNSAMPLE_SECONDS = args.downsample
+        params.DOWNSAMPLE_SECONDS = args.downsample
 
     save_path = None
     if args.output:
@@ -336,102 +336,111 @@ def cmd_report(args: argparse.Namespace) -> int:
         paths.require_current_layout(proc_root, args.mooring)
 
     sig_level = getattr(args, "sig_level", None)
+    # Override SIGMA_GRID for this call only; restore on exit so that repeated
+    # calls in the same process (batch loops, tests) don't inherit the mutation.
+    # Not thread-safe — document that if cmd_report is ever parallelised.
+    _sigma_restore: "tuple | None" = None
     if sig_level is not None:
         import numpy as _np
-        from .config import parameters as _P
+        from .config import parameters as params
 
-        _P.SIGMA_GRID = _np.array(sorted(sig_level))
+        _sigma_restore = (params, params.SIGMA_GRID.copy())
+        params.SIGMA_GRID = _np.array(sorted(sig_level))
 
-    report_dir = getattr(args, "report_dir", None)
+    try:
+        report_dir = getattr(args, "report_dir", None)
 
-    if getattr(args, "dry_run", False):
-        import yaml as _yaml
-        from .utilities import extract_inline_instruments
+        if getattr(args, "dry_run", False):
+            import yaml as _yaml
+            from .utilities import extract_inline_instruments
 
-        _status("section", f"Report (dry run): {args.mooring}")
-        proc_dir = proc_root / args.mooring
-        yaml_path = proc_dir / f"{args.mooring}.mooring.yaml"
+            _status("section", f"Report (dry run): {args.mooring}")
+            proc_dir = proc_root / args.mooring
+            yaml_path = proc_dir / f"{args.mooring}.mooring.yaml"
+            all_reports = getattr(args, "all_reports", False)
+            do_instruments = all_reports or getattr(args, "instruments", False)
+            do_stack = all_reports or getattr(args, "stack", False)
+            do_grid = all_reports or getattr(args, "grid", False)
+            mooring_html = proc_dir / f"{args.mooring}_report.html"
+            print(
+                f"Summary:  {mooring_html}  ({'exists' if mooring_html.exists() else 'new'})"
+            )
+            if do_stack:
+                p = proc_dir / f"{args.mooring}_stack_report.html"
+                print(f"Stack:    {p}  ({'exists' if p.exists() else 'new'})")
+            if do_grid:
+                p = proc_dir / f"{args.mooring}_grid_report.html"
+                print(f"Grid:     {p}  ({'exists' if p.exists() else 'new'})")
+            if do_instruments and yaml_path.exists():
+                with open(yaml_path) as fh:
+                    cfg = _yaml.safe_load(fh)
+                instrument_list = list(cfg.get("clamp", cfg.get("instruments", [])))
+                instrument_list += extract_inline_instruments(cfg.get("inline", []))
+                for entry in instrument_list:
+                    if not isinstance(entry, dict):
+                        continue
+                    serial = str(entry.get("serial", "")).split(",")[0].strip()
+                    instr_type = entry.get("instrument", "unknown")
+                    p = proc_dir / "instrument" / f"{args.mooring}_{serial}_report.html"
+                    print(
+                        f"  Instrument {instr_type:12s} s/n {serial:8s}  {p.name}  ({'exists' if p.exists() else 'new'})"
+                    )
+            return 0
+
+        if getattr(args, "array", False):
+            from .report._array import generate_array_report
+
+            # Resolve the YAML path: try as-given first, then relative to proc_dir.
+            _yaml_path = Path(args.mooring)
+            if not _yaml_path.exists() and not _yaml_path.is_absolute():
+                _yaml_path = proc_root / args.mooring
+            _status("section", f"Array report: {_yaml_path.name}")
+            result = generate_array_report(
+                array_yaml_path=_yaml_path,
+                proc_dir=proc_root,
+                force=args.force,
+                report_dir=Path(report_dir) if report_dir else None,
+            )
+            return 0 if result else 1
+
+        from .report import MooringReport
+
+        _status("section", f"Report: {args.mooring}")
+        serials = getattr(args, "serial", None)
+        reporter = MooringReport(
+            proc_dir=str(proc_root),
+            raw_dir=str(raw_dir) if raw_dir else None,
+            report_dir=report_dir,
+        )
         all_reports = getattr(args, "all_reports", False)
-        do_instruments = all_reports or getattr(args, "instruments", False)
-        do_stack = all_reports or getattr(args, "stack", False)
-        do_grid = all_reports or getattr(args, "grid", False)
-        mooring_html = proc_dir / f"{args.mooring}_report.html"
-        print(
-            f"Summary:  {mooring_html}  ({'exists' if mooring_html.exists() else 'new'})"
-        )
-        if do_stack:
-            p = proc_dir / f"{args.mooring}_stack_report.html"
-            print(f"Stack:    {p}  ({'exists' if p.exists() else 'new'})")
-        if do_grid:
-            p = proc_dir / f"{args.mooring}_grid_report.html"
-            print(f"Grid:     {p}  ({'exists' if p.exists() else 'new'})")
-        if do_instruments and yaml_path.exists():
-            with open(yaml_path) as fh:
-                cfg = _yaml.safe_load(fh)
-            instrument_list = list(cfg.get("clamp", cfg.get("instruments", [])))
-            instrument_list += extract_inline_instruments(cfg.get("inline", []))
-            for entry in instrument_list:
-                if not isinstance(entry, dict):
-                    continue
-                serial = str(entry.get("serial", "")).split(",")[0].strip()
-                instr_type = entry.get("instrument", "unknown")
-                p = proc_dir / "instrument" / f"{args.mooring}_{serial}_report.html"
-                print(
-                    f"  Instrument {instr_type:12s} s/n {serial:8s}  {p.name}  ({'exists' if p.exists() else 'new'})"
-                )
-        return 0
-
-    if getattr(args, "array", False):
-        from .report._array import generate_array_report
-
-        # Resolve the YAML path: try as-given first, then relative to proc_dir.
-        _yaml_path = Path(args.mooring)
-        if not _yaml_path.exists() and not _yaml_path.is_absolute():
-            _yaml_path = proc_root / args.mooring
-        _status("section", f"Array report: {_yaml_path.name}")
-        result = generate_array_report(
-            array_yaml_path=_yaml_path,
-            proc_dir=proc_root,
+        result = reporter.generate(
+            args.mooring,
             force=args.force,
-            report_dir=Path(report_dir) if report_dir else None,
+            skip_existing=getattr(args, "skip_existing", False),
+            outdir=getattr(args, "outdir", None),
+            serials=serials,
+            instruments=all_reports or args.instruments or bool(serials),
+            grid=all_reports or args.grid,
+            stack=all_reports or args.stack,
         )
+        if getattr(args, "cruise_table", False):
+            from .report._recovery_table import generate_recovery_table
+
+            mooring_proc = proc_root / args.mooring
+            out_dir = Path(
+                getattr(args, "outdir", None)
+                or (Path(report_dir) / args.mooring if report_dir else mooring_proc)
+            )
+            generate_recovery_table(
+                mooring_name=args.mooring,
+                proc_dir=mooring_proc,
+                out_path=out_dir / f"{args.mooring}_recovery_table.html",
+                force=args.force,
+            )
         return 0 if result else 1
-
-    from .report import MooringReport
-
-    _status("section", f"Report: {args.mooring}")
-    serials = getattr(args, "serial", None)
-    reporter = MooringReport(
-        proc_dir=str(proc_root),
-        raw_dir=str(raw_dir) if raw_dir else None,
-        report_dir=report_dir,
-    )
-    all_reports = getattr(args, "all_reports", False)
-    result = reporter.generate(
-        args.mooring,
-        force=args.force,
-        skip_existing=getattr(args, "skip_existing", False),
-        outdir=getattr(args, "outdir", None),
-        serials=serials,
-        instruments=all_reports or args.instruments or bool(serials),
-        grid=all_reports or args.grid,
-        stack=all_reports or args.stack,
-    )
-    if getattr(args, "cruise_table", False):
-        from .report._recovery_table import generate_recovery_table
-
-        mooring_proc = proc_root / args.mooring
-        out_dir = Path(
-            getattr(args, "outdir", None)
-            or (Path(report_dir) / args.mooring if report_dir else mooring_proc)
-        )
-        generate_recovery_table(
-            mooring_name=args.mooring,
-            proc_dir=mooring_proc,
-            out_path=out_dir / f"{args.mooring}_recovery_table.html",
-            force=args.force,
-        )
-    return 0 if result else 1
+    finally:
+        if _sigma_restore is not None:
+            _sigma_restore[0].SIGMA_GRID = _sigma_restore[1]
 
 
 def cmd_stack(args: argparse.Namespace) -> int:
@@ -765,12 +774,12 @@ def cmd_animate(args: argparse.Namespace) -> int:
 
 def cmd_list(args: argparse.Namespace) -> int:
     """Print allowed instrument types and file_type values for mooring YAML files."""
-    from .config import parameters as P
+    from .config import parameters as params
 
     topic = getattr(args, "topic", None)
 
-    instr_col = max(len(k) for k in P.INSTRUMENT_FILE_TYPES) + 2
-    file_col = max(len(", ".join(v)) for v in P.INSTRUMENT_FILE_TYPES.values()) + 2
+    instr_col = max(len(k) for k in params.INSTRUMENT_FILE_TYPES) + 2
+    file_col = max(len(", ".join(v)) for v in params.INSTRUMENT_FILE_TYPES.values()) + 2
 
     if topic in (None, "instruments", "file-types"):
         print()
@@ -778,15 +787,15 @@ def cmd_list(args: argparse.Namespace) -> int:
         print()
         print(f"  {'instrument':<{instr_col}}  {'file_type (seasenselib reader)'}")
         print(f"  {'-' * instr_col}  {'-' * file_col}")
-        for name in sorted(P.INSTRUMENT_FILE_TYPES):
-            readers = ", ".join(P.INSTRUMENT_FILE_TYPES[name])
+        for name in sorted(params.INSTRUMENT_FILE_TYPES):
+            readers = ", ".join(params.INSTRUMENT_FILE_TYPES[name])
             print(f"  {name:<{instr_col}}  {readers}")
 
-        if P.EXTRA_FILE_TYPES:
+        if params.EXTRA_FILE_TYPES:
             print()
             print("  Additional file_type values (specialist / deprecated):")
             print(f"  {'-' * instr_col}  {'-' * file_col}")
-            for ft, note in sorted(P.EXTRA_FILE_TYPES.items()):
+            for ft, note in sorted(params.EXTRA_FILE_TYPES.items()):
                 print(f"  {ft:<{instr_col}}  {note}")
 
         print()

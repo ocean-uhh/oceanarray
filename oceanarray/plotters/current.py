@@ -38,6 +38,7 @@ from oceanarray.plotters.primitives import (
 )
 from oceanarray.plotters.helpers import _rose_ax, _velocity_panel_style
 from oceanarray.utilities import _nice_colorbar_bounds
+from oceanarray import parameters as params
 
 
 def plot_temperature_trajectory(
@@ -1065,7 +1066,7 @@ def draw_grid_trajectory(ds: "xr.Dataset") -> "Optional[plt.Figure]":
 
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])
-    fig.colorbar(sm, ax=ax, label="Pressure (dbar)", shrink=0.75, ticks=_bounds)
+    fig.colorbar(sm, ax=ax, label=params.vlabel("pressure"), shrink=0.75, ticks=_bounds)
 
     ax.plot(0, 0, "o", color="black", markersize=6, zorder=6, label="Start")
     ax.legend(fontsize=8, loc="upper left")
@@ -1400,7 +1401,7 @@ def draw_adcp_rose(nc_path: str) -> "Optional[plt.Figure]":
                 pad=0.08,
                 aspect=40,
             )
-            cbar.set_label("Speed (m s⁻¹)")
+            cbar.set_label(params.vlabel("speed"))
             cbar.set_ticks(spd_edges)
             cbar.set_ticklabels([f"{v:.2f}" for v in spd_edges])
 

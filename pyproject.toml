@@ -140,7 +140,7 @@ ignore = [
 "oceanarray/tools/rapid_interp.py" = ["ANN", "D", "F841", "SLF001", "TRY003", "BLE001"]  # legacy physics code; rewrite deferred
 # Report generators: every function wraps rendering in try/except → None on failure.
 # This is the established pattern for keeping HTML reports partially working on bad data.
-"oceanarray/report/_plots.py" = ["BLE001", "TRY300"]
+"oceanarray/report/_plots.py" = ["BLE001", "TRY300", "TRY301", "TRY003"]
 "oceanarray/report/_html_helpers.py" = ["BLE001", "TRY300"]
 "oceanarray/report/_grid.py" = ["BLE001", "TRY300"]
 "oceanarray/report/_instrument.py" = ["BLE001", "TRY300", "ARG001"]

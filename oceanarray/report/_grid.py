@@ -33,7 +33,7 @@ from ._plots import (
     _make_wavelet_fig_b64,
     _make_velocity_iqr_profile_b64,
 )
-from .. import parameters as P
+from .. import parameters as params
 
 
 # ---------------------------------------------------------------------------
@@ -456,7 +456,7 @@ def generate_grid_page(
         # Stratification: sigma0 stacked panel + isopycnal height time series
         fig_sigma_b64 = _make_grid_sigma_b64(ds)
         sigma_sections = []
-        _sigma_grid = getattr(P, "SIGMA_GRID", None)
+        _sigma_grid = getattr(params, "SIGMA_GRID", None)
         for sv in [
             v
             for v in ds.data_vars

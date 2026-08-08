@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -27,8 +28,9 @@ from ._plots import (
     _make_aquadopp_speed_profile,
     _make_adcp_trajectories_b64,
     _make_analog_timeseries,
+    render_b64,
 )
-from .. import parameters as P
+from .. import parameters as params
 
 
 # ---------------------------------------------------------------------------
@@ -420,43 +422,40 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
     Returns None if no Aquadopp levels are found or none of the relevant
     variables exist.
     """
-    try:
-        import matplotlib.pyplot as plt
-        import matplotlib.dates as mdates
+    import matplotlib.pyplot as plt
+    import matplotlib.dates as mdates
 
-        tilt_suspect = float(ds.attrs.get("tilt_suspect_threshold", 20.0))
-        tilt_fail = float(ds.attrs.get("tilt_fail_threshold", 30.0))
+    tilt_suspect = float(ds.attrs.get("tilt_suspect_threshold", 20.0))
+    tilt_fail = float(ds.attrs.get("tilt_fail_threshold", 30.0))
 
-        instr_types = ds["instrument_type"].values
-        serials = ds["serial"].values
-        habs = ds["hab"].values
-        ref_habs = (
-            ds["tilt_pressure_ref_hab"].values
-            if "tilt_pressure_ref_hab" in ds.data_vars
-            else None
-        )
-        ref_serials = (
-            ds["tilt_pressure_ref_serial"].values
-            if "tilt_pressure_ref_serial" in ds.data_vars
-            else None
-        )
+    instr_types = ds["instrument_type"].values
+    serials = ds["serial"].values
+    habs = ds["hab"].values
+    ref_habs = (
+        ds["tilt_pressure_ref_hab"].values
+        if "tilt_pressure_ref_hab" in ds.data_vars
+        else None
+    )
+    ref_serials = (
+        ds["tilt_pressure_ref_serial"].values
+        if "tilt_pressure_ref_serial" in ds.data_vars
+        else None
+    )
 
-        aq_indices = [
-            i for i, t in enumerate(instr_types) if str(t).lower() == "aquadopp"
-        ]
-        if not aq_indices:
-            return None
+    aq_indices = [i for i, t in enumerate(instr_types) if str(t).lower() == "aquadopp"]
+    if not aq_indices:
+        return None
 
-        has_pitch = "pitch" in ds.data_vars
-        has_roll = "roll" in ds.data_vars
-        has_tilt_p = "tilt_from_pressure" in ds.data_vars
-        if not has_pitch and not has_roll and not has_tilt_p:
-            return None
+    has_pitch = "pitch" in ds.data_vars
+    has_roll = "roll" in ds.data_vars
+    has_tilt_p = "tilt_from_pressure" in ds.data_vars
+    if not has_pitch and not has_roll and not has_tilt_p:
+        return None
 
-        time_ds = ds["time"].values[::step]
-        n_panels = len(aq_indices)
-        plt.style.use(str(P.MPLSTYLE))
+    time_ds = ds["time"].values[::step]
+    n_panels = len(aq_indices)
 
+    def _draw() -> "plt.Figure":
         fig = plt.figure(figsize=(16, 2.8 * n_panels), constrained_layout=True)
         gs = fig.add_gridspec(n_panels, 3, width_ratios=[2, 2, 1])
 
@@ -580,11 +579,9 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
                 )
                 ax_sc.set_axis_off()
 
-        b64 = _fig_to_base64(fig)
-        plt.close(fig)
-        return b64
-    except Exception:
-        return None
+        return fig
+
+    return render_b64(_draw, optional=True)
 
 
 # ---------------------------------------------------------------------------
@@ -646,8 +643,6 @@ def generate_stack_page(
                 }
             )
 
-        plt.style.use(str(P.MPLSTYLE))
-
         _serial_list = list(serials)
         _tab20 = plt.get_cmap("tab20")
         _serial_colors = {s: _tab20(i % 20) for i, s in enumerate(_serial_list)}
@@ -667,64 +662,69 @@ def generate_stack_page(
             if qc_varname in ds.data_vars:
                 qc = ds[qc_varname].values
                 arr[qc >= 3] = np.nan
-            fig, ax = plt.subplots(figsize=(13, 4))
-            plotted = False
-            for i in range(n_instr):
-                if exclude_types and instr_types[i].lower() in exclude_types:
-                    continue
-                serial = _serial_list[i]
-                color = _serial_colors[serial]
-                y = arr[::step, i]
-                if not np.any(np.isfinite(y)):
-                    continue
-                plotted = True
-                ax.plot(time_ds, y, color=color, lw=0.7, alpha=0.85, label=f"{serial}")
-                if dot_overlay:
+            with plt.style.context(str(params.MPLSTYLE)):
+                fig, ax = plt.subplots(figsize=(13, 4))
+                plotted = False
+                for i in range(n_instr):
+                    if exclude_types and instr_types[i].lower() in exclude_types:
+                        continue
+                    serial = _serial_list[i]
+                    color = _serial_colors[serial]
+                    y = arr[::step, i]
+                    if not np.any(np.isfinite(y)):
+                        continue
+                    plotted = True
                     ax.plot(
-                        time_ds,
-                        y,
-                        ".",
-                        color=color,
-                        markersize=2,
-                        linewidth=0,
-                        alpha=0.85,
+                        time_ds, y, color=color, lw=0.7, alpha=0.85, label=f"{serial}"
                     )
-            if not plotted:
+                    if dot_overlay:
+                        ax.plot(
+                            time_ds,
+                            y,
+                            ".",
+                            color=color,
+                            markersize=2,
+                            linewidth=0,
+                            alpha=0.85,
+                        )
+                if not plotted:
+                    plt.close(fig)
+                    return None
+                if hlines:
+                    for val, col, ls, lbl in hlines:
+                        ax.axhline(val, color=col, lw=0.9, ls=ls, label=lbl, zorder=0)
+                if invert:
+                    ax.invert_yaxis()
+                locator = mdates.AutoDateLocator()
+                ax.xaxis.set_major_locator(locator)
+                ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+                ax.set_ylabel(ylabel)
+                ax.set_xlabel("Time")
+                if _t_cov_start and _t_cov_end:
+                    try:
+                        ax.set_xlim(
+                            np.datetime64(_t_cov_start), np.datetime64(_t_cov_end)
+                        )
+                    except Exception:
+                        pass
+                n_plotted = sum(
+                    1 for i in range(n_instr) if np.any(np.isfinite(arr[::step, i]))
+                )
+                ax.legend(
+                    loc="upper left",
+                    bbox_to_anchor=(1.01, 1.0),
+                    borderaxespad=0,
+                    framealpha=0.8,
+                    fontsize=6,
+                    ncol=2,
+                )
+                plt.tight_layout()
+                b64 = _fig_to_base64(fig)
                 plt.close(fig)
-                return None
-            if hlines:
-                for val, col, ls, lbl in hlines:
-                    ax.axhline(val, color=col, lw=0.9, ls=ls, label=lbl, zorder=0)
-            if invert:
-                ax.invert_yaxis()
-            locator = mdates.AutoDateLocator()
-            ax.xaxis.set_major_locator(locator)
-            ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
-            ax.set_ylabel(ylabel)
-            ax.set_xlabel("Time")
-            if _t_cov_start and _t_cov_end:
-                try:
-                    ax.set_xlim(np.datetime64(_t_cov_start), np.datetime64(_t_cov_end))
-                except Exception:
-                    pass
-            n_plotted = sum(
-                1 for i in range(n_instr) if np.any(np.isfinite(arr[::step, i]))
-            )
-            ax.legend(
-                loc="upper left",
-                bbox_to_anchor=(1.01, 1.0),
-                borderaxespad=0,
-                framealpha=0.8,
-                fontsize=6,
-                ncol=2,
-            )
-            plt.tight_layout()
-            b64 = _fig_to_base64(fig)
-            plt.close(fig)
-            return b64
+                return b64
 
         fig_pressure_b64 = _ts_fig(
-            "pressure", "Pressure (dbar)", invert=True, exclude_types={"adcp"}
+            "pressure", params.vlabel("pressure"), invert=True, exclude_types={"adcp"}
         )
         fig_temp_b64 = _ts_fig(
             "temperature",
@@ -840,18 +840,21 @@ def generate_stack_page(
                     valid = spacing[np.isfinite(spacing) & (spacing >= 2.0)]
                     all_spacings.extend(valid.tolist())
                 if all_spacings:
-                    fig_sp, ax_sp = plt.subplots(figsize=(4, 3))
-                    ax_sp.hist(
-                        all_spacings, bins=60, color="steelblue", edgecolor="white"
-                    )
-                    ax_sp.set_xlabel("Instrument spacing (dbar)")
-                    ax_sp.set_ylabel("Count (instrument pair × time step)")
-                    ax_sp.set_title("Adjacent instrument spacing distribution")
-                    plt.tight_layout()
-                    fig_spacing_b64 = _fig_to_base64(fig_sp)
-                    plt.close(fig_sp)
+                    with plt.style.context(str(params.MPLSTYLE)):
+                        fig_sp, ax_sp = plt.subplots(figsize=(4, 3))
+                        ax_sp.hist(
+                            all_spacings, bins=60, color="steelblue", edgecolor="white"
+                        )
+                        ax_sp.set_xlabel("Instrument spacing (dbar)")
+                        ax_sp.set_ylabel("Count (instrument pair × time step)")
+                        ax_sp.set_title("Adjacent instrument spacing distribution")
+                        plt.tight_layout()
+                        fig_spacing_b64 = _fig_to_base64(fig_sp)
+                        plt.close(fig_sp)
             except Exception as _exc_sp:
-                print(f"WARNING: pressure spacing figure failed: {_exc_sp}")
+                warnings.warn(
+                    f"pressure spacing figure failed: {_exc_sp}", stacklevel=2
+                )
 
         fig_ts_stack_b64 = _make_stack_ts_diagram(ds)
         fig_aquadopp_tilt_b64 = _make_aquadopp_tilt_panels(ds, step=step)
@@ -944,4 +947,4 @@ def generate_stack_page(
         out_path.write_text(html, encoding="utf-8")
         _status("file", str(out_path.relative_to(display_root)))
     except Exception as exc:
-        print(f"  ERROR generating stack report: {exc}")
+        warnings.warn(f"stack report generation failed: {exc}", stacklevel=2)
