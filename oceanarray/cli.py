@@ -4,6 +4,7 @@ import argparse
 import sys
 from pathlib import Path
 from . import paths
+from .processors import STAGES, resolve_stage
 from .utilities import _status
 from ._version import __version__
 
@@ -163,9 +164,7 @@ def cmd_process(args: argparse.Namespace) -> int:
     - ``--plot``: save a PNG overview plot for each instrument alongside the
       stage2 NetCDF file in the proc directory.
     """
-    from .processors.stage1 import MooringProcessor
-    from .processors.stage2 import Stage2Processor
-    from .processors.stage3 import Stage3Processor
+    from .processors import process as _process
 
     raw_dir, proc_root = _parse_dirs_checked(args)
 
@@ -174,73 +173,25 @@ def cmd_process(args: argparse.Namespace) -> int:
     if stages is None:
         stages = [1, 2]
 
+    serials = args.serial or None
     overall_success = True
 
-    serials = args.serial or None
-
-    if 1 in stages:
-        _status("section", f"Stage 1: {args.mooring}")
-        if raw_dir is None:
+    if stages:
+        if 1 in stages and raw_dir is None:
             raise SystemExit("ERROR: --raw-dir is required for stage 1.")  # noqa: TRY003
-        proc = MooringProcessor(raw_dir=str(raw_dir), proc_dir=str(proc_root))
-        ok = proc.process_mooring(args.mooring, serials=serials, force=args.force)
-        if not ok:
-            print("Stage 1 failed.")
-            overall_success = False
-
-    if 2 in stages:
-        _status("section", f"Stage 2: {args.mooring}")
-        s2 = Stage2Processor(proc_dir=str(proc_root))
-        ok = s2.process_mooring(args.mooring, serials=serials, force=args.force)
-        if not ok:
-            print("Stage 2 failed.")
-            overall_success = False
-
-    if 3 in stages:
-        dry = getattr(args, "dry_run", False)
-        print(
-            f"\n=== Stage 3: {args.mooring} (pressure interpolation)"
-            + (" — DRY RUN" if dry else "")
-            + " ==="
-        )
-        s3 = Stage3Processor(proc_dir=str(proc_root))
-        ok = s3.process_mooring(
-            args.mooring, serials=serials, force=args.force, dry_run=dry
-        )
-        if not ok:
-            print("Stage 3 failed.")
-            overall_success = False
-
-    if "stack" in stages:
-        from .processors.stack import MooringStacker
-
-        _status("section", f"Stack: {args.mooring}")
-        stacker = MooringStacker(proc_dir=str(proc_root))
-        ok = stacker.stack(
+        overall_success = _process(
             args.mooring,
-            dt_seconds=args.dt,
+            stage=stages,
+            proc_dir=proc_root,
+            raw_dir=raw_dir,
             force=args.force,
-        )
-        if not ok:
-            print("Stack failed.")
-            overall_success = False
-            stages = [s for s in stages if s != "grid"]
-
-    if "grid" in stages:
-        from .processors.grid import MooringGridder
-
-        _status("section", f"Grid: {args.mooring}")
-        gridder = MooringGridder(proc_dir=str(proc_root))
-        ok = gridder.grid(
-            args.mooring,
+            serials=serials,
+            dt_seconds=args.dt,
             p_start=args.pmin,
             p_end=args.pmax,
             dp=args.dp,
-            force=args.force,
+            dry_run=getattr(args, "dry_run", False),
         )
-        if not ok:
-            print("Grid failed.")
-            overall_success = False
 
     if args.report:
         _status("section", f"Record Summary: {args.mooring}")
@@ -577,61 +528,43 @@ def cmd_run(args: argparse.Namespace) -> int:
     grid (pressure interpolation), and all reports (summary, per-instrument,
     stack, grid).
 
-    All steps run regardless of earlier failures.  If any step fails the command
-    returns exit code 1 at the end, but subsequent steps are not skipped.  Check
-    the log files in ``processing_logs/`` to diagnose partial failures.
+    Stage failures are non-fatal: each subsequent stage runs regardless, except
+    that a stack failure skips grid (grid reads stack.nc as its input).  The
+    command returns exit code 1 if any step fails.
     """
-    import argparse as _ap
+    from .processors import process as _process
 
-    overall_ok = True
-    _dirs = dict(
-        basedir=getattr(args, "basedir", None),
-        raw_dir=getattr(args, "raw_dir", None),
-        proc_dir=getattr(args, "proc_dir", None),
-    )
+    raw_dir, proc_root = _parse_dirs_checked(args)
 
-    process_args = _ap.Namespace(
-        mooring=args.mooring,
-        stage=[1, 2, 3],
-        force=args.force,
-        serial=args.serial,
-        report=False,
-        plot=False,
-        dry_run=False,
-        **_dirs,
-    )
-    if cmd_process(process_args) != 0:
-        overall_ok = False
+    if raw_dir is None:
+        raise SystemExit("ERROR: --raw-dir is required for stage 1.")  # noqa: TRY003
 
-    from .processors.stack import MooringStacker
-    from .processors.grid import MooringGridder
+    serials = args.serial or None
 
-    _sg_ns = _ap.Namespace(mooring=args.mooring, **_dirs)
-    _, _proc_root = _parse_dirs_checked(_sg_ns)
-
-    if not MooringStacker(proc_dir=str(_proc_root)).stack(
-        args.mooring, dt_seconds=args.dt, force=args.force
-    ):
-        overall_ok = False
-
-    if not MooringGridder(proc_dir=str(_proc_root)).grid(
+    overall_ok = _process(
         args.mooring,
+        stage=None,
+        proc_dir=proc_root,
+        raw_dir=raw_dir,
+        force=args.force,
+        serials=serials,
+        dt_seconds=args.dt,
         p_start=args.pmin,
         p_end=args.pmax,
         dp=args.dp,
-        force=args.force,
-    ):
-        overall_ok = False
+    )
 
-    report_args = _ap.Namespace(
+    report_args = argparse.Namespace(
         mooring=args.mooring,
         force=args.force,
         outdir=None,
-        serial=args.serial or None,
+        serial=serials,
         instruments=True,
         grid=True,
         stack=True,
-        **_dirs,
+        basedir=getattr(args, "basedir", None),
+        raw_dir=getattr(args, "raw_dir", None),
+        proc_dir=getattr(args, "proc_dir", None),
     )
     if cmd_report(report_args) != 0:
         overall_ok = False
@@ -915,7 +848,7 @@ def cmd_logsheet(args: "argparse.Namespace") -> int:
 
 
 def _stage_token(value: str) -> "int | str":
-    """Convert a ``--stage`` token to int (1/2/3) or str ('stack'/'grid').
+    """Convert a ``--stage`` CLI token to ``int`` or canonical ``str`` via :func:`resolve_stage`.
 
     Parameters
     ----------
@@ -930,19 +863,17 @@ def _stage_token(value: str) -> "int | str":
     Raises
     ------
     argparse.ArgumentTypeError
-        If *value* is not one of ``1``, ``2``, ``3``, ``stack``, or ``grid``.
+        If *value* is not recognised by :func:`~oceanarray.processors.resolve_stage`.
 
     """
-    if value in ("stack", "grid"):
-        return value
-    try:
-        return int(value)
-    except ValueError:
-        import argparse as _ap
+    import argparse as _ap
 
-        raise _ap.ArgumentTypeError(  # noqa: B904, TRY003
-            f"invalid stage '{value}': choose from 1, 2, 3, stack, grid"
-        )
+    coerced: int | str = int(value) if value.isdigit() else value
+    try:
+        resolve_stage(coerced)
+    except ValueError as exc:
+        raise _ap.ArgumentTypeError(str(exc)) from exc
+    return coerced
 
 
 def _add_dir_args(p: "argparse.ArgumentParser", raw_needed: bool = True) -> None:
@@ -1226,7 +1157,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--stage",
         type=_stage_token,
         nargs="+",
-        choices=[1, 2, 3, "stack", "grid"],
+        choices=[s.number if s.number is not None else s.name for s in STAGES],
         default=None,
         metavar="{1,2,3,stack,grid}",
         help="Stage(s) to run (default: 1 2). "

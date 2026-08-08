@@ -138,6 +138,7 @@ def _run_stage3(
     *,
     force: bool = False,
     serials: Optional[list[str]] = None,
+    dry_run: bool = False,
     **_kw: Any,
 ) -> bool:
     """Run stage 3 (QC, coordinate rotation, derived vars) for *mooring*.
@@ -152,13 +153,15 @@ def _run_stage3(
         Re-run even when output is newer than inputs.
     serials : list of str, optional
         Restrict to these serial numbers.
+    dry_run : bool
+        If True, log what would be done without writing output files.
 
     """
     from oceanarray.processors.stage3 import Stage3Processor
 
     return bool(
         Stage3Processor(proc_dir=str(proc_dir)).process_mooring(
-            mooring, serials=serials, force=force
+            mooring, serials=serials, force=force, dry_run=dry_run
         )
     )
 
@@ -283,23 +286,24 @@ def resolve_stage(stage: int | str) -> Stage:
 
 def process(
     mooring: str,
-    stage: int | str | None = None,
+    stage: "int | str | list[int | str] | None" = None,
     *,
     proc_dir: PathLike,
     raw_dir: Optional[PathLike] = None,
     force: bool = False,
     **kw: Any,
 ) -> bool:
-    """Run one pipeline stage, or every stage in order, for *mooring*.
+    """Run one or more pipeline stages, or every stage in order, for *mooring*.
 
     Parameters
     ----------
     mooring : str
         Mooring name (the subdirectory under *proc_dir*).
-    stage : int or str, optional
-        Which stage to run — ``1``, ``2``, ``3``, ``"stage1"``, ``"stack"``,
-        ``"grid"``, etc.  ``None`` (the default) runs all five stages in
-        :data:`STAGES` order.
+    stage : int, str, list of int/str, or None
+        Which stage(s) to run — ``1``, ``2``, ``3``, ``"stage1"``, ``"stack"``,
+        ``"grid"``, etc.  Pass a list to run a specific subset in :data:`STAGES`
+        order.  ``None`` (the default) runs all five stages in :data:`STAGES`
+        order.
     proc_dir : path-like
         Processing root directory (parent containing per-mooring subdirectories).
     raw_dir : path-like, optional
@@ -319,9 +323,12 @@ def process(
     proc_dir = Path(proc_dir)
     raw_dir_path = Path(raw_dir) if raw_dir is not None else None
 
-    stages_to_run: tuple[Stage, ...] = (
-        STAGES if stage is None else (resolve_stage(stage),)
-    )
+    if stage is None:
+        stages_to_run: tuple[Stage, ...] = STAGES
+    elif isinstance(stage, (list, tuple)):
+        stages_to_run = tuple(resolve_stage(s) for s in stage)
+    else:
+        stages_to_run = (resolve_stage(stage),)
 
     overall = True
     skip_grid = False

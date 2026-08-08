@@ -217,6 +217,61 @@ class TestProcess:
         assert result is True
         assert calls == ["stack"]
 
+    def test_process_with_list(self, tmp_path, monkeypatch):
+        """stage=[1, 2] runs only stages 1 and 2."""
+        calls = []
+        patched = tuple(
+            Stage(s.name, s.number, s.scope, _make_spy(calls, s.name)) for s in STAGES
+        )
+        _patch_stages(monkeypatch, patched)
+
+        result = process("my_mooring", stage=[1, 2], proc_dir=tmp_path)
+        assert result is True
+        assert calls == ["stage1", "stage2"]
+
+    def test_process_with_list_of_names(self, tmp_path, monkeypatch):
+        """stage=['stack', 'grid'] runs only stack and grid."""
+        calls = []
+        patched = tuple(
+            Stage(s.name, s.number, s.scope, _make_spy(calls, s.name)) for s in STAGES
+        )
+        _patch_stages(monkeypatch, patched)
+
+        result = process("my_mooring", stage=["stack", "grid"], proc_dir=tmp_path)
+        assert result is True
+        assert calls == ["stack", "grid"]
+
+    def test_process_empty_list_runs_nothing(self, tmp_path, monkeypatch):
+        """stage=[] runs no stages and returns True."""
+        calls = []
+        patched = tuple(
+            Stage(s.name, s.number, s.scope, _make_spy(calls, s.name)) for s in STAGES
+        )
+        _patch_stages(monkeypatch, patched)
+
+        result = process("my_mooring", stage=[], proc_dir=tmp_path)
+        assert result is True
+        assert calls == []
+
+    def test_process_list_stack_failure_skips_grid(self, tmp_path, monkeypatch):
+        """stack failure in a list run still skips grid."""
+        calls = []
+        patched = (
+            Stage("stage1", 1, "instrument", _make_spy(calls, "stage1")),
+            Stage("stage2", 2, "instrument", _make_spy(calls, "stage2")),
+            Stage("stage3", 3, "instrument", _make_spy(calls, "stage3")),
+            Stage("stack", None, "mooring", _make_spy(calls, "stack", ok=False)),
+            Stage("grid", None, "mooring", _make_spy(calls, "grid")),
+        )
+        _patch_stages(monkeypatch, patched)
+
+        result = process(
+            "my_mooring", stage=[1, 2, 3, "stack", "grid"], proc_dir=tmp_path
+        )
+        assert result is False
+        assert "grid" not in calls
+        assert calls == ["stage1", "stage2", "stage3", "stack"]
+
 
 class TestRunWrappersNoSeasenselib:
     """Wrapper bodies whose stage module does not import seasenselib.
@@ -236,9 +291,28 @@ class TestRunWrappersNoSeasenselib:
         cls = mock.MagicMock(return_value=inst)
         monkeypatch.setattr("oceanarray.processors.stage3.Stage3Processor", cls)
 
-        assert _run_stage3("m", tmp_path, serials=["9"], force=True) is True
+        assert (
+            _run_stage3("m", tmp_path, serials=["9"], force=True, dry_run=True) is True
+        )
         cls.assert_called_once_with(proc_dir=str(tmp_path))
-        inst.process_mooring.assert_called_once_with("m", serials=["9"], force=True)
+        inst.process_mooring.assert_called_once_with(
+            "m", serials=["9"], force=True, dry_run=True
+        )
+
+    def test_run_stage3_dry_run_defaults_false(self, tmp_path, monkeypatch):
+        from unittest import mock
+
+        from oceanarray.processors import _run_stage3
+
+        inst = mock.MagicMock()
+        inst.process_mooring.return_value = True
+        cls = mock.MagicMock(return_value=inst)
+        monkeypatch.setattr("oceanarray.processors.stage3.Stage3Processor", cls)
+
+        _run_stage3("m", tmp_path)
+        inst.process_mooring.assert_called_once_with(
+            "m", serials=None, force=False, dry_run=False
+        )
 
     def test_run_stack_instantiates_and_forwards(self, tmp_path, monkeypatch):
         from unittest import mock
