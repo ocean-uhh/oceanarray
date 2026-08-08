@@ -352,7 +352,7 @@ VARIABLES: dict[str, dict] = {
         "units": "degree_Celsius",
         "standard_name": "sea_water_temperature",
         "cmap": "RdBu_r",
-        "valid_min": -5.0,   # OS1_vocab_attrs.yaml TEMP
+        "valid_min": -5.0,  # OS1_vocab_attrs.yaml TEMP
         "valid_max": 42.0,
     },
     "conservative_temperature": {
@@ -361,7 +361,7 @@ VARIABLES: dict[str, dict] = {
         "units": "degree_Celsius",
         "standard_name": "sea_water_conservative_temperature",
         "cmap": "RdBu_r",
-        "valid_min": -5.0,   # same physical range as temperature
+        "valid_min": -5.0,  # same physical range as temperature
         "valid_max": 42.0,
     },
     "conductivity": {
@@ -370,7 +370,7 @@ VARIABLES: dict[str, dict] = {
         "units": "mS cm-1",
         "standard_name": "sea_water_electrical_conductivity",
         "cmap": None,
-        "valid_min": 0.0,    # OS1_vocab_attrs.yaml CNDC
+        "valid_min": 0.0,  # OS1_vocab_attrs.yaml CNDC
         "valid_max": 80.0,
     },
     "salinity": {
@@ -393,7 +393,7 @@ VARIABLES: dict[str, dict] = {
         "units": "dbar",
         "standard_name": "sea_water_pressure",
         "cmap": None,
-        "valid_min": 0.0,    # OS1_vocab_attrs.yaml PRES
+        "valid_min": 0.0,  # OS1_vocab_attrs.yaml PRES
         "valid_max": 11000.0,
     },
     "depth": {
@@ -402,7 +402,7 @@ VARIABLES: dict[str, dict] = {
         "units": "m",
         "standard_name": "depth",
         "cmap": None,
-        "valid_min": 0.0,    # OS1_vocab_attrs.yaml DEPTH
+        "valid_min": 0.0,  # OS1_vocab_attrs.yaml DEPTH
         "valid_max": 12000.0,
     },
     "potential_density": {
@@ -474,8 +474,10 @@ VARIABLES: dict[str, dict] = {
         "label": "Dissolved oxygen",
         "label_units": "mL L⁻¹",
         "units": "mL L-1",
-        # Same standard_name as dissolved_oxygen — units field disambiguates.
-        "standard_name": "mole_concentration_of_dissolved_molecular_oxygen_in_sea_water",
+        # mL/L is a volume ratio, not a molar concentration; no exact CF standard_name.
+        # mole_concentration_* has canonical units mol m-3 and is dimensionally
+        # incompatible with mL/L.
+        "standard_name": None,
         "cmap": "RdYlGn",
     },
     "oxygen_saturation_pct": {

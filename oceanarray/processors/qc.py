@@ -759,7 +759,7 @@ def derive_oxygen_saturation(ds: "xr.Dataset") -> "xr.Dataset":
             {
                 "long_name": "Apparent Oxygen Utilization",
                 "standard_name": "apparent_oxygen_utilization",
-                "units": "umol/kg",
+                "units": "umol kg-1",
                 "comment": (
                     "AOU = O2sol - O2_meas (µmol/kg); positive = undersaturated "
                     "(oxygen consumed). Uses in-situ seawater density for µmol/L → µmol/kg."

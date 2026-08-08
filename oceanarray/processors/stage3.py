@@ -677,6 +677,10 @@ class Stage3Processor:
                     _vatrs["long_name"] = _entry["label"]
                 if "units" not in _vatrs and _entry.get("units"):
                     _vatrs["units"] = _entry["units"]
+                if "valid_min" not in _vatrs and "valid_min" in _entry:
+                    _vatrs["valid_min"] = _entry["valid_min"]
+                if "valid_max" not in _vatrs and "valid_max" in _entry:
+                    _vatrs["valid_max"] = _entry["valid_max"]
 
             # Normalize every _qc variable onto the OceanSITES flag table (single
             # source of truth) and attach the status_flag standard_name — done

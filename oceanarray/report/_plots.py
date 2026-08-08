@@ -487,7 +487,7 @@ def _make_instrument_fig(
         finally:
             ds.close()
 
-    return render_b64(_draw)
+    return render_b64(_draw, optional=True)
 
 
 def _make_windows_fig(
@@ -513,7 +513,7 @@ def _make_windows_fig(
 
 def _make_data_histogram(nc_path: Path) -> Optional[str]:
     """Return base64 PNG: histogram of data values with QC range threshold lines."""
-    return render_b64(draw_data_histogram, nc_path)
+    return render_b64(draw_data_histogram, nc_path, optional=True)
 
 
 def _make_ts_diagram(nc_path: Path) -> Optional[str]:
