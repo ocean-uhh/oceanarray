@@ -61,13 +61,6 @@ Contents
 
 .. toctree::
    :maxdepth: 1
-   :caption: Logsheets
-
-   Fieldwork Logsheets <logsheets>
-
-
-.. toctree::
-   :maxdepth: 1
    :caption: Caldips
 
    Calibration dips <calibration_dips>

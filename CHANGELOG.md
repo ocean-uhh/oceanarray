@@ -8,6 +8,7 @@ All notable changes to oceanarray are documented here.
 
 ### Breaking changes
 
+- **`oceanarray.logsheet` removed**: the `logsheet` subpackage is gone. Calling `oceanarray logsheet` emits a `DeprecationWarning` and exits 1; the subparser will be fully removed in v0.3.0. Use the standalone [`logsheet`](https://github.com/ocean-uhh/logsheet) package: `pip install git+https://github.com/ocean-uhh/logsheet`, then `logsheet build ...`.
 - **`--basedir` removed** ([#52](https://github.com/ocean-uhh/oceanarray/pull/52)): use `--raw-dir` and `--proc-dir` instead. See the [migration guide](https://ocean-uhh.github.io/oceanarray/migration.html).
 - **`plotter.py` retired** ([#53](https://github.com/ocean-uhh/oceanarray/pull/53)): the monolithic `oceanarray/plotter.py` and all backward-compatibility re-export shims have been removed. Import from canonical modules (`oceanarray.plotters.current`, `oceanarray.plotters.timeseries`, etc.).
 - **Subpackage reorganisation** ([#49](https://github.com/ocean-uhh/oceanarray/pull/49), [#59](https://github.com/ocean-uhh/oceanarray/pull/59)): processing modules moved from `oceanarray/instrument/` and `oceanarray/mooring/` into `oceanarray.processors.*`. Top-level `oceanarray` imports unchanged; internal paths have moved.

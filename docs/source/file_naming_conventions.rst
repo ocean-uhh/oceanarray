@@ -63,7 +63,8 @@ the instrument type and firmware:
      - binary raw files; ``filename:`` points to the first file
 
 These conventions are recorded in the ``filename_conventions:`` section of
-``logsheet_config.yaml`` and are used by ``oceanarray logsheet`` to pre-fill
+``logsheet_config.yaml`` and are used by the standalone
+`logsheet <https://github.com/ocean-uhh/logsheet>`_ package to pre-fill
 expected filenames on the download logsheets.
 
 ----
@@ -122,5 +123,5 @@ See also
 - :doc:`directory_structure` — where these files live on disk
 - :doc:`yaml_configuration` — YAML fields that control filenames (``name:``,
   ``serial:``, ``filename:``)
-- :doc:`logsheets` — how ``logsheet_config.yaml`` filename conventions connect
-  raw-file naming to the logsheet workflow
+- `logsheet package <https://github.com/ocean-uhh/logsheet>`_ — how ``logsheet_config.yaml``
+  filename conventions connect raw-file naming to the logsheet workflow

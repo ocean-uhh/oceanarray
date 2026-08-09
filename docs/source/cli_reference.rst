@@ -7,8 +7,7 @@ CLI Reference
 The typical workflow is: validate the YAML, run ``oceanarray process`` stage by
 stage, inspect with ``oceanarray report``, combine with ``oceanarray stack`` and
 ``oceanarray grid``, then use ``oceanarray run`` to reproduce the full pipeline
-in one command.  ``oceanarray logsheet`` covers fieldwork logistics and is
-independent of the processing pipeline.
+in one command.
 
 All processing subcommands accept a mooring name as the first positional
 argument.  The mooring name is used to locate the YAML file at
@@ -552,102 +551,6 @@ reports.
 .. code-block:: bash
 
    oceanarray run dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --force
-
-----
-
-``oceanarray logsheet``
-------------------------
-
-Generate PDF logsheets for mooring fieldwork and calibration-dip casts.
-See :doc:`logsheets` for a full description of sheet types and configuration.
-
-**Synopsis**
-
-.. code-block:: text
-
-   oceanarray logsheet [--type TYPE] [--mooring MOORING] [--cast CAST]
-                       [--config-dir DIR] [--inventory PATH]
-                       [--logsheet-config PATH]
-                       [--output-dir DIR] [--format {pdf,tex}]
-                       [--all]
-                       [--proc-dir DIR]
-
-**Flags**
-
-.. list-table::
-   :header-rows: 1
-   :widths: 28 10 12 50
-
-   * - Flag
-     - Type
-     - Default
-     - Description
-   * - ``--type TYPE``
-     - string
-     - (required)
-     - Sheet type: ``caldip-setup``, ``caldip-download``, ``mooring-download``,
-       ``mooring-recovery``, or ``mooring-setup``.
-   * - ``--mooring MOORING``
-     - string
-     - —
-     - Mooring name (required for mooring sheet types).
-   * - ``--cast CAST``
-     - string
-     - —
-     - Cast name, e.g. ``B1`` (required for caldip sheet types).
-   * - ``--config-dir DIR``
-     - path
-     - ``$LOGSHEETS_CONFIG_DIR`` or ``./``
-     - Directory containing ``logsheet_config.yaml`` and
-       ``instrument_inventory.csv``.
-   * - ``--inventory PATH``
-     - path
-     - ``{config-dir}/instrument_inventory.csv``
-     - Explicit path to the instrument inventory CSV (overrides ``--config-dir``).
-   * - ``--logsheet-config PATH``
-     - path
-     - ``{config-dir}/logsheet_config.yaml``
-     - Explicit path to the logsheet YAML (overrides ``--config-dir``).
-   * - ``--output-dir DIR``
-     - path
-     - ``./logsheets/``
-     - Directory where PDF (or TeX) files are written.
-   * - ``--format {pdf,tex}``
-     - string
-     - ``pdf``
-     - Output format: compile to PDF (requires ``pdflatex``) or write LaTeX
-       source only.
-   * - ``--all``
-     - flag
-     - off
-     - Generate all sheet types for every cast and mooring listed in
-       ``logsheet_config.yaml``.
-   * - ``--proc-dir DIR``
-     - path
-     - (required for mooring sheets)
-     - Cruise-level processed data directory (used to locate mooring YAMLs).
-
-**Examples**
-
-Caldip setup sheet for cast B1:
-
-.. code-block:: bash
-
-   oceanarray logsheet --type caldip-setup --cast B1 \
-       --config-dir config/ --proc-dir /data/proc
-
-Mooring recovery log:
-
-.. code-block:: bash
-
-   oceanarray logsheet --type mooring-recovery --mooring dsG3_1_2026 \
-       --config-dir config/ --proc-dir /data/proc
-
-All sheets for every cast and mooring:
-
-.. code-block:: bash
-
-   oceanarray logsheet --all --config-dir config/ --proc-dir /data/proc
 
 ----
 
