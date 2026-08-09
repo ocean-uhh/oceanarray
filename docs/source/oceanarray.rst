@@ -60,15 +60,6 @@ Path resolution helpers for raw and processed directory trees.
    :members:
    :undoc-members:
 
-logsheet
-^^^^^^^^
-Generate fieldwork logsheet PDFs for mooring deployments/recoveries and
-calibration-dip casts.
-
-.. automodule:: oceanarray.logsheet
-   :members:
-   :undoc-members:
-
 Instrument processing
 ----------------------
 

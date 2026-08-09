@@ -58,8 +58,6 @@ oceanarray = [
   "oceanarray.mplstyle",
   "config/*.yaml",
   "config/legacy/*.yaml",
-  "logsheet/data/column_defs.yaml",
-  "logsheet/data/latex_templates/*.tex.j2",
 ]
 
 [tool.setuptools.dynamic]
@@ -146,12 +144,3 @@ ignore = [
 "oceanarray/report/_instrument.py" = ["BLE001", "TRY300", "ARG001"]
 "oceanarray/report/_mooring.py" = ["BLE001", "TRY003", "TRY300"]
 "oceanarray/report/_stack.py" = ["BLE001", "TRY300", "ARG001", "F841"]
-# Logsheet modules: builders use sys.exit() for user-facing errors (CLI tool pattern),
-# BLE001/TRY for broad catches in _firmware.py, ANN/D deferred (internal impl files).
-"oceanarray/logsheet/_config.py" = ["BLE001", "TRY003", "ANN", "D"]
-"oceanarray/logsheet/_columns.py" = ["BLE001", "TRY003", "ANN", "D"]
-"oceanarray/logsheet/__init__.py" = ["D"]
-"oceanarray/logsheet/_firmware.py" = ["BLE001", "TRY003", "TRY300", "ANN", "D"]
-"oceanarray/logsheet/_latex.py" = ["BLE001", "TRY003", "ANN", "D"]
-"oceanarray/logsheet/_render.py" = ["BLE001", "TRY003", "ANN", "D"]
-"oceanarray/logsheet/builders/*.py" = ["BLE001", "TRY003", "TRY002", "ANN", "D", "ARG001"]

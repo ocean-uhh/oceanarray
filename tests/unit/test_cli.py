@@ -137,3 +137,28 @@ class TestStageToken:
         )
         expected = [s.number if s.number is not None else s.name for s in STAGES]
         assert stage_action.choices == expected
+
+
+def test_logsheet_stub_warns_and_returns_1():
+    """'oceanarray logsheet' emits DeprecationWarning and returns 1.
+
+    Guards that the stub is not silently dropped before the planned v0.3.0 removal.
+    """
+    from oceanarray.cli import cmd_logsheet
+
+    with pytest.warns(DeprecationWarning, match="logsheet"):
+        result = cmd_logsheet(argparse.Namespace())
+    assert result == 1
+
+
+def test_logsheet_hidden_from_help():
+    """'logsheet' must not appear in oceanarray --help output."""
+    import subprocess
+    import sys
+
+    result = subprocess.run(
+        [sys.executable, "-m", "oceanarray", "--help"],
+        capture_output=True,
+        text=True,
+    )
+    assert "logsheet" not in result.stdout
