@@ -1542,94 +1542,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_list.set_defaults(func=cmd_list)
 
-    p_logsheet = sub.add_parser(
-        "logsheet",
-        help=argparse.SUPPRESS,
-        description="Removed — use the standalone 'logsheet' package instead.",
-    )
-    p_logsheet.add_argument(
-        "--type",
-        dest="logsheet_type",
-        metavar="TYPE",
-        nargs="+",
-        choices=[
-            "caldip-setup",
-            "caldip-download",
-            "mooring-download",
-            "mooring-recovery",
-            "mooring-setup",
-        ],
-        help=(
-            "Sheet type(s): caldip-setup, caldip-download, mooring-download, "
-            "mooring-recovery, mooring-setup.  Pass multiple values to generate "
-            "several sheets in one call, e.g. --type caldip-setup caldip-download."
-        ),
-    )
-    p_logsheet.add_argument(
-        "--mooring",
-        dest="logsheet_mooring",
-        metavar="MOORING",
-        help="Mooring name, e.g. dsG3_1_2026 (required for mooring sheet types).",
-    )
-    p_logsheet.add_argument(
-        "--cast",
-        dest="logsheet_cast",
-        metavar="CAST",
-        help="Cast ID, e.g. B1 (required for caldip sheet types).",
-    )
-    p_logsheet.add_argument(
-        "--config-dir",
-        dest="logsheet_config_dir",
-        metavar="DIR",
-        help=(
-            "Directory containing cruise_config.yaml and instruments.yaml. "
-            "Shorthand for --logsheet-config DIR/cruise_config.yaml "
-            "--inventory DIR/instruments.yaml."
-        ),
-    )
-    p_logsheet.add_argument(
-        "--inventory",
-        dest="logsheet_inventory",
-        metavar="PATH",
-        help="Path to instruments.yaml (or instrument_inventory.csv).",
-    )
-    p_logsheet.add_argument(
-        "--logsheet-config",
-        dest="logsheet_config",
-        metavar="PATH",
-        help=(
-            "Path to cruise_config.yaml. Optional; paths/filenames left blank "
-            "on the sheet if absent."
-        ),
-    )
-    p_logsheet.add_argument(
-        "--output-dir",
-        dest="logsheet_output_dir",
-        metavar="DIR",
-        default="logsheets",
-        help="Directory where PDFs are written (default: ./logsheets/).",
-    )
-    p_logsheet.add_argument(
-        "--format",
-        dest="logsheet_format",
-        choices=["pdf", "tex"],
-        default="pdf",
-        help="Output format: pdf (compile via pdflatex) or tex (LaTeX source only).",
-    )
-    p_logsheet.add_argument(
-        "--all",
-        action="store_true",
-        dest="logsheet_all",
-        help="Generate all sheet types for every cast and mooring in cruise_config.yaml.",
-    )
-    _add_dir_args(p_logsheet, raw_needed=False)
-    p_logsheet.set_defaults(func=cmd_logsheet)
-
     return parser
 
 
 def main() -> None:
     """Entry point for the ``oceanarray`` command-line tool."""
+    # Intercept the removed 'logsheet' verb before argparse sees it, so that
+    # both 'oceanarray logsheet' and 'oceanarray logsheet --help' hit the stub.
+    if len(sys.argv) > 1 and sys.argv[1] == "logsheet":
+        sys.exit(cmd_logsheet(argparse.Namespace()))
     parser = build_parser()
     args, _unknown = parser.parse_known_args()
     if _unknown:
