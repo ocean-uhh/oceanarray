@@ -5,6 +5,7 @@
 [![License: MIT](https://img.shields.io/pypi/l/oceanarray.svg)](https://github.com/ocean-uhh/oceanarray/blob/main/LICENSE)
 [![Tests](https://github.com/ocean-uhh/oceanarray/actions/workflows/tests.yml/badge.svg)](https://github.com/ocean-uhh/oceanarray/actions/workflows/tests.yml)
 [![Documentation](https://img.shields.io/badge/docs-ocean--uhh.github.io-blue.svg)](https://ocean-uhh.github.io/oceanarray/)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21890564.svg)](https://doi.org/10.5281/zenodo.21890564)
 
 Python tools for processing moored oceanographic array observations from raw instrument files to quality-controlled, CF-compliant NetCDF.
 
