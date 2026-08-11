@@ -445,7 +445,7 @@ def generate_grid_page(
             _lv = ds.attrs.get(_lat_key)
             if _lv is not None:
                 try:
-                    from ..mooring_level import _dms_to_deg
+                    from ..utilities import _dms_to_deg
 
                     _lat_n2 = _dms_to_deg(str(_lv))
                     break
@@ -488,7 +488,7 @@ def generate_grid_page(
             _lv = ds.attrs.get(_lat_key)
             if _lv is not None:
                 try:
-                    from ..mooring_level import _dms_to_deg
+                    from ..utilities import _dms_to_deg
 
                     _lat = _dms_to_deg(str(_lv))
                     break

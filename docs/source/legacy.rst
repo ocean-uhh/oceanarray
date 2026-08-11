@@ -34,7 +34,7 @@ active processing code:
 
 ``mooring_rodb.py``
    Mooring-level stacking and filtering for RODB data — superseded by
-   :mod:`oceanarray.mooring_level`.
+   :mod:`oceanarray.processors.stack` and :mod:`oceanarray.processors.grid`.
 
 ``convertOS.py``
    OceanSites format conversion from RODB — superseded by the Stage 1–3 pipeline.

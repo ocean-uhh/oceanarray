@@ -1,5 +1,11 @@
 # OceanArray
 
+[![PyPI](https://img.shields.io/pypi/v/oceanarray.svg)](https://pypi.org/project/oceanarray/)
+[![Python versions](https://img.shields.io/pypi/pyversions/oceanarray.svg)](https://pypi.org/project/oceanarray/)
+[![License: MIT](https://img.shields.io/pypi/l/oceanarray.svg)](https://github.com/ocean-uhh/oceanarray/blob/main/LICENSE)
+[![Tests](https://github.com/ocean-uhh/oceanarray/actions/workflows/tests.yml/badge.svg)](https://github.com/ocean-uhh/oceanarray/actions/workflows/tests.yml)
+[![Documentation](https://img.shields.io/badge/docs-ocean--uhh.github.io-blue.svg)](https://ocean-uhh.github.io/oceanarray/)
+
 Python tools for processing moored oceanographic array observations from raw instrument files to quality-controlled, CF-compliant NetCDF.
 
 **Documentation**: https://ocean-uhh.github.io/oceanarray/
@@ -42,6 +48,12 @@ oceanarray.process('dsG3_1_2026', raw_dir='/data/raw', proc_dir='/data/proc')
 ```
 
 See the [API reference](https://ocean-uhh.github.io/oceanarray/oceanarray.html) for the full interface.
+
+## Acknowledgements
+
+Development was assisted by Claude Code (Anthropic) and GitHub Copilot code review.
+
+The data-processing approach draws on methods developed for the RAPID mooring array programme (UK/US funded). `oceanarray` is developed toward the DFG Ocean Array infrastructure project (DFG project number 571027118), from which it takes its name, and was first applied in the AEI–DFG MIXSED project (DFG project number 541914507).
 
 ## License
 

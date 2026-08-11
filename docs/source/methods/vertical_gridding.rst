@@ -25,9 +25,9 @@ Python API
 
 .. code-block:: python
 
-   from oceanarray.mooring_level import MooringGridder
+   from oceanarray.processors.grid import MooringGridder
 
-   MooringGridder(proc_dir).grid(mooring_name, p_start=200.0, p_end=1000.0, dp=20.0, force=False)
+   MooringGridder(proc_dir=proc_dir).grid(mooring_name, p_start=200.0, p_end=1000.0, dp=20.0, force=False)
 
 Purpose
 -------
