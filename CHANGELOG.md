@@ -4,11 +4,37 @@ All notable changes to oceanarray are documented here.
 
 ---
 
-## [0.2.0] — unreleased
+## [0.3.0] — 2026-08-11
 
 ### Breaking changes
 
-- **`oceanarray.logsheet` removed**: the `logsheet` subpackage is gone. Calling `oceanarray logsheet` emits a `DeprecationWarning` and exits 1; the subparser will be fully removed in v0.3.0. Use the standalone [`logsheet`](https://github.com/ocean-uhh/logsheet) package: `pip install git+https://github.com/ocean-uhh/logsheet`, then `logsheet build ...`.
+- **`oceanarray.logsheet` subpackage deleted** ([#66](https://github.com/ocean-uhh/oceanarray/pull/66)): the deprecated `logsheet` subpackage has been removed from the tree. `oceanarray logsheet` still emits a `DeprecationWarning` and exits 1. Use the standalone [`logsheet`](https://github.com/eleanorfrajka/logsheet) package: `pip install git+https://github.com/eleanorfrajka/logsheet`, then `logsheet build ...`.
+- **`oceanarray run` skips grid when stack fails** ([#65](https://github.com/ocean-uhh/oceanarray/pull/65)): if the stack stage fails, the grid stage is now skipped rather than attempted on incomplete input. This matches `process()` behaviour.
+
+### Bug fixes
+
+- **Grid report N² computed at latitude 0**: the grid report derived buoyancy frequency (N²) at latitude 0° because its `_dms_to_deg` import still pointed at the removed `mooring_level` module and failed silently inside a broad `except`. The import now resolves from `utilities`, so N² uses the mooring's actual latitude.
+
+### Refactoring
+
+- **`STAGES` registry as single source of truth in CLI dispatch** ([#65](https://github.com/ocean-uhh/oceanarray/pull/65)): `process()` accepts a stage list (always applied in `STAGES` order); `cmd_process` and `cmd_run` route through a single `process()` call; argparse `choices` are derived from `STAGES`.
+- **Plot/report hardening** ([#64](https://github.com/ocean-uhh/oceanarray/pull/64)): `render_b64` guard, `plt.style.context`, `vlabel()` helper, `SIGMA_GRID` fix, and a `VARIABLES` registry (21 entries with `valid_min`/`valid_max`).
+
+### Documentation
+
+- Updated developer docs (`project_structure.md`, `methods/standardisation.rst`, `methods/vertical_gridding.rst`, `methods/nortek_coordinate_transform.rst`, `legacy.rst`) to the current `oceanarray.processors.*` module layout after the reorg; fixed broken import examples and API references.
+
+### Tests
+
+- Golden Stage 1 tests, reader and `_array` helper tests, plus associated bug fixes and dead-code removal ([#63](https://github.com/ocean-uhh/oceanarray/pull/63)).
+
+---
+
+## [0.2.0] — 2026-08-07
+
+### Breaking changes
+
+- **`oceanarray logsheet` disabled**: calling `oceanarray logsheet` now emits a `DeprecationWarning` and exits 1. The `logsheet` subpackage remains in the tree but is unused (deleted in v0.3.0). Use the standalone [`logsheet`](https://github.com/eleanorfrajka/logsheet) package: `pip install git+https://github.com/eleanorfrajka/logsheet`, then `logsheet build ...`.
 - **`--basedir` removed** ([#52](https://github.com/ocean-uhh/oceanarray/pull/52)): use `--raw-dir` and `--proc-dir` instead. See the [migration guide](https://ocean-uhh.github.io/oceanarray/migration.html).
 - **`plotter.py` retired** ([#53](https://github.com/ocean-uhh/oceanarray/pull/53)): the monolithic `oceanarray/plotter.py` and all backward-compatibility re-export shims have been removed. Import from canonical modules (`oceanarray.plotters.current`, `oceanarray.plotters.timeseries`, etc.).
 - **Subpackage reorganisation** ([#49](https://github.com/ocean-uhh/oceanarray/pull/49), [#59](https://github.com/ocean-uhh/oceanarray/pull/59)): processing modules moved from `oceanarray/instrument/` and `oceanarray/mooring/` into `oceanarray.processors.*`. Top-level `oceanarray` imports unchanged; internal paths have moved.

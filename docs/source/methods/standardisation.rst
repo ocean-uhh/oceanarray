@@ -28,12 +28,12 @@ This creates a uniform structure suitable for later trimming, filtering, and con
 3. Current Implementation (Stage 1)
 -----------------------------------
 
-The standardisation process is implemented in the :mod:`oceanarray.stage1` module, which provides automated conversion from native instrument formats to standardised NetCDF files.
+The standardisation process is implemented in the :mod:`oceanarray.processors.stage1` module, which provides automated conversion from native instrument formats to standardised NetCDF files.
 
 3.1. Input Formats Supported
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The :class:`oceanarray.stage1.MooringProcessor` class supports multiple instrument formats:
+The :class:`oceanarray.processors.stage1.MooringProcessor` class supports multiple instrument formats:
 
 - **Sea-Bird CNV files** (`sbe-cnv`): Standard SBE 37 MicroCAT output
 - **Sea-Bird ASCII files** (`sbe-ascii`): Alternative SBE ASCII format
@@ -136,15 +136,16 @@ The ``instruments`` list contains one entry per instrument on the mooring, with:
 
 .. code-block:: python
 
-   from oceanarray.stage1 import MooringProcessor, process_multiple_moorings
+   import oceanarray
 
-   # Process a single mooring
-   processor = MooringProcessor('/path/to/data/')
-   success = processor.process_mooring('mooring_name')
+   # Process a single mooring through Stage 1
+   oceanarray.process('mooring_name', stage=1,
+                      raw_dir='/path/to/raw/', proc_dir='/path/to/proc/')
 
    # Process multiple moorings
-   moorings = ['mooring1', 'mooring2', 'mooring3']
-   results = process_multiple_moorings(moorings, '/path/to/data/')
+   for mooring in ['mooring1', 'mooring2', 'mooring3']:
+       oceanarray.process(mooring, stage=1,
+                          raw_dir='/path/to/raw/', proc_dir='/path/to/proc/')
 
 4. Output Format
 ----------------
@@ -238,7 +239,7 @@ This script performed similar functions to the current Python implementation:
    :linenos:
    :caption: Excerpt from `microcat2rodb_3.m`
 
-The modern Python implementation in :mod:`oceanarray.stage1` provides equivalent functionality with improved:
+The modern Python implementation in :mod:`oceanarray.processors.stage1` provides equivalent functionality with improved:
 
 - **Error handling**: Comprehensive logging and graceful failure modes
 - **Format support**: Multiple instrument types through pluggable readers
