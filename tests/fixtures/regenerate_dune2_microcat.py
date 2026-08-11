@@ -45,27 +45,28 @@ def _cndc_summary(path: Path) -> str:
 
 def main() -> None:
     """Regenerate microcat stage1-3 fixtures and copy them over the committed set."""
-    tmp = Path(tempfile.mkdtemp()) / "proc"
-    (tmp / MOORING).mkdir(parents=True)
-    shutil.copy(FIXTURE_PROC / f"{MOORING}.mooring.yaml", tmp / MOORING)
+    with tempfile.TemporaryDirectory() as _td:
+        tmp = Path(_td) / "proc"
+        (tmp / MOORING).mkdir(parents=True)
+        shutil.copy(FIXTURE_PROC / f"{MOORING}.mooring.yaml", tmp / MOORING)
 
-    assert MooringProcessor(
-        raw_dir=str(FIXTURE_RAW.parent), proc_dir=str(tmp)
-    ).process_mooring(MOORING, force=True), "stage1 failed"
-    assert Stage2Processor(proc_dir=str(tmp)).process_mooring(
-        MOORING, force=True
-    ), "stage2 failed"
-    assert Stage3Processor(proc_dir=str(tmp)).process_mooring(
-        MOORING, force=True
-    ), "stage3 failed"
+        assert MooringProcessor(
+            raw_dir=str(FIXTURE_RAW.parent), proc_dir=str(tmp)
+        ).process_mooring(MOORING, force=True), "stage1 failed"
+        assert Stage2Processor(proc_dir=str(tmp)).process_mooring(
+            MOORING, force=True
+        ), "stage2 failed"
+        assert Stage3Processor(proc_dir=str(tmp)).process_mooring(
+            MOORING, force=True
+        ), "stage3 failed"
 
-    for stage in ("stage1", "stage2", "stage3"):
-        fname = f"{MOORING}_{SERIAL}_{stage}.nc"
-        src = tmp / MOORING / INSTR / fname
-        dst = FIXTURE_PROC / INSTR / fname
-        before = _cndc_summary(dst) if dst.exists() else "(none)"
-        shutil.copy(src, dst)
-        print(f"{stage}: {before}  ->  {_cndc_summary(dst)}")
+        for stage in ("stage1", "stage2", "stage3"):
+            fname = f"{MOORING}_{SERIAL}_{stage}.nc"
+            src = tmp / MOORING / INSTR / fname
+            dst = FIXTURE_PROC / INSTR / fname
+            before = _cndc_summary(dst) if dst.exists() else "(none)"
+            shutil.copy(src, dst)
+            print(f"{stage}: {before}  ->  {_cndc_summary(dst)}")
 
 
 if __name__ == "__main__":

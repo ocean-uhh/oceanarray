@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 from typing import Any, Dict
 
 import numpy as np
 
+from ..utilities import parse_latlon_with_source
 from ._html_helpers import (
     _find_array_report_href,
     _nav_buttons_html,
@@ -440,18 +442,19 @@ def generate_grid_page(
         fig_grid_traj_b64 = _make_grid_trajectory_b64(ds)
         fig_grid_ts_b64 = _make_grid_timeseries_b64(ds)
 
-        _lat_n2 = 0.0
-        for _lat_key in ("seabed_latitude", "deployment_latitude", "latitude"):
-            _lv = ds.attrs.get(_lat_key)
-            if _lv is not None:
-                try:
-                    from ..utilities import _dms_to_deg
-
-                    _lat_n2 = _dms_to_deg(str(_lv))
-                    break
-                except Exception:
-                    pass
-        fig_n2_b64 = _make_grid_n2_b64(ds, lat=_lat_n2)
+        # Resolve mooring latitude once for the latitude-dependent panels below
+        # (N², temperature spectrum, rotary spectrum). parse_latlon_with_source
+        # tries seabed/deployment/planned/latitude keys and skips (0, 0)
+        # placeholders; warn rather than silently fall back to the equator.
+        _lat, _, _lat_source = parse_latlon_with_source(dict(ds.attrs))
+        if _lat_source.startswith("unknown"):
+            warnings.warn(
+                f"grid report: mooring latitude unresolved from attrs "
+                f"({ds.attrs.get('mooring_name', '?')}); latitude-dependent "
+                f"panels (N², spectra) computed at lat=0.",
+                stacklevel=2,
+            )
+        fig_n2_b64 = _make_grid_n2_b64(ds, lat=_lat)
 
         # Stratification: sigma0 stacked panel + isopycnal height time series
         fig_sigma_b64 = _make_grid_sigma_b64(ds)
@@ -483,17 +486,6 @@ def generate_grid_page(
         fig_isopycnal_coverage_b64 = _make_isopycnal_coverage_fig_b64(ds)
 
         fig_spectrum_b64 = None
-        _lat = 0.0
-        for _lat_key in ("seabed_latitude", "deployment_latitude", "latitude"):
-            _lv = ds.attrs.get(_lat_key)
-            if _lv is not None:
-                try:
-                    from ..utilities import _dms_to_deg
-
-                    _lat = _dms_to_deg(str(_lv))
-                    break
-                except Exception:
-                    pass
         fig_wavelet_b64 = None
         if "temperature" in ds:
             _dt_s = float(ds.attrs.get("dt_seconds", 3600))

@@ -83,10 +83,6 @@ ignore = [
   "tests/*",
 ]
 
-[tool.black]
-line-length = 88
-target-version = ['py39']
-
 [tool.coverage.run]
 source = ["oceanarray"]
 branch = true
@@ -98,6 +94,7 @@ omit = [
 ]
 
 [tool.ruff]
+line-length = 88
 exclude = [
   "oceanarray/legacy",   # legacy modules — not maintained to current standards
   "notebooks",           # notebooks are exploratory; not held to production lint standards
