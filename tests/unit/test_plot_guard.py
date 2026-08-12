@@ -143,19 +143,19 @@ def test_aquadopp_figure_functions(aquadopp_stage3_path, fn_name):
 
 
 def test_make_instrument_fig_microcat(microcat_stage3_path):
-    """The combined instrument figure builds for a microcat."""
-    assert (
-        _plots._make_instrument_fig(str(microcat_stage3_path), "microcat", show_qc=True)
-        is not None
+    """The (paginated) instrument figure list builds for a microcat."""
+    imgs = _plots._make_instrument_fig(
+        str(microcat_stage3_path), "microcat", show_qc=True
     )
+    assert isinstance(imgs, list) and len(imgs) >= 1
 
 
 def test_make_instrument_fig_aquadopp(aquadopp_stage3_path):
-    """The combined instrument figure builds for an aquadopp."""
-    assert (
-        _plots._make_instrument_fig(str(aquadopp_stage3_path), "aquadopp", show_qc=True)
-        is not None
+    """The (paginated) instrument figure list builds for an aquadopp."""
+    imgs = _plots._make_instrument_fig(
+        str(aquadopp_stage3_path), "aquadopp", show_qc=True
     )
+    assert isinstance(imgs, list) and len(imgs) >= 1
 
 
 def test_build_fig_from_ds_microcat(microcat_stage3):
@@ -164,9 +164,9 @@ def test_build_fig_from_ds_microcat(microcat_stage3):
 
 
 def test_windows_fig_microcat(microcat_stage3_path):
-    """``_make_windows_fig`` builds a deployment-window figure for a microcat."""
-    result = _plots._make_windows_fig(microcat_stage3_path, "microcat")
-    assert result is not None
+    """``_make_windows_fig`` builds a (paginated) deployment-window figure list."""
+    imgs = _plots._make_windows_fig(microcat_stage3_path, "microcat")
+    assert isinstance(imgs, list) and len(imgs) >= 1
 
 
 # ---------------------------------------------------------------------------

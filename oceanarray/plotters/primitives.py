@@ -142,7 +142,7 @@ def plot_trajectory(
     matplotlib.figure.Figure
 
     """
-    fig, ax = plt.subplots(figsize=(7, 6))
+    fig, ax = plt.subplots(figsize=(params.W_HALF, 6), constrained_layout=True)
 
     if color_data is not None:
         points = np.array([x, y]).T.reshape(-1, 1, 2)
@@ -168,7 +168,7 @@ def plot_trajectory(
     # Start/end markers
     ax.plot(x[0], y[0], "o", color="green", markersize=8, label="Start", zorder=5)
     ax.plot(x[-1], y[-1], "s", color="red", markersize=8, label="End", zorder=5)
-    ax.legend(fontsize=8)
+    ax.legend()
 
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -178,7 +178,6 @@ def plot_trajectory(
     ax.axvline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
     ax.set_aspect("equal", adjustable="box")
     ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.4)
-    fig.tight_layout()
     return fig
 
 
@@ -227,9 +226,9 @@ def hodograph_panel(
     cb = ax.figure.colorbar(
         sm, ax=ax, shrink=0.75, pad=0.03, aspect=20, ticks=bounds_lc
     )
-    cb.set_label("Time ->", size=8)
+    cb.set_label("Time →")
     cb.ax.set_yticks([0.0, 1.0])
-    cb.ax.set_yticklabels(["start", "end"], size=7)
+    cb.ax.set_yticklabels(["start", "end"])
 
     ax.scatter(
         e_v[0],
@@ -258,7 +257,7 @@ def hodograph_panel(
     ax.axvline(0, color="#888", lw=0.7)
     ax.set_xlabel(f"East ({units})")
     ax.set_ylabel(f"North ({units})")
-    ax.set_title(title, fontsize=9)
+    ax.set_title(title)
     ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.3)
 
 

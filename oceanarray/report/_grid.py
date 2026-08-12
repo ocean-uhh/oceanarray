@@ -191,7 +191,7 @@ _GRID_HTML_TEMPLATE = """\
 <h2 id="vel-iqr">Velocity IQR profiles</h2>
 <p class="note">Median (solid line) and interquartile range (shaded, 25–75 %) across the full deployment at each pressure level. 2.5–97.5 % outer envelope for speed. Right panel: count of non-NaN values per depth.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" style="max-width:85%" src="data:image/png;base64,{{ fig_vel_iqr_b64 }}" alt="Velocity IQR profiles">
+<img class="fig" src="data:image/png;base64,{{ fig_vel_iqr_b64 }}" alt="Velocity IQR profiles">
 </details>
 {% endif %}
 

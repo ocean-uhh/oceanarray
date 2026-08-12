@@ -1,7 +1,6 @@
 """Tier-2 domain wrappers for hydrographic section and isopycnal plots.
 
 hydrography.py contains:
-  - ``draw_isopycnal_fig``: time × pressure with iso-sigma contour lines.
   - ``draw_isopycnal_ts_fig``: isopycnal height-above-seabed time series.
   - ``draw_isopycnal_coverage``: three-panel isopycnal diagnostic.
   - ``draw_overflow_temperature_fig``: temperature time series at ~100 m above seabed.
@@ -19,77 +18,8 @@ if TYPE_CHECKING:
     import matplotlib.pyplot as plt
     import xarray as xr
 
-from .primitives import colorbar_norm, date_axis, pressure_axis
-from ..analysis.temporal import filter_sigma_tukey
+from .primitives import colorbar_norm, date_axis
 from .. import parameters as params
-
-
-def draw_isopycnal_fig(
-    da: "xr.DataArray",
-    levels: list,
-    filter_samples: int = 0,
-    zoom_center_idx: Optional[int] = None,
-    zoom_n: int = 0,
-) -> "plt.Figure":
-    """Render time × pressure with iso-sigma contour lines; return a Figure.
-
-    Parameters
-    ----------
-    da : xr.DataArray
-        DataArray with ``pressure`` and ``time`` dimensions.
-    levels : list
-        Sigma-0 contour levels (kg m⁻³).
-    filter_samples : int
-        If > 1, apply a Tukey moving-average filter over this many samples.
-    zoom_center_idx : int, optional
-        Centre index for a time-axis zoom window.
-    zoom_n : int
-        Half-width (in samples) of the zoom window.
-
-    Returns
-    -------
-    plt.Figure
-
-    """
-    import matplotlib.pyplot as plt
-
-    da_tp = da.transpose("pressure", "time")
-    time_vals = da_tp["time"].values
-    pressure_vals = da_tp["pressure"].values
-    data = da_tp.values
-
-    if zoom_center_idx is not None and zoom_n > 0:
-        t0 = max(0, zoom_center_idx - zoom_n // 2)
-        t1 = min(data.shape[1], t0 + zoom_n)
-        time_vals = time_vals[t0:t1]
-        data = data[:, t0:t1]
-
-    if filter_samples > 1 and data.shape[1] > filter_samples:
-        data = filter_sigma_tukey(data, filter_samples)
-
-    level_colors = ["#808080"] + ["black"] * (len(levels) - 1)
-
-    fig, ax = plt.subplots(figsize=(13, 4))
-    for lev, col in zip(levels, level_colors):
-        try:
-            ax.contour(
-                time_vals,
-                pressure_vals,
-                data,
-                levels=[lev],
-                colors=[col],
-                linewidths=1.2,
-            )
-        except Exception:  # noqa: BLE001  — individual contour level may fail; skip and continue
-            pass
-        ax.plot([], [], color=col, lw=1.2, label=f"σ₀ = {lev} kg m⁻³")
-
-    pressure_axis(ax)
-    date_axis(ax)
-    ax.set_xlabel("Time")
-    if levels:
-        ax.legend(loc="upper right", framealpha=0.8)
-    return fig
 
 
 def draw_isopycnal_ts_fig(ds_iso: "xr.Dataset") -> "Optional[plt.Figure]":
@@ -138,7 +68,7 @@ def draw_isopycnal_ts_fig(ds_iso: "xr.Dataset") -> "Optional[plt.Figure]":
     color_norms = np.linspace(0.25, 0.95, max(n_levels, 1))
     colors = [cmap(v) for v in color_norms]
 
-    fig, ax = plt.subplots(figsize=(13, 4))
+    fig, ax = plt.subplots(figsize=(params.W_FULL, 4))
 
     for i, (sval, col) in enumerate(zip(sigma_vals, colors)):
         h = height[i, :]
@@ -309,7 +239,7 @@ def draw_isopycnal_coverage(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     fig, (ax0, ax1, ax2) = plt.subplots(
         1,
         3,
-        figsize=(14, fig_h),
+        figsize=(params.W_FULL, fig_h),
         sharey=True,
         gridspec_kw={"width_ratios": [0.8, 1.0, 1.2]},
     )
@@ -450,7 +380,7 @@ def draw_overflow_temperature_fig(ds: "xr.Dataset") -> "Optional[plt.Figure]":
         .values
     )
 
-    fig, ax = plt.subplots(figsize=(13, 3))
+    fig, ax = plt.subplots(figsize=(params.W_FULL, 3))
     ax.plot(time_vals, temp_med, color="#1a3a5c", lw=1.0)
     ax.set_ylabel(params.vlabel("temperature"))
     hab = waterdepth - actual_p

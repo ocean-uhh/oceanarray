@@ -6,6 +6,7 @@ scipy>=1.10
 
 # Plotting
 matplotlib>=3.7
+pillow>=9.0  # report figure PNG palette-quantization in _fig_to_base64 (matplotlib pulls it in too)
 
 # Oceanographic tools
 gsw>=3.6.16

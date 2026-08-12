@@ -34,6 +34,23 @@ FIGURE_SIZE_WIDE = (14, 6)  # multi-instrument overview (scatter / line)
 FIGURE_SIZE_TALL = (12, 8)  # stacked single-instrument panels
 
 # ---------------------------------------------------------------------------
+# Report figure slot widths (inches).  The HTML report body is ~1150-1200px
+# wide; figures display at full/two-thirds/half/third of that slot via the
+# `.fig` CSS max-width caps.  Rendering a figure at the matching slot WIDTH
+# makes displayed font size depend only on figsize (font_px = pt/72 x
+# display_px/fig_in) — independent of dpi — so mplstyle fonts appear at a
+# consistent, readable size instead of the double-shrink that oversized (12-16
+# in) figsizes caused at half/third slots.  Set figure *width* to one of these;
+# height is content-driven.  (dpi is a separate size knob, set once in the
+# mplstyle's savefig.dpi; report figure bytes are cut mainly by palette
+# quantization in _fig_to_base64, not by dpi.)
+# ---------------------------------------------------------------------------
+W_FULL = 9.0  # full-slot figure (CSS max-width 100%)
+W_TWOTHIRDS = 6.0  # two-thirds slot (~66%)
+W_HALF = 4.5  # half slot (~50%)
+W_THIRD = 3.0  # one-third slot (~33%)
+
+# ---------------------------------------------------------------------------
 # Resampling
 # ---------------------------------------------------------------------------
 DOWNSAMPLE_SECONDS = 120  # default resample interval for mooring plots

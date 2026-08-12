@@ -144,7 +144,7 @@ def plot_speed_boxplot(
         val = np.percentile(speed_clean, p)
         print(f"  {p:2d}th percentile: {val:.4f} {units}")
 
-    fig, ax = plt.subplots(figsize=(4, 6))
+    fig, ax = plt.subplots(figsize=(params.W_THIRD, 6))
     bp = ax.boxplot(
         speed_clean,
         vert=True,
@@ -249,7 +249,7 @@ def plot_multi_aquadopp_trajectories(
         _bounds = _nice_colorbar_bounds(0.0, 1.0, n=20)
     norm: mcolors.BoundaryNorm = mcolors.BoundaryNorm(_bounds, ncolors=256)
 
-    fig, ax = plt.subplots(figsize=(6, 5))
+    fig, ax = plt.subplots(figsize=(params.W_FULL, 5), constrained_layout=True)
 
     for instr_i, x, y, temp in trajs:
         serial = str(serials[instr_i])
@@ -322,7 +322,6 @@ def plot_multi_aquadopp_trajectories(
         title = ds.attrs.get("id", "")
     if title:
         ax.set_title(title)
-    fig.tight_layout()
     return fig
 
 
@@ -368,10 +367,14 @@ def plot_hodograph(
     import pandas as pd
 
     instr_id = ds.attrs.get("id", "")
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-    fig.subplots_adjust(top=0.90)
+    # constrained_layout places the shared colorbar correctly against the
+    # equal-aspect ("box"-adjustable) panels; without it the colorbar overlaps
+    # the panel whitespace and appears to sit inside the axes.
+    fig, axes = plt.subplots(
+        1, 2, figsize=(params.W_FULL, 4.5), constrained_layout=True
+    )
     if instr_id:
-        fig.suptitle(instr_id, fontsize=10, y=0.995)
+        fig.suptitle(instr_id)
 
     if u_var not in ds.data_vars or v_var not in ds.data_vars:
         for ax in axes:
@@ -466,13 +469,13 @@ def plot_hodograph(
                 linewidths=0.5,
                 label="End",
             )
-            ax.legend(fontsize=7, loc="upper right", framealpha=0.7)
+            ax.legend(loc="upper right", framealpha=0.7)
         ax.axhline(0, color="#bbb", lw=0.7, zorder=0)
         ax.axvline(0, color="#bbb", lw=0.7, zorder=0)
         ax.set_aspect("equal", adjustable="box")
         ax.set_xlabel(f"East ({units})")
         ax.set_ylabel(f"North ({units})")
-        ax.set_title(title, fontsize=10)
+        ax.set_title(title)
         ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.4)
 
     _panel(axes[0], east, north, f"Raw ({smooth_hours:.0f}-h smoothed)")
@@ -564,7 +567,7 @@ def plot_aquadopp_speed_profile(
     hab_range = max(hab_vals) - min(hab_vals) if len(hab_vals) > 1 else 10.0
     box_width = max(2.0, hab_range * 0.06)
 
-    fig, ax = plt.subplots(figsize=(5, max(3, len(records) * 0.7 + 1)))
+    fig, ax = plt.subplots(figsize=(params.W_HALF, max(3, len(records) * 0.7 + 1)))
 
     for hab, serial, spd_clean in records:
         bp = ax.boxplot(
@@ -701,7 +704,7 @@ def plot_adcp_trajectories(
         _bounds = _nice_colorbar_bounds(hab_min, hab_max, n=_n_hab)
     norm: mcolors.BoundaryNorm = mcolors.BoundaryNorm(_bounds, ncolors=256)
 
-    fig, ax = plt.subplots(figsize=(6, 5))
+    fig, ax = plt.subplots(figsize=(params.W_FULL, 5))
 
     for hab, x, y in trajs:
         points = np.array([x, y]).T.reshape(-1, 1, 2)
@@ -803,7 +806,7 @@ def draw_instrument_rose(nc_path: Path) -> "Optional[plt.Figure]":
     fig, axs = plt.subplots(
         1,
         ncols,
-        figsize=(ncols * 3.0, 3.2),
+        figsize=(params.W_TWOTHIRDS, 3.2),
         subplot_kw={"projection": "polar"},
         squeeze=False,
     )
@@ -911,7 +914,7 @@ def draw_rose_grid(
     fig, axs = plt.subplots(
         nrows,
         ncols,
-        figsize=(ncols * 3.0, nrows * 3.2),
+        figsize=(params.W_FULL, nrows * 3.2),
         subplot_kw={"projection": "polar"},
         squeeze=False,
     )
@@ -988,7 +991,7 @@ def draw_grid_rose(ds: "xr.Dataset", max_roses: int = 4) -> "Optional[plt.Figure
     fig, axs = plt.subplots(
         nrows,
         ncols,
-        figsize=(ncols * 3.0, nrows * 3.2),
+        figsize=(params.W_FULL, nrows * 3.2),
         subplot_kw={"projection": "polar"},
         squeeze=False,
     )
@@ -1055,7 +1058,7 @@ def draw_grid_trajectory(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     _bounds, norm = colorbar_norm(vmin=min(p_vals), vmax=max(p_vals))
     cmap = plt.get_cmap("viridis_r")  # shallow (low p) → light; deep → dark
 
-    fig, ax = plt.subplots(figsize=(6, 5))
+    fig, ax = plt.subplots(figsize=(params.W_HALF, 5))
 
     for p_val, x, y in trajs:
         points = np.array([x, y]).T.reshape(-1, 1, 2)
@@ -1223,7 +1226,7 @@ def draw_adcp_velocity(nc_path: str) -> "Optional[plt.Figure]":
 
         n = len(present)
         fig, axes = plt.subplots(
-            n, 1, figsize=(13, 3.5 * n), sharex=True, squeeze=False
+            n, 1, figsize=(params.W_FULL, 3.5 * n), sharex=True, squeeze=False
         )
 
         orientation = ds.attrs.get("orientation_yaml") or ds.attrs.get(
@@ -1374,7 +1377,7 @@ def draw_adcp_rose(nc_path: str) -> "Optional[plt.Figure]":
         fig, axs = plt.subplots(
             1,
             ncols,
-            figsize=(ncols * 3.2, 4.0),
+            figsize=(params.W_FULL, 4.0),
             subplot_kw={"projection": "polar"},
             squeeze=False,
         )
@@ -1505,7 +1508,7 @@ def draw_adcp_hodograph(
 
     from oceanarray.report._plots import _draw_hodograph_pair
 
-    fig, axes = plt.subplots(2, 2, figsize=(13, 9))
+    fig, axes = plt.subplots(2, 2, figsize=(params.W_FULL, 9))
     fig.subplots_adjust(hspace=0.55, wspace=0.45)
 
     _draw_hodograph_pair(
@@ -1612,8 +1615,9 @@ def draw_grid_hodograph(
 
     smooth_n = max(3, int(round(smooth_hours * 3600.0 / dt_s)))
 
-    fig, (ax_shallow, ax_deep) = plt.subplots(1, 2, figsize=(13, 6))
-    fig.subplots_adjust(wspace=0.45)
+    fig, (ax_shallow, ax_deep) = plt.subplots(
+        1, 2, figsize=(params.W_FULL, 4.5), constrained_layout=True
+    )
 
     for ax, i_lev, label in [
         (ax_shallow, i_shallow, f"Shallow ({label_shallow})"),
@@ -1626,7 +1630,7 @@ def draw_grid_hodograph(
             ax.text(
                 0.5, 0.5, "No data", transform=ax.transAxes, ha="center", va="center"
             )
-            ax.set_title(label, fontsize=9)
+            ax.set_title(label)
             continue
         t_frac = np.linspace(0.0, 1.0, len(east_2d[:, i_lev]))[mask]
         hodograph_panel(

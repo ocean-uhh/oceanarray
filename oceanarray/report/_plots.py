@@ -57,7 +57,6 @@ from ..plotters.ts import (
     draw_grid_ts_diagram,
 )
 from ..plotters.hydrography import (
-    draw_isopycnal_fig,
     draw_isopycnal_ts_fig,
     draw_isopycnal_coverage,
     draw_overflow_temperature_fig,
@@ -293,56 +292,77 @@ def _instrument_panels(
 # ---------------------------------------------------------------------------
 
 
+# Max panels per instrument time-series figure.  A tall figure cannot split
+# across PDF pages, so we paginate into several figures of at most this many
+# panels each (see _build_figs_from_ds).
+_MAX_TS_PANELS = 5
+
+
+def _augment_tilt(ds: "xr.Dataset") -> "xr.Dataset":
+    """Return *ds* with a derived ``tilt`` variable added from pitch/roll.
+
+    ``tilt = arccos(cos(pitch)·cos(roll))`` in degrees from vertical.  A no-op
+    when neither pitch nor roll is present.  Idempotent (re-running overwrites
+    the derived variable).
+    """
+    _has_pitch = "pitch" in ds.data_vars
+    _has_roll = "roll" in ds.data_vars
+    if not (_has_pitch or _has_roll):
+        return ds
+    _n = ds.sizes["time"]
+    _pitch_r = (
+        np.radians(ds["pitch"].values.astype(float)) if _has_pitch else np.zeros(_n)
+    )
+    _roll_r = np.radians(ds["roll"].values.astype(float)) if _has_roll else np.zeros(_n)
+    _cos_t = np.cos(_pitch_r) * np.cos(_roll_r)
+    _tilt = np.degrees(np.arccos(np.clip(_cos_t, -1.0, 1.0)))
+    if _has_pitch:
+        _tilt[~np.isfinite(ds["pitch"].values.astype(float))] = np.nan
+    if _has_roll:
+        _tilt[~np.isfinite(ds["roll"].values.astype(float))] = np.nan
+    import xarray as _xr
+
+    return ds.assign(
+        tilt=_xr.Variable(
+            "time",
+            _tilt,
+            {"units": "degrees", "long_name": "Instrument tilt from vertical"},
+        )
+    )
+
+
 def _build_fig_from_ds(
     ds: "xr.Dataset",
     instr_type: str,
     show_qc: bool = True,
     title_suffix: str = "",
+    panels: "Optional[list]" = None,
 ) -> "Optional[plt.Figure]":
-    """Render instrument panels from an already-loaded xarray Dataset."""
+    """Render instrument panels from an already-loaded xarray Dataset.
+
+    When *panels* is given, only those panels are drawn (used to paginate a tall
+    instrument figure via :func:`_build_figs_from_ds`); otherwise every panel for
+    the instrument is drawn on one figure.
+    """
     import matplotlib.pyplot as plt
     from .. import parameters as params
 
-    _has_pitch = "pitch" in ds.data_vars
-    _has_roll = "roll" in ds.data_vars
-    if _has_pitch or _has_roll:
-        _n = ds.sizes["time"]
-        _pitch_r = (
-            np.radians(ds["pitch"].values.astype(float)) if _has_pitch else np.zeros(_n)
-        )
-        _roll_r = (
-            np.radians(ds["roll"].values.astype(float)) if _has_roll else np.zeros(_n)
-        )
-        _cos_t = np.cos(_pitch_r) * np.cos(_roll_r)
-        _tilt = np.degrees(np.arccos(np.clip(_cos_t, -1.0, 1.0)))
-        if _has_pitch:
-            _tilt[~np.isfinite(ds["pitch"].values.astype(float))] = np.nan
-        if _has_roll:
-            _tilt[~np.isfinite(ds["roll"].values.astype(float))] = np.nan
-        import xarray as _xr
-
-        ds = ds.assign(
-            tilt=_xr.Variable(
-                "time",
-                _tilt,
-                {"units": "degrees", "long_name": "Instrument tilt from vertical"},
-            )
-        )
-
-    panels = _instrument_panels(ds, combine_pitch_roll=True)
+    ds = _augment_tilt(ds)
+    if panels is None:
+        panels = _instrument_panels(ds, combine_pitch_roll=True)
     if not panels:
         return None
 
     with plt.style.context(str(params.MPLSTYLE)):
         nrows = len(panels)
         height_ratios = [
-            _COMPACT_PANEL_HEIGHT if vname in _COMPACT_PANEL_VARS else 3.0
+            _COMPACT_PANEL_HEIGHT if vname in _COMPACT_PANEL_VARS else 2.0
             for vname, *_ in panels
         ]
         fig, axs = plt.subplots(
             nrows,
             1,
-            figsize=(12, sum(height_ratios)),
+            figsize=(params.W_FULL, sum(height_ratios)),
             gridspec_kw={"height_ratios": height_ratios},
             sharex=True,
         )
@@ -476,18 +496,36 @@ def _build_fig_from_ds(
 
 def _make_instrument_fig(
     nc_path: Path, instr_type: str, show_qc: bool = True
-) -> Optional[str]:
-    """Data time series with optional QC markers. Returns base64 PNG or None."""
+) -> List[str]:
+    """Instrument data time series with optional QC markers, paginated.
+
+    Returns a *list* of base64 PNGs: the instrument's panels are split into
+    figures of at most ``_MAX_TS_PANELS`` panels each, so a tall instrument time
+    series paginates into successive images instead of overflowing one PDF page.
+    Empty list if the instrument has no plottable panels.
+    """
     import xarray as xr
 
-    def _draw() -> "Optional[plt.Figure]":
-        ds = xr.open_dataset(nc_path, decode_timedelta=False).load()
-        try:
-            return _build_fig_from_ds(ds, instr_type, show_qc=show_qc)
-        finally:
-            ds.close()
-
-    return render_b64(_draw, optional=True)
+    ds = xr.open_dataset(nc_path, decode_timedelta=False).load()
+    try:
+        ds = _augment_tilt(ds)
+        panels = _instrument_panels(ds, combine_pitch_roll=True)
+        if not panels:
+            return []
+        images: List[str] = []
+        for i in range(0, len(panels), _MAX_TS_PANELS):
+            chunk = panels[i : i + _MAX_TS_PANELS]
+            b64 = render_b64(
+                lambda c=chunk: _build_fig_from_ds(
+                    ds, instr_type, show_qc=show_qc, panels=c
+                ),
+                optional=True,
+            )
+            if b64:
+                images.append(b64)
+        return images
+    finally:
+        ds.close()
 
 
 def _make_windows_fig(
@@ -497,18 +535,41 @@ def _make_windows_fig(
     show_qc: bool = True,
     vlines: Optional[list] = None,
     stage1_nc: Optional[Path] = None,
-) -> Optional[str]:
-    """Return base64 PNG: combined start + end window figure."""
-    return render_b64(
-        draw_windows,
-        nc_path,
-        instr_type,
-        hours,
-        show_qc,
-        vlines,
-        stage1_nc,
-        optional=True,
-    )
+) -> List[str]:
+    """Return base64 PNGs: combined start + end window figure, paginated.
+
+    Returns a *list* of base64 PNGs: the instrument's panels are split into
+    figures of at most ``_MAX_TS_PANELS`` rows each, so a tall start/end window
+    figure paginates into successive images instead of overflowing one PDF page.
+    Each row is a half-width start panel beside a half-width end panel.  Empty
+    list if the instrument has no plottable panels.
+    """
+    import xarray as xr
+
+    ds = xr.open_dataset(nc_path, decode_timedelta=False).load()
+    try:
+        panels = _instrument_panels(ds, combine_pitch_roll=True)
+    finally:
+        ds.close()
+    if not panels:
+        return []
+    images: List[str] = []
+    for i in range(0, len(panels), _MAX_TS_PANELS):
+        chunk = panels[i : i + _MAX_TS_PANELS]
+        b64 = render_b64(
+            draw_windows,
+            nc_path,
+            instr_type,
+            hours,
+            show_qc,
+            vlines,
+            stage1_nc,
+            chunk,
+            optional=True,
+        )
+        if b64:
+            images.append(b64)
+    return images
 
 
 def _make_data_histogram(nc_path: Path) -> Optional[str]:
@@ -674,27 +735,6 @@ def _make_grid_trajectory_b64(ds: "xr.Dataset") -> Optional[str]:
 def _make_grid_timeseries_b64(ds: "xr.Dataset") -> Optional[str]:
     """Return base64 PNG: velocity time series at depth of maximum mean speed."""
     return render_b64(draw_grid_timeseries, ds, optional=True)
-
-
-def _make_isopycnal_fig_b64(
-    da: "xr.DataArray",
-    levels: list,
-    filter_samples: int = 0,
-    zoom_center_idx: Optional[int] = None,
-    zoom_n: int = 0,
-) -> Optional[str]:
-    """Return base64 PNG: time × pressure with iso-sigma contour lines."""
-    if not levels:
-        return None
-    return render_b64(
-        draw_isopycnal_fig,
-        da,
-        levels,
-        filter_samples,
-        zoom_center_idx,
-        zoom_n,
-        optional=True,
-    )
 
 
 def _make_isopycnal_ts_fig_b64(ds_iso: "xr.Dataset") -> Optional[str]:
@@ -967,9 +1007,9 @@ def _make_clock_check_b64(
     nc_paths: "Dict[str, Any]",
     deploy_dt: "Any",
     recover_dt: "Any",
-    window_minutes: int = 10,
+    window_minutes: int = 30,
 ) -> Optional[str]:
-    """Overlaid temperature comparison at deployment start/end, for the mooring summary.
+    """Overlaid normalised-temperature comparison ±window around deploy/recover.
 
     Thin Tier-3 wrapper around
     ``plotters.diagnostic.plot_clock_offset_check``.

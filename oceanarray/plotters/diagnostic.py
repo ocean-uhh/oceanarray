@@ -677,24 +677,30 @@ def plot_clock_offset_check(
     nc_paths: "Dict[str, Path]",
     deploy_dt: "Optional[datetime]",
     recover_dt: "Optional[datetime]",
-    window_minutes: int = 10,
+    window_minutes: int = 30,
 ) -> "Optional[matplotlib.figure.Figure]":
-    """Overlaid temperature time series zoomed to deployment start and end.
+    """Overlaid, per-instrument normalised temperature around deploy and recover.
 
-    Plots the first and last *window_minutes* of the deployment for every
-    instrument that has a temperature variable, so that clock alignment
-    between instruments can be assessed visually.  If an instrument's clock
-    is offset the temperature signal will appear shifted in time relative to
-    the other instruments.
+    Plots a ``±window_minutes`` window centred on deployment and on recovery for
+    every instrument with a temperature variable, so clock alignment between
+    instruments can be assessed visually.  If an instrument's clock is offset the
+    temperature signal appears shifted in time relative to the others.
+
+    Each instrument's trace is **standardised over the plotted window**
+    (subtract the window mean, divide by the window standard deviation) so
+    instruments with different absolute temperatures and amplitudes overlay on a
+    common ``std`` y-axis and their *timing* can be compared directly.
 
     Two sub-panels are produced side by side:
 
-    - **Left**: first ``window_minutes`` minutes after ``deploy_dt``
-    - **Right**: last ``window_minutes`` minutes before ``recover_dt``
+    - **Left**: ``deploy_dt ± window_minutes``
+    - **Right**: ``recover_dt ± window_minutes``
 
     When ``deploy_dt`` or ``recover_dt`` is ``None``, only the available
     window is produced.  A shared legend below both panels lists all
-    instruments.
+    instruments.  An instrument with zero variance in a window (flat/constant)
+    is skipped for that window (no timing information, and normalisation is
+    undefined).
 
     Parameters
     ----------
@@ -756,16 +762,18 @@ def plot_clock_offset_check(
     windows: list = []
     if deploy_dt is not None:
         t0 = np.datetime64(deploy_dt.replace(tzinfo=None).isoformat())
-        windows.append((t0, t0 + _td, f"Start +{window_minutes} min"))
+        windows.append((t0 - _td, t0 + _td, f"Deployment ±{window_minutes} min"))
     if recover_dt is not None:
         t1 = np.datetime64(recover_dt.replace(tzinfo=None).isoformat())
-        windows.append((t1 - _td, t1, f"End −{window_minutes} min"))
+        windows.append((t1 - _td, t1 + _td, f"Recovery ±{window_minutes} min"))
     if not windows:
         return None
 
     n_panels = len(windows)
     with plt.style.context(str(params.MPLSTYLE)):
-        fig, axes = plt.subplots(1, n_panels, figsize=(5 * n_panels, 3.5), sharey=False)
+        fig, axes = plt.subplots(
+            1, n_panels, figsize=(params.W_FULL, 3.5), sharey=False
+        )
         if n_panels == 1:
             axes = [axes]
 
@@ -778,16 +786,21 @@ def plot_clock_offset_check(
                 mask = (t >= t_lo) & (t <= t_hi) & np.isfinite(temp)
                 if not np.any(mask):
                     continue
-                ax.plot(t[mask], temp[mask], color=colors[serial], lw=1.0)
+                tw = temp[mask]
+                sd = np.nanstd(tw)
+                if not np.isfinite(sd) or sd == 0:
+                    continue  # flat window: no timing info, normalisation undefined
+                tw_norm = (tw - np.nanmean(tw)) / sd
+                ax.plot(t[mask], tw_norm, color=colors[serial], lw=1.0)
                 plotted_serials.add(serial)
 
-            ax.set_title(title, fontsize=8)
+            ax.set_title(title)
             ax.set_xlabel("Time (UTC)")
-            ax.set_ylabel("Temperature (°C)")
+            ax.set_ylabel("Normalised temperature (std)")
+            ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.3)
             locator = mdates.AutoDateLocator()
             ax.xaxis.set_major_locator(locator)
             ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
-            ax.tick_params(axis="x", labelsize=7)
 
         if plotted_serials:
             from matplotlib.lines import Line2D
@@ -802,7 +815,6 @@ def plot_clock_offset_check(
                 loc="lower center",
                 ncol=min(len(handles), 6),
                 bbox_to_anchor=(0.5, -0.05),
-                fontsize=7,
                 frameon=True,
             )
 
@@ -823,6 +835,7 @@ def draw_windows(
     show_qc: bool = True,
     vlines: Optional[list] = None,
     stage1_nc: Optional[Path] = None,
+    panels: Optional[list] = None,
 ) -> "Optional[plt.Figure]":
     """Combined start + end window figure: (nrows × 2) — left = first N h, right = last N h.
 
@@ -836,6 +849,10 @@ def draw_windows(
         Width of each window in hours (default 6).
     show_qc : bool
         Overlay QC flag markers on the data.
+    panels : list, optional
+        Subset of ``_instrument_panels`` tuples to draw.  When given, only these
+        rows are rendered (used to paginate a tall window figure across several
+        images); otherwise every panel for the instrument is drawn on one figure.
     vlines : list of (time_val, color, label), optional
         Vertical marker lines to draw on both panels.  *time_val* may be a
         ``numpy.datetime64``, an ISO-8601 string, or a ``pandas.Timestamp``.
@@ -890,16 +907,17 @@ def draw_windows(
         # One sample interval used to expand x-axis limits (stage2/3 fallback).
         _dt_one = (time[1] - time[0]) if len(time) > 1 else np.timedelta64(300, "s")  # noqa: F841
 
-        panels = _instrument_panels(ds, combine_pitch_roll=True)
+        if panels is None:
+            panels = _instrument_panels(ds, combine_pitch_roll=True)
         if not panels:
             return None
 
         height_ratios = [
-            _COMPACT_PANEL_HEIGHT if vname in _COMPACT_PANEL_VARS else 3.0
+            _COMPACT_PANEL_HEIGHT if vname in _COMPACT_PANEL_VARS else 2.0
             for vname, *_ in panels
         ]
         nrows = len(panels)
-        fig = plt.figure(figsize=(13, sum(height_ratios)))
+        fig = plt.figure(figsize=(params.W_FULL, sum(height_ratios)))
         gs = GridSpec(
             nrows,
             2,
@@ -1423,7 +1441,7 @@ def draw_velocity_iqr_profile(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     fig, axs = plt.subplots(
         1,
         n_panels,
-        figsize=(n_panels * 3.5, 6),
+        figsize=(params.W_FULL, 4.5),
         sharey=True,
         gridspec_kw={"width_ratios": [2] * (n_panels - 1) + [1]},
     )

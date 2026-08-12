@@ -43,7 +43,7 @@ Domain ``draw_*`` functions (new public API):
     draw_ts_diagram, draw_stack_ts_diagram, draw_grid_ts_diagram
 
   Hydrography (hydrography.py):
-    draw_isopycnal_fig, draw_isopycnal_ts_fig, draw_isopycnal_coverage,
+    draw_isopycnal_ts_fig, draw_isopycnal_coverage,
     draw_overflow_temperature_fig
 
 Legacy functions (from plotter.py — available via backward-compat shim):
@@ -131,7 +131,6 @@ from oceanarray.plotters.ts import (  # noqa: F401
 # draw_* functions — isopycnal
 # ---------------------------------------------------------------------------
 from oceanarray.plotters.hydrography import (  # noqa: F401
-    draw_isopycnal_fig,
     draw_isopycnal_ts_fig,
     draw_isopycnal_coverage,
     draw_overflow_temperature_fig,
@@ -190,7 +189,6 @@ __all__ = [
     "draw_stack_ts_diagram",
     "draw_grid_ts_diagram",
     # draw_* — isopycnal
-    "draw_isopycnal_fig",
     "draw_isopycnal_ts_fig",
     "draw_isopycnal_coverage",
     "draw_overflow_temperature_fig",
