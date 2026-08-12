@@ -456,7 +456,9 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
     n_panels = len(aq_indices)
 
     def _draw() -> "plt.Figure":
-        fig = plt.figure(figsize=(16, 2.8 * n_panels), constrained_layout=True)
+        fig = plt.figure(
+            figsize=(params.W_FULL, 2.8 * n_panels), constrained_layout=True
+        )
         gs = fig.add_gridspec(n_panels, 3, width_ratios=[2, 2, 1])
 
         ax_ts_first = None
@@ -503,12 +505,9 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
                 _ref_note = f"  [ref: s/n {_ref_s} @ {ref_habs[i]:.0f} m]"
             ax_ts.set_title(f"s/n {serial}  ({hab:.0f} m hab){_ref_note}")
             if ax_ts.get_legend_handles_labels()[0]:
-                ax_ts.legend(
-                    loc="upper left",
-                    bbox_to_anchor=(1.01, 1.0),
-                    borderaxespad=0,
-                    framealpha=0.8,
-                )
+                # Legend inside the time-series panel (was anchored outside at
+                # 1.01, which landed over the neighbouring scatter panel).
+                ax_ts.legend(loc="best", framealpha=0.8)
 
             if row < n_panels - 1:
                 ax_ts.tick_params(labelbottom=False)
@@ -560,13 +559,8 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
                 ax_sc.set_ylim(bottom=0.0)
                 ax_sc.set_xlabel("tilt (pressure) [°]")
                 ax_sc.set_ylabel("|pitch|, |roll| [°]")
-                ax_sc.legend(
-                    loc="upper left",
-                    bbox_to_anchor=(1.01, 1.0),
-                    borderaxespad=0,
-                    framealpha=0.8,
-                    markerscale=3,
-                )
+                # No scatter legend — the time-series panel legend already names
+                # pitch/roll; a second legend here is a redundant repeat.
             else:
                 ax_sc.text(
                     0.5,
@@ -663,7 +657,7 @@ def generate_stack_page(
                 qc = ds[qc_varname].values
                 arr[qc >= 3] = np.nan
             with plt.style.context(str(params.MPLSTYLE)):
-                fig, ax = plt.subplots(figsize=(13, 4))
+                fig, ax = plt.subplots(figsize=(params.W_FULL, 3.2))
                 plotted = False
                 for i in range(n_instr):
                     if exclude_types and instr_types[i].lower() in exclude_types:
@@ -700,6 +694,7 @@ def generate_stack_page(
                 ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
                 ax.set_ylabel(ylabel)
                 ax.set_xlabel("Time")
+                ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.3)
                 if _t_cov_start and _t_cov_end:
                     try:
                         ax.set_xlim(
@@ -715,10 +710,12 @@ def generate_stack_page(
                     bbox_to_anchor=(1.01, 1.0),
                     borderaxespad=0,
                     framealpha=0.8,
-                    fontsize=6,
-                    ncol=2,
+                    ncol=1,
                 )
-                plt.tight_layout()
+                # No tight_layout: it shrinks the axes to fit a tall outside
+                # legend within the figsize.  _fig_to_base64 saves with
+                # bbox_inches="tight", so the PNG expands to include the legend
+                # while the plot keeps its full height.
                 b64 = _fig_to_base64(fig)
                 plt.close(fig)
                 return b64
@@ -841,7 +838,7 @@ def generate_stack_page(
                     all_spacings.extend(valid.tolist())
                 if all_spacings:
                     with plt.style.context(str(params.MPLSTYLE)):
-                        fig_sp, ax_sp = plt.subplots(figsize=(4, 3))
+                        fig_sp, ax_sp = plt.subplots(figsize=(params.W_THIRD, 3))
                         ax_sp.hist(
                             all_spacings, bins=60, color="steelblue", edgecolor="white"
                         )

@@ -233,8 +233,10 @@ _INSTRUMENT_HTML_TEMPLATE = """\
 <!-- ══ Full time series ══ -->
 <h2 id="timeseries">Time series (full deployment)</h2>
 {% if fig_ts_b64 %}
-<img class="fig" src="data:image/png;base64,{{ fig_ts_b64 }}"
+{% for _ts_img in fig_ts_b64 %}
+<img class="fig" src="data:image/png;base64,{{ _ts_img }}"
      title="line = data; × = suspect; × = bad; + = interpolated">
+{% endfor %}
 {% else %}
 <p class="none-note">No plottable variables found.</p>
 {% endif %}
@@ -276,7 +278,9 @@ _INSTRUMENT_HTML_TEMPLATE = """\
   stage&nbsp;1 record — the suggested recovery time equals the last raw sample.
   Check the timing table in the mooring summary report for the suggested UTC time.
 </p>
-<img class="fig" src="data:image/png;base64,{{ fig_windows_b64 }}">
+{% for _win_img in fig_windows_b64 %}
+<img class="fig" src="data:image/png;base64,{{ _win_img }}">
+{% endfor %}
 {% else %}
 <p class="none-note">Insufficient data for start/end windows.</p>
 {% endif %}

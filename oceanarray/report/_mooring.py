@@ -1405,19 +1405,28 @@ class MooringReport:
         any_clock = any(i["clock"]["has_correction"] for i in instruments)
 
         # Build {serial: nc_path} for the clock-offset comparison figure.
-        # Prefer stage3 over stage2 (clock correction was applied in stage2 and
-        # is preserved in stage3, so either works for comparing alignment).
+        # Use stage1 (raw, UNtrimmed): stage2/3 are trimmed to the deployment
+        # window, which removes exactly the pre-deploy / post-recover data the
+        # ±window check needs to show the deployment/recovery temperature
+        # transient (the shared timing feature).  Raw clocks also expose the real
+        # inter-instrument offsets before correction.  (Note: stage1 times are in
+        # the raw instrument clock, so a very large offset could shift the
+        # transient out of the ±window; offsets are normally seconds-to-minutes.)
+        # Fall back to stage2/3 only if stage1 is absent.
         _clock_nc_paths: Dict[str, Path] = {}
         for _instr in instruments:
             _s = _instr["serial"]
             _itype = _instr["instr_type"]
             _base = proc_dir / _itype / f"{mooring_name}_{_s}"
+            _s1 = Path(str(_base) + "_stage1.nc")
             _s3 = Path(str(_base) + "_stage3.nc")
             _s2 = Path(str(_base) + "_stage2.nc")
-            if _s3.exists():
-                _clock_nc_paths[_s] = _s3
+            if _s1.exists():
+                _clock_nc_paths[_s] = _s1
             elif _s2.exists():
                 _clock_nc_paths[_s] = _s2
+            elif _s3.exists():
+                _clock_nc_paths[_s] = _s3
         fig_clock_check_b64 = _make_clock_check_b64(
             _clock_nc_paths, deploy_dt, recover_dt
         )

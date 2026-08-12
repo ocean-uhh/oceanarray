@@ -42,6 +42,14 @@ img {
     height: auto;
     break-inside: avoid;
 }
+/* A single <img> cannot split across PDF pages, so a tall multipanel figure
+   would overflow the page bottom.  Cap figure height to (about) the A4 content
+   height so such figures scale down to fit one page.  (Proper fix is to
+   paginate multipanel figures into <=5-panel images — tracked as report-figures
+   #10.)  A4 usable height ~26cm minus room for a heading/note above the figure. */
+img.fig {
+    max-height: 22cm;
+}
 /* WeasyPrint cannot resolve ``repeat(auto-fill, minmax(...))`` and collapses
    such grids to a single column (the summary header's .meta-grid balloons as a
    result).  Force an explicit column count in print instead. */
