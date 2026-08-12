@@ -9,7 +9,7 @@ logic is defined once rather than copied per stage.
 import re
 import sys
 from pathlib import Path
-from typing import Any, Union
+from typing import Any, Optional, Union
 
 _PathLike = Union[str, Path]
 
@@ -37,6 +37,44 @@ def mooring_proc_dir(proc_root: _PathLike, mooring: str) -> Path:
 
     """
     return Path(proc_root) / mooring
+
+
+def resolve_report_dir(
+    mooring: str,
+    outdir: Optional[_PathLike],
+    report_dir: Optional[_PathLike],
+    proc_root: _PathLike,
+) -> Path:
+    """Return the directory a mooring's HTML report pages are written to.
+
+    Single source of truth for report output-dir resolution, mirrored by both
+    :meth:`oceanarray.report.MooringReport.generate` and the PDF combiner so the
+    two never drift.  Priority: explicit *outdir* wins; otherwise a central
+    *report_dir* nests each mooring under ``report_dir/<mooring>``; otherwise the
+    default ``proc_root/<mooring>/report``.
+
+    Parameters
+    ----------
+    mooring : str
+        Mooring name.
+    outdir : str or Path, optional
+        Explicit output directory (``--output-dir``); takes precedence when set.
+    report_dir : str or Path, optional
+        Central report root (``--report-dir``); each mooring nests below it.
+    proc_root : str or Path
+        Cruise-level processed-data root, used for the default location.
+
+    Returns
+    -------
+    Path
+        The resolved report directory.
+
+    """
+    if outdir:
+        return Path(outdir)
+    if report_dir:
+        return Path(report_dir) / mooring
+    return mooring_proc_dir(proc_root, mooring) / "report"
 
 
 def raw_mooring_dir(raw_root: _PathLike, mooring: str) -> Path:

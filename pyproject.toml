@@ -45,6 +45,13 @@ urls.Homepage = "https://github.com/ocean-uhh/oceanarray"
 urls.Repository = "https://github.com/ocean-uhh/oceanarray"
 urls."Issue Tracker" = "https://github.com/ocean-uhh/oceanarray/issues"
 
+[project.optional-dependencies]
+# PDF report output (oceanarray report --pdf). WeasyPrint pulls in native
+# libraries (pango, cairo, gdk-pixbuf) so it is kept out of the core install.
+pdf = [
+  "weasyprint>=60",
+]
+
 
 [project.scripts]
 oceanarray = "oceanarray.cli:main"

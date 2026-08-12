@@ -336,11 +336,23 @@ def cmd_report(args: argparse.Namespace) -> int:
                     print(
                         f"  Instrument {instr_type:12s} s/n {serial:8s}  {p.name}  ({'exists' if p.exists() else 'new'})"
                     )
+            if getattr(args, "pdf", False) or all_reports:
+                _html_dir = paths.resolve_report_dir(
+                    args.mooring, getattr(args, "outdir", None), report_dir, proc_root
+                )
+                pdf_path = _html_dir / f"{args.mooring}_report.pdf"
+                print(f"PDF:      {pdf_path}  (combined from the HTML pages above)")
             return 0
 
         if getattr(args, "array", False):
             from .report._array import generate_array_report
 
+            if getattr(args, "pdf", False) or getattr(args, "all_reports", False):
+                _status(
+                    "error",
+                    "--pdf is not supported in --array mode; the array index is "
+                    "HTML-only. Run 'report MOORING --pdf' per mooring instead.",
+                )
             # Resolve the YAML path: try as-given first, then relative to proc_dir.
             _yaml_path = Path(args.mooring)
             if not _yaml_path.exists() and not _yaml_path.is_absolute():
@@ -388,6 +400,25 @@ def cmd_report(args: argparse.Namespace) -> int:
                 out_path=out_dir / f"{args.mooring}_recovery_table.html",
                 force=args.force,
             )
+        if getattr(args, "pdf", False) or all_reports:
+            from .report import combine_mooring_pdf
+
+            # Combine reads the same directory generate() wrote to; both resolve it
+            # through paths.resolve_report_dir so they can never drift.
+            html_dir = paths.resolve_report_dir(
+                args.mooring, getattr(args, "outdir", None), report_dir, proc_root
+            )
+            try:
+                pdf_path = combine_mooring_pdf(html_dir, args.mooring)
+                _status("file", str(pdf_path))
+            except (ImportError, FileNotFoundError) as exc:
+                # An explicit --pdf request that cannot be honoured is a failure.
+                # When the PDF was only implied by --all, treat it as best-effort:
+                # warn but keep the (successful) HTML result and do not fail, so
+                # `report --all` still works on machines without the pdf extra.
+                _status("error", str(exc))
+                if getattr(args, "pdf", False):
+                    return 1
         return 0 if result else 1
     finally:
         if _sigma_restore is not None:
@@ -1215,7 +1246,16 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         default=False,
         dest="all_reports",
-        help="Generate all report pages: equivalent to --stack --grid --instruments",
+        help="Generate all report pages: equivalent to --stack --grid --instruments "
+        "--pdf (also builds the combined PDF)",
+    )
+    p_report.add_argument(
+        "--pdf",
+        action="store_true",
+        default=False,
+        help="Combine the generated HTML report pages into a single A4 PDF "
+        "({mooring}_report.pdf).  Requires the 'pdf' extra: pip install "
+        "oceanarray[pdf].  Implied by --all.",
     )
     p_report.add_argument(
         "--array",
