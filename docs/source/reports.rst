@@ -138,6 +138,34 @@ Generated when ``--grid`` is passed.  Requires ``{mooring}_grid.nc`` (run
 
 ----
 
+PDF output
+----------
+
+The HTML reports can be combined into a single A4 PDF for printing or
+archiving.  The HTML pages remain the single source of truth — the PDF is a
+post-processing step (via `WeasyPrint <https://weasyprint.org/>`_) that applies
+a print stylesheet (A4 page size, page numbers, page-break avoidance, hidden
+navigation buttons) without altering report generation.
+
+PDF output requires the optional ``pdf`` extra::
+
+    pip install oceanarray[pdf]
+
+Build the PDF alongside the HTML pages with ``--pdf`` (or ``--all``, which
+implies it)::
+
+    # Combine whatever HTML pages exist into MOORING_report.pdf
+    oceanarray report MOORING --raw-dir $RAW --proc-dir $PROC --pdf
+
+    # Generate every page and the combined PDF in one go
+    oceanarray report MOORING --raw-dir $RAW --proc-dir $PROC --all
+
+Pages are concatenated in reading order — summary → per-instrument → stack →
+grid — and only pages that exist on disk are included.  The result is written
+to ``{mooring}_report.pdf`` in the same directory as the HTML pages.
+
+----
+
 Report colour conventions
 --------------------------
 

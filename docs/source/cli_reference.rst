@@ -225,9 +225,9 @@ description of what each report page contains.
    oceanarray report MOORING [--raw-dir DIR] [--proc-dir DIR]
                              [-o DIR] [--report-dir DIR]
                              [--instruments] [--stack] [--grid] [--all]
-                             [--serial SN ...] [--array] [--cruise-table]
-                             [--sig-level SIG ...] [-n] [--force]
-                             [--skip-existing]
+                             [--pdf] [--serial SN ...] [--array]
+                             [--cruise-table] [--sig-level SIG ...]
+                             [-n] [--force] [--skip-existing]
 
 **Flags**
 
@@ -273,7 +273,16 @@ description of what each report page contains.
    * - ``--all`` / ``-A``
      - flag
      - off
-     - Generate all report pages.  Equivalent to ``--stack --grid --instruments``.
+     - Generate all report pages and the combined PDF.  Equivalent to
+       ``--stack --grid --instruments --pdf``.
+   * - ``--pdf``
+     - flag
+     - off
+     - Combine the generated HTML report pages into a single A4 PDF
+       (``{mooring}_report.pdf``), in reading order
+       summary → instruments → stack → grid.  Requires the optional ``pdf``
+       extra (``pip install oceanarray[pdf]``, which installs WeasyPrint).
+       Implied by ``--all``.
    * - ``--serial SN``
      - string (repeat)
      - (all)

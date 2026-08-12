@@ -84,6 +84,16 @@ def test_build_parser_version_action_present():
             "instruments",
             True,
         ),
+        (
+            ["report", "mymoor", "--proc-dir", "/tmp/p", "--pdf"],
+            "pdf",
+            True,
+        ),
+        (
+            ["report", "mymoor", "--proc-dir", "/tmp/p"],
+            "pdf",
+            False,
+        ),
     ],
 )
 def test_build_parser_parses_basic_args(args, attr, expected):

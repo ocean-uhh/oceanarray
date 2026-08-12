@@ -212,3 +212,7 @@ data/moor/raw/msm76_2018/sbe56/DSE18_SBE05606397_2018_08_27.cnv
 data/moor/raw/msm76_2018/sbe56/DSE18_SBE05606401_2018_08_27.cnv
 data/moor/raw/msm76_2018/sbe56/DSE18_SBE05606402_2018_08_27.cnv
 data/moor/raw/msm76_2018/sbe56/DSE18_SBE05606409_2018_08_27.cnv
+
+# Generated report output under test fixtures (HTML + multi-MB PDFs) — regenerated
+# by `oceanarray report ... --pdf`; never commit into history.
+tests/fixtures/proc/*/report/

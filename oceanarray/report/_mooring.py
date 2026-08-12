@@ -684,7 +684,7 @@ recovery_time:   '{{ yaml_recover_time or '?' }}'</textarea>
           <td>{% if loop.index0 == 0 %}{{ instr.instr_type }}{% endif %}</td>
           <td>{% if loop.index0 == 0 %}<code>{{ instr.serial }}</code>{% endif %}</td>
           <td>{{ sensor.sensor_type | title }}</td>
-          <td style="font-size:0.8rem">{{ sensor.sensor_model }}</td>
+          <td>{{ sensor.sensor_model }}</td>
           <td><code>{{ sensor.sensor_serial }}</code></td>
           <td>{{ sensor.cal_date }}</td>
           <td>
@@ -1067,12 +1067,9 @@ class MooringReport:
             print(f"ERROR: Processing directory not found: {proc_dir}")
             return None
 
-        if outdir:
-            out_dir = Path(outdir)
-        elif self._report_dir is not None:
-            out_dir = self._report_dir / mooring_name
-        else:
-            out_dir = proc_dir / "report"
+        out_dir = paths.resolve_report_dir(
+            mooring_name, outdir, self._report_dir, self._proc_dir
+        )
         out_dir.mkdir(parents=True, exist_ok=True)
         output_path = out_dir / f"{mooring_name}_report.html"
         yaml_path = proc_dir / f"{mooring_name}.mooring.yaml"

@@ -16,9 +16,28 @@ from oceanarray.paths import (
     mooring_proc_dir,
     raw_mooring_dir,
     require_current_layout,
+    resolve_report_dir,
     safe_serial,
     stage_output_name,
 )
+
+
+class TestResolveReportDir:
+    """Report output-dir resolution: outdir > report_dir/<mooring> > proc/report."""
+
+    def test_outdir_wins(self) -> None:
+        """An explicit outdir takes precedence over everything else."""
+        assert resolve_report_dir("M1", "/out", "/central", "/proc") == Path("/out")
+
+    def test_report_dir_nests_mooring(self) -> None:
+        """With no outdir, a central report_dir nests each mooring below it."""
+        assert resolve_report_dir("M1", None, "/central", "/proc") == Path(
+            "/central/M1"
+        )
+
+    def test_default_is_proc_mooring_report(self) -> None:
+        """With neither, the default is proc_root/<mooring>/report."""
+        assert resolve_report_dir("M1", None, None, "/proc") == Path("/proc/M1/report")
 
 
 @pytest.mark.parametrize(

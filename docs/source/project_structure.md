@@ -60,7 +60,8 @@ oceanarray/
 │   │   ├── _array.py              # Array-level multi-mooring summary report
 │   │   ├── _plots.py              # Tier 3: report-level figure wrappers (base64 PNGs)
 │   │   ├── _html_helpers.py       # HTML/QC constants, base64 helpers, NC metadata readers
-│   │   └── _recovery_table.py     # Per-mooring cruise-report recovery table
+│   │   ├── _recovery_table.py     # Per-mooring cruise-report recovery table
+│   │   └── _pdf.py                # combine_mooring_pdf: HTML pages → single A4 PDF (WeasyPrint)
 │   │
 │   ├── tools/                     # [core] Shared I/O infrastructure
 │   │   ├── readers.py             # NetCDF and legacy-format instrument readers
