@@ -17,6 +17,7 @@ import yaml
 
 import numpy as np
 
+from ._env import render_template
 from ._html_helpers import (
     _duration_str,
     _parse_dt,
@@ -145,185 +146,6 @@ def _make_array_map_b64(
         return fig
 
     return render_b64(_draw, optional=True)
-
-
-# ---------------------------------------------------------------------------
-# HTML template
-# ---------------------------------------------------------------------------
-
-_ARRAY_HTML_TEMPLATE = """\
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Array report &ndash; {{ array_name }}</title>
-<style>
-  :root { --ocean:#1a3a5c; --seafoam:#e8f4f8; --text:#2c3e50; --muted:#95a5a6; }
-  body { font-family: system-ui, sans-serif; max-width: 1100px; margin: 0 auto; padding: 1rem; color: var(--text); }
-  .masthead { background: var(--ocean); color:#fff; border-radius:6px; padding:1.2rem 1.6rem 1rem; margin-bottom:1.2rem; }
-  .masthead h1 { margin:0 0 0.2rem; font-size:1.6rem; }
-  .masthead p.sub { margin:0; font-size:0.82rem; opacity:0.75; }
-  .meta-grid { display:flex; flex-wrap:wrap; gap:0.5rem 1.4rem; margin-top:0.8rem; }
-  .meta-grid div { font-size:0.82rem; }
-  .meta-grid dt { opacity:0.7; font-size:0.72rem; }
-  .meta-grid dd { margin:0; font-weight:600; }
-  .meta-miss dd { color:#f0ad4e; }
-  table { border-collapse:collapse; width:100%; margin:0.6rem 0 1.2rem; font-size:0.84rem; }
-  th { background:var(--ocean); color:#fff; padding:0.4rem 0.6rem; text-align:left; }
-  td { padding:0.35rem 0.6rem; border-bottom:1px solid #e8ecef; }
-  tr:nth-child(even) td { background:#f7f9fb; }
-  .num { text-align:right; }
-  .btn { display:inline-block; padding:0.15em 0.55em; border-radius:4px; font-size:0.75rem;
-         font-weight:700; text-decoration:none; color:#fff; margin:0 0.15rem 0.2rem 0; }
-  .btn-sum { background:#2c3e50; }
-  .btn-stk { background:#2980b9; }
-  .btn-grd { background:#8e44ad; }
-  .btn-miss { background:#bbb; cursor:default; pointer-events:none; }
-  .note { font-size:0.78rem; color:#555; margin:0.2rem 0 0.6rem; }
-  .fig { max-width:60%; display:block; margin:0.5rem auto 1rem; border:1px solid #e0e4e8; border-radius:4px; }
-  h2 { color:var(--ocean); border-bottom:2px solid var(--seafoam); padding-bottom:0.3rem; margin-top:1.4rem; }
-</style>
-</head>
-<body>
-
-<div class="masthead">
-  <h1>{{ array_name }}</h1>
-  <p class="sub">Array summary &bull; generated {{ generated }}</p>
-  <dl class="meta-grid">
-    {% if year %}<div><dt>Year</dt><dd>{{ year }}</dd></div>{% endif %}
-    {% if cruise %}<div><dt>Cruise</dt><dd>{{ cruise }}</dd></div>{% endif %}
-    {% if ship %}<div><dt>Ship</dt><dd>{{ ship }}</dd></div>{% endif %}
-    {% if project %}<div><dt>Project</dt><dd>{{ project }}</dd></div>{% endif %}
-    {% if deploy_time %}<div><dt>Deployment</dt><dd>{{ deploy_time }}</dd></div>{% endif %}
-    {% if recover_time %}<div><dt>Recovery</dt><dd>{{ recover_time }}</dd></div>{% endif %}
-    <div><dt>Moorings</dt><dd>{{ moorings | length }}</dd></div>
-  </dl>
-</div>
-
-<p class="note" style="margin:0 0 0.8rem">
-  Jump to:
-  <a href="#moorings">Moorings</a> &bull;
-  <a href="#type-summary">Instrument summary</a> &bull;
-  <a href="#completeness">Completeness</a>
-</p>
-
-{% if fig_map_b64 %}
-<h2>Mooring positions</h2>
-<img class="fig" src="data:image/png;base64,{{ fig_map_b64 }}" alt="Array map">
-{% endif %}
-
-<h2 id="moorings">Moorings</h2>
-<table>
-  <thead>
-    <tr>
-      <th>#</th>
-      <th>Mooring</th>
-      <th class="num">Latitude</th>
-      <th class="num">Longitude</th>
-      <th class="num">Depth&nbsp;(m)</th>
-      <th>Deployment</th>
-      <th>Recovery</th>
-      <th class="num">Duration</th>
-      <th class="num">Instruments</th>
-      <th>Reports</th>
-    </tr>
-  </thead>
-  <tbody>
-  {% for r in moorings %}
-  <tr>
-    <td class="num">{% if r.color_hex %}<span style="display:inline-block;width:0.75em;height:0.75em;border-radius:50%;background:{{ r.color_hex }};margin-right:0.35em;vertical-align:middle"></span>{% endif %}{{ r.position }}</td>
-    <td><strong>{{ r.mooring }}</strong></td>
-    <td class="num">{{ "%.4f"|format(r.lat) if r.lat is not none else "—" }}</td>
-    <td class="num">{{ "%.4f"|format(r.lon) if r.lon is not none else "—" }}</td>
-    <td class="num">{{ r.waterdepth if r.waterdepth else "—" }}</td>
-    <td>{{ r.deploy_time }}</td>
-    <td>{{ r.recover_time }}</td>
-    <td class="num">{{ r.duration }}</td>
-    <td class="num">{{ r.n_instruments }}</td>
-    <td>
-      {% if r.report_exists %}
-        <a class="btn btn-sum" href="{{ r.report_href }}">Summary</a>
-      {% else %}
-        <span class="btn btn-miss">Summary</span>
-      {% endif %}
-      {% if r.stack_exists %}
-        <a class="btn btn-stk" href="{{ r.stack_href }}">Stack</a>
-      {% endif %}
-      {% if r.grid_exists %}
-        <a class="btn btn-grd" href="{{ r.grid_href }}">Grid</a>
-      {% endif %}
-    </td>
-  </tr>
-  {% endfor %}
-  </tbody>
-</table>
-
-{% if type_summary %}
-<h2 id="type-summary">Instrument type summary</h2>
-<table>
-  <thead>
-    <tr>
-      <th>Type</th>
-      <th class="num">Deployed</th>
-      <th class="num">Complete&nbsp;(Stage&nbsp;3&nbsp;✓)</th>
-      <th class="num">Skipped&nbsp;/&nbsp;no&nbsp;raw</th>
-      <th class="num">Stopped&nbsp;early</th>
-      <th>Notes</th>
-    </tr>
-  </thead>
-  <tbody>
-  {% for row in type_summary %}
-  <tr>
-    <td>{{ row.itype }}</td>
-    <td class="num">{{ row.deployed }}</td>
-    <td class="num">{{ row.complete }}</td>
-    <td class="num">{{ row.skipped }}</td>
-    <td class="num">{{ row.stopped_early }}</td>
-    <td>{{ row.notes }}</td>
-  </tr>
-  {% endfor %}
-  </tbody>
-</table>
-{% endif %}
-
-{% if mooring_completeness %}
-<h2 id="completeness">Data completeness by mooring</h2>
-<table>
-  <thead>
-    <tr>
-      <th>Mooring</th>
-      <th class="num">Depth&nbsp;(m)</th>
-      <th class="num">Deployed</th>
-      <th class="num">Complete</th>
-      <th class="num">Skipped</th>
-      <th class="num">Stopped&nbsp;early</th>
-      <th>Deployment&nbsp;(UTC)</th>
-      <th>Recovery&nbsp;(UTC)</th>
-      <th class="num">Duration</th>
-    </tr>
-  </thead>
-  <tbody>
-  {% for row in mooring_completeness %}
-  <tr>
-    <td><strong>{{ row.mooring }}</strong></td>
-    <td class="num">{{ row.waterdepth if row.waterdepth else "—" }}</td>
-    <td class="num">{{ row.deployed }}</td>
-    <td class="num">{{ row.complete }}</td>
-    <td class="num">{{ row.skipped }}</td>
-    <td class="num">{{ row.stopped_early }}</td>
-    <td>{{ row.deploy_time }}</td>
-    <td>{{ row.recover_time }}</td>
-    <td class="num">{{ row.duration }}</td>
-  </tr>
-  {% endfor %}
-  </tbody>
-</table>
-{% endif %}
-
-</body>
-</html>
-"""
 
 
 # ---------------------------------------------------------------------------
@@ -522,8 +344,6 @@ def generate_array_report(
     """
     from datetime import datetime, timezone
 
-    from jinja2 import Environment
-
     array_yaml_path = Path(array_yaml_path)
     proc_dir = Path(proc_dir)
 
@@ -655,8 +475,7 @@ def generate_array_report(
         "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
     }
 
-    env = Environment(autoescape=True)
-    html = env.from_string(_ARRAY_HTML_TEMPLATE).render(**ctx)
+    html = render_template("array.html", **ctx)
     out_path.write_text(html, encoding="utf-8")
     _status("file", str(out_path))
     return out_path
