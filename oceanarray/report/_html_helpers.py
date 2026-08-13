@@ -19,6 +19,7 @@ from PIL import Image
 from ..paths import safe_serial
 from ..utilities import (  # noqa: F401  (re-exported)
     _nice_colorbar_bounds,
+    _safe_rel,
     _status,
     should_skip_regeneration,
 )

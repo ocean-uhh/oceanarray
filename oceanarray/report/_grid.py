@@ -14,6 +14,7 @@ from ._html_helpers import (
     _nav_buttons_html,
     _parse_history,
     _read_nc_metadata,
+    _safe_rel,
     _should_skip,
     _status,
 )
@@ -402,7 +403,7 @@ def generate_grid_page(
     """Generate a grid report HTML page with T/S pcolormesh figures."""
     out_path = out_dir / f"{mooring_name}_grid_report.html"
     if _should_skip(out_path, force, skip_existing, grid_path):
-        _status("skip", str(out_path.relative_to(display_root)))
+        _status("skip", _safe_rel(out_path, display_root))
         return
 
     try:
@@ -553,6 +554,6 @@ def generate_grid_page(
             proc_machine=ctx.get("proc_machine", ""),
         )
         out_path.write_text(html, encoding="utf-8")
-        _status("file", str(out_path.relative_to(display_root)))
+        _status("file", _safe_rel(out_path, display_root))
     except Exception as exc:
         print(f"  ERROR generating grid report: {exc}")
