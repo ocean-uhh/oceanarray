@@ -2,8 +2,13 @@ name: Run tests
 
 on:
   push:
-    branches: ["**"]
-  pull_request:
+    branches: [main]      # post-merge on main only
+  pull_request:           # every PR (branch pushes run here, not twice)
+
+# Cancel superseded runs when a branch/PR is pushed again in quick succession.
+concurrency:
+  group: tests-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   unit:

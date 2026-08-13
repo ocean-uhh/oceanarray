@@ -432,6 +432,20 @@ def _status(kind: str, msg: str, *, char: str = "=") -> None:
         print(f"ERROR: {msg}")
 
 
+def _safe_rel(path: Path, root: Path) -> str:
+    """Return *path* relative to *root* as a string, or its bare name if unrelated.
+
+    A display helper for status lines.  Report output written outside the
+    processing tree (a custom ``--output-dir``) is not under *root*, so
+    ``Path.relative_to`` would raise ``ValueError`` — which must never abort
+    report generation from a logging call.  Fall back to the filename instead.
+    """
+    try:
+        return str(path.relative_to(root))
+    except ValueError:
+        return path.name
+
+
 def _nice_colorbar_bounds(vmin: float, vmax: float, n: int = 20) -> np.ndarray:
     """Return a boundary array for a discrete colorbar with approximately *n* levels.
 

@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Microcat 2941 &mdash; dune2_1_2026</title>
+<style>
+  :root {
+    --ocean:  #1a3a5c; --seafoam: #e8f4f8;
+    --good:   #27ae60; --warn:    #e67e22; --bad: #c0392b;
+    --interp: #2980b9; --muted:   #95a5a6; --text: #2c3e50;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui,-apple-system,"Segoe UI",sans-serif; font-size:14px;
+         color:var(--text); max-width:1150px; margin:0 auto; padding:1.5rem 2rem 4rem; line-height:1.5; }
+  .masthead { background:#1e8449; color:#fff; padding:1.6rem 2rem;
+              border-radius:8px; margin-bottom:2rem; }
+  .masthead h1 { margin:0 0 0.3rem; font-size:1.75rem; font-weight:700; letter-spacing:0.02em; }
+  .masthead .sub { font-size:0.9rem; opacity:0.88; margin:0 0 0.15rem; }
+  .masthead .sub a { color:#d5f5e3; font-weight:600; text-decoration:none; }
+  .masthead .sub a:hover { text-decoration:underline; }
+  .meta-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+               gap:0.45rem 2rem; font-size:0.83rem; margin-top:0.9rem; }
+  .meta-grid dt { opacity:0.7; text-transform:uppercase; font-size:0.68rem;
+                  letter-spacing:0.06em; margin-bottom:0.1rem; }
+  .meta-grid dd { margin:0; font-weight:600; }
+  .meta-miss dd { color:#e67e22; opacity:1; }
+  .file-table { width:100%; border-collapse:collapse; font-size:0.81rem; margin-bottom:1.2rem; }
+  .file-table th { background:var(--seafoam); text-align:left; padding:0.35rem 0.65rem;
+                   border-bottom:2px solid #cde; font-weight:600; }
+  .file-table td { padding:0.3rem 0.65rem; border-bottom:1px solid #eef; vertical-align:middle; }
+  .file-table tr:nth-child(even) td { background:#f4f9fc; }
+  .file-table .ok { color:var(--good); font-weight:700; }
+  .file-table .miss { color:#bbb; }
+  h2 { color:var(--ocean); font-size:1rem; border-bottom:2px solid var(--seafoam);
+       padding-bottom:0.3rem; margin:2.2rem 0 0.9rem;
+       display:flex; justify-content:space-between; align-items:baseline; }
+  .top-link { font-size:0.72rem; font-weight:400; color:var(--muted);
+              text-decoration:none; margin-left:auto; white-space:nowrap; }
+  .top-link:hover { color:var(--ocean); text-decoration:underline; }
+  table { width:100%; border-collapse:collapse; font-size:0.82rem; }
+  th { background:var(--ocean); color:#fff; padding:0.4rem 0.65rem;
+       text-align:left; font-weight:600; white-space:nowrap; }
+  td { padding:0.35rem 0.65rem; border-bottom:1px solid #ecf0f1; vertical-align:middle; }
+  tr:nth-child(even) td { background:var(--seafoam); }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  td.mono { font-family:monospace; font-size:0.8rem; }
+  .none-note { color:var(--muted); font-style:italic; }
+  .badge { display:inline-block; padding:0.12em 0.45em; border-radius:3px;
+           font-size:0.7rem; font-weight:700; white-space:nowrap; }
+  .b-ok   { background:var(--good);   color:#fff; }
+  .b-warn { background:var(--warn);   color:#fff; }
+  .b-miss { background:#dfe6e9;       color:#999; }
+  .history-list { list-style:none; padding:0; margin:0; }
+  .history-list li { display:flex; gap:1rem; padding:0.3rem 0;
+                     border-bottom:1px solid #f0f0f0; font-size:0.83rem; }
+  .history-list li:last-child { border-bottom:none; }
+  .history-ts { color:var(--muted); white-space:nowrap; font-size:0.76rem;
+                min-width:11rem; padding-top:0.05rem; }
+  .history-text { flex:1; }
+  img.fig { width:100%; max-width:100%; border-radius:4px; margin-bottom:0.5rem; }
+  .qc-bar { display:flex; width:180px; height:13px; border-radius:3px;
+             overflow:hidden; gap:1px; background:#ecf0f1; }
+  .qc-bar div { height:100%; }
+  .var-qc { color:var(--good); font-size:0.78rem; }
+  .report-footer { margin-top:3rem; font-size:0.76rem; color:var(--muted);
+                   border-top:1px solid #ecf0f1; padding-top:0.75rem; }
+  .jump-nav { background:var(--seafoam); padding:0.55rem 1rem; border-radius:6px;
+              margin-bottom:1.5rem; font-size:0.8rem; line-height:2.2; }
+  .jump-nav a { color:var(--ocean); text-decoration:none; font-weight:600;
+                margin:0 0.5rem 0 0; white-space:nowrap; }
+  .jump-nav a::before { content:"▸ "; font-size:0.7rem; }
+  .jump-nav a:hover { text-decoration:underline; }
+  @media print {
+    body { padding:0; max-width:100%; }
+    .masthead, th { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    h2 { page-break-after:avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div id="top" class="masthead">
+  <h1>Microcat&ensp;&mdash;&ensp;s/n&nbsp;2941</h1>
+  <p class="sub" style="display:flex;justify-content:space-between"><span>dune2_1_2026</span><span>generated <GENERATED></span></p>
+  <div style="margin-top:0.65rem"><div style="margin-bottom:0.25rem"><span style="font-size:0.72rem;opacity:0.75;margin-right:0.3rem;white-space:nowrap;vertical-align:middle;">Reports:</span><a href="../dune2_1_2026_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#1a3a5c">Summary</a><a href="../dune2_1_2026_stack_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#2980b9">Stack</a><a href="../dune2_1_2026_grid_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#8e44ad">Grid</a></div><div style="margin-bottom:0.1rem"><span style="font-size:0.72rem;opacity:0.75;margin-right:0.3rem;white-space:nowrap;vertical-align:middle;">Aquadopp:</span><a href="dune2_1_2026_9920_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#27ae60">9920</a></div><div style="margin-bottom:0.1rem"><span style="font-size:0.72rem;opacity:0.75;margin-right:0.3rem;white-space:nowrap;vertical-align:middle;">Microcat:</span><span style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;opacity:0.45;background:#27ae60" title="current">2941</span></div></div>
+  <dl class="meta-grid">
+    <div><dt>Cruise</dt><dd>OdB</dd></div>
+    <div><dt>HAB</dt><dd>425.0&thinsp;m</dd></div>
+    <div><dt>Depth</dt><dd>~320&thinsp;m</dd></div>
+    <div><dt>Start</dt><dd>2026-07-11 20:30</dd></div>
+    <div><dt>End</dt><dd>2026-07-25 11:44</dd></div>
+    <div><dt>Duration</dt><dd>13d 15h</dd></div>
+    <div><dt>Samp.&nbsp;&Delta;t</dt><dd>60 s</dd></div>
+    <div><dt>Records</dt><dd>19,635</dd></div>
+    <div><dt>Source&nbsp;file</dt><dd>dune2_1_2026_2941_stage3.nc</dd></div>
+  </dl>
+</div>
+
+<nav class="jump-nav">
+  Jump to:
+  <a href="#files">Files</a>
+  <a href="#history">History</a>
+  
+  <a href="#timeseries">Time series</a>
+  <a href="#start">Start/end windows</a>
+  <a href="#ts">T-S diagram</a>
+  
+  
+  
+  
+  
+  
+  <a href="#dist">Distributions</a>
+  <a href="#qc">QC thresholds &amp; flags</a>
+  <a href="#dims">Dimensions</a>
+  <a href="#vars">Variables</a>
+</nav>
+
+<!-- ══ Files ══ -->
+<h2 id="files">Files</h2>
+<table class="file-table">
+  <thead><tr><th>Stage</th><th>Filename</th><th>Size</th><th>Last modified</th></tr></thead>
+  <tbody>
+  
+  <tr>
+    <td>Raw</td>
+    <td class="mono">2941_recovery.asc</td>
+    <td colspan="2">&mdash; not checked (no --raw-dir)</td>
+  </tr>
+  
+  
+  <tr>
+    <td>Stage1</td>
+    
+    <td class="mono">dune2_1_2026_2941_stage1.nc</td>
+    <td class="num">343 KB</td>
+    <td><MTIME></td>
+    
+  </tr>
+  
+  <tr>
+    <td>Stage2</td>
+    
+    <td class="mono">dune2_1_2026_2941_stage2.nc</td>
+    <td class="num">342 KB</td>
+    <td><MTIME></td>
+    
+  </tr>
+  
+  <tr>
+    <td>Stage3</td>
+    
+    <td class="mono">dune2_1_2026_2941_stage3.nc</td>
+    <td class="num">589 KB</td>
+    <td><MTIME></td>
+    
+  </tr>
+  
+  </tbody>
+</table>
+
+<!-- ══ Processing history ══ -->
+<h2 id="history">Processing history</h2>
+
+<ul class="history-list">
+  
+  <li>
+    <span class="history-ts"></span>
+    <span class="history-text">2026-07-26T18:41:56.686375Z - Processed by SeaSenseLib v0.6.0</span>
+  </li>
+  
+  <li>
+    <span class="history-ts">Reader</span>
+    <span class="history-text">SbeAsciiReader</span>
+  </li>
+  
+  <li>
+    <span class="history-ts">Format</span>
+    <span class="history-text">SeaBird ASCII</span>
+  </li>
+  
+  <li>
+    <span class="history-ts">Source file</span>
+    <span class="history-text">2941_recovery.asc</span>
+  </li>
+  
+  <li>
+    <span class="history-ts">Stages</span>
+    <span class="history-text">finalization, mapping, metadata_enrichment, metadata_extraction, unit_handling, validation</span>
+  </li>
+  
+  <li>
+    <span class="history-ts">2026-07-29T12:10Z</span>
+    <span class="history-text">stage3 pressure interpolated (pressure_qc=8) — near-neighbour from aquadopp 400118 (Δhab=1.0m, static offset=+1.0 dbar) | QARTOD gross-range+spike: conductivity_qc=[good=19633]</span>
+  </li>
+  
+  <li>
+    <span class="history-ts"></span>
+    <span class="history-text">pressure_qc=[good=0, suspect=512, bad=4, interp=19119]</span>
+  </li>
+  
+  <li>
+    <span class="history-ts"></span>
+    <span class="history-text">salinity_qc=[good=19117, suspect=512, bad=4]</span>
+  </li>
+  
+  <li>
+    <span class="history-ts"></span>
+    <span class="history-text">temperature_qc=[good=19633]</span>
+  </li>
+  
+</ul>
+
+
+<!-- ══ ADCP velocity colour plots ══ -->
+
+
+<!-- ══ Full time series ══ -->
+<h2 id="timeseries">Time series (full deployment)</h2>
+
+
+<img class="fig" src="data:image/png;base64,<PNG>"
+     title="line = data; × = suspect; × = bad; + = interpolated">
+
+
+
+<!-- ══ Start / end windows ══ -->
+<h2 id="start">Start &amp; end windows &mdash; first / last 6 h</h2>
+
+<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+  Left panel = first 7&thinsp;h (1&thinsp;h lead-in + 6&thinsp;h of record) &nbsp;|&nbsp;
+  Right panel = last 7&thinsp;h (6&thinsp;h of record + 1&thinsp;h tail).
+  <span style="color:#e67e22">&#9474;&#9474; orange dashed</span> = auto-detected
+  (pressure-based) suggested deploy/recover time &bull;
+  <span style="color:#27ae60">&#9474;&#9474; green dashed</span> = YAML
+  <code>deployment_time</code> / <code>recovery_time</code> &bull;
+  <span style="color:#cccccc">&#9474;&#9474; grey</span> = stage&nbsp;1 raw record
+  (same variable, same units).
+</p>
+<p style="font-size:0.78rem;color:#777;margin-top:0.3rem;">
+  <strong>Reading the grey background:</strong>
+  where the raw stage&nbsp;1 record is available and uses the same physical
+  units as the stage&nbsp;2/3 data, it is shown in light grey so you can
+  visually verify that the chosen deployment window captures the in-water
+  period.  Cases where grey may be absent:
+  <ul style="margin:0.3em 0 0.3em 1.2em;padding:0">
+    <li><em>Sensors without their own pressure</em> (e.g. a microCAT that
+    relies on interpolated pressure from a nearby instrument) — interpolated
+    pressure is only added at stage&nbsp;3, so stage&nbsp;1 has no pressure
+    variable and no grey trace appears.</li>
+    <li><em>Velocity in beam or XYZ coordinates</em> — if an Aquadopp or
+    ADCP was configured to record in BEAM or XYZ mode, the stage&nbsp;1 file
+    contains beam/XYZ velocity variables while stage&nbsp;3 stores
+    ENU velocities; the variable names differ so no grey velocity trace is shown.</li>
+    <li><em>Conductivity</em> — raw conductivity units sometimes differ
+    between stage&nbsp;1 and stage&nbsp;3 (e.g.&nbsp;mS/cm vs S/m) and the
+    grey trace is suppressed automatically to avoid a misleading scale mismatch.</li>
+  </ul>
+  If the <span style="color:#e67e22">orange vline</span> is absent from the right-hand panel,
+  no pressure-based recovery transition was detected in the final 25&thinsp;% of the
+  stage&nbsp;1 record — the suggested recovery time equals the last raw sample.
+  Check the timing table in the mooring summary report for the suggested UTC time.
+</p>
+
+<img class="fig" src="data:image/png;base64,<PNG>">
+
+
+
+<!-- ══ T-S diagram ══ -->
+
+<h2 id="ts">T-S diagram</h2>
+<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+  Coloured by pressure (or sample index). &times; = suspect &nbsp;|&nbsp; &times; = bad (QC flags).
+</p>
+<img class="fig" src="data:image/png;base64,<PNG>">
+
+
+<!-- ══ ADCP current roses ══ -->
+
+
+<!-- ══ Current roses ══ -->
+
+
+<!-- ══ Lagrangian trajectory ══ -->
+
+
+<!-- ══ Hodograph ══ -->
+
+
+<!-- ══ Speed distribution ══ -->
+
+
+<!-- ══ Analog channels ══ -->
+
+
+<!-- ══ Data distributions ══ -->
+<h2 id="dist">Data value distributions</h2>
+<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+  Orange dashed = suspect threshold &nbsp;|&nbsp; Red dotted = fail threshold (gross-range QC).
+  Histogram shows non-bad data only; bad-flagged count noted in red.
+</p>
+
+<img class="fig" src="data:image/png;base64,<PNG>">
+
+
+<!-- ══ QC flag breakdown ══ -->
+
+<h2 id="qc">QC flag breakdown</h2>
+
+
+<h3 style="font-size:0.85rem;color:var(--ocean);margin:0.8rem 0 0.3rem;">Thresholds applied (as stored in stage&nbsp;3 file)</h3>
+<table style="font-size:0.82rem;margin-bottom:1rem;">
+  <thead>
+    <tr>
+      <th>Variable</th>
+      <th>Test</th>
+      <th>Suspect range / threshold</th>
+      <th>Fail range / threshold</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+    <tr>
+      <td class="mono">conductivity</td>
+      <td>gross-range</td>
+      <td class="num" style="color:var(--warn);font-family:monospace">[0.0, 65.0]</td>
+      <td class="num" style="color:var(--bad);font-family:monospace">[0.0, 75.0]</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">conductivity</td>
+      <td>spike</td>
+      <td class="num" style="color:var(--warn);font-family:monospace">|Δ| &gt; 2.0</td>
+      <td class="num" style="color:var(--bad);font-family:monospace">|Δ| &gt; 5.0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">pressure</td>
+      <td>gross-range</td>
+      <td class="num" style="color:var(--warn);font-family:monospace">[-0.5, 7000.0]</td>
+      <td class="num" style="color:var(--bad);font-family:monospace">[-5.0, 7000.0]</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">pressure</td>
+      <td>spike</td>
+      <td class="num" style="color:var(--warn);font-family:monospace">|Δ| &gt; 10.0</td>
+      <td class="num" style="color:var(--bad);font-family:monospace">|Δ| &gt; 50.0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">pressure</td>
+      <td>flat-line</td>
+      <td class="num" style="color:var(--warn);font-family:monospace">stuck ≥ 3 samples</td>
+      <td class="num" style="color:var(--bad);font-family:monospace">stuck ≥ 10 samples</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">salinity</td>
+      <td>gross-range</td>
+      <td class="num" style="color:var(--warn);font-family:monospace">[2.0, 40.0]</td>
+      <td class="num" style="color:var(--bad);font-family:monospace">[0.0, 40.0]</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">salinity</td>
+      <td>spike</td>
+      <td class="num" style="color:var(--warn);font-family:monospace">|Δ| &gt; 1.0</td>
+      <td class="num" style="color:var(--bad);font-family:monospace">|Δ| &gt; 2.0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">temperature</td>
+      <td>gross-range</td>
+      <td class="num" style="color:var(--warn);font-family:monospace">[-2.0, 35.0]</td>
+      <td class="num" style="color:var(--bad);font-family:monospace">[-2.5, 40.0]</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">temperature</td>
+      <td>spike</td>
+      <td class="num" style="color:var(--warn);font-family:monospace">|Δ| &gt; 2.0</td>
+      <td class="num" style="color:var(--bad);font-family:monospace">|Δ| &gt; 6.0</td>
+    </tr>
+    
+  </tbody>
+</table>
+
+
+<h3 style="font-size:0.85rem;color:var(--ocean);margin:0.8rem 0 0.3rem;">Flag counts</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Variable</th>
+      <th class="num">N</th>
+      <th class="num">Good&nbsp;%</th>
+      <th class="num">Suspect&nbsp;%</th>
+      <th class="num">Bad&nbsp;%</th>
+      <th class="num">Interp.&nbsp;%</th>
+      <th class="num">Missing&nbsp;%</th>
+      <th>Distribution</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">conductivity</td>
+      <td class="num">19,635</td>
+      <td class="num" style="color:var(--good)">100.0</td>
+      <td class="num">&ndash;</td>
+      <td class="num">&ndash;</td>
+      <td class="num">&ndash;</td>
+      <td class="num">&ndash;</td>
+      <td>
+        <div class="qc-bar">
+          
+          <div style="width:100.0%;background:#27ae60;" title="good: 100.0%"></div>
+          
+        </div>
+      </td>
+    </tr>
+    
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">pressure</td>
+      <td class="num">19,635</td>
+      <td class="num" style="color:var(--bad)">0.0</td>
+      <td class="num"><span style="color:var(--warn)" title="512 records">2.6</span></td>
+      <td class="num"><span style="color:var(--bad)" title="4 records">&lt;0.1%&nbsp;(4)</span></td>
+      <td class="num"><span style="color:var(--interp)" title="19119 records">97.4</span></td>
+      <td class="num">&ndash;</td>
+      <td>
+        <div class="qc-bar">
+          
+          <div style="width:2.6%;background:#f39c12;" title="corr. bad: 2.6%"></div>
+          
+          <div style="width:97.4%;background:#3498db;" title="interp.: 97.4%"></div>
+          
+        </div>
+      </td>
+    </tr>
+    
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">salinity</td>
+      <td class="num">19,635</td>
+      <td class="num" style="color:var(--good)">97.4</td>
+      <td class="num"><span style="color:var(--warn)" title="512 records">2.6</span></td>
+      <td class="num"><span style="color:var(--bad)" title="4 records">&lt;0.1%&nbsp;(4)</span></td>
+      <td class="num">&ndash;</td>
+      <td class="num">&ndash;</td>
+      <td>
+        <div class="qc-bar">
+          
+          <div style="width:97.4%;background:#27ae60;" title="good: 97.4%"></div>
+          
+          <div style="width:2.6%;background:#f39c12;" title="corr. bad: 2.6%"></div>
+          
+        </div>
+      </td>
+    </tr>
+    
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">temperature</td>
+      <td class="num">19,635</td>
+      <td class="num" style="color:var(--good)">100.0</td>
+      <td class="num">&ndash;</td>
+      <td class="num">&ndash;</td>
+      <td class="num">&ndash;</td>
+      <td class="num">&ndash;</td>
+      <td>
+        <div class="qc-bar">
+          
+          <div style="width:100.0%;background:#27ae60;" title="good: 100.0%"></div>
+          
+        </div>
+      </td>
+    </tr>
+    
+  </tbody>
+</table>
+
+
+<!-- ══ NetCDF dimensions ══ -->
+
+<h2 id="dims">NetCDF dimensions &mdash; dune2_1_2026_2941_stage3.nc</h2>
+<table class="var-table" style="max-width:28rem">
+  <thead><tr><th>Dimension</th><th class="num">Size</th></tr></thead>
+  <tbody>
+    
+    <tr><td class="mono">time</td><td class="num">19,635</td></tr>
+    
+  </tbody>
+</table>
+
+
+<!-- ══ NetCDF variables ══ -->
+<h2 id="vars">NetCDF variables &mdash; dune2_1_2026_2941_stage3.nc</h2>
+
+
+<h3 style="font-size:0.88rem;color:var(--ocean);margin:1rem 0 0.4rem;">Time-series variables</h3>
+<table>
+  <thead>
+    <tr><th>Variable</th><th>Type</th><th>Dims</th><th class="num">N</th><th class="num">Valid</th><th class="num">Min / Max</th><th>Units</th><th>Long name</th><th>Standard name</th><th>QC&nbsp;flag</th></tr>
+  </thead>
+  <tbody>
+    
+    
+    <tr>
+      <td class="mono">conductivity</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">19,635</td>
+      <td class="num" >19,635</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">30.78 / 36.05</td>
+      <td>mS/cm</td>
+      <td>Conductivity</td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">sea_water_electrical_conductivity</td>
+      <td style="text-align:center"><span class="var-qc">✓</span></td>
+    </tr>
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">pressure</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">19,635</td>
+      <td class="num" >19,635</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">344.9 / 551.9</td>
+      <td>dbar</td>
+      <td>sea water pressure</td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">sea_water_pressure</td>
+      <td style="text-align:center"><span class="var-qc">✓</span></td>
+    </tr>
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">salinity</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">19,635</td>
+      <td class="num" >19,635</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">34.55 / 35.25</td>
+      <td>1</td>
+      <td>Practical Salinity</td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">sea_water_practical_salinity</td>
+      <td style="text-align:center"><span class="var-qc">✓</span></td>
+    </tr>
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">temperature</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">19,635</td>
+      <td class="num" >19,635</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">2.072 / 7.509</td>
+      <td>°C</td>
+      <td>Temperature</td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">sea_water_temperature</td>
+      <td style="text-align:center"><span class="var-qc">✓</span></td>
+    </tr>
+    
+    
+    
+    
+  </tbody>
+</table>
+
+
+<h3 style="font-size:0.88rem;color:var(--ocean);margin:1.4rem 0 0.4rem;">Scalar metadata variables</h3>
+<table>
+  <thead>
+    <tr><th>Variable</th><th>Type</th><th>Value</th><th>Units</th><th>Long name</th></tr>
+  </thead>
+  <tbody>
+    
+    <tr>
+      <td class="mono">InstrDepth</td>
+      <td class="mono" style="font-size:0.75rem">int32</td>
+      <td class="mono" style="font-size:0.78rem;word-break:break-all">320</td>
+      <td></td>
+      <td></td>
+    </tr>
+    
+    <tr>
+      <td class="mono">SENSOR_CNDC_2941</td>
+      <td class="mono" style="font-size:0.75rem">|S1</td>
+      <td class="mono" style="font-size:0.78rem;word-break:break-all">b&#39;&#39;</td>
+      <td></td>
+      <td>Sea-Bird SBE conductivity sensor metadata</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">SENSOR_TEMP_2941</td>
+      <td class="mono" style="font-size:0.75rem">|S1</td>
+      <td class="mono" style="font-size:0.78rem;word-break:break-all">b&#39;&#39;</td>
+      <td></td>
+      <td>Sea-Bird SBE temperature sensor metadata</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">clock_offset</td>
+      <td class="mono" style="font-size:0.75rem">int32</td>
+      <td class="mono" style="font-size:0.78rem;word-break:break-all">0</td>
+      <td>s</td>
+      <td></td>
+    </tr>
+    
+    <tr>
+      <td class="mono">end_time</td>
+      <td class="mono" style="font-size:0.75rem">&lt;U16</td>
+      <td class="mono" style="font-size:0.78rem;word-break:break-all">2026-07-25T11:44</td>
+      <td></td>
+      <td></td>
+    </tr>
+    
+    <tr>
+      <td class="mono">instrument</td>
+      <td class="mono" style="font-size:0.75rem">&lt;U8</td>
+      <td class="mono" style="font-size:0.78rem;word-break:break-all">microcat</td>
+      <td></td>
+      <td></td>
+    </tr>
+    
+    <tr>
+      <td class="mono">serial_number</td>
+      <td class="mono" style="font-size:0.75rem">int32</td>
+      <td class="mono" style="font-size:0.78rem;word-break:break-all">2941</td>
+      <td></td>
+      <td></td>
+    </tr>
+    
+    <tr>
+      <td class="mono">start_time</td>
+      <td class="mono" style="font-size:0.75rem">&lt;U16</td>
+      <td class="mono" style="font-size:0.78rem;word-break:break-all">2026-07-11T20:30</td>
+      <td></td>
+      <td></td>
+    </tr>
+    
+  </tbody>
+</table>
+
+
+
+<h3 style="font-size:0.88rem;color:var(--ocean);margin:1.4rem 0 0.4rem;">Global attributes</h3>
+<table>
+  <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+  <tbody>
+    
+    <tr>
+      <td class="mono">source</td>
+      <td style="font-size:0.8rem;word-break:break-all">Sea-Bird SBE37</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">raw_format</td>
+      <td style="font-size:0.8rem;word-break:break-all">sbe-ascii</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">raw_filename</td>
+      <td style="font-size:0.8rem;word-break:break-all">2941_recovery.asc</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">raw_filesize_bytes</td>
+      <td style="font-size:0.8rem;word-break:break-all">837120</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">raw_mtime_utc</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T13:42:51Z</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">raw_sha256</td>
+      <td style="font-size:0.8rem;word-break:break-all">df5a255892101ac1d99a77ab7589328a55d544e559b19dd4f706f86892e1d4d3</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">raw_metadata_schema</td>
+      <td style="font-size:0.8rem;word-break:break-all">seasenselib/raw-opaque-1.0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">raw_metadata</td>
+      <td style="font-size:0.8rem;word-break:break-all">{&#34;schema&#34;: &#34;seasenselib/raw-opaque-1.0&#34;, &#34;raw_format&#34;: &#34;sbe-ascii&#34;, &#34;raw_filename&#34;: &#34;2941_recovery.asc&#34;, &#34;blocks&#34;: {&#34;attributes&#34;: null, &#34;calibration&#34;: null, &#34;configuration&#34;: null, &#34;other&#34;: {&#34;global_attributes&#34;: {&#34;FileName&#34;: &#34;C:\\Users\\u241353\\Desktop\\Odondebuen\\dunes2_1_2026\\2941_recovery.asc&#34;, &#34;Temperature SN&#34;: &#34;2941&#34;, &#34;Conductivity SN&#34;: &#34;2941&#34;, &#34;System UpLoad Time&#34;: &#34;Jul 25 2026 13:25:28&#34;, &#34;sample interval&#34;: &#34;60 seconds&#34;, &#34;samplenumber&#34;: &#34;19898, free = 213118&#34;, &#34;number of samples to average&#34;: &#34;1&#34;, &#34;reference pressure&#34;: &#34;0.0 db&#34;, &#34;wait time after serial sync sampling&#34;: &#34;30 seconds&#34;, &#34;temperature&#34;: &#34;14.92 deg C&#34;, &#34;    TA0&#34;: &#34;6.981772e-06&#34;, &#34;    TA1&#34;: &#34;2.746413e-04&#34;, &#34;    TA2&#34;: &#34;-2.252296e-06&#34;, &#34;    TA3&#34;: &#34;1.528407e-07&#34;, &#34;    G&#34;: &#34;-9.871170e-01&#34;, &#34;    H&#34;: &#34;1.369976e-01&#34;, &#34;    I&#34;: &#34;-3.485648e-04&#34;, &#34;    J&#34;: &#34;4.990156e-05&#34;, &#34;    CPCOR&#34;: &#34;-9.570000e-08&#34;, &#34;    CTCOR&#34;: &#34;3.250000e-06&#34;, &#34;    WBOTC&#34;: &#34;-9.105544e-06&#34;, &#34;    RTCA0&#34;: &#34;9.999872e-01&#34;, &#34;    RTCA1&#34;: &#34;1.686222e-06&#34;, &#34;    RTCA2&#34;: &#34;-3.276627e-08&#34;, &#34;information&#34;: &#34;sample interval 60 seconds&#34;}}}, &#34;variables&#34;: {}}</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_name</td>
+      <td style="font-size:0.8rem;word-break:break-all">SeaSenseLib</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_version</td>
+      <td style="font-size:0.8rem;word-break:break-all">0.6.0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processing_level</td>
+      <td style="font-size:0.8rem;word-break:break-all">L1</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_module</td>
+      <td style="font-size:0.8rem;word-break:break-all">seasenselib.readers.sbe_ascii_reader</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_module_name</td>
+      <td style="font-size:0.8rem;word-break:break-all">SeaBird ASCII</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_module_key</td>
+      <td style="font-size:0.8rem;word-break:break-all">sbe-ascii</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_runtime</td>
+      <td style="font-size:0.8rem;word-break:break-all">CPython</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_runtime_version</td>
+      <td style="font-size:0.8rem;word-break:break-all">3.11.7</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_execution_time_utc</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-26T18:41:56.686363Z</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_machine</td>
+      <td style="font-size:0.8rem;word-break:break-all">EFWmac14-2.local</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_os</td>
+      <td style="font-size:0.8rem;word-break:break-all">Darwin 25.5.0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">date_created</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-26T18:41:56.686375Z</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">date_modified</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-26T18:41:56.686375Z</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">Conventions</td>
+      <td style="font-size:0.8rem;word-break:break-all">CF-1.13</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">mooring_name</td>
+      <td style="font-size:0.8rem;word-break:break-all">dune2</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">waterdepth</td>
+      <td style="font-size:0.8rem;word-break:break-all">745</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">longitude</td>
+      <td style="font-size:0.8rem;word-break:break-all">-28 01.234</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">latitude</td>
+      <td style="font-size:0.8rem;word-break:break-all">65 48.405</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">deployment_latitude</td>
+      <td style="font-size:0.8rem;word-break:break-all">00 00.000 N</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">deployment_longitude</td>
+      <td style="font-size:0.8rem;word-break:break-all">000 00.000 W</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">deployment_time</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-11T20:30</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">seabed_latitude</td>
+      <td style="font-size:0.8rem;word-break:break-all">00 00.000 N</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">seabed_longitude</td>
+      <td style="font-size:0.8rem;word-break:break-all">000 00.000 W</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">recovery_time</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T11:44</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">qc_convention</td>
+      <td style="font-size:0.8rem;word-break:break-all">OceanSITES reference table 2</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage1_first_nonnull</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-11T17:00:01</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage1_last_nonnull</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T12:37:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage1_time_start</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-11T17:00:01</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage1_time_end</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T12:37:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">yaml_deployment_time</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-11T20:30:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">yaml_recovery_time</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T11:44:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage2_source_file</td>
+      <td style="font-size:0.8rem;word-break:break-all">dune2_1_2026_2941_stage2.nc</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage2_source_mtime</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-29T12:10:34Z</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage2_source_sha256</td>
+      <td style="font-size:0.8rem;word-break:break-all">e5c1037c</td>
+    </tr>
+    
+  </tbody>
+</table>
+
+
+
+
+<div class="report-footer">
+  Generated by <strong>oceanarray</strong> on <GENERATED> &bull; TESTHOST
+</div>
+<script>
+  document.querySelectorAll('h2').forEach(h => {
+    const a = document.createElement('a'); a.href = '#top'; a.className = 'top-link'; a.textContent = '↑ top'; h.appendChild(a);
+  });
+</script>
+</body>
+</html>

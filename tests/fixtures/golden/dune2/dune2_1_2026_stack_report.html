@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stack report &ndash; dune2_1_2026</title>
+<style>
+  :root { --ocean:#1a3a5c; --seafoam:#e8f4f8; --muted:#95a5a6; --text:#2c3e50;
+          --good:#27ae60; --warn:#e67e22; --bad:#c0392b; }
+  * { box-sizing:border-box; }
+  body { font-family:system-ui,-apple-system,"Segoe UI",sans-serif; font-size:14px;
+         color:var(--text); max-width:1200px; margin:0 auto; padding:1.5rem 2rem 4rem; }
+  .masthead { background:#2980b9; color:#fff; padding:1.6rem 2rem;
+              border-radius:8px; margin-bottom:2rem; }
+  .masthead h1 { margin:0 0 0.3rem; font-size:1.75rem; font-weight:700; letter-spacing:0.02em; }
+  .masthead .sub { font-size:0.9rem; opacity:0.88; margin:0 0 0.15rem; }
+  .masthead .sub a { color:#cef; font-weight:600; text-decoration:none; }
+  .masthead .sub a:hover { text-decoration:underline; }
+  .meta-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+               gap:0.5rem 2rem; font-size:0.84rem; margin-top:0.9rem; }
+  .meta-grid dt { opacity:0.7; text-transform:uppercase; font-size:0.7rem;
+                  letter-spacing:0.06em; margin-bottom:0.1rem; }
+  .meta-grid dd { margin:0; font-weight:600; }
+  .meta-miss dd { color:#e67e22; opacity:1; }
+  h2 { color:var(--ocean); font-size:1rem; border-bottom:2px solid var(--seafoam);
+       padding-bottom:0.3rem; margin:2.5rem 0 1rem;
+       display:flex; justify-content:space-between; align-items:baseline; }
+  .top-link { font-size:0.72rem; font-weight:400; color:var(--muted);
+              text-decoration:none; margin-left:auto; white-space:nowrap; }
+  .top-link:hover { color:var(--ocean); text-decoration:underline; }
+  .fig { width:100%; border:1px solid #dce; border-radius:4px; margin-bottom:1.5rem; }
+  .var-table, .instr-table { width:100%; border-collapse:collapse; font-size:0.82rem; margin-bottom:1.5rem; }
+  .var-table th, .instr-table th { background:var(--seafoam); text-align:left;
+       padding:0.4rem 0.6rem; border-bottom:2px solid #cde; }
+  .var-table td, .instr-table td { padding:0.3rem 0.6rem; border-bottom:1px solid #eef; vertical-align:top; }
+  .var-table tr:nth-child(even) td, .instr-table tr:nth-child(even) td { background:#f4f9fc; }
+  .var-table tr:hover td, .instr-table tr:hover td { background:#e8f4f8; }
+  .report-footer { margin-top:3rem; font-size:0.76rem; color:var(--muted); border-top:1px solid #eee; padding-top:0.8rem; }
+  .jump-nav { background:var(--seafoam); padding:0.55rem 1rem; border-radius:6px;
+              margin-bottom:1.5rem; font-size:0.8rem; line-height:2.2; }
+  .jump-nav a { color:var(--ocean); text-decoration:none; font-weight:600;
+                margin:0 0.5rem 0 0; white-space:nowrap; }
+  .jump-nav a::before { content:"▸ "; font-size:0.7rem; }
+  .jump-nav a:hover { text-decoration:underline; }
+  .history-list { list-style:none; padding:0; margin:0; }
+  .history-list li { display:flex; gap:1rem; padding:0.3rem 0; border-bottom:1px solid #f0f0f0; font-size:0.83rem; }
+  .history-list li:last-child { border-bottom:none; }
+  .history-ts { color:var(--muted); white-space:nowrap; font-size:0.76rem; min-width:11rem; }
+  .history-text { flex:1; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  td.mono { font-family:monospace; font-size:0.8rem; }
+  .none-note { color:var(--muted); font-style:italic; }
+  .var-qc { color:var(--good); font-size:0.78rem; }
+  @media print { .masthead { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+</style>
+</head>
+<body>
+
+<div id="top" class="masthead">
+  <h1 style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem"><span>dune2_1_2026</span><span style="font-size:1.2rem;opacity:0.8;white-space:nowrap">Stacked</span></h1>
+  <p class="sub" style="text-align:right">generated <GENERATED></p>
+  <div style="margin-top:0.65rem"><div style="margin-bottom:0.25rem"><span style="font-size:0.72rem;opacity:0.75;margin-right:0.3rem;white-space:nowrap;vertical-align:middle;">Reports:</span><a href="dune2_1_2026_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#1a3a5c">Summary</a><span style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;opacity:0.45;background:#2980b9" title="current">Stack</span><a href="dune2_1_2026_grid_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#8e44ad">Grid</a></div><div style="margin-bottom:0.1rem"><span style="font-size:0.72rem;opacity:0.75;margin-right:0.3rem;white-space:nowrap;vertical-align:middle;">Aquadopp:</span><a href="instrument/dune2_1_2026_9920_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#27ae60">9920</a></div><div style="margin-bottom:0.1rem"><span style="font-size:0.72rem;opacity:0.75;margin-right:0.3rem;white-space:nowrap;vertical-align:middle;">Microcat:</span><a href="instrument/dune2_1_2026_2941_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#27ae60">2941</a></div></div>
+  <dl class="meta-grid">
+    <div><dt>Cruise</dt><dd>OdB</dd></div>
+    <div><dt>Ship</dt><dd>Odon de Buen</dd></div>
+    <div><dt>Latitude</dt><dd>65 43.913</dd></div>
+    <div><dt>Longitude</dt><dd>-27 48.000</dd></div>
+    <div><dt>Water depth</dt><dd>745&thinsp;m</dd></div>
+    <div><dt>Deployment</dt><dd>2026-07-11 20:30 UTC</dd></div>
+    <div><dt>Recovery</dt><dd>2026-07-25 11:44 UTC</dd></div>
+    <div><dt>Duration</dt><dd>13d 15h</dd></div>
+    <div><dt>Samp.&nbsp;&Delta;t</dt><dd>3600&thinsp;s</dd></div>
+    <div><dt>Records</dt><dd>328</dd></div>
+    <div><dt>Instruments</dt><dd>22</dd></div>
+    <div><dt>Source&nbsp;file</dt><dd>dune2_1_2026_stack.nc</dd></div>
+  </dl>
+</div>
+
+<nav class="jump-nav">
+  Jump to:
+  <a href="#history">History</a>
+  <a href="#instruments">Instruments</a>
+  <a href="#pressure">Pressure</a>
+  <a href="#temp">Temperature</a>
+  <a href="#sal">Salinity</a>
+  <a href="#vel">Velocity</a>
+  <a href="#trajectories">Trajectories</a>
+  <a href="#speed-profile">Speed profile</a>
+  
+  <a href="#ts">T-S diagram</a>
+  <a href="#roses">Current roses</a>
+  <a href="#tilt">Tilt</a>
+  <a href="#spacing">Spacing</a>
+  <a href="#clock-check">Clock check</a>
+  <a href="#dims">Dimensions</a>
+  <a href="#vars">Variables</a>
+</nav>
+
+<!-- Processing history -->
+
+<h2 id="history">Processing history</h2>
+<ul class="history-list">
+  
+  <li>
+    <span class="history-ts">Step 1 stack</span>
+    <span class="history-text">22 instruments onto 3600s grid</span>
+  </li>
+  
+  <li>
+    <span class="history-ts"></span>
+    <span class="history-text">fast instruments (dt&lt;=3600s) subsampled (nearest-neighbour in time), slow instruments interpolated (linear in time)</span>
+  </li>
+  
+</ul>
+
+
+<!-- Instrument list -->
+<h2 id="instruments">Instruments (deep-first)</h2>
+<table class="instr-table">
+  <thead><tr><th>#</th><th>Type</th><th>Serial</th><th>HAB (m)</th><th>~Depth (m)</th></tr></thead>
+  <tbody>
+  
+  <tr>
+    <td>0</td>
+    <td>rbrsolo</td>
+    <td>240231</td>
+    <td>8.0</td>
+    <td>737</td>
+  </tr>
+  
+  <tr>
+    <td>1</td>
+    <td>microcat</td>
+    <td>26269</td>
+    <td>25.0</td>
+    <td>720</td>
+  </tr>
+  
+  <tr>
+    <td>2</td>
+    <td>aquadopp</td>
+    <td>14321</td>
+    <td>26.0</td>
+    <td>719</td>
+  </tr>
+  
+  <tr>
+    <td>3</td>
+    <td>rbrsolo</td>
+    <td>240230</td>
+    <td>75.0</td>
+    <td>670</td>
+  </tr>
+  
+  <tr>
+    <td>4</td>
+    <td>microcat</td>
+    <td>5367</td>
+    <td>125.0</td>
+    <td>620</td>
+  </tr>
+  
+  <tr>
+    <td>5</td>
+    <td>aquadopp</td>
+    <td>14284</td>
+    <td>126.0</td>
+    <td>619</td>
+  </tr>
+  
+  <tr>
+    <td>6</td>
+    <td>rbrsolo</td>
+    <td>240234</td>
+    <td>175.0</td>
+    <td>570</td>
+  </tr>
+  
+  <tr>
+    <td>7</td>
+    <td>microcat</td>
+    <td>2942</td>
+    <td>225.0</td>
+    <td>520</td>
+  </tr>
+  
+  <tr>
+    <td>8</td>
+    <td>aquadopp</td>
+    <td><a href="instrument/dune2_1_2026_9920_report.html">9920</a></td>
+    <td>226.0</td>
+    <td>519</td>
+  </tr>
+  
+  <tr>
+    <td>9</td>
+    <td>rbrsolo</td>
+    <td>240236</td>
+    <td>275.0</td>
+    <td>470</td>
+  </tr>
+  
+  <tr>
+    <td>10</td>
+    <td>microcat</td>
+    <td>3026</td>
+    <td>325.0</td>
+    <td>420</td>
+  </tr>
+  
+  <tr>
+    <td>11</td>
+    <td>aquadopp</td>
+    <td>400125</td>
+    <td>326.0</td>
+    <td>419</td>
+  </tr>
+  
+  <tr>
+    <td>12</td>
+    <td>rbrsolo</td>
+    <td>240235</td>
+    <td>375.0</td>
+    <td>370</td>
+  </tr>
+  
+  <tr>
+    <td>13</td>
+    <td>microcat</td>
+    <td><a href="instrument/dune2_1_2026_2941_report.html">2941</a></td>
+    <td>425.0</td>
+    <td>320</td>
+  </tr>
+  
+  <tr>
+    <td>14</td>
+    <td>aquadopp</td>
+    <td>400118</td>
+    <td>426.0</td>
+    <td>319</td>
+  </tr>
+  
+  <tr>
+    <td>15</td>
+    <td>rbrsolo</td>
+    <td>240233</td>
+    <td>475.0</td>
+    <td>270</td>
+  </tr>
+  
+  <tr>
+    <td>16</td>
+    <td>microcat</td>
+    <td>7507</td>
+    <td>525.0</td>
+    <td>220</td>
+  </tr>
+  
+  <tr>
+    <td>17</td>
+    <td>aquadopp</td>
+    <td>400123</td>
+    <td>526.0</td>
+    <td>219</td>
+  </tr>
+  
+  <tr>
+    <td>18</td>
+    <td>rbrsolo</td>
+    <td>240232</td>
+    <td>575.0</td>
+    <td>170</td>
+  </tr>
+  
+  <tr>
+    <td>19</td>
+    <td>microcat</td>
+    <td>25586</td>
+    <td>625.0</td>
+    <td>120</td>
+  </tr>
+  
+  <tr>
+    <td>20</td>
+    <td>aquadopp</td>
+    <td>400115</td>
+    <td>626.0</td>
+    <td>119</td>
+  </tr>
+  
+  <tr>
+    <td>21</td>
+    <td>rbrsolo</td>
+    <td>240250</td>
+    <td>675.0</td>
+    <td>70</td>
+  </tr>
+  
+  </tbody>
+</table>
+
+<!-- Pressure time series -->
+
+<h2 id="pressure">Pressure records (all instruments)</h2>
+<p class="note">Values with QC flag &ge; 3 (suspect/bad) masked to NaN before plotting. All data values are in <code>dune2_1_2026_stack.nc</code> without masking.</p>
+<img class="fig" src="data:image/png;base64,<PNG>" alt="Pressure time series">
+
+
+<!-- Temperature time series -->
+
+<h2 id="temp">Temperature (all instruments)</h2>
+<p class="note">Values with QC flag &ge; 3 (suspect/bad) masked to NaN before plotting. All data values are in <code>dune2_1_2026_stack.nc</code> without masking.</p>
+<img class="fig" src="data:image/png;base64,<PNG>" alt="Temperature time series">
+
+
+<!-- Salinity time series -->
+
+<h2 id="sal">Salinity (all instruments)</h2>
+<p class="note">Values with QC flag &ge; 3 (suspect/bad) masked to NaN before plotting. All data values are in <code>dune2_1_2026_stack.nc</code> without masking.</p>
+<img class="fig" src="data:image/png;base64,<PNG>" alt="Salinity time series">
+
+
+
+
+<!-- Velocity time series -->
+
+<h2 id="vel">East velocity (U)</h2>
+<p class="note">ENU frame. Values with <code>velocity_flag</code> &ge; 3 masked to NaN before plotting. All data values are in <code>dune2_1_2026_stack.nc</code> without masking. Instruments without velocity data omitted.</p>
+<img class="fig" src="data:image/png;base64,<PNG>" alt="East velocity time series">
+
+
+
+<h2>North velocity (V)</h2>
+<p class="note">ENU frame. Values with <code>velocity_flag</code> &ge; 3 masked to NaN before plotting. All data values are in <code>dune2_1_2026_stack.nc</code> without masking.</p>
+<img class="fig" src="data:image/png;base64,<PNG>" alt="North velocity time series">
+
+
+
+<h2>Vertical velocity (W)</h2>
+<p class="note">ENU frame. Values with <code>velocity_flag</code> &ge; 3 masked to NaN before plotting. All data values are in <code>dune2_1_2026_stack.nc</code> without masking.</p>
+<img class="fig" src="data:image/png;base64,<PNG>" alt="Vertical velocity time series">
+
+
+
+
+
+<h2 id="trajectories">Particle trajectories</h2>
+<p class="note">
+  Pseudo-Lagrangian displacement: east/north velocity integrated over time
+  (Euler forward; NaN velocities set to zero).  All trajectories share a common origin (0,&nbsp;0).
+  Aquadopp: colour shows temperature (shared scale); end points labelled with serial and HAB.
+  ADCP: per-bin trajectories coloured by height above bottom; bins entirely below the seabed are omitted.
+</p>
+<div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-start">
+  
+  <div style="flex:1;min-width:280px">
+    <p style="text-align:center;font-weight:600;margin-bottom:0.3rem">Aquadopp</p>
+    <img class="fig" style="max-width:100%;width:100%" src="data:image/png;base64,<PNG>" alt="Aquadopp trajectories">
+  </div>
+  
+  
+</div>
+
+
+
+<h2 id="speed-profile">Aquadopp speed profile</h2>
+<p class="note">
+  Horizontal boxplot per Aquadopp, positioned at its nominal height above bottom
+  (per-instrument design value; does not account for mooring knockdown).
+  Box = interquartile range; line = median; whiskers = 1.5&times;IQR; dots = outliers.
+  Computed from east/north velocity components if <code>current_speed</code> is not stored.
+</p>
+<img class="fig" style="max-width:50%" src="data:image/png;base64,<PNG>" alt="Aquadopp speed profile">
+
+
+
+
+
+<h2 id="ts">T-S diagram</h2>
+<p class="note">Left: scatter coloured by pressure. Middle: 2-D count heatmap. Right (when oxygen data present): scatter coloured by O₂ saturation (%). Bad (flag&nbsp;4) and missing (flag&nbsp;9) excluded; interpolated pressure (flag&nbsp;8) retained.</p>
+<img class="fig" src="data:image/png;base64,<PNG>" alt="T-S diagram">
+
+
+
+<h2 id="roses">Current rose diagrams</h2>
+<p class="note">Direction the current flows toward (oceanographic convention, 0&deg;=N). Speed coloured light&rarr;dark blue (slow&rarr;fast). QC-flagged samples excluded. Title shows serial number and height above bottom (m).</p>
+
+<p class="note">Magnetic declination applied: -13.97°</p>
+<img class="fig" style="max-width:100%" src="data:image/png;base64,<PNG>" alt="Current rose grid">
+
+
+
+<h2 id="tilt">Aquadopp tilt (|pitch| / |roll| / pressure estimate)</h2>
+<p class="note">
+  One panel per Aquadopp (deep-first). Blue = |pitch|, green = |roll|, orange dashed = tilt
+  estimated from pressure difference between the Aquadopp and the nearest instrument &ge;10 m above
+  with valid pressure (arccos(&Delta;P / rope length)).  All curves are non-negative.
+  Horizontal lines: orange dashed = suspect threshold, red dotted = fail threshold (read from file attrs).
+  Pitch and roll are stored <em>unmasked</em> in the stack file; use <code>pitch_qc</code> /
+  <code>roll_qc</code> to filter. Plots show all available values.
+</p>
+<img class="fig" src="data:image/png;base64,<PNG>" alt="Aquadopp tilt panels">
+
+
+
+<h2 id="spacing">Adjacent instrument spacing</h2>
+<p class="note">Distribution of pressure differences between adjacent instrument pairs (pairs &lt; 2 dbar apart excluded as co-located).</p>
+<img style="max-width:33%;border:1px solid #dce;border-radius:4px" src="data:image/png;base64,<PNG>" alt="Instrument spacing histogram">
+
+
+
+<h2 id="clock-check">Clock alignment check</h2>
+<p class="note">
+  Temperature records from all instruments overlaid, zoomed to the first and last
+  10&thinsp;minutes of the deployment.  A horizontal shift between curves indicates
+  a clock offset between instruments.  Data are from stage&#8209;3 (or stage&#8209;2
+  if stage&#8209;3 is not yet available).  Instruments without temperature are omitted.
+</p>
+<img class="fig" src="data:image/png;base64,<PNG>" alt="Clock alignment check">
+
+
+<!-- ══ NetCDF dimensions ══ -->
+<h2 id="dims">NetCDF dimensions &mdash; dune2_1_2026_stack.nc</h2>
+
+<table class="var-table" style="max-width:28rem">
+  <thead><tr><th>Dimension</th><th class="num">Size</th></tr></thead>
+  <tbody>
+    
+    <tr><td class="mono">time</td><td class="num">328</td></tr>
+    
+    <tr><td class="mono">N_LEVELS</td><td class="num">22</td></tr>
+    
+  </tbody>
+</table>
+
+
+<!-- ══ NetCDF variables ══ -->
+<h2 id="vars">NetCDF variables &mdash; dune2_1_2026_stack.nc</h2>
+
+
+<h3 style="font-size:0.88rem;color:var(--ocean);margin:1rem 0 0.4rem;">Variables</h3>
+<table class="var-table">
+  <thead>
+    <tr><th>Variable</th><th>Type</th><th>Dims</th><th class="num">N</th><th class="num">Valid</th><th class="num">Min / Max</th><th>Units</th><th>Long name</th><th>Standard name</th><th>QC&nbsp;flag</th></tr>
+  </thead>
+  <tbody>
+    
+    
+    <tr>
+      <td class="mono">InstrDepth</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">N_LEVELS</td>
+      <td class="num">22</td>
+      <td class="num" >22</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">70 / 737</td>
+      <td></td>
+      <td></td>
+      <td style="font-size:0.78rem;color:var(--muted)"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">SENSOR_CNDC_2941</td>
+      <td class="mono" style="font-size:0.75rem">&lt;U3</td>
+      <td class="mono" style="font-size:0.75rem">N_LEVELS</td>
+      <td class="num">22</td>
+      <td class="num" >22</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td></td>
+      <td>Sea-Bird SBE conductivity sensor metadata</td>
+      <td style="font-size:0.78rem;color:var(--muted)"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">SENSOR_CNDC_2942</td>
+      <td class="mono" style="font-size:0.75rem">&lt;U3</td>
+      <td class="mono" style="font-size:0.75rem">N_LEVELS</td>
+      <td class="num">22</td>
+      <td class="num" >22</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td></td>
+      <td>Sea-Bird SBE conductivity sensor metadata</td>
+      <td style="font-size:0.78rem;color:var(--muted)"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">SENSOR_CNDC_3026</td>
+      <td class="mono" style="font-size:0.75rem">&lt;U3</td>
+      <td class="mono" style="font-size:0.75rem">N_LEVELS</td>
+      <td class="num">22</td>
+      <td class="num" >22</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td></td>
+      <td>Sea-Bird SBE conductivity sensor metadata</td>
+      <td style="font-size:0.78rem;color:var(--muted)"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">SENSOR_CNDC_5367</td>
+      <td class="mono" style="font-size:0.75rem">&lt;U3</td>
+      <td class="mono" style="font-size:0.75rem">N_LEVELS</td>
+      <td class="num">22</td>
+      <td class="num" >22</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td></td>
+      <td>Sea-Bird SBE conductivity sensor metadata</td>
+      <td style="font-size:0.78rem;color:var(--muted)"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">SENSOR_PRES_3026</td>
+      <td class="mono" style="font-size:0.75rem">&lt;U3</td>
+      <td class="mono" style="font-size:0.75rem">N_LEVELS</td>
+      <td class="num">22</td>
+      <td class="num" >22</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td></td>
+      <td>Sea-Bird pressure sensor metadata</td>
+      <td style="font-size:0.78rem;color:var(--muted)"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">SENSOR_PRES_5367</td>
+      <td class="mono" style="font-size:0.75rem">&lt;U3</td>
+      <td class="mono" style="font-size:0.75rem">N_LEVELS</td>
+      <td class="num">22</td>
+      <td class="num" >22</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td></td>
+      <td>Sea-Bird pressure sensor metadata</td>
+      <td style="font-size:0.78rem;color:var(--muted)"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">SENSOR_TEMP_2941</td>
+      <td class="mono" style="font-size:0.75rem">&lt;U3</td>
+      <td class="mono" style="font-size:0.75rem">N_LEVELS</td>
+      <td class="num">22</td>
+      <td class="num" >22</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td></td>
+      <td>Sea-Bird SBE temperature sensor metadata</td>
+      <td style="font-size:0.78rem;color:var(--muted)"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">SENSOR_TEMP_2942</td>
+      <td class="mono" style="font-size:0.75rem">&lt;U3</td>
+      <td class="mono" style="font-size:0.75rem">N_LEVELS</td>
+      <td class="num">22</td>
+      <td class="num" >22</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td></td>
+      <td>Sea-Bird SBE temperature sensor metadata</td>
+      <td style="font-size:0.78rem;color:var(--muted)"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">SENSOR_TEMP_3026</td>
+      <td class="mono" style="font-size:0.75rem">&lt;U3</td>
+      <td class="mono" style="font-size:0.75rem">N_LEVELS</td>
+      <td class="num">22</td>
+      <td class="num" >22</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td></td>
+      <td>Sea-Bird SBE temperature sensor metadata</td>
+      <td style="font-size:0.78rem;color:var(--muted)"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">SENSOR_TEMP_5367</td>
+      <td class="mono" style="font-size:0.75rem">&lt;U3</td>
+      <td class="mono" style="font-size:0.75rem">N_LEVELS</td>
+      <td class="num">22</td>
+      <td class="num" >22</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td></td>
+      <td>Sea-Bird SBE temperature sensor metadata</td>
+      <td style="font-size:0.78rem;color:var(--muted)"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">clock_drift_seconds</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">N_LEVELS</td>
+      <td class="num">22</td>
+      <td class="num" style="color:#c0392b;font-weight:600">19</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">-57 / 601</td>
+      <td>s</td>
+      <td>total linear clock drift applied</td>
+      <td style="font-size:0.78rem;color:var(--muted)"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">conductivity</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time, N_LEVELS</td>
+      <td class="num">7,216</td>
+      <td class="num" style="color:#c0392b;font-weight:600">2,296</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">29.22 / 36.32</td>
+      <td>mS/cm</td>
+      <td>Conductivity</td>
+      <td style="font-size:0.78rem;color:var(--muted)">sea_water_electrical_conductivity</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">current_direction</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time, N_LEVELS</td>
+      <td class="num">7,216</td>
+      <td class="num" style="color:#c0392b;font-weight:600">2,296</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">0.01348 / 359.9</td>
+      <td>degrees</td>
+      <td>Current direction (0=N, clockwise)</td>
+      <td style="font-size:0.78rem;color:var(--muted)">direction_of_sea_water_velocity</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">current_speed</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time, N_LEVELS</td>
+      <td class="num">7,216</td>
+      <td class="num" style="color:#c0392b;font-weight:600">2,296</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">0.01103 / 1.331</td>
+      <td>m s-1</td>
+      <td>Horizontal current speed</td>
+      <td style="font-size:0.78rem;color:var(--muted)">sea_water_speed</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">east_velocity</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time, N_LEVELS</td>
+      <td class="num">7,216</td>
+      <td class="num" style="color:#c0392b;font-weight:600">2,296</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">-1.33 / 0.9936</td>
+      <td>m s-1</td>
+      <td>Eastward sea water velocity</td>
+      <td style="font-size:0.78rem;color:var(--muted)">eastward_sea_water_velocity</td>
+      <td style="text-align:center"><span class="var-qc">✓</span></td>
+    </tr>
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">heading</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time, N_LEVELS</td>
+      <td class="num">7,216</td>
+      <td class="num" style="color:#c0392b;font-weight:600">2,296</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">0.2 / 359.6</td>
+      <td>degrees</td>
+      <td>Heading angle</td>
+      <td style="font-size:0.78rem;color:var(--muted)">platform_heading_angle</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">magnetic_declination</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">N_LEVELS</td>
+      <td class="num">22</td>
+      <td class="num" style="color:#c0392b;font-weight:600">7</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">-13.97 / -13.97</td>
+      <td>degrees_east</td>
+      <td>Magnetic declination (IGRF)</td>
+      <td style="font-size:0.78rem;color:var(--muted)"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">north_velocity</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time, N_LEVELS</td>
+      <td class="num">7,216</td>
+      <td class="num" style="color:#c0392b;font-weight:600">2,296</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">-1.039 / 0.8338</td>
+      <td>m s-1</td>
+      <td>Northward sea water velocity</td>
+      <td style="font-size:0.78rem;color:var(--muted)">northward_sea_water_velocity</td>
+      <td style="text-align:center"><span class="var-qc">✓</span></td>
+    </tr>
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">pitch</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time, N_LEVELS</td>
+      <td class="num">7,216</td>
+      <td class="num" style="color:#c0392b;font-weight:600">2,296</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">-166.1 / 18.6</td>
+      <td>degrees</td>
+      <td>Pitch angle</td>
+      <td style="font-size:0.78rem;color:var(--muted)">platform_pitch_angle</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">pressure</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time, N_LEVELS</td>
+      <td class="num">7,216</td>
+      <td class="num" style="color:#c0392b;font-weight:600">6,671</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">82.47 / 807.9</td>
+      <td>dbar</td>
+      <td>sea water pressure</td>
+      <td style="font-size:0.78rem;color:var(--muted)">sea_water_pressure</td>
+      <td style="text-align:center"><span class="var-qc">✓</span></td>
+    </tr>
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">roll</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time, N_LEVELS</td>
+      <td class="num">7,216</td>
+      <td class="num" style="color:#c0392b;font-weight:600">2,296</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">-27.9 / 165.9</td>
+      <td>degrees</td>
+      <td>Roll angle</td>
+      <td style="font-size:0.78rem;color:var(--muted)">platform_roll_angle</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">salinity</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time, N_LEVELS</td>
+      <td class="num">7,216</td>
+      <td class="num" style="color:#c0392b;font-weight:600">2,214</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">34.56 / 35.57</td>
+      <td>1</td>
+      <td>Practical Salinity</td>
+      <td style="font-size:0.78rem;color:var(--muted)">sea_water_practical_salinity</td>
+      <td style="text-align:center"><span class="var-qc">✓</span></td>
+    </tr>
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">serial_number</td>
+      <td class="mono" style="font-size:0.75rem">&lt;U7</td>
+      <td class="mono" style="font-size:0.75rem">N_LEVELS</td>
+      <td class="num">22</td>
+      <td class="num" >22</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td></td>
+      <td></td>
+      <td style="font-size:0.78rem;color:var(--muted)"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">sigma0</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time, N_LEVELS</td>
+      <td class="num">7,216</td>
+      <td class="num" style="color:#c0392b;font-weight:600">2,214</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">27.42 / 28.06</td>
+      <td>kg m-3</td>
+      <td>Potential density anomaly referenced to surface (sigma-0)</td>
+      <td style="font-size:0.78rem;color:var(--muted)">sea_water_sigma_t</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">temperature</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time, N_LEVELS</td>
+      <td class="num">7,216</td>
+      <td class="num" >7,216</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.0704 / 8.17</td>
+      <td>degC</td>
+      <td>Temperature</td>
+      <td style="font-size:0.78rem;color:var(--muted)">sea_water_temperature</td>
+      <td style="text-align:center"><span class="var-qc">✓</span></td>
+    </tr>
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">tilt_from_pressure</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time, N_LEVELS</td>
+      <td class="num">7,216</td>
+      <td class="num" style="color:#c0392b;font-weight:600">5,725</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">0 / 75.32</td>
+      <td>degrees</td>
+      <td>Tilt estimated from pressure difference</td>
+      <td style="font-size:0.78rem;color:var(--muted)"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">tilt_pressure_ref_hab</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">N_LEVELS</td>
+      <td class="num">22</td>
+      <td class="num" style="color:#c0392b;font-weight:600">21</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">25 / 675</td>
+      <td>m</td>
+      <td>Height above bottom of the pressure reference instrument used for tilt</td>
+      <td style="font-size:0.78rem;color:var(--muted)"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">tilt_pressure_ref_serial</td>
+      <td class="mono" style="font-size:0.75rem">&lt;U6</td>
+      <td class="mono" style="font-size:0.75rem">N_LEVELS</td>
+      <td class="num">22</td>
+      <td class="num" >22</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td></td>
+      <td>Serial number of the pressure reference instrument used for tilt</td>
+      <td style="font-size:0.78rem;color:var(--muted)"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">up_velocity</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time, N_LEVELS</td>
+      <td class="num">7,216</td>
+      <td class="num" style="color:#c0392b;font-weight:600">2,296</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">-1.367 / 0.8008</td>
+      <td>m s-1</td>
+      <td>Upward sea water velocity</td>
+      <td style="font-size:0.78rem;color:var(--muted)">upward_sea_water_velocity</td>
+      <td style="text-align:center"><span class="var-qc">✓</span></td>
+    </tr>
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">velocity_flag</td>
+      <td class="mono" style="font-size:0.75rem">int8</td>
+      <td class="mono" style="font-size:0.75rem">time, N_LEVELS</td>
+      <td class="num">7,216</td>
+      <td class="num" >7,216</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td></td>
+      <td>Combined velocity QC flag (worst of east/north/up)</td>
+      <td style="font-size:0.78rem;color:var(--muted)"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+  </tbody>
+</table>
+
+
+<h3 style="font-size:0.88rem;color:var(--ocean);margin:1.4rem 0 0.4rem;">Scalar metadata variables</h3>
+<table class="var-table">
+  <thead>
+    <tr><th>Variable</th><th>Type</th><th>Value</th><th>Units</th><th>Long name</th></tr>
+  </thead>
+  <tbody>
+    
+    <tr>
+      <td class="mono">clock_offset</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.78rem;word-break:break-all">0.0</td>
+      <td>s</td>
+      <td></td>
+    </tr>
+    
+    <tr>
+      <td class="mono">end_time</td>
+      <td class="mono" style="font-size:0.75rem">&lt;U16</td>
+      <td class="mono" style="font-size:0.78rem;word-break:break-all">2026-07-25T11:44</td>
+      <td></td>
+      <td></td>
+    </tr>
+    
+    <tr>
+      <td class="mono">start_time</td>
+      <td class="mono" style="font-size:0.75rem">&lt;U16</td>
+      <td class="mono" style="font-size:0.78rem;word-break:break-all">2026-07-11T20:30</td>
+      <td></td>
+      <td></td>
+    </tr>
+    
+  </tbody>
+</table>
+
+
+
+<h3 style="font-size:0.88rem;color:var(--ocean);margin:1.4rem 0 0.4rem;">Global attributes</h3>
+<table class="var-table">
+  <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+  <tbody>
+    
+    <tr>
+      <td class="mono">mooring_name</td>
+      <td style="font-size:0.8rem;word-break:break-all">dune2_1_2026</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">waterdepth</td>
+      <td style="font-size:0.8rem;word-break:break-all">745</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">latitude</td>
+      <td style="font-size:0.8rem;word-break:break-all">65 43.913</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">longitude</td>
+      <td style="font-size:0.8rem;word-break:break-all">-27 48.000</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">deployment_time</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-11T20:30:00.000000000</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">recovery_time</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T11:44:00.000000000</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">dt_seconds</td>
+      <td style="font-size:0.8rem;word-break:break-all">3600</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">Conventions</td>
+      <td style="font-size:0.8rem;word-break:break-all">CF-1.13</td>
+    </tr>
+    
+  </tbody>
+</table>
+
+
+
+
+<div class="report-footer">
+  Generated by <strong>oceanarray</strong> on <GENERATED> &bull; TESTHOST
+</div>
+<script>
+  document.querySelectorAll('h2').forEach(h => {
+    const a = document.createElement('a'); a.href = '#top'; a.className = 'top-link'; a.textContent = '↑ top'; h.appendChild(a);
+  });
+</script>
+</body>
+</html>
