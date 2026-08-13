@@ -1506,7 +1506,7 @@ def draw_adcp_hodograph(
     label_far = f"{float(range_vals[i_far]):.0f} m range"
     label_near = f"{float(range_vals[i_near]):.0f} m range"
 
-    from oceanarray.report._plots import _draw_hodograph_pair
+    from oceanarray.reports._plots import _draw_hodograph_pair
 
     fig, axes = plt.subplots(2, 2, figsize=(params.W_FULL, 9))
     fig.subplots_adjust(hspace=0.55, wspace=0.45)

@@ -255,7 +255,7 @@ def draw_grid_velocity_stacked(ds: "xr.Dataset") -> "Optional[plt.Figure]":
 
     """
     import matplotlib.pyplot as plt
-    from ..report._plots import _velocity_panel_style
+    from ..reports._plots import _velocity_panel_style
 
     vel_vars = [
         "east_velocity",

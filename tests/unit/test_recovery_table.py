@@ -1,10 +1,10 @@
-"""Unit tests for the pure helpers in oceanarray.report._recovery_table.
+"""Unit tests for the pure helpers in oceanarray.reports._recovery_table.
 
 These are string/number formatters with no I/O — tested directly (the HTML
 render path is exercised by the integration test).
 """
 
-from oceanarray.report._recovery_table import (
+from oceanarray.reports._recovery_table import (
     _fmt_drift,
     _instrument_label,
     _interval_s,

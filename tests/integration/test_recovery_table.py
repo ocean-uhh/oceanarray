@@ -9,7 +9,7 @@ written and well-formed — a smoke test that catches template/render crashes an
 missing-variable guards that only surface on a real NetCDF.
 """
 
-from oceanarray.report._recovery_table import generate_recovery_table
+from oceanarray.reports._recovery_table import generate_recovery_table
 
 MOORING = "dune2_1_2026"
 

@@ -11,7 +11,7 @@ microcat (serial 2941), velocity functions on the aquadopp (serial 9920).
 import matplotlib.pyplot as plt
 import pytest
 
-from oceanarray.report import _plots
+from oceanarray.reports import _plots
 
 
 # ---------------------------------------------------------------------------
