@@ -42,11 +42,10 @@ img {
     height: auto;
     break-inside: avoid;
 }
-/* A single <img> cannot split across PDF pages, so a tall multipanel figure
-   would overflow the page bottom.  Cap figure height to (about) the A4 content
-   height so such figures scale down to fit one page.  (Proper fix is to
-   paginate multipanel figures into <=5-panel images — tracked as report-figures
-   #10.)  A4 usable height ~26cm minus room for a heading/note above the figure. */
+/* A single <img> cannot split across PDF pages.  Multipanel figures are already
+   paginated into <=5-panel images (report-figures #10), so this cap is only a
+   backstop for any residual over-budget figure: it scales a too-tall image down
+   to fit one page.  A4 usable height ~26cm minus room for a heading/note above. */
 img.fig {
     max-height: 22cm;
 }

@@ -6,11 +6,40 @@ All contributions are welcome: bug reports, feature suggestions, documentation i
 
 ## Table of Contents
 
+- [Licensing of contributions](#licensing-of-contributions)
+- [Credit and authorship](#credit-and-authorship)
 - [I Have a Question](#i-have-a-question)
 - [Reporting Bugs](#reporting-bugs)
 - [Suggesting Enhancements](#suggesting-enhancements)
 - [Your First Code Contribution](#your-first-code-contribution)
 - [Improving The Documentation](#improving-the-documentation)
+
+---
+
+## Licensing of contributions
+
+oceanarray is MIT licensed, and contributions are accepted **under the same licence** — what GitHub calls "inbound = outbound". By opening a pull request you confirm that:
+
+1. you wrote the contribution, or you have the right to submit it; and
+2. you agree to license it to the project under the MIT licence.
+
+This does not transfer your copyright, which remains yours.
+
+**If your contribution contains code from somewhere else** — another repository, a paper's supplementary material, a Stack Overflow answer, a colleague's script, or generated output you did not review — say so in the pull request and name the source and its licence. This is the single most useful thing you can tell a reviewer. Code from an unlicensed source cannot be merged until its author agrees, so flagging it early avoids the work being wasted.
+
+---
+
+## Credit and authorship
+
+Three separate things.
+
+**Copyright** stays with whoever wrote the code. You are not asked to assign it.
+
+**Contributor credit** is automatic: everyone whose pull request is merged appears in the git history. If your name or preferred email in the git log is wrong, add a `.mailmap` entry via a pull request — that is the correct fix.
+
+**Citation authorship** is the author list in `CITATION.cff`, which propagates into the Zenodo DOI for every release and therefore into other people's bibliographies. It reflects *substantial* contribution to the software — its design, a significant body of its implementation, its test suite, or its documentation architecture — and is decided by the maintainer at release time. Funding or supervision alone does not qualify. There is no line count that guarantees it or excludes it. If you believe your contribution crosses that line and it has not been reflected, please say so in an issue — being asked is better than being resented.
+
+Where a contribution is adapted from someone else's work rather than written from scratch, we credit it **in the docstring of the code itself**, so the attribution travels with the code rather than living in a file nobody reads (see the existing examples in `utilities.py` and `plotters/current.py`).
 
 ---
 
@@ -87,7 +116,17 @@ pip install seasenselib --no-deps
 1. Fork the repository and create a feature branch from `main`.
 2. Make your changes, following the conventions below.
 3. Run `ruff check . --fix` and then `pytest` — all tests must pass.
-4. Open a pull request against `main`. Use a title prefixed with `[FEAT]`, `[FIX]`, `[REFACTOR]`, `[DOC]`, `[TEST]`, or `[CLEANUP]`.
+4. Open a pull request against `main`. Prefix the title with a bracket tag: `[FEAT]`, `[FIX]`, `[REFACTOR]`, `[DOC]`, `[TEST]`, `[CI]`, or `[CLEANUP]`. (PR titles use bracket tags; individual **commit messages** use conventional-commit prefixes — see below.)
+
+Keep each pull request to one logical change. A rename PR that also fixes a bug is a PR nobody can review — split them. (This matters most once more than one person is working on the code.)
+
+### Commit messages
+
+Use conventional-commit prefixes (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `ci:`, `chore:`) with an imperative subject. If you worked with someone, or adapted their code, add a trailer:
+
+```
+Co-authored-by: Name <email@example.com>
+```
 
 ### Code conventions
 
@@ -97,6 +136,7 @@ pip install seasenselib --no-deps
 - **Units**: never strip or assume units. Use `gsw` for all seawater property calculations.
 - **Plot style**: discrete colorbars (`BoundaryNorm`, ≤ 20 levels); call `plt.style.use(str(P.MPLSTYLE))` at the start of every plot function.
 - **Data provenance**: store all processing parameters (thresholds, coefficients) in NC output attributes so any file can be reprocessed exactly from itself.
+- **No silent defaults**: never substitute a default, guess, or approximation when the correct value cannot be determined. Raise, or warn loudly and record what was assumed in the output's metadata. A plausible wrong number is worse than an error, because nothing downstream can detect it.
 
 ### Testing
 
@@ -108,7 +148,7 @@ pytest tests/unit -m "not slow and not needs_seasenselib"  # without seasenselib
 pytest --cov=oceanarray --cov-report=term-missing -q  # with coverage
 ```
 
-New or changed code must have test coverage. Integration tests use committed NetCDF fixtures in `tests/fixtures/`.
+New or changed code must have a test. For anything numerical, assert a **value** you can justify independently of the code — `pytest.approx` or `numpy.testing.assert_allclose` against an analytic case, an invariant that must hold for any input, or a cross-check against `gsw` or another implementation — rather than a value produced by running the code (which proves only that the code has not changed). Do not add tests that pass when nothing happened: `assert result is not None` on a function that returns `None` on failure is the shape to avoid. Integration tests use committed NetCDF fixtures in `tests/fixtures/`.
 
 ---
 

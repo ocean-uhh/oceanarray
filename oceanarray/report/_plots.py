@@ -47,6 +47,7 @@ from ..plotters.diagnostic import (
     _CANONICAL_PANELS,
     _COMPACT_PANEL_VARS,
     _COMPACT_PANEL_HEIGHT,
+    _PANEL_HEIGHT,
     draw_windows,
     draw_data_histogram,
     draw_velocity_iqr_profile,
@@ -356,7 +357,7 @@ def _build_fig_from_ds(
     with plt.style.context(str(params.MPLSTYLE)):
         nrows = len(panels)
         height_ratios = [
-            _COMPACT_PANEL_HEIGHT if vname in _COMPACT_PANEL_VARS else 2.0
+            _COMPACT_PANEL_HEIGHT if vname in _COMPACT_PANEL_VARS else _PANEL_HEIGHT
             for vname, *_ in panels
         ]
         fig, axs = plt.subplots(
@@ -564,7 +565,7 @@ def _make_windows_fig(
             show_qc,
             vlines,
             stage1_nc,
-            chunk,
+            panels=chunk,
             optional=True,
         )
         if b64:
