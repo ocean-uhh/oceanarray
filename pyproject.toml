@@ -63,6 +63,7 @@ include = ["oceanarray", "oceanarray.*"]
 [tool.setuptools.package-data]
 oceanarray = [
   "oceanarray.mplstyle",
+  "config/*.mplstyle",   # vendored report.mplstyle — MPLSTYLE_PATH resolves it at runtime
   "config/*.yaml",
   "config/legacy/*.yaml",
 ]
@@ -143,6 +144,11 @@ ignore = [
 # Report generators: every function wraps rendering in try/except → None on failure.
 # This is the established pattern for keeping HTML reports partially working on bad data.
 "oceanarray/report/_plots.py" = ["BLE001", "TRY300", "TRY301", "TRY003"]
+# Vendored byte-identical from ../ctdcast (shared report foundation, spec §9); kept
+# identical for the planned cross-repo hash check, so lint exemptions live here rather
+# than as edits that would fork the copy. Same try/except-to-None pattern as _plots.py.
+"oceanarray/report/_encode.py" = ["TRY301", "TRY003", "D413"]
+"oceanarray/report/_css.py" = ["D413"]  # vendored; docstring section-blank-line style
 "oceanarray/report/_html_helpers.py" = ["BLE001", "TRY300"]
 "oceanarray/report/_grid.py" = ["BLE001", "TRY300"]
 "oceanarray/report/_instrument.py" = ["BLE001", "TRY300", "ARG001"]

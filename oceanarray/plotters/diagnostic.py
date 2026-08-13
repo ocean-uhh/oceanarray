@@ -87,6 +87,10 @@ _CANONICAL_PANELS: List[Tuple] = [
 
 _COMPACT_PANEL_VARS: frozenset = frozenset({"battery_voltage", "speed_of_sound"})
 _COMPACT_PANEL_HEIGHT: float = 1.5
+#: Height (relative units) of a normal, non-compact instrument panel row.  Shared
+#: by ``draw_windows`` here and ``_build_fig_from_ds`` in ``report/_plots.py`` so
+#: the full time-series and start/end-window figures use the same row height.
+_PANEL_HEIGHT: float = 2.0
 
 # QC overlay marker styles (OceanSITES flag codes 3, 4, 8).
 _QC_COLORS: Dict[int, str] = {
@@ -849,10 +853,6 @@ def draw_windows(
         Width of each window in hours (default 6).
     show_qc : bool
         Overlay QC flag markers on the data.
-    panels : list, optional
-        Subset of ``_instrument_panels`` tuples to draw.  When given, only these
-        rows are rendered (used to paginate a tall window figure across several
-        images); otherwise every panel for the instrument is drawn on one figure.
     vlines : list of (time_val, color, label), optional
         Vertical marker lines to draw on both panels.  *time_val* may be a
         ``numpy.datetime64``, an ISO-8601 string, or a ``pandas.Timestamp``.
@@ -868,6 +868,10 @@ def draw_windows(
         transition appears even if the stage2/3 YAML trim cut it off.  The
         y-axis limits are taken from the primary (stage2/3) data only so that
         bench-pressure outliers (p ≈ 0) do not squish the deployment-depth view.
+    panels : list, optional
+        Subset of ``_instrument_panels`` tuples to draw.  When given, only these
+        rows are rendered (used to paginate a tall window figure across several
+        images); otherwise every panel for the instrument is drawn on one figure.
 
     Returns
     -------
@@ -904,8 +908,6 @@ def draw_windows(
         end_mask = time >= time[-1] - np.timedelta64(hours * 3600, "s")
         if start_mask.sum() < 2 and end_mask.sum() < 2:
             return None
-        # One sample interval used to expand x-axis limits (stage2/3 fallback).
-        _dt_one = (time[1] - time[0]) if len(time) > 1 else np.timedelta64(300, "s")  # noqa: F841
 
         if panels is None:
             panels = _instrument_panels(ds, combine_pitch_roll=True)
@@ -913,7 +915,7 @@ def draw_windows(
             return None
 
         height_ratios = [
-            _COMPACT_PANEL_HEIGHT if vname in _COMPACT_PANEL_VARS else 2.0
+            _COMPACT_PANEL_HEIGHT if vname in _COMPACT_PANEL_VARS else _PANEL_HEIGHT
             for vname, *_ in panels
         ]
         nrows = len(panels)
