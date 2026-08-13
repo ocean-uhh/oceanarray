@@ -1046,7 +1046,7 @@ class MooringReport:
         """Return a short display path relative to proc_dir."""
         if self._proc_dir:
             try:
-                return str(path.relative_to(self._proc_dir))
+                return path.relative_to(self._proc_dir).as_posix()
             except ValueError:
                 pass
         return path.name
@@ -1195,7 +1195,7 @@ class MooringReport:
             if filename and self._raw_dir is not None:
                 # New layout: {raw_dir}/{mooring}/{instrument}/filename
                 raw_path = self._raw_dir / mooring_name / instr_type / filename
-                raw_path_str = str(raw_path.relative_to(self._raw_dir))
+                raw_path_str = raw_path.relative_to(self._raw_dir).as_posix()
                 raw_exists = raw_path.exists()
                 readable, readable_note = (
                     _check_readable(raw_path, file_type)
@@ -1229,7 +1229,7 @@ class MooringReport:
                     if not _gpath.exists():
                         _gpath = self._raw_dir / mooring_name / _gfname
                     raw_path_str = (
-                        str(_gpath.relative_to(self._raw_dir))
+                        _gpath.relative_to(self._raw_dir).as_posix()
                         if _gpath.exists()
                         else f"(auto) {_gfname}"
                     )

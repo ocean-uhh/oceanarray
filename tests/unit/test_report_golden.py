@@ -1,29 +1,28 @@
 """Golden-file regeneration test for the mooring report pages.
 
-Renders every report page for the ``dune2`` fixture and asserts the HTML is
-identical to committed golden files, after two deterministic normalisations:
-
-- the ``generated`` timestamp (the only wall-clock-varying field) is replaced
-  with ``<GENERATED>``;
-- each base64 PNG payload is replaced with a short content hash
-  (``base64,sha256:<16 hex>``), so the golden stays small and its diffs stay
-  readable while still detecting any change to a rendered figure — the PNGs are
-  deterministic run-to-run, so the hash is stable.
+Renders every report page for the ``dune2`` fixture and asserts the HTML matches
+committed golden files, after removing the parts that are not deterministic
+across machines: the ``generated`` timestamp becomes ``<GENERATED>``, the
+processing hostname is pinned to a constant during rendering, and each base64
+PNG payload becomes a fixed ``<PNG>`` placeholder (matplotlib output is not
+byte-identical across operating systems, so figure pixels cannot be compared
+cross-machine).
 
 This is the safety net for the report-subsystem refactor: a structural change
 must keep this green (it proves the HTML did not move); a deliberate visual
 change re-baselines it (``REBASELINE_GOLDEN=1 pytest``) so the intended change
-*is* the reviewable diff.
+*is* the reviewable diff. Figure pixel changes are reviewed by eye, not here.
 """
 
-import hashlib
 import os
 import pathlib
 import re
+from unittest import mock
 
 import pytest
 
 from oceanarray.report import MooringReport
+from oceanarray.utilities import _safe_rel
 
 _FIXTURES = pathlib.Path(__file__).resolve().parents[1] / "fixtures"
 _PROC = _FIXTURES / "proc"
@@ -39,29 +38,33 @@ _PAGES = [
     "instrument/dune2_1_2026_9920_report.html",
 ]
 
-# The generation timestamp appears as "generated <ts>" (masthead) and
-# "... oceanarray</strong> on <ts>" (footer); both carry the same now() value.
-# Deployment/recovery timestamps render in other contexts and are real data, so
-# they are deliberately left untouched.
-_TS_RE = re.compile(r"(generated|on)\s+\d{4}-\d\d-\d\d \d\d:\d\d UTC")
-_PNG_RE = re.compile(r"base64,([A-Za-z0-9+/=]+)")
+# The generation timestamp appears only as "generated <ts>" (masthead) and
+# "...oceanarray</strong> on <ts>" (footer).  Anchor to those exact contexts so
+# real data timestamps rendered elsewhere are left untouched: deployment/recovery
+# times (in <dd> meta-grid cells) and any prose "recovered on <date>".
+_TS_RE = re.compile(r"(generated |</strong> on )\d{4}-\d\d-\d\d \d\d:\d\d UTC")
+# File "Last modified" cells (bare <td>).  st_mtime is not preserved by git, so
+# it varies on every checkout; mask it.  Deploy/recovery times use <dd> cells.
+_MTIME_RE = re.compile(r"<td>\s*\d{4}-\d\d-\d\d \d\d:\d\d UTC\s*</td>")
+_PNG_RE = re.compile(r"base64,[A-Za-z0-9+/=]+")
 
 
 def _normalise(html: str) -> str:
-    """Return *html* with the timestamp and base64 PNG payloads made stable."""
-    html = _TS_RE.sub(r"\1 <GENERATED>", html)
+    """Return *html* with machine- and checkout-dependent fields made stable.
 
-    def _hash(match: "re.Match[str]") -> str:
-        digest = hashlib.sha256(match.group(1).encode("ascii")).hexdigest()[:16]
-        return f"base64,sha256:{digest}"
-
-    return _PNG_RE.sub(_hash, html)
+    Neutralises the generation timestamp, the file "Last modified" mtimes (git
+    does not preserve mtimes), and base64 PNG payloads.  matplotlib PNGs are not
+    byte-identical across operating systems, so figure pixels are not compared;
+    what remains testable is each figure's presence, sizing and surrounding
+    markup, plus all HTML/CSS/text.
+    """
+    html = _TS_RE.sub(r"\1<GENERATED>", html)
+    html = _MTIME_RE.sub("<td><MTIME></td>", html)
+    return _PNG_RE.sub("base64,<PNG>", html)
 
 
 def test_safe_rel(tmp_path: pathlib.Path) -> None:
     """`_safe_rel` returns a path under *root* relatively, else the bare name."""
-    from oceanarray.utilities import _safe_rel
-
     under = tmp_path / "sub" / "file.html"
     assert _safe_rel(under, tmp_path) == str(pathlib.Path("sub") / "file.html")
     outside = tmp_path.parent / "elsewhere.html"
@@ -70,16 +73,21 @@ def test_safe_rel(tmp_path: pathlib.Path) -> None:
 
 @pytest.fixture(scope="module")
 def rendered_dir(tmp_path_factory) -> pathlib.Path:
-    """Render every dune2 report page once into a temp dir for the module."""
+    """Render every dune2 report page once into a temp dir for the module.
+
+    ``socket.gethostname`` is pinned to a constant so the ``proc_machine`` field
+    in the footer does not vary by machine.
+    """
     out = tmp_path_factory.mktemp("golden_render")
-    MooringReport(proc_dir=str(_PROC)).generate(
-        _MOORING,
-        force=True,
-        outdir=str(out),
-        instruments=True,
-        grid=True,
-        stack=True,
-    )
+    with mock.patch("socket.gethostname", return_value="TESTHOST"):
+        MooringReport(proc_dir=str(_PROC)).generate(
+            _MOORING,
+            force=True,
+            outdir=str(out),
+            instruments=True,
+            grid=True,
+            stack=True,
+        )
     return out
 
 
@@ -92,6 +100,9 @@ def test_report_page_matches_golden(rendered_dir: pathlib.Path, page: str) -> No
 
     golden_path = _GOLDEN / page
     if os.environ.get("REBASELINE_GOLDEN"):
+        # Guard: re-baselining in CI would silently overwrite the goldens with the
+        # CI run's own output and never catch drift.
+        assert not os.environ.get("CI"), "REBASELINE_GOLDEN must not be set in CI"
         golden_path.parent.mkdir(parents=True, exist_ok=True)
         golden_path.write_text(produced, encoding="utf-8")
         pytest.skip(f"re-baselined golden for {page}")
