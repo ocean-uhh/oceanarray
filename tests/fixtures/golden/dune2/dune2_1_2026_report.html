@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mooring Recovery Report – dune2_1_2026</title>
+<style>
+  :root {
+    --ocean:     #1a3a5c;
+    --seafoam:   #e8f4f8;
+    --good:      #27ae60;
+    --warn:      #e67e22;
+    --bad:       #c0392b;
+    --interp:    #2980b9;
+    --muted:     #95a5a6;
+    --text:      #2c3e50;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    max-width: 1150px;
+    margin: 0 auto;
+    padding: 1.5rem 2rem 4rem;
+    line-height: 1.5;
+  }
+  /* masthead */
+  .masthead {
+    background: var(--ocean);
+    color: #fff;
+    padding: 1.6rem 2rem;
+    border-radius: 8px;
+    margin-bottom: 2.5rem;
+  }
+  .masthead h1 { margin: 0 0 0.3rem; font-size: 1.75rem; font-weight: 700; letter-spacing: 0.02em; }
+  .masthead .sub { font-size: 0.9rem; opacity: 0.82; margin: 0 0 1rem; }
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 0.5rem 2rem;
+    font-size: 0.84rem;
+  }
+  .meta-grid dt { opacity: 0.68; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.06em; margin-bottom: 0.1rem; }
+  .meta-grid dd { margin: 0; font-weight: 600; }
+  .meta-miss dd { color: #e67e22; opacity: 1; }
+  /* section headings */
+  h2 {
+    color: var(--ocean);
+    font-size: 1.05rem;
+    border-bottom: 2px solid var(--seafoam);
+    padding-bottom: 0.3rem;
+    margin: 2.5rem 0 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .top-link { font-size: 0.72rem; font-weight: 400; color: var(--muted);
+              text-decoration: none; margin-left: auto; white-space: nowrap; }
+  .top-link:hover { color: var(--ocean); text-decoration: underline; }
+  /* tables */
+  table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+  th {
+    background: var(--ocean);
+    color: #fff;
+    padding: 0.45rem 0.7rem;
+    text-align: left;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  td { padding: 0.38rem 0.7rem; border-bottom: 1px solid #ecf0f1; vertical-align: middle; }
+  tr:nth-child(even) td { background: var(--seafoam); }
+  tr:hover td { background: #d6eaf8; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  /* pipeline badges */
+  .pipeline { white-space: nowrap; display: flex; flex-wrap: wrap; gap: 0.2rem; align-items: center; }
+  .badge {
+    display: inline-block;
+    padding: 0.15em 0.5em;
+    border-radius: 3px;
+    font-size: 0.73rem;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .b-ok   { background: var(--good);   color: #fff; }
+  .b-warn { background: var(--warn);   color: #fff; }
+  .b-miss { background: #dfe6e9; color: #999; }
+  .b-stack { background: var(--interp); color: #fff; }
+  .b-grid  { background: #8e44ad;       color: #fff; }
+  .arrow { color: #ccc; font-size: 0.8rem; margin: 0 0.05rem; }
+  /* clock table */
+  .none-note { color: var(--muted); font-style: italic; }
+  .pos { color: var(--warn); font-weight: 600; }
+  .neg { color: var(--interp); font-weight: 600; }
+  /* early-stoppage highlight — must override stripe and hover */
+  tr.row-warn td { background: #fef3cd !important; }
+  /* footer */
+  .report-footer {
+    margin-top: 3rem;
+    font-size: 0.76rem;
+    color: var(--muted);
+    border-top: 1px solid #ecf0f1;
+    padding-top: 0.75rem;
+  }
+  .jump-nav { background:var(--seafoam); padding:0.55rem 1rem; border-radius:6px;
+              margin-bottom:1.5rem; font-size:0.8rem; line-height:2.2; }
+  .jump-nav a { color:var(--ocean); text-decoration:none; font-weight:600;
+                margin:0 0.5rem 0 0; white-space:nowrap; }
+  .jump-nav a::before { content:"▸ "; font-size:0.7rem; }
+  .jump-nav a:hover { text-decoration:underline; }
+  @media print {
+    body { padding: 0; max-width: 100%; }
+    .masthead, th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    h2 { page-break-after: avoid; }
+    table { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════ 1. HEADER ══ -->
+<div id="top" class="masthead">
+  <h1 style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem"><span>dune2_1_2026</span><span style="font-size:1.2rem;opacity:0.8;white-space:nowrap">Summary</span></h1>
+  <p class="sub" style="display:flex;justify-content:space-between"><span>Mooring recovery report</span><span>generated <GENERATED></span></p>
+  <div style="margin-top:0.65rem"><div style="margin-bottom:0.25rem"><span style="font-size:0.72rem;opacity:0.75;margin-right:0.3rem;white-space:nowrap;vertical-align:middle;">Reports:</span><span style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;opacity:0.45;background:#1a3a5c" title="current">Summary</span><a href="dune2_1_2026_stack_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#2980b9">Stack</a><a href="dune2_1_2026_grid_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#8e44ad">Grid</a></div><div style="margin-bottom:0.1rem"><span style="font-size:0.72rem;opacity:0.75;margin-right:0.3rem;white-space:nowrap;vertical-align:middle;">Aquadopp:</span><a href="instrument/dune2_1_2026_9920_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#27ae60">9920</a></div><div style="margin-bottom:0.1rem"><span style="font-size:0.72rem;opacity:0.75;margin-right:0.3rem;white-space:nowrap;vertical-align:middle;">Microcat:</span><a href="instrument/dune2_1_2026_2941_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#27ae60">2941</a></div></div>
+  <dl class="meta-grid">
+    <div><dt>Cruise</dt><dd>OdB</dd></div>
+    <div><dt>Ship</dt><dd>Odon de Buen</dd></div>
+    <div><dt>Latitude</dt><dd>65 43.913</dd></div>
+    <div><dt>Longitude</dt><dd>-27 48.000</dd></div>
+    <div><dt>Water depth</dt><dd>745&thinsp;m</dd></div>
+    <div><dt>Deployment</dt><dd>2026-07-11 20:30 UTC</dd></div>
+    <div><dt>Recovery</dt><dd>2026-07-25 11:44 UTC</dd></div>
+    <div><dt>Duration</dt><dd>13d 15h</dd></div>
+    <div><dt>Instruments</dt><dd>2</dd></div>
+  </dl>
+</div>
+
+<nav class="jump-nav">
+  Jump to:
+  <a href="#pipeline">Processing pipeline</a>
+  <a href="#instruments">Instruments</a>
+  <a href="#timing">Deployment timing</a>
+  <a href="#clock">Clock corrections</a>
+  <a href="#calibration">Sensor calibration</a>
+  <a href="#qc">QC summary</a>
+  <a href="#knockdown">Knockdown</a>
+  
+</nav>
+
+<!-- ══════════════════════════════════ 2. PROCESSING PIPELINE ══ -->
+<h2 id="pipeline">2 &mdash; Processing pipeline</h2>
+<p style="font-size:0.82rem;color:#555;margin-top:-0.5rem;">
+  Raw = file present in raw directory &bull;
+  Read = format check passed &bull;
+  Stage&nbsp;1–3 = processed NetCDF files exist &bull;
+  Stack = mooring-level <code>_stack.nc</code> &bull;
+  Grid = pressure-gridded <code>_grid.nc</code>
+</p>
+<p style="font-size:0.82rem;color:#555;margin-top:-0.3rem;">
+  Instruments marked <code>skip: true</code> in the YAML are excluded from all
+  processing and are shown with a <em>skipped</em> note in the Note column.
+  Stack and Grid pills are grey for any instrument that did not reach Stage&nbsp;3.
+  See <a href="#instruments">Table&nbsp;3</a> for skip reasons where given.
+</p>
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Type</th>
+      <th>S/N</th>
+      <th>Hab&nbsp;(m)</th>
+      <th>Depth&nbsp;(m)</th>
+      <th>Pipeline</th>
+      <th>Note</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+    <tr>
+      <td class="num">1</td>
+      <td>aquadopp</td>
+      <td><a href="instrument/dune2_1_2026_9920_report.html"
+             style="font-family:monospace;font-size:0.85rem">9920</a></td>
+      <td class="num">226.0</td>
+      <td class="num">519</td>
+      <td>
+        <div class="pipeline">
+          
+          
+            <span class="badge b-warn" title="Expected: 9920_recovery.dat">Raw ✗</span>
+          
+          <span class="arrow">›</span>
+          
+          
+            <span class="badge b-miss">Read —</span>
+          
+          <span class="arrow">›</span>
+          
+          
+            <span class="badge b-ok">Stage&nbsp;1 ✓</span>
+          
+          <span class="arrow">›</span>
+          
+          
+            <span class="badge b-ok">Stage&nbsp;2 ✓</span>
+          
+          <span class="arrow">›</span>
+          
+          
+            <span class="badge b-ok">Stage&nbsp;3 ✓</span>
+          
+          <span class="arrow">›</span>
+          
+          
+            <span class="badge b-stack">Stack ✓</span>
+          
+          <span class="arrow">›</span>
+          
+          
+            <span class="badge b-grid">Grid ✓</span>
+          
+        </div>
+      </td>
+      <td style="font-size:0.8rem;color:#c0392b;">
+        
+      </td>
+    </tr>
+    
+    <tr>
+      <td class="num">2</td>
+      <td>microcat</td>
+      <td><a href="instrument/dune2_1_2026_2941_report.html"
+             style="font-family:monospace;font-size:0.85rem">2941</a></td>
+      <td class="num">425.0</td>
+      <td class="num">320</td>
+      <td>
+        <div class="pipeline">
+          
+          
+            <span class="badge b-warn" title="Expected: 2941_recovery.asc">Raw ✗</span>
+          
+          <span class="arrow">›</span>
+          
+          
+            <span class="badge b-miss">Read —</span>
+          
+          <span class="arrow">›</span>
+          
+          
+            <span class="badge b-ok">Stage&nbsp;1 ✓</span>
+          
+          <span class="arrow">›</span>
+          
+          
+            <span class="badge b-ok">Stage&nbsp;2 ✓</span>
+          
+          <span class="arrow">›</span>
+          
+          
+            <span class="badge b-ok">Stage&nbsp;3 ✓</span>
+          
+          <span class="arrow">›</span>
+          
+          
+            <span class="badge b-stack">Stack ✓</span>
+          
+          <span class="arrow">›</span>
+          
+          
+            <span class="badge b-grid">Grid ✓</span>
+          
+        </div>
+      </td>
+      <td style="font-size:0.8rem;color:#c0392b;">
+        
+      </td>
+    </tr>
+    
+  </tbody>
+</table>
+
+<!-- ════════════════════════════════════ 3. INSTRUMENT SUMMARY ══ -->
+<h2 id="instruments">3 &mdash; Instrument summary</h2>
+<p style="font-size:0.82rem;color:#555;margin-top:-0.5rem;">
+  Variables and record length are read from stage&nbsp;3 files where available,
+  otherwise stage&nbsp;2.  The <strong>P</strong> badge is shown as present
+  whether pressure was directly measured or interpolated from neighbouring
+  instruments — see Table&nbsp;6 (QC flag summary) to distinguish.  Instruments
+  marked <code>skip: true</code> are listed with the skip reason where provided.
+</p>
+<style>
+  .vbadge {
+    display: inline-block;
+    padding: 0.12em 0.42em;
+    border-radius: 3px;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+  .vb-yes    { background: #27ae60; color: #fff; }
+  .vb-interp { background: #2980b9; color: #fff; }
+  .vb-no     { background: #ecf0f1; color: #aaa; }
+</style>
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Type</th>
+      <th>S/N</th>
+      <th>Hab&nbsp;(m)</th>
+      <th>First sample</th>
+      <th>Last sample</th>
+      <th>N records</th>
+      <th title="Observed p90 sample interval (s); * = differs from YAML value by &gt;10%">Δt&nbsp;(s)</th>
+      <th title="Pressure range from stage-2/3 trimmed record, excluding non-positive values">P range (dbar)</th>
+      <th style="text-align:center">T</th>
+      <th style="text-align:center">C</th>
+      <th style="text-align:center">P</th>
+      <th style="text-align:center">U</th>
+      <th style="text-align:center">V</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+    <tr>
+      <td class="num">1</td>
+      <td>aquadopp</td>
+      <td><a href="instrument/dune2_1_2026_9920_report.html"
+             style="font-family:monospace;font-size:0.85rem">9920</a></td>
+      <td class="num">226.0</td>
+      
+        <td>2026-07-11 20:30</td>
+        <td>2026-07-25 11:43</td>
+        <td class="num">9,818</td>
+        <td class="num">
+          
+          
+            120
+          
+        </td>
+        <td class="num">
+          
+            
+              (561, 693)
+            
+          
+        </td>
+        
+        <td style="text-align:center">
+          
+          <span class="vbadge vb-yes">T</span>
+          
+        </td>
+        
+        <td style="text-align:center">
+          
+          <span class="vbadge vb-no">C</span>
+          
+        </td>
+        
+        <td style="text-align:center">
+          
+          <span class="vbadge vb-yes">P</span>
+          
+        </td>
+        
+        <td style="text-align:center">
+          
+          <span class="vbadge vb-yes">U</span>
+          
+        </td>
+        
+        <td style="text-align:center">
+          
+          <span class="vbadge vb-yes">V</span>
+          
+        </td>
+        
+      
+    </tr>
+    
+    <tr>
+      <td class="num">2</td>
+      <td>microcat</td>
+      <td><a href="instrument/dune2_1_2026_2941_report.html"
+             style="font-family:monospace;font-size:0.85rem">2941</a></td>
+      <td class="num">425.0</td>
+      
+        <td>2026-07-11 20:30</td>
+        <td>2026-07-25 11:44</td>
+        <td class="num">19,635</td>
+        <td class="num">
+          
+          
+            60
+          
+        </td>
+        <td class="num">
+          
+            
+              <em title="pressure interpolated">(345, 552)</em>
+            
+          
+        </td>
+        
+        <td style="text-align:center">
+          
+          <span class="vbadge vb-yes">T</span>
+          
+        </td>
+        
+        <td style="text-align:center">
+          
+          <span class="vbadge vb-yes">C</span>
+          
+        </td>
+        
+        <td style="text-align:center">
+          
+          <span class="vbadge vb-interp" title="pressure interpolated from neighbouring instruments">P</span>
+          
+        </td>
+        
+        <td style="text-align:center">
+          
+          <span class="vbadge vb-no">U</span>
+          
+        </td>
+        
+        <td style="text-align:center">
+          
+          <span class="vbadge vb-no">V</span>
+          
+        </td>
+        
+      
+    </tr>
+    
+  </tbody>
+</table>
+
+
+
+
+
+<p style="font-size:0.82rem;color:#555;margin-top:0.8rem;">
+  Recommended pressure range for <code>oceanarray grid</code>, derived from the
+  min/max pressure across all instruments (rounded outward to the nearest 20&thinsp;dbar):
+</p>
+<pre style="background:#f4f4f4;border:1px solid #ddd;border-radius:4px;padding:0.5em 0.8em;font-size:0.85rem;display:inline-block;user-select:all;cursor:text">--pmin 340 --pmax 700</pre>
+
+
+<!-- ══════════════════════════════════════ 3.5 DEPLOYMENT TIMING ══ -->
+<h2 id="timing">3.5 &mdash; Deployment timing</h2>
+<p style="font-size:0.82rem;color:#555;margin-top:-0.5rem;">
+  <em>Stage&nbsp;1</em> and <em>Sugg.&nbsp;(raw)</em> columns are in the <strong>raw
+  instrument clock</strong> (uncorrected).  <em>Sugg.&nbsp;UTC</em> columns
+  apply the constant clock offset (and drift, for the end) and are safe to
+  paste into the YAML <code>deployment_time</code> /
+  <code>recovery_time</code> fields.  Suggested UTC cells are highlighted
+  <span style="background:#fff3cd;padding:0 0.3em">amber</span> when the
+  pressure-derived suggested time differs from the YAML time by more than
+  2&thinsp;&Delta;t (indicating a sinking/rising transient was detected).
+  The Stage&nbsp;1 last cell is highlighted
+  <span style="background:#fde3c0;padding:0 0.3em">orange</span> when the
+  raw record ended more than 2&thinsp;&Delta;t before the YAML recovery time
+  (instrument may have stopped early).
+  Serial numbers link to the per-instrument report; the
+  <em>6&thinsp;h</em> link jumps directly to the start/end window plots.
+</p>
+<p style="font-size:0.85rem;background:#fffbe6;border-left:3px solid #e67e22;padding:0.5em 0.8em;margin:0.6rem 0">
+  <strong>Spot-check recommended:</strong> open the 6&thinsp;h start/end
+  window plots for each instrument (click <em>6&thinsp;h</em>) and visually
+  confirm that the orange suggested line (or green YAML line if they match)
+  sits at a plausible transition in the pressure (or temperature) record
+  before updating the YAML times.
+</p>
+<div style="overflow-x:auto">
+<table style="font-size:0.8rem;white-space:nowrap">
+  <thead>
+    <tr>
+      <th rowspan="2">#</th>
+      <th rowspan="2">Type</th>
+      <th rowspan="2">S/N</th>
+      <th colspan="3" style="text-align:center;border-bottom:1px solid #bbb">Start</th>
+      <th colspan="3" style="text-align:center;border-bottom:1px solid #bbb">End</th>
+    </tr>
+    <tr>
+      <th>Stage1 first</th>
+      <th>Sugg.&nbsp;start (raw)</th>
+      <th>Sugg.&nbsp;start (UTC)</th>
+      <th>Stage1 last</th>
+      <th>Sugg.&nbsp;end (raw)</th>
+      <th>Sugg.&nbsp;end (UTC)</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+    
+    <tr>
+      <td class="num">1</td>
+      <td>aquadopp</td>
+      <td>
+        <a href="instrument/dune2_1_2026_9920_report.html"
+           title="Per-instrument report"><code>9920</code></a>
+        <a href="instrument/dune2_1_2026_9920_report.html#start"
+           style="font-size:0.75rem;margin-left:0.3em;color:#2980b9"
+           title="Start/end 6 h windows">6&thinsp;h</a>
+      </td>
+      
+        
+        
+        
+        
+        <td>2026-07-11 17:00</td>
+        
+        
+        <td>20:30</td>
+        
+        
+        <td>20:30</td>
+        
+        <td>2026-07-25 12:58</td>
+        
+        
+        <td>11:44</td>
+        
+        
+        <td>11:43</td>
+      
+    </tr>
+    
+    
+    <tr>
+      <td class="num">2</td>
+      <td>microcat</td>
+      <td>
+        <a href="instrument/dune2_1_2026_2941_report.html"
+           title="Per-instrument report"><code>2941</code></a>
+        <a href="instrument/dune2_1_2026_2941_report.html#start"
+           style="font-size:0.75rem;margin-left:0.3em;color:#2980b9"
+           title="Start/end 6 h windows">6&thinsp;h</a>
+      </td>
+      
+        
+        
+        
+        
+        <td>2026-07-11 17:00</td>
+        
+        
+        <td>—</td>
+        
+        
+        <td>—</td>
+        
+        <td>2026-07-25 12:37</td>
+        
+        
+        <td>—</td>
+        
+        
+        <td>—</td>
+      
+    </tr>
+    
+  </tbody>
+  
+  <tfoot>
+    <tr style="background:#e8f4f8;font-weight:600;border-top:2px solid #1a3a5c">
+      <td class="num">★</td>
+      <td colspan="2" style="font-style:italic">Mooring</td>
+      <td><span class="none-note">—</span></td>
+      <td style="font-style:italic">Mooring start</td>
+      <td>2026-07-11 20:30:00</td>
+      <td><span class="none-note">—</span></td>
+      <td style="font-style:italic">Mooring end</td>
+      <td>2026-07-25 11:43:00</td>
+    </tr>
+  </tfoot>
+  
+</table>
+</div>
+
+
+<div style="margin:1.2rem 0 0.5rem">
+
+<p style="font-size:0.82rem;color:#555;margin:0 0 0.4rem">
+  <strong>Deployment times</strong> — pressure-based instruments suggest times that differ
+  from the current YAML.  Copy the suggested snippet (blue border) into your YAML file.
+  Times are given to the minute.
+</p>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem">
+  <div>
+    <p style="font-size:0.78rem;color:#888;margin:0 0 0.2rem;font-weight:600">
+      Current YAML</p>
+    <textarea readonly rows="2"
+      style="width:100%;font-family:monospace;font-size:0.85rem;padding:0.5rem 0.6rem;
+             border:1px solid #bbb;border-radius:4px;background:#f0f0f0;
+             resize:vertical;color:#555"
+      onclick="this.select()">deployment_time: '2026-07-11T20:30'
+recovery_time:   '2026-07-25T11:44'</textarea>
+  </div>
+  <div>
+    <p style="font-size:0.78rem;color:#888;margin:0 0 0.2rem;font-weight:600">
+      Suggested (copy &rarr; paste into YAML)</p>
+    <textarea readonly rows="2"
+      style="width:100%;font-family:monospace;font-size:0.85rem;padding:0.5rem 0.6rem;
+             border:1px solid #2980b9;border-radius:4px;background:#f8f9fa;
+             resize:vertical;color:#2c3e50"
+      onclick="this.select()">deployment_time: '2026-07-11T20:30'
+recovery_time:   '2026-07-25T11:43'</textarea>
+  </div>
+</div>
+
+</div>
+
+
+<!-- ══════════════════════════════════════ 4. CLOCK CORRECTIONS ══ -->
+<h2 id="clock">4 &mdash; Clock corrections</h2>
+<p style="font-size:0.82rem;color:#555;margin-top:-0.5rem;">
+  Positive drift/offset = instrument was <em>slow</em> (behind UTC); correction shifts times later.
+  Negative = instrument was <em>fast</em> (ahead of UTC); correction shifts times earlier.
+</p>
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Type</th>
+      <th>S/N</th>
+      <th>Hab&nbsp;(m)</th>
+      <th>Offset&nbsp;(s)</th>
+      <th>Computer time at recovery</th>
+      <th>Instrument time at recovery</th>
+      <th>Drift&nbsp;(s)</th>
+      <th>Source</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+    <tr>
+      <td class="num">1</td>
+      <td>aquadopp</td>
+      <td><code>9920</code></td>
+      <td class="num">226.0</td>
+      <td class="num">
+        
+          <span class="none-note">—</span>
+        
+      </td>
+      <td>2026-07-25 13:13</td>
+      <td>2026-07-25 13:14</td>
+      <td class="num">
+        
+          <span class="pos">+55.0</span>
+        
+      </td>
+      <td>
+        
+          Option B
+        
+      </td>
+    </tr>
+    
+    <tr>
+      <td class="num">2</td>
+      <td>microcat</td>
+      <td><code>2941</code></td>
+      <td class="num">425.0</td>
+      <td class="num">
+        
+          <span class="none-note">—</span>
+        
+      </td>
+      <td>2026-07-25 13:23</td>
+      <td>2026-07-25 13:23</td>
+      <td class="num">
+        
+          <span class="none-note">—</span>
+        
+      </td>
+      <td>
+        
+          Option B
+        
+      </td>
+    </tr>
+    
+  </tbody>
+</table>
+
+
+<h3 style="font-size:0.9rem;margin-top:1.2rem;">Clock alignment check</h3>
+<p class="note">
+  Overlaid temperature records zoomed to the first and last 30 minutes of the deployment.
+  If instrument clocks are misaligned the temperature curves will appear shifted in time.
+  Data are from stage&#8209;3 (or stage&#8209;2 if stage&#8209;3 is not yet available).
+  Instruments with no temperature data are omitted.
+</p>
+<img class="fig" src="data:image/png;base64,sha256:6fb2cd3451eec15d" alt="Clock alignment check">
+
+
+<!-- ══════════════════════════════════════ 5. SENSOR CALIBRATION ══ -->
+<h2 id="calibration">5 &mdash; Sensor calibration</h2>
+<style>
+  details.coeff summary {
+    cursor: pointer;
+    color: var(--interp);
+    font-size: 0.78rem;
+    user-select: none;
+  }
+  details.coeff pre {
+    margin: 0.3em 0 0;
+    font-size: 0.72rem;
+    background: #f8f9fa;
+    padding: 0.4em 0.6em;
+    border-radius: 3px;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+</style>
+
+
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Type</th>
+      <th>Instr&nbsp;S/N</th>
+      <th>Sensor</th>
+      <th>Model</th>
+      <th>Sensor&nbsp;S/N</th>
+      <th>Cal&nbsp;date</th>
+      <th>Coefficients</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+    
+      
+    
+      
+        
+        
+        <tr>
+          <td class="num">1</td>
+          <td>microcat</td>
+          <td><code>2941</code></td>
+          <td>Conductivity</td>
+          <td>Sea-Bird SBE conductivity sensor</td>
+          <td><code>2941</code></td>
+          <td>2023-03-28</td>
+          <td>
+            
+            <details class="coeff">
+              <summary>show</summary>
+              <pre>G=-9.871170e-01, H=1.369976e-01, I=-3.485648e-04, J=4.990156e-05, CPCOR=-9.570000e-08, CTCOR=3.250000e-06, WBOTC=-9.105544e-06</pre>
+            </details>
+            
+          </td>
+        </tr>
+        
+        <tr>
+          <td class="num"></td>
+          <td></td>
+          <td></td>
+          <td>Temperature</td>
+          <td>Sea-Bird SBE temperature sensor</td>
+          <td><code>2941</code></td>
+          <td>2023-03-28</td>
+          <td>
+            
+            <details class="coeff">
+              <summary>show</summary>
+              <pre>TA0=6.981772e-06, TA1=2.746413e-04, TA2=-2.252296e-06, TA3=1.528407e-07</pre>
+            </details>
+            
+          </td>
+        </tr>
+        
+      
+    
+  </tbody>
+</table>
+
+
+<!-- ══════════════════════════════════════ 6. QC FLAG SUMMARY ══ -->
+<h2 id="qc">6 &mdash; QC flag summary</h2>
+<style>
+  .qc-bar {
+    display: flex;
+    width: 220px;
+    height: 14px;
+    border-radius: 3px;
+    overflow: hidden;
+    gap: 1px;
+    background: #ecf0f1;
+  }
+  .qc-bar div { height: 100%; }
+  .qc-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 0.9rem;
+    font-size: 0.75rem;
+    margin: 0.3rem 0 1rem;
+  }
+  .qc-legend span { display: inline-block; width: 10px; height: 10px;
+                    border-radius: 2px; vertical-align: middle; margin-right: 3px; }
+</style>
+<div class="qc-legend">
+  <span style="background:#27ae60"></span>good&nbsp;(1)
+  <span style="background:#a8e6cf"></span>prob.&nbsp;good&nbsp;(2)
+  <span style="background:#f39c12"></span>suspect&nbsp;(3)
+  <span style="background:#e74c3c"></span>bad&nbsp;(4)
+  <span style="background:#3498db"></span>interp.&nbsp;(8)
+  <span style="background:#bdc3c7"></span>missing&nbsp;(9)
+</div>
+
+
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Type</th>
+      <th>S/N</th>
+      <th>Variable</th>
+      <th class="num">N</th>
+      <th class="num">Good&nbsp;%</th>
+      <th class="num">Suspect&nbsp;%</th>
+      <th class="num">Bad&nbsp;%</th>
+      <th class="num">Interp.&nbsp;%</th>
+      <th class="num">Missing&nbsp;%</th>
+      <th>Distribution</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+    
+      
+        
+        
+        
+        
+        
+        
+        
+        <tr>
+          <td class="num">1</td>
+          <td>aquadopp</td>
+          <td><code>9920</code></td>
+          <td><code>east_velocity</code></td>
+          <td class="num">9,818</td>
+          <td class="num" style="color:var(--warn)">
+            88.9
+          </td>
+          <td class="num"><span style="color:var(--warn)">11.1</span></td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td>
+            <div class="qc-bar">
+              
+                
+                <div style="width:88.9%; background:#27ae60;"
+                     title="good: 88.9%"></div>
+                
+              
+                
+              
+                
+                <div style="width:11.1%; background:#f39c12;"
+                     title="corr. bad: 11.1%"></div>
+                
+              
+                
+              
+                
+              
+                
+              
+            </div>
+          </td>
+        </tr>
+        
+        
+        
+        
+        
+        
+        <tr>
+          <td class="num"></td>
+          <td></td>
+          <td></td>
+          <td><code>north_velocity</code></td>
+          <td class="num">9,818</td>
+          <td class="num" style="color:var(--warn)">
+            88.9
+          </td>
+          <td class="num"><span style="color:var(--warn)">11.1</span></td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td>
+            <div class="qc-bar">
+              
+                
+                <div style="width:88.9%; background:#27ae60;"
+                     title="good: 88.9%"></div>
+                
+              
+                
+              
+                
+                <div style="width:11.1%; background:#f39c12;"
+                     title="corr. bad: 11.1%"></div>
+                
+              
+                
+              
+                
+              
+                
+              
+            </div>
+          </td>
+        </tr>
+        
+        
+        
+        
+        
+        
+        <tr>
+          <td class="num"></td>
+          <td></td>
+          <td></td>
+          <td><code>pressure</code></td>
+          <td class="num">9,818</td>
+          <td class="num" style="color:var(--good)">
+            100.0
+          </td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td>
+            <div class="qc-bar">
+              
+                
+                <div style="width:100.0%; background:#27ae60;"
+                     title="good: 100.0%"></div>
+                
+              
+                
+              
+                
+              
+                
+              
+                
+              
+                
+              
+            </div>
+          </td>
+        </tr>
+        
+        
+        
+        
+        
+        
+        <tr>
+          <td class="num"></td>
+          <td></td>
+          <td></td>
+          <td><code>temperature</code></td>
+          <td class="num">9,818</td>
+          <td class="num" style="color:var(--good)">
+            100.0
+          </td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td>
+            <div class="qc-bar">
+              
+                
+                <div style="width:100.0%; background:#27ae60;"
+                     title="good: 100.0%"></div>
+                
+              
+                
+              
+                
+              
+                
+              
+                
+              
+                
+              
+            </div>
+          </td>
+        </tr>
+        
+        
+        
+        
+        
+        
+        <tr>
+          <td class="num"></td>
+          <td></td>
+          <td></td>
+          <td><code>up_velocity</code></td>
+          <td class="num">9,818</td>
+          <td class="num" style="color:var(--warn)">
+            88.9
+          </td>
+          <td class="num"><span style="color:var(--warn)">11.1</span></td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td>
+            <div class="qc-bar">
+              
+                
+                <div style="width:88.9%; background:#27ae60;"
+                     title="good: 88.9%"></div>
+                
+              
+                
+              
+                
+                <div style="width:11.1%; background:#f39c12;"
+                     title="corr. bad: 11.1%"></div>
+                
+              
+                
+              
+                
+              
+                
+              
+            </div>
+          </td>
+        </tr>
+        
+        
+        
+        
+        
+        
+        <tr>
+          <td class="num"></td>
+          <td></td>
+          <td></td>
+          <td><code>velocity_beam1</code></td>
+          <td class="num">9,818</td>
+          <td class="num" style="color:var(--warn)">
+            89.4
+          </td>
+          <td class="num"><span style="color:var(--warn)">10.6</span></td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td>
+            <div class="qc-bar">
+              
+                
+                <div style="width:89.4%; background:#27ae60;"
+                     title="good: 89.4%"></div>
+                
+              
+                
+              
+                
+                <div style="width:10.6%; background:#f39c12;"
+                     title="corr. bad: 10.6%"></div>
+                
+              
+                
+              
+                
+              
+                
+              
+            </div>
+          </td>
+        </tr>
+        
+        
+        
+        
+        
+        
+        <tr>
+          <td class="num"></td>
+          <td></td>
+          <td></td>
+          <td><code>velocity_beam2</code></td>
+          <td class="num">9,818</td>
+          <td class="num" style="color:var(--warn)">
+            89.4
+          </td>
+          <td class="num"><span style="color:var(--warn)">10.6</span></td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td>
+            <div class="qc-bar">
+              
+                
+                <div style="width:89.4%; background:#27ae60;"
+                     title="good: 89.4%"></div>
+                
+              
+                
+              
+                
+                <div style="width:10.6%; background:#f39c12;"
+                     title="corr. bad: 10.6%"></div>
+                
+              
+                
+              
+                
+              
+                
+              
+            </div>
+          </td>
+        </tr>
+        
+        
+        
+        
+        
+        
+        <tr>
+          <td class="num"></td>
+          <td></td>
+          <td></td>
+          <td><code>velocity_beam3</code></td>
+          <td class="num">9,818</td>
+          <td class="num" style="color:var(--warn)">
+            89.4
+          </td>
+          <td class="num"><span style="color:var(--warn)">10.6</span></td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td>
+            <div class="qc-bar">
+              
+                
+                <div style="width:89.4%; background:#27ae60;"
+                     title="good: 89.4%"></div>
+                
+              
+                
+              
+                
+                <div style="width:10.6%; background:#f39c12;"
+                     title="corr. bad: 10.6%"></div>
+                
+              
+                
+              
+                
+              
+                
+              
+            </div>
+          </td>
+        </tr>
+        
+      
+    
+      
+        
+        
+        
+        
+        
+        
+        
+        <tr>
+          <td class="num">2</td>
+          <td>microcat</td>
+          <td><code>2941</code></td>
+          <td><code>conductivity</code></td>
+          <td class="num">19,635</td>
+          <td class="num" style="color:var(--good)">
+            100.0
+          </td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td>
+            <div class="qc-bar">
+              
+                
+                <div style="width:100.0%; background:#27ae60;"
+                     title="good: 100.0%"></div>
+                
+              
+                
+              
+                
+              
+                
+              
+                
+              
+                
+              
+            </div>
+          </td>
+        </tr>
+        
+        
+        
+        
+        
+        
+        <tr>
+          <td class="num"></td>
+          <td></td>
+          <td></td>
+          <td><code>pressure</code></td>
+          <td class="num">19,635</td>
+          <td class="num" style="color:var(--bad)">
+            0.0
+          </td>
+          <td class="num"><span style="color:var(--warn)">2.6</span></td>
+          <td class="num">&ndash;</td>
+          <td class="num"><span style="color:var(--interp)">97.4</span></td>
+          <td class="num">&ndash;</td>
+          <td>
+            <div class="qc-bar">
+              
+                
+              
+                
+              
+                
+                <div style="width:2.6%; background:#f39c12;"
+                     title="corr. bad: 2.6%"></div>
+                
+              
+                
+              
+                
+                <div style="width:97.4%; background:#3498db;"
+                     title="interp.: 97.4%"></div>
+                
+              
+                
+              
+            </div>
+          </td>
+        </tr>
+        
+        
+        
+        
+        
+        
+        <tr>
+          <td class="num"></td>
+          <td></td>
+          <td></td>
+          <td><code>salinity</code></td>
+          <td class="num">19,635</td>
+          <td class="num" style="color:var(--good)">
+            97.4
+          </td>
+          <td class="num"><span style="color:var(--warn)">2.6</span></td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td>
+            <div class="qc-bar">
+              
+                
+                <div style="width:97.4%; background:#27ae60;"
+                     title="good: 97.4%"></div>
+                
+              
+                
+              
+                
+                <div style="width:2.6%; background:#f39c12;"
+                     title="corr. bad: 2.6%"></div>
+                
+              
+                
+              
+                
+              
+                
+              
+            </div>
+          </td>
+        </tr>
+        
+        
+        
+        
+        
+        
+        <tr>
+          <td class="num"></td>
+          <td></td>
+          <td></td>
+          <td><code>temperature</code></td>
+          <td class="num">19,635</td>
+          <td class="num" style="color:var(--good)">
+            100.0
+          </td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td class="num">&ndash;</td>
+          <td>
+            <div class="qc-bar">
+              
+                
+                <div style="width:100.0%; background:#27ae60;"
+                     title="good: 100.0%"></div>
+                
+              
+                
+              
+                
+              
+                
+              
+                
+              
+                
+              
+            </div>
+          </td>
+        </tr>
+        
+      
+    
+  </tbody>
+</table>
+
+
+
+<!-- ══════════════════════════════════════════ KNOCKDOWN ══ -->
+<h2 id="knockdown">Mooring knockdown</h2>
+<div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-start">
+
+<div style="flex:1;min-width:260px">
+<p class="note">Nominal HAB (x) vs. measured pressure (y). The dashed line shows expected pressure
+  (water&nbsp;depth&nbsp;&minus;&nbsp;HAB). Instruments below the line were knocked down.
+  Interpolated pressure (QC&nbsp;flag&nbsp;8) excluded.</p>
+<img style="width:100%;border:1px solid #dce;border-radius:4px" src="data:image/png;base64,sha256:84f84717067c3edb" alt="Knockdown HAB vs pressure">
+</div>
+
+
+<div style="flex:1;min-width:260px">
+<p class="note">IQR of pressure anomaly (measured &minus; nominal) per instrument.
+  Positive = deeper than design depth.
+  <span style="color:mediumseagreen">Green</span> &lt;&nbsp;100&nbsp;dbar,
+  <span style="color:goldenrod">yellow</span> 100–200,
+  <span style="color:darkorange">amber</span> 200–300,
+  <span style="color:firebrick">red</span> &gt;&nbsp;300&nbsp;dbar.</p>
+<img style="width:100%;border:1px solid #dce;border-radius:4px" src="data:image/png;base64,sha256:d3f438a42b0a5fb7" alt="Knockdown pressure anomaly">
+</div>
+
+</div>
+
+<p class="note">Estimated horizontal displacement (m) vs. measured pressure.
+  Left: scatter per instrument; right: normalised 2-D density across all instruments.
+  Displacement derived from the rigid-pendulum approximation:
+  <em>x</em>&nbsp;=&nbsp;&radic;(hab<sub>nom</sub>&sup2;&nbsp;&minus;&nbsp;hab<sub>meas</sub>&sup2;).</p>
+<img style="width:100%;border:1px solid #dce;border-radius:4px" src="data:image/png;base64,sha256:cd754ea57aef7727" alt="Knockdown horizontal displacement">
+
+
+
+
+
+<!-- ══════════════════════════════════════════ ISSUES ══ -->
+
+<h2 id="issues">Issues for cruise report</h2>
+
+
+
+
+
+
+<h3>Data quality flags</h3>
+<ul>
+
+<li>SN&nbsp;9920 (aquadopp): east_velocity: 11.1% corr. bad (flag 3)</li>
+
+<li>SN&nbsp;9920 (aquadopp): north_velocity: 11.1% corr. bad (flag 3)</li>
+
+<li>SN&nbsp;9920 (aquadopp): up_velocity: 11.1% corr. bad (flag 3)</li>
+
+<li>SN&nbsp;9920 (aquadopp): velocity_beam1: 10.6% corr. bad (flag 3)</li>
+
+<li>SN&nbsp;9920 (aquadopp): velocity_beam2: 10.6% corr. bad (flag 3)</li>
+
+<li>SN&nbsp;9920 (aquadopp): velocity_beam3: 10.6% corr. bad (flag 3)</li>
+
+<li>SN&nbsp;2941 (microcat): pressure: 2.6% corr. bad (flag 3)</li>
+
+<li>SN&nbsp;2941 (microcat): salinity: 2.6% corr. bad (flag 3)</li>
+
+</ul>
+
+
+
+
+<!-- ══════════════════════════════════════════════ FOOTER ══ -->
+<div class="report-footer">
+  Generated by <strong>oceanarray</strong> on <GENERATED> &bull;
+  YAML: <code>dune2_1_2026/dune2_1_2026.mooring.yaml</code>
+</div>
+
+<script>
+  document.querySelectorAll('h2').forEach(h => {
+    const a = document.createElement('a'); a.href = '#top'; a.className = 'top-link'; a.textContent = '↑ top'; h.appendChild(a);
+  });
+</script>
+</body>
+</html>

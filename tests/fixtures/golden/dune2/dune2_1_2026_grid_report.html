@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Grid report – dune2_1_2026</title>
+<style>
+  :root { --ocean:#1a3a5c; --seafoam:#e8f4f8; --muted:#95a5a6; --text:#2c3e50; }
+  * { box-sizing:border-box; }
+  body { font-family:system-ui,-apple-system,"Segoe UI",sans-serif; font-size:14px;
+         color:var(--text); max-width:1200px; margin:0 auto; padding:1.5rem 2rem 4rem; }
+  .masthead { background:#8e44ad; color:#fff; padding:1.6rem 2rem;
+              border-radius:8px; margin-bottom:2rem; }
+  .masthead h1 { margin:0 0 0.3rem; font-size:1.75rem; font-weight:700; letter-spacing:0.02em; }
+  .masthead .sub { font-size:0.9rem; opacity:0.88; margin:0 0 0.15rem; }
+  .masthead .sub a { color:#e8d5ff; font-weight:600; text-decoration:none; }
+  .masthead .sub a:hover { text-decoration:underline; }
+  .meta-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+               gap:0.5rem 2rem; font-size:0.84rem; margin-top:0.9rem; }
+  .meta-grid dt { opacity:0.7; text-transform:uppercase; font-size:0.7rem;
+                  letter-spacing:0.06em; margin-bottom:0.1rem; }
+  .meta-grid dd { margin:0; font-weight:600; }
+  .meta-miss dd { color:#e67e22; opacity:1; }
+  h2 { color:var(--ocean); font-size:1rem; border-bottom:2px solid var(--seafoam);
+       padding-bottom:0.3rem; margin:2.5rem 0 1rem;
+       display:flex; justify-content:space-between; align-items:baseline; }
+  .top-link { font-size:0.72rem; font-weight:400; color:var(--muted);
+              text-decoration:none; margin-left:auto; white-space:nowrap; }
+  .top-link:hover { color:var(--ocean); text-decoration:underline; }
+  .fig { width:100%; border:1px solid #dce; border-radius:4px; margin-bottom:0.5rem; }
+  .note { color:var(--muted); font-size:0.82rem; margin-top:-0.5rem; }
+  .style-label { font-size:0.8rem; font-weight:600; color:var(--muted); margin:0.4rem 0 0.2rem; text-transform:uppercase; letter-spacing:0.05em; }
+  .var-table { width:100%; border-collapse:collapse; font-size:0.82rem; margin-bottom:1.5rem; }
+  .var-table th { background:var(--seafoam); text-align:left; padding:0.4rem 0.6rem; border-bottom:2px solid #cde; }
+  .var-table td { padding:0.3rem 0.6rem; border-bottom:1px solid #eef; vertical-align:top; }
+  .var-table tr:nth-child(even) td { background:#f4f9fc; }
+  .var-table tr:hover td { background:#e8f4f8; }
+  .report-footer { margin-top:3rem; font-size:0.76rem; color:var(--muted); border-top:1px solid #eee; padding-top:0.8rem; }
+  .jump-nav { background:var(--seafoam); padding:0.55rem 1rem; border-radius:6px;
+              margin-bottom:1.5rem; font-size:0.8rem; line-height:2.2; }
+  .jump-nav a { color:var(--ocean); text-decoration:none; font-weight:600;
+                margin:0 0.5rem 0 0; white-space:nowrap; }
+  .jump-nav a::before { content:"▸ "; font-size:0.7rem; }
+  .jump-nav a:hover { text-decoration:underline; }
+  .history-list { list-style:none; padding:0; margin:0; }
+  .history-list li { display:flex; gap:1rem; padding:0.3rem 0; border-bottom:1px solid #f0f0f0; font-size:0.83rem; }
+  .history-list li:last-child { border-bottom:none; }
+  .history-ts { color:var(--muted); white-space:nowrap; font-size:0.76rem; min-width:11rem; }
+  .history-text { flex:1; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  td.mono { font-family:monospace; font-size:0.8rem; }
+  .none-note { color:var(--muted); font-style:italic; }
+  .var-qc { color:var(--good); font-size:0.78rem; }
+  details summary.collapse-toggle { color:var(--muted); font-size:0.76rem; cursor:pointer;
+    list-style:none; padding:0.15rem 0 0.4rem; user-select:none; }
+  details summary.collapse-toggle::before { content:"▾ "; }
+  details[open] summary.collapse-toggle::before { content:"▴ "; }
+  @media print { .masthead { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }
+</style>
+</head>
+<body>
+
+<div id="top" class="masthead">
+  <h1 style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem"><span>dune2_1_2026</span><span style="font-size:1.2rem;opacity:0.8;white-space:nowrap">Gridded</span></h1>
+  <p class="sub" style="text-align:right">generated <GENERATED></p>
+  <div style="margin-top:0.65rem"><div style="margin-bottom:0.25rem"><span style="font-size:0.72rem;opacity:0.75;margin-right:0.3rem;white-space:nowrap;vertical-align:middle;">Reports:</span><a href="dune2_1_2026_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#1a3a5c">Summary</a><a href="dune2_1_2026_stack_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#2980b9">Stack</a><span style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;opacity:0.45;background:#8e44ad" title="current">Grid</span></div><div style="margin-bottom:0.1rem"><span style="font-size:0.72rem;opacity:0.75;margin-right:0.3rem;white-space:nowrap;vertical-align:middle;">Aquadopp:</span><a href="instrument/dune2_1_2026_9920_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#27ae60">9920</a></div><div style="margin-bottom:0.1rem"><span style="font-size:0.72rem;opacity:0.75;margin-right:0.3rem;white-space:nowrap;vertical-align:middle;">Microcat:</span><a href="instrument/dune2_1_2026_2941_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#27ae60">2941</a></div></div>
+  <dl class="meta-grid">
+    <div><dt>Cruise</dt><dd>OdB</dd></div>
+    <div><dt>Ship</dt><dd>Odon de Buen</dd></div>
+    <div><dt>Latitude</dt><dd>65 43.913</dd></div>
+    <div><dt>Longitude</dt><dd>-27 48.000</dd></div>
+    <div><dt>Water depth</dt><dd>745&thinsp;m</dd></div>
+    <div><dt>Deployment</dt><dd>2026-07-11 20:30 UTC</dd></div>
+    <div><dt>Recovery</dt><dd>2026-07-25 11:44 UTC</dd></div>
+    <div><dt>Duration</dt><dd>13d 15h</dd></div>
+    <div><dt>Samp.&nbsp;&Delta;t</dt><dd>3600&thinsp;s</dd></div>
+    <div><dt>Records</dt><dd>328</dd></div>
+    <div><dt>Grid&nbsp;&Delta;P</dt><dd>50 dbar</dd></div>
+    <div><dt>Pressure&nbsp;levels</dt><dd>15</dd></div>
+    <div><dt>Pressure&nbsp;range</dt><dd>100–800 dbar</dd></div>
+    <div><dt>Instruments</dt><dd>2</dd></div>
+    <div><dt>Source&nbsp;file</dt><dd>dune2_1_2026_grid.nc</dd></div>
+  </dl>
+</div>
+
+<nav class="jump-nav">
+  Jump to:
+  <a href="#history">History</a>
+  <a href="#hydro">Hydrography</a>
+  <a href="#vel">Velocity</a>
+  <a href="#ts">T-S diagram</a>
+  <a href="#vel-iqr">Velocity profiles</a>
+  <a href="#grid-rose">Current roses</a>
+  <a href="#grid-hodograph">Hodograph</a>
+  <a href="#grid-traj">Particle trajectory</a>
+  <a href="#grid-ts">Velocity time series</a>
+  <a href="#strat">Stratification</a>
+  <a href="#overflow">Overflow</a>
+  <a href="#spectrum">Power spectrum</a>
+  <a href="#wavelet">Wavelet</a>
+  <a href="#rotary">Rotary spectrum</a>
+  <a href="#vars">Variables</a>
+</nav>
+
+
+<h2 id="history">Processing history</h2>
+<ul class="history-list">
+  
+  <li>
+    <span class="history-ts">Step 1 stack</span>
+    <span class="history-text">22 instruments onto 3600s grid</span>
+  </li>
+  
+  <li>
+    <span class="history-ts"></span>
+    <span class="history-text">fast instruments (dt&lt;=3600s) subsampled (nearest-neighbour in time), slow instruments interpolated (linear in time)</span>
+  </li>
+  
+  <li>
+    <span class="history-ts">Step 2 grid</span>
+    <span class="history-text">linear interpolation in pressure onto 50 dbar pressure grid (100–800 dbar)</span>
+  </li>
+  
+  <li>
+    <span class="history-ts"></span>
+    <span class="history-text">no extrapolation</span>
+  </li>
+  
+</ul>
+
+
+<!-- ══ Hydrography: T and S ══ -->
+
+<h2 id="hydro">Hydrography</h2>
+<p class="note">Temperature, salinity, dissolved oxygen, and O₂ saturation (when present). Vertically interpolated to regular pressure grid &bull; 20 discrete colour levels.</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,sha256:2c913a7fab3226fb" alt="Temperature and salinity">
+</details>
+
+
+<!-- ══ Velocity: E / N / Up ══ -->
+
+<h2 id="vel">Velocity</h2>
+<p class="note">East, north, and up velocity. QC-flagged samples excluded before interpolation. Shared symmetric Spectral_r colormap for east/north; separate bounds for up. No temporal gap fill — NaN where no data.</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,sha256:a16a41ad8aec96bd" alt="Velocity pcolormesh">
+</details>
+
+
+<!-- ══ T-S diagram (before derived quantities) ══ -->
+
+<h2 id="ts">T-S diagram</h2>
+<p class="note">Left: log₁₀(count+1) per T-S bin. Right (when O₂ present): median O₂ saturation per T-S bin — bins with &lt;5 samples masked. Colour scale: BrBG (brown=low, teal=high).</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" style="max-width:50%" src="data:image/png;base64,sha256:2bcc068d2b97ed06" alt="T-S diagram">
+</details>
+
+
+<!-- ══ Velocity IQR profiles ══ -->
+
+<h2 id="vel-iqr">Velocity IQR profiles</h2>
+<p class="note">Median (solid line) and interquartile range (shaded, 25–75 %) across the full deployment at each pressure level. 2.5–97.5 % outer envelope for speed. Right panel: count of non-NaN values per depth.</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,sha256:5254bd1b3e0ccf3e" alt="Velocity IQR profiles">
+</details>
+
+
+<!-- ══ Current roses per pressure level ══ -->
+
+<h2 id="grid-rose">Current roses</h2>
+<p class="note">One rose per pressure level (up to 12, evenly subsampled). Suspect/bad QC excluded. Each petal shows the fraction of time current flowed in that direction; petal length encodes speed (m s⁻¹).</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,sha256:f048ca85dbfa3f0e" alt="Current roses by pressure level">
+</details>
+
+
+<!-- ══ Hodograph ══ -->
+
+<h2 id="grid-hodograph">Hodograph</h2>
+<p class="note">Current hodographs at two pressure levels (25th and 75th percentile of the valid range). Top row = shallower level; bottom row = deeper level. Left = Tukey-smoothed raw; right = eddy component (LP mean removed). Colour indicates fractional time through the deployment (lime circle = start, red square = end). QC-bad data excluded.</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,sha256:cc52ff3cc51df23d" alt="Hodograph at two pressure levels">
+</details>
+
+
+<!-- ══ Particle trajectory ══ -->
+
+<h2 id="grid-traj">Particle trajectory</h2>
+<p class="note">Pseudo-Lagrangian trajectories at each gridded pressure level, integrated from east and north velocity (Euler forward). All start at the origin. Coloured by pressure (dbar).</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" style="max-width:55%" src="data:image/png;base64,sha256:d3e373067d355c94" alt="Grid particle trajectory">
+</details>
+
+
+<!-- ══ Velocity time series at depth of max speed ══ -->
+
+<h2 id="grid-ts">Velocity time series at depth of maximum mean speed</h2>
+<p class="note">Depth chosen as the pressure level with the highest time-mean current speed. Speed, east, and north velocity at that level.</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,sha256:74171097880fff12" alt="Velocity time series at max-speed depth">
+</details>
+
+
+<!-- ══ Stratification: sigma0 + N² + isopycnal depths + spectrum ══ -->
+
+<h2 id="strat">Stratification</h2>
+
+
+
+<p class="note">Potential density. 20 discrete colour levels.</p>
+<details open><summary class="collapse-toggle">show / hide sigma0</summary>
+<img class="fig" src="data:image/png;base64,sha256:3209b08f5fd986b6" alt="Potential density pcolormesh">
+</details>
+
+
+
+<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;">Buoyancy frequency squared (N²)</h3>
+<p class="note">log₁₀(N²) in s⁻². Purple = strongly stratified; yellow = weakly stratified. Computed from T and S via GSW.</p>
+<details open><summary class="collapse-toggle">show / hide N²</summary>
+<img class="fig" src="data:image/png;base64,sha256:2537b115572b40d6" alt="N² pcolormesh">
+</details>
+
+
+
+<h2 id="overflow">Overflow <a class="top-link" href="#top">↑ top</a></h2>
+
+
+
+<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;">Isopycnal coverage diagnostic</h3>
+<p class="note">Percentage of time steps during which each σ₀ surface (0.1&nbsp;kg&nbsp;m⁻³ spacing) lies within the measured column range. Green&nbsp;≥&nbsp;80&nbsp;%; amber&nbsp;50–80&nbsp;%; red&nbsp;&lt;&nbsp;50&nbsp;%. Orange diamond&nbsp;= current <code>--sig-level</code> target. Dashed line&nbsp;=&nbsp;80&nbsp;% threshold. NaN gaps in the tracking figure above correspond to times when the isopycnal is outside the measured range (pycnocline above the shallowest grid level, or below the deepest).</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,sha256:24d54ca33cb44f77" alt="Isopycnal coverage diagnostic">
+</details>
+
+
+
+
+<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;">Isopycnal height above seabed &mdash; sigma0</h3>
+<p class="note">Height above seabed (m) of each target σ₀ surface through time. Tracked by linear interpolation in density space from the gridded sigma0 field; 1-hour running median applied. NaN where the surface outcrops or is outside the observed range. Light blue = lighter water (shallower); dark blue = denser water (deeper). Targets set by <code>--sig-level</code> (default σ₀&nbsp;=&nbsp;27.70).</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,sha256:b850dd144e62efc0" alt="Isopycnal height above seabed">
+</details>
+
+
+
+
+<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;">Temperature ~100 m above seabed</h3>
+<p class="note">1-hour running median temperature at the grid pressure level nearest to 100&nbsp;m above the seabed. Level and height-above-seabed shown in figure title.</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,sha256:f27eea7b46ce5edc" alt="Temperature near seabed">
+</details>
+
+
+
+<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;" id="spectrum">Temperature power spectrum</h3>
+<p class="note"><strong>Left:</strong> low-frequency overview — 14-day Hann windows, 50&nbsp;% overlap. <strong>Right:</strong> high-frequency zoom — 1-day windows (~14&times; more windows, smoother tidal/inertial estimate); x-axis in hours. LF markers: M2, 1.8&nbsp;d, 4&nbsp;d, f. HF markers: M2 (12.4&nbsp;h), f (inertial). Dashed black line: &minus;2 spectral slope. Colour encodes pressure (light blue = shallow, dark blue = deep). Window length controllable via <code>hf_segment_days</code> in <code>_make_spectrum_fig_b64</code>.</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,sha256:24b3faadb982d65d" alt="Temperature power spectrum">
+</details>
+
+
+
+<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;" id="wavelet">Temperature wavelet scalogram</h3>
+<p class="note">Continuous wavelet transform (Morlet, &omega;<sub>0</sub>&nbsp;=&nbsp;6; Torrence &amp; Compo 1998).  Three depth levels: 2nd from top, middle, 2nd from bottom of the 100-dbar-multiple valid levels.  Colour shows log<sub>10</sub>(power) (°C²&nbsp;d); hatched grey region = cone of influence (edge-affected); hatched cross region = gap-filled data; black contour = 95&nbsp;% significance against red noise.</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,sha256:d7387f04a8ab4aa7" alt="Temperature wavelet scalogram">
+</details>
+
+
+
+<h2 id="rotary">Rotary velocity spectrum</h2>
+<p class="note">CW (clockwise, anticyclonic, solid red lines) and CCW (counter-clockwise, cyclonic, dashed blue lines) power spectra and rotary coefficient r&nbsp;=&nbsp;(CCW&minus;CW)/(CCW+CW). Welch PSD, Hann window, 14-day segments, 50&nbsp;% overlap. Up to 4 pressure levels (at most 1/5th of valid levels); colour encodes pressure depth. Vertical lines: M2, K1, 1.8&nbsp;d, 4&nbsp;d, and inertial period (f). r&nbsp;&gt;&nbsp;0&nbsp;=&nbsp;CCW dominant; r&nbsp;&lt;&nbsp;0&nbsp;=&nbsp;CW dominant. Physical interpretation (NH): inertial oscillations are inherently CW; for internal waves (f&nbsp;&lt;&nbsp;&omega;), CW dominance indicates upward energy propagation / downward phase propagation (Leaman &amp; Sanford 1975).</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,sha256:cc2135a07aa21733" alt="Rotary velocity spectrum">
+</details>
+
+
+<!-- ══ NetCDF variables ══ -->
+<h2 id="vars">NetCDF variables &mdash; dune2_1_2026_grid.nc</h2>
+
+
+<h3 style="font-size:0.88rem;color:var(--ocean);margin:1rem 0 0.4rem;">Variables</h3>
+<table class="var-table">
+  <thead>
+    <tr><th>Variable</th><th>Type</th><th>Dims</th><th class="num">N</th><th class="num">Valid</th><th class="num">Min / Max</th><th>Units</th><th>Long name</th><th>Standard name</th><th>QC&nbsp;flag</th></tr>
+  </thead>
+  <tbody>
+    
+    
+    <tr>
+      <td class="mono">conductivity</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time, pressure</td>
+      <td class="num">4,920</td>
+      <td class="num" style="color:#c0392b;font-weight:600">3,879</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">29.22 / 36.3</td>
+      <td>mS/cm</td>
+      <td>Conductivity</td>
+      <td style="font-size:0.78rem;color:var(--muted)">sea_water_electrical_conductivity</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">current_direction</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time, pressure</td>
+      <td class="num">4,920</td>
+      <td class="num" style="color:#c0392b;font-weight:600">3,511</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">1.051 / 359.3</td>
+      <td>degrees</td>
+      <td>Current direction (0=N, clockwise)</td>
+      <td style="font-size:0.78rem;color:var(--muted)">direction_of_sea_water_velocity</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">current_speed</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time, pressure</td>
+      <td class="num">4,920</td>
+      <td class="num" style="color:#c0392b;font-weight:600">3,511</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">0.0162 / 0.9045</td>
+      <td>m s-1</td>
+      <td>Horizontal current speed</td>
+      <td style="font-size:0.78rem;color:var(--muted)">sea_water_speed</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">east_velocity</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time, pressure</td>
+      <td class="num">4,920</td>
+      <td class="num" style="color:#c0392b;font-weight:600">3,511</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.8029 / 0.7687</td>
+      <td>m s-1</td>
+      <td>Eastward sea water velocity</td>
+      <td style="font-size:0.78rem;color:var(--muted)">eastward_sea_water_velocity</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">north_velocity</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time, pressure</td>
+      <td class="num">4,920</td>
+      <td class="num" style="color:#c0392b;font-weight:600">3,511</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.7064 / 0.7343</td>
+      <td>m s-1</td>
+      <td>Northward sea water velocity</td>
+      <td style="font-size:0.78rem;color:var(--muted)">northward_sea_water_velocity</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">salinity</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time, pressure</td>
+      <td class="num">4,920</td>
+      <td class="num" style="color:#c0392b;font-weight:600">3,879</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">34.57 / 35.54</td>
+      <td>1</td>
+      <td>Practical Salinity</td>
+      <td style="font-size:0.78rem;color:var(--muted)">sea_water_practical_salinity</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">sigma0</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time, pressure</td>
+      <td class="num">4,920</td>
+      <td class="num" style="color:#c0392b;font-weight:600">3,879</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">27.43 / 28.05</td>
+      <td>kg m-3</td>
+      <td>Potential density anomaly referenced to surface (sigma-0)</td>
+      <td style="font-size:0.78rem;color:var(--muted)">sea_water_sigma_t</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">temperature</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time, pressure</td>
+      <td class="num">4,920</td>
+      <td class="num" style="color:#c0392b;font-weight:600">4,201</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.06961 / 8.025</td>
+      <td>degC</td>
+      <td>Temperature</td>
+      <td style="font-size:0.78rem;color:var(--muted)">sea_water_temperature</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">up_velocity</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time, pressure</td>
+      <td class="num">4,920</td>
+      <td class="num" style="color:#c0392b;font-weight:600">3,511</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.2906 / 0.4569</td>
+      <td>m s-1</td>
+      <td>Upward sea water velocity</td>
+      <td style="font-size:0.78rem;color:var(--muted)">upward_sea_water_velocity</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+  </tbody>
+</table>
+
+
+
+
+<h3 style="font-size:0.88rem;color:var(--ocean);margin:1.4rem 0 0.4rem;">Global attributes</h3>
+<table class="var-table">
+  <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+  <tbody>
+    
+    <tr>
+      <td class="mono">mooring_name</td>
+      <td style="font-size:0.8rem;word-break:break-all">dune2_1_2026</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">waterdepth</td>
+      <td style="font-size:0.8rem;word-break:break-all">745</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">latitude</td>
+      <td style="font-size:0.8rem;word-break:break-all">65 43.913</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">longitude</td>
+      <td style="font-size:0.8rem;word-break:break-all">-27 48.000</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">deployment_time</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-11T20:30:00.000000000</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">recovery_time</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T11:44:00.000000000</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">dt_seconds</td>
+      <td style="font-size:0.8rem;word-break:break-all">3600</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">Conventions</td>
+      <td style="font-size:0.8rem;word-break:break-all">CF-1.13</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">p_start_dbar</td>
+      <td style="font-size:0.8rem;word-break:break-all">100.0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">p_end_dbar</td>
+      <td style="font-size:0.8rem;word-break:break-all">800.0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">dp_dbar</td>
+      <td style="font-size:0.8rem;word-break:break-all">50.0</td>
+    </tr>
+    
+  </tbody>
+</table>
+
+
+
+
+<div class="report-footer">
+  Generated by <strong>oceanarray</strong> on <GENERATED> &bull; EFWmac14
+</div>
+<script>
+  document.querySelectorAll('h2').forEach(h => {
+    const a = document.createElement('a'); a.href = '#top'; a.className = 'top-link'; a.textContent = '↑ top'; h.appendChild(a);
+  });
+</script>
+</body>
+</html>

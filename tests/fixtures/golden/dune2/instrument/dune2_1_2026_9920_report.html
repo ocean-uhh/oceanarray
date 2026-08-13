@@ -1,0 +1,1643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aquadopp 9920 &mdash; dune2_1_2026</title>
+<style>
+  :root {
+    --ocean:  #1a3a5c; --seafoam: #e8f4f8;
+    --good:   #27ae60; --warn:    #e67e22; --bad: #c0392b;
+    --interp: #2980b9; --muted:   #95a5a6; --text: #2c3e50;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui,-apple-system,"Segoe UI",sans-serif; font-size:14px;
+         color:var(--text); max-width:1150px; margin:0 auto; padding:1.5rem 2rem 4rem; line-height:1.5; }
+  .masthead { background:#1e8449; color:#fff; padding:1.6rem 2rem;
+              border-radius:8px; margin-bottom:2rem; }
+  .masthead h1 { margin:0 0 0.3rem; font-size:1.75rem; font-weight:700; letter-spacing:0.02em; }
+  .masthead .sub { font-size:0.9rem; opacity:0.88; margin:0 0 0.15rem; }
+  .masthead .sub a { color:#d5f5e3; font-weight:600; text-decoration:none; }
+  .masthead .sub a:hover { text-decoration:underline; }
+  .meta-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+               gap:0.45rem 2rem; font-size:0.83rem; margin-top:0.9rem; }
+  .meta-grid dt { opacity:0.7; text-transform:uppercase; font-size:0.68rem;
+                  letter-spacing:0.06em; margin-bottom:0.1rem; }
+  .meta-grid dd { margin:0; font-weight:600; }
+  .meta-miss dd { color:#e67e22; opacity:1; }
+  .file-table { width:100%; border-collapse:collapse; font-size:0.81rem; margin-bottom:1.2rem; }
+  .file-table th { background:var(--seafoam); text-align:left; padding:0.35rem 0.65rem;
+                   border-bottom:2px solid #cde; font-weight:600; }
+  .file-table td { padding:0.3rem 0.65rem; border-bottom:1px solid #eef; vertical-align:middle; }
+  .file-table tr:nth-child(even) td { background:#f4f9fc; }
+  .file-table .ok { color:var(--good); font-weight:700; }
+  .file-table .miss { color:#bbb; }
+  h2 { color:var(--ocean); font-size:1rem; border-bottom:2px solid var(--seafoam);
+       padding-bottom:0.3rem; margin:2.2rem 0 0.9rem;
+       display:flex; justify-content:space-between; align-items:baseline; }
+  .top-link { font-size:0.72rem; font-weight:400; color:var(--muted);
+              text-decoration:none; margin-left:auto; white-space:nowrap; }
+  .top-link:hover { color:var(--ocean); text-decoration:underline; }
+  table { width:100%; border-collapse:collapse; font-size:0.82rem; }
+  th { background:var(--ocean); color:#fff; padding:0.4rem 0.65rem;
+       text-align:left; font-weight:600; white-space:nowrap; }
+  td { padding:0.35rem 0.65rem; border-bottom:1px solid #ecf0f1; vertical-align:middle; }
+  tr:nth-child(even) td { background:var(--seafoam); }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  td.mono { font-family:monospace; font-size:0.8rem; }
+  .none-note { color:var(--muted); font-style:italic; }
+  .badge { display:inline-block; padding:0.12em 0.45em; border-radius:3px;
+           font-size:0.7rem; font-weight:700; white-space:nowrap; }
+  .b-ok   { background:var(--good);   color:#fff; }
+  .b-warn { background:var(--warn);   color:#fff; }
+  .b-miss { background:#dfe6e9;       color:#999; }
+  .history-list { list-style:none; padding:0; margin:0; }
+  .history-list li { display:flex; gap:1rem; padding:0.3rem 0;
+                     border-bottom:1px solid #f0f0f0; font-size:0.83rem; }
+  .history-list li:last-child { border-bottom:none; }
+  .history-ts { color:var(--muted); white-space:nowrap; font-size:0.76rem;
+                min-width:11rem; padding-top:0.05rem; }
+  .history-text { flex:1; }
+  img.fig { width:100%; max-width:100%; border-radius:4px; margin-bottom:0.5rem; }
+  .qc-bar { display:flex; width:180px; height:13px; border-radius:3px;
+             overflow:hidden; gap:1px; background:#ecf0f1; }
+  .qc-bar div { height:100%; }
+  .var-qc { color:var(--good); font-size:0.78rem; }
+  .report-footer { margin-top:3rem; font-size:0.76rem; color:var(--muted);
+                   border-top:1px solid #ecf0f1; padding-top:0.75rem; }
+  .jump-nav { background:var(--seafoam); padding:0.55rem 1rem; border-radius:6px;
+              margin-bottom:1.5rem; font-size:0.8rem; line-height:2.2; }
+  .jump-nav a { color:var(--ocean); text-decoration:none; font-weight:600;
+                margin:0 0.5rem 0 0; white-space:nowrap; }
+  .jump-nav a::before { content:"▸ "; font-size:0.7rem; }
+  .jump-nav a:hover { text-decoration:underline; }
+  @media print {
+    body { padding:0; max-width:100%; }
+    .masthead, th { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    h2 { page-break-after:avoid; }
+  }
+</style>
+</head>
+<body>
+
+<div id="top" class="masthead">
+  <h1>Aquadopp&ensp;&mdash;&ensp;s/n&nbsp;9920</h1>
+  <p class="sub" style="display:flex;justify-content:space-between"><span>dune2_1_2026</span><span>generated <GENERATED></span></p>
+  <div style="margin-top:0.65rem"><div style="margin-bottom:0.25rem"><span style="font-size:0.72rem;opacity:0.75;margin-right:0.3rem;white-space:nowrap;vertical-align:middle;">Reports:</span><a href="../dune2_1_2026_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#1a3a5c">Summary</a><a href="../dune2_1_2026_stack_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#2980b9">Stack</a><a href="../dune2_1_2026_grid_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#8e44ad">Grid</a></div><div style="margin-bottom:0.1rem"><span style="font-size:0.72rem;opacity:0.75;margin-right:0.3rem;white-space:nowrap;vertical-align:middle;">Aquadopp:</span><span style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;opacity:0.45;background:#27ae60" title="current">9920</span></div><div style="margin-bottom:0.1rem"><span style="font-size:0.72rem;opacity:0.75;margin-right:0.3rem;white-space:nowrap;vertical-align:middle;">Microcat:</span><a href="dune2_1_2026_2941_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#27ae60">2941</a></div></div>
+  <dl class="meta-grid">
+    <div><dt>Cruise</dt><dd>OdB</dd></div>
+    <div><dt>HAB</dt><dd>226.0&thinsp;m</dd></div>
+    <div><dt>Depth</dt><dd>~519&thinsp;m</dd></div>
+    <div><dt>Start</dt><dd>2026-07-11 20:30</dd></div>
+    <div><dt>End</dt><dd>2026-07-25 11:43</dd></div>
+    <div><dt>Duration</dt><dd>13d 15h</dd></div>
+    <div><dt>Samp.&nbsp;&Delta;t</dt><dd>120 s</dd></div>
+    <div><dt>Records</dt><dd>9,818</dd></div>
+    <div><dt>Source&nbsp;file</dt><dd>dune2_1_2026_9920_stage3.nc</dd></div>
+  </dl>
+</div>
+
+<nav class="jump-nav">
+  Jump to:
+  <a href="#files">Files</a>
+  <a href="#history">History</a>
+  
+  <a href="#timeseries">Time series</a>
+  <a href="#start">Start/end windows</a>
+  
+  
+  <a href="#rose">Current roses</a>
+  <a href="#trajectory">Trajectory</a>
+  <a href="#hodograph">Hodograph</a>
+  <a href="#speed">Speed distribution</a>
+  
+  <a href="#dist">Distributions</a>
+  <a href="#qc">QC thresholds &amp; flags</a>
+  <a href="#dims">Dimensions</a>
+  <a href="#vars">Variables</a>
+</nav>
+
+<!-- ══ Files ══ -->
+<h2 id="files">Files</h2>
+<table class="file-table">
+  <thead><tr><th>Stage</th><th>Filename</th><th>Size</th><th>Last modified</th></tr></thead>
+  <tbody>
+  
+  <tr>
+    <td>Raw</td>
+    <td class="mono">9920_recovery.dat</td>
+    <td colspan="2">&mdash; not checked (no --raw-dir)</td>
+  </tr>
+  
+  
+  <tr>
+    <td>Stage1</td>
+    
+    <td class="mono">dune2_1_2026_9920_stage1.nc</td>
+    <td class="num">1 MB</td>
+    <td>2026-08-07 08:00 UTC</td>
+    
+  </tr>
+  
+  <tr>
+    <td>Stage2</td>
+    
+    <td class="mono">dune2_1_2026_9920_stage2.nc</td>
+    <td class="num">1 MB</td>
+    <td>2026-08-07 08:00 UTC</td>
+    
+  </tr>
+  
+  <tr>
+    <td>Stage3</td>
+    
+    <td class="mono">dune2_1_2026_9920_stage3.nc</td>
+    <td class="num">2 MB</td>
+    <td>2026-08-06 14:37 UTC</td>
+    
+  </tr>
+  
+  </tbody>
+</table>
+
+<!-- ══ Processing history ══ -->
+<h2 id="history">Processing history</h2>
+
+<ul class="history-list">
+  
+  <li>
+    <span class="history-ts"></span>
+    <span class="history-text">2026-07-26T18:41:57.504269Z - Processed by SeaSenseLib v0.6.0</span>
+  </li>
+  
+  <li>
+    <span class="history-ts">Reader</span>
+    <span class="history-text">NortekAsciiReader</span>
+  </li>
+  
+  <li>
+    <span class="history-ts">Format</span>
+    <span class="history-text">Nortek ASCII</span>
+  </li>
+  
+  <li>
+    <span class="history-ts">Source file</span>
+    <span class="history-text">9920_recovery.dat</span>
+  </li>
+  
+  <li>
+    <span class="history-ts">Stages</span>
+    <span class="history-text">finalization, mapping, metadata_enrichment, metadata_extraction, unit_handling, validation</span>
+  </li>
+  
+  <li>
+    <span class="history-ts">2026-07-29T12:10Z</span>
+    <span class="history-text">clock_drift=-55.0s over deployment (computer=20260725T13:13:20, instrument=20260725T13:14:15)</span>
+  </li>
+  
+  <li>
+    <span class="history-ts">2026-07-29T12:10Z</span>
+    <span class="history-text">tilt QC (tilt≥30.0°→suspect, tilt≥50.0°→bad): suspect=1039, bad=0 | BEAM→ENU rotation applied: beam_angle=?° (from YAML), declination=-13.97° (ppigrf IGRF) | QARTOD gross-range+spike: east_velocity_qc=[good=8731, suspect=1087]</span>
+  </li>
+  
+  <li>
+    <span class="history-ts"></span>
+    <span class="history-text">north_velocity_qc=[good=8731, suspect=1087]</span>
+  </li>
+  
+  <li>
+    <span class="history-ts"></span>
+    <span class="history-text">pressure_qc=[good=9816]</span>
+  </li>
+  
+  <li>
+    <span class="history-ts"></span>
+    <span class="history-text">temperature_qc=[good=9816]</span>
+  </li>
+  
+  <li>
+    <span class="history-ts"></span>
+    <span class="history-text">up_velocity_qc=[good=8731, suspect=1087]</span>
+  </li>
+  
+  <li>
+    <span class="history-ts"></span>
+    <span class="history-text">velocity_beam1_qc=[good=8779, suspect=1039]</span>
+  </li>
+  
+  <li>
+    <span class="history-ts"></span>
+    <span class="history-text">velocity_beam2_qc=[good=8779, suspect=1039]</span>
+  </li>
+  
+  <li>
+    <span class="history-ts"></span>
+    <span class="history-text">velocity_beam3_qc=[good=8779, suspect=1039]</span>
+  </li>
+  
+</ul>
+
+
+<!-- ══ ADCP velocity colour plots ══ -->
+
+
+<!-- ══ Full time series ══ -->
+<h2 id="timeseries">Time series (full deployment)</h2>
+
+
+<img class="fig" src="data:image/png;base64,sha256:fb37d9ad5b815cf6"
+     title="line = data; × = suspect; × = bad; + = interpolated">
+
+<img class="fig" src="data:image/png;base64,sha256:f52ad0ee4a53c27a"
+     title="line = data; × = suspect; × = bad; + = interpolated">
+
+
+
+<!-- ══ Start / end windows ══ -->
+<h2 id="start">Start &amp; end windows &mdash; first / last 6 h</h2>
+
+<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+  Left panel = first 7&thinsp;h (1&thinsp;h lead-in + 6&thinsp;h of record) &nbsp;|&nbsp;
+  Right panel = last 7&thinsp;h (6&thinsp;h of record + 1&thinsp;h tail).
+  <span style="color:#e67e22">&#9474;&#9474; orange dashed</span> = auto-detected
+  (pressure-based) suggested deploy/recover time &bull;
+  <span style="color:#27ae60">&#9474;&#9474; green dashed</span> = YAML
+  <code>deployment_time</code> / <code>recovery_time</code> &bull;
+  <span style="color:#cccccc">&#9474;&#9474; grey</span> = stage&nbsp;1 raw record
+  (same variable, same units).
+</p>
+<p style="font-size:0.78rem;color:#777;margin-top:0.3rem;">
+  <strong>Reading the grey background:</strong>
+  where the raw stage&nbsp;1 record is available and uses the same physical
+  units as the stage&nbsp;2/3 data, it is shown in light grey so you can
+  visually verify that the chosen deployment window captures the in-water
+  period.  Cases where grey may be absent:
+  <ul style="margin:0.3em 0 0.3em 1.2em;padding:0">
+    <li><em>Sensors without their own pressure</em> (e.g. a microCAT that
+    relies on interpolated pressure from a nearby instrument) — interpolated
+    pressure is only added at stage&nbsp;3, so stage&nbsp;1 has no pressure
+    variable and no grey trace appears.</li>
+    <li><em>Velocity in beam or XYZ coordinates</em> — if an Aquadopp or
+    ADCP was configured to record in BEAM or XYZ mode, the stage&nbsp;1 file
+    contains beam/XYZ velocity variables while stage&nbsp;3 stores
+    ENU velocities; the variable names differ so no grey velocity trace is shown.</li>
+    <li><em>Conductivity</em> — raw conductivity units sometimes differ
+    between stage&nbsp;1 and stage&nbsp;3 (e.g.&nbsp;mS/cm vs S/m) and the
+    grey trace is suppressed automatically to avoid a misleading scale mismatch.</li>
+  </ul>
+  If the <span style="color:#e67e22">orange vline</span> is absent from the right-hand panel,
+  no pressure-based recovery transition was detected in the final 25&thinsp;% of the
+  stage&nbsp;1 record — the suggested recovery time equals the last raw sample.
+  Check the timing table in the mooring summary report for the suggested UTC time.
+</p>
+
+<img class="fig" src="data:image/png;base64,sha256:3e5a6232e0d8dcd6">
+
+<img class="fig" src="data:image/png;base64,sha256:d0820b71f5024598">
+
+
+
+<!-- ══ T-S diagram ══ -->
+
+
+<!-- ══ ADCP current roses ══ -->
+
+
+<!-- ══ Current roses ══ -->
+
+<h2 id="rose">Current rose diagrams</h2>
+
+<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+  XYZ: instrument-frame velocities (before geographic rotation). ENU panels split by QARTOD flag: good (flag&nbsp;≤&nbsp;2, Blues), suspect (flag&nbsp;3, Oranges), fail (flag&nbsp;4, Reds).
+  Direction toward which the current flows; 0°&nbsp;=&nbsp;N, clockwise.
+</p>
+<img class="fig" style="max-width:66%" src="data:image/png;base64,sha256:529269fd09548304">
+
+
+<!-- ══ Lagrangian trajectory ══ -->
+
+<h2 id="trajectory">Particle trajectory</h2>
+<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+  Pseudo-Lagrangian displacement obtained by integrating east/north velocity over time
+  (Euler forward; NaN velocities set to zero).  Coloured by temperature.
+  Origin (0,&nbsp;0) = deployment position; axes in metres.
+</p>
+<img class="fig" src="data:image/png;base64,sha256:c5c149435667a938" style="max-width:600px;">
+
+
+<!-- ══ Hodograph ══ -->
+
+<h2 id="hodograph">Hodograph</h2>
+<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+  East vs north velocity (m&nbsp;s<sup>-1</sup>).
+  <b>Left</b>: full record.
+  <b>Right</b>: eddy component — raw minus 4-day low-pass (rolling mean).
+</p>
+<img class="fig" src="data:image/png;base64,sha256:23662ba832e2d61e">
+
+
+<!-- ══ Speed distribution ══ -->
+
+<h2 id="speed">Current speed distribution</h2>
+<img class="fig" src="data:image/png;base64,sha256:035d56afeb369462" style="max-width:300px;">
+
+
+<!-- ══ Analog channels ══ -->
+
+
+<!-- ══ Data distributions ══ -->
+<h2 id="dist">Data value distributions</h2>
+<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+  Orange dashed = suspect threshold &nbsp;|&nbsp; Red dotted = fail threshold (gross-range QC).
+  Histogram shows non-bad data only; bad-flagged count noted in red.
+</p>
+
+<img class="fig" src="data:image/png;base64,sha256:8f0aba877dc8930f">
+
+
+<!-- ══ QC flag breakdown ══ -->
+
+<h2 id="qc">QC flag breakdown</h2>
+
+
+<h3 style="font-size:0.85rem;color:var(--ocean);margin:0.8rem 0 0.3rem;">Thresholds applied (as stored in stage&nbsp;3 file)</h3>
+<table style="font-size:0.82rem;margin-bottom:1rem;">
+  <thead>
+    <tr>
+      <th>Variable</th>
+      <th>Test</th>
+      <th>Suspect range / threshold</th>
+      <th>Fail range / threshold</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+    <tr>
+      <td class="mono">pressure</td>
+      <td>gross-range</td>
+      <td class="num" style="color:var(--warn);font-family:monospace">[-0.5, 7000.0]</td>
+      <td class="num" style="color:var(--bad);font-family:monospace">[-5.0, 7000.0]</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">pressure</td>
+      <td>spike</td>
+      <td class="num" style="color:var(--warn);font-family:monospace">|Δ| &gt; 10.0</td>
+      <td class="num" style="color:var(--bad);font-family:monospace">|Δ| &gt; 50.0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">pressure</td>
+      <td>flat-line</td>
+      <td class="num" style="color:var(--warn);font-family:monospace">stuck ≥ 3 samples</td>
+      <td class="num" style="color:var(--bad);font-family:monospace">stuck ≥ 10 samples</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">temperature</td>
+      <td>gross-range</td>
+      <td class="num" style="color:var(--warn);font-family:monospace">[-2.0, 35.0]</td>
+      <td class="num" style="color:var(--bad);font-family:monospace">[-2.5, 40.0]</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">temperature</td>
+      <td>spike</td>
+      <td class="num" style="color:var(--warn);font-family:monospace">|Δ| &gt; 2.0</td>
+      <td class="num" style="color:var(--bad);font-family:monospace">|Δ| &gt; 6.0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">roll (tilt)</td>
+      <td>tilt</td>
+      <td class="num" style="color:var(--warn);font-family:monospace">&gt;30.0°</td>
+      <td class="num" style="color:var(--bad);font-family:monospace">&gt;50.0°</td>
+    </tr>
+    
+  </tbody>
+</table>
+
+
+<h3 style="font-size:0.85rem;color:var(--ocean);margin:0.8rem 0 0.3rem;">Flag counts</h3>
+<table>
+  <thead>
+    <tr>
+      <th>Variable</th>
+      <th class="num">N</th>
+      <th class="num">Good&nbsp;%</th>
+      <th class="num">Suspect&nbsp;%</th>
+      <th class="num">Bad&nbsp;%</th>
+      <th class="num">Interp.&nbsp;%</th>
+      <th class="num">Missing&nbsp;%</th>
+      <th>Distribution</th>
+    </tr>
+  </thead>
+  <tbody>
+    
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">east_velocity</td>
+      <td class="num">9,818</td>
+      <td class="num" style="color:var(--warn)">88.9</td>
+      <td class="num"><span style="color:var(--warn)" title="1087 records">11.1</span></td>
+      <td class="num">&ndash;</td>
+      <td class="num">&ndash;</td>
+      <td class="num">&ndash;</td>
+      <td>
+        <div class="qc-bar">
+          
+          <div style="width:88.9%;background:#27ae60;" title="good: 88.9%"></div>
+          
+          <div style="width:11.1%;background:#f39c12;" title="corr. bad: 11.1%"></div>
+          
+        </div>
+      </td>
+    </tr>
+    
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">north_velocity</td>
+      <td class="num">9,818</td>
+      <td class="num" style="color:var(--warn)">88.9</td>
+      <td class="num"><span style="color:var(--warn)" title="1087 records">11.1</span></td>
+      <td class="num">&ndash;</td>
+      <td class="num">&ndash;</td>
+      <td class="num">&ndash;</td>
+      <td>
+        <div class="qc-bar">
+          
+          <div style="width:88.9%;background:#27ae60;" title="good: 88.9%"></div>
+          
+          <div style="width:11.1%;background:#f39c12;" title="corr. bad: 11.1%"></div>
+          
+        </div>
+      </td>
+    </tr>
+    
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">pressure</td>
+      <td class="num">9,818</td>
+      <td class="num" style="color:var(--good)">100.0</td>
+      <td class="num">&ndash;</td>
+      <td class="num">&ndash;</td>
+      <td class="num">&ndash;</td>
+      <td class="num">&ndash;</td>
+      <td>
+        <div class="qc-bar">
+          
+          <div style="width:100.0%;background:#27ae60;" title="good: 100.0%"></div>
+          
+        </div>
+      </td>
+    </tr>
+    
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">temperature</td>
+      <td class="num">9,818</td>
+      <td class="num" style="color:var(--good)">100.0</td>
+      <td class="num">&ndash;</td>
+      <td class="num">&ndash;</td>
+      <td class="num">&ndash;</td>
+      <td class="num">&ndash;</td>
+      <td>
+        <div class="qc-bar">
+          
+          <div style="width:100.0%;background:#27ae60;" title="good: 100.0%"></div>
+          
+        </div>
+      </td>
+    </tr>
+    
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">up_velocity</td>
+      <td class="num">9,818</td>
+      <td class="num" style="color:var(--warn)">88.9</td>
+      <td class="num"><span style="color:var(--warn)" title="1087 records">11.1</span></td>
+      <td class="num">&ndash;</td>
+      <td class="num">&ndash;</td>
+      <td class="num">&ndash;</td>
+      <td>
+        <div class="qc-bar">
+          
+          <div style="width:88.9%;background:#27ae60;" title="good: 88.9%"></div>
+          
+          <div style="width:11.1%;background:#f39c12;" title="corr. bad: 11.1%"></div>
+          
+        </div>
+      </td>
+    </tr>
+    
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">velocity_beam1</td>
+      <td class="num">9,818</td>
+      <td class="num" style="color:var(--warn)">89.4</td>
+      <td class="num"><span style="color:var(--warn)" title="1039 records">10.6</span></td>
+      <td class="num">&ndash;</td>
+      <td class="num">&ndash;</td>
+      <td class="num">&ndash;</td>
+      <td>
+        <div class="qc-bar">
+          
+          <div style="width:89.4%;background:#27ae60;" title="good: 89.4%"></div>
+          
+          <div style="width:10.6%;background:#f39c12;" title="corr. bad: 10.6%"></div>
+          
+        </div>
+      </td>
+    </tr>
+    
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">velocity_beam2</td>
+      <td class="num">9,818</td>
+      <td class="num" style="color:var(--warn)">89.4</td>
+      <td class="num"><span style="color:var(--warn)" title="1039 records">10.6</span></td>
+      <td class="num">&ndash;</td>
+      <td class="num">&ndash;</td>
+      <td class="num">&ndash;</td>
+      <td>
+        <div class="qc-bar">
+          
+          <div style="width:89.4%;background:#27ae60;" title="good: 89.4%"></div>
+          
+          <div style="width:10.6%;background:#f39c12;" title="corr. bad: 10.6%"></div>
+          
+        </div>
+      </td>
+    </tr>
+    
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">velocity_beam3</td>
+      <td class="num">9,818</td>
+      <td class="num" style="color:var(--warn)">89.4</td>
+      <td class="num"><span style="color:var(--warn)" title="1039 records">10.6</span></td>
+      <td class="num">&ndash;</td>
+      <td class="num">&ndash;</td>
+      <td class="num">&ndash;</td>
+      <td>
+        <div class="qc-bar">
+          
+          <div style="width:89.4%;background:#27ae60;" title="good: 89.4%"></div>
+          
+          <div style="width:10.6%;background:#f39c12;" title="corr. bad: 10.6%"></div>
+          
+        </div>
+      </td>
+    </tr>
+    
+  </tbody>
+</table>
+
+
+<!-- ══ NetCDF dimensions ══ -->
+
+<h2 id="dims">NetCDF dimensions &mdash; dune2_1_2026_9920_stage3.nc</h2>
+<table class="var-table" style="max-width:28rem">
+  <thead><tr><th>Dimension</th><th class="num">Size</th></tr></thead>
+  <tbody>
+    
+    <tr><td class="mono">time</td><td class="num">9,818</td></tr>
+    
+    <tr><td class="mono">beam</td><td class="num">3</td></tr>
+    
+  </tbody>
+</table>
+
+
+<!-- ══ NetCDF variables ══ -->
+<h2 id="vars">NetCDF variables &mdash; dune2_1_2026_9920_stage3.nc</h2>
+
+
+<h3 style="font-size:0.88rem;color:var(--ocean);margin:1rem 0 0.4rem;">Time-series variables</h3>
+<table>
+  <thead>
+    <tr><th>Variable</th><th>Type</th><th>Dims</th><th class="num">N</th><th class="num">Valid</th><th class="num">Min / Max</th><th>Units</th><th>Long name</th><th>Standard name</th><th>QC&nbsp;flag</th></tr>
+  </thead>
+  <tbody>
+    
+    
+    <tr>
+      <td class="mono">amplitude</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time, beam</td>
+      <td class="num">29,454</td>
+      <td class="num" >29,454</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">63 / 130</td>
+      <td>counts</td>
+      <td>Acoustic signal amplitude</td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">battery_voltage</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">12.1 / 12.4</td>
+      <td>volts</td>
+      <td>Battery voltage</td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">battery_voltage</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">current_direction</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">0.06001 / 359.9</td>
+      <td>degrees</td>
+      <td>Current direction (0=N, clockwise)</td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">direction_of_sea_water_velocity</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">current_speed</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">0.005791 / 0.9213</td>
+      <td>m s-1</td>
+      <td>Horizontal current speed</td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">sea_water_speed</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">day</td>
+      <td class="mono" style="font-size:0.75rem">int32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td>1-31</td>
+      <td></td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">depth</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">557.3 / 688.1</td>
+      <td>meters</td>
+      <td>Depth</td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">depth</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">direction</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">0 / 0</td>
+      <td>degrees</td>
+      <td>Current direction</td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">direction</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">east_velocity</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.8975 / 0.7406</td>
+      <td>m s-1</td>
+      <td>Eastward sea water velocity</td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">eastward_sea_water_velocity</td>
+      <td style="text-align:center"><span class="var-qc">✓</span></td>
+    </tr>
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">error_code</td>
+      <td class="mono" style="font-size:0.75rem">int32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td></td>
+      <td></td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">heading</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">0 / 359.7</td>
+      <td>degrees</td>
+      <td>Heading angle</td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">platform_heading_angle</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">hour</td>
+      <td class="mono" style="font-size:0.75rem">int32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td>0-23</td>
+      <td></td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">magnitude</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">0 / 0</td>
+      <td>m s-1</td>
+      <td>Current magnitude</td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">magnitude</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">minute</td>
+      <td class="mono" style="font-size:0.75rem">int32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td>0-59</td>
+      <td></td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">month</td>
+      <td class="mono" style="font-size:0.75rem">int32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td>1-12</td>
+      <td></td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">north_velocity</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.6844 / 0.7064</td>
+      <td>m s-1</td>
+      <td>Northward sea water velocity</td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">northward_sea_water_velocity</td>
+      <td style="text-align:center"><span class="var-qc">✓</span></td>
+    </tr>
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">pitch</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">-36.6 / 1.5</td>
+      <td>degrees</td>
+      <td>Pitch angle</td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">platform_pitch_angle</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">pressure</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">561.2 / 693</td>
+      <td>dbar</td>
+      <td>Pressure</td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">sea_water_pressure</td>
+      <td style="text-align:center"><span class="var-qc">✓</span></td>
+    </tr>
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">roll</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">-18.1 / 15.7</td>
+      <td>degrees</td>
+      <td>Roll angle</td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">platform_roll_angle</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">second</td>
+      <td class="mono" style="font-size:0.75rem">int32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td>0-59</td>
+      <td></td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">speed_of_sound</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">1449 / 1479</td>
+      <td>m s-1</td>
+      <td>Speed of sound in sea water</td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">speed_of_sound_in_sea_water</td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">speed_of_sound_used</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">1459 / 1488</td>
+      <td>m s-1</td>
+      <td></td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">status_code</td>
+      <td class="mono" style="font-size:0.75rem">int32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td></td>
+      <td></td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">temperature</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.05 / 7.02</td>
+      <td>degC</td>
+      <td>Temperature</td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">sea_water_temperature</td>
+      <td style="text-align:center"><span class="var-qc">✓</span></td>
+    </tr>
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">up_velocity</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.4767 / 0.5587</td>
+      <td>m s-1</td>
+      <td>Upward sea water velocity</td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">upward_sea_water_velocity</td>
+      <td style="text-align:center"><span class="var-qc">✓</span></td>
+    </tr>
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">velocity_beam1</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.845 / 0.855</td>
+      <td>m s-1</td>
+      <td></td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
+      <td style="text-align:center"><span class="var-qc">✓</span></td>
+    </tr>
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">velocity_beam2</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.319 / 0.424</td>
+      <td>m s-1</td>
+      <td></td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
+      <td style="text-align:center"><span class="var-qc">✓</span></td>
+    </tr>
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">velocity_beam3</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.653 / 0.268</td>
+      <td>m s-1</td>
+      <td></td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
+      <td style="text-align:center"><span class="var-qc">✓</span></td>
+    </tr>
+    
+    
+    
+    
+    
+    <tr>
+      <td class="mono">velocity_x</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.6451 / 0.7804</td>
+      <td>m s-1</td>
+      <td>X velocity (instrument XYZ frame)</td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">velocity_y</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.6415 / 0.2879</td>
+      <td>m s-1</td>
+      <td>Y velocity (instrument XYZ frame)</td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">velocity_z</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.7935 / 0.8196</td>
+      <td>m s-1</td>
+      <td>Z velocity (instrument XYZ frame)</td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+    
+    <tr>
+      <td class="mono">year</td>
+      <td class="mono" style="font-size:0.75rem">int32</td>
+      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num">9,818</td>
+      <td class="num" >9,818</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td></td>
+      <td></td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
+      <td style="text-align:center">&ndash;</td>
+    </tr>
+    
+    
+  </tbody>
+</table>
+
+
+<h3 style="font-size:0.88rem;color:var(--ocean);margin:1.4rem 0 0.4rem;">Scalar metadata variables</h3>
+<table>
+  <thead>
+    <tr><th>Variable</th><th>Type</th><th>Value</th><th>Units</th><th>Long name</th></tr>
+  </thead>
+  <tbody>
+    
+    <tr>
+      <td class="mono">InstrDepth</td>
+      <td class="mono" style="font-size:0.75rem">int32</td>
+      <td class="mono" style="font-size:0.78rem;word-break:break-all">519</td>
+      <td></td>
+      <td></td>
+    </tr>
+    
+    <tr>
+      <td class="mono">clock_drift_seconds</td>
+      <td class="mono" style="font-size:0.75rem">float32</td>
+      <td class="mono" style="font-size:0.78rem;word-break:break-all">-55.0</td>
+      <td>s</td>
+      <td>total linear clock drift applied</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">clock_offset</td>
+      <td class="mono" style="font-size:0.75rem">int32</td>
+      <td class="mono" style="font-size:0.78rem;word-break:break-all">0</td>
+      <td>s</td>
+      <td></td>
+    </tr>
+    
+    <tr>
+      <td class="mono">end_time</td>
+      <td class="mono" style="font-size:0.75rem">&lt;U16</td>
+      <td class="mono" style="font-size:0.78rem;word-break:break-all">2026-07-25T11:44</td>
+      <td></td>
+      <td></td>
+    </tr>
+    
+    <tr>
+      <td class="mono">instrument</td>
+      <td class="mono" style="font-size:0.75rem">&lt;U8</td>
+      <td class="mono" style="font-size:0.78rem;word-break:break-all">aquadopp</td>
+      <td></td>
+      <td></td>
+    </tr>
+    
+    <tr>
+      <td class="mono">serial_number</td>
+      <td class="mono" style="font-size:0.75rem">&lt;U5</td>
+      <td class="mono" style="font-size:0.78rem;word-break:break-all">9920*</td>
+      <td></td>
+      <td></td>
+    </tr>
+    
+    <tr>
+      <td class="mono">start_time</td>
+      <td class="mono" style="font-size:0.75rem">&lt;U16</td>
+      <td class="mono" style="font-size:0.78rem;word-break:break-all">2026-07-11T20:30</td>
+      <td></td>
+      <td></td>
+    </tr>
+    
+  </tbody>
+</table>
+
+
+
+<h3 style="font-size:0.88rem;color:var(--ocean);margin:1.4rem 0 0.4rem;">Global attributes</h3>
+<table>
+  <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+  <tbody>
+    
+    <tr>
+      <td class="mono">raw_format</td>
+      <td style="font-size:0.8rem;word-break:break-all">nortek-ascii</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">raw_filename</td>
+      <td style="font-size:0.8rem;word-break:break-all">9920_recovery.dat</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">raw_filesize_bytes</td>
+      <td style="font-size:0.8rem;word-break:break-all">1743000</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">raw_mtime_utc</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T13:15:40Z</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">raw_sha256</td>
+      <td style="font-size:0.8rem;word-break:break-all">d9b9cf72d79b2910f614b43ee4839f644f5e46d0c0e5e80f802aecf3d96013e7</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">raw_metadata_schema</td>
+      <td style="font-size:0.8rem;word-break:break-all">seasenselib/raw-opaque-1.0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">raw_metadata</td>
+      <td style="font-size:0.8rem;word-break:break-all">{&#34;schema&#34;: &#34;seasenselib/raw-opaque-1.0&#34;, &#34;raw_format&#34;: &#34;nortek-ascii&#34;, &#34;raw_filename&#34;: &#34;9920_recovery.dat&#34;, &#34;blocks&#34;: {&#34;attributes&#34;: {&#34;number_of_measurements&#34;: &#34;9960&#34;, &#34;number_of_checksum_errors&#34;: &#34;0&#34;, &#34;time_of_first_measurement&#34;: &#34;11/07/2026 17:00:00&#34;, &#34;time_of_last_measurement&#34;: &#34;25/07/2026 12:58:00&#34;, &#34;measurement_interval&#34;: &#34;120 sec&#34;, &#34;sampling_rate&#34;: &#34;NORMAL&#34;, &#34;average_interval&#34;: &#34;3 sec&#34;, &#34;measurement_load&#34;: &#34;74 %&#34;, &#34;transmit_pulse_length&#34;: &#34;0.75 m&#34;, &#34;blanking_distance&#34;: &#34;0.50 m&#34;, &#34;compass_update_rate&#34;: &#34;5 sec&#34;, &#34;diagnostics_measurements&#34;: &#34;ENABLED&#34;, &#34;diagnostics_-_interval&#34;: &#34;43200 sec&#34;, &#34;diagnostics_-_number_of_samples&#34;: &#34;20&#34;, &#34;diagnostics_-_cell_number&#34;: &#34;1&#34;, &#34;diagnostics_-_number_of_pings&#34;: &#34;20&#34;, &#34;analog_input_1&#34;: &#34;NONE&#34;, &#34;raw_magnetometer_output&#34;: &#34;OFF&#34;, &#34;external_input_2&#34;: &#34;NONE&#34;, &#34;external_input_3&#34;: &#34;NONE&#34;, &#34;power_output&#34;: &#34;12V&#34;, &#34;powerlevel&#34;: &#34;HIGH&#34;, &#34;coordinate_system&#34;: &#34;BEAM&#34;, &#34;sound_speed&#34;: &#34;MEASURED&#34;, &#34;salinity&#34;: &#34;35.0 ppt&#34;, &#34;distance_between_pings&#34;: &#34;10.00 m&#34;, &#34;number_of_beams&#34;: &#34;3&#34;, &#34;number_of_pings_per_burst&#34;: &#34;17&#34;, &#34;software_version&#34;: &#34;1.40.16&#34;, &#34;deployment_name&#34;: &#34;9920&#34;, &#34;wrap_mode&#34;: &#34;OFF&#34;, &#34;deployment_time&#34;: &#34;11/07/2026 17:00:00&#34;, &#34;system1&#34;: &#34;125&#34;, &#34;system2&#34;: &#34;55&#34;, &#34;system3&#34;: &#34;32&#34;, &#34;system4&#34;: &#34;437&#34;, &#34;system5&#34;: &#34;65 65 65 0&#34;, &#34;system9&#34;: &#34;0 0 -1&#34;, &#34;system10&#34;: &#34;0 -1 1 0&#34;, &#34;system11&#34;: &#34;0 -1 -1 0&#34;, &#34;system12&#34;: &#34;0&#34;, &#34;system13&#34;: &#34;1481 259 7128 10862&#34;, &#34;system14&#34;: &#34;-16627 934 10828 -128&#34;, &#34;system16&#34;: &#34;0 0 0 0&#34;, &#34;system17&#34;: &#34;5461&#34;, &#34;system22&#34;: &#34;43200&#34;, &#34;system28&#34;: &#34;20&#34;, &#34;system29&#34;: &#34;1&#34;, &#34;system30&#34;: &#34;20&#34;, &#34;system31&#34;: &#34;15618 15646 15673 15699&#34;, &#34;system42&#34;: &#34;0&#34;, &#34;system43&#34;: &#34;0&#34;, &#34;system44&#34;: &#34;0&#34;, &#34;system45&#34;: &#34;6&#34;, &#34;start_command&#34;: &#34;Recorder deployment&#34;, &#34;crc_download&#34;: &#34;ON&#34;, &#34;serial_number&#34;: &#34;A6L 5229&#34;, &#34;hardware_revision&#34;: &#34;4 (E)&#34;, &#34;recorder_size&#34;: &#34;9 MByte&#34;, &#34;firmware_version&#34;: &#34;3.42&#34;, &#34;velocity_range&#34;: &#34;NORMAL&#34;, &#34;sync_signal_data_out_delay&#34;: &#34;0 sec&#34;, &#34;sync_signal_power_down_delay&#34;: &#34;0 sec&#34;, &#34;pressure_sensor&#34;: &#34;YES&#34;, &#34;compass&#34;: &#34;YES&#34;, &#34;tilt_sensor&#34;: &#34;YES&#34;, &#34;system_1&#34;: &#34;1&#34;, &#34;head_frequency&#34;: &#34;2000 kHz&#34;, &#34;pressure_sensor_calibration&#34;: &#34;0 12 64848 6424&#34;, &#34;system7&#34;: &#34;-19553 440 11845 -102&#34;, &#34;system8&#34;: &#34;0 0 -1&#34;, &#34;system15&#34;: &#34;32471 722 -750 722&#34;, &#34;system18&#34;: &#34;3600&#34;, &#34;system19&#34;: &#34;3600&#34;, &#34;system20&#34;: &#34;10000&#34;}, &#34;calibration&#34;: {&#34;transformation_matrix&#34;: [[0.7356, -0.3677, -0.3677], [0.0, -0.637, 0.637], [0.7888, 0.7888, 0.7888]], &#34;magnetometer_calibration_matrix&#34;: [[0.991, 0.022, -0.0229], [0.022, 1.0, -0.0062], [-0.018, 0.0304, 0.9507]], &#34;compass_hard_iron_calibration&#34;: [5, -90, 10]}, &#34;configuration&#34;: null, &#34;other&#34;: {&#34;global_attributes&#34;: {&#34;coordinate_system&#34;: &#34;BEAM&#34;}}}, &#34;variables&#34;: {&#34;month&#34;: {&#34;column_number&#34;: &#34;1&#34;, &#34;original_name&#34;: &#34;Month&#34;, &#34;units&#34;: &#34;1-12&#34;}, &#34;day&#34;: {&#34;column_number&#34;: &#34;2&#34;, &#34;original_name&#34;: &#34;Day&#34;, &#34;units&#34;: &#34;1-31&#34;}, &#34;year&#34;: {&#34;column_number&#34;: &#34;3&#34;, &#34;original_name&#34;: &#34;Year&#34;}, &#34;hour&#34;: {&#34;column_number&#34;: &#34;4&#34;, &#34;original_name&#34;: &#34;Hour&#34;, &#34;units&#34;: &#34;0-23&#34;}, &#34;minute&#34;: {&#34;column_number&#34;: &#34;5&#34;, &#34;original_name&#34;: &#34;Minute&#34;, &#34;units&#34;: &#34;0-59&#34;}, &#34;second&#34;: {&#34;column_number&#34;: &#34;6&#34;, &#34;original_name&#34;: &#34;Second&#34;, &#34;units&#34;: &#34;0-59&#34;}, &#34;error_code&#34;: {&#34;column_number&#34;: &#34;7&#34;, &#34;original_name&#34;: &#34;Error code&#34;}, &#34;status_code&#34;: {&#34;column_number&#34;: &#34;8&#34;, &#34;original_name&#34;: &#34;Status code&#34;}, &#34;velocity_beam1&#34;: {&#34;column_number&#34;: &#34;9&#34;, &#34;original_name&#34;: &#34;Velocity (Beam1|X|East)&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;velocity_beam2&#34;: {&#34;column_number&#34;: &#34;10&#34;, &#34;original_name&#34;: &#34;Velocity (Beam2|Y|North)&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;velocity_beam3&#34;: {&#34;column_number&#34;: &#34;11&#34;, &#34;original_name&#34;: &#34;Velocity (Beam3|Z|Up)&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;amplitude_beam1&#34;: {&#34;column_number&#34;: &#34;12&#34;, &#34;original_name&#34;: &#34;Amplitude (Beam1)&#34;, &#34;units&#34;: &#34;counts&#34;}, &#34;amplitude_beam2&#34;: {&#34;column_number&#34;: &#34;13&#34;, &#34;original_name&#34;: &#34;Amplitude (Beam2)&#34;, &#34;units&#34;: &#34;counts&#34;}, &#34;amplitude_beam3&#34;: {&#34;column_number&#34;: &#34;14&#34;, &#34;original_name&#34;: &#34;Amplitude (Beam3)&#34;, &#34;units&#34;: &#34;counts&#34;}, &#34;battery_voltage&#34;: {&#34;column_number&#34;: &#34;15&#34;, &#34;original_name&#34;: &#34;Battery voltage&#34;, &#34;units&#34;: &#34;V&#34;}, &#34;speed_of_sound&#34;: {&#34;column_number&#34;: &#34;16&#34;, &#34;original_name&#34;: &#34;Soundspeed&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;speed_of_sound_used&#34;: {&#34;column_number&#34;: &#34;17&#34;, &#34;original_name&#34;: &#34;Soundspeed used&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;heading&#34;: {&#34;column_number&#34;: &#34;18&#34;, &#34;original_name&#34;: &#34;Heading&#34;, &#34;units&#34;: &#34;degrees&#34;}, &#34;pitch&#34;: {&#34;column_number&#34;: &#34;19&#34;, &#34;original_name&#34;: &#34;Pitch&#34;, &#34;units&#34;: &#34;degrees&#34;}, &#34;roll&#34;: {&#34;column_number&#34;: &#34;20&#34;, &#34;original_name&#34;: &#34;Roll&#34;, &#34;units&#34;: &#34;degrees&#34;}, &#34;pressure&#34;: {&#34;column_number&#34;: &#34;21&#34;, &#34;original_name&#34;: &#34;Pressure&#34;, &#34;units&#34;: &#34;dbar&#34;}, &#34;depth&#34;: {&#34;column_number&#34;: &#34;22&#34;, &#34;original_name&#34;: &#34;Pressure&#34;, &#34;units&#34;: &#34;m&#34;}, &#34;temperature&#34;: {&#34;column_number&#34;: &#34;23&#34;, &#34;original_name&#34;: &#34;Temperature&#34;, &#34;units&#34;: &#34;degrees C&#34;}, &#34;analog_input_1&#34;: {&#34;column_number&#34;: &#34;24&#34;, &#34;original_name&#34;: &#34;Analog input 1&#34;}, &#34;analog_input_2&#34;: {&#34;column_number&#34;: &#34;25&#34;, &#34;original_name&#34;: &#34;Analog input 2&#34;}, &#34;magnitude&#34;: {&#34;column_number&#34;: &#34;26&#34;, &#34;original_name&#34;: &#34;Speed&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;direction&#34;: {&#34;column_number&#34;: &#34;27&#34;, &#34;original_name&#34;: &#34;Direction&#34;, &#34;units&#34;: &#34;degrees&#34;}}}</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_name</td>
+      <td style="font-size:0.8rem;word-break:break-all">SeaSenseLib</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_version</td>
+      <td style="font-size:0.8rem;word-break:break-all">0.6.0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processing_level</td>
+      <td style="font-size:0.8rem;word-break:break-all">L1</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_module</td>
+      <td style="font-size:0.8rem;word-break:break-all">seasenselib.readers.nortek_ascii_reader</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_module_name</td>
+      <td style="font-size:0.8rem;word-break:break-all">Nortek ASCII</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_module_key</td>
+      <td style="font-size:0.8rem;word-break:break-all">nortek-ascii</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_runtime</td>
+      <td style="font-size:0.8rem;word-break:break-all">CPython</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_runtime_version</td>
+      <td style="font-size:0.8rem;word-break:break-all">3.11.7</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_execution_time_utc</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-26T18:41:57.504259Z</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_machine</td>
+      <td style="font-size:0.8rem;word-break:break-all">EFWmac14-2.local</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_os</td>
+      <td style="font-size:0.8rem;word-break:break-all">Darwin 25.5.0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">date_created</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-26T18:41:57.504269Z</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">date_modified</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-26T18:41:57.504269Z</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">Conventions</td>
+      <td style="font-size:0.8rem;word-break:break-all">CF-1.13</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">coordinate_system</td>
+      <td style="font-size:0.8rem;word-break:break-all">ENU</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_number_of_beams</td>
+      <td style="font-size:0.8rem;word-break:break-all">3</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system5</td>
+      <td style="font-size:0.8rem;word-break:break-all">65 65 65 0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system7</td>
+      <td style="font-size:0.8rem;word-break:break-all">-19553 440 11845 -102</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_</td>
+      <td style="font-size:0.8rem;word-break:break-all">0 0 0 0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system8</td>
+      <td style="font-size:0.8rem;word-break:break-all">0 0 -1</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system9</td>
+      <td style="font-size:0.8rem;word-break:break-all">0 0 -1</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system10</td>
+      <td style="font-size:0.8rem;word-break:break-all">0 -1 1 0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system11</td>
+      <td style="font-size:0.8rem;word-break:break-all">0 -1 -1 0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system13</td>
+      <td style="font-size:0.8rem;word-break:break-all">1481 259 7128 10862</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system14</td>
+      <td style="font-size:0.8rem;word-break:break-all">-16627 934 10828 -128</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system15</td>
+      <td style="font-size:0.8rem;word-break:break-all">32471 722 -750 722</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system16</td>
+      <td style="font-size:0.8rem;word-break:break-all">0 0 0 0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system17</td>
+      <td style="font-size:0.8rem;word-break:break-all">5461</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system18</td>
+      <td style="font-size:0.8rem;word-break:break-all">3600</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system19</td>
+      <td style="font-size:0.8rem;word-break:break-all">3600</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system20</td>
+      <td style="font-size:0.8rem;word-break:break-all">10000</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_T_M11</td>
+      <td style="font-size:0.8rem;word-break:break-all">0.7356</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_T_M12</td>
+      <td style="font-size:0.8rem;word-break:break-all">-0.3677</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_T_M13</td>
+      <td style="font-size:0.8rem;word-break:break-all">-0.3677</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_T_M21</td>
+      <td style="font-size:0.8rem;word-break:break-all">0.0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_T_M22</td>
+      <td style="font-size:0.8rem;word-break:break-all">-0.637</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_T_M23</td>
+      <td style="font-size:0.8rem;word-break:break-all">0.637</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_T_M31</td>
+      <td style="font-size:0.8rem;word-break:break-all">0.7888</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_T_M32</td>
+      <td style="font-size:0.8rem;word-break:break-all">0.7888</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_T_M33</td>
+      <td style="font-size:0.8rem;word-break:break-all">0.7888</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pointing_down</td>
+      <td style="font-size:0.8rem;word-break:break-all">False</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">mooring_name</td>
+      <td style="font-size:0.8rem;word-break:break-all">dune2</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">waterdepth</td>
+      <td style="font-size:0.8rem;word-break:break-all">745</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">longitude</td>
+      <td style="font-size:0.8rem;word-break:break-all">-28 01.234</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">latitude</td>
+      <td style="font-size:0.8rem;word-break:break-all">65 48.405</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">deployment_latitude</td>
+      <td style="font-size:0.8rem;word-break:break-all">00 00.000 N</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">deployment_longitude</td>
+      <td style="font-size:0.8rem;word-break:break-all">000 00.000 W</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">deployment_time</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-11T20:30</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">seabed_latitude</td>
+      <td style="font-size:0.8rem;word-break:break-all">00 00.000 N</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">seabed_longitude</td>
+      <td style="font-size:0.8rem;word-break:break-all">000 00.000 W</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">recovery_time</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T11:44</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">qc_convention</td>
+      <td style="font-size:0.8rem;word-break:break-all">OceanSITES reference table 2</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">suggested_deployment_time</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-11T20:30:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">suggested_recovery_time</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T11:44:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">suggested_window_source</td>
+      <td style="font-size:0.8rem;word-break:break-all">pressure_pmin10dbar</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">suggested_window_clock</td>
+      <td style="font-size:0.8rem;word-break:break-all">raw_instrument_clock</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">suggested_deployment_time_utc</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-11T20:30:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">suggested_recovery_time_utc</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T11:43:05</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage1_first_nonnull</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-11T17:00:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage1_last_nonnull</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T12:58:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage1_time_start</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-11T17:00:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage1_time_end</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T12:58:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">yaml_deployment_time</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-11T20:30:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">yaml_recovery_time</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T11:44:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage2_source_file</td>
+      <td style="font-size:0.8rem;word-break:break-all">dune2_1_2026_9920_stage2.nc</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage2_source_mtime</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-29T12:10:34Z</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage2_source_sha256</td>
+      <td style="font-size:0.8rem;word-break:break-all">a45e2284</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">magnetic_declination</td>
+      <td style="font-size:0.8rem;word-break:break-all">-13.965613674756257</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">magnetic_declination_units</td>
+      <td style="font-size:0.8rem;word-break:break-all">degrees_east</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">magnetic_declination_method</td>
+      <td style="font-size:0.8rem;word-break:break-all">ppigrf IGRF at deployment midpoint</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">magnetic_declination_lat</td>
+      <td style="font-size:0.8rem;word-break:break-all">65.73188333333333</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">magnetic_declination_lon</td>
+      <td style="font-size:0.8rem;word-break:break-all">-26.2</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">magnetic_declination_latlon_source</td>
+      <td style="font-size:0.8rem;word-break:break-all">mooring YAML (latitude/longitude)</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">coordinate_system_source</td>
+      <td style="font-size:0.8rem;word-break:break-all">rotated from XYZ by oceanarray stage3</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">tilt_suspect_threshold</td>
+      <td style="font-size:0.8rem;word-break:break-all">30.0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">tilt_fail_threshold</td>
+      <td style="font-size:0.8rem;word-break:break-all">50.0</td>
+    </tr>
+    
+  </tbody>
+</table>
+
+
+
+
+<div class="report-footer">
+  Generated by <strong>oceanarray</strong> on <GENERATED> &bull; EFWmac14
+</div>
+<script>
+  document.querySelectorAll('h2').forEach(h => {
+    const a = document.createElement('a'); a.href = '#top'; a.className = 'top-link'; a.textContent = '↑ top'; h.appendChild(a);
+  });
+</script>
+</body>
+</html>
