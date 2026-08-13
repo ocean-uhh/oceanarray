@@ -1,4 +1,4 @@
-"""Unit tests for pure helper functions in oceanarray.report._array.
+"""Unit tests for pure helper functions in oceanarray.reports._array.
 
 Tests cover _parse_decdeg, _lat_lon_from_cfg, _count_instruments, and
 _build_type_summary — all functions with no I/O dependencies that can be
@@ -7,7 +7,7 @@ exercised without fixtures or seasenselib.
 
 import pytest
 
-from oceanarray.report._array import (
+from oceanarray.reports._array import (
     _build_type_summary,
     _count_instruments,
     _lat_lon_from_cfg,

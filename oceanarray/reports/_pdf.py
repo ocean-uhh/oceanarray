@@ -1,6 +1,6 @@
 """Combine a mooring's per-report HTML files into a single A4 PDF.
 
-The HTML reports written by :class:`~oceanarray.report._mooring.MooringReport`
+The HTML reports written by :class:`~oceanarray.reports._mooring.MooringReport`
 are the single source of truth.  This module post-processes those files with
 WeasyPrint — it does not touch report generation or the Jinja templates.  Print
 layout (A4 page size, margins, page numbers, page-break avoidance, hidden nav

@@ -345,7 +345,7 @@ def cmd_report(args: argparse.Namespace) -> int:
             return 0
 
         if getattr(args, "array", False):
-            from .report._array import generate_array_report
+            from .reports._array import generate_array_report
 
             if getattr(args, "pdf", False) or getattr(args, "all_reports", False):
                 _status(
@@ -366,7 +366,7 @@ def cmd_report(args: argparse.Namespace) -> int:
             )
             return 0 if result else 1
 
-        from .report import MooringReport
+        from .reports import MooringReport
 
         _status("section", f"Report: {args.mooring}")
         serials = getattr(args, "serial", None)
@@ -387,7 +387,7 @@ def cmd_report(args: argparse.Namespace) -> int:
             stack=all_reports or args.stack,
         )
         if getattr(args, "cruise_table", False):
-            from .report._recovery_table import generate_recovery_table
+            from .reports._recovery_table import generate_recovery_table
 
             mooring_proc = proc_root / args.mooring
             out_dir = Path(
@@ -401,7 +401,7 @@ def cmd_report(args: argparse.Namespace) -> int:
                 force=args.force,
             )
         if getattr(args, "pdf", False) or all_reports:
-            from .report import combine_mooring_pdf
+            from .reports import combine_mooring_pdf
 
             # Combine reads the same directory generate() wrote to; both resolve it
             # through paths.resolve_report_dir so they can never drift.

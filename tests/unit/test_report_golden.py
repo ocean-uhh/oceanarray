@@ -21,7 +21,7 @@ from unittest import mock
 
 import pytest
 
-from oceanarray.report import MooringReport
+from oceanarray.reports import MooringReport
 from oceanarray.utilities import _safe_rel
 
 _FIXTURES = pathlib.Path(__file__).resolve().parents[1] / "fixtures"

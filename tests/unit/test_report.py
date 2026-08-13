@@ -13,7 +13,7 @@ import xarray as xr
 import yaml
 from pathlib import Path
 
-from oceanarray.report._html_helpers import (
+from oceanarray.reports._html_helpers import (
     _duration_str,
     _fmt_dt,
     _fmt_minmax,
@@ -26,7 +26,7 @@ from oceanarray.report._html_helpers import (
     _safe_serial,
     _stage_files,
 )
-from oceanarray.report._mooring import MooringReport
+from oceanarray.reports._mooring import MooringReport
 
 
 # ---------------------------------------------------------------------------
@@ -461,7 +461,7 @@ class TestPageGenerators:
 
     # generate_instrument_pages
     def test_generate_instrument_pages_creates_html(self, mooring_setup):
-        from oceanarray.report._instrument import generate_instrument_pages
+        from oceanarray.reports._instrument import generate_instrument_pages
 
         setup = mooring_setup
         report = MooringReport(proc_dir=str(setup["proc_dir"].parent))
@@ -484,7 +484,7 @@ class TestPageGenerators:
         assert len(pages) >= 1
 
     def test_generate_instrument_pages_html_contains_serial(self, mooring_setup):
-        from oceanarray.report._instrument import generate_instrument_pages
+        from oceanarray.reports._instrument import generate_instrument_pages
 
         setup = mooring_setup
         report = MooringReport(proc_dir=str(setup["proc_dir"].parent))
@@ -508,7 +508,7 @@ class TestPageGenerators:
 
     def test_generate_instrument_pages_no_nc(self, tmp_path):
         """Should complete without error even when no NC files exist."""
-        from oceanarray.report._instrument import generate_instrument_pages
+        from oceanarray.reports._instrument import generate_instrument_pages
 
         proc_dir = tmp_path / "proc" / "TEST_M1"
         proc_dir.mkdir(parents=True)
@@ -548,7 +548,7 @@ class TestPageGenerators:
 
     # generate_stack_page
     def test_generate_stack_page_creates_html(self, mooring_setup):
-        from oceanarray.report._stack import generate_stack_page
+        from oceanarray.reports._stack import generate_stack_page
 
         setup = mooring_setup
         stack_nc = setup["proc_dir"] / "TEST_M1_stack.nc"
@@ -569,7 +569,7 @@ class TestPageGenerators:
         assert out.stat().st_size > 0
 
     def test_generate_stack_page_html_structure(self, mooring_setup):
-        from oceanarray.report._stack import generate_stack_page
+        from oceanarray.reports._stack import generate_stack_page
 
         setup = mooring_setup
         stack_nc = setup["proc_dir"] / "TEST_M1_stack.nc"
@@ -592,7 +592,7 @@ class TestPageGenerators:
 
     # generate_grid_page
     def test_generate_grid_page_creates_html(self, mooring_setup):
-        from oceanarray.report._grid import generate_grid_page
+        from oceanarray.reports._grid import generate_grid_page
 
         setup = mooring_setup
         grid_nc = setup["proc_dir"] / "TEST_M1_grid.nc"
@@ -613,7 +613,7 @@ class TestPageGenerators:
         assert out.stat().st_size > 0
 
     def test_generate_grid_page_html_contains_mooring(self, mooring_setup):
-        from oceanarray.report._grid import generate_grid_page
+        from oceanarray.reports._grid import generate_grid_page
 
         setup = mooring_setup
         grid_nc = setup["proc_dir"] / "TEST_M1_grid.nc"

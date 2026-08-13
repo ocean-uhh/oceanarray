@@ -48,7 +48,7 @@ def resolve_report_dir(
     """Return the directory a mooring's HTML report pages are written to.
 
     Single source of truth for report output-dir resolution, mirrored by both
-    :meth:`oceanarray.report.MooringReport.generate` and the PDF combiner so the
+    :meth:`oceanarray.reports.MooringReport.generate` and the PDF combiner so the
     two never drift.  Priority: explicit *outdir* wins; otherwise a central
     *report_dir* nests each mooring under ``report_dir/<mooring>``; otherwise the
     default ``proc_root/<mooring>/report``.

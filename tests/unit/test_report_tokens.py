@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import pytest
 
 from oceanarray.config import report_tokens as tok
-from oceanarray.report import _encode
+from oceanarray.reports import _encode
 
 
 # ---------------------------------------------------------------------------

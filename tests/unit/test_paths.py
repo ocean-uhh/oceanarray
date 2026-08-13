@@ -65,7 +65,7 @@ def test_all_call_sites_agree():
     """
     from oceanarray.processors.stage3 import _safe_serial as s3
     from oceanarray.processors.helpers import _safe_serial as h
-    from oceanarray.report._html_helpers import _safe_serial as r
+    from oceanarray.reports._html_helpers import _safe_serial as r
 
     raw = "16430, R01-024"
     results = {safe_serial(raw), s3(raw), h(raw), r(raw)}

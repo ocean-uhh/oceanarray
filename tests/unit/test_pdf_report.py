@@ -9,8 +9,8 @@ from pathlib import Path
 import pytest
 import yaml
 
-from oceanarray.report import MooringReport, combine_mooring_pdf
-from oceanarray.report._pdf import _ordered_report_files
+from oceanarray.reports import MooringReport, combine_mooring_pdf
+from oceanarray.reports._pdf import _ordered_report_files
 
 # Minimal mooring YAML that MooringReport.generate() can render a summary from
 # (mirrors the fixture in test_report.py::TestMooringReport).
@@ -185,7 +185,7 @@ class TestCmdReportPdfFlag:
         self, tmp_path: Path, monkeypatch
     ) -> None:
         """If the PDF can't be built: `--all` keeps HTML success (0); `--pdf` fails (1)."""
-        import oceanarray.report as report_pkg
+        import oceanarray.reports as report_pkg
         from oceanarray.cli import build_parser
 
         def _boom(*_a, **_k):

@@ -211,7 +211,7 @@ class TestInstrumentReport:
 
     @pytest.fixture(autouse=True)
     def run(self, proc_root_stage3_fresh):
-        from oceanarray.report import MooringReport
+        from oceanarray.reports import MooringReport
 
         reporter = MooringReport(proc_dir=str(proc_root_stage3_fresh))
         result = reporter.generate(
