@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ mooring_name }}{% endblock %}</title>
+<style>
+  :root { --ocean:#1a3a5c; --seafoam:#e8f4f8; --muted:#95a5a6; --text:#2c3e50;
+          --good:#27ae60; --warn:#e67e22; --bad:#c0392b; --interp:#2980b9;
+          --accent:var(--ocean); --accent-link:#cfe3ff; }
+  * { box-sizing:border-box; }
+  body { font-family:system-ui,-apple-system,"Segoe UI",sans-serif; font-size:14px;
+         color:var(--text); line-height:1.5; max-width:1150px; margin:0 auto; padding:1.5rem 2rem 4rem; }
+  .masthead { background:var(--accent); color:#fff; padding:1.6rem 2rem;
+              border-radius:8px; margin-bottom:2rem; }
+  .masthead h1 { margin:0 0 0.3rem; font-size:1.75rem; font-weight:700; letter-spacing:0.02em; }
+  .masthead .sub { font-size:0.9rem; opacity:0.88; margin:0 0 0.15rem; }
+  .masthead .sub a { color:var(--accent-link); font-weight:600; text-decoration:none; }
+  .masthead .sub a:hover { text-decoration:underline; }
+  .meta-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+               gap:0.5rem 2rem; font-size:0.84rem; margin-top:0.9rem; }
+  .meta-grid dt { opacity:0.7; text-transform:uppercase; font-size:0.7rem;
+                  letter-spacing:0.06em; margin-bottom:0.1rem; }
+  .meta-grid dd { margin:0; font-weight:600; }
+  .meta-miss dd { color:var(--warn); opacity:1; }
+  h2 { color:var(--ocean); font-size:1rem; border-bottom:2px solid var(--seafoam);
+       padding-bottom:0.3rem; margin:2.5rem 0 1rem;
+       display:flex; justify-content:space-between; align-items:baseline; }
+  .top-link { font-size:0.72rem; font-weight:400; color:var(--muted);
+              text-decoration:none; margin-left:auto; white-space:nowrap; }
+  .top-link:hover { color:var(--ocean); text-decoration:underline; }
+  .report-footer { margin-top:3rem; font-size:0.76rem; color:var(--muted);
+                   border-top:1px solid #eee; padding-top:0.8rem; }
+  .jump-nav { background:var(--seafoam); padding:0.55rem 1rem; border-radius:6px;
+              margin-bottom:1.5rem; font-size:0.8rem; line-height:2.2; }
+  .jump-nav a { color:var(--ocean); text-decoration:none; font-weight:600;
+                margin:0 0.5rem 0 0; white-space:nowrap; }
+  .jump-nav a::before { content:"▸ "; font-size:0.7rem; }
+  .jump-nav a:hover { text-decoration:underline; }
+  .history-list { list-style:none; padding:0; margin:0; }
+  .history-list li { display:flex; gap:1rem; padding:0.3rem 0; border-bottom:1px solid #f0f0f0; font-size:0.83rem; }
+  .history-list li:last-child { border-bottom:none; }
+  .history-ts { color:var(--muted); white-space:nowrap; font-size:0.76rem; min-width:11rem; }
+  .history-text { flex:1; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  td.mono { font-family:monospace; font-size:0.8rem; }
+  .none-note { color:var(--muted); font-style:italic; }
+  @media print {
+    body { padding:0; max-width:100%; }
+    h2 { page-break-after:avoid; }
+    figure, table, .card { break-inside:avoid; }
+    .masthead, th { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
+{% block page_styles %}{% endblock %}
+</style>
+{% block head_extra %}{% endblock %}
+</head>
+<body>
+{% block content %}{% endblock %}
+</body>
+</html>

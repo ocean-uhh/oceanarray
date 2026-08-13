@@ -1,64 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mooring Recovery Report – {{ mooring_name }}</title>
-<style>
-  :root {
-    --ocean:     #1a3a5c;
-    --seafoam:   #e8f4f8;
-    --good:      #27ae60;
-    --warn:      #e67e22;
-    --bad:       #c0392b;
-    --interp:    #2980b9;
-    --muted:     #95a5a6;
-    --text:      #2c3e50;
-  }
-  * { box-sizing: border-box; }
-  body {
-    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-    font-size: 14px;
-    color: var(--text);
-    max-width: 1150px;
-    margin: 0 auto;
-    padding: 1.5rem 2rem 4rem;
-    line-height: 1.5;
-  }
-  /* masthead */
-  .masthead {
-    background: var(--ocean);
-    color: #fff;
-    padding: 1.6rem 2rem;
-    border-radius: 8px;
-    margin-bottom: 2.5rem;
-  }
-  .masthead h1 { margin: 0 0 0.3rem; font-size: 1.75rem; font-weight: 700; letter-spacing: 0.02em; }
-  .masthead .sub { font-size: 0.9rem; opacity: 0.82; margin: 0 0 1rem; }
-  .meta-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-    gap: 0.5rem 2rem;
-    font-size: 0.84rem;
-  }
-  .meta-grid dt { opacity: 0.68; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.06em; margin-bottom: 0.1rem; }
-  .meta-grid dd { margin: 0; font-weight: 600; }
-  .meta-miss dd { color: #e67e22; opacity: 1; }
-  /* section headings */
-  h2 {
-    color: var(--ocean);
-    font-size: 1.05rem;
-    border-bottom: 2px solid var(--seafoam);
-    padding-bottom: 0.3rem;
-    margin: 2.5rem 0 1rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-  }
-  .top-link { font-size: 0.72rem; font-weight: 400; color: var(--muted);
-              text-decoration: none; margin-left: auto; white-space: nowrap; }
-  .top-link:hover { color: var(--ocean); text-decoration: underline; }
-  /* tables */
+{% extends "base.html" %}
+{% block title %}{{ mooring_name }} &ndash; recovery report{% endblock %}
+{% block page_styles %}
   table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
   th {
     background: var(--ocean);
@@ -71,8 +13,6 @@
   td { padding: 0.38rem 0.7rem; border-bottom: 1px solid #ecf0f1; vertical-align: middle; }
   tr:nth-child(even) td { background: var(--seafoam); }
   tr:hover td { background: #d6eaf8; }
-  td.num { text-align: right; font-variant-numeric: tabular-nums; }
-  /* pipeline badges */
   .pipeline { white-space: nowrap; display: flex; flex-wrap: wrap; gap: 0.2rem; align-items: center; }
   .badge {
     display: inline-block;
@@ -88,35 +28,11 @@
   .b-stack { background: var(--interp); color: #fff; }
   .b-grid  { background: #8e44ad;       color: #fff; }
   .arrow { color: #ccc; font-size: 0.8rem; margin: 0 0.05rem; }
-  /* clock table */
-  .none-note { color: var(--muted); font-style: italic; }
   .pos { color: var(--warn); font-weight: 600; }
   .neg { color: var(--interp); font-weight: 600; }
-  /* early-stoppage highlight — must override stripe and hover */
   tr.row-warn td { background: #fef3cd !important; }
-  /* footer */
-  .report-footer {
-    margin-top: 3rem;
-    font-size: 0.76rem;
-    color: var(--muted);
-    border-top: 1px solid #ecf0f1;
-    padding-top: 0.75rem;
-  }
-  .jump-nav { background:var(--seafoam); padding:0.55rem 1rem; border-radius:6px;
-              margin-bottom:1.5rem; font-size:0.8rem; line-height:2.2; }
-  .jump-nav a { color:var(--ocean); text-decoration:none; font-weight:600;
-                margin:0 0.5rem 0 0; white-space:nowrap; }
-  .jump-nav a::before { content:"▸ "; font-size:0.7rem; }
-  .jump-nav a:hover { text-decoration:underline; }
-  @media print {
-    body { padding: 0; max-width: 100%; }
-    .masthead, th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    h2 { page-break-after: avoid; }
-    table { page-break-inside: avoid; }
-  }
-</style>
-</head>
-<body>
+{% endblock %}
+{% block content %}
 
 <!-- ══════════════════════════════════════════════ 1. HEADER ══ -->
 <div id="top" class="masthead">
@@ -835,5 +751,4 @@ recovery_time:   '{{ yaml_recover_time or '?' }}'</textarea>
     const a = document.createElement('a'); a.href = '#top'; a.className = 'top-link'; a.textContent = '↑ top'; h.appendChild(a);
   });
 </script>
-</body>
-</html>
+{% endblock %}
