@@ -116,7 +116,7 @@ pip install seasenselib --no-deps
 1. Fork the repository and create a feature branch from `main`.
 2. Make your changes, following the conventions below.
 3. Run `ruff check . --fix` and then `pytest` — all tests must pass.
-4. Open a pull request against `main`. Prefix the title with a conventional-commit type: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `ci:`, or `chore:`.
+4. Open a pull request against `main`. Prefix the title with a bracket tag: `[FEAT]`, `[FIX]`, `[REFACTOR]`, `[DOC]`, `[TEST]`, `[CI]`, or `[CLEANUP]`. (PR titles use bracket tags; individual **commit messages** use conventional-commit prefixes — see below.)
 
 Keep each pull request to one logical change. A rename PR that also fixes a bug is a PR nobody can review — split them. (This matters most once more than one person is working on the code.)
 
