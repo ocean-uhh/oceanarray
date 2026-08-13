@@ -1,4 +1,4 @@
-"""Unit tests for oceanarray/report/ package.
+"""Unit tests for oceanarray/reports/ package.
 
 Three test classes:
   TestHtmlHelpers       — pure functions in _html_helpers.py

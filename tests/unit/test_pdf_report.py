@@ -1,4 +1,4 @@
-"""Unit tests for oceanarray/report/_pdf.py (HTML-to-PDF combination).
+"""Unit tests for oceanarray/reports/_pdf.py (HTML-to-PDF combination).
 
 `_ordered_report_files` is pure and tested without WeasyPrint; the render test
 is gated behind an importorskip because WeasyPrint is an optional extra.
