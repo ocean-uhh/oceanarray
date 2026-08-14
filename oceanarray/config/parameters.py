@@ -23,6 +23,11 @@ from pathlib import Path
 import numpy as np
 
 # ---------------------------------------------------------------------------
+# Package identity (shown as the report masthead wordmark)
+# ---------------------------------------------------------------------------
+PACKAGE_NAME = "oceanarray"
+
+# ---------------------------------------------------------------------------
 # Matplotlib style path (used by plotters via plt.style.use)
 # ---------------------------------------------------------------------------
 MPLSTYLE = Path(__file__).parent.parent / "oceanarray.mplstyle"

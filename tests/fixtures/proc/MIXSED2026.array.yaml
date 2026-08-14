@@ -1,0 +1,94 @@
+name: MIXSED
+year: 2026
+waterdepth_min: 700
+waterdepth_max: 1000
+cruise: msm142
+ship: Merian
+project: AEI-DFG MIXSED
+deployment_time: '2026-05-05T'
+recovery_time: '2026-07-31T'
+latitude: 65 34.004 N
+longitude: 29 25.878 W
+vocab:
+  - instrument_in: 'Aquadopp'
+    instrument_out: 'Aqd'
+  - instrument_in: 'MicroCAT'
+    instrument_out: 'MC'
+  - instrument_in: 'Thermistor'
+    instrument_out: 'TR'
+moorings:
+- position: '1'
+  mooring: dsG1_1_2026
+  config: dsG1_1_2026.mooring.yaml
+  y_offset: 3.75
+  vocab:
+    - instrument_in: 'Aquadopp'
+      instrument_out: 'Aqd'
+    - instrument_in: 'MicroCAT'
+      instrument_out: 'MC'
+    - instrument_in: 'Thermistor'
+      instrument_out: 'TR'
+- position: '2'
+  mooring: dsK1_1_2026
+  config: dsK1_1_2026.mooring.yaml
+  y_offset: .5
+- position: '3'
+  mooring: dsK2_1_2026
+  config: dsK2_1_2026.mooring.yaml
+  plot_config:
+    - ARRAY_SPACING_PX: 250
+  y_offset: .25
+- position: '4'
+  mooring: dsK3_1_2026
+  config: dsK3_1_2026.mooring.yaml
+  plot_config:
+    - ARRAY_SPACING_PX: 175
+  y_offset: .25
+- position: '5'
+  mooring: dsG2_1_2026
+  config: dsG2_1_2026.mooring.yaml
+  y_offset: 0
+- position: '6'
+  mooring: dsG3_1_2026
+  config: dsG3_1_2026.mooring.yaml
+  y_offset: 0
+  plot_config:
+    - ARRAY_SPACING_PX: 175
+- position: '7'
+  mooring: dune1_1_2026
+  config: dune1_1_2026.mooring.yaml
+  y_offset: 0
+- position: '8'
+  mooring: dune2_1_2026
+  config: dune2_1_2026.mooring.yaml
+  y_offset: 0
+- position: '9'
+  mooring: ds2_27_2025
+  config: ds2_27_2025.mooring.yaml
+  row: ds2
+  y_offset: 0
+- position: '10'
+  mooring: ds2_28_2026
+  config: ds2_28_2026.mooring.yaml
+  row: ds2
+  y_offset: 0
+- position: '11'
+  mooring: FARDWO_II_A
+  config: FARDWO_II_A.mooring.yaml
+  row: FD_A
+  y_offset: 0
+- position: '12'
+  mooring: FARDWO_III_A
+  config: FARDWO_III_A.mooring.yaml
+  row: FD_A
+  y_offset: 0
+- position: '13'
+  mooring: FARDWO_II_B  
+  config: FARDWO_II_B.mooring.yaml
+  row: FD_B
+  y_offset: 0
+- position: '14'
+  mooring: FARDWO_III_B
+  config: FARDWO_III_B.mooring.yaml
+  row: FD_B
+  y_offset: 0

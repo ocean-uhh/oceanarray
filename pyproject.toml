@@ -66,6 +66,7 @@ oceanarray = [
   "config/*.mplstyle",   # vendored report.mplstyle — MPLSTYLE_PATH resolves it at runtime
   "config/*.yaml",
   "config/legacy/*.yaml",
+  "reports/templates/*.html",   # report page templates loaded via FileSystemLoader
 ]
 
 [tool.setuptools.dynamic]

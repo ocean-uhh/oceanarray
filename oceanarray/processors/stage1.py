@@ -845,8 +845,22 @@ class MooringProcessor:
 
         return dataset
 
+    #: Unit strings (lower-cased) that denote conductivity in S/m.  A conductivity
+    #: variable carrying any of these is converted to the project's canonical
+    #: mS/cm (1 S/m = 10 mS/cm).
+    _SM_CONDUCTIVITY_UNITS = frozenset(
+        {"s/m", "s m-1", "sm-1", "s.m-1", "siemens/meter", "siemens per metre"}
+    )
+
     def _normalize_conductivity(self, dataset: xr.Dataset) -> xr.Dataset:
-        """Convert conductivity to mS/cm and rename to 'conductivity' if needed."""
+        """Normalise conductivity to the canonical mS/cm and rename it if needed.
+
+        Handles the raw SBE CNV column names ``cond0S/m`` / ``cond0mS/cm`` and,
+        for inputs that already provide a ``conductivity`` variable, converts it
+        from S/m to mS/cm when its ``units`` attribute says so (1 S/m = 10 mS/cm).
+        The source unit is recorded in ``conductivity_normalised_from`` so the
+        treatment can be reconstructed from the output file alone.
+        """
         if "cond0S/m" in dataset:
             # S/m → mS/cm: multiply by 10
             data = dataset["cond0S/m"] * 10.0
@@ -856,6 +870,19 @@ class MooringProcessor:
             dataset["conductivity"] = data
         elif "cond0mS/cm" in dataset:
             dataset = dataset.rename({"cond0mS/cm": "conductivity"})
+
+        # An input already named 'conductivity' but reported in S/m (e.g. an
+        # older seasenselib release) → convert to the canonical mS/cm.
+        if "conductivity" in dataset:
+            src_units = str(dataset["conductivity"].attrs.get("units", "")).strip()
+            if src_units.lower() in self._SM_CONDUCTIVITY_UNITS:
+                data = dataset["conductivity"] * 10.0
+                data.attrs = dict(dataset["conductivity"].attrs)
+                data.attrs["units"] = "mS cm-1"
+                data.attrs["conductivity_normalised_from"] = (
+                    f"{src_units} (x10 to mS cm-1)"
+                )
+                dataset["conductivity"] = data
         return dataset
 
     # Known SBE CNV variable names containing '/' and their CF-compatible replacements.

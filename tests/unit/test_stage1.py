@@ -195,6 +195,40 @@ class TestMooringProcessor:
 
         assert "time" in cleaned_ds.coords
 
+    def test_normalize_conductivity_sm_to_mscm(self, processor):
+        """A 'conductivity' variable reported in S/m is converted to mS/cm (x10).
+
+        Guards the read path against inputs (e.g. an older seasenselib release)
+        that serve conductivity in S/m when the project's canonical unit is mS/cm.
+        """
+        ds = xr.Dataset(
+            {"conductivity": (["time"], np.array([0.0, 0.361, 3.61], dtype="float32"))},
+            coords={"time": (["time"], np.arange(3))},
+        )
+        ds["conductivity"].attrs["units"] = "S/m"
+
+        out = processor._normalize_conductivity(ds)
+
+        np.testing.assert_allclose(
+            out["conductivity"].values, [0.0, 3.61, 36.1], rtol=1e-5
+        )
+        assert out["conductivity"].attrs["units"] == "mS cm-1"
+        assert "S/m" in out["conductivity"].attrs["conductivity_normalised_from"]
+
+    def test_normalize_conductivity_mscm_untouched(self, processor):
+        """A 'conductivity' variable already in mS/cm is left unchanged."""
+        ds = xr.Dataset(
+            {"conductivity": (["time"], np.array([36.1], dtype="float32"))},
+            coords={"time": (["time"], np.arange(1))},
+        )
+        ds["conductivity"].attrs["units"] = "mS cm-1"
+
+        out = processor._normalize_conductivity(ds)
+
+        np.testing.assert_allclose(out["conductivity"].values, [36.1])
+        assert out["conductivity"].attrs["units"] == "mS cm-1"
+        assert "conductivity_normalised_from" not in out["conductivity"].attrs
+
     def test_clean_dataset_variables_unknown_type(self, processor):
         """Test cleaning dataset variables for unknown file type."""
         ds = xr.Dataset(
