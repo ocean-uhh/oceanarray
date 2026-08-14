@@ -318,7 +318,7 @@ def generate_recovery_table(
     deploy_dt = _parse_dt(cfg.get("deployment_time"))
     recover_dt = _parse_dt(cfg.get("recovery_time"))
 
-    # Build a brief location string from lat/lon if available
+    # Latitude/longitude for the canonical meta fields, if available.
     lat = (
         cfg.get("seabed_latitude")
         or cfg.get("deployment_latitude")
@@ -329,7 +329,8 @@ def generate_recovery_table(
         or cfg.get("deployment_longitude")
         or cfg.get("longitude")
     )
-    location = f"{lat} N, {lon} W" if (lat and lon) else ""
+    latitude = f"{lat} N" if lat else ""
+    longitude = f"{lon} W" if lon else ""
 
     rows, comments = _build_rows(proc_dir, mooring_name, cfg)
 
@@ -337,7 +338,8 @@ def generate_recovery_table(
         "mooring_name": mooring_name,
         "year": cfg.get("year", ""),
         "waterdepth": cfg.get("waterdepth", "?"),
-        "location": location,
+        "latitude": latitude,
+        "longitude": longitude,
         "deploy_time": deploy_dt.strftime("%Y-%m-%d %H:%M UTC") if deploy_dt else "?",
         "recover_time": recover_dt.strftime("%Y-%m-%d %H:%M UTC")
         if recover_dt

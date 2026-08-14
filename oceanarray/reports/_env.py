@@ -17,13 +17,18 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader
 
+from .. import parameters as params
+
 #: Directory holding the report page templates.
 TEMPLATES_DIR: Path = Path(__file__).with_name("templates")
 
 _ENV = Environment(
     loader=FileSystemLoader(str(TEMPLATES_DIR)),
     autoescape=True,
+    auto_reload=False,
 )
+#: Package identity available to every template (masthead wordmark).
+_ENV.globals["package_name"] = params.PACKAGE_NAME
 
 
 def render_template(name: str, /, **context: Any) -> str:
