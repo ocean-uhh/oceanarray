@@ -16,13 +16,8 @@
   details summary.collapse-toggle::before { content:"▾ "; }
   details[open] summary.collapse-toggle::before { content:"▴ "; }
 {% endblock %}
-{% block content %}
-
-<div id="top" class="masthead">
-  <h1 style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem"><span>{{ mooring_name }}</span><span style="font-size:1.2rem;opacity:0.8;white-space:nowrap">Gridded</span></h1>
-  <p class="sub" style="text-align:right">generated {{ generated }}</p>
-  {{ nav_buttons | safe }}
-  <dl class="meta-grid">
+{% block masthead_type %}Gridded{% endblock %}
+{% block masthead_meta %}
     <div{% if cruise == '—' %} class="meta-miss"{% endif %}><dt>Cruise</dt><dd>{{ cruise }}</dd></div>
     <div{% if ship == '—' %} class="meta-miss"{% endif %}><dt>Ship</dt><dd>{{ ship }}</dd></div>
     <div{% if latitude == '—' %} class="meta-miss"{% endif %}><dt>Latitude</dt><dd>{{ latitude }}</dd></div>
@@ -38,8 +33,8 @@
     <div><dt>Pressure&nbsp;range</dt><dd>{{ p_range }}</dd></div>
     <div><dt>Instruments</dt><dd>{{ n_instr }}</dd></div>
     <div><dt>Source&nbsp;file</dt><dd>{{ nc_file }}</dd></div>
-  </dl>
-</div>
+  {% endblock %}
+{% block content %}
 
 <nav class="jump-nav">
   Jump to:

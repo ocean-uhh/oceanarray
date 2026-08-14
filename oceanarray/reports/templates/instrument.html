@@ -25,13 +25,9 @@
   .qc-bar div { height:100%; }
   .var-qc { color:var(--good); font-size:0.78rem; }
 {% endblock %}
-{% block content %}
-
-<div id="top" class="masthead">
-  <h1>{{ instr_type | title }}&ensp;&mdash;&ensp;s/n&nbsp;{{ serial }}</h1>
-  <p class="sub" style="display:flex;justify-content:space-between"><span>{{ mooring_name }}</span><span>generated {{ generated }}</span></p>
-  {{ nav_buttons | safe }}
-  <dl class="meta-grid">
+{% block masthead_title %}{{ instr_type | title }}&ensp;&mdash;&ensp;s/n&nbsp;{{ serial }}{% endblock %}
+{% block masthead_sub %}{{ mooring_name }}{% endblock %}
+{% block masthead_meta %}
     <div{% if cruise == '—' %} class="meta-miss"{% endif %}><dt>Cruise</dt><dd>{{ cruise }}</dd></div>
     <div><dt>HAB</dt><dd>{{ "%.1f"|format(hab) }}&thinsp;m</dd></div>
     <div{% if depth is none %} class="meta-miss"{% endif %}><dt>Depth</dt><dd>{% if depth is not none %}~{{ "%.0f"|format(depth) }}&thinsp;m{% else %}&mdash;{% endif %}</dd></div>
@@ -41,8 +37,8 @@
     <div{% if median_dt is none or median_dt == '—' %} class="meta-miss"{% endif %}><dt>Samp.&nbsp;&Delta;t</dt><dd>{{ median_dt | default("—") }}</dd></div>
     <div{% if n_records is none or n_records == '—' %} class="meta-miss"{% endif %}><dt>Records</dt><dd>{{ n_records | default("—") }}</dd></div>
     <div><dt>Source&nbsp;file</dt><dd>{{ nc_file }}{% if data_stage and data_stage != 'stage3' %} <span style="color:#e67e22;font-weight:bold">({{ data_stage }} — QC not applied)</span>{% endif %}</dd></div>
-  </dl>
-</div>
+  {% endblock %}
+{% block content %}
 
 <nav class="jump-nav">
   Jump to:

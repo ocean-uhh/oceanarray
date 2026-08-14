@@ -11,14 +11,19 @@
   * { box-sizing:border-box; }
   body { font-family:system-ui,-apple-system,"Segoe UI",sans-serif; font-size:14px;
          color:var(--text); line-height:1.5; max-width:1150px; margin:0 auto; padding:1.5rem 2rem 4rem; }
-  .masthead { background:var(--accent); color:#fff; padding:1.6rem 2rem;
+  .masthead { position:relative; background:var(--accent); color:#fff; padding:1.6rem 2rem;
               border-radius:8px; margin-bottom:2rem; }
+  .masthead::after { content:"oceanarray"; position:absolute; right:1.4rem; bottom:1.1rem;
+                     font-size:0.68rem; font-weight:600; letter-spacing:0.02em; opacity:0.7;
+                     color:var(--accent); background:#fff; padding:0.08rem 0.5rem; border-radius:999px; }
   .masthead h1 { margin:0 0 0.3rem; font-size:1.75rem; font-weight:700; letter-spacing:0.02em; }
-  .masthead .sub { font-size:0.9rem; opacity:0.88; margin:0 0 0.15rem; }
+  .masthead-title { display:flex; justify-content:space-between; align-items:baseline; gap:1rem; }
+  .masthead-type { font-size:1.2rem; opacity:0.8; white-space:nowrap; }
+  .masthead .sub { display:flex; justify-content:space-between; font-size:0.9rem; opacity:0.88; margin:0 0 0.15rem; }
   .masthead .sub a { color:var(--accent-link); font-weight:600; text-decoration:none; }
   .masthead .sub a:hover { text-decoration:underline; }
-  .meta-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
-               gap:0.5rem 2rem; font-size:0.84rem; margin-top:0.9rem; }
+  .meta-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+               gap:0.35rem 1.4rem; font-size:0.84rem; margin-top:0.9rem; }
   .meta-grid dt { opacity:0.7; text-transform:uppercase; font-size:0.7rem;
                   letter-spacing:0.06em; margin-bottom:0.1rem; }
   .meta-grid dd { margin:0; font-weight:600; }
@@ -67,12 +72,12 @@
 </head>
 <body>
 
-
 <div id="top" class="masthead">
-  <h1 style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem"><span>dune2_1_2026</span><span style="font-size:1.2rem;opacity:0.8;white-space:nowrap">Stacked</span></h1>
-  <p class="sub" style="text-align:right">generated <GENERATED></p>
+  <h1 class="masthead-title"><span>dune2_1_2026</span><span class="masthead-type">Stacked</span></h1>
+  <p class="sub"><span></span><span>generated <GENERATED></span></p>
   <div style="margin-top:0.65rem"><div style="margin-bottom:0.25rem"><span style="font-size:0.72rem;opacity:0.75;margin-right:0.3rem;white-space:nowrap;vertical-align:middle;">Reports:</span><a href="dune2_1_2026_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#1a3a5c">Summary</a><span style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;opacity:0.45;background:#2980b9" title="current">Stack</span><a href="dune2_1_2026_grid_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#8e44ad">Grid</a></div><div style="margin-bottom:0.1rem"><span style="font-size:0.72rem;opacity:0.75;margin-right:0.3rem;white-space:nowrap;vertical-align:middle;">Aquadopp:</span><a href="instrument/dune2_1_2026_9920_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#27ae60">9920</a></div><div style="margin-bottom:0.1rem"><span style="font-size:0.72rem;opacity:0.75;margin-right:0.3rem;white-space:nowrap;vertical-align:middle;">Microcat:</span><a href="instrument/dune2_1_2026_2941_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#27ae60">2941</a></div></div>
   <dl class="meta-grid">
+    
     <div><dt>Cruise</dt><dd>OdB</dd></div>
     <div><dt>Ship</dt><dd>Odon de Buen</dd></div>
     <div><dt>Latitude</dt><dd>65 43.913</dd></div>
@@ -85,8 +90,11 @@
     <div><dt>Records</dt><dd>328</dd></div>
     <div><dt>Instruments</dt><dd>22</dd></div>
     <div><dt>Source&nbsp;file</dt><dd>dune2_1_2026_stack.nc</dd></div>
+  
   </dl>
 </div>
+
+
 
 <nav class="jump-nav">
   Jump to:

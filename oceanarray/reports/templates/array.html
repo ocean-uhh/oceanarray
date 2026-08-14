@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ array_name }} &ndash; array summary{% endblock %}
 {% block page_styles %}
-  .masthead p.sub { margin:0; font-size:0.82rem; opacity:0.75; }
   .meta-grid div { font-size:0.82rem; }
   table { border-collapse:collapse; width:100%; margin:0.6rem 0 1.2rem; font-size:0.84rem; }
   th { background:var(--ocean); color:#fff; padding:0.4rem 0.6rem; text-align:left; }
@@ -17,12 +16,10 @@
   .note { font-size:0.78rem; color:#555; margin:0.2rem 0 0.6rem; }
   .fig { max-width:60%; display:block; margin:0.5rem auto 1rem; border:1px solid #e0e4e8; border-radius:4px; }
 {% endblock %}
-{% block content %}
-
-<div class="masthead">
-  <h1>{{ array_name }}</h1>
-  <p class="sub">Array summary &bull; generated {{ generated }}</p>
-  <dl class="meta-grid">
+{% block masthead_title %}{{ array_name }}{% endblock %}
+{% block masthead_type %}Array{% endblock %}
+{% block masthead_nav %}{% endblock %}
+{% block masthead_meta %}
     {% if year %}<div><dt>Year</dt><dd>{{ year }}</dd></div>{% endif %}
     {% if cruise %}<div><dt>Cruise</dt><dd>{{ cruise }}</dd></div>{% endif %}
     {% if ship %}<div><dt>Ship</dt><dd>{{ ship }}</dd></div>{% endif %}
@@ -30,8 +27,8 @@
     {% if deploy_time %}<div><dt>Deployment</dt><dd>{{ deploy_time }}</dd></div>{% endif %}
     {% if recover_time %}<div><dt>Recovery</dt><dd>{{ recover_time }}</dd></div>{% endif %}
     <div><dt>Moorings</dt><dd>{{ moorings | length }}</dd></div>
-  </dl>
-</div>
+  {% endblock %}
+{% block content %}
 
 <p class="note" style="margin:0 0 0.8rem">
   Jump to:
