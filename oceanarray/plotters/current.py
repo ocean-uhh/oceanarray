@@ -39,6 +39,7 @@ from oceanarray.plotters.primitives import (
 from oceanarray.plotters.helpers import _rose_ax, _velocity_panel_style
 from oceanarray.utilities import _nice_colorbar_bounds
 from oceanarray import parameters as params
+from oceanarray.config import report_tokens
 
 
 def plot_temperature_trajectory(
@@ -144,7 +145,7 @@ def plot_speed_boxplot(
         val = np.percentile(speed_clean, p)
         print(f"  {p:2d}th percentile: {val:.4f} {units}")
 
-    fig, ax = plt.subplots(figsize=(params.W_THIRD, 6))
+    fig, ax = plt.subplots(figsize=(report_tokens.W_THIRD, 3.5))
     bp = ax.boxplot(
         speed_clean,
         vert=True,
@@ -249,7 +250,7 @@ def plot_multi_aquadopp_trajectories(
         _bounds = _nice_colorbar_bounds(0.0, 1.0, n=20)
     norm: mcolors.BoundaryNorm = mcolors.BoundaryNorm(_bounds, ncolors=256)
 
-    fig, ax = plt.subplots(figsize=(params.W_FULL, 5), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(report_tokens.W_FULL, 5), constrained_layout=True)
 
     for instr_i, x, y, temp in trajs:
         serial = str(serials[instr_i])
@@ -367,12 +368,13 @@ def plot_hodograph(
     import pandas as pd
 
     instr_id = ds.attrs.get("id", "")
-    # constrained_layout places the shared colorbar correctly against the
-    # equal-aspect ("box"-adjustable) panels; without it the colorbar overlaps
-    # the panel whitespace and appears to sit inside the axes.
-    fig, axes = plt.subplots(
-        1, 2, figsize=(params.W_FULL, 4.5), constrained_layout=True
-    )
+    # Hand-managed layout: each panel appends its own colorbar via
+    # make_axes_locatable (so the bar tracks the equal-aspect square axes), which
+    # does not compose with constrained_layout — so lay out manually and mark the
+    # figure so the encoder skips tight_layout.
+    fig, axes = plt.subplots(1, 2, figsize=(report_tokens.W_FULL, 4.5))
+    fig._manual_layout = True  # noqa: SLF001 — encoder layout opt-out (see _encode._manages_own_layout)
+    fig.subplots_adjust(left=0.07, right=0.97, top=0.88, bottom=0.12, wspace=0.32)
     if instr_id:
         fig.suptitle(instr_id)
 
@@ -567,7 +569,9 @@ def plot_aquadopp_speed_profile(
     hab_range = max(hab_vals) - min(hab_vals) if len(hab_vals) > 1 else 10.0
     box_width = max(2.0, hab_range * 0.06)
 
-    fig, ax = plt.subplots(figsize=(params.W_HALF, max(3, len(records) * 0.7 + 1)))
+    fig, ax = plt.subplots(
+        figsize=(report_tokens.W_HALF, max(3, len(records) * 0.7 + 1))
+    )
 
     for hab, serial, spd_clean in records:
         bp = ax.boxplot(
@@ -704,7 +708,7 @@ def plot_adcp_trajectories(
         _bounds = _nice_colorbar_bounds(hab_min, hab_max, n=_n_hab)
     norm: mcolors.BoundaryNorm = mcolors.BoundaryNorm(_bounds, ncolors=256)
 
-    fig, ax = plt.subplots(figsize=(params.W_FULL, 5))
+    fig, ax = plt.subplots(figsize=(report_tokens.W_FULL, 5))
 
     for hab, x, y in trajs:
         points = np.array([x, y]).T.reshape(-1, 1, 2)
@@ -806,13 +810,16 @@ def draw_instrument_rose(nc_path: Path) -> "Optional[plt.Figure]":
     fig, axs = plt.subplots(
         1,
         ncols,
-        figsize=(params.W_TWOTHIRDS, 3.2),
+        figsize=(report_tokens.W_FULL, report_tokens.W_FULL / max(ncols, 1) + 0.4),
         subplot_kw={"projection": "polar"},
         squeeze=False,
     )
     for ax, (east, north, title, cmap) in zip(axs[0], panels):
         _rose_ax(ax, east, north, title=title, cmap=cmap)
 
+    # Polar figures skip the encoder's tight_layout, so set panel spacing here;
+    # more wspace gives the roses room left-to-right.
+    fig.subplots_adjust(wspace=0.5)
     return fig
 
 
@@ -914,7 +921,7 @@ def draw_rose_grid(
     fig, axs = plt.subplots(
         nrows,
         ncols,
-        figsize=(params.W_FULL, nrows * 3.2),
+        figsize=(report_tokens.W_FULL, nrows * 3.2),
         subplot_kw={"projection": "polar"},
         squeeze=False,
     )
@@ -991,7 +998,7 @@ def draw_grid_rose(ds: "xr.Dataset", max_roses: int = 4) -> "Optional[plt.Figure
     fig, axs = plt.subplots(
         nrows,
         ncols,
-        figsize=(params.W_FULL, nrows * 3.2),
+        figsize=(report_tokens.W_FULL, nrows * 3.2),
         subplot_kw={"projection": "polar"},
         squeeze=False,
     )
@@ -1058,7 +1065,7 @@ def draw_grid_trajectory(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     _bounds, norm = colorbar_norm(vmin=min(p_vals), vmax=max(p_vals))
     cmap = plt.get_cmap("viridis_r")  # shallow (low p) → light; deep → dark
 
-    fig, ax = plt.subplots(figsize=(params.W_HALF, 5))
+    fig, ax = plt.subplots(figsize=(report_tokens.W_HALF, 5))
 
     for p_val, x, y in trajs:
         points = np.array([x, y]).T.reshape(-1, 1, 2)
@@ -1226,7 +1233,7 @@ def draw_adcp_velocity(nc_path: str) -> "Optional[plt.Figure]":
 
         n = len(present)
         fig, axes = plt.subplots(
-            n, 1, figsize=(params.W_FULL, 3.5 * n), sharex=True, squeeze=False
+            n, 1, figsize=(report_tokens.W_FULL, 3.5 * n), sharex=True, squeeze=False
         )
 
         orientation = ds.attrs.get("orientation_yaml") or ds.attrs.get(
@@ -1377,7 +1384,7 @@ def draw_adcp_rose(nc_path: str) -> "Optional[plt.Figure]":
         fig, axs = plt.subplots(
             1,
             ncols,
-            figsize=(params.W_FULL, 4.0),
+            figsize=(report_tokens.W_FULL, 4.0),
             subplot_kw={"projection": "polar"},
             squeeze=False,
         )
@@ -1508,7 +1515,7 @@ def draw_adcp_hodograph(
 
     from oceanarray.reports._plots import _draw_hodograph_pair
 
-    fig, axes = plt.subplots(2, 2, figsize=(params.W_FULL, 9))
+    fig, axes = plt.subplots(2, 2, figsize=(report_tokens.W_FULL, 9))
     fig.subplots_adjust(hspace=0.55, wspace=0.45)
 
     _draw_hodograph_pair(
@@ -1616,7 +1623,7 @@ def draw_grid_hodograph(
     smooth_n = max(3, int(round(smooth_hours * 3600.0 / dt_s)))
 
     fig, (ax_shallow, ax_deep) = plt.subplots(
-        1, 2, figsize=(params.W_FULL, 4.5), constrained_layout=True
+        1, 2, figsize=(report_tokens.W_FULL, 4.5), constrained_layout=True
     )
 
     for ax, i_lev, label in [

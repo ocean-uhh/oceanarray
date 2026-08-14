@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 
 from .primitives import colorbar_norm, date_axis
 from .. import parameters as params
+from oceanarray.config import report_tokens
 
 
 def draw_isopycnal_ts_fig(ds_iso: "xr.Dataset") -> "Optional[plt.Figure]":
@@ -68,7 +69,7 @@ def draw_isopycnal_ts_fig(ds_iso: "xr.Dataset") -> "Optional[plt.Figure]":
     color_norms = np.linspace(0.25, 0.95, max(n_levels, 1))
     colors = [cmap(v) for v in color_norms]
 
-    fig, ax = plt.subplots(figsize=(params.W_FULL, 4))
+    fig, ax = plt.subplots(figsize=(report_tokens.W_FULL, 4))
 
     for i, (sval, col) in enumerate(zip(sigma_vals, colors)):
         h = height[i, :]
@@ -239,7 +240,7 @@ def draw_isopycnal_coverage(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     fig, (ax0, ax1, ax2) = plt.subplots(
         1,
         3,
-        figsize=(params.W_FULL, fig_h),
+        figsize=(report_tokens.W_FULL, fig_h),
         sharey=True,
         gridspec_kw={"width_ratios": [0.8, 1.0, 1.2]},
     )
@@ -380,7 +381,7 @@ def draw_overflow_temperature_fig(ds: "xr.Dataset") -> "Optional[plt.Figure]":
         .values
     )
 
-    fig, ax = plt.subplots(figsize=(params.W_FULL, 3))
+    fig, ax = plt.subplots(figsize=(report_tokens.W_FULL, 3))
     ax.plot(time_vals, temp_med, color="#1a3a5c", lw=1.0)
     ax.set_ylabel(params.vlabel("temperature"))
     hab = waterdepth - actual_p

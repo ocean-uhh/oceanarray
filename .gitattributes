@@ -1,0 +1,3 @@
+# Generated report HTML: collapse in diffs, exclude from GitHub language stats.
+tests/fixtures/golden/** linguist-generated=true
+docs/source/_static/demo/** linguist-generated=true

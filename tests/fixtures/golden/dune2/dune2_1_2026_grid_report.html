@@ -50,6 +50,9 @@
   .history-list li:last-child { border-bottom:none; }
   .history-ts { color:var(--muted); white-space:nowrap; font-size:0.76rem; min-width:11rem; }
   .history-text { flex:1; }
+  /* Figures never exceed the content column; the oversampled PNG downscales
+     crisply (spec §11 OVERSAMPLE). Pages may override (e.g. array uses 60%). */
+  .fig { max-width:100%; height:auto; display:block; }
   td.num { text-align:right; font-variant-numeric:tabular-nums; }
   td.mono { font-family:monospace; font-size:0.8rem; }
   .none-note { color:var(--muted); font-style:italic; }
@@ -247,7 +250,7 @@
 
 
 
-<h2 id="overflow">Overflow <a class="top-link" href="#top">↑ top</a></h2>
+<h2 id="overflow">Overflow</h2>
 
 
 

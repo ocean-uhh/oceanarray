@@ -27,7 +27,7 @@ import numpy as np
 
 from oceanarray.utilities import _nice_colorbar_bounds, period_axis_ticks
 from ..analysis.spectral import gonella_rotary_spectrum
-from .. import parameters as params
+from oceanarray.config import report_tokens
 
 if TYPE_CHECKING:
     import matplotlib.axes
@@ -353,7 +353,7 @@ def draw_spectrum(
 
     from matplotlib.ticker import NullLocator
 
-    fig, (ax_lf, ax_hf) = plt.subplots(1, 2, figsize=(params.W_FULL, 5))
+    fig, (ax_lf, ax_hf) = plt.subplots(1, 2, figsize=(report_tokens.W_FULL, 5))
 
     x_min_lf = max(nyq_period, 10.0 / 1440.0)  # right edge: Nyquist or 10 min
     # Left edge = longest period Welch can estimate = 1/min_freq = window length
@@ -647,7 +647,7 @@ def draw_wavelet(
     n_panels = len(results)
     # height ratios: 1 part time series, 3 parts wavelet, per level
     hr = [1, 3] * n_panels
-    fig = plt.figure(figsize=(params.W_FULL, 4.5 * n_panels))
+    fig = plt.figure(figsize=(report_tokens.W_FULL, 4.5 * n_panels))
     gs = GridSpec(2 * n_panels, 1, figure=fig, height_ratios=hr, hspace=0.08)
 
     tax: list = []  # time series axes (top of each pair)
@@ -869,7 +869,7 @@ def draw_grid_rotary_spectrum(
     cmap_cw = plt.get_cmap("Reds")
     cmap_ccw = plt.get_cmap("Blues")
 
-    fig, (ax_spec, ax_rot) = plt.subplots(1, 2, figsize=(params.W_FULL, 5))
+    fig, (ax_spec, ax_rot) = plt.subplots(1, 2, figsize=(report_tokens.W_FULL, 5))
 
     # Panel 1: CW (solid, reds) + CCW (dashed, blues)
     for s_cw, s_ccw, p in zip(s_cw_list, s_ccw_list, press_plotted):

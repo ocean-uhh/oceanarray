@@ -33,6 +33,7 @@ from ._plots import (
     render_b64,
 )
 from .. import parameters as params
+from oceanarray.config import report_tokens
 
 
 # ---------------------------------------------------------------------------
@@ -84,7 +85,7 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
 
     def _draw() -> "plt.Figure":
         fig = plt.figure(
-            figsize=(params.W_FULL, 2.8 * n_panels), constrained_layout=True
+            figsize=(report_tokens.W_FULL, 2.8 * n_panels), constrained_layout=True
         )
         gs = fig.add_gridspec(n_panels, 3, width_ratios=[2, 2, 1])
 
@@ -254,7 +255,7 @@ def generate_stack_page(
                 {
                     "serial": _ser,
                     "instr_type": instr_types[i],
-                    "hab": f"{habs[i]:.1f}",
+                    "hab": f"{habs[i]:.0f}",
                     "depth": depth,
                     "stage": "",
                     "report_href": _instrument_report_href(mooring_name, _ser),
@@ -265,8 +266,21 @@ def generate_stack_page(
             )
 
         _serial_list = list(serials)
-        _tab20 = plt.get_cmap("tab20")
-        _serial_colors = {s: _tab20(i % 20) for i, s in enumerate(_serial_list)}
+        # Colour instruments in (deep-first) order from a colourblind-friendly
+        # sequential map; beyond _n_line_colors, keep the colour order and cycle
+        # the line style (solid, dashed, …) so many series stay distinguishable
+        # and ordered rather than an arbitrary 20-colour wheel.
+        _cmap = plt.get_cmap("viridis")
+        _line_styles = ["-", "--", ":", "-."]
+        _n_line_colors = min(len(_serial_list), 10)
+        _serial_colors = {}
+        _serial_styles = {}
+        for _i, _s in enumerate(_serial_list):
+            _ci = _i % _n_line_colors
+            _serial_colors[_s] = _cmap(_ci / max(_n_line_colors - 1, 1))
+            _serial_styles[_s] = _line_styles[
+                (_i // _n_line_colors) % len(_line_styles)
+            ]
 
         def _ts_fig(
             varname: str,
@@ -284,19 +298,26 @@ def generate_stack_page(
                 qc = ds[qc_varname].values
                 arr[qc >= 3] = np.nan
             with plt.style.context(str(params.MPLSTYLE)):
-                fig, ax = plt.subplots(figsize=(params.W_FULL, 3.2))
+                fig, ax = plt.subplots(figsize=(report_tokens.W_FULL, 3.2))
                 plotted = False
                 for i in range(n_instr):
                     if exclude_types and instr_types[i].lower() in exclude_types:
                         continue
                     serial = _serial_list[i]
                     color = _serial_colors[serial]
+                    style = _serial_styles[serial]
                     y = arr[::step, i]
                     if not np.any(np.isfinite(y)):
                         continue
                     plotted = True
                     ax.plot(
-                        time_ds, y, color=color, lw=0.7, alpha=0.85, label=f"{serial}"
+                        time_ds,
+                        y,
+                        color=color,
+                        ls=style,
+                        lw=0.7,
+                        alpha=0.85,
+                        label=f"{serial}",
                     )
                     if dot_overlay:
                         ax.plot(
@@ -465,7 +486,7 @@ def generate_stack_page(
                     all_spacings.extend(valid.tolist())
                 if all_spacings:
                     with plt.style.context(str(params.MPLSTYLE)):
-                        fig_sp, ax_sp = plt.subplots(figsize=(params.W_THIRD, 3))
+                        fig_sp, ax_sp = plt.subplots(figsize=(report_tokens.W_THIRD, 3))
                         ax_sp.hist(
                             all_spacings, bins=60, color="steelblue", edgecolor="white"
                         )

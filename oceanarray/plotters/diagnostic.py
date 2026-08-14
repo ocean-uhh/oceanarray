@@ -43,6 +43,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 import numpy as np
 
 from .. import parameters as params
+from oceanarray.config import report_tokens
 
 if TYPE_CHECKING:
     import matplotlib.figure
@@ -138,10 +139,15 @@ def _instrument_panels(
     do_combo = combine_pitch_roll and "pitch" in time_vars and "roll" in time_vars
 
     out = []
+    is_velocity_instrument = has_enu or bool(beam_vars & time_vars)
     for vname, label, color, invert in _CANONICAL_PANELS:
         if vname not in time_vars:
             continue
         if has_enu and vname in beam_vars:
+            continue
+        # Aquadopps/ADCPs record speed_of_sound internally for the velocity
+        # solution, but it is not a science output — drop the panel for them.
+        if vname == "speed_of_sound" and is_velocity_instrument:
             continue
         if do_combo:
             if vname == "pitch":
@@ -776,7 +782,7 @@ def plot_clock_offset_check(
     n_panels = len(windows)
     with plt.style.context(str(params.MPLSTYLE)):
         fig, axes = plt.subplots(
-            1, n_panels, figsize=(params.W_FULL, 3.5), sharey=False
+            1, n_panels, figsize=(report_tokens.W_FULL, 3.5), sharey=False
         )
         if n_panels == 1:
             axes = [axes]
@@ -799,9 +805,8 @@ def plot_clock_offset_check(
                 plotted_serials.add(serial)
 
             ax.set_title(title)
-            ax.set_xlabel("Time (UTC)")
             ax.set_ylabel("Normalised temperature (std)")
-            ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.3)
+            ax.grid(True)
             locator = mdates.AutoDateLocator()
             ax.xaxis.set_major_locator(locator)
             ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
@@ -818,12 +823,15 @@ def plot_clock_offset_check(
                 handles=handles,
                 loc="lower center",
                 ncol=min(len(handles), 6),
-                bbox_to_anchor=(0.5, -0.05),
+                bbox_to_anchor=(0.5, 0.01),
                 frameon=True,
             )
 
-        plt.tight_layout()
-        fig.subplots_adjust(bottom=0.18)
+        # Reserve space for the below-axes legend and keep it: mark the figure
+        # manual so the encoder does not re-run tight_layout and undo the reserve
+        # (which clipped the legend and overspilled the slot at full-canvas save).
+        fig.subplots_adjust(bottom=0.24, top=0.9, left=0.08, right=0.97, wspace=0.22)
+        fig._manual_layout = True  # noqa: SLF001 — encoder layout opt-out
         return fig
 
 
@@ -919,7 +927,7 @@ def draw_windows(
             for vname, *_ in panels
         ]
         nrows = len(panels)
-        fig = plt.figure(figsize=(params.W_FULL, sum(height_ratios)))
+        fig = plt.figure(figsize=(report_tokens.W_FULL, sum(height_ratios)))
         gs = GridSpec(
             nrows,
             2,
@@ -1198,8 +1206,10 @@ def draw_data_histogram(nc_path: Path) -> "Optional[plt.Figure]":
         fig, axs_grid = plt.subplots(
             nrows,
             ncols,
-            figsize=(ncols * 4.5, 2.5 * nrows),
+            figsize=(report_tokens.W_FULL, 2.5 * nrows),
             squeeze=False,
+            sharey=True,
+            layout="constrained",
         )
         axs = axs_grid.ravel()
         for k in range(len(plot_panels), len(axs)):
@@ -1284,7 +1294,9 @@ def draw_data_histogram(nc_path: Path) -> "Optional[plt.Figure]":
                     label="kept",
                 )
             ax.set_yscale("log")
-            ax.set_ylabel(f"{ylabel}\n(log count)")
+            ax.set_xlabel(ylabel)
+            if ax.get_subplotspec().is_first_col():
+                ax.set_ylabel("log₁₀(count)")
 
             s_min = s_max = f_min = f_max = None
             if has_qc:
@@ -1353,10 +1365,6 @@ def draw_data_histogram(nc_path: Path) -> "Optional[plt.Figure]":
                     color="#e74c3c",
                 )
 
-        for ax in axs_grid[-1]:
-            if ax.get_visible():
-                ax.set_xlabel("Value")
-        fig.suptitle("Data value distributions  (grey = all,  blue = kept)", y=1.01)
         return fig
 
 
@@ -1443,7 +1451,7 @@ def draw_velocity_iqr_profile(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     fig, axs = plt.subplots(
         1,
         n_panels,
-        figsize=(params.W_FULL, 4.5),
+        figsize=(report_tokens.W_FULL, 4.5),
         sharey=True,
         gridspec_kw={"width_ratios": [2] * (n_panels - 1) + [1]},
     )

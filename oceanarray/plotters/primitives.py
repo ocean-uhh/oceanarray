@@ -23,6 +23,7 @@ import numpy as np
 from matplotlib.collections import LineCollection
 
 from .. import parameters as params
+from oceanarray.config import report_tokens
 from ..utilities import _nice_colorbar_bounds
 
 
@@ -142,7 +143,7 @@ def plot_trajectory(
     matplotlib.figure.Figure
 
     """
-    fig, ax = plt.subplots(figsize=(params.W_HALF, 6), constrained_layout=True)
+    fig, ax = plt.subplots(figsize=(report_tokens.W_HALF, 6), constrained_layout=True)
 
     if color_data is not None:
         points = np.array([x, y]).T.reshape(-1, 1, 2)
@@ -221,12 +222,15 @@ def hodograph_panel(
     lc.set_array(t_frac[::step][:-1])
     ax.add_collection(lc)
 
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+
     sm = plt.cm.ScalarMappable(cmap="plasma", norm=norm_lc)
     sm.set_array([])
-    cb = ax.figure.colorbar(
-        sm, ax=ax, shrink=0.75, pad=0.03, aspect=20, ticks=bounds_lc
-    )
-    cb.set_label("Time →")
+    # Tie the colorbar height to the (equal-aspect, square) axes via an appended
+    # cax, so it matches the plotted square rather than the taller panel cell.
+    cax = make_axes_locatable(ax).append_axes("right", size="4%", pad=0.05)
+    cb = ax.figure.colorbar(sm, cax=cax, ticks=bounds_lc)
+    cb.set_label(r"Time $\rightarrow$")
     cb.ax.set_yticks([0.0, 1.0])
     cb.ax.set_yticklabels(["start", "end"])
 

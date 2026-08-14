@@ -10,6 +10,7 @@ import numpy as np
 from .primitives import colorbar_norm
 from .helpers import QC_MARKER as _QC_MARKER
 from .. import parameters as params
+from oceanarray.config import report_tokens
 
 if TYPE_CHECKING:
     import matplotlib.pyplot as plt
@@ -153,7 +154,7 @@ def draw_ts_diagram(nc_path: Path) -> "Optional[plt.Figure]":
 
     ncols = 3 if has_sat else 2
     fig, axes = plt.subplots(
-        1, ncols, figsize=(params.W_FULL, 4.5), constrained_layout=True
+        1, ncols, figsize=(report_tokens.W_FULL, 4.5), constrained_layout=True
     )
     ax_l, ax_r = axes[0], axes[1]
     ax_sat = axes[2] if has_sat else None
@@ -293,7 +294,7 @@ def draw_stack_ts_diagram(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     has_sat = SAT_flat is not None and np.isfinite(SAT_flat).any()
     ncols = 3 if has_sat else 2
     fig, axes = plt.subplots(
-        1, ncols, figsize=(params.W_FULL, 4.5), constrained_layout=True
+        1, ncols, figsize=(report_tokens.W_FULL, 4.5), constrained_layout=True
     )
 
     ax_scatter, ax_heat = axes[0], axes[1]
@@ -424,7 +425,7 @@ def draw_grid_ts_diagram(
     has_o2 = has_o2 and o2_valid.any()
 
     ncols = 2 if has_o2 else 1
-    fig, axes = plt.subplots(1, ncols, figsize=(params.W_HALF, 5))
+    fig, axes = plt.subplots(1, ncols, figsize=(report_tokens.W_HALF, 5))
     if ncols == 1:
         axes = [axes]
 
