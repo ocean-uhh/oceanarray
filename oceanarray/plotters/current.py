@@ -190,18 +190,18 @@ def plot_multi_aquadopp_trajectories(
     Each trajectory starts at the origin and is built by integrating the
     east/north velocity over time (Euler forward; NaN velocities set to zero).
     All trajectories share a single temperature colour scale so instruments can
-    be compared directly.  End points are annotated with serial number and HAB.
+    be compared directly.  End points are annotated with the instrument serial.
 
     Parameters
     ----------
     ds : xr.Dataset
         Stacked mooring dataset with shape (time, N_LEVELS).  Must contain
-        *instr_type_var*, *serial_var*, *hab_var*, *u_var*, *v_var*.
+        *instr_type_var*, *serial_var*, *u_var*, *v_var*.
     u_var, v_var : str
         Eastward and northward velocity variables (m s⁻¹).
     temp_var : str
         Temperature variable for colouring; omitted if not present in ds.
-    instr_type_var, serial_var, hab_var : str
+    instr_type_var, serial_var : str
         Dimension-coordinate variable names identifying each instrument.
     title : str
         Optional figure title; falls back to the dataset ``id`` attribute.

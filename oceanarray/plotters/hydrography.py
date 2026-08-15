@@ -405,7 +405,7 @@ def draw_overflow_temperature_fig(
     ax.plot(
         time_vals,
         temp_med,
-        color=params.VAR_COLORS.get("temperature", "#1a3a5c"),
+        color=params.var_color("temperature"),
         lw=1.0,
     )
     ax.set_ylabel(params.vlabel("temperature"))

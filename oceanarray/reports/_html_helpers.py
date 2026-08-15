@@ -29,8 +29,13 @@ from ..utilities import (  # noqa: F401  (re-exported)
 # helpers
 # ---------------------------------------------------------------------------
 
-#: ISO timestamp with fractional seconds, e.g. ``2026-07-11T20:30:00.000000000``.
-_ISO_FRAC_TS_RE = re.compile(r"^(.*T\d\d:\d\d:\d\d)\.(\d+)$")
+#: Full ISO timestamp with fractional seconds and an optional timezone suffix,
+#: e.g. ``2026-07-11T20:30:00.000000000`` or ``2026-07-11T20:30:00.5+00:00``.  The
+#: date part is anchored (``^\d{4}-...``) so a non-timestamp string that merely
+#: ends in ``T HH:MM:SS.digits`` is NOT matched and is left untouched.
+_ISO_FRAC_TS_RE = re.compile(
+    r"^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)\.(\d+)(Z|[+-]\d\d:?\d\d)?$"
+)
 
 
 def _round_ts_for_display(value: str) -> str:
@@ -38,17 +43,23 @@ def _round_ts_for_display(value: str) -> str:
 
     Deployment/recovery times are stored at nanosecond precision (from
     ``datetime64[ns]``), which is spurious detail in the report's global-attribute
-    table.  Non-timestamp strings and timestamps without fractional seconds are
-    returned unchanged.  This affects the report display only, not the saved file.
+    table.  Only strings that are a full ISO timestamp (optionally timezone-suffixed)
+    are touched; everything else — and timestamps with no fractional seconds — is
+    returned unchanged.  Fractions that round up past ``.95`` carry into the next
+    second (via ``numpy.datetime64``) rather than clamping.  This affects the report
+    display only, not the saved file.
     """
     m = _ISO_FRAC_TS_RE.match(value)
     if not m:
         return value
-    head, frac = m.group(1), m.group(2)
+    head, frac, tz = m.group(1), m.group(2), m.group(3) or ""
     tenths = int(round(int(frac) / 10 ** len(frac) * 10))  # 0..10
-    if tenths >= 10:  # .95+ rounds up; keep .9 rather than carry into seconds
-        return f"{head}.9"
-    return head if tenths == 0 else f"{head}.{tenths}"
+    if tenths >= 10:  # carry into the next second
+        try:
+            return f"{np.datetime64(head, 's') + np.timedelta64(1, 's')}{tz}"
+        except ValueError:
+            return value
+    return f"{head}{tz}" if tenths == 0 else f"{head}.{tenths}{tz}"
 
 
 def _safe_serial(serial: Any) -> str:

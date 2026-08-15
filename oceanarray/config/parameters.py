@@ -558,7 +558,8 @@ LINE_CMAPS_BY_VARIABLE: dict[str, str] = {
 #: where each variable is drawn as one line (not the multi-instrument stack, which
 #: uses :data:`LINE_CMAPS_BY_VARIABLE`).  Physics use the Okabe-Ito palette (Wong,
 #: Nature Methods 8:441, 2011); biogeochemistry uses the Paul Tol palette.  Look up
-#: with ``VAR_COLORS.get(var, "#000000")``.  Mirrors ctdcast's ``VAR_COLORS``.
+#: with :func:`var_color` (single fallback, no scattered literals).  Mirrors
+#: ctdcast's ``VAR_COLORS``.
 VAR_COLORS: dict[str, str] = {
     # Physics — Okabe-Ito
     "temperature": "#56B4E9",  # sky blue
@@ -583,6 +584,30 @@ VAR_COLORS: dict[str, str] = {
     "oxygen_saturation_pct": "#332288",
     "turbidity": "#661100",  # dark red
 }
+
+#: Colour for a variable with no :data:`VAR_COLORS` entry — one canonical fallback
+#: so callers don't scatter their own literal defaults (which drift).
+VAR_COLOR_DEFAULT: str = "#000000"
+
+
+def var_color(var: str) -> str:
+    """Return the line/marker colour for *var* from :data:`VAR_COLORS`.
+
+    Falls back to :data:`VAR_COLOR_DEFAULT` for an unregistered variable, so every
+    caller shares one default rather than hard-coding its own.
+
+    Parameters
+    ----------
+    var : str
+        Variable name (key in :data:`VARIABLES` / :data:`VAR_COLORS`).
+
+    Returns
+    -------
+    str
+        A hex colour string.
+
+    """
+    return VAR_COLORS.get(var, VAR_COLOR_DEFAULT)
 
 
 def vlabel(var: str, prefix: str = "") -> str:

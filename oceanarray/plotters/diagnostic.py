@@ -1324,7 +1324,7 @@ def draw_data_histogram(
             # Grey: all finite data.  Kept bars use the variable's own line colour
             # (VAR_COLORS) so the distribution matches its time-series line, falling
             # back to the default blue for variables without a registered colour.
-            _kept_color = params.VAR_COLORS.get(vname, "#2980b9")
+            _kept_color = params.var_color(vname)
             ax.hist(
                 all_data,
                 bins=bin_edges,
