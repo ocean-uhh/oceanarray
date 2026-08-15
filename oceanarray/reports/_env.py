@@ -17,6 +17,7 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader
 
+from . import _figdebug
 from .. import parameters as params
 
 #: Directory holding the report page templates.
@@ -29,6 +30,9 @@ _ENV = Environment(
 )
 #: Package identity available to every template (masthead wordmark).
 _ENV.globals["package_name"] = params.PACKAGE_NAME
+#: Per-figure debug lookup (``func · figsize · png``) for templates' ``.debug``
+#: sections; returns "" unless ``OCEANARRAY_REPORT_DEBUG`` is set.
+_ENV.globals["figdbg"] = _figdebug.figdbg
 
 
 def render_template(name: str, /, **context: Any) -> str:
@@ -48,4 +52,5 @@ def render_template(name: str, /, **context: Any) -> str:
         The rendered HTML.
 
     """
+    context.setdefault("debug", _figdebug.enabled())
     return _ENV.get_template(name).render(**context)

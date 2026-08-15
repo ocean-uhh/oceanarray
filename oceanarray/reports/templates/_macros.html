@@ -1,0 +1,7 @@
+{# Shared template macros.  Import with:  {% import "_macros.html" as m %}  #}
+
+{# Figure-debug line (OCEANARRAY_REPORT_DEBUG=1): the display slot this template
+   chose vs the render-side figsize/png, so a figsize≠slot mismatch is visible.
+   Renders nothing unless debug capture recorded this figure (figdbg is a Jinja
+   global returning "" when off), so it is a no-op in normal builds. #}
+{% macro dbg(b64, slot) %}{% set d = figdbg(b64) %}{% if d %}<div class="debug">slot: {{ slot }}  |  {{ d }}</div>{% endif %}{% endmacro %}
