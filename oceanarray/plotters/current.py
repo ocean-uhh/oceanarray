@@ -29,7 +29,7 @@ import xarray as xr
 from matplotlib.collections import LineCollection
 
 from oceanarray.analysis.vector import xyz_to_enu_2d, progressive_vector
-from oceanarray.plotters.helpers import tukey_smooth
+from oceanarray.plotters.helpers import grid_despine, tukey_smooth
 from oceanarray.plotters.primitives import (
     colorbar_norm,
     date_axis,
@@ -118,6 +118,8 @@ def plot_temperature_trajectory(
 def plot_speed_boxplot(
     ds: xr.Dataset,
     speed_var: str = "current_speed",
+    *,
+    width_in: float = report_tokens.W_THIRD,
 ) -> object:
     """Boxplot of current speed with printed percentile statistics.
 
@@ -130,6 +132,9 @@ def plot_speed_boxplot(
         Dataset containing the speed variable.
     speed_var : str
         Name of the current speed variable.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -149,7 +154,7 @@ def plot_speed_boxplot(
         val = np.percentile(speed_clean, p)
         print(f"  {p:2d}th percentile: {val:.4f} {units}")
 
-    fig, ax = plt.subplots(figsize=(report_tokens.W_THIRD, 3.5))
+    fig, ax = plt.subplots(figsize=(width_in, 3.5))
     bp = ax.boxplot(
         speed_clean,
         vert=True,
@@ -164,7 +169,7 @@ def plot_speed_boxplot(
     instr_id = ds.attrs.get("id", "")
     if instr_id:
         ax.set_title(instr_id, fontsize=9)
-    ax.grid(True, axis="y", linestyle="--", linewidth=0.6, alpha=0.5)
+    grid_despine(ax, axis="y")
     fig.tight_layout()
     return fig
 
@@ -176,8 +181,9 @@ def plot_multi_aquadopp_trajectories(
     temp_var: str = "temperature",
     instr_type_var: str = "instrument_type",
     serial_var: str = "serial",
-    hab_var: str = "hab",
     title: str = "",
+    *,
+    width_in: float = report_tokens.W_HALF,
 ) -> Optional[plt.Figure]:
     """Multi-instrument Lagrangian trajectories for all Aquadopps, coloured by temperature.
 
@@ -199,6 +205,9 @@ def plot_multi_aquadopp_trajectories(
         Dimension-coordinate variable names identifying each instrument.
     title : str
         Optional figure title; falls back to the dataset ``id`` attribute.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -213,7 +222,6 @@ def plot_multi_aquadopp_trajectories(
     """
     instr_types = ds[instr_type_var].values
     serials = ds[serial_var].values
-    habs = ds[hab_var].values
     aqd_idx = [i for i, t in enumerate(instr_types) if str(t).lower() == "aquadopp"]
 
     if not aqd_idx:
@@ -254,12 +262,11 @@ def plot_multi_aquadopp_trajectories(
         _bounds = _nice_colorbar_bounds(0.0, 1.0, n=20)
     norm: mcolors.BoundaryNorm = mcolors.BoundaryNorm(_bounds, ncolors=256)
 
-    fig, axes, cax = square_axes_grid(report_tokens.W_HALF, 1, 1, colorbar=has_temp)
+    fig, axes, cax = square_axes_grid(width_in, 1, 1, colorbar=has_temp)
     ax = axes[0, 0]
 
     for instr_i, x, y, temp in trajs:
         serial = str(serials[instr_i])
-        hab = float(habs[instr_i])
 
         if has_temp and temp is not None:
             points = np.array([x, y]).T.reshape(-1, 1, 2)
@@ -294,7 +301,7 @@ def plot_multi_aquadopp_trajectories(
             markeredgewidth=0.5,
         )
         ax.annotate(
-            f"s/n {serial}  {hab:.0f} m hab",
+            f"{serial}",
             xy=(x[-1], y[-1]),
             xytext=(6, 3),
             textcoords="offset points",
@@ -327,7 +334,7 @@ def plot_multi_aquadopp_trajectories(
     ax.axhline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
     ax.axvline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
     ax.set_aspect("equal", adjustable="datalim")
-    ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.4)
+    grid_despine(ax)
     if not title:
         title = ds.attrs.get("id", "")
     if title:
@@ -341,6 +348,8 @@ def plot_hodograph(
     v_var: str = "north_velocity",
     lp_days: float = 4.0,
     smooth_hours: float = 3.0,
+    *,
+    width_in: float = report_tokens.W_FULL,
 ) -> plt.Figure:
     """Two-panel hodograph: Tukey-smoothed raw and eddy-only, coloured by time.
 
@@ -368,6 +377,9 @@ def plot_hodograph(
         Low-pass window length in days for the eddy-component panel.
     smooth_hours : float
         Tukey smoothing window in hours applied to both panels.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -381,7 +393,7 @@ def plot_hodograph(
     # primitive used by the ADCP and grid hodographs, so all three render
     # identically and the colorbar height always matches the plotted square.
     fig, axes, cax = square_axes_grid(
-        report_tokens.W_FULL, 1, 2, top_pad_in=0.3 if instr_id else 0.0
+        width_in, 1, 2, top_pad_in=0.3 if instr_id else 0.0
     )
     ax_raw, ax_eddy = axes[0, 0], axes[0, 1]
     if instr_id:
@@ -471,6 +483,8 @@ def plot_aquadopp_speed_profile(
     instr_type_var: str = "instrument_type",
     serial_var: str = "serial",
     hab_var: str = "hab",
+    *,
+    width_in: float = report_tokens.W_HALF,
 ) -> Optional[plt.Figure]:
     """Horizontal speed boxplots for all Aquadopps, one per instrument at its HAB.
 
@@ -491,6 +505,9 @@ def plot_aquadopp_speed_profile(
         Used to compute speed when *speed_var* is not present.
     instr_type_var, serial_var, hab_var : str
         Dimension-coordinate variable names.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -532,9 +549,7 @@ def plot_aquadopp_speed_profile(
     hab_range = max(hab_vals) - min(hab_vals) if len(hab_vals) > 1 else 10.0
     box_width = max(2.0, hab_range * 0.06)
 
-    fig, ax = plt.subplots(
-        figsize=(report_tokens.W_HALF, max(3, len(records) * 0.7 + 1))
-    )
+    fig, ax = plt.subplots(figsize=(width_in, max(3, len(records) * 0.7 + 1)))
 
     for hab, serial, spd_clean in records:
         bp = ax.boxplot(
@@ -568,7 +583,7 @@ def plot_aquadopp_speed_profile(
     ax.set_ylabel("Height above bottom (m)")
     ax.set_xlim(left=0)
     ax.set_ylim(min(hab_vals) - box_width * 1.5, max(hab_vals) + box_width * 1.5)
-    ax.grid(True, axis="x", linestyle="--", linewidth=0.5, alpha=0.5)
+    grid_despine(ax, axis="x")
     fig.tight_layout()
     return fig
 
@@ -581,6 +596,8 @@ def plot_adcp_trajectories(
     hab_var: str = "hab",
     seabed_qc_var: str = "seabed_qc",
     percent_good_qc_var: str = "percent_good_qc",
+    *,
+    width_in: float = report_tokens.W_HALF,
 ) -> Optional[plt.Figure]:
     """Lagrangian per-bin trajectories for ADCP data, coloured by HAB.
 
@@ -602,6 +619,9 @@ def plot_adcp_trajectories(
         QC variable for seabed proximity; bins with all values >= 3 are skipped.
     percent_good_qc_var : str
         Ping-quality QC; timesteps flagged >= 3 are zeroed before integration.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -673,7 +693,7 @@ def plot_adcp_trajectories(
 
     # Half width — shown in a 50% flex column beside the Aquadopp trajectory
     # (see stack.html), matching plot_multi_aquadopp_trajectories.
-    fig, axes, cax = square_axes_grid(report_tokens.W_HALF, 1, 1)
+    fig, axes, cax = square_axes_grid(width_in, 1, 1)
     ax = axes[0, 0]
 
     for hab, x, y in trajs:
@@ -699,12 +719,16 @@ def plot_adcp_trajectories(
     ax.axhline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
     ax.axvline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
     ax.set_aspect("equal", adjustable="datalim")
-    ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.4)
+    grid_despine(ax)
     ax.set_title("ADCP bins coloured by HAB")
     return fig
 
 
-def draw_instrument_rose(nc_path: Path) -> "Optional[plt.Figure]":
+def draw_instrument_rose(
+    nc_path: Path,
+    *,
+    width_in: float = report_tokens.W_FULL,
+) -> "Optional[plt.Figure]":
     """Rose diagram grid for a single Aquadopp instrument; return Figure or None.
 
     Loads the stage-3 NetCDF at *nc_path*, builds one polar panel per available
@@ -715,6 +739,9 @@ def draw_instrument_rose(nc_path: Path) -> "Optional[plt.Figure]":
     ----------
     nc_path : Path
         Path to a stage-3 NetCDF file for a single Aquadopp instrument.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -782,7 +809,7 @@ def draw_instrument_rose(nc_path: Path) -> "Optional[plt.Figure]":
         # Full width — the figure is displayed at 100% (see instrument.html), so
         # figsize width == slot width and the browser does not rescale (which would
         # shrink the panel fonts).  Was bumped 6"→9" after "too small" feedback.
-        figsize=(report_tokens.W_FULL, report_tokens.W_FULL / max(ncols, 1) + 0.4),
+        figsize=(width_in, width_in / max(ncols, 1) + 0.4),
         subplot_kw={"projection": "polar"},
         squeeze=False,
     )
@@ -798,6 +825,8 @@ def draw_instrument_rose(nc_path: Path) -> "Optional[plt.Figure]":
 def draw_rose_grid(
     ds: "xr.Dataset",
     serial_list: list,
+    *,
+    width_in: float = report_tokens.W_FULL,
 ) -> "Optional[tuple[plt.Figure, int]]":
     """Grid of current roses (max 4 per row) for instruments with ENU velocity data.
 
@@ -807,6 +836,9 @@ def draw_rose_grid(
         Stack dataset with ``east_velocity`` and ``north_velocity``.
     serial_list : list
         Serial numbers corresponding to the instrument axis of the velocity arrays.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -887,19 +919,24 @@ def draw_rose_grid(
     if n == 0:
         return None
 
-    ncols = min(n, 4)
+    # Always a 4-wide grid; vary the number of rows and render at full width so
+    # every rose is the same size regardless of instrument count (empty trailing
+    # cells are hidden below).  Row height tracks the ¼-width cell so roses stay
+    # square-ish.
+    ncols = 4
     nrows = math.ceil(n / ncols)
 
     fig, axs = plt.subplots(
         nrows,
         ncols,
-        figsize=(report_tokens.W_FULL, nrows * 3.2),
+        figsize=(width_in, nrows * (width_in / ncols + 0.65)),
         subplot_kw={"projection": "polar"},
         squeeze=False,
     )
-    # Tighten the left-right gap between polar panels to match the instrument-page
-    # rose (encoder skips tight_layout for polar figures, so set it explicitly).
-    fig.subplots_adjust(wspace=0.5)
+    # Trim the outer left/right margins and the inter-panel gap (the tucked-in
+    # N/E/S/W labels no longer need the wide gap).  Encoder skips tight_layout for
+    # polar figures, so set the margins explicitly.
+    fig.subplots_adjust(left=0.05, right=0.95, wspace=0.4)
     axs_flat = axs.flatten()
 
     for plot_i, instr_i in enumerate(aqd_idx):
@@ -918,7 +955,12 @@ def draw_rose_grid(
     return fig, n
 
 
-def draw_grid_rose(ds: "xr.Dataset", max_roses: int = 4) -> "Optional[plt.Figure]":
+def draw_grid_rose(
+    ds: "xr.Dataset",
+    max_roses: int = 4,
+    *,
+    width_in: float = report_tokens.W_FULL,
+) -> "Optional[plt.Figure]":
     """Grid of current roses, one per pressure level, for the grid report.
 
     Shows up to *max_roses* pressure levels (at most 1/5th of valid levels,
@@ -933,6 +975,9 @@ def draw_grid_rose(ds: "xr.Dataset", max_roses: int = 4) -> "Optional[plt.Figure
         ``east_velocity`` and ``north_velocity`` in m s⁻¹.
     max_roses : int
         Maximum number of rose panels to draw (default 4).
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -973,7 +1018,7 @@ def draw_grid_rose(ds: "xr.Dataset", max_roses: int = 4) -> "Optional[plt.Figure
     fig, axs = plt.subplots(
         nrows,
         ncols,
-        figsize=(report_tokens.W_FULL, nrows * 3.2),
+        figsize=(width_in, nrows * 3.2),
         subplot_kw={"projection": "polar"},
         squeeze=False,
     )
@@ -991,7 +1036,11 @@ def draw_grid_rose(ds: "xr.Dataset", max_roses: int = 4) -> "Optional[plt.Figure
     return fig
 
 
-def draw_grid_trajectory(ds: "xr.Dataset") -> "Optional[plt.Figure]":
+def draw_grid_trajectory(
+    ds: "xr.Dataset",
+    *,
+    width_in: float = report_tokens.W_HALF,
+) -> "Optional[plt.Figure]":
     """Pseudo-Lagrangian current-vector integral by pressure level for the grid report.
 
     For each pressure level, integrates east and north velocity over time using
@@ -1004,6 +1053,9 @@ def draw_grid_trajectory(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     ds : xr.Dataset
         Gridded dataset with dimensions ``(time, pressure)``, containing
         ``east_velocity`` and ``north_velocity`` in m s⁻¹.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -1042,7 +1094,7 @@ def draw_grid_trajectory(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     _bounds, norm = colorbar_norm(vmin=min(p_vals), vmax=max(p_vals))
     cmap = plt.get_cmap("viridis_r")  # shallow (low p) → light; deep → dark
 
-    fig, axes, cax = square_axes_grid(report_tokens.W_HALF, 1, 1)
+    fig, axes, cax = square_axes_grid(width_in, 1, 1)
     ax = axes[0, 0]
 
     for p_val, x, y in trajs:
@@ -1068,11 +1120,15 @@ def draw_grid_trajectory(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     ax.axhline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
     ax.axvline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
     ax.set_aspect("equal", adjustable="datalim")
-    ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.4)
+    grid_despine(ax)
     return fig
 
 
-def draw_adcp_velocity(nc_path: str) -> "Optional[plt.Figure]":
+def draw_adcp_velocity(
+    nc_path: str,
+    *,
+    width_in: float = report_tokens.W_FULL,
+) -> "Optional[plt.Figure]":
     """Stacked colour panels for the ADCP per-instrument HTML report page; return a Figure.
 
     Reads the stage-3 NetCDF file at *nc_path* and produces a multi-panel
@@ -1112,6 +1168,9 @@ def draw_adcp_velocity(nc_path: str) -> "Optional[plt.Figure]":
     ----------
     nc_path : str
         Path to a stage-3 NetCDF file for a single ADCP instrument.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -1215,7 +1274,7 @@ def draw_adcp_velocity(nc_path: str) -> "Optional[plt.Figure]":
 
         n = len(present)
         fig, axes = plt.subplots(
-            n, 1, figsize=(report_tokens.W_FULL, 3.5 * n), sharex=True, squeeze=False
+            n, 1, figsize=(width_in, 3.5 * n), sharex=True, squeeze=False
         )
 
         orientation = ds.attrs.get("orientation_yaml") or ds.attrs.get(
@@ -1269,7 +1328,7 @@ def draw_adcp_velocity(nc_path: str) -> "Optional[plt.Figure]":
             cb.set_label(cb_label)
             ax.set_ylabel(ylabel)
             ax.set_title(label, loc="left")
-            ax.grid(True, linestyle="--", linewidth=0.3, alpha=0.4)
+            grid_despine(ax)
             # Show from 0 (includes blanking zone) to deepest valid bin.
             # set_ylim with reversed args inverts for downward-looking.
             if looking_down:
@@ -1282,7 +1341,11 @@ def draw_adcp_velocity(nc_path: str) -> "Optional[plt.Figure]":
         return fig
 
 
-def draw_adcp_rose(nc_path: str) -> "Optional[plt.Figure]":
+def draw_adcp_rose(
+    nc_path: str,
+    *,
+    width_in: float = report_tokens.W_FULL,
+) -> "Optional[plt.Figure]":
     """Current rose panels for an ADCP: depth-average plus percentile-selected bins.
 
     Selects the depth-average and up to four individual range bins at the 10th,
@@ -1294,6 +1357,9 @@ def draw_adcp_rose(nc_path: str) -> "Optional[plt.Figure]":
     ----------
     nc_path : str
         Path to a stage-3 ADCP NetCDF file.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -1366,7 +1432,7 @@ def draw_adcp_rose(nc_path: str) -> "Optional[plt.Figure]":
         fig, axs = plt.subplots(
             1,
             ncols,
-            figsize=(report_tokens.W_FULL, 4.0),
+            figsize=(width_in, 4.0),
             subplot_kw={"projection": "polar"},
             squeeze=False,
         )
@@ -1401,7 +1467,11 @@ def draw_adcp_rose(nc_path: str) -> "Optional[plt.Figure]":
 
 
 def draw_adcp_hodograph(
-    nc_path: str, lp_days: float = 4.0, smooth_hours: float = 24.0
+    nc_path: str,
+    lp_days: float = 4.0,
+    smooth_hours: float = 24.0,
+    *,
+    width_in: float = report_tokens.W_FULL,
 ) -> "Optional[plt.Figure]":
     """Two-depth hodograph for an ADCP per-instrument report; return a Figure.
 
@@ -1425,6 +1495,9 @@ def draw_adcp_hodograph(
         Low-pass filter cutoff in days for eddy extraction.
     smooth_hours : float
         Tukey smoothing window in hours for the raw panel.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -1498,7 +1571,7 @@ def draw_adcp_hodograph(
 
     # Deterministic square-panel grid: each hodograph is an exact square so the
     # single shared time colorbar (right) matches the panel height exactly.
-    fig, axes, cax = square_axes_grid(report_tokens.W_FULL, 2, 2)
+    fig, axes, cax = square_axes_grid(width_in, 2, 2)
 
     sm_far = _draw_hodograph_pair(
         axes[0, 0],
@@ -1533,7 +1606,10 @@ def draw_adcp_hodograph(
 
 
 def draw_grid_hodograph(
-    ds: "xr.Dataset", smooth_hours: float = 24.0
+    ds: "xr.Dataset",
+    smooth_hours: float = 24.0,
+    *,
+    width_in: float = report_tokens.W_FULL,
 ) -> "Optional[plt.Figure]":
     """Two-depth hodograph for the grid report; return a Figure.
 
@@ -1549,6 +1625,9 @@ def draw_grid_hodograph(
         Gridded mooring dataset with ``east_velocity`` and ``north_velocity``.
     smooth_hours : float
         Tukey smoothing window in hours.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -1612,7 +1691,7 @@ def draw_grid_hodograph(
 
     # Same deterministic square-panel layout as the ADCP hodograph, so both
     # reports render hodographs and their shared time colorbar identically.
-    fig, axes, cax = square_axes_grid(report_tokens.W_FULL, 1, 2)
+    fig, axes, cax = square_axes_grid(width_in, 1, 2)
     ax_shallow, ax_deep = axes[0, 0], axes[0, 1]
 
     sm = None

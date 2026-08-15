@@ -3,7 +3,10 @@
 {% block title %}Grid report &ndash; {{ mooring_name }}{% endblock %}
 {% block page_styles %}
   :root { --accent:#8e44ad; --accent-link:#e8d5ff; }
-  .fig { width:100%; border:1px solid #dce; border-radius:4px; margin-bottom:0.5rem; }
+  /* No width here: the slot class (.slot-*) sets each figure's width; a bare
+     .fig fills via base.html's max-width:100%.  Setting width:100% here would
+     override the slot and force every figure full-width (U0.2). */
+  .fig { border:1px solid var(--rule); border-radius:var(--radius-btn); margin-bottom:0.5rem; }
   .note { color:var(--muted); font-size:0.82rem; margin-top:-0.5rem; }
   .style-label { font-size:0.8rem; font-weight:600; color:var(--muted); margin:0.4rem 0 0.2rem; text-transform:uppercase; letter-spacing:0.05em; }
   .var-table { width:100%; border-collapse:collapse; font-size:0.82rem; margin-bottom:1.5rem; }
@@ -92,8 +95,8 @@
 <h2 id="ts">T-S diagram</h2>
 <p class="note">Left: log₁₀(count+1) per T-S bin. Right (when O₂ present): median O₂ saturation per T-S bin — bins with &lt;5 samples masked. Colour scale: BrBG (brown=low, teal=high).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" style="max-width:50%" src="data:image/png;base64,{{ fig_ts_grid_b64 }}" alt="T-S diagram">
-{{- m.dbg(fig_ts_grid_b64, "max-width 50%") }}
+<img class="fig slot-{{ slot_for(fig_ts_grid_b64) }}" src="data:image/png;base64,{{ fig_ts_grid_b64 }}" alt="T-S diagram">
+{{- m.dbg(fig_ts_grid_b64, "slot-" ~ slot_for(fig_ts_grid_b64)) }}
 </details>
 {% endif %}
 
@@ -132,8 +135,8 @@
 <h2 id="grid-traj">Particle trajectory</h2>
 <p class="note">Pseudo-Lagrangian trajectories at each gridded pressure level, integrated from east and north velocity (Euler forward). All start at the origin. Coloured by pressure (dbar).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" style="max-width:55%" src="data:image/png;base64,{{ fig_grid_traj_b64 }}" alt="Grid particle trajectory">
-{{- m.dbg(fig_grid_traj_b64, "max-width 55%") }}
+<img class="fig slot-{{ slot_for(fig_grid_traj_b64) }}" src="data:image/png;base64,{{ fig_grid_traj_b64 }}" alt="Grid particle trajectory">
+{{- m.dbg(fig_grid_traj_b64, "slot-" ~ slot_for(fig_grid_traj_b64)) }}
 </details>
 {% endif %}
 
@@ -247,7 +250,7 @@
       <td class="mono" style="font-size:0.75rem">{{ v.dtype }}</td>
       <td class="mono" style="font-size:0.75rem">{{ v.dims }}</td>
       <td class="num">{{ "{:,}".format(v.n) }}</td>
-      <td class="num" {% if v.n_valid is defined and v.n_valid < v.n %}style="color:#c0392b;font-weight:600"{% endif %}>{{ "{:,}".format(v.n_valid) if v.n_valid is defined else "&mdash;" }}</td>
+      <td class="num" {% if v.n_valid is defined and v.n_valid < v.n %}style="color:var(--bad);font-weight:600"{% endif %}>{{ "{:,}".format(v.n_valid) if v.n_valid is defined else "&mdash;" }}</td>
       <td class="num" style="font-size:0.76rem;white-space:nowrap">{% if v.v_min is not none %}{{ v.v_min }} / {{ v.v_max }}{% else %}&mdash;{% endif %}</td>
       <td>{{ v.units }}</td>
       <td>{{ v.long_name }}</td>

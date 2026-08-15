@@ -24,7 +24,9 @@ from .. import parameters as params
 from oceanarray.config import report_tokens
 
 
-def draw_isopycnal_ts_fig(ds_iso: "xr.Dataset") -> "Optional[plt.Figure]":
+def draw_isopycnal_ts_fig(
+    ds_iso: "xr.Dataset", *, width_in: float = report_tokens.W_FULL
+) -> "Optional[plt.Figure]":
     """Isopycnal height-above-seabed time series; return a Figure.
 
     Plots a 1-hour running median of each σ₀ surface's height above seabed.
@@ -37,6 +39,9 @@ def draw_isopycnal_ts_fig(ds_iso: "xr.Dataset") -> "Optional[plt.Figure]":
         Output of :func:`~oceanarray.tools.isopycnal_dataset` — must contain
         ``isopycnal_height`` ``(sigma0_level, time)`` and the ``sigma0_level``
         coordinate.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -70,7 +75,7 @@ def draw_isopycnal_ts_fig(ds_iso: "xr.Dataset") -> "Optional[plt.Figure]":
     _dens_cmap = params.CMAPS_BY_VARIABLE.get("potential_density", "Blues")
     colors = ordered_line_colors(_dens_cmap, max(n_levels, 1))
 
-    fig, ax = plt.subplots(figsize=(report_tokens.W_FULL, params.GRID_PANEL_ROW_IN))
+    fig, ax = plt.subplots(figsize=(width_in, params.GRID_PANEL_ROW_IN))
     grid_despine(ax)
 
     for i, (sval, col) in enumerate(zip(sigma_vals, colors)):
@@ -102,7 +107,9 @@ def draw_isopycnal_ts_fig(ds_iso: "xr.Dataset") -> "Optional[plt.Figure]":
     return fig
 
 
-def draw_isopycnal_coverage(ds: "xr.Dataset") -> "Optional[plt.Figure]":
+def draw_isopycnal_coverage(
+    ds: "xr.Dataset", *, width_in: float = report_tokens.W_FULL
+) -> "Optional[plt.Figure]":
     """Three-panel isopycnal diagnostic; return a Figure.
 
     **Panel 0 — Distribution**: horizontal histogram of all gridded σ₀ values
@@ -128,6 +135,9 @@ def draw_isopycnal_coverage(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     ds:
         Gridded mooring xr.Dataset containing a variable whose name starts with
         ``"sigma"`` and has ``pressure`` and ``time`` dimensions.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -242,7 +252,7 @@ def draw_isopycnal_coverage(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     fig, (ax0, ax1, ax2) = plt.subplots(
         1,
         3,
-        figsize=(report_tokens.W_FULL, fig_h),
+        figsize=(width_in, fig_h),
         sharey=True,
         gridspec_kw={"width_ratios": [0.8, 1.0, 1.2]},
     )
@@ -327,7 +337,9 @@ def draw_isopycnal_coverage(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     return fig
 
 
-def draw_overflow_temperature_fig(ds: "xr.Dataset") -> "Optional[plt.Figure]":
+def draw_overflow_temperature_fig(
+    ds: "xr.Dataset", *, width_in: float = report_tokens.W_FULL
+) -> "Optional[plt.Figure]":
     """Temperature time series at ~100 m above the seabed; return a Figure.
 
     Selects the grid pressure level nearest to ``waterdepth - 100`` dbar and
@@ -340,6 +352,9 @@ def draw_overflow_temperature_fig(ds: "xr.Dataset") -> "Optional[plt.Figure]":
         Gridded mooring xr.Dataset.  Must have a ``waterdepth`` global
         attribute (metres) and a ``temperature`` variable with ``pressure``
         and ``time`` dimensions.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -385,7 +400,7 @@ def draw_overflow_temperature_fig(ds: "xr.Dataset") -> "Optional[plt.Figure]":
         .values
     )
 
-    fig, ax = plt.subplots(figsize=(report_tokens.W_FULL, params.GRID_PANEL_ROW_IN))
+    fig, ax = plt.subplots(figsize=(width_in, params.GRID_PANEL_ROW_IN))
     grid_despine(ax)
     ax.plot(
         time_vals,

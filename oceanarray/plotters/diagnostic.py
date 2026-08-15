@@ -318,7 +318,7 @@ def plot_knockdown_pressure(
         ax.legend(fontsize=9, loc="upper left")
         ax.set_xlabel("Nominal pressure (dbar)")
         ax.set_ylabel("Measured pressure (dbar)")
-        ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.5)
+        grid_despine(ax)
 
         plt.tight_layout()
         return fig
@@ -331,6 +331,8 @@ def plot_knockdown_pressure(
 
 def plot_knockdown_hab(
     ds: "xr.Dataset",
+    *,
+    width_in: float = report_tokens.W_HALF,
 ) -> "Optional[matplotlib.figure.Figure]":
     """IQR of measured pressure vs. nominal HAB, equal aspect ratio.
 
@@ -354,6 +356,9 @@ def plot_knockdown_hab(
         ``pressure``, ``hab``, ``serial``, ``instrument_type``, and
         optionally ``pressure_qc``.  The ``waterdepth`` global attribute
         must be present and non-zero.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -390,7 +395,7 @@ def plot_knockdown_hab(
     with plt.style.context(str(params.MPLSTYLE)):
         # Half width — displayed side-by-side with the anomaly panel in a two-column
         # flex row (see mooring.html), so the slot is ~half the page, not full.
-        fig, ax = plt.subplots(figsize=(report_tokens.W_HALF, report_tokens.W_HALF))
+        fig, ax = plt.subplots(figsize=(width_in, width_in))
 
         p_max_all = 0.0
         for hab_nom, _serial, actual_p in hab_records:
@@ -439,6 +444,8 @@ def plot_knockdown_hab(
 
 def plot_knockdown_anomaly(
     ds: "xr.Dataset",
+    *,
+    width_in: float = report_tokens.W_HALF,
 ) -> "Optional[matplotlib.figure.Figure]":
     """IQR of pressure anomaly (measured − nominal) per instrument.
 
@@ -465,6 +472,9 @@ def plot_knockdown_anomaly(
     ----------
     ds : xr.Dataset
         Stack dataset; same requirements as :func:`plot_knockdown_pressure`.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -495,9 +505,7 @@ def plot_knockdown_anomaly(
 
     with plt.style.context(str(params.MPLSTYLE)):
         # Half width — side-by-side with the HAB panel in the mooring.html flex row.
-        fig, ax = plt.subplots(
-            figsize=(report_tokens.W_HALF, max(3, len(records) * 0.4 + 1))
-        )
+        fig, ax = plt.subplots(figsize=(width_in, max(3, len(records) * 0.4 + 1)))
 
         for p_nom, _serial, actual_p in records:
             anomaly = actual_p - p_nom  # positive = knocked down deeper
@@ -537,6 +545,8 @@ def plot_knockdown_anomaly(
 
 def plot_knockdown_displacement(
     ds: "xr.Dataset",
+    *,
+    width_in: float = report_tokens.W_FULL,
 ) -> "Optional[matplotlib.figure.Figure]":
     """Scatter and heatmap of estimated horizontal displacement vs. measured pressure.
 
@@ -560,6 +570,9 @@ def plot_knockdown_displacement(
     ----------
     ds : xr.Dataset
         Stack dataset; same requirements as :func:`plot_knockdown_pressure`.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -610,10 +623,16 @@ def plot_knockdown_displacement(
 
     x_max = max(float(np.nanmax(all_x)) if len(all_x) else 1.0, 1.0)
     p_max = float(np.nanmax(all_p)) * 1.05 if len(all_p) else 1.0
+    # Square-axes logic: a single equal extent on both axes so that, with a
+    # square box and 1 dbar ≈ 1 m, the scatter reads at true 1:1 scale (a mooring
+    # barely tilts, so the near-vertical shape is the physical point).  Anchored
+    # at 0 rather than centred (displacement and depth both start at the anchor),
+    # so this adapts square_limits() to the knockdown's 0-based geometry.
+    sq_extent = max(x_max, p_max)
 
     with plt.style.context(str(params.MPLSTYLE)):
         fig, (ax1, ax2) = plt.subplots(
-            1, 2, figsize=(report_tokens.W_FULL, 4.5), sharey=True, sharex=True
+            1, 2, figsize=(width_in, 4.5), sharey=True, sharex=True
         )
 
         # --- left panel: scatter ---
@@ -628,17 +647,17 @@ def plot_knockdown_displacement(
                 label=str(serial),
                 rasterized=True,
             )
-        ax1.set_xlim(0, x_max)  # sharex propagates to ax2
+        ax1.set_xlim(0, sq_extent)  # sharex propagates to ax2
         ax1.set_xlabel("Horizontal displacement (m)")
         ax1.set_ylabel("Measured pressure (dbar)")
         ax1.legend(fontsize=9, loc="lower right", markerscale=3)
-        ax1.set_aspect("equal", adjustable="box")  # 100 m on x = 100 m on y
-        ax1.grid(True, linestyle="--", linewidth=0.4, alpha=0.5)
+        ax1.set_box_aspect(1)  # square box; equal extent above keeps 100 m x = 100 m y
+        grid_despine(ax1)
 
         # Shared tick step so x and y gridlines fall at the same intervals
         import matplotlib.ticker as mticker
 
-        _ax_range = max(x_max, p_max)
+        _ax_range = sq_extent
         _step = next(
             s for s in [10, 20, 25, 50, 100, 200, 250, 500, 1000] if _ax_range / s <= 6
         )
@@ -681,11 +700,11 @@ def plot_knockdown_displacement(
                 label="Normalised density (sum = 1 per instrument)",
             )
 
-        ax2.set_ylim(0, p_max)  # sharey propagates this to ax1
-        ax2.set_aspect("equal", adjustable="box")
+        ax2.set_ylim(0, sq_extent)  # sharey propagates this to ax1
+        ax2.set_box_aspect(1)
         ax2.invert_yaxis()
         ax2.set_xlabel("Horizontal displacement (m)")
-        ax2.grid(True, linestyle="--", linewidth=0.4, alpha=0.5, zorder=3)
+        grid_despine(ax2)
 
         plt.tight_layout()
         return fig
@@ -701,6 +720,8 @@ def plot_clock_offset_check(
     deploy_dt: "Optional[datetime]",
     recover_dt: "Optional[datetime]",
     window_minutes: int = 30,
+    *,
+    width_in: float = report_tokens.W_FULL,
 ) -> "Optional[matplotlib.figure.Figure]":
     """Overlaid, per-instrument normalised temperature around deploy and recover.
 
@@ -736,6 +757,9 @@ def plot_clock_offset_check(
         Recovery time (UTC).
     window_minutes : int
         Duration of each zoom window in minutes.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -794,9 +818,7 @@ def plot_clock_offset_check(
 
     n_panels = len(windows)
     with plt.style.context(str(params.MPLSTYLE)):
-        fig, axes = plt.subplots(
-            1, n_panels, figsize=(report_tokens.W_FULL, 3.5), sharey=False
-        )
+        fig, axes = plt.subplots(1, n_panels, figsize=(width_in, 3.5), sharey=False)
         if n_panels == 1:
             axes = [axes]
 
@@ -819,7 +841,7 @@ def plot_clock_offset_check(
 
             ax.set_title(title)
             ax.set_ylabel("Normalised temperature (std)")
-            ax.grid(True)
+            grid_despine(ax)
             locator = mdates.AutoDateLocator()
             ax.xaxis.set_major_locator(locator)
             ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
@@ -868,6 +890,8 @@ def draw_windows(
     vlines: Optional[list] = None,
     stage1_nc: Optional[Path] = None,
     panels: Optional[list] = None,
+    *,
+    width_in: float = report_tokens.W_FULL,
 ) -> "Optional[plt.Figure]":
     """Combined start + end window figure: (nrows × 2) — left = first N h, right = last N h.
 
@@ -900,6 +924,9 @@ def draw_windows(
         Subset of ``_instrument_panels`` tuples to draw.  When given, only these
         rows are rendered (used to paginate a tall window figure across several
         images); otherwise every panel for the instrument is drawn on one figure.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -947,7 +974,7 @@ def draw_windows(
             for vname, *_ in panels
         ]
         nrows = len(panels)
-        fig = plt.figure(figsize=(report_tokens.W_FULL, sum(height_ratios)))
+        fig = plt.figure(figsize=(width_in, sum(height_ratios)))
         gs = GridSpec(
             nrows,
             2,
@@ -1174,7 +1201,11 @@ def draw_windows(
             ds1.close()
 
 
-def draw_data_histogram(nc_path: Path) -> "Optional[plt.Figure]":
+def draw_data_histogram(
+    nc_path: Path,
+    *,
+    width_in: float = report_tokens.W_FULL,
+) -> "Optional[plt.Figure]":
     """Histogram of data values for each main variable; return a Figure.
 
     Each panel shows grey bars (all finite data) and blue bars (kept, not bad/missing),
@@ -1184,6 +1215,9 @@ def draw_data_histogram(nc_path: Path) -> "Optional[plt.Figure]":
     ----------
     nc_path : Path
         Path to a stage-3 NetCDF file.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -1226,7 +1260,7 @@ def draw_data_histogram(nc_path: Path) -> "Optional[plt.Figure]":
         fig, axs_grid = plt.subplots(
             nrows,
             ncols,
-            figsize=(report_tokens.W_FULL, 2.5 * nrows),
+            figsize=(width_in, 2.5 * nrows),
             squeeze=False,
             sharey=True,
             layout="constrained",
@@ -1388,7 +1422,11 @@ def draw_data_histogram(nc_path: Path) -> "Optional[plt.Figure]":
         return fig
 
 
-def draw_velocity_iqr_profile(ds: "xr.Dataset") -> "Optional[plt.Figure]":
+def draw_velocity_iqr_profile(
+    ds: "xr.Dataset",
+    *,
+    width_in: float = report_tokens.W_FULL,
+) -> "Optional[plt.Figure]":
     """Percentile-profile figure for gridded ADCP velocity data; return a Figure.
 
     Three side-by-side panels, all with pressure (dbar) on the Y-axis (inverted,
@@ -1421,6 +1459,9 @@ def draw_velocity_iqr_profile(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     ds : xr.Dataset
         Gridded dataset with dimensions ``(time, pressure)`` containing at minimum one
         of ``current_speed``, ``east_velocity``, or ``north_velocity`` in m s⁻¹.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -1471,7 +1512,7 @@ def draw_velocity_iqr_profile(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     fig, axs = plt.subplots(
         1,
         n_panels,
-        figsize=(report_tokens.W_FULL, 4.5),
+        figsize=(width_in, 4.5),
         sharey=True,
         gridspec_kw={"width_ratios": [2] * (n_panels - 1) + [1]},
     )
@@ -1534,7 +1575,7 @@ def draw_velocity_iqr_profile(ds: "xr.Dataset") -> "Optional[plt.Figure]":
             )
             ax.set_xlim(left=0)
         ax.set_xlabel("Current speed (m s⁻¹)")
-        ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.5)
+        grid_despine(ax)
         ax.legend(loc="best")
 
     # ── Panel 2: east + north on shared axes ─────────────────────────────────
@@ -1573,7 +1614,7 @@ def draw_velocity_iqr_profile(ds: "xr.Dataset") -> "Optional[plt.Figure]":
         if absmax > 0:
             ax.set_xlim(-absmax * 1.15, absmax * 1.15)
         ax.set_xlabel("Velocity (m s⁻¹)")
-        ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.5)
+        grid_despine(ax)
         ax.legend(loc="best")
 
     # ── Count panel (rightmost) ───────────────────────────────────────────────
@@ -1586,7 +1627,7 @@ def draw_velocity_iqr_profile(ds: "xr.Dataset") -> "Optional[plt.Figure]":
         alpha=0.6,
     )
     ax_count.set_xlabel("N good")
-    ax_count.grid(True, linestyle="--", linewidth=0.4, alpha=0.5)
+    grid_despine(ax_count)
 
     axs[0].set_ylabel("Pressure (dbar)")
     axs[0].invert_yaxis()  # shared y — invert once only

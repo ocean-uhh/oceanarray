@@ -23,20 +23,26 @@ if TYPE_CHECKING:
     import matplotlib.pyplot as plt
 
 
-def grid_despine(ax: "plt.Axes") -> None:
+def grid_despine(ax: "plt.Axes", *, axis: str = "both") -> None:
     """Turn the grid on and hide the top and right spines (report convention).
 
     The report style keeps ``axes.grid`` off by default and figures opt in; when
     they do, the top and right spines are redundant clutter.  Call this instead of
-    ``ax.grid(True)`` so the two always travel together.
+    ``ax.grid(True)`` so the two always travel together.  Grid appearance (dotted,
+    faint) comes from the active mplstyle, not hard-coded here, so a single style
+    change restyles every grid.
 
     Parameters
     ----------
     ax : matplotlib.axes.Axes
         Axes to style.
+    axis : {"both", "x", "y"}, optional
+        Which gridlines to draw (default ``"both"``).  Bar/profile plots that
+        want one-directional gridlines pass ``"x"`` or ``"y"`` and still get the
+        top/right spines hidden.
 
     """
-    ax.grid(True)
+    ax.grid(True, axis=axis)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
@@ -212,7 +218,9 @@ def _velocity_panel_style(
     if var == "current_direction":
         bounds = np.linspace(0, 360, 21)
         norm = mcolors.BoundaryNorm(bounds, ncolors=256)
-        return bounds, norm, "hsv", "°T"
+        # Cyclic colormap so 0° and 360° share a colour; twilight is perceptually
+        # uniform (hsv is not).  Hard-coded here, not in parameters.py.
+        return bounds, norm, "twilight", "°T"
     if var == "bin_pressure":
         p_lo = float(np.percentile(finite_vals, 2)) if len(finite_vals) else 0.0
         p_hi = float(np.percentile(finite_vals, 98)) if len(finite_vals) else 1000.0
@@ -308,6 +316,9 @@ def _rose_ax(
     ax.set_theta_direction(-1)
     ax.set_xticks(np.radians([0, 90, 180, 270]))
     ax.set_xticklabels(["N", "E", "S", "W"])
+    # Tuck the N/E/S/W labels closer to the frame (about half the default ~3.5 pad)
+    # so panels can sit nearer each other without "W" crowding the next axis.
+    ax.tick_params(axis="x", pad=1.75)
     ax.set_rticks([])
     ax.set_title(title, pad=2)
     return spd_edges, colors

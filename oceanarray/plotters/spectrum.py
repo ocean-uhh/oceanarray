@@ -26,6 +26,7 @@ import numpy as np
 from oceanarray.utilities import _nice_colorbar_bounds, period_axis_ticks
 from ..analysis.spectral import gonella_rotary_spectrum
 from .primitives import square_axes_grid
+from .helpers import grid_despine
 from oceanarray.config import report_tokens
 
 
@@ -179,6 +180,8 @@ def draw_spectrum(
     lat: float = 0.0,
     hf_segment_days: float = 1.0,
     hf_x_max_days: float = 3.0,
+    *,
+    width_in: float = report_tokens.W_FULL,
 ) -> "Optional[plt.Figure]":
     """Two-panel Welch PSD of gridded temperature, one line per depth level.
 
@@ -204,6 +207,9 @@ def draw_spectrum(
     hf_x_max_days:
         Upper x-axis limit (longest period shown) for the HF panel in days.
         When <= 3 the HF x-axis is displayed in hours; otherwise in days.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Notes
     -----
@@ -376,7 +382,7 @@ def draw_spectrum(
     # Square panels via the shared helper; bottom pad for the rotated HF ticks,
     # top pad for the figure suptitle above the per-panel titles.
     fig, _axes, _ = square_axes_grid(
-        report_tokens.W_FULL, 1, 2, colorbar=False, bottom_pad_in=0.5, top_pad_in=0.6
+        width_in, 1, 2, colorbar=False, bottom_pad_in=0.5, top_pad_in=0.6
     )
     ax_lf, ax_hf = _axes[0, 0], _axes[0, 1]
 
@@ -548,6 +554,8 @@ def draw_wavelet(
     da_temp: "xr.DataArray",
     dt_seconds: float,
     wavelet: str = "morlet",
+    *,
+    width_in: float = report_tokens.W_FULL,
 ) -> "Optional[plt.Figure]":
     """Continuous wavelet transform scalogram for gridded temperature; return a Figure.
 
@@ -575,6 +583,9 @@ def draw_wavelet(
         Sample interval in seconds.
     wavelet:
         ``"morlet"`` (default, Morlet omega_0=6) or ``"mexican_hat"``.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -672,13 +683,14 @@ def draw_wavelet(
     from matplotlib.gridspec import GridSpec
 
     n_panels = len(results)
-    # height ratios: 1 part time series, 3 parts wavelet, per level
-    hr = [1, 3] * n_panels
+    # height ratios: 1 part time series (top), 2.75 parts wavelet (bottom), per
+    # level.  The scalogram was too tall relative to its width, so it is trimmed
+    # ~17 % (3 -> 2.75 of the ratio) and the whole pair shortened (4.5 -> 3.8 in),
+    # which also takes the time series down ~10 %.
+    hr = [1, 2.75] * n_panels
     # constrained_layout crops the surrounding whitespace and places the spanning
     # colorbar cleanly (the encoder skips tight_layout for constrained figures).
-    fig = plt.figure(
-        figsize=(report_tokens.W_FULL, 4.5 * n_panels), layout="constrained"
-    )
+    fig = plt.figure(figsize=(width_in, 3.8 * n_panels), layout="constrained")
     gs = GridSpec(2 * n_panels, 1, figure=fig, height_ratios=hr)
 
     tax: list = []  # time series axes (top of each pair)
@@ -695,6 +707,7 @@ def draw_wavelet(
         tax[i].plot(times, ts, lw=0.6, color="0.3")
         tax[i].set_ylabel("T (°C)", fontsize="small")
         tax[i].tick_params(labelsize="small")
+        grid_despine(tax[i])
         # Pressure level in the bottom-left corner (was a title, which overlapped
         # the scalogram of the pair above).
         tax[i].text(
@@ -735,6 +748,8 @@ def draw_wavelet(
 def draw_grid_rotary_spectrum(
     ds: "xr.Dataset",
     lat: float = 0.0,
+    *,
+    width_in: float = report_tokens.W_FULL,
 ) -> "Optional[plt.Figure]":
     """Two-panel rotary velocity spectrum for the grid report; return a Figure.
 
@@ -753,6 +768,9 @@ def draw_grid_rotary_spectrum(
         ``(time, pressure)`` dimensions.
     lat : float
         Mooring latitude (degrees, positive north) used for the inertial period marker.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -912,9 +930,7 @@ def draw_grid_rotary_spectrum(
     cmap_ccw = plt.get_cmap("Blues")
 
     # Square panels via the shared helper; bottom pad for the rotated ticks.
-    fig, _axes, _ = square_axes_grid(
-        report_tokens.W_FULL, 1, 2, colorbar=False, bottom_pad_in=0.5
-    )
+    fig, _axes, _ = square_axes_grid(width_in, 1, 2, colorbar=False, bottom_pad_in=0.5)
     ax_spec, ax_rot = _axes[0, 0], _axes[0, 1]
 
     # Panel 1: CW (solid, reds) + CCW (dashed, blues)

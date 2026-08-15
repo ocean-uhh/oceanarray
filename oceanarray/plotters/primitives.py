@@ -25,6 +25,7 @@ from matplotlib.collections import LineCollection
 
 from .. import parameters as params
 from oceanarray.config import report_tokens
+from .helpers import grid_despine
 from ..utilities import _nice_colorbar_bounds, nice_colorbar_ticks
 
 
@@ -353,6 +354,8 @@ def plot_trajectory(
     colorbar_label: str = "",
     colorbar_unit: str = "",
     title: str = "",
+    *,
+    width_in: float = report_tokens.W_HALF,
 ) -> plt.Figure:
     """Plot a 2D trajectory, optionally coloured per-segment by a scalar field.
 
@@ -379,15 +382,16 @@ def plot_trajectory(
         Unit string placed above the colorbar (units-only on top, saves width).
     title : str
         Figure title.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
     matplotlib.figure.Figure
 
     """
-    fig, axes, cax = square_axes_grid(
-        report_tokens.W_HALF, 1, 1, colorbar=color_data is not None
-    )
+    fig, axes, cax = square_axes_grid(width_in, 1, 1, colorbar=color_data is not None)
     ax = axes[0, 0]
 
     if color_data is not None:
@@ -421,7 +425,7 @@ def plot_trajectory(
     # datalim keeps the square box (from square_axes_grid) authoritative so the
     # colorbar's matched height is never invalidated.
     ax.set_aspect("equal", adjustable="datalim")
-    ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.4)
+    grid_despine(ax)
     return fig
 
 
@@ -509,7 +513,7 @@ def hodograph_panel(
     ax.set_xlabel(f"East ({units})")
     ax.set_ylabel(f"North ({units})")
     ax.set_title(title)
-    ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.3)
+    grid_despine(ax)
     return sm
 
 
@@ -537,7 +541,7 @@ def pressure_axis(ax: Any) -> None:
     """Configure *ax* as a standard pressure Y-axis: inverted, labelled, gridded."""
     ax.invert_yaxis()
     ax.set_ylabel(params.vlabel("pressure"))
-    ax.grid(True, linestyle="--", linewidth=0.3, alpha=0.4)
+    grid_despine(ax)
 
 
 def colorbar_norm(

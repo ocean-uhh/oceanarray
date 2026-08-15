@@ -11,6 +11,8 @@ that turns each on.
 
 import base64
 import io
+import pathlib
+import re
 
 import matplotlib
 
@@ -117,6 +119,40 @@ def test_fig_to_base64_full_canvas_width_matches_fig_dpi():
         plt.close(fig)
     im = Image.open(io.BytesIO(base64.b64decode(b64)))
     assert im.size[0] == round(tok.W_FULL * tok.FIG_DPI)  # 1350
+
+
+# ---------------------------------------------------------------------------
+# Template inline-style hygiene (U0.1) — emit_css() is the single source of
+# truth, so inline ``style="…"`` attributes must reference token variables,
+# never redefine a raw hex colour.
+# ---------------------------------------------------------------------------
+
+_TEMPLATES_DIR = (
+    pathlib.Path(__file__).resolve().parents[2] / "oceanarray" / "reports" / "templates"
+)
+_STYLE_ATTR_RE = re.compile(r'style="([^"]*)"')
+_HEX_RE = re.compile(r"#[0-9a-fA-F]{3,6}")
+
+
+def test_no_raw_hex_in_template_inline_styles():
+    """No inline ``style="…"`` in a report template contains a raw hex colour.
+
+    Chrome values must reference the emit_css token variables (``var(--…)``);
+    data-viz palette colours (QC flags, line colours) are defined once as named
+    ``:root`` variables in ``base.html``.  A raw hex inside an inline style would
+    reintroduce a second, drifting source of truth (spec: emit_css authority).
+    Hex inside ``<style>`` blocks is allowed — that is where local classes and
+    the palette variables are *defined*.
+    """
+    offenders: list[str] = []
+    for path in sorted(_TEMPLATES_DIR.glob("*.html")):
+        text = path.read_text(encoding="utf-8")
+        for attr in _STYLE_ATTR_RE.finditer(text):
+            for hex_match in _HEX_RE.finditer(attr.group(1)):
+                offenders.append(
+                    f"{path.name}: {hex_match.group(0)} in {attr.group(0)}"
+                )
+    assert not offenders, "raw hex in inline style attribute:\n" + "\n".join(offenders)
 
 
 # ---------------------------------------------------------------------------

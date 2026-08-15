@@ -27,6 +27,7 @@ from ._html_helpers import (
     _status,
 )
 from ._plots import render_b64
+from ..plotters.helpers import grid_despine
 
 
 # ---------------------------------------------------------------------------
@@ -141,7 +142,7 @@ def _make_array_map_b64(
         ax.set_xlabel("Longitude (°)")
         ax.set_ylabel("Latitude (°)")
         ax.set_title(array_name, fontsize=9)
-        ax.grid(True, linestyle="--", linewidth=0.3, alpha=0.5)
+        grid_despine(ax)
         plt.tight_layout()
         return fig
 
