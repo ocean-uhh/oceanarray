@@ -5,69 +5,226 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Aquadopp &ndash; s/n 9920</title>
 <style>
-  :root { --ocean:#1a3a5c; --seafoam:#e8f4f8; --muted:#95a5a6; --text:#2c3e50;
-          --good:#27ae60; --warn:#e67e22; --bad:#c0392b; --interp:#2980b9;
-          --accent:var(--ocean); --accent-link:#cfe3ff; }
-  * { box-sizing:border-box; }
-  body { font-family:system-ui,-apple-system,"Segoe UI",sans-serif; font-size:14px;
-         color:var(--text); line-height:1.5; max-width:1150px; margin:0 auto; padding:1.5rem 2rem 4rem; }
-  .masthead { position:relative; background:var(--accent); color:#fff; padding:1.6rem 2rem;
-              border-radius:8px; margin-bottom:2rem; }
-  .wordmark { position:absolute; right:1.4rem; bottom:1.1rem;
-              font-size:0.68rem; font-weight:600; letter-spacing:0.02em; opacity:0.7;
-              color:var(--accent); background:#fff; padding:0.08rem 0.5rem; border-radius:999px; }
-  /* Plain (print-oriented) masthead: white card, dark text, no wordmark. */
-  .masthead-plain { background:#fff; color:var(--text); border:1px solid #dde3e8; }
-  .masthead-plain .wordmark { display:none; }
-  .masthead h1 { margin:0 0 0.3rem; font-size:1.75rem; font-weight:700; letter-spacing:0.02em; }
-  .masthead-title { display:flex; justify-content:space-between; align-items:baseline; gap:1rem; }
-  .masthead-type { font-size:1.2rem; opacity:0.8; white-space:nowrap; }
-  .masthead .sub { display:flex; justify-content:space-between; font-size:0.9rem; opacity:0.88; margin:0 0 0.15rem; }
-  .masthead .sub a { color:var(--accent-link); font-weight:600; text-decoration:none; }
-  .masthead .sub a:hover { text-decoration:underline; }
-  .meta-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
-               gap:0.35rem 1.4rem; font-size:0.84rem; margin-top:0.9rem; }
-  .meta-grid dt { opacity:0.7; text-transform:uppercase; font-size:0.7rem;
-                  letter-spacing:0.06em; margin-bottom:0.1rem; }
-  .meta-grid dd { margin:0; font-weight:600; }
-  .meta-miss dd { color:var(--warn); opacity:1; }
-  h2 { color:var(--ocean); font-size:1rem; border-bottom:2px solid var(--seafoam);
-       padding-bottom:0.3rem; margin:2.5rem 0 1rem;
-       display:flex; justify-content:space-between; align-items:baseline; }
-  .top-link { font-size:0.72rem; font-weight:400; color:var(--muted);
-              text-decoration:none; margin-left:auto; white-space:nowrap; }
-  .top-link:hover { color:var(--ocean); text-decoration:underline; }
-  .report-footer { margin-top:3rem; font-size:0.76rem; color:var(--muted);
-                   border-top:1px solid #eee; padding-top:0.8rem; }
-  .jump-nav { background:var(--seafoam); padding:0.55rem 1rem; border-radius:6px;
-              margin-bottom:1.5rem; font-size:0.8rem; line-height:2.2; }
-  .jump-nav a { color:var(--ocean); text-decoration:none; font-weight:600;
-                margin:0 0.5rem 0 0; white-space:nowrap; }
-  .jump-nav a::before { content:"▸ "; font-size:0.7rem; }
-  .jump-nav a:hover { text-decoration:underline; }
-  .history-list { list-style:none; padding:0; margin:0; }
-  .history-list li { display:flex; gap:1rem; padding:0.3rem 0; border-bottom:1px solid #f0f0f0; font-size:0.83rem; }
-  .history-list li:last-child { border-bottom:none; }
-  .history-ts { color:var(--muted); white-space:nowrap; font-size:0.76rem; min-width:11rem; }
-  .history-text { flex:1; }
-  /* Figures never exceed the content column; the oversampled PNG downscales
-     crisply (spec §11 OVERSAMPLE). Pages may override (e.g. array uses 60%). */
-  .fig { max-width:100%; height:auto; display:block; }
-  td.num { text-align:right; font-variant-numeric:tabular-nums; }
-  td.mono { font-family:monospace; font-size:0.8rem; }
-  .none-note { color:var(--muted); font-style:italic; }
-  .var-qc { color:var(--good); font-size:0.78rem; }
-  /* Figure-debug line under a plot (OCEANARRAY_REPORT_DEBUG=1): slot the
-     template chose vs the render-side figsize/png, for eyeballing mismatches. */
-  .debug { font-family:monospace; font-size:0.72rem; color:var(--muted);
-           background:var(--seafoam); border-left:3px solid var(--muted);
-           padding:0.2rem 0.5rem; margin:0 0 1rem; white-space:pre-wrap; }
-  @media print {
-    body { padding:0; max-width:100%; }
-    h2 { page-break-after:avoid; }
-    figure, table, .card { break-inside:avoid; }
-    .masthead, th { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-  }
+:root {
+  --ocean: #1a3a5c;
+  --seafoam: #e8f4f8;
+  --muted: #95a5a6;
+  --text: #2c3e50;
+  --rule: #dfe6e9;
+  --bg: #ffffff;
+  --bg-sunken: #f7f9fa;
+  --warn: #e67e22;
+  --warn-bg: #fdf3e7;
+  --error: #c0392b;
+  --gray-1: #f5f7fa;
+  --gray-2: #e0e0e0;
+  --gray-3: #aaaaaa;
+  --gray-4: #888888;
+  --gray-5: #555555;
+  --gray-6: #333333;
+  --gray-7: #111111;
+  --ok: #2c6e49;
+  --role-landing: #2980b9;
+  --role-entity: #1a3a5c;
+  --role-collection: #1a3a5c;
+  --role-component: #1a3a5c;
+  --role-aggregate-a: #8e44ad;
+  --role-aggregate-b: #27ae60;
+  --role-map: #ee3377;
+  --package-accent: #1a3a5c;
+  --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  --fs-root: 14px;
+  --fs-h1: 1.75rem;
+  --fs-type: 1.35rem;
+  --fs-h2: 1rem;
+  --fs-meta: 0.84rem;
+  --fs-note: 0.82rem;
+  --fs-nav: 0.8rem;
+  --fs-cap: 0.76rem;
+  --fs-xs: 0.75rem;
+  --fs-top: 0.72rem;
+  --fs-dt: 0.7rem;
+  --lh-root: 1.5;
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+  --sp-7: 48px;
+  --radius-card: 8px;
+  --radius-btn: 4px;
+  --radius-pill: 999px;
+}
+* { box-sizing: border-box; }
+body {
+  font-family: var(--font-sans);
+  font-size: var(--fs-root); color: var(--text);
+  max-width: 1150px; margin: 0 auto;
+  padding: 1.5rem 2rem 4rem; line-height: var(--lh-root);
+}
+p, li { max-width: 78ch; }
+.masthead {
+  background: var(--ocean); color: #fff; position: relative;
+  padding: 1.6rem 2rem; border-radius: 8px; margin-bottom: 2rem;
+}
+.masthead h1 { margin: 0 0 0.3rem; font-size: var(--fs-h1); font-weight: 700; }
+.masthead .sub { font-size: var(--fs-meta); opacity: 0.85; margin: 0 0 0.15rem; }
+.wordmark {
+  position: absolute; right: 2rem; bottom: 1.2rem;
+  font-size: var(--fs-dt); font-weight: 700; letter-spacing: 0.04em;
+  color: var(--package-accent); background: #fff; opacity: 0.85;
+  padding: 0.1rem 0.5rem; border-radius: 999px; text-decoration: none;
+}
+.wordmark:hover { opacity: 1; }
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 0.5rem 2rem; font-size: var(--fs-meta); margin-top: 0.9rem;
+}
+.meta-grid dt {
+  opacity: 0.7; text-transform: uppercase; font-size: var(--fs-dt);
+  letter-spacing: 0.06em; margin-bottom: 0.1rem;
+}
+.meta-grid dd { margin: 0; font-weight: 600; }
+h2 {
+  color: var(--ocean); font-size: var(--fs-h2);
+  border-bottom: 2px solid var(--seafoam);
+  padding-bottom: 0.3rem; margin: 2.5rem 0 1rem;
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.top-link {
+  font-size: var(--fs-top); font-weight: 400; color: var(--muted);
+  text-decoration: none; margin-left: auto;
+}
+.top-link:hover { color: var(--ocean); text-decoration: underline; }
+.note {
+  color: var(--gray-5); font-size: var(--fs-note);
+  margin-top: -0.5rem; margin-bottom: 0.75rem;
+}
+.jump-nav {
+  background: var(--seafoam); padding: 0.55rem 1rem;
+  border-radius: 6px; margin-bottom: 1.5rem;
+  font-size: var(--fs-nav); line-height: 2.2;
+}
+.jump-nav::before { content: "Jump to: "; opacity: 0.55; font-size: var(--fs-xs); margin-right: 0.25rem; }
+.jump-nav a {
+  color: var(--ocean); text-decoration: none;
+  font-weight: 600; margin: 0 0.5rem 0 0;
+}
+.jump-nav a::before { content: "▸ "; font-size: var(--fs-dt); }
+.fig-row {
+  display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;
+  align-items: flex-start;
+}
+.fig-col { display: flex; flex-direction: column; gap: 0.75rem; }
+figure { margin: 0; }
+figure img {
+  border: 1px solid var(--rule); border-radius: 4px;
+  display: block; width: 100%; height: auto;
+}
+figcaption { font-size: var(--fs-cap); color: var(--gray-5); margin-top: 0.25rem; }
+.slot-full         { width: 100%; }
+.slot-twothirds     { width: calc(66.67% - 0.33rem); }
+.slot-three-fifths  { width: calc(60% - 0.40rem); }
+.slot-half          { width: calc(50% - 0.50rem); }
+.slot-two-fifths    { width: calc(40% - 0.60rem); }
+.slot-third         { width: calc(33.33% - 0.67rem); }
+.masthead-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 0.3rem;
+}
+.masthead-header h1 { margin: 0 0 0.1rem; font-size: var(--fs-h1); font-weight: 700; }
+.masthead-type {
+  font-size: var(--fs-type); font-weight: 700; opacity: 0.88; line-height: 1.35;
+  padding-top: 0.25rem;
+}
+.nav-btns { display: flex; gap: 0.5rem; }
+.btn-nav {
+  background: var(--ocean); color: #fff; padding: 0.25rem 0.75rem;
+  border-radius: 999px; text-decoration: none; font-size: var(--fs-nav);
+}
+.btn-nav:hover { opacity: 0.85; }
+footer {
+  text-align: center; padding: 1rem;
+  border-top: 1px solid var(--package-accent);
+  font-size: var(--fs-xs); color: var(--muted);
+}
+footer a { color: var(--muted); }
+@media print {
+  body { max-width: 100%; }
+  .masthead { -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 0.9rem 1.25rem; }
+  .masthead-header h1, .masthead h1 { font-size: 1.35rem; }
+  .meta-grid { grid-template-columns: repeat(4, 1fr); gap: 0.3rem 1rem; font-size: var(--fs-xs); }
+  h2 { page-break-after: avoid; }
+  .fig-row, figure, table { break-inside: avoid; }
+  .jump-nav { display: none; }
+}
+
+/* ── oceanarray-local report chrome: classes and vars the shared emit_css()
+   sheet above does not provide.  Values reference emit_css token variables
+   (U0.1 — the vendored _css.py is the single source of shared style). ── */
+:root { --accent:var(--ocean); --accent-link:#cfe3ff;
+        --good:#27ae60; --bad:var(--error); --interp:#2980b9;
+        --hl-amber:#fff3cd; --hl-orange:#fde3c0; }
+/* QC-flag legend swatches and the stage-1 line colour: data-viz palette that
+   must match the plot colormaps, NOT chrome.  Kept as named vars so the legend
+   has one definition; TODO source these from the Python QC colormap so the
+   legend cannot drift from the plotted colours. */
+:root { --qc-good2:#a8e6cf; --qc-suspect3:#f39c12; --qc-bad4:#e74c3c;
+        --qc-interp8:#3498db; --qc-missing9:#bdc3c7; --line-stage1:#cccccc; }
+/* emit_css caps prose at a 78ch measure (~half the content column); oceanarray's
+   explainer paragraphs sit above full-width tables, where that narrow measure reads
+   as broken.  Restore full content-width — the pre-U0.1 oceanarray behaviour. */
+p, li { max-width: none; }
+.masthead-plain { background:#fff; color:var(--text); border:1px solid var(--rule); }
+.masthead-plain .wordmark { display:none; }
+/* Wordmark is now an <a> to the repo; keep the pill look (no link underline). */
+.wordmark, .wordmark:hover { text-decoration:none; }
+.masthead-title { display:flex; justify-content:space-between; align-items:baseline; gap:1rem; }
+.masthead-type { font-size:var(--fs-type); opacity:0.85; white-space:nowrap; }
+.masthead .sub { display:flex; justify-content:space-between; font-size:var(--fs-meta); opacity:0.88; margin:0 0 0.15rem; }
+.masthead .sub a { color:var(--accent-link); font-weight:600; text-decoration:none; }
+.masthead .sub a:hover { text-decoration:underline; }
+.meta-miss dd { color:var(--warn); opacity:1; }
+h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--seafoam);
+     padding-bottom:0.3rem; margin:2.5rem 0 1rem;
+     display:flex; justify-content:space-between; align-items:baseline; }
+.top-link { font-size:var(--fs-top); font-weight:400; color:var(--muted);
+            text-decoration:none; margin-left:auto; white-space:nowrap; }
+.top-link:hover { color:var(--ocean); text-decoration:underline; }
+.report-footer { margin-top:3rem; font-size:var(--fs-cap); color:var(--muted);
+                 border-top:1px solid var(--rule); padding-top:0.8rem; }
+.jump-nav { background:var(--seafoam); padding:0.55rem 1rem; border-radius:6px;
+            margin-bottom:1.5rem; font-size:var(--fs-nav); line-height:2.2; }
+.jump-nav a { color:var(--ocean); text-decoration:none; font-weight:600;
+              margin:0 0.5rem 0 0; white-space:nowrap; }
+.jump-nav a::before { content:"▸ "; font-size:var(--fs-dt); }
+.jump-nav a:hover { text-decoration:underline; }
+.history-list { list-style:none; padding:0; margin:0; }
+.history-list li { display:flex; gap:1rem; padding:0.3rem 0; border-bottom:1px solid var(--rule); font-size:var(--fs-note); }
+.history-list li:last-child { border-bottom:none; }
+.history-ts { color:var(--muted); white-space:nowrap; font-size:var(--fs-cap); min-width:11rem; }
+.history-text { flex:1; }
+/* Figures never exceed the content column; the oversampled PNG downscales
+   crisply (spec §11 OVERSAMPLE). Pages may override (e.g. array uses 60%). */
+.fig { max-width:100%; height:auto; display:block; }
+td.num { text-align:right; font-variant-numeric:tabular-nums; }
+td.mono { font-family:var(--font-mono); font-size:var(--fs-xs); }
+.none-note { color:var(--muted); font-style:italic; }
+.var-qc { color:var(--good); font-size:var(--fs-xs); }
+/* Figure-debug line under a plot (OCEANARRAY_REPORT_DEBUG=1): slot the
+   template chose vs the render-side figsize/png, for eyeballing mismatches. */
+.debug { font-family:var(--font-mono); font-size:var(--fs-top); color:var(--muted);
+         background:var(--seafoam); border-left:3px solid var(--muted);
+         padding:0.2rem 0.5rem; margin:0 0 1rem; white-space:pre-wrap; }
+@media print {
+  body { padding:0; }
+  h2 { page-break-after:avoid; }
+  figure, table, .card { break-inside:avoid; }
+  .masthead, th { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+}
 
   :root { --accent:#1e8449; --accent-link:#d5f5e3; }
   .file-table { width:100%; border-collapse:collapse; font-size:0.81rem; margin-bottom:1.2rem; }
@@ -87,7 +244,8 @@
   .b-ok   { background:var(--good);   color:#fff; }
   .b-warn { background:var(--warn);   color:#fff; }
   .b-miss { background:#dfe6e9;       color:#999; }
-  img.fig { width:100%; max-width:100%; border-radius:4px; margin-bottom:0.5rem; }
+  /* No width here: the slot class sets each figure's width (U0.2). */
+  img.fig { max-width:100%; border-radius:var(--radius-btn); margin-bottom:0.5rem; }
   .qc-bar { display:flex; width:180px; height:13px; border-radius:3px;
              overflow:hidden; gap:1px; background:#ecf0f1; }
   .qc-bar div { height:100%; }
@@ -114,7 +272,7 @@
     <div><dt>Source&nbsp;file</dt><dd>dune2_1_2026_9920_stage3.nc</dd></div>
   
   </dl>
-  <span class="wordmark">oceanarray</span>
+  <a class="wordmark" href="https://github.com/ocean-uhh/oceanarray" target="_blank" rel="noopener noreferrer">oceanarray</a>
 </div>
 
 
@@ -278,17 +436,17 @@
 <!-- ══ Start / end windows ══ -->
 <h2 id="start">Start &amp; end windows &mdash; first / last 6 h</h2>
 
-<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+<p style="font-size:0.8rem;color:var(--gray-5);margin-top:-0.5rem;">
   Left panel = first 7&thinsp;h (1&thinsp;h lead-in + 6&thinsp;h of record) &nbsp;|&nbsp;
   Right panel = last 7&thinsp;h (6&thinsp;h of record + 1&thinsp;h tail).
-  <span style="color:#e67e22">&#9474;&#9474; orange dashed</span> = auto-detected
+  <span style="color:var(--warn)">&#9474;&#9474; orange dashed</span> = auto-detected
   (pressure-based) suggested deploy/recover time &bull;
-  <span style="color:#27ae60">&#9474;&#9474; green dashed</span> = YAML
+  <span style="color:var(--good)">&#9474;&#9474; green dashed</span> = YAML
   <code>deployment_time</code> / <code>recovery_time</code> &bull;
-  <span style="color:#cccccc">&#9474;&#9474; grey</span> = stage&nbsp;1 raw record
+  <span style="color:var(--line-stage1)">&#9474;&#9474; grey</span> = stage&nbsp;1 raw record
   (same variable, same units).
 </p>
-<p style="font-size:0.78rem;color:#777;margin-top:0.3rem;">
+<p style="font-size:0.78rem;color:var(--gray-4);margin-top:0.3rem;">
   <strong>Reading the grey background:</strong>
   where the raw stage&nbsp;1 record is available and uses the same physical
   units as the stage&nbsp;2/3 data, it is shown in light grey so you can
@@ -307,7 +465,7 @@
     between stage&nbsp;1 and stage&nbsp;3 (e.g.&nbsp;mS/cm vs S/m) and the
     grey trace is suppressed automatically to avoid a misleading scale mismatch.</li>
   </ul>
-  If the <span style="color:#e67e22">orange vline</span> is absent from the right-hand panel,
+  If the <span style="color:var(--warn)">orange vline</span> is absent from the right-hand panel,
   no pressure-based recovery transition was detected in the final 25&thinsp;% of the
   stage&nbsp;1 record — the suggested recovery time equals the last raw sample.
   Check the timing table in the mooring summary report for the suggested UTC time.
@@ -329,7 +487,7 @@
 
 <h2 id="rose">Current rose diagrams</h2>
 
-<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+<p style="font-size:0.8rem;color:var(--gray-5);margin-top:-0.5rem;">
   XYZ: instrument-frame velocities (before geographic rotation). ENU panels split by QARTOD flag: good (flag&nbsp;≤&nbsp;2, Blues), suspect (flag&nbsp;3, Oranges), fail (flag&nbsp;4, Reds).
   Direction toward which the current flows; 0°&nbsp;=&nbsp;N, clockwise.
 </p>
@@ -339,7 +497,7 @@
 <!-- ══ Lagrangian trajectory ══ -->
 
 <h2 id="trajectory">Particle trajectory</h2>
-<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+<p style="font-size:0.8rem;color:var(--gray-5);margin-top:-0.5rem;">
   Pseudo-Lagrangian displacement obtained by integrating east/north velocity over time
   (Euler forward; NaN velocities set to zero).  Coloured by temperature.
   Origin (0,&nbsp;0) = deployment position; axes in metres.
@@ -350,7 +508,7 @@
 <!-- ══ Hodograph ══ -->
 
 <h2 id="hodograph">Hodograph</h2>
-<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+<p style="font-size:0.8rem;color:var(--gray-5);margin-top:-0.5rem;">
   East vs north velocity (m&nbsp;s<sup>-1</sup>).
   <b>Left</b>: full record.
   <b>Right</b>: eddy component — raw minus 4-day low-pass (rolling mean).
@@ -369,7 +527,7 @@
 
 <!-- ══ Data distributions ══ -->
 <h2 id="dist">Data value distributions</h2>
-<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+<p style="font-size:0.8rem;color:var(--gray-5);margin-top:-0.5rem;">
   Orange dashed = suspect threshold &nbsp;|&nbsp; Red dotted = fail threshold (gross-range QC).
   Histogram shows non-bad data only; bad-flagged count noted in red.
 </p>
@@ -1309,7 +1467,7 @@
     
     <tr>
       <td class="mono">processor_execution_time_utc</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-26T18:41:57.504259Z</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-26T18:41:57.5Z</td>
     </tr>
     
     <tr>
@@ -1324,12 +1482,12 @@
     
     <tr>
       <td class="mono">date_created</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-26T18:41:57.504269Z</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-26T18:41:57.5Z</td>
     </tr>
     
     <tr>
       <td class="mono">date_modified</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-26T18:41:57.504269Z</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-26T18:41:57.5Z</td>
     </tr>
     
     <tr>

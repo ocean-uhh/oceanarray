@@ -34,7 +34,7 @@ from ._plots import (
     render_b64,
 )
 from .. import parameters as params
-from ..plotters.helpers import ordered_line_colors
+from ..plotters.helpers import grid_despine, ordered_line_colors
 from ..plotters.primitives import date_offset_left
 from oceanarray.config import report_tokens
 
@@ -213,11 +213,12 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
                 ax_sc.set_axis_off()
 
         if _n_dropped:
+            # No explicit y: constrained_layout reserves space for the suptitle
+            # above the panels, so it no longer overprints the top panel's title.
             fig.suptitle(
                 f"Showing {_MAX_TILT_ROWS} deepest Aquadopps "
                 f"({_n_dropped} more not shown)",
                 fontsize=report_tokens.ANNOT_FS,
-                y=0.995,
             )
         return fig
 
@@ -330,7 +331,7 @@ def generate_stack_page(
                 arr[qc >= 3] = np.nan
             _serial_colors, _serial_styles = _var_line_styling(varname)
             with plt.style.context(str(params.MPLSTYLE)):
-                fig, ax = plt.subplots(figsize=(report_tokens.W_FULL, 3.2))
+                fig, ax = plt.subplots(figsize=(report_tokens.W_FULL, 2.56))
                 plotted = False
                 for i in range(n_instr):
                     if exclude_types and instr_types[i].lower() in exclude_types:
@@ -375,7 +376,7 @@ def generate_stack_page(
                 date_offset_left(ax)
                 ax.set_ylabel(ylabel)
                 ax.set_xlabel("Time")
-                ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.3)
+                grid_despine(ax)
                 if _t_cov_start and _t_cov_end:
                     try:
                         ax.set_xlim(
@@ -436,9 +437,6 @@ def generate_stack_page(
         )
 
         fig_rose_grid_b64, _n_rose = _make_rose_grid_b64(ds, _serial_list)
-        # Width cap: 33% for 1 panel, 50% for 2, 66% for 3, 83% for 4, 100% for 5+
-        _rose_w_map = {1: "33", 2: "50", 3: "66", 4: "83"}
-        rose_img_width = _rose_w_map.get(_n_rose, "100")
 
         _decl_vals: list = []
         _decl_missing = False
@@ -590,7 +588,6 @@ def generate_stack_page(
             fig_turbidity_b64=fig_turbidity_b64,
             fig_dissolved_oxygen_b64=fig_dissolved_oxygen_b64,
             fig_rose_grid_b64=fig_rose_grid_b64,
-            rose_img_width=rose_img_width,
             rose_declination_note=rose_declination_note,
             rose_declination_warn=rose_declination_warn,
             rose_declination_missing_serials=rose_declination_missing_serials,

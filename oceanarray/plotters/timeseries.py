@@ -43,6 +43,7 @@ from .primitives import (
     pcolormesh_panel,
 )
 from ..utilities import nice_colorbar_ticks
+from .helpers import grid_despine
 from .. import parameters as params
 from oceanarray.config import report_tokens
 
@@ -57,6 +58,8 @@ def draw_grid_fig(
     symmetric: bool = False,
     vmin: Optional[float] = None,
     vmax: Optional[float] = None,
+    *,
+    width_in: float = report_tokens.W_FULL,
 ) -> "plt.Figure":
     """Render a grid figure from *da* (dims time × pressure); return a Figure.
 
@@ -79,6 +82,10 @@ def draw_grid_fig(
     vmin, vmax : float, optional
         Override the automatic percentile-based color limits.
 
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
+
     Returns
     -------
     plt.Figure
@@ -91,7 +98,7 @@ def draw_grid_fig(
     data = da.transpose("pressure", "time").values
 
     fig, ax = plt.subplots(
-        figsize=(report_tokens.W_FULL, params.GRID_PANEL_ROW_IN), layout="constrained"
+        figsize=(width_in, params.GRID_PANEL_ROW_IN), layout="constrained"
     )
     bounds, norm = colorbar_norm(data, vmin=vmin, vmax=vmax, symmetric=symmetric)
     if style == "contourf":
@@ -123,6 +130,8 @@ def draw_grid_fig(
 def draw_grid_hydro(
     ds: "xr.Dataset",
     var_bounds: "Optional[dict]" = None,
+    *,
+    width_in: float = report_tokens.W_FULL,
 ) -> "Optional[plt.Figure]":
     """Stacked temperature / salinity pcolormesh panels for the grid report; return a Figure.
 
@@ -150,6 +159,10 @@ def draw_grid_hydro(
         ``{"t_lim": (vmin, vmax), "s_lim": (vmin, vmax), "o2_lim": (vmin, vmax)}``.
         When a key is present its limits are used instead of computing from the data.
         Intended for passing the T-S diagram axis limits so both figures share scales.
+
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -207,7 +220,7 @@ def draw_grid_hydro(
     fig, axes = plt.subplots(
         n,
         1,
-        figsize=(report_tokens.W_FULL, params.GRID_PANEL_ROW_IN * n),
+        figsize=(width_in, params.GRID_PANEL_ROW_IN * n),
         sharex=True,
         squeeze=False,
         layout="constrained",
@@ -249,7 +262,9 @@ def draw_grid_hydro(
     return fig
 
 
-def draw_grid_velocity_stacked(ds: "xr.Dataset") -> "Optional[plt.Figure]":
+def draw_grid_velocity_stacked(
+    ds: "xr.Dataset", *, width_in: float = report_tokens.W_FULL
+) -> "Optional[plt.Figure]":
     """Stacked east / north / up velocity pcolormesh panels for the grid report.
 
     All three panels share the time axis and show pressure (dbar) on the Y-axis
@@ -262,6 +277,10 @@ def draw_grid_velocity_stacked(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     ----------
     ds : xr.Dataset
         Gridded dataset with dimensions ``(time, pressure)``.
+
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -315,7 +334,7 @@ def draw_grid_velocity_stacked(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     fig, axes = plt.subplots(
         n,
         1,
-        figsize=(report_tokens.W_FULL, params.GRID_PANEL_ROW_IN * n),
+        figsize=(width_in, params.GRID_PANEL_ROW_IN * n),
         sharex=True,
         squeeze=False,
         layout="constrained",
@@ -349,7 +368,9 @@ def draw_grid_velocity_stacked(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     return fig
 
 
-def draw_grid_sigma(ds: "xr.Dataset") -> "Optional[plt.Figure]":
+def draw_grid_sigma(
+    ds: "xr.Dataset", *, width_in: float = report_tokens.W_FULL
+) -> "Optional[plt.Figure]":
     """Stacked sigma0 pcolormesh panel(s) for the stratification section.
 
     Returns ``None`` when no sigma variables are present.
@@ -370,7 +391,7 @@ def draw_grid_sigma(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     fig, axes = plt.subplots(
         n,
         1,
-        figsize=(report_tokens.W_FULL, params.GRID_PANEL_ROW_IN * n),
+        figsize=(width_in, params.GRID_PANEL_ROW_IN * n),
         sharex=True,
         squeeze=False,
         layout="constrained",
@@ -398,7 +419,9 @@ def draw_grid_sigma(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     return fig
 
 
-def draw_grid_n2(ds: "xr.Dataset", lat: float = 0.0) -> "Optional[plt.Figure]":
+def draw_grid_n2(
+    ds: "xr.Dataset", lat: float = 0.0, *, width_in: float = report_tokens.W_FULL
+) -> "Optional[plt.Figure]":
     """Compute and plot buoyancy frequency squared N² on the pressure-time grid.
 
     Returns ``None`` when temperature or salinity are absent.
@@ -434,9 +457,14 @@ def draw_grid_n2(ds: "xr.Dataset", lat: float = 0.0) -> "Optional[plt.Figure]":
     N2_log = np.log10(np.maximum(N2, 1e-12))
 
     fig, ax = plt.subplots(
-        figsize=(report_tokens.W_FULL, params.GRID_PANEL_ROW_IN), layout="constrained"
+        figsize=(width_in, params.GRID_PANEL_ROW_IN), layout="constrained"
     )
-    bounds, norm = colorbar_norm(N2_log[np.isfinite(N2_log)])
+    # Clip the colorbar to the 2.5-97.5 percentiles of log10(N²) so a few extreme
+    # cells don't wash out the stratification structure.
+    _finite = N2_log[np.isfinite(N2_log)]
+    _lo = float(np.nanpercentile(_finite, 2.5)) if _finite.size else -12.0
+    _hi = float(np.nanpercentile(_finite, 97.5)) if _finite.size else 0.0
+    bounds, norm = colorbar_norm(vmin=_lo, vmax=_hi)
     pc = ax.pcolormesh(
         time_vals, p_mid_1d, N2_log, shading="nearest", cmap="plasma_r", norm=norm
     )
@@ -456,7 +484,9 @@ def draw_grid_n2(ds: "xr.Dataset", lat: float = 0.0) -> "Optional[plt.Figure]":
     return fig
 
 
-def draw_grid_timeseries(ds: "xr.Dataset") -> "Optional[plt.Figure]":
+def draw_grid_timeseries(
+    ds: "xr.Dataset", *, width_in: float = report_tokens.W_FULL
+) -> "Optional[plt.Figure]":
     """Velocity time series at the depth of maximum time-mean current speed.
 
     Two stacked panels (shared time axis):
@@ -476,6 +506,10 @@ def draw_grid_timeseries(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     ds : xr.Dataset
         Gridded dataset with dimensions ``(time, pressure)`` containing at
         minimum ``east_velocity`` and ``north_velocity`` in m s⁻¹.
+
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -518,7 +552,7 @@ def draw_grid_timeseries(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     east_ts = east[:, k_max]
     north_ts = north[:, k_max]
 
-    fig, axs = plt.subplots(2, 1, figsize=(report_tokens.W_FULL, 5), sharex=True)
+    fig, axs = plt.subplots(2, 1, figsize=(width_in, 5), sharex=True)
     _C_EAST = "#0072B2"
     _C_NORTH = "#E69F00"
 
@@ -535,7 +569,7 @@ def draw_grid_timeseries(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     axs[1].legend(loc="upper right", framealpha=0.8)
 
     for ax in axs:
-        ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.4)
+        grid_despine(ax)
     axs[-1].xaxis.set_major_formatter(
         mdates.ConciseDateFormatter(axs[-1].xaxis.get_major_locator())
     )
@@ -548,7 +582,10 @@ def draw_grid_timeseries(ds: "xr.Dataset") -> "Optional[plt.Figure]":
 
 
 def draw_analog_timeseries(
-    nc_path: "Path", analog_vars: "List[str]"
+    nc_path: "Path",
+    analog_vars: "List[str]",
+    *,
+    width_in: float = report_tokens.W_FULL,
 ) -> "Optional[plt.Figure]":
     """Full-record time series for analog channel variables, one panel per variable.
 
@@ -560,6 +597,10 @@ def draw_analog_timeseries(
         Path to the stage-3 or stack NetCDF file.
     analog_vars : list of str
         Variable names to plot (caller must ensure the list is non-empty).
+
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -579,7 +620,7 @@ def draw_analog_timeseries(
         fig, axes = plt.subplots(
             n_vars,
             1,
-            figsize=(report_tokens.W_FULL, max(2.5, n_vars * 2.0)),
+            figsize=(width_in, max(2.5, n_vars * 2.0)),
             sharex=True,
             squeeze=False,
         )
@@ -616,7 +657,7 @@ def draw_analog_timeseries(
 
             ax.set_ylabel(ylabel, fontsize=7)
             ax.tick_params(axis="both", labelsize=7)
-            ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.5)
+            grid_despine(ax)
 
         fig.autofmt_xdate(rotation=30, ha="right")
         return fig

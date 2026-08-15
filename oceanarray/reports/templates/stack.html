@@ -2,7 +2,9 @@
 {% block title %}Stack report &ndash; {{ mooring_name }}{% endblock %}
 {% block page_styles %}
   :root { --accent:#2980b9; --accent-link:#cef; }
-  .fig { width:100%; border:1px solid #dce; border-radius:4px; margin-bottom:1.5rem; }
+  /* No width here: the slot class sets each figure's width (U0.2); width:100%
+     would override the slot and force full-width. */
+  .fig { border:1px solid var(--rule); border-radius:var(--radius-btn); margin-bottom:1.5rem; }
   .var-table, .instr-table { width:100%; border-collapse:collapse; font-size:0.82rem; margin-bottom:1.5rem; }
   .var-table th, .instr-table th { background:var(--seafoam); text-align:left;
        padding:0.4rem 0.6rem; border-bottom:2px solid #cde; }
@@ -173,8 +175,8 @@
   Box = interquartile range; line = median; whiskers = 1.5&times;IQR; dots = outliers.
   Computed from east/north velocity components if <code>current_speed</code> is not stored.
 </p>
-<img class="fig" style="max-width:50%" src="data:image/png;base64,{{ fig_speed_profile_b64 }}" alt="Aquadopp speed profile">
-{{- m.dbg(fig_speed_profile_b64, "max-width 50%") }}
+<img class="fig slot-{{ slot_for(fig_speed_profile_b64) }}" src="data:image/png;base64,{{ fig_speed_profile_b64 }}" alt="Aquadopp speed profile">
+{{- m.dbg(fig_speed_profile_b64, "slot-" ~ slot_for(fig_speed_profile_b64)) }}
 {% endif %}
 
 {% if fig_analog_b64 %}
@@ -198,7 +200,7 @@
 <h2 id="roses">Current rose diagrams</h2>
 <p class="note">Direction the current flows toward (oceanographic convention, 0&deg;=N). Speed coloured light&rarr;dark blue (slow&rarr;fast). QC-flagged samples excluded. Title shows serial number and height above bottom (m).</p>
 {% if rose_declination_warn %}
-<p style="font-size:0.82rem;background:#fff8e1;border-left:4px solid #f9a825;padding:0.5rem 0.8rem;margin-bottom:0.6rem;">
+<p style="font-size:0.82rem;background:var(--warn-bg);border-left:4px solid var(--warn);padding:0.5rem 0.8rem;margin-bottom:0.6rem;">
   ⚠ Magnetic declination could not be applied to
   {% if rose_declination_missing_serials %}Aquadopp(s) s/n&nbsp;{{ rose_declination_missing_serials | join(', ') }}{% else %}one or more Aquadopps{% endif %}
   — latitude/longitude are missing or all-zero in the mooring YAML (check <code>seabed_latitude</code>, <code>deployment_latitude</code>, or <code>latitude</code>/<code>longitude</code>).
@@ -207,8 +209,8 @@
 </p>
 {% endif %}
 {% if rose_declination_note %}<p class="note">{{ rose_declination_note }}</p>{% endif %}
-<img class="fig" style="max-width:{{ rose_img_width }}%" src="data:image/png;base64,{{ fig_rose_grid_b64 }}" alt="Current rose grid">
-{{- m.dbg(fig_rose_grid_b64, "max-width " ~ rose_img_width ~ "%") }}
+<img class="fig slot-full" src="data:image/png;base64,{{ fig_rose_grid_b64 }}" alt="Current rose grid">
+{{- m.dbg(fig_rose_grid_b64, "slot-full") }}
 {% endif %}
 
 {% if fig_aquadopp_tilt_b64 %}
@@ -228,7 +230,7 @@
 {% if fig_spacing_b64 %}
 <h2 id="spacing">Adjacent instrument spacing</h2>
 <p class="note">Distribution of pressure differences between adjacent instrument pairs (pairs &lt; 2 dbar apart excluded as co-located).</p>
-<img style="max-width:33%;border:1px solid #dce;border-radius:4px" src="data:image/png;base64,{{ fig_spacing_b64 }}" alt="Instrument spacing histogram">
+<img style="max-width:33%;border:1px solid var(--rule);border-radius:4px" src="data:image/png;base64,{{ fig_spacing_b64 }}" alt="Instrument spacing histogram">
 {{- m.dbg(fig_spacing_b64, "max-width 33%") }}
 {% endif %}
 
@@ -276,7 +278,7 @@
       <td class="mono" style="font-size:0.75rem">{{ v.dtype }}</td>
       <td class="mono" style="font-size:0.75rem">{{ v.dims }}</td>
       <td class="num">{{ "{:,}".format(v.n) }}</td>
-      <td class="num" {% if v.n_valid is defined and v.n_valid < v.n %}style="color:#c0392b;font-weight:600"{% endif %}>{{ "{:,}".format(v.n_valid) if v.n_valid is defined else "&mdash;" }}</td>
+      <td class="num" {% if v.n_valid is defined and v.n_valid < v.n %}style="color:var(--bad);font-weight:600"{% endif %}>{{ "{:,}".format(v.n_valid) if v.n_valid is defined else "&mdash;" }}</td>
       <td class="num" style="font-size:0.76rem;white-space:nowrap">{% if v.v_min is not none %}{{ v.v_min }} / {{ v.v_max }}{% else %}&mdash;{% endif %}</td>
       <td>{{ v.units }}</td>
       <td>{{ v.long_name }}</td>

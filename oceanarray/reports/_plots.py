@@ -15,6 +15,7 @@ import numpy as np
 
 from ._html_helpers import _QC_MARKER, _QC_LABELS
 from ._figdebug import render_b64
+from ._slots import render as render_slot
 from ..config import report_tokens
 from ..plotters.primitives import (
     date_axis,
@@ -137,7 +138,7 @@ def _plot_aquadopp_quick(ds: "xr.Dataset") -> "plt.Figure":
             if "velocity" in vname:
                 ax.axhline(0, color="k", linewidth=0.5, linestyle="--")
             ax.set_ylabel(label)
-            ax.grid(True)
+            grid_despine(ax)
             if invert:
                 vmin = float(ds[vname].min())
                 vmax = float(ds[vname].max())
@@ -474,7 +475,7 @@ def _make_grid_fig_b64(
     vmax: Optional[float] = None,
 ) -> Optional[str]:
     """Render a grid figure from *da* (dims time × pressure); return base64 PNG or None."""
-    return render_b64(
+    return render_slot(
         draw_grid_fig,
         da,
         title,
@@ -490,7 +491,7 @@ def _make_grid_fig_b64(
 
 def _make_grid_sigma_b64(ds: "xr.Dataset") -> Optional[str]:
     """Stacked sigma0 pcolormesh panel(s) for the stratification section."""
-    return render_b64(draw_grid_sigma, ds, optional=True)
+    return render_slot(draw_grid_sigma, ds, optional=True)
 
 
 def _make_grid_hydro_b64(
@@ -498,12 +499,12 @@ def _make_grid_hydro_b64(
     var_bounds: "Optional[dict]" = None,
 ) -> Optional[str]:
     """Return base64 PNG: stacked temperature / salinity pcolormesh panels."""
-    return render_b64(draw_grid_hydro, ds, var_bounds, optional=True)
+    return render_slot(draw_grid_hydro, ds, var_bounds, optional=True)
 
 
 def _make_grid_velocity_stacked_b64(ds: "xr.Dataset") -> Optional[str]:
     """Stacked east / north / up velocity pcolormesh panels for the grid report."""
-    return render_b64(draw_grid_velocity_stacked, ds, optional=True)
+    return render_slot(draw_grid_velocity_stacked, ds, optional=True)
 
 
 def _make_spectrum_fig_b64(
@@ -563,15 +564,18 @@ def _make_grid_ts_diagram(
     """Return (b64_str_or_None, bounds_dict): T-S diagram for gridded mooring data."""
     ts_bounds: dict = {}
 
-    def _draw() -> "Optional[plt.Figure]":
-        result = draw_grid_ts_diagram(ds, n_bins)
+    def _draw(*, width_in: float = report_tokens.W_FULL) -> "Optional[plt.Figure]":
+        result = draw_grid_ts_diagram(ds, n_bins, width_in=width_in)
         if result is None:
             return None
         nonlocal ts_bounds
         fig, ts_bounds = result
         return fig
 
-    return render_b64(_draw, optional=True), ts_bounds
+    # Displayed at half width (template slot-half); rendering at that width keeps
+    # the PNG px == display px.  With O₂ the diagram gains a panel but the page
+    # still shows it at half — same as before U0.2, now without the oversample.
+    return render_slot(_draw, slot="half", optional=True), ts_bounds
 
 
 def _make_velocity_iqr_profile_b64(ds: "xr.Dataset") -> Optional[str]:
@@ -581,7 +585,7 @@ def _make_velocity_iqr_profile_b64(ds: "xr.Dataset") -> Optional[str]:
 
 def _make_grid_n2_b64(ds: "xr.Dataset", lat: float = 0.0) -> Optional[str]:
     """Compute and plot buoyancy frequency squared N² on the pressure-time grid."""
-    return render_b64(draw_grid_n2, ds, lat, optional=True)
+    return render_slot(draw_grid_n2, ds, lat, optional=True)
 
 
 def _make_rose_grid_b64(
@@ -609,7 +613,7 @@ def _make_grid_rose_b64(ds: "xr.Dataset", max_roses: int = 4) -> Optional[str]:
 
 def _make_grid_trajectory_b64(ds: "xr.Dataset") -> Optional[str]:
     """Pseudo-Lagrangian trajectory by pressure level for the grid report."""
-    return render_b64(draw_grid_trajectory, ds, optional=True)
+    return render_slot(draw_grid_trajectory, ds, slot="half", optional=True)
 
 
 def _make_grid_timeseries_b64(ds: "xr.Dataset") -> Optional[str]:
@@ -697,7 +701,7 @@ def _make_aquadopp_speed_profile(ds: "xr.Dataset") -> Optional[str]:
     """
     from oceanarray.plotters.current import plot_aquadopp_speed_profile
 
-    return render_b64(plot_aquadopp_speed_profile, ds, optional=True)
+    return render_slot(plot_aquadopp_speed_profile, ds, slot="half", optional=True)
 
 
 def _make_adcp_trajectories_b64(ds: "xr.Dataset") -> Optional[str]:

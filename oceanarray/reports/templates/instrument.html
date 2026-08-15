@@ -20,7 +20,8 @@
   .b-ok   { background:var(--good);   color:#fff; }
   .b-warn { background:var(--warn);   color:#fff; }
   .b-miss { background:#dfe6e9;       color:#999; }
-  img.fig { width:100%; max-width:100%; border-radius:4px; margin-bottom:0.5rem; }
+  /* No width here: the slot class sets each figure's width (U0.2). */
+  img.fig { max-width:100%; border-radius:var(--radius-btn); margin-bottom:0.5rem; }
   .qc-bar { display:flex; width:180px; height:13px; border-radius:3px;
              overflow:hidden; gap:1px; background:#ecf0f1; }
   .qc-bar div { height:100%; }
@@ -36,7 +37,7 @@
     <div{% if duration == '—' %} class="meta-miss"{% endif %}><dt>Duration</dt><dd>{{ duration }}</dd></div>
     <div{% if median_dt is none or median_dt == '—' %} class="meta-miss"{% endif %}><dt>Samp.&nbsp;&Delta;t</dt><dd>{{ median_dt | default("—") }}</dd></div>
     <div{% if n_records is none or n_records == '—' %} class="meta-miss"{% endif %}><dt>Records</dt><dd>{{ n_records | default("—") }}</dd></div>
-    <div><dt>Source&nbsp;file</dt><dd>{{ nc_file }}{% if data_stage and data_stage != 'stage3' %} <span style="color:#e67e22;font-weight:bold">({{ data_stage }} — QC not applied)</span>{% endif %}</dd></div>
+    <div><dt>Source&nbsp;file</dt><dd>{{ nc_file }}{% if data_stage and data_stage != 'stage3' %} <span style="color:var(--warn);font-weight:bold">({{ data_stage }} — QC not applied)</span>{% endif %}</dd></div>
   {% endblock %}
 {% block content %}
 
@@ -119,7 +120,7 @@
 <!-- ══ ADCP velocity colour plots ══ -->
 {% if fig_adcp_velocity_b64 %}
 <h2 id="adcp-velocity">Velocity</h2>
-<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+<p style="font-size:0.8rem;color:var(--gray-5);margin-top:-0.5rem;">
   Time&ndash;range colour plots of the four velocity components (east, north, up, error).
   Y-axis: range from transducer (m).
   Colour scale: symmetric about zero; percentile&nbsp;2/98 of all components combined.
@@ -144,17 +145,17 @@
 <!-- ══ Start / end windows ══ -->
 <h2 id="start">Start &amp; end windows &mdash; first / last 6 h</h2>
 {% if fig_windows_b64 %}
-<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+<p style="font-size:0.8rem;color:var(--gray-5);margin-top:-0.5rem;">
   Left panel = first 7&thinsp;h (1&thinsp;h lead-in + 6&thinsp;h of record) &nbsp;|&nbsp;
   Right panel = last 7&thinsp;h (6&thinsp;h of record + 1&thinsp;h tail).
-  <span style="color:#e67e22">&#9474;&#9474; orange dashed</span> = auto-detected
+  <span style="color:var(--warn)">&#9474;&#9474; orange dashed</span> = auto-detected
   (pressure-based) suggested deploy/recover time &bull;
-  <span style="color:#27ae60">&#9474;&#9474; green dashed</span> = YAML
+  <span style="color:var(--good)">&#9474;&#9474; green dashed</span> = YAML
   <code>deployment_time</code> / <code>recovery_time</code> &bull;
-  <span style="color:#cccccc">&#9474;&#9474; grey</span> = stage&nbsp;1 raw record
+  <span style="color:var(--line-stage1)">&#9474;&#9474; grey</span> = stage&nbsp;1 raw record
   (same variable, same units).
 </p>
-<p style="font-size:0.78rem;color:#777;margin-top:0.3rem;">
+<p style="font-size:0.78rem;color:var(--gray-4);margin-top:0.3rem;">
   <strong>Reading the grey background:</strong>
   where the raw stage&nbsp;1 record is available and uses the same physical
   units as the stage&nbsp;2/3 data, it is shown in light grey so you can
@@ -173,7 +174,7 @@
     between stage&nbsp;1 and stage&nbsp;3 (e.g.&nbsp;mS/cm vs S/m) and the
     grey trace is suppressed automatically to avoid a misleading scale mismatch.</li>
   </ul>
-  If the <span style="color:#e67e22">orange vline</span> is absent from the right-hand panel,
+  If the <span style="color:var(--warn)">orange vline</span> is absent from the right-hand panel,
   no pressure-based recovery transition was detected in the final 25&thinsp;% of the
   stage&nbsp;1 record — the suggested recovery time equals the last raw sample.
   Check the timing table in the mooring summary report for the suggested UTC time.
@@ -189,7 +190,7 @@
 <!-- ══ T-S diagram ══ -->
 {% if fig_tsd_b64 %}
 <h2 id="ts">T-S diagram</h2>
-<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+<p style="font-size:0.8rem;color:var(--gray-5);margin-top:-0.5rem;">
   Coloured by pressure (or sample index). &times; = suspect &nbsp;|&nbsp; &times; = bad (QC flags).
 </p>
 <img class="fig" src="data:image/png;base64,{{ fig_tsd_b64 }}">
@@ -199,7 +200,7 @@
 <!-- ══ ADCP current roses ══ -->
 {% if fig_adcp_rose_b64 %}
 <h2 id="adcp-rose">Current roses</h2>
-<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+<p style="font-size:0.8rem;color:var(--gray-5);margin-top:-0.5rem;">
   Depth-average followed by bins nearest 100, 200, 300 and 400&nbsp;m from the transducer.
   Bins with fewer than two valid samples are omitted.
   Direction toward which the current flows; 0°&nbsp;=&nbsp;N, clockwise.
@@ -213,12 +214,12 @@
 {% if fig_rose_b64 %}
 <h2 id="rose">Current rose diagrams</h2>
 {% if declination_warn %}
-<p style="font-size:0.82rem;background:#fff8e1;border-left:4px solid #f9a825;padding:0.5rem 0.8rem;margin-bottom:0.6rem;">
+<p style="font-size:0.82rem;background:var(--warn-bg);border-left:4px solid var(--warn);padding:0.5rem 0.8rem;margin-bottom:0.6rem;">
   ⚠ Magnetic declination could not be applied — latitude/longitude are missing or all-zero in the mooring YAML (check <code>seabed_latitude</code>, <code>deployment_latitude</code>, or <code>latitude</code>/<code>longitude</code>).
   ENU velocities use 0° declination (magnetic north, not true north).
 </p>
 {% endif %}
-<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+<p style="font-size:0.8rem;color:var(--gray-5);margin-top:-0.5rem;">
   {% if rose_has_xyz %}XYZ: instrument-frame velocities (before geographic rotation). {% endif %}ENU panels split by QARTOD flag: good (flag&nbsp;≤&nbsp;2, Blues), suspect (flag&nbsp;3, Oranges), fail (flag&nbsp;4, Reds).
   Direction toward which the current flows; 0°&nbsp;=&nbsp;N, clockwise.
 </p>
@@ -229,7 +230,7 @@
 <!-- ══ Lagrangian trajectory ══ -->
 {% if fig_trajectory_b64 %}
 <h2 id="trajectory">Particle trajectory</h2>
-<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+<p style="font-size:0.8rem;color:var(--gray-5);margin-top:-0.5rem;">
   Pseudo-Lagrangian displacement obtained by integrating east/north velocity over time
   (Euler forward; NaN velocities set to zero).  Coloured by temperature.
   Origin (0,&nbsp;0) = deployment position; axes in metres.
@@ -241,7 +242,7 @@
 <!-- ══ Hodograph ══ -->
 {% if fig_hodograph_b64 %}
 <h2 id="hodograph">Hodograph</h2>
-<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+<p style="font-size:0.8rem;color:var(--gray-5);margin-top:-0.5rem;">
   East vs north velocity (m&nbsp;s<sup>-1</sup>).
   <b>Left</b>: full record.
   <b>Right</b>: eddy component — raw minus 4-day low-pass (rolling mean).
@@ -266,7 +267,7 @@
   Labels and units are read from the mooring YAML — update them there to change what appears here.
 </p>
 {% if analog_yaml_info %}
-<ul style="font-size:0.8rem;margin:0.3rem 0 0.8rem 1.5rem;color:#555;">
+<ul style="font-size:0.8rem;margin:0.3rem 0 0.8rem 1.5rem;color:var(--gray-5);">
   {% for ch in analog_yaml_info %}
   <li>
     <code>{{ ch.varname }}</code> — from YAML:
@@ -283,7 +284,7 @@
 
 <!-- ══ Data distributions ══ -->
 <h2 id="dist">Data value distributions</h2>
-<p style="font-size:0.8rem;color:#555;margin-top:-0.5rem;">
+<p style="font-size:0.8rem;color:var(--gray-5);margin-top:-0.5rem;">
   Orange dashed = suspect threshold &nbsp;|&nbsp; Red dotted = fail threshold (gross-range QC).
   Histogram shows non-bad data only; bad-flagged count noted in red.
 </p>
@@ -396,7 +397,7 @@
       <td class="mono" style="font-size:0.75rem">{{ v.dtype }}</td>
       <td class="mono" style="font-size:0.75rem">{{ v.dims }}</td>
       <td class="num">{{ "{:,}".format(v.n) }}</td>
-      <td class="num" {% if v.n_valid is defined and v.n_valid < v.n %}style="color:#c0392b;font-weight:600"{% endif %}>{{ "{:,}".format(v.n_valid) if v.n_valid is defined else "&mdash;" }}</td>
+      <td class="num" {% if v.n_valid is defined and v.n_valid < v.n %}style="color:var(--bad);font-weight:600"{% endif %}>{{ "{:,}".format(v.n_valid) if v.n_valid is defined else "&mdash;" }}</td>
       <td class="num" style="font-size:0.76rem;white-space:nowrap">{% if v.v_min is not none %}{{ v.v_min }} / {{ v.v_max }}{% else %}&mdash;{% endif %}</td>
       <td>{{ v.units }}</td>
       <td>{{ v.long_name }}</td>

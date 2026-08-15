@@ -114,7 +114,9 @@ def _ts_heatmap_panel(
     ax.set_title("T-S heat map")
 
 
-def draw_ts_diagram(nc_path: Path) -> "Optional[plt.Figure]":
+def draw_ts_diagram(
+    nc_path: Path, *, width_in: float = report_tokens.W_FULL
+) -> "Optional[plt.Figure]":
     """T-S diagram from a NetCDF path; return a Figure.
 
     Scatter by pressure, 2-D count heatmap, and (when present) scatter by O2 saturation.
@@ -123,6 +125,9 @@ def draw_ts_diagram(nc_path: Path) -> "Optional[plt.Figure]":
     ----------
     nc_path : Path
         Path to a stage-3 NetCDF file.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -178,9 +183,7 @@ def draw_ts_diagram(nc_path: Path) -> "Optional[plt.Figure]":
     ncols = 3 if has_sat else 2
     # Square panels with per-panel height-matched colorbars (shared deterministic
     # layout — same path as the hodographs/trajectories).
-    fig, _ax, _cax = square_axes_grid(
-        report_tokens.W_FULL, 1, ncols, per_panel_colorbar=True
-    )
+    fig, _ax, _cax = square_axes_grid(width_in, 1, ncols, per_panel_colorbar=True)
     ax_l, ax_r = _ax[0, 0], _ax[0, 1]
     ax_sat = _ax[0, 2] if has_sat else None
 
@@ -280,7 +283,9 @@ def draw_ts_diagram(nc_path: Path) -> "Optional[plt.Figure]":
     return fig
 
 
-def draw_stack_ts_diagram(ds: "xr.Dataset") -> "Optional[plt.Figure]":
+def draw_stack_ts_diagram(
+    ds: "xr.Dataset", *, width_in: float = report_tokens.W_FULL
+) -> "Optional[plt.Figure]":
     """T-S diagram for a stacked dataset; return a Figure.
 
     Scatter-by-pressure, count heatmap, and (when present) scatter-by-AOU.
@@ -295,6 +300,9 @@ def draw_stack_ts_diagram(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     ----------
     ds : xr.Dataset
         Stacked mooring dataset containing ``temperature`` and ``salinity``.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -339,9 +347,7 @@ def draw_stack_ts_diagram(ds: "xr.Dataset") -> "Optional[plt.Figure]":
 
     has_sat = SAT_flat is not None and np.isfinite(SAT_flat).any()
     ncols = 3 if has_sat else 2
-    fig, _ax, _cax = square_axes_grid(
-        report_tokens.W_FULL, 1, ncols, per_panel_colorbar=True
-    )
+    fig, _ax, _cax = square_axes_grid(width_in, 1, ncols, per_panel_colorbar=True)
 
     ax_scatter, ax_heat = _ax[0, 0], _ax[0, 1]
     ax_sat = _ax[0, 2] if has_sat else None
@@ -445,7 +451,7 @@ def draw_stack_ts_diagram(ds: "xr.Dataset") -> "Optional[plt.Figure]":
 
 
 def draw_grid_ts_diagram(
-    ds: "xr.Dataset", n_bins: int = 60
+    ds: "xr.Dataset", n_bins: int = 60, *, width_in: float = report_tokens.W_FULL
 ) -> "Optional[tuple[plt.Figure, dict]]":
     """T-S diagram for gridded mooring data; return a (Figure, bounds_dict) tuple.
 
@@ -463,6 +469,9 @@ def draw_grid_ts_diagram(
         Gridded dataset with at least ``temperature`` and ``salinity`` variables.
     n_bins : int
         Number of bins per axis for the 2-D histogram.
+    width_in : float, optional
+        Figure width in inches -- the display-slot width the report builder
+        resolves; standalone callers get the full content width.
 
     Returns
     -------
@@ -501,7 +510,7 @@ def draw_grid_ts_diagram(
 
     ncols = 2 if has_o2 else 1
     fig, _ax, _cax = square_axes_grid(
-        report_tokens.W_FULL if has_o2 else report_tokens.W_HALF,
+        width_in,
         1,
         ncols,
         per_panel_colorbar=True,

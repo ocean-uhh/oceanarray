@@ -29,6 +29,38 @@ from ..utilities import (  # noqa: F401  (re-exported)
 # helpers
 # ---------------------------------------------------------------------------
 
+#: Full ISO timestamp with fractional seconds and an optional timezone suffix,
+#: e.g. ``2026-07-11T20:30:00.000000000`` or ``2026-07-11T20:30:00.5+00:00``.  The
+#: date part is anchored (``^\d{4}-...``) so a non-timestamp string that merely
+#: ends in ``T HH:MM:SS.digits`` is NOT matched and is left untouched.
+_ISO_FRAC_TS_RE = re.compile(
+    r"^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)\.(\d+)(Z|[+-]\d\d:?\d\d)?$"
+)
+
+
+def _round_ts_for_display(value: str) -> str:
+    """Round a fractional-second ISO timestamp string to 0.1 s for the report.
+
+    Deployment/recovery times are stored at nanosecond precision (from
+    ``datetime64[ns]``), which is spurious detail in the report's global-attribute
+    table.  Only strings that are a full ISO timestamp (optionally timezone-suffixed)
+    are touched; everything else — and timestamps with no fractional seconds — is
+    returned unchanged.  Fractions that round up past ``.95`` carry into the next
+    second (via ``numpy.datetime64``) rather than clamping.  This affects the report
+    display only, not the saved file.
+    """
+    m = _ISO_FRAC_TS_RE.match(value)
+    if not m:
+        return value
+    head, frac, tz = m.group(1), m.group(2), m.group(3) or ""
+    tenths = int(round(int(frac) / 10 ** len(frac) * 10))  # 0..10
+    if tenths >= 10:  # carry into the next second
+        try:
+            return f"{np.datetime64(head, 's') + np.timedelta64(1, 's')}{tz}"
+        except ValueError:
+            return value
+    return f"{head}{tz}" if tenths == 0 else f"{head}.{tenths}{tz}"
+
 
 def _safe_serial(serial: Any) -> str:
     """Return a filename-safe serial token (see :func:`oceanarray.paths.safe_serial`)."""
@@ -301,7 +333,11 @@ def _read_nc_metadata(nc_path: Path) -> Dict[str, Any]:
                 info["is_qc"] = vname in qc_vars
                 time_vars.append(info)
 
-        global_attrs = {k: str(val) for k, val in ds.attrs.items() if k != "history"}
+        global_attrs = {
+            k: _round_ts_for_display(str(val))
+            for k, val in ds.attrs.items()
+            if k != "history"
+        }
         dims = {str(d): int(s) for d, s in ds.sizes.items()}
         ds.close()
         return {
