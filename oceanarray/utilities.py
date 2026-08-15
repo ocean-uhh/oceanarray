@@ -476,6 +476,36 @@ def _nice_colorbar_bounds(vmin: float, vmax: float, n: int = 20) -> np.ndarray:
     return np.array([lo + i * nice_step for i in range(n + 1)])
 
 
+def nice_colorbar_ticks(vmin: float, vmax: float, *, max_ticks: int = 6) -> np.ndarray:
+    """Return at most *max_ticks* nicely-rounded tick positions in ``[vmin, vmax]``.
+
+    Decoupled from the colorbar's colour discretisation: a 20-level
+    ``BoundaryNorm`` bar can still show ~6 round labels (e.g. 34.8, 34.9, … 35.2)
+    instead of one label per boundary.  Uses :class:`matplotlib.ticker.MaxNLocator`
+    with round step multiples so labels land on clean values.
+
+    Parameters
+    ----------
+    vmin, vmax : float
+        Data range of the colorbar.
+    max_ticks : int
+        Maximum number of ticks (approximate; the locator may return a few
+        fewer).  Default 6.
+
+    Returns
+    -------
+    numpy.ndarray
+        Tick positions, clipped to ``[vmin, vmax]``.
+
+    """
+    import matplotlib.ticker as mticker
+
+    ticks = mticker.MaxNLocator(
+        nbins=max_ticks, steps=[1, 2, 2.5, 5, 10]
+    ).tick_values(vmin, vmax)
+    return ticks[(ticks >= vmin) & (ticks <= vmax)]
+
+
 # ---------------------------------------------------------------------------
 # Output dtype helpers
 # ---------------------------------------------------------------------------

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_macros.html" as m %}
 {% block title %}{{ mooring_name }} &ndash; recovery report{% endblock %}
 {% block page_styles %}
   table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
@@ -498,6 +499,7 @@ recovery_time:   '{{ yaml_recover_time or '?' }}'</textarea>
   Instruments with no temperature data are omitted.
 </p>
 <img class="fig" src="data:image/png;base64,{{ fig_clock_check_b64 }}" alt="Clock alignment check">
+{{- m.dbg(fig_clock_check_b64, "full (100%)") }}
 {% endif %}
 
 <!-- ══════════════════════════════════════ 5. SENSOR CALIBRATION ══ -->
@@ -671,6 +673,7 @@ recovery_time:   '{{ yaml_recover_time or '?' }}'</textarea>
   (water&nbsp;depth&nbsp;&minus;&nbsp;HAB). Instruments below the line were knocked down.
   Interpolated pressure (QC&nbsp;flag&nbsp;8) excluded.</p>
 <img style="width:100%;border:1px solid #dce;border-radius:4px" src="data:image/png;base64,{{ fig_knockdown_hab_b64 }}" alt="Knockdown HAB vs pressure">
+{{- m.dbg(fig_knockdown_hab_b64, "flex ~half column") }}
 </div>
 {% endif %}
 {% if fig_knockdown_anomaly_b64 %}
@@ -682,6 +685,7 @@ recovery_time:   '{{ yaml_recover_time or '?' }}'</textarea>
   <span style="color:darkorange">amber</span> 200–300,
   <span style="color:firebrick">red</span> &gt;&nbsp;300&nbsp;dbar.</p>
 <img style="width:100%;border:1px solid #dce;border-radius:4px" src="data:image/png;base64,{{ fig_knockdown_anomaly_b64 }}" alt="Knockdown pressure anomaly">
+{{- m.dbg(fig_knockdown_anomaly_b64, "flex ~half column") }}
 </div>
 {% endif %}
 </div>
@@ -691,6 +695,7 @@ recovery_time:   '{{ yaml_recover_time or '?' }}'</textarea>
   Displacement derived from the rigid-pendulum approximation:
   <em>x</em>&nbsp;=&nbsp;&radic;(hab<sub>nom</sub>&sup2;&nbsp;&minus;&nbsp;hab<sub>meas</sub>&sup2;).</p>
 <img style="width:100%;border:1px solid #dce;border-radius:4px" src="data:image/png;base64,{{ fig_knockdown_displacement_b64 }}" alt="Knockdown horizontal displacement">
+{{- m.dbg(fig_knockdown_displacement_b64, "width 100%") }}
 {% endif %}
 {% endif %}
 

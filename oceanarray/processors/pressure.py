@@ -315,7 +315,7 @@ def compute_adcp_bin_pressure(
     vertical distances directly, so ``range`` is already in metres of vertical depth —
     no beam-angle correction is needed.
 
-    **Approximation** (fixable post-OdB; see ``.claude/refactor-plan-postOdB-20260721.md``):
+    **Approximation** (fixable post-OdB):
     ``gsw.p_from_z(-range_m, lat)`` computes the pressure of a water column of depth
     *range_m* measured from the *sea surface*, not the true pressure increment at the
     ADCP's actual depth.  Error at 300 m range from a 500 m transducer is ~2–3 dbar —

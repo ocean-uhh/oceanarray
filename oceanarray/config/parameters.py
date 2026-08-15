@@ -27,6 +27,12 @@ import numpy as np
 # ---------------------------------------------------------------------------
 PACKAGE_NAME = "oceanarray"
 
+#: Height (inches) of one gridded-section / time-series panel row at full width.
+#: Matches the per-row height of the two-row "velocity at depth" figure (5" / 2),
+#: so stacked grid panels and single-row section figures share one scale and do
+#: not render over-tall.
+GRID_PANEL_ROW_IN: float = 2.5
+
 # ---------------------------------------------------------------------------
 # Matplotlib style path (used by plotters via plt.style.use)
 # ---------------------------------------------------------------------------
@@ -527,6 +533,57 @@ CMAPS_BY_VARIABLE: dict[str, str] = {
     k: v["cmap"] for k, v in VARIABLES.items() if v.get("cmap") is not None
 }
 
+#: Colormaps for colouring *lines* (one per instrument, deep-first) — distinct
+#: from the pcolormesh field maps in :data:`CMAPS_BY_VARIABLE`, because a field
+#: map that is fine for a filled panel can be wrong for overlaid lines (e.g. a
+#: diverging map's pale midpoint washes lines out).  Sampled deep→shallow with
+#: washed-out colours skipped by luminance (see
+#: :func:`oceanarray.plotters.helpers.ordered_line_colors`).  Directions are
+#: chosen so the deepest instrument gets the darkest/most-saturated colour:
+#: temperature blue(cold/deep)→red(warm/shallow); pressure dark→lighter blue
+#: (bathymetry convention, deep = dark); salinity starts at the blue end.
+LINE_CMAPS_BY_VARIABLE: dict[str, str] = {
+    "temperature": "RdBu_r",
+    "pressure": "Blues_r",
+    "salinity": "YlGnBu_r",
+    # Velocity lines are ordered by depth, so shade them like pressure (dark =
+    # deep) — the field map's red/blue diverging scale means north/south, which is
+    # meaningless for a per-instrument line ordering.
+    "east_velocity": "Blues_r",
+    "north_velocity": "Blues_r",
+    "up_velocity": "Blues_r",
+}
+
+#: One colourblind-safe colour per variable, for **single-instrument** panels
+#: where each variable is drawn as one line (not the multi-instrument stack, which
+#: uses :data:`LINE_CMAPS_BY_VARIABLE`).  Physics use the Okabe-Ito palette (Wong,
+#: Nature Methods 8:441, 2011); biogeochemistry uses the Paul Tol palette.  Look up
+#: with ``VAR_COLORS.get(var, "#000000")``.  Mirrors ctdcast's ``VAR_COLORS``.
+VAR_COLORS: dict[str, str] = {
+    # Physics — Okabe-Ito
+    "temperature": "#56B4E9",  # sky blue
+    "conservative_temperature": "#56B4E9",
+    "salinity": "#E69F00",  # orange
+    "absolute_salinity": "#E69F00",
+    "conductivity": "#44AA99",  # teal (Paul Tol) — readable stand-in
+    "potential_density": "#009E73",  # bluish green
+    "pressure": "#000000",  # black
+    "depth": "#000000",
+    "n2": "#000000",
+    "east_velocity": "#D55E00",  # vermillion (U)
+    "u": "#D55E00",
+    "north_velocity": "#0072B2",  # blue (V)
+    "v": "#0072B2",
+    "up_velocity": "#CC79A7",  # reddish purple (W)
+    "w": "#CC79A7",
+    "speed": "#D55E00",
+    # Biogeochemistry — Paul Tol
+    "dissolved_oxygen": "#332288",  # indigo
+    "dissolved_oxygen_ml_l": "#332288",
+    "oxygen_saturation_pct": "#332288",
+    "turbidity": "#661100",  # dark red
+}
+
 
 def vlabel(var: str, prefix: str = "") -> str:
     """Return a matplotlib axis label for *var* from the :data:`VARIABLES` registry.
@@ -554,3 +611,24 @@ def vlabel(var: str, prefix: str = "") -> str:
     lbl = f"{prefix}{entry.get('label', var)}"
     lu = entry.get("label_units", "")
     return f"{lbl} ({lu})" if lu else lbl
+
+
+def vunit(var: str) -> str:
+    """Return the axis-label units string for *var* from :data:`VARIABLES`.
+
+    This is the ``label_units`` component alone (e.g. ``"°C"``, ``"dbar"``),
+    suitable for a units-only colorbar title.  Returns an empty string for a
+    dimensionless quantity or an unknown variable.
+
+    Parameters
+    ----------
+    var : str
+        Variable name (key in :data:`VARIABLES`).
+
+    Returns
+    -------
+    str
+        The unit string, or ``""`` when none is registered.
+
+    """
+    return VARIABLES.get(var, {}).get("label_units", "")

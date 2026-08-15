@@ -52,8 +52,7 @@ Legacy functions (from plotter.py — available via backward-compat shim):
 
 These three are the only remaining plotter.py entries — kept alive for the
 CLI (``oceanarray plot`` / ``process --plot``) pending their redesign as a
-file-oriented ``oceanarray plot <file>`` (§11).  See the migration checklist
-at .claude/plotters_update-20260718.md.
+file-oriented ``oceanarray plot <file>`` (§11).
 
 Future
 ------

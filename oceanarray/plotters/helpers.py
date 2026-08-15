@@ -11,8 +11,6 @@ Also migrate _instrument_label from plotter.py.
 
 Note: _fig_to_base64 stays in report/_html_helpers.py (called only by
 Tier-3 wrappers in report/_plots.py; plotters/ never serialises to base64).
-
-See .claude/plotters_update-20260718.md for migration checklist.
 """
 
 from __future__ import annotations
@@ -23,6 +21,77 @@ import numpy as np
 
 if TYPE_CHECKING:
     import matplotlib.pyplot as plt
+
+
+def grid_despine(ax: "plt.Axes") -> None:
+    """Turn the grid on and hide the top and right spines (report convention).
+
+    The report style keeps ``axes.grid`` off by default and figures opt in; when
+    they do, the top and right spines are redundant clutter.  Call this instead of
+    ``ax.grid(True)`` so the two always travel together.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Axes to style.
+
+    """
+    ax.grid(True)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+
+def ordered_line_colors(
+    cmap_name: str, n: int, *, max_luminance: float = 0.72
+) -> "list":
+    """Return *n* colours from *cmap_name*, in colormap order, skipping pale ones.
+
+    Samples the colormap on a fine grid, keeps only positions whose relative
+    luminance is ``<= max_luminance`` (so no line washes out against white), then
+    returns *n* colours evenly spaced across the usable positions.  For a
+    diverging colormap this drops the pale midpoint, leaving two saturated arcs;
+    for a sequential one it drops the pale end.  Callers assign the colours in a
+    fixed order (e.g. deep-first) so the darkest end maps to the intended extreme.
+
+    Parameters
+    ----------
+    cmap_name : str
+        Matplotlib colormap name.
+    n : int
+        Number of colours to return (>= 1).
+    max_luminance : float
+        Rec. 709 relative-luminance ceiling in ``[0, 1]``; positions lighter than
+        this are excluded.  Default 0.72 — low enough that the least-saturated
+        remaining colour on a diverging map (the arc boundary either side of the
+        excluded pale centre) is still legible on white.
+
+    Returns
+    -------
+    list of RGBA tuples
+        *n* colours (length exactly ``max(n, 1)``).
+
+    """
+    import matplotlib.pyplot as plt
+
+    cmap = plt.get_cmap(cmap_name)
+    grid = np.linspace(0.0, 1.0, 256)
+    cols = cmap(grid)
+    lum = 0.2126 * cols[:, 0] + 0.7152 * cols[:, 1] + 0.0722 * cols[:, 2]
+    mask = lum <= max_luminance
+    usable = grid[mask]
+    usable_lum = lum[mask]
+    if usable.size == 0:
+        usable, usable_lum = grid, lum
+    n = max(n, 1)
+    if n == 1:
+        # A single line: order carries no meaning, so pick the darkest (most
+        # saturated) usable colour rather than the midpoint, which on a diverging
+        # map lands in the pale gap between the two arcs.
+        picks = [usable[int(np.argmin(usable_lum))]]
+    else:
+        idx = np.linspace(0, usable.size - 1, n).round().astype(int)
+        picks = usable[idx]
+    return [cmap(float(f)) for f in picks]
 
 
 # ---------------------------------------------------------------------------

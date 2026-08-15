@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_macros.html" as m %}
 {% block title %}Grid report &ndash; {{ mooring_name }}{% endblock %}
 {% block page_styles %}
   :root { --accent:#8e44ad; --accent-link:#e8d5ff; }
@@ -72,6 +73,7 @@
 <p class="note">Temperature, salinity, dissolved oxygen, and O₂ saturation (when present). Vertically interpolated to regular pressure grid &bull; 20 discrete colour levels.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,{{ fig_hydro_b64 }}" alt="Temperature and salinity">
+{{- m.dbg(fig_hydro_b64, "full (100%)") }}
 </details>
 {% endif %}
 
@@ -81,6 +83,7 @@
 <p class="note">East, north, and up velocity. QC-flagged samples excluded before interpolation. Shared symmetric Spectral_r colormap for east/north; separate bounds for up. No temporal gap fill — NaN where no data.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,{{ fig_vel_stacked_b64 }}" alt="Velocity pcolormesh">
+{{- m.dbg(fig_vel_stacked_b64, "full (100%)") }}
 </details>
 {% endif %}
 
@@ -90,6 +93,7 @@
 <p class="note">Left: log₁₀(count+1) per T-S bin. Right (when O₂ present): median O₂ saturation per T-S bin — bins with &lt;5 samples masked. Colour scale: BrBG (brown=low, teal=high).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" style="max-width:50%" src="data:image/png;base64,{{ fig_ts_grid_b64 }}" alt="T-S diagram">
+{{- m.dbg(fig_ts_grid_b64, "max-width 50%") }}
 </details>
 {% endif %}
 
@@ -99,6 +103,7 @@
 <p class="note">Median (solid line) and interquartile range (shaded, 25–75 %) across the full deployment at each pressure level. 2.5–97.5 % outer envelope for speed. Right panel: count of non-NaN values per depth.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,{{ fig_vel_iqr_b64 }}" alt="Velocity IQR profiles">
+{{- m.dbg(fig_vel_iqr_b64, "full (100%)") }}
 </details>
 {% endif %}
 
@@ -108,6 +113,7 @@
 <p class="note">One rose per pressure level (up to 12, evenly subsampled). Suspect/bad QC excluded. Each petal shows the fraction of time current flowed in that direction; petal length encodes speed (m s⁻¹).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,{{ fig_grid_rose_b64 }}" alt="Current roses by pressure level">
+{{- m.dbg(fig_grid_rose_b64, "full (100%)") }}
 </details>
 {% endif %}
 
@@ -117,6 +123,7 @@
 <p class="note">Current hodographs at two pressure levels (25th and 75th percentile of the valid range). Top row = shallower level; bottom row = deeper level. Left = Tukey-smoothed raw; right = eddy component (LP mean removed). Colour indicates fractional time through the deployment (lime circle = start, red square = end). QC-bad data excluded.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,{{ fig_grid_hodograph_b64 }}" alt="Hodograph at two pressure levels">
+{{- m.dbg(fig_grid_hodograph_b64, "full (100%)") }}
 </details>
 {% endif %}
 
@@ -126,6 +133,7 @@
 <p class="note">Pseudo-Lagrangian trajectories at each gridded pressure level, integrated from east and north velocity (Euler forward). All start at the origin. Coloured by pressure (dbar).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" style="max-width:55%" src="data:image/png;base64,{{ fig_grid_traj_b64 }}" alt="Grid particle trajectory">
+{{- m.dbg(fig_grid_traj_b64, "max-width 55%") }}
 </details>
 {% endif %}
 
@@ -135,6 +143,7 @@
 <p class="note">Depth chosen as the pressure level with the highest time-mean current speed. Speed, east, and north velocity at that level.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,{{ fig_grid_ts_b64 }}" alt="Velocity time series at max-speed depth">
+{{- m.dbg(fig_grid_ts_b64, "full (100%)") }}
 </details>
 {% endif %}
 
@@ -147,6 +156,7 @@
 <p class="note">Potential density. 20 discrete colour levels.</p>
 <details open><summary class="collapse-toggle">show / hide sigma0</summary>
 <img class="fig" src="data:image/png;base64,{{ fig_sigma_b64 }}" alt="Potential density pcolormesh">
+{{- m.dbg(fig_sigma_b64, "full (100%)") }}
 </details>
 {% endif %}
 
@@ -155,6 +165,7 @@
 <p class="note">log₁₀(N²) in s⁻². Purple = strongly stratified; yellow = weakly stratified. Computed from T and S via GSW.</p>
 <details open><summary class="collapse-toggle">show / hide N²</summary>
 <img class="fig" src="data:image/png;base64,{{ fig_n2_b64 }}" alt="N² pcolormesh">
+{{- m.dbg(fig_n2_b64, "full (100%)") }}
 </details>
 {% endif %}
 
@@ -167,6 +178,7 @@
 <p class="note">Percentage of time steps during which each σ₀ surface (0.1&nbsp;kg&nbsp;m⁻³ spacing) lies within the measured column range. Green&nbsp;≥&nbsp;80&nbsp;%; amber&nbsp;50–80&nbsp;%; red&nbsp;&lt;&nbsp;50&nbsp;%. Orange diamond&nbsp;= current <code>--sig-level</code> target. Dashed line&nbsp;=&nbsp;80&nbsp;% threshold. NaN gaps in the tracking figure above correspond to times when the isopycnal is outside the measured range (pycnocline above the shallowest grid level, or below the deepest).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,{{ fig_isopycnal_coverage_b64 }}" alt="Isopycnal coverage diagnostic">
+{{- m.dbg(fig_isopycnal_coverage_b64, "full (100%)") }}
 </details>
 {% endif %}
 
@@ -185,6 +197,7 @@
 <p class="note">1-hour running median temperature at the grid pressure level nearest to 100&nbsp;m above the seabed. Level and height-above-seabed shown in figure title.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,{{ fig_overflow_temp_b64 }}" alt="Temperature near seabed">
+{{- m.dbg(fig_overflow_temp_b64, "full (100%)") }}
 </details>
 {% endif %}
 
@@ -193,6 +206,7 @@
 <p class="note"><strong>Left:</strong> low-frequency overview — 14-day Hann windows, 50&nbsp;% overlap. <strong>Right:</strong> high-frequency zoom — 1-day windows (~14&times; more windows, smoother tidal/inertial estimate); x-axis in hours. LF markers: M2, 1.8&nbsp;d, 4&nbsp;d, f. HF markers: M2 (12.4&nbsp;h), f (inertial). Dashed black line: &minus;2 spectral slope. Colour encodes pressure (light blue = shallow, dark blue = deep). Window length controllable via <code>hf_segment_days</code> in <code>_make_spectrum_fig_b64</code>.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,{{ fig_spectrum_b64 }}" alt="Temperature power spectrum">
+{{- m.dbg(fig_spectrum_b64, "full (100%)") }}
 </details>
 {% endif %}
 
@@ -201,6 +215,7 @@
 <p class="note">Continuous wavelet transform (Morlet, &omega;<sub>0</sub>&nbsp;=&nbsp;6; Torrence &amp; Compo 1998).  Three depth levels: 2nd from top, middle, 2nd from bottom of the 100-dbar-multiple valid levels.  Colour shows log<sub>10</sub>(power) (°C²&nbsp;d); hatched grey region = cone of influence (edge-affected); hatched cross region = gap-filled data; black contour = 95&nbsp;% significance against red noise.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,{{ fig_wavelet_b64 }}" alt="Temperature wavelet scalogram">
+{{- m.dbg(fig_wavelet_b64, "full (100%)") }}
 </details>
 {% endif %}
 
@@ -209,6 +224,7 @@
 <p class="note">CW (clockwise, anticyclonic, solid red lines) and CCW (counter-clockwise, cyclonic, dashed blue lines) power spectra and rotary coefficient r&nbsp;=&nbsp;(CCW&minus;CW)/(CCW+CW). Welch PSD, Hann window, 14-day segments, 50&nbsp;% overlap. Up to 4 pressure levels (at most 1/5th of valid levels); colour encodes pressure depth. Vertical lines: M2, K1, 1.8&nbsp;d, 4&nbsp;d, and inertial period (f). r&nbsp;&gt;&nbsp;0&nbsp;=&nbsp;CCW dominant; r&nbsp;&lt;&nbsp;0&nbsp;=&nbsp;CW dominant. Physical interpretation (NH): inertial oscillations are inherently CW; for internal waves (f&nbsp;&lt;&nbsp;&omega;), CW dominance indicates upward energy propagation / downward phase propagation (Leaman &amp; Sanford 1975).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,{{ fig_rotary_b64 }}" alt="Rotary velocity spectrum">
+{{- m.dbg(fig_rotary_b64, "full (100%)") }}
 </details>
 {% endif %}
 

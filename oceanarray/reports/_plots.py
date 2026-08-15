@@ -14,13 +14,17 @@ if TYPE_CHECKING:
 import numpy as np
 
 from ._html_helpers import _QC_MARKER, _QC_LABELS
-from ._encode import render_b64
+from ._figdebug import render_b64
 from ..config import report_tokens
 from ..plotters.primitives import (
     date_axis,
     hodograph_panel,
 )
-from ..plotters.helpers import _rose_ax, _velocity_panel_style  # noqa: F401
+from ..plotters.helpers import (  # noqa: F401
+    _rose_ax,
+    _velocity_panel_style,
+    grid_despine,
+)
 from ..plotters.timeseries import (
     draw_grid_fig,
     draw_grid_hydro,
@@ -46,10 +50,11 @@ from ..plotters.current import (
     draw_grid_hodograph,
 )
 from ..plotters.diagnostic import (
-    _CANONICAL_PANELS,
+    _CANONICAL_PANELS,  # noqa: F401  (re-exported for callers/tests)
     _COMPACT_PANEL_VARS,
     _COMPACT_PANEL_HEIGHT,
     _PANEL_HEIGHT,
+    _instrument_panels,
     draw_windows,
     draw_data_histogram,
     draw_velocity_iqr_profile,
@@ -157,42 +162,8 @@ def _plot_aquadopp_quick(ds: "xr.Dataset") -> "plt.Figure":
 _DOT_LINE_VARS: frozenset = frozenset({"turbidity"})
 
 
-def _instrument_panels(
-    ds: "xr.Dataset", combine_pitch_roll: bool = False
-) -> List[Tuple]:
-    """Return panel list (varname, ylabel, line_color, invert_y) in canonical order."""
-    import re as _re
-
-    time_vars = {v for v in ds.data_vars if ds[v].dims == ("time",)}
-
-    has_enu = any(
-        v in time_vars for v in ("east_velocity", "north_velocity", "up_velocity")
-    )
-    beam_vars = {"velocity_beam1", "velocity_beam2", "velocity_beam3"}
-    do_combo = combine_pitch_roll and "pitch" in time_vars and "roll" in time_vars
-
-    out = []
-    is_velocity_instrument = has_enu or bool(beam_vars & time_vars)
-    for vname, label, color, invert in _CANONICAL_PANELS:
-        if vname not in time_vars:
-            continue
-        if has_enu and vname in beam_vars:
-            continue
-        # Velocity instruments (aquadopp/ADCP) record speed_of_sound internally for
-        # the velocity solution — not a science output, so drop that panel.
-        if vname == "speed_of_sound" and is_velocity_instrument:
-            continue
-        if do_combo:
-            if vname == "pitch":
-                out.append(("_pitch_roll_combo", "Pitch & Roll (°)", None, False))
-                continue
-            if vname == "roll":
-                continue
-        actual_units = ds[vname].attrs.get("units", "")
-        if actual_units:
-            label = _re.sub(r"\[.*?\]", f"[{actual_units}]", label)
-        out.append((vname, label, color, invert))
-    return out
+# _instrument_panels is imported from plotters.diagnostic (single definition) —
+# it was previously duplicated here (U8).
 
 
 # ---------------------------------------------------------------------------
@@ -280,7 +251,7 @@ def _build_fig_from_ds(
         time = ds["time"].values
 
         for ax, (vname, label, color, invert) in zip(axs, panels):
-            ax.grid(True)
+            grid_despine(ax)
             if vname == "_pitch_roll_combo":
                 _suspect_t = float(ds.attrs.get("tilt_suspect_threshold", 20.0))
                 _fail_t = float(ds.attrs.get("tilt_fail_threshold", 30.0))
@@ -754,7 +725,7 @@ def _draw_hodograph_pair(
     lp_days: float,
     units: str,
     dt_s: float,
-) -> None:
+) -> Any:
     """Draw one row (raw + eddy panels) of a hodograph figure onto two Axes.
 
     Computes a 2-D density heatmap (hexbin) of east vs north velocity with a
@@ -781,6 +752,12 @@ def _draw_hodograph_pair(
         Velocity units string, e.g. ``"m s⁻¹"``.
     dt_s : float
         Sample interval in seconds.
+
+    Returns
+    -------
+    matplotlib.cm.ScalarMappable or None
+        The shared 0->1 plasma time mapping (for one shared colorbar), or None if
+        neither panel had enough finite data to draw.
 
     """
     import pandas as pd
@@ -810,18 +787,21 @@ def _draw_hodograph_pair(
     # Fractional time 0→1 for colour mapping; matches east_1d length
     t_frac = np.linspace(0.0, 1.0, len(east_1d))
 
-    def _draw(ax: Any, e: np.ndarray, n: np.ndarray, title: str) -> None:
+    def _draw(ax: Any, e: np.ndarray, n: np.ndarray, title: str) -> Any:
         mask = np.isfinite(e) & np.isfinite(n)
         if mask.sum() < 2:
             ax.text(
                 0.5, 0.5, "No data", transform=ax.transAxes, ha="center", va="center"
             )
-            ax.set_title(title, fontsize=9)
-            return
-        hodograph_panel(ax, e[mask], n[mask], t_frac[mask], title, units)
+            ax.set_title(title)
+            return None
+        return hodograph_panel(ax, e[mask], n[mask], t_frac[mask], title, units)
 
-    _draw(ax_raw, e_sm, n_sm, f"{label} — raw ({smooth_hours:.0f}-h smoothed)")
-    _draw(ax_eddy, e_eddy, n_eddy, f"{label} — eddy ({lp_days:.0f}-day LP removed)")
+    sm_raw = _draw(ax_raw, e_sm, n_sm, f"{label} — raw ({smooth_hours:.0f}-h smoothed)")
+    sm_eddy = _draw(
+        ax_eddy, e_eddy, n_eddy, f"{label} — eddy ({lp_days:.0f}-day LP removed)"
+    )
+    return sm_raw or sm_eddy
 
 
 def _make_adcp_rose_b64(nc_path: str) -> Optional[str]:

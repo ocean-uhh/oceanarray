@@ -25,6 +25,7 @@
     <div><dt>Instruments</dt><dd>{{ n_instr }}</dd></div>
     <div><dt>Source&nbsp;file</dt><dd>{{ nc_file }}</dd></div>
   {% endblock %}
+{% import "_macros.html" as m %}
 {% block content %}
 
 <nav class="jump-nav">
@@ -83,6 +84,7 @@
 <h2 id="pressure">Pressure records (all instruments)</h2>
 <p class="note">Values with QC flag &ge; 3 (suspect/bad) masked to NaN before plotting. All data values are in <code>{{ nc_file }}</code> without masking.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_pressure_b64 }}" alt="Pressure time series">
+{{- m.dbg(fig_pressure_b64, "full (100%)") }}
 {% endif %}
 
 <!-- Temperature time series -->
@@ -90,6 +92,7 @@
 <h2 id="temp">Temperature (all instruments)</h2>
 <p class="note">Values with QC flag &ge; 3 (suspect/bad) masked to NaN before plotting. All data values are in <code>{{ nc_file }}</code> without masking.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_temp_b64 }}" alt="Temperature time series">
+{{- m.dbg(fig_temp_b64, "full (100%)") }}
 {% endif %}
 
 <!-- Salinity time series -->
@@ -97,12 +100,14 @@
 <h2 id="sal">Salinity (all instruments)</h2>
 <p class="note">Values with QC flag &ge; 3 (suspect/bad) masked to NaN before plotting. All data values are in <code>{{ nc_file }}</code> without masking.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_sal_b64 }}" alt="Salinity time series">
+{{- m.dbg(fig_sal_b64, "full (100%)") }}
 {% endif %}
 
 {% if fig_dissolved_oxygen_b64 %}
 <h2 id="dissolved-oxygen">Dissolved oxygen (all instruments)</h2>
 <p class="note">One line per instrument with dissolved oxygen data (SBE ODO sensor); QC flags &ge; 3 masked. Units: µmol L⁻¹. % saturation available in per-instrument reports.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_dissolved_oxygen_b64 }}" alt="Dissolved oxygen time series">
+{{- m.dbg(fig_dissolved_oxygen_b64, "full (100%)") }}
 {% endif %}
 
 <!-- Velocity time series -->
@@ -110,24 +115,28 @@
 <h2 id="vel">East velocity (U)</h2>
 <p class="note">ENU frame. Values with <code>velocity_flag</code> &ge; 3 masked to NaN before plotting. All data values are in <code>{{ nc_file }}</code> without masking. Instruments without velocity data omitted.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_east_vel_b64 }}" alt="East velocity time series">
+{{- m.dbg(fig_east_vel_b64, "full (100%)") }}
 {% endif %}
 
 {% if fig_north_vel_b64 %}
 <h2>North velocity (V)</h2>
 <p class="note">ENU frame. Values with <code>velocity_flag</code> &ge; 3 masked to NaN before plotting. All data values are in <code>{{ nc_file }}</code> without masking.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_north_vel_b64 }}" alt="North velocity time series">
+{{- m.dbg(fig_north_vel_b64, "full (100%)") }}
 {% endif %}
 
 {% if fig_up_vel_b64 %}
 <h2>Vertical velocity (W)</h2>
 <p class="note">ENU frame. Values with <code>velocity_flag</code> &ge; 3 masked to NaN before plotting. All data values are in <code>{{ nc_file }}</code> without masking.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_up_vel_b64 }}" alt="Vertical velocity time series">
+{{- m.dbg(fig_up_vel_b64, "full (100%)") }}
 {% endif %}
 
 {% if fig_turbidity_b64 %}
 <h2 id="turbidity">Turbidity</h2>
 <p class="note">One line per instrument with turbidity data; QC flags &ge; 3 masked. Dots overlaid to reveal individual samples near zero. Units from file attrs (verify: NTU, FTU, or V depending on sensor).</p>
 <img class="fig" src="data:image/png;base64,{{ fig_turbidity_b64 }}" alt="Turbidity time series">
+{{- m.dbg(fig_turbidity_b64, "full (100%)") }}
 {% endif %}
 
 {% if fig_trajectories_b64 or fig_adcp_trajectories_b64 %}
@@ -140,15 +149,17 @@
 </p>
 <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-start">
   {% if fig_trajectories_b64 %}
-  <div style="flex:1;min-width:280px">
+  <div style="flex:0 0 50%;max-width:50%;min-width:280px">
     <p style="text-align:center;font-weight:600;margin-bottom:0.3rem">Aquadopp</p>
     <img class="fig" style="max-width:100%;width:100%" src="data:image/png;base64,{{ fig_trajectories_b64 }}" alt="Aquadopp trajectories">
+    {{- m.dbg(fig_trajectories_b64, "flex 50% column") }}
   </div>
   {% endif %}
   {% if fig_adcp_trajectories_b64 %}
   <div style="flex:0 0 50%;max-width:50%">
     <p style="text-align:center;font-weight:600;margin-bottom:0.3rem">ADCP</p>
     <img class="fig" style="max-width:100%;width:100%" src="data:image/png;base64,{{ fig_adcp_trajectories_b64 }}" alt="ADCP trajectories">
+    {{- m.dbg(fig_adcp_trajectories_b64, "flex 50% of page") }}
   </div>
   {% endif %}
 </div>
@@ -163,6 +174,7 @@
   Computed from east/north velocity components if <code>current_speed</code> is not stored.
 </p>
 <img class="fig" style="max-width:50%" src="data:image/png;base64,{{ fig_speed_profile_b64 }}" alt="Aquadopp speed profile">
+{{- m.dbg(fig_speed_profile_b64, "max-width 50%") }}
 {% endif %}
 
 {% if fig_analog_b64 %}
@@ -172,12 +184,14 @@
   One panel per channel.
 </p>
 <img class="fig" src="data:image/png;base64,{{ fig_analog_b64 }}" alt="Analog channels">
+{{- m.dbg(fig_analog_b64, "full (100%)") }}
 {% endif %}
 
 {% if fig_ts_stack_b64 %}
 <h2 id="ts">T-S diagram</h2>
 <p class="note">Left: scatter coloured by pressure. Middle: 2-D count heatmap. Right (when oxygen data present): scatter coloured by O₂ saturation (%). Bad (flag&nbsp;4) and missing (flag&nbsp;9) excluded; interpolated pressure (flag&nbsp;8) retained.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_ts_stack_b64 }}" alt="T-S diagram">
+{{- m.dbg(fig_ts_stack_b64, "full (100%)") }}
 {% endif %}
 
 {% if fig_rose_grid_b64 %}
@@ -194,6 +208,7 @@
 {% endif %}
 {% if rose_declination_note %}<p class="note">{{ rose_declination_note }}</p>{% endif %}
 <img class="fig" style="max-width:{{ rose_img_width }}%" src="data:image/png;base64,{{ fig_rose_grid_b64 }}" alt="Current rose grid">
+{{- m.dbg(fig_rose_grid_b64, "max-width " ~ rose_img_width ~ "%") }}
 {% endif %}
 
 {% if fig_aquadopp_tilt_b64 %}
@@ -207,12 +222,14 @@
   <code>roll_qc</code> to filter. Plots show all available values.
 </p>
 <img class="fig" src="data:image/png;base64,{{ fig_aquadopp_tilt_b64 }}" alt="Aquadopp tilt panels">
+{{- m.dbg(fig_aquadopp_tilt_b64, "full (100%)") }}
 {% endif %}
 
 {% if fig_spacing_b64 %}
 <h2 id="spacing">Adjacent instrument spacing</h2>
 <p class="note">Distribution of pressure differences between adjacent instrument pairs (pairs &lt; 2 dbar apart excluded as co-located).</p>
 <img style="max-width:33%;border:1px solid #dce;border-radius:4px" src="data:image/png;base64,{{ fig_spacing_b64 }}" alt="Instrument spacing histogram">
+{{- m.dbg(fig_spacing_b64, "max-width 33%") }}
 {% endif %}
 
 {% if fig_clock_check_b64 %}
@@ -224,6 +241,7 @@
   if stage&#8209;3 is not yet available).  Instruments without temperature are omitted.
 </p>
 <img class="fig" src="data:image/png;base64,{{ fig_clock_check_b64 }}" alt="Clock alignment check">
+{{- m.dbg(fig_clock_check_b64, "full (100%)") }}
 {% endif %}
 
 <!-- ══ NetCDF dimensions ══ -->

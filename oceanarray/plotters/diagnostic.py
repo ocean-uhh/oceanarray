@@ -30,8 +30,6 @@ Post-OdB: migrate the following from report/_plots.py:
 
 Tier-1 primitives: plot_vector_heatmap (for T-S, U-V, any pair),
 plot_spectrum (any 1D time series), plot_polar_histogram (current rose).
-
-See .claude/plotters_update-20260718.md for migration checklist.
 """
 
 from __future__ import annotations
@@ -42,6 +40,8 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 import numpy as np
 
+from .helpers import grid_despine
+from .primitives import date_offset_left
 from .. import parameters as params
 from oceanarray.config import report_tokens
 
@@ -158,7 +158,7 @@ def _instrument_panels(
         actual_units = ds[vname].attrs.get("units", "")
         if actual_units:
             label = _re.sub(r"\[.*?\]", f"[{actual_units}]", label)
-        out.append((vname, label, color, invert))
+        out.append((vname, label, params.VAR_COLORS.get(vname, color), invert))
     return out
 
 
@@ -388,7 +388,9 @@ def plot_knockdown_hab(
     box_width = max(2.0, hab_range / (len(hab_nom_vals) * 2))
 
     with plt.style.context(str(params.MPLSTYLE)):
-        fig, ax = plt.subplots(figsize=(5, 5))
+        # Half width — displayed side-by-side with the anomaly panel in a two-column
+        # flex row (see mooring.html), so the slot is ~half the page, not full.
+        fig, ax = plt.subplots(figsize=(report_tokens.W_HALF, report_tokens.W_HALF))
 
         p_max_all = 0.0
         for hab_nom, _serial, actual_p in hab_records:
@@ -492,7 +494,10 @@ def plot_knockdown_anomaly(
     box_width = max(5.0, p_range / (len(p_nom_vals) * 2))
 
     with plt.style.context(str(params.MPLSTYLE)):
-        fig, ax = plt.subplots(figsize=(5, max(3, len(records) * 0.4 + 1)))
+        # Half width — side-by-side with the HAB panel in the mooring.html flex row.
+        fig, ax = plt.subplots(
+            figsize=(report_tokens.W_HALF, max(3, len(records) * 0.4 + 1))
+        )
 
         for p_nom, _serial, actual_p in records:
             anomaly = actual_p - p_nom  # positive = knocked down deeper
@@ -514,6 +519,10 @@ def plot_knockdown_anomaly(
 
         ax.invert_yaxis()
         ax.axvline(0, color="k", lw=0.8, zorder=3)
+        # Anchor the left edge at exactly 0 when everything is knocked down
+        # (positive); keep any genuine negative (shallower-than-nominal) anomalies
+        # visible rather than clipping them.
+        ax.set_xlim(left=min(0.0, ax.get_xlim()[0]))
         ax.set_xlabel("Pressure anomaly (dbar) — positive = deeper than nominal")
         ax.set_ylabel("Nominal pressure (dbar)")
 
@@ -603,7 +612,9 @@ def plot_knockdown_displacement(
     p_max = float(np.nanmax(all_p)) * 1.05 if len(all_p) else 1.0
 
     with plt.style.context(str(params.MPLSTYLE)):
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5), sharey=True, sharex=True)
+        fig, (ax1, ax2) = plt.subplots(
+            1, 2, figsize=(report_tokens.W_FULL, 4.5), sharey=True, sharex=True
+        )
 
         # --- left panel: scatter ---
         for serial, x_thin, p_thin, color in scatter_data:
@@ -656,15 +667,17 @@ def plot_knockdown_displacement(
 
         h_vals = H_norm[np.isfinite(H_norm)]
         if len(h_vals):
+            # Start the scale at 0 and thin the tick labels to ~6 nice values
+            # (was ~15 ticks like 0.015 / 0.045 / 0.075).
             bounds = _nice_colorbar_bounds(
-                float(np.nanmin(h_vals)), float(np.nanpercentile(h_vals, 98)), n=15
+                0.0, float(np.nanpercentile(h_vals, 98)), n=15
             )
             norm = mcolors.BoundaryNorm(bounds, ncolors=256)
             mesh = ax2.pcolormesh(x_edges, p_edges, H_norm.T, norm=norm, cmap="YlOrRd")
             fig.colorbar(
                 mesh,
                 ax=ax2,
-                ticks=bounds,
+                ticks=bounds[:: max(1, len(bounds) // 6)],
                 label="Normalised density (sum = 1 per instrument)",
             )
 
@@ -810,22 +823,29 @@ def plot_clock_offset_check(
             locator = mdates.AutoDateLocator()
             ax.xaxis.set_major_locator(locator)
             ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+            date_offset_left(ax)
 
-        if plotted_serials:
-            from matplotlib.lines import Line2D
+        # No instrument fell inside any window (e.g. deploy/recover times outside
+        # the data range) — skip the figure rather than emit an empty axis, which
+        # matplotlib would date-label at the 1970 epoch.
+        if not plotted_serials:
+            plt.close(fig)
+            return None
 
-            handles = [
-                Line2D([0], [0], color=colors[s], lw=1.0, label=str(s))
-                for s in series
-                if s in plotted_serials
-            ]
-            fig.legend(
-                handles=handles,
-                loc="lower center",
-                ncol=min(len(handles), 6),
-                bbox_to_anchor=(0.5, 0.01),
-                frameon=True,
-            )
+        from matplotlib.lines import Line2D
+
+        handles = [
+            Line2D([0], [0], color=colors[s], lw=1.0, label=str(s))
+            for s in series
+            if s in plotted_serials
+        ]
+        fig.legend(
+            handles=handles,
+            loc="lower center",
+            ncol=min(len(handles), 6),
+            bbox_to_anchor=(0.5, 0.01),
+            frameon=True,
+        )
 
         # Reserve space for the below-axes legend and keep it: mark the figure
         # manual so the encoder does not re-run tight_layout and undo the reserve
@@ -1296,7 +1316,7 @@ def draw_data_histogram(nc_path: Path) -> "Optional[plt.Figure]":
             ax.set_yscale("log")
             ax.set_xlabel(ylabel)
             if ax.get_subplotspec().is_first_col():
-                ax.set_ylabel("log₁₀(count)")
+                ax.set_ylabel(r"$\log_{10}$(count)")
 
             s_min = s_max = f_min = f_max = None
             if has_qc:
@@ -1457,6 +1477,8 @@ def draw_velocity_iqr_profile(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     )
     if n_panels == 1:
         axs = [axs]
+    for _ax in axs:
+        grid_despine(_ax)
 
     ax_iter = iter(axs[:-1])  # last panel reserved for count
 

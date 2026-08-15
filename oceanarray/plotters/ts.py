@@ -7,8 +7,9 @@ from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 
-from .primitives import colorbar_norm
+from .primitives import colorbar_norm, square_axes_grid, unit_colorbar
 from .helpers import QC_MARKER as _QC_MARKER
+from ..utilities import nice_colorbar_ticks
 from .. import parameters as params
 from oceanarray.config import report_tokens
 
@@ -57,12 +58,29 @@ def _ts_heatmap_panel(
     n_bins: int = 80,
     plo: float = 0.01,
     phi: float = 99.99,
+    s_lim: "Optional[tuple]" = None,
+    t_lim: "Optional[tuple]" = None,
+    cax: "Optional[plt.Axes]" = None,
 ) -> None:
-    """Render a T-S 2-D count heatmap on *ax*."""
-    import matplotlib.pyplot as plt
+    """Render a T-S 2-D count heatmap on *ax*.
 
-    s_lo, s_hi = float(np.nanpercentile(S, plo)), float(np.nanpercentile(S, phi))
-    t_lo, t_hi = float(np.nanpercentile(T, plo)), float(np.nanpercentile(T, phi))
+    When *s_lim* / *t_lim* are given they set the bin range and axis limits so the
+    heatmap shares the dot-plot's axes exactly; otherwise a percentile range is
+    used.  The colorbar uses ~6 nice ticks.  When *cax* is given (a height-matched
+    colorbar axes from :func:`square_axes_grid`) the colorbar is drawn there via
+    :func:`unit_colorbar`; otherwise a normal colorbar is added and the box is
+    squared with ``set_box_aspect``.
+    """
+    import matplotlib.pyplot as plt
+    from ..utilities import nice_colorbar_ticks
+    from .primitives import unit_colorbar
+
+    s_lo, s_hi = s_lim if s_lim is not None else (
+        float(np.nanpercentile(S, plo)), float(np.nanpercentile(S, phi))
+    )
+    t_lo, t_hi = t_lim if t_lim is not None else (
+        float(np.nanpercentile(T, plo)), float(np.nanpercentile(T, phi))
+    )
     s_edges = np.linspace(s_lo, s_hi, n_bins + 1)
     t_edges = np.linspace(t_lo, t_hi, n_bins + 1)
     counts, _, _ = np.histogram2d(S, T, bins=[s_edges, t_edges])
@@ -77,12 +95,17 @@ def _ts_heatmap_panel(
     pc = ax.pcolormesh(
         s_edges, t_edges, log_counts, cmap=cmap, norm=norm, shading="flat"
     )
-    cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=bounds)
-    cb.set_label("log₁₀(count + 1)")
+    _ticks = nice_colorbar_ticks(float(bounds[0]), float(bounds[-1]))
+    if cax is not None:
+        unit_colorbar(cax, pc, unit=r"$\log_{10}$(count)", ticks=_ticks)
+    else:
+        cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=_ticks)
+        cb.ax.set_title(r"$\log_{10}$(count)", fontsize=report_tokens.ANNOT_FS)
+        ax.set_box_aspect(1)
     _add_sigma0_contours(ax, S, T)
     ax.set_xlim(s_lo, s_hi)
     ax.set_ylim(t_lo, t_hi)
-    ax.set_xlabel("Practical salinity")
+    ax.set_xlabel(params.vlabel("salinity"))
     ax.set_ylabel(params.vlabel("temperature"))
     ax.set_title("T-S heat map")
 
@@ -103,7 +126,6 @@ def draw_ts_diagram(nc_path: Path) -> "Optional[plt.Figure]":
         Figure, or None if temperature or salinity are absent.
 
     """
-    import matplotlib.pyplot as plt
     import xarray as xr
 
     with xr.open_dataset(nc_path, decode_timedelta=False) as ds:
@@ -120,11 +142,11 @@ def draw_ts_diagram(nc_path: Path) -> "Optional[plt.Figure]":
 
         if "pressure" in ds.data_vars:
             C = ds["pressure"].values.astype(float)
-            cbar_label = params.vlabel("pressure")
+            _cbar_unit = params.vunit("pressure")
             cmap_sc = "viridis_r"
         else:
             C = np.arange(len(T), dtype=float)
-            cbar_label = "Sample index"
+            _cbar_unit = ""  # sample index — no unit
             cmap_sc = "plasma"
 
         t_flags = (
@@ -146,18 +168,17 @@ def draw_ts_diagram(nc_path: Path) -> "Optional[plt.Figure]":
         suspect_mask = finite & (combined_flags == 3)
         bad_mask = finite & (combined_flags == 4)
 
-        sal_units = ds["salinity"].attrs.get("units", "PSU")
-        tmp_units = ds["temperature"].attrs.get("units", "°C")
-
         has_sat = "oxygen_saturation_pct" in ds.data_vars
         sat_data = ds["oxygen_saturation_pct"].values.astype(float) if has_sat else None
 
     ncols = 3 if has_sat else 2
-    fig, axes = plt.subplots(
-        1, ncols, figsize=(report_tokens.W_FULL, 4.5), constrained_layout=True
+    # Square panels with per-panel height-matched colorbars (shared deterministic
+    # layout — same path as the hodographs/trajectories).
+    fig, _ax, _cax = square_axes_grid(
+        report_tokens.W_FULL, 1, ncols, per_panel_colorbar=True
     )
-    ax_l, ax_r = axes[0], axes[1]
-    ax_sat = axes[2] if has_sat else None
+    ax_l, ax_r = _ax[0, 0], _ax[0, 1]
+    ax_sat = _ax[0, 2] if has_sat else None
 
     # Panel 1: T-S scatter coloured by pressure
     vmin = np.nanpercentile(C[finite], 5)
@@ -175,7 +196,12 @@ def draw_ts_diagram(nc_path: Path) -> "Optional[plt.Figure]":
         zorder=2,
         rasterized=True,
     )
-    fig.colorbar(sc, ax=ax_l, label=cbar_label, fraction=0.046, pad=0.04)
+    unit_colorbar(
+        _cax[0, 0],
+        sc,
+        unit=_cbar_unit,
+        ticks=nice_colorbar_ticks(float(vmin), float(vmax)),
+    )
     if suspect_mask.any():
         ax_l.scatter(
             S[suspect_mask],
@@ -193,12 +219,24 @@ def draw_ts_diagram(nc_path: Path) -> "Optional[plt.Figure]":
     if suspect_mask.any() or bad_mask.any():
         ax_l.legend(loc="best", framealpha=0.8)
     _add_sigma0_contours(ax_l, S[finite], T[finite])
-    ax_l.set_xlabel(f"Salinity ({sal_units})")
-    ax_l.set_ylabel(f"Temperature ({tmp_units})")
+    ax_l.set_xlabel(params.vlabel("salinity"))
+    ax_l.set_ylabel(params.vlabel("temperature"))
     ax_l.set_title("T-S (colour = pressure)")
 
-    # Panel 2: count heatmap
-    _ts_heatmap_panel(ax_r, fig, S[finite], T[finite])
+    # Shared T-S axis limits (the dot plot's data range) so the heatmap and O₂
+    # panels use identical axes; square every panel box.
+    _sf, _tf = S[finite], T[finite]
+    _sp = 0.02 * (float(np.nanmax(_sf) - np.nanmin(_sf)) + 1e-9)
+    _tp = 0.02 * (float(np.nanmax(_tf) - np.nanmin(_tf)) + 1e-9)
+    _s_lim = (float(np.nanmin(_sf)) - _sp, float(np.nanmax(_sf)) + _sp)
+    _t_lim = (float(np.nanmin(_tf)) - _tp, float(np.nanmax(_tf)) + _tp)
+    ax_l.set_xlim(*_s_lim)
+    ax_l.set_ylim(*_t_lim)
+
+    # Panel 2: count heatmap (shares the dot plot's limits + matched colorbar)
+    _ts_heatmap_panel(
+        ax_r, fig, S[finite], T[finite], s_lim=_s_lim, t_lim=_t_lim, cax=_cax[0, 1]
+    )
 
     # Panel 3: T-S scatter coloured by O2 saturation (when available)
     if ax_sat is not None and sat_data is not None:
@@ -222,12 +260,18 @@ def draw_ts_diagram(nc_path: Path) -> "Optional[plt.Figure]":
                 zorder=2,
                 rasterized=True,
             )
-            cb_s = fig.colorbar(sc_s, ax=ax_sat, ticks=bounds_s, pad=0.02)
-            cb_s.set_label("O₂ saturation (%)")
+            unit_colorbar(
+                _cax[0, 2],
+                sc_s,
+                unit="%",
+                ticks=nice_colorbar_ticks(float(bounds_s[0]), float(bounds_s[-1])),
+            )
             _add_sigma0_contours(ax_sat, S[sat_finite], T[sat_finite])
-        ax_sat.set_xlabel(f"Salinity ({sal_units})")
-        ax_sat.set_ylabel(f"Temperature ({tmp_units})")
+        ax_sat.set_xlabel(params.vlabel("salinity"))
+        ax_sat.set_ylabel(params.vlabel("temperature"))
         ax_sat.set_title("T-S (colour = O₂ sat.)")
+        ax_sat.set_xlim(*_s_lim)
+        ax_sat.set_ylim(*_t_lim)
 
     return fig
 
@@ -254,8 +298,6 @@ def draw_stack_ts_diagram(ds: "xr.Dataset") -> "Optional[plt.Figure]":
         Figure, or None if temperature or salinity are absent.
 
     """
-    import matplotlib.pyplot as plt
-
     if "temperature" not in ds.data_vars or "salinity" not in ds.data_vars:
         return None
 
@@ -293,12 +335,12 @@ def draw_stack_ts_diagram(ds: "xr.Dataset") -> "Optional[plt.Figure]":
 
     has_sat = SAT_flat is not None and np.isfinite(SAT_flat).any()
     ncols = 3 if has_sat else 2
-    fig, axes = plt.subplots(
-        1, ncols, figsize=(report_tokens.W_FULL, 4.5), constrained_layout=True
+    fig, _ax, _cax = square_axes_grid(
+        report_tokens.W_FULL, 1, ncols, per_panel_colorbar=True
     )
 
-    ax_scatter, ax_heat = axes[0], axes[1]
-    ax_sat = axes[2] if has_sat else None
+    ax_scatter, ax_heat = _ax[0, 0], _ax[0, 1]
+    ax_sat = _ax[0, 2] if has_sat else None
 
     # --- Left panel: T-S scatter coloured by pressure ---
     if P_flat is not None:
@@ -319,9 +361,14 @@ def draw_stack_ts_diagram(ds: "xr.Dataset") -> "Optional[plt.Figure]":
             zorder=2,
             rasterized=True,
         )
-        cb_p = fig.colorbar(sc_p, ax=ax_scatter, ticks=bounds_p, pad=0.02)
-        cb_p.set_label(params.vlabel("pressure"))
+        unit_colorbar(
+            _cax[0, 0],
+            sc_p,
+            unit=params.vunit("pressure"),
+            ticks=nice_colorbar_ticks(float(bounds_p[0]), float(bounds_p[-1])),
+        )
     else:
+        _cax[0, 0].set_visible(False)  # no pressure → no colorbar
         ax_scatter.scatter(
             S_flat[finite],
             T_flat[finite],
@@ -331,12 +378,25 @@ def draw_stack_ts_diagram(ds: "xr.Dataset") -> "Optional[plt.Figure]":
             rasterized=True,
         )
     _add_sigma0_contours(ax_scatter, S_flat[finite], T_flat[finite])
-    ax_scatter.set_xlabel("Practical salinity")
+    ax_scatter.set_xlabel(params.vlabel("salinity"))
     ax_scatter.set_ylabel(params.vlabel("temperature"))
     ax_scatter.set_title("T-S (colour = pressure)")
 
-    # --- Middle panel: count heatmap ---
-    _ts_heatmap_panel(ax_heat, fig, S_flat[finite], T_flat[finite])
+    # Shared limits (scatter's data range) so the heatmap matches (boxes are
+    # already square from square_axes_grid).
+    _sf, _tf = S_flat[finite], T_flat[finite]
+    _sp = 0.02 * (float(np.nanmax(_sf) - np.nanmin(_sf)) + 1e-9)
+    _tp = 0.02 * (float(np.nanmax(_tf) - np.nanmin(_tf)) + 1e-9)
+    _s_lim = (float(np.nanmin(_sf)) - _sp, float(np.nanmax(_sf)) + _sp)
+    _t_lim = (float(np.nanmin(_tf)) - _tp, float(np.nanmax(_tf)) + _tp)
+    ax_scatter.set_xlim(*_s_lim)
+    ax_scatter.set_ylim(*_t_lim)
+
+    # --- Middle panel: count heatmap (shares the scatter's limits) ---
+    _ts_heatmap_panel(
+        ax_heat, fig, S_flat[finite], T_flat[finite], s_lim=_s_lim, t_lim=_t_lim,
+        cax=_cax[0, 1],
+    )
 
     # --- Right panel: T-S scatter coloured by O2 saturation ---
     if ax_sat is not None and SAT_flat is not None:
@@ -359,12 +419,18 @@ def draw_stack_ts_diagram(ds: "xr.Dataset") -> "Optional[plt.Figure]":
             zorder=2,
             rasterized=True,
         )
-        cb_s = fig.colorbar(sc_s, ax=ax_sat, ticks=bounds_s, pad=0.02)
-        cb_s.set_label("O₂ saturation (%)")
+        unit_colorbar(
+            _cax[0, 2],
+            sc_s,
+            unit="%",
+            ticks=nice_colorbar_ticks(float(bounds_s[0]), float(bounds_s[-1])),
+        )
         _add_sigma0_contours(ax_sat, S_flat[sat_finite], T_flat[sat_finite])
-        ax_sat.set_xlabel("Practical salinity")
+        ax_sat.set_xlabel(params.vlabel("salinity"))
         ax_sat.set_ylabel(params.vlabel("temperature"))
         ax_sat.set_title("T-S (colour = O₂ sat.)")
+        ax_sat.set_xlim(*_s_lim)
+        ax_sat.set_ylim(*_t_lim)
 
     return fig
 
@@ -425,13 +491,20 @@ def draw_grid_ts_diagram(
     has_o2 = has_o2 and o2_valid.any()
 
     ncols = 2 if has_o2 else 1
-    fig, axes = plt.subplots(1, ncols, figsize=(report_tokens.W_HALF, 5))
-    if ncols == 1:
-        axes = [axes]
+    fig, _ax, _cax = square_axes_grid(
+        report_tokens.W_FULL if has_o2 else report_tokens.W_HALF,
+        1,
+        ncols,
+        per_panel_colorbar=True,
+    )
+    axes = list(_ax[0])
 
-    # Panel 1: count heatmap
-    _ts_heatmap_panel(axes[0], fig, S[finite], T[finite], n_bins=n_bins)
-    axes[0].set_title("T-S count (log₁₀ samples per bin)")
+    # Panel 1: count heatmap (shares the data limits + matched colorbar)
+    _ts_heatmap_panel(
+        axes[0], fig, S[finite], T[finite], n_bins=n_bins,
+        s_lim=(s_lo, s_hi), t_lim=(t_lo, t_hi), cax=_cax[0, 0],
+    )
+    axes[0].set_title(r"T-S count ($\log_{10}$ samples per bin)")
 
     # Panel 2: median O2 saturation per T-S bin
     if has_o2 and O2 is not None:
@@ -472,12 +545,16 @@ def draw_grid_ts_diagram(
                 norm=norm,
                 shading="flat",
             )
-            cb = fig.colorbar(pc, ax=axes[1], ticks=bounds, pad=0.02)
-            cb.set_label("Median O₂ saturation (%)")
+            unit_colorbar(
+                _cax[0, 1],
+                pc,
+                unit="%",
+                ticks=nice_colorbar_ticks(float(bounds[0]), float(bounds[-1])),
+            )
             _add_sigma0_contours(axes[1], S[o2_valid], T[o2_valid])
             axes[1].set_xlim(s_lo, s_hi)
             axes[1].set_ylim(t_lo, t_hi)
-        axes[1].set_xlabel("Practical salinity")
+        axes[1].set_xlabel(params.vlabel("salinity"))
         axes[1].set_ylabel(params.vlabel("temperature"))
         axes[1].set_title("Median O₂ saturation per T-S bin")
 
