@@ -50,10 +50,18 @@
   .history-list li:last-child { border-bottom:none; }
   .history-ts { color:var(--muted); white-space:nowrap; font-size:0.76rem; min-width:11rem; }
   .history-text { flex:1; }
+  /* Figures never exceed the content column; the oversampled PNG downscales
+     crisply (spec §11 OVERSAMPLE). Pages may override (e.g. array uses 60%). */
+  .fig { max-width:100%; height:auto; display:block; }
   td.num { text-align:right; font-variant-numeric:tabular-nums; }
   td.mono { font-family:monospace; font-size:0.8rem; }
   .none-note { color:var(--muted); font-style:italic; }
   .var-qc { color:var(--good); font-size:0.78rem; }
+  /* Figure-debug line under a plot (OCEANARRAY_REPORT_DEBUG=1): slot the
+     template chose vs the render-side figsize/png, for eyeballing mismatches. */
+  .debug { font-family:monospace; font-size:0.72rem; color:var(--muted);
+           background:var(--seafoam); border-left:3px solid var(--muted);
+           padding:0.2rem 0.5rem; margin:0 0 1rem; white-space:pre-wrap; }
   @media print {
     body { padding:0; max-width:100%; }
     h2 { page-break-after:avoid; }
@@ -63,8 +71,8 @@
 
   :root { --accent:#1e8449; --accent-link:#d5f5e3; }
   .file-table { width:100%; border-collapse:collapse; font-size:0.81rem; margin-bottom:1.2rem; }
-  .file-table th { background:var(--seafoam); text-align:left; padding:0.35rem 0.65rem;
-                   border-bottom:2px solid #cde; font-weight:600; }
+  .file-table th { background:var(--seafoam); color:var(--text); text-align:left;
+                   padding:0.35rem 0.65rem; border-bottom:2px solid #cde; font-weight:700; }
   .file-table td { padding:0.3rem 0.65rem; border-bottom:1px solid #eef; vertical-align:middle; }
   .file-table tr:nth-child(even) td { background:#f4f9fc; }
   .file-table .ok { color:var(--good); font-weight:700; }

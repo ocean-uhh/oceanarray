@@ -28,13 +28,14 @@ STACK_NC = FIXTURE_PROC / "dune2_1_2026_stack.nc"
 def _raise_on_plot_error(monkeypatch):
     """Make figure-generation failures raise during tests instead of vanishing.
 
-    Flips :data:`oceanarray.reports._plots.RAISE_ON_PLOT_ERROR` on for the
+    Flips :data:`oceanarray.config.report_tokens.RAISE_ON_PLOT_ERROR` on for the
     duration of every test so a broken figure surfaces as a test failure rather
-    than a silently-absent panel. Reverted automatically by ``monkeypatch``.
+    than a silently-absent panel. The encoder (``_encode.render_b64``) reads this
+    token flag. Reverted automatically by ``monkeypatch``.
     """
-    from oceanarray.reports import _plots
+    from oceanarray.config import report_tokens
 
-    monkeypatch.setattr(_plots, "RAISE_ON_PLOT_ERROR", True, raising=False)
+    monkeypatch.setattr(report_tokens, "RAISE_ON_PLOT_ERROR", True)
 
 
 @pytest.fixture

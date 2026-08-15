@@ -1,10 +1,11 @@
 {% extends "base.html" %}
+{% import "_macros.html" as m %}
 {% block title %}{{ instr_type | title }} &ndash; s/n {{ serial }}{% endblock %}
 {% block page_styles %}
   :root { --accent:#1e8449; --accent-link:#d5f5e3; }
   .file-table { width:100%; border-collapse:collapse; font-size:0.81rem; margin-bottom:1.2rem; }
-  .file-table th { background:var(--seafoam); text-align:left; padding:0.35rem 0.65rem;
-                   border-bottom:2px solid #cde; font-weight:600; }
+  .file-table th { background:var(--seafoam); color:var(--text); text-align:left;
+                   padding:0.35rem 0.65rem; border-bottom:2px solid #cde; font-weight:700; }
   .file-table td { padding:0.3rem 0.65rem; border-bottom:1px solid #eef; vertical-align:middle; }
   .file-table tr:nth-child(even) td { background:#f4f9fc; }
   .file-table .ok { color:var(--good); font-weight:700; }
@@ -125,6 +126,7 @@
   {% if data_stage and data_stage != 'stage3' %}Magnetic declination has <b>not</b> been applied ({{ data_stage }} data).{% endif %}
 </p>
 <img class="fig" src="data:image/png;base64,{{ fig_adcp_velocity_b64 }}">
+{{- m.dbg(fig_adcp_velocity_b64, "full (100%)") }}
 {% endif %}
 
 <!-- ══ Full time series ══ -->
@@ -133,6 +135,7 @@
 {% for _ts_img in fig_ts_b64 %}
 <img class="fig" src="data:image/png;base64,{{ _ts_img }}"
      title="line = data; × = suspect; × = bad; + = interpolated">
+{{- m.dbg(_ts_img, "full (100%)") }}
 {% endfor %}
 {% else %}
 <p class="none-note">No plottable variables found.</p>
@@ -177,6 +180,7 @@
 </p>
 {% for _win_img in fig_windows_b64 %}
 <img class="fig" src="data:image/png;base64,{{ _win_img }}">
+{{- m.dbg(_win_img, "full (100%)") }}
 {% endfor %}
 {% else %}
 <p class="none-note">Insufficient data for start/end windows.</p>
@@ -189,6 +193,7 @@
   Coloured by pressure (or sample index). &times; = suspect &nbsp;|&nbsp; &times; = bad (QC flags).
 </p>
 <img class="fig" src="data:image/png;base64,{{ fig_tsd_b64 }}">
+{{- m.dbg(fig_tsd_b64, "full (100%)") }}
 {% endif %}
 
 <!-- ══ ADCP current roses ══ -->
@@ -201,6 +206,7 @@
   {% if data_stage and data_stage != 'stage3' %}Magnetic declination not yet applied ({{ data_stage }} data).{% endif %}
 </p>
 <img class="fig" src="data:image/png;base64,{{ fig_adcp_rose_b64 }}">
+{{- m.dbg(fig_adcp_rose_b64, "full (100%)") }}
 {% endif %}
 
 <!-- ══ Current roses ══ -->
@@ -216,7 +222,8 @@
   {% if rose_has_xyz %}XYZ: instrument-frame velocities (before geographic rotation). {% endif %}ENU panels split by QARTOD flag: good (flag&nbsp;≤&nbsp;2, Blues), suspect (flag&nbsp;3, Oranges), fail (flag&nbsp;4, Reds).
   Direction toward which the current flows; 0°&nbsp;=&nbsp;N, clockwise.
 </p>
-<img class="fig" style="max-width:66%" src="data:image/png;base64,{{ fig_rose_b64 }}">
+<img class="fig" src="data:image/png;base64,{{ fig_rose_b64 }}">
+{{- m.dbg(fig_rose_b64, "full (100%)") }}
 {% endif %}
 
 <!-- ══ Lagrangian trajectory ══ -->
@@ -228,6 +235,7 @@
   Origin (0,&nbsp;0) = deployment position; axes in metres.
 </p>
 <img class="fig" src="data:image/png;base64,{{ fig_trajectory_b64 }}" style="max-width:600px;">
+{{- m.dbg(fig_trajectory_b64, "max-width 600px") }}
 {% endif %}
 
 <!-- ══ Hodograph ══ -->
@@ -239,12 +247,14 @@
   <b>Right</b>: eddy component — raw minus 4-day low-pass (rolling mean).
 </p>
 <img class="fig" src="data:image/png;base64,{{ fig_hodograph_b64 }}">
+{{- m.dbg(fig_hodograph_b64, "full (100%)") }}
 {% endif %}
 
 <!-- ══ Speed distribution ══ -->
 {% if fig_speed_boxplot_b64 %}
 <h2 id="speed">Current speed distribution</h2>
 <img class="fig" src="data:image/png;base64,{{ fig_speed_boxplot_b64 }}" style="max-width:300px;">
+{{- m.dbg(fig_speed_boxplot_b64, "max-width 300px") }}
 {% endif %}
 
 <!-- ══ Analog channels ══ -->
@@ -268,6 +278,7 @@
 </ul>
 {% endif %}
 <img class="fig" src="data:image/png;base64,{{ fig_analog_b64 }}">
+{{- m.dbg(fig_analog_b64, "full (100%)") }}
 {% endif %}
 
 <!-- ══ Data distributions ══ -->
@@ -278,6 +289,7 @@
 </p>
 {% if fig_dt_b64 %}
 <img class="fig" src="data:image/png;base64,{{ fig_dt_b64 }}">
+{{- m.dbg(fig_dt_b64, "full (100%)") }}
 {% else %}
 <p class="none-note">Not enough samples to compute.</p>
 {% endif %}

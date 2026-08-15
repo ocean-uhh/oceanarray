@@ -22,8 +22,6 @@ Post-OdB: migrate the following from plotter.py and report/_plots.py:
   plot_microcat_raw, plot_aquadopp_raw, plot_mooring_timeseries (the three
   kept plotter.py functions; §11), plot_aquadopp_quick,
   build_instrument_fig (was _build_fig_from_ds), plot_instrument_windows.
-
-See .claude/plotters_update-20260718.md for migration checklist.
 """
 
 from __future__ import annotations
@@ -37,8 +35,16 @@ if TYPE_CHECKING:
     import matplotlib.pyplot as plt
     import xarray as xr
 
-from .primitives import colorbar_norm, date_axis, pressure_axis, pcolormesh_panel
+from .primitives import (
+    colorbar_norm,
+    date_axis,
+    date_offset_left,
+    pressure_axis,
+    pcolormesh_panel,
+)
+from ..utilities import nice_colorbar_ticks
 from .. import parameters as params
+from oceanarray.config import report_tokens
 
 
 def draw_grid_fig(
@@ -84,7 +90,9 @@ def draw_grid_fig(
     pressure = da.coords["pressure"].values
     data = da.transpose("pressure", "time").values
 
-    fig, ax = plt.subplots(figsize=(13, 4))
+    fig, ax = plt.subplots(
+        figsize=(report_tokens.W_FULL, params.GRID_PANEL_ROW_IN), layout="constrained"
+    )
     bounds, norm = colorbar_norm(data, vmin=vmin, vmax=vmax, symmetric=symmetric)
     if style == "contourf":
         pc = ax.contourf(time, pressure, data, levels=bounds, cmap=cmap, extend="both")
@@ -196,16 +204,22 @@ def draw_grid_hydro(
     pressure = ds["pressure"].values
     time = ds["time"].values
     n = len(panels)
-    fig, axes = plt.subplots(n, 1, figsize=(13, 3.2 * n), sharex=True, squeeze=False)
+    fig, axes = plt.subplots(
+        n,
+        1,
+        figsize=(report_tokens.W_FULL, params.GRID_PANEL_ROW_IN * n),
+        sharex=True,
+        squeeze=False,
+        layout="constrained",
+    )
 
     for ax, (var, cmap) in zip(axes[:, 0], panels):
         da = ds[var]
         data = da.transpose("pressure", "time").values
-        units = da.attrs.get("units", "")
-        long_name = da.attrs.get("long_name", var)
+        units = params.vunit(var) or da.attrs.get("units", "")
         # Use the variable name (tidied) as the panel title — long_name often
         # carries the full CF phrase "sea water temperature" which is verbose
-        # for a plot heading.  The colorbar label keeps the full long_name.
+        # for a plot heading.  The colorbar shows units only, on top of the bar.
         title = var.replace("_", " ").capitalize()
         _lim_key = {
             "temperature": "t_lim",
@@ -226,7 +240,7 @@ def draw_grid_hydro(
             vmin=_vmin,
             vmax=_vmax,
             n=_n,
-            cb_label=f"{long_name} ({units})" if units else long_name,
+            units=units,
             title_loc="left",
             date_fmt=False,
         )
@@ -298,7 +312,14 @@ def draw_grid_velocity_stacked(ds: "xr.Dataset") -> "Optional[plt.Figure]":
         div_abs_max = 1.0
 
     n = len(present)
-    fig, axes = plt.subplots(n, 1, figsize=(13, 3.2 * n), sharex=True, squeeze=False)
+    fig, axes = plt.subplots(
+        n,
+        1,
+        figsize=(report_tokens.W_FULL, params.GRID_PANEL_ROW_IN * n),
+        sharex=True,
+        squeeze=False,
+        layout="constrained",
+    )
 
     for ax, var in zip(axes[:, 0], present):
         data = ds[var].transpose("pressure", "time").values
@@ -310,12 +331,17 @@ def draw_grid_velocity_stacked(ds: "xr.Dataset") -> "Optional[plt.Figure]":
                 break
         fv = data.ravel()
         fv = fv[np.isfinite(fv)]
-        bounds, norm, cmap, cb_label = _velocity_panel_style(var, fv, div_abs_max)
+        bounds, norm, cmap, _cb_label = _velocity_panel_style(var, fv, div_abs_max)
         pc = ax.pcolormesh(
             time, pressure, data, shading="nearest", cmap=cmap, norm=norm
         )
-        cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=bounds[::2])
-        cb.set_label(cb_label)
+        cb = fig.colorbar(
+            pc,
+            ax=ax,
+            pad=0.02,
+            ticks=nice_colorbar_ticks(float(bounds[0]), float(bounds[-1])),
+        )
+        cb.ax.set_title(params.vunit("east_velocity"), fontsize=report_tokens.ANNOT_FS)
         pressure_axis(ax)
         ax.set_title(_LABELS[var], loc="left")
 
@@ -341,12 +367,19 @@ def draw_grid_sigma(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     pressure = ds["pressure"].values
     time = ds["time"].values
     n = len(sigma_vars)
-    fig, axes = plt.subplots(n, 1, figsize=(13, 3.2 * n), sharex=True, squeeze=False)
+    fig, axes = plt.subplots(
+        n,
+        1,
+        figsize=(report_tokens.W_FULL, params.GRID_PANEL_ROW_IN * n),
+        sharex=True,
+        squeeze=False,
+        layout="constrained",
+    )
 
     for ax, sv in zip(axes[:, 0], sigma_vars):
         da = ds[sv]
         data = da.transpose("pressure", "time").values
-        units = da.attrs.get("units", "kg m⁻³")
+        units = params.vunit("potential_density") or da.attrs.get("units", "kg m⁻³")
         label = da.attrs.get("long_name", sv)
         pcolormesh_panel(
             fig,
@@ -356,7 +389,7 @@ def draw_grid_sigma(ds: "xr.Dataset") -> "Optional[plt.Figure]":
             pressure,
             title=label,
             cmap=params.DENSITY_COLORMAP,
-            cb_label=f"{label} ({units})" if units else label,
+            units=units,
             title_loc="left",
             date_fmt=False,
         )
@@ -400,17 +433,26 @@ def draw_grid_n2(ds: "xr.Dataset", lat: float = 0.0) -> "Optional[plt.Figure]":
     p_mid_1d = np.nanmean(p_mid, axis=1)
     N2_log = np.log10(np.maximum(N2, 1e-12))
 
-    fig, ax = plt.subplots(figsize=(13, 4))
+    fig, ax = plt.subplots(
+        figsize=(report_tokens.W_FULL, params.GRID_PANEL_ROW_IN), layout="constrained"
+    )
     bounds, norm = colorbar_norm(N2_log[np.isfinite(N2_log)])
     pc = ax.pcolormesh(
         time_vals, p_mid_1d, N2_log, shading="nearest", cmap="plasma_r", norm=norm
     )
-    cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=bounds)
-    cb.set_label("log₁₀(N²) (s⁻²)")
+    cb = fig.colorbar(
+        pc,
+        ax=ax,
+        pad=0.02,
+        ticks=nice_colorbar_ticks(float(bounds[0]), float(bounds[-1])),
+    )
+    cb.ax.set_title("log(s⁻²)", fontsize=report_tokens.ANNOT_FS)
     pressure_axis(ax)
     date_axis(ax)
     ax.set_xlabel("Time")
-    ax.set_title("Buoyancy frequency squared N² (log₁₀ scale; purple = stratified)")
+    ax.set_title(
+        r"Buoyancy frequency squared N² ($\log_{10}$ scale; purple = stratified)"
+    )
     return fig
 
 
@@ -476,7 +518,7 @@ def draw_grid_timeseries(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     east_ts = east[:, k_max]
     north_ts = north[:, k_max]
 
-    fig, axs = plt.subplots(2, 1, figsize=(10, 5), sharex=True)
+    fig, axs = plt.subplots(2, 1, figsize=(report_tokens.W_FULL, 5), sharex=True)
     _C_EAST = "#0072B2"
     _C_NORTH = "#E69F00"
 
@@ -497,6 +539,7 @@ def draw_grid_timeseries(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     axs[-1].xaxis.set_major_formatter(
         mdates.ConciseDateFormatter(axs[-1].xaxis.get_major_locator())
     )
+    date_offset_left(axs[-1])
     fig.suptitle(
         f"Velocity time series at {p_target:.0f} dbar (depth of maximum mean speed)",
         y=1.01,
@@ -536,7 +579,7 @@ def draw_analog_timeseries(
         fig, axes = plt.subplots(
             n_vars,
             1,
-            figsize=(10, max(2.5, n_vars * 2.0)),
+            figsize=(report_tokens.W_FULL, max(2.5, n_vars * 2.0)),
             sharex=True,
             squeeze=False,
         )

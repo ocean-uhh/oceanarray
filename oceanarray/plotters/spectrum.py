@@ -13,8 +13,6 @@ Pairs with :mod:`oceanarray.analysis.spectral` for spectral computations.
 
 Post-OdB remaining migrations from report/_plots.py:
   plot_grid_fig (was _make_grid_fig_b64), plot_grid_n2 (was _make_grid_n2_b64).
-
-See .claude/plotters_update-20260718.md for migration checklist.
 """
 
 from __future__ import annotations
@@ -27,7 +25,29 @@ import numpy as np
 
 from oceanarray.utilities import _nice_colorbar_bounds, period_axis_ticks
 from ..analysis.spectral import gonella_rotary_spectrum
-from .. import parameters as params
+from .primitives import square_axes_grid
+from oceanarray.config import report_tokens
+
+
+def _mark_frequency_line(ax: "plt.Axes", period: float, color: str) -> None:
+    """Draw a marked-frequency reference line (tidal/inertial) on a spectrum.
+
+    Uniform style across the temperature and rotary spectra: a thin dotted
+    vertical line (``pen("thinner")``), so both figures mark frequencies the
+    same way.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Spectrum axes (period on the x-axis).
+    period : float
+        Period at which to draw the line (same x-units as the axes).
+    color : str
+        Line colour.
+
+    """
+    ax.axvline(period, color=color, lw=report_tokens.pen("thin"), ls=":", alpha=0.65)
+
 
 if TYPE_CHECKING:
     import matplotlib.axes
@@ -353,7 +373,12 @@ def draw_spectrum(
 
     from matplotlib.ticker import NullLocator
 
-    fig, (ax_lf, ax_hf) = plt.subplots(1, 2, figsize=(params.W_FULL, 5))
+    # Square panels via the shared helper; bottom pad for the rotated HF ticks,
+    # top pad for the figure suptitle above the per-panel titles.
+    fig, _axes, _ = square_axes_grid(
+        report_tokens.W_FULL, 1, 2, colorbar=False, bottom_pad_in=0.5, top_pad_in=0.6
+    )
+    ax_lf, ax_hf = _axes[0, 0], _axes[0, 1]
 
     x_min_lf = max(nyq_period, 10.0 / 1440.0)  # right edge: Nyquist or 10 min
     # Left edge = longest period Welch can estimate = 1/min_freq = window length
@@ -399,7 +424,7 @@ def draw_spectrum(
     trans_lf = blended_transform_factory(ax_lf.transData, ax_lf.transAxes)
     for lbl, pd_d, clr in lf_markers:
         if x_min_lf <= pd_d <= x_max_lf:
-            ax_lf.axvline(pd_d, color=clr, lw=1.0, ls="--", alpha=0.65)
+            _mark_frequency_line(ax_lf, pd_d, clr)
             ax_lf.text(
                 pd_d,
                 0.03,
@@ -414,7 +439,7 @@ def draw_spectrum(
 
     ax_lf.set_xlabel("Period")
     ax_lf.set_ylabel("PSD (°C² cpd⁻¹)")
-    ax_lf.set_title(f"Low-frequency -- 14-day windows (~{n_win_lf} windows)")
+    ax_lf.set_title(f"Low frequency\n14-day windows ({n_win_lf})")
     # Single shared legend -- depth labels from LF lines serve both panels
     ax_lf.legend(
         loc="upper right", title="Depth", fontsize="small", title_fontsize="small"
@@ -456,7 +481,7 @@ def draw_spectrum(
             pd_scaled = pd_d * hf_scale
             lo, hi = x_min_hf * hf_scale, x_max_hf * hf_scale
             if lo <= pd_scaled <= hi:
-                ax_hf.axvline(pd_scaled, color=clr, lw=1.0, ls="--", alpha=0.65)
+                _mark_frequency_line(ax_hf, pd_scaled, clr)
                 ax_hf.text(
                     pd_scaled,
                     y_lbl,
@@ -508,11 +533,13 @@ def draw_spectrum(
     ax_hf.set_xlabel(f"Period ({hf_unit})")
     ax_hf.set_ylabel("PSD (°C² cpd⁻¹)")
     n_win_hf_label = str(n_win_hf) if psds_hf else "0"
+    # Two-line panel titles: heading + window detail, so the detail fits the
+    # narrow square panels without overflowing.
     ax_hf.set_title(
-        f"High-frequency -- {hf_seg_label} windows ({n_win_hf_label} windows, gap-aware)"
+        f"High frequency\n{hf_seg_label} windows ({n_win_hf_label}, gap-aware)"
     )
 
-    fig.suptitle("Temperature power spectrum (Welch PSD per depth level)")
+    fig.suptitle("Temperature power spectrum — Welch PSD per depth")
 
     return fig
 
@@ -647,8 +674,12 @@ def draw_wavelet(
     n_panels = len(results)
     # height ratios: 1 part time series, 3 parts wavelet, per level
     hr = [1, 3] * n_panels
-    fig = plt.figure(figsize=(params.W_FULL, 4.5 * n_panels))
-    gs = GridSpec(2 * n_panels, 1, figure=fig, height_ratios=hr, hspace=0.08)
+    # constrained_layout crops the surrounding whitespace and places the spanning
+    # colorbar cleanly (the encoder skips tight_layout for constrained figures).
+    fig = plt.figure(
+        figsize=(report_tokens.W_FULL, 4.5 * n_panels), layout="constrained"
+    )
+    gs = GridSpec(2 * n_panels, 1, figure=fig, height_ratios=hr)
 
     tax: list = []  # time series axes (top of each pair)
     wax: list = []  # wavelet axes (bottom of each pair)
@@ -664,7 +695,18 @@ def draw_wavelet(
         tax[i].plot(times, ts, lw=0.6, color="0.3")
         tax[i].set_ylabel("T (°C)", fontsize="small")
         tax[i].tick_params(labelsize="small")
-        tax[i].set_title(f"{pv:.0f} dbar", fontsize="small")
+        # Pressure level in the bottom-left corner (was a title, which overlapped
+        # the scalogram of the pair above).
+        tax[i].text(
+            0.01,
+            0.08,
+            f"{pv:.0f} dbar",
+            transform=tax[i].transAxes,
+            ha="left",
+            va="bottom",
+            fontsize="small",
+            bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.7),
+        )
         plt.setp(tax[i].get_xticklabels(), visible=False)
 
         # Wavelet scalogram (bottom)
@@ -685,7 +727,7 @@ def draw_wavelet(
         # Pass all axes (wavelet + time series) so matplotlib shrinks them
         # all equally, keeping each wavelet panel aligned with its T panel.
         cbar = fig.colorbar(mappable, ax=wax + tax, fraction=0.02, pad=0.04)
-        cbar.set_label("log10(power) (°C² d)")
+        cbar.set_label(r"$\log_{10}$(power) (°C² d)")
 
     return fig
 
@@ -869,7 +911,11 @@ def draw_grid_rotary_spectrum(
     cmap_cw = plt.get_cmap("Reds")
     cmap_ccw = plt.get_cmap("Blues")
 
-    fig, (ax_spec, ax_rot) = plt.subplots(1, 2, figsize=(params.W_FULL, 5))
+    # Square panels via the shared helper; bottom pad for the rotated ticks.
+    fig, _axes, _ = square_axes_grid(
+        report_tokens.W_FULL, 1, 2, colorbar=False, bottom_pad_in=0.5
+    )
+    ax_spec, ax_rot = _axes[0, 0], _axes[0, 1]
 
     # Panel 1: CW (solid, reds) + CCW (dashed, blues)
     for s_cw, s_ccw, p in zip(s_cw_list, s_ccw_list, press_plotted):
@@ -883,7 +929,7 @@ def draw_grid_rotary_spectrum(
     trans1 = blended_transform_factory(ax_spec.transData, ax_spec.transAxes)
     for label, period_d, color in markers:
         if x_min <= period_d <= x_max:
-            ax_spec.axvline(period_d, color=color, lw=1.0, ls=":", alpha=0.65)
+            _mark_frequency_line(ax_spec, period_d, color)
             ax_spec.text(
                 period_d,
                 0.03,
@@ -905,17 +951,24 @@ def draw_grid_rotary_spectrum(
     ax_spec.set_xlabel("Period")
     ax_spec.set_ylabel("PSD (m² s⁻² cpd⁻¹)")
     ax_spec.set_title("Rotary spectra")
+    # Depth legend replaces the pressure colorbar (frees horizontal space so the
+    # panels can be square): one blue (CCW-shade) swatch per level, plus the
+    # CW/CCW line-style key.  Colour intensity = depth; red family = CW, blue = CCW.
+    _style_handles = [
+        Line2D([0], [0], color="#c0392b", lw=1.5, label="CW (solid, red)"),
+        Line2D([0], [0], color="#2c7fb8", lw=1.5, ls="--", label="CCW (dashed, blue)"),
+    ]
+    _depth_handles = [
+        Line2D([0], [0], color=cmap_ccw(norm_p(p)), lw=3.0, label=f"{p:.0f} dbar")
+        for p in press_plotted
+    ]
     ax_spec.legend(
-        handles=[
-            Line2D([0], [0], color="red", lw=1.2, label="CW"),
-            Line2D([0], [0], color="blue", lw=1.2, ls="--", label="CCW"),
-        ],
+        handles=_style_handles + _depth_handles,
         loc="lower left",
+        fontsize=8,
+        title="Direction / depth",
+        framealpha=0.85,
     )
-    sm_cw = plt.cm.ScalarMappable(cmap=cmap_cw, norm=norm_p)
-    sm_cw.set_array([])
-    cbar_cw = fig.colorbar(sm_cw, ax=ax_spec, pad=0.03, shrink=0.85)
-    cbar_cw.set_label("Pressure (dbar) -- CW")
 
     # Panel 2: Rotary coefficient r -- raw (thin) + band-averaged (thick) + significance
     for r, r_banded, p in zip(r_list, r_banded_list, press_plotted):
@@ -943,7 +996,7 @@ def draw_grid_rotary_spectrum(
     trans2 = blended_transform_factory(ax_rot.transData, ax_rot.transAxes)
     for label, period_d, color in markers:
         if x_min <= period_d <= x_max:
-            ax_rot.axvline(period_d, color=color, lw=1.0, ls=":", alpha=0.65)
+            _mark_frequency_line(ax_rot, period_d, color)
             ax_rot.text(
                 period_d,
                 0.03,
@@ -997,9 +1050,7 @@ def draw_grid_rotary_spectrum(
         fontsize=9,
         framealpha=0.7,
     )
-    sm_ccw = plt.cm.ScalarMappable(cmap=cmap_ccw, norm=norm_p)
-    sm_ccw.set_array([])
-    cbar_ccw = fig.colorbar(sm_ccw, ax=ax_rot, pad=0.03, shrink=0.85)
-    cbar_ccw.set_label("Pressure (dbar) -- CCW")
+    # Depth is conveyed by the panel-1 legend; no pressure colorbar here (keeps
+    # the panel square and matches the "legend not colorbar" convention).
 
     return fig

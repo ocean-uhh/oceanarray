@@ -20,7 +20,7 @@ Public draw_* functions (migrated from report/_plots.py):
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
@@ -35,10 +35,14 @@ from oceanarray.plotters.primitives import (
     date_axis,
     hodograph_panel,
     plot_trajectory,
+    square_axes_grid,
+    square_limits,
+    unit_colorbar,
 )
 from oceanarray.plotters.helpers import _rose_ax, _velocity_panel_style
 from oceanarray.utilities import _nice_colorbar_bounds
 from oceanarray import parameters as params
+from oceanarray.config import report_tokens
 
 
 def plot_temperature_trajectory(
@@ -91,9 +95,9 @@ def plot_temperature_trajectory(
     y = np.concatenate([[0.0], np.cumsum(v[:-1] * dt)]) / 1000.0
 
     temp = ds[temp_var].values
-    units = ds[temp_var].attrs.get("units", "")
     long_name = ds[temp_var].attrs.get("long_name", temp_var)
-    colorbar_label = f"{long_name} ({units})" if units else long_name
+    # Pretty units from the registry (°C), not the file's CF attr (degC/degree_Celsius).
+    units = params.vunit("temperature") or ds[temp_var].attrs.get("units", "")
 
     if not title:
         title = ds.attrs.get("id", "")
@@ -105,7 +109,8 @@ def plot_temperature_trajectory(
         cmap="coolwarm",
         xlabel="East displacement (km)",
         ylabel="North displacement (km)",
-        colorbar_label=colorbar_label,
+        colorbar_label=long_name,
+        colorbar_unit=units,
         title=title,
     )
 
@@ -136,7 +141,7 @@ def plot_speed_boxplot(
     speed = ds[speed_var].values.ravel()
     speed_clean = speed[~np.isnan(speed)]
 
-    units = ds[speed_var].attrs.get("units", "")
+    units = params.vunit("speed") or ds[speed_var].attrs.get("units", "")
     long_name = ds[speed_var].attrs.get("long_name", speed_var)
     ylabel = f"{long_name} ({units})" if units else long_name
 
@@ -144,7 +149,7 @@ def plot_speed_boxplot(
         val = np.percentile(speed_clean, p)
         print(f"  {p:2d}th percentile: {val:.4f} {units}")
 
-    fig, ax = plt.subplots(figsize=(params.W_THIRD, 6))
+    fig, ax = plt.subplots(figsize=(report_tokens.W_THIRD, 3.5))
     bp = ax.boxplot(
         speed_clean,
         vert=True,
@@ -249,7 +254,8 @@ def plot_multi_aquadopp_trajectories(
         _bounds = _nice_colorbar_bounds(0.0, 1.0, n=20)
     norm: mcolors.BoundaryNorm = mcolors.BoundaryNorm(_bounds, ncolors=256)
 
-    fig, ax = plt.subplots(figsize=(params.W_FULL, 5), constrained_layout=True)
+    fig, axes, cax = square_axes_grid(report_tokens.W_HALF, 1, 1, colorbar=has_temp)
+    ax = axes[0, 0]
 
     for instr_i, x, y, temp in trajs:
         serial = str(serials[instr_i])
@@ -302,21 +308,25 @@ def plot_multi_aquadopp_trajectories(
     ax.plot(0, 0, "o", color="black", markersize=7, zorder=6, label="Start (all)")
     ax.legend(fontsize=8, loc="upper left")
 
-    if has_temp:
+    if has_temp and cax is not None:
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
         sm.set_array([])
-        units = ds[temp_var].attrs.get("units", "°C")
-        long_name = ds[temp_var].attrs.get("long_name", "Temperature")
-        fig.colorbar(
-            sm, ax=ax, label=f"{long_name} ({units})", shrink=0.75, ticks=_bounds
-        )
+        # Pretty units from the registry (°C), not the file's CF attr.
+        units = params.vunit("temperature") or ds[temp_var].attrs.get("units", "")
+        unit_colorbar(cax, sm, unit=units, ticks=_bounds[::2])
 
-    ax.autoscale_view()
+    # Square the axes to the union of all trajectories so equal aspect fills the
+    # panel and the shared colorbar height stays matched.
+    _all_x = np.concatenate([x for _, x, _, _ in trajs])
+    _all_y = np.concatenate([y for _, _, y, _ in trajs])
+    xlim, ylim = square_limits(_all_x, _all_y)
+    ax.set_xlim(*xlim)
+    ax.set_ylim(*ylim)
     ax.set_xlabel("East displacement (km)")
     ax.set_ylabel("North displacement (km)")
     ax.axhline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
     ax.axvline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
-    ax.set_aspect("equal", adjustable="box")
+    ax.set_aspect("equal", adjustable="datalim")
     ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.4)
     if not title:
         title = ds.attrs.get("id", "")
@@ -367,18 +377,21 @@ def plot_hodograph(
     import pandas as pd
 
     instr_id = ds.attrs.get("id", "")
-    # constrained_layout places the shared colorbar correctly against the
-    # equal-aspect ("box"-adjustable) panels; without it the colorbar overlaps
-    # the panel whitespace and appears to sit inside the axes.
-    fig, axes = plt.subplots(
-        1, 2, figsize=(params.W_FULL, 4.5), constrained_layout=True
+    # Deterministic square-panel layout + one shared time colorbar — the same
+    # primitive used by the ADCP and grid hodographs, so all three render
+    # identically and the colorbar height always matches the plotted square.
+    fig, axes, cax = square_axes_grid(
+        report_tokens.W_FULL, 1, 2, top_pad_in=0.3 if instr_id else 0.0
     )
+    ax_raw, ax_eddy = axes[0, 0], axes[0, 1]
     if instr_id:
         fig.suptitle(instr_id)
 
     if u_var not in ds.data_vars or v_var not in ds.data_vars:
-        for ax in axes:
+        for ax in axes.ravel():
             ax.set_visible(False)
+        if cax is not None:
+            cax.set_visible(False)
         fig.text(
             0.5,
             0.5,
@@ -393,7 +406,7 @@ def plot_hodograph(
     east_raw = ds[u_var].values.astype(float).ravel()
     north_raw = ds[v_var].values.astype(float).ravel()
     t = ds["time"].values
-    units = ds[u_var].attrs.get("units", "m s⁻¹")
+    units = params.vunit("east_velocity") or ds[u_var].attrs.get("units", "m s⁻¹")
 
     dt_s = (
         float(np.median(np.diff(t) / np.timedelta64(1, "s"))) if len(t) > 1 else 3600.0
@@ -423,78 +436,30 @@ def plot_hodograph(
 
     # Time fraction 0→1 for colour encoding
     t_frac = np.linspace(0.0, 1.0, len(east_raw))
-    bounds = _nice_colorbar_bounds(0.0, 1.0, n=10)
-    norm = mcolors.BoundaryNorm(bounds, ncolors=256)
-    cmap = plt.get_cmap("viridis")
 
-    def _panel(ax: plt.Axes, e: np.ndarray, n: np.ndarray, title: str) -> None:
+    def _panel(ax: plt.Axes, e: np.ndarray, n: np.ndarray, title: str) -> Any:
         mask = np.isfinite(e) & np.isfinite(n)
-        if mask.sum() == 0:
+        if mask.sum() < 2:
             ax.text(
                 0.5, 0.5, "No data", transform=ax.transAxes, ha="center", va="center"
             )
-        else:
-            ax.scatter(
-                e[mask],
-                n[mask],
-                c=t_frac[mask],
-                cmap=cmap,
-                norm=norm,
-                s=4,
-                alpha=0.8,
-                linewidths=0,
-                marker="o",
-                rasterized=True,
-            )
-            idx = np.where(mask)[0]
-            ax.scatter(
-                e[idx[0]],
-                n[idx[0]],
-                s=55,
-                c="lime",
-                zorder=5,
-                marker="o",
-                edgecolors="black",
-                linewidths=0.5,
-                label="Start",
-            )
-            ax.scatter(
-                e[idx[-1]],
-                n[idx[-1]],
-                s=65,
-                c="red",
-                zorder=5,
-                marker="s",
-                edgecolors="black",
-                linewidths=0.5,
-                label="End",
-            )
-            ax.legend(loc="upper right", framealpha=0.7)
-        ax.axhline(0, color="#bbb", lw=0.7, zorder=0)
-        ax.axvline(0, color="#bbb", lw=0.7, zorder=0)
-        ax.set_aspect("equal", adjustable="box")
-        ax.set_xlabel(f"East ({units})")
-        ax.set_ylabel(f"North ({units})")
-        ax.set_title(title)
-        ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.4)
+            ax.set_title(title)
+            return None
+        return hodograph_panel(ax, e[mask], n[mask], t_frac[mask], title, units)
 
-    _panel(axes[0], east, north, f"Raw ({smooth_hours:.0f}-h smoothed)")
-    _panel(
-        axes[1],
+    sm = _panel(ax_raw, east, north, f"Raw ({smooth_hours:.0f}-h smoothed)")
+    sm_eddy = _panel(
+        ax_eddy,
         e_eddy,
         n_eddy,
         f"Eddy ({lp_days:.0f}-day LP removed, {smooth_hours:.0f}-h smoothed)",
     )
+    sm = sm or sm_eddy
 
-    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-    sm.set_array([])
-    fig.colorbar(
-        sm,
-        ax=axes,
-        label="Time (0 = start, 1 = end of record)",
-        shrink=0.8,
-        ticks=bounds,
-    )
+    if sm is not None:
+        unit_colorbar(cax, sm, ticks=np.array([0.0, 1.0]), ticklabels=["start", "end"])
+    elif cax is not None:
+        cax.set_visible(False)
     return fig
 
 
@@ -567,7 +532,9 @@ def plot_aquadopp_speed_profile(
     hab_range = max(hab_vals) - min(hab_vals) if len(hab_vals) > 1 else 10.0
     box_width = max(2.0, hab_range * 0.06)
 
-    fig, ax = plt.subplots(figsize=(params.W_HALF, max(3, len(records) * 0.7 + 1)))
+    fig, ax = plt.subplots(
+        figsize=(report_tokens.W_HALF, max(3, len(records) * 0.7 + 1))
+    )
 
     for hab, serial, spd_clean in records:
         bp = ax.boxplot(
@@ -594,7 +561,7 @@ def plot_aquadopp_speed_profile(
             color="#333",
         )
 
-    units = (
+    units = params.vunit("speed") or (
         ds[speed_var].attrs.get("units", "m/s") if speed_var in ds.data_vars else "m/s"
     )
     ax.set_xlabel(f"Current speed ({units})")
@@ -704,7 +671,10 @@ def plot_adcp_trajectories(
         _bounds = _nice_colorbar_bounds(hab_min, hab_max, n=_n_hab)
     norm: mcolors.BoundaryNorm = mcolors.BoundaryNorm(_bounds, ncolors=256)
 
-    fig, ax = plt.subplots(figsize=(params.W_FULL, 5))
+    # Half width — shown in a 50% flex column beside the Aquadopp trajectory
+    # (see stack.html), matching plot_multi_aquadopp_trajectories.
+    fig, axes, cax = square_axes_grid(report_tokens.W_HALF, 1, 1)
+    ax = axes[0, 0]
 
     for hab, x, y in trajs:
         points = np.array([x, y]).T.reshape(-1, 1, 2)
@@ -715,19 +685,22 @@ def plot_adcp_trajectories(
 
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])
-    fig.colorbar(sm, ax=ax, label="HAB (m)", shrink=0.75, ticks=_bounds)
+    unit_colorbar(cax, sm, unit="m", ticks=_bounds[::2])
 
     ax.plot(0, 0, "o", color="black", markersize=7, zorder=6, label="Start")
     ax.legend(fontsize=8, loc="upper left")
-    ax.autoscale_view()
+    _all_x = np.concatenate([x for _, x, _ in trajs])
+    _all_y = np.concatenate([y for _, _, y in trajs])
+    xlim, ylim = square_limits(_all_x, _all_y)
+    ax.set_xlim(*xlim)
+    ax.set_ylim(*ylim)
     ax.set_xlabel("East displacement (km)")
     ax.set_ylabel("North displacement (km)")
     ax.axhline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
     ax.axvline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
-    ax.set_aspect("equal", adjustable="box")
+    ax.set_aspect("equal", adjustable="datalim")
     ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.4)
     ax.set_title("ADCP bins coloured by HAB")
-    fig.tight_layout()
     return fig
 
 
@@ -806,13 +779,19 @@ def draw_instrument_rose(nc_path: Path) -> "Optional[plt.Figure]":
     fig, axs = plt.subplots(
         1,
         ncols,
-        figsize=(params.W_TWOTHIRDS, 3.2),
+        # Full width — the figure is displayed at 100% (see instrument.html), so
+        # figsize width == slot width and the browser does not rescale (which would
+        # shrink the panel fonts).  Was bumped 6"→9" after "too small" feedback.
+        figsize=(report_tokens.W_FULL, report_tokens.W_FULL / max(ncols, 1) + 0.4),
         subplot_kw={"projection": "polar"},
         squeeze=False,
     )
     for ax, (east, north, title, cmap) in zip(axs[0], panels):
         _rose_ax(ax, east, north, title=title, cmap=cmap)
 
+    # Polar figures skip the encoder's tight_layout, so set panel spacing here;
+    # more wspace gives the roses room left-to-right.
+    fig.subplots_adjust(wspace=0.5)
     return fig
 
 
@@ -914,10 +893,13 @@ def draw_rose_grid(
     fig, axs = plt.subplots(
         nrows,
         ncols,
-        figsize=(params.W_FULL, nrows * 3.2),
+        figsize=(report_tokens.W_FULL, nrows * 3.2),
         subplot_kw={"projection": "polar"},
         squeeze=False,
     )
+    # Tighten the left-right gap between polar panels to match the instrument-page
+    # rose (encoder skips tight_layout for polar figures, so set it explicitly).
+    fig.subplots_adjust(wspace=0.5)
     axs_flat = axs.flatten()
 
     for plot_i, instr_i in enumerate(aqd_idx):
@@ -991,10 +973,12 @@ def draw_grid_rose(ds: "xr.Dataset", max_roses: int = 4) -> "Optional[plt.Figure
     fig, axs = plt.subplots(
         nrows,
         ncols,
-        figsize=(params.W_FULL, nrows * 3.2),
+        figsize=(report_tokens.W_FULL, nrows * 3.2),
         subplot_kw={"projection": "polar"},
         squeeze=False,
     )
+    # Match the instrument-page rose left-right spacing (polar → no tight_layout).
+    fig.subplots_adjust(wspace=0.5)
     axs_flat = axs.flatten()
 
     for plot_i, k in enumerate(valid_idx):
@@ -1058,7 +1042,8 @@ def draw_grid_trajectory(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     _bounds, norm = colorbar_norm(vmin=min(p_vals), vmax=max(p_vals))
     cmap = plt.get_cmap("viridis_r")  # shallow (low p) → light; deep → dark
 
-    fig, ax = plt.subplots(figsize=(params.W_HALF, 5))
+    fig, axes, cax = square_axes_grid(report_tokens.W_HALF, 1, 1)
+    ax = axes[0, 0]
 
     for p_val, x, y in trajs:
         points = np.array([x, y]).T.reshape(-1, 1, 2)
@@ -1069,16 +1054,20 @@ def draw_grid_trajectory(ds: "xr.Dataset") -> "Optional[plt.Figure]":
 
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])
-    fig.colorbar(sm, ax=ax, label=params.vlabel("pressure"), shrink=0.75, ticks=_bounds)
+    unit_colorbar(cax, sm, unit=params.vunit("pressure"), ticks=_bounds[::2])
 
     ax.plot(0, 0, "o", color="black", markersize=6, zorder=6, label="Start")
     ax.legend(fontsize=8, loc="upper left")
-    ax.autoscale_view()
+    _all_x = np.concatenate([x for _, x, _ in trajs])
+    _all_y = np.concatenate([y for _, _, y in trajs])
+    xlim, ylim = square_limits(_all_x, _all_y)
+    ax.set_xlim(*xlim)
+    ax.set_ylim(*ylim)
     ax.set_xlabel("East displacement (km)")
     ax.set_ylabel("North displacement (km)")
     ax.axhline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
     ax.axvline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
-    ax.set_aspect("equal", adjustable="box")
+    ax.set_aspect("equal", adjustable="datalim")
     ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.4)
     return fig
 
@@ -1226,7 +1215,7 @@ def draw_adcp_velocity(nc_path: str) -> "Optional[plt.Figure]":
 
         n = len(present)
         fig, axes = plt.subplots(
-            n, 1, figsize=(params.W_FULL, 3.5 * n), sharex=True, squeeze=False
+            n, 1, figsize=(report_tokens.W_FULL, 3.5 * n), sharex=True, squeeze=False
         )
 
         orientation = ds.attrs.get("orientation_yaml") or ds.attrs.get(
@@ -1377,7 +1366,7 @@ def draw_adcp_rose(nc_path: str) -> "Optional[plt.Figure]":
         fig, axs = plt.subplots(
             1,
             ncols,
-            figsize=(params.W_FULL, 4.0),
+            figsize=(report_tokens.W_FULL, 4.0),
             subplot_kw={"projection": "polar"},
             squeeze=False,
         )
@@ -1443,7 +1432,6 @@ def draw_adcp_hodograph(
         Figure, or None if velocity data are absent or insufficient.
 
     """
-    import matplotlib.pyplot as plt
     import xarray as xr
 
     with xr.open_dataset(nc_path, decode_timedelta=False) as ds:
@@ -1479,7 +1467,7 @@ def draw_adcp_hodograph(
             if range_coord is not None
             else np.arange(n_bins, dtype=float)
         )
-        units = ds[u_var].attrs.get("units", "m s⁻¹")
+        units = params.vunit("east_velocity") or ds[u_var].attrs.get("units", "m s⁻¹")
 
         if "time" in ds.coords and ds["time"].size >= 2:
             t_ns = ds["time"].values.astype("datetime64[ns]").astype(float)
@@ -1508,10 +1496,11 @@ def draw_adcp_hodograph(
 
     from oceanarray.reports._plots import _draw_hodograph_pair
 
-    fig, axes = plt.subplots(2, 2, figsize=(params.W_FULL, 9))
-    fig.subplots_adjust(hspace=0.55, wspace=0.45)
+    # Deterministic square-panel grid: each hodograph is an exact square so the
+    # single shared time colorbar (right) matches the panel height exactly.
+    fig, axes, cax = square_axes_grid(report_tokens.W_FULL, 2, 2)
 
-    _draw_hodograph_pair(
+    sm_far = _draw_hodograph_pair(
         axes[0, 0],
         axes[0, 1],
         east_2d[:, i_far],
@@ -1522,7 +1511,7 @@ def draw_adcp_hodograph(
         units,
         dt_s,
     )
-    _draw_hodograph_pair(
+    sm_near = _draw_hodograph_pair(
         axes[1, 0],
         axes[1, 1],
         east_2d[:, i_near],
@@ -1533,6 +1522,12 @@ def draw_adcp_hodograph(
         units,
         dt_s,
     )
+
+    sm = sm_far or sm_near
+    if sm is not None:
+        unit_colorbar(cax, sm, ticks=np.array([0.0, 1.0]), ticklabels=["start", "end"])
+    elif cax is not None:
+        cax.set_visible(False)
 
     return fig
 
@@ -1561,8 +1556,6 @@ def draw_grid_hodograph(
         Figure, or None if velocity data are absent or insufficient.
 
     """
-    import matplotlib.pyplot as plt
-
     if "east_velocity" not in ds or "north_velocity" not in ds:
         return None
     east_2d = ds["east_velocity"].values.astype(float)  # (time, pressure)
@@ -1587,7 +1580,9 @@ def draw_grid_hodograph(
     else:
         pressure = np.arange(n_levels, dtype=float)
 
-    units = ds["east_velocity"].attrs.get("units", "m s⁻¹")
+    units = params.vunit("east_velocity") or ds["east_velocity"].attrs.get(
+        "units", "m s⁻¹"
+    )
 
     if "time" in ds.coords and ds["time"].size >= 2:
         t_ns = ds["time"].values.astype("datetime64[ns]").astype(float)
@@ -1615,10 +1610,12 @@ def draw_grid_hodograph(
 
     smooth_n = max(3, int(round(smooth_hours * 3600.0 / dt_s)))
 
-    fig, (ax_shallow, ax_deep) = plt.subplots(
-        1, 2, figsize=(params.W_FULL, 4.5), constrained_layout=True
-    )
+    # Same deterministic square-panel layout as the ADCP hodograph, so both
+    # reports render hodographs and their shared time colorbar identically.
+    fig, axes, cax = square_axes_grid(report_tokens.W_FULL, 1, 2)
+    ax_shallow, ax_deep = axes[0, 0], axes[0, 1]
 
+    sm = None
     for ax, i_lev, label in [
         (ax_shallow, i_shallow, f"Shallow ({label_shallow})"),
         (ax_deep, i_deep, f"Deep ({label_deep})"),
@@ -1633,7 +1630,7 @@ def draw_grid_hodograph(
             ax.set_title(label)
             continue
         t_frac = np.linspace(0.0, 1.0, len(east_2d[:, i_lev]))[mask]
-        hodograph_panel(
+        sm = hodograph_panel(
             ax,
             e_sm[mask],
             n_sm[mask],
@@ -1641,5 +1638,10 @@ def draw_grid_hodograph(
             f"{label} — {smooth_hours:.0f}-h smoothed",
             units,
         )
+
+    if sm is not None:
+        unit_colorbar(cax, sm, ticks=np.array([0.0, 1.0]), ticklabels=["start", "end"])
+    elif cax is not None:
+        cax.set_visible(False)
 
     return fig

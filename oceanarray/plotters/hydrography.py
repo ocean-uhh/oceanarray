@@ -19,7 +19,9 @@ if TYPE_CHECKING:
     import xarray as xr
 
 from .primitives import colorbar_norm, date_axis
+from .helpers import grid_despine, ordered_line_colors
 from .. import parameters as params
+from oceanarray.config import report_tokens
 
 
 def draw_isopycnal_ts_fig(ds_iso: "xr.Dataset") -> "Optional[plt.Figure]":
@@ -63,12 +65,13 @@ def draw_isopycnal_ts_fig(ds_iso: "xr.Dataset") -> "Optional[plt.Figure]":
     window = max(1, int(round(3600.0 / dt_s)))
 
     n_levels = len(sigma_vals)
-    cmap = plt.get_cmap("Blues")
-    # offset from 0.25 to avoid near-white; upper end capped at 0.95
-    color_norms = np.linspace(0.25, 0.95, max(n_levels, 1))
-    colors = [cmap(v) for v in color_norms]
+    # Density colormap, densest (darkest) → lightest, with too-pale colours
+    # dropped by luminance so every isopycnal line stays readable.
+    _dens_cmap = params.CMAPS_BY_VARIABLE.get("potential_density", "Blues")
+    colors = ordered_line_colors(_dens_cmap, max(n_levels, 1))
 
-    fig, ax = plt.subplots(figsize=(params.W_FULL, 4))
+    fig, ax = plt.subplots(figsize=(report_tokens.W_FULL, params.GRID_PANEL_ROW_IN))
+    grid_despine(ax)
 
     for i, (sval, col) in enumerate(zip(sigma_vals, colors)):
         h = height[i, :]
@@ -88,7 +91,7 @@ def draw_isopycnal_ts_fig(ds_iso: "xr.Dataset") -> "Optional[plt.Figure]":
             vmax=float(sigma_vals.max()),
             n=min(n_levels, 20),
         )
-        sm = plt.cm.ScalarMappable(cmap="Blues", norm=norm)
+        sm = plt.cm.ScalarMappable(cmap=_dens_cmap, norm=norm)
         sm.set_array([])
         cb = fig.colorbar(sm, ax=ax, ticks=bounds, shrink=0.85, pad=0.02)
         cb.set_label(params.vlabel("potential_density"))
@@ -239,10 +242,12 @@ def draw_isopycnal_coverage(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     fig, (ax0, ax1, ax2) = plt.subplots(
         1,
         3,
-        figsize=(params.W_FULL, fig_h),
+        figsize=(report_tokens.W_FULL, fig_h),
         sharey=True,
         gridspec_kw={"width_ratios": [0.8, 1.0, 1.2]},
     )
+    for _ax in (ax0, ax1, ax2):
+        grid_despine(_ax)
 
     # ---- Panel 0: sigma0 histogram ----
     ax0.barh(hist_centers, hist_pct, height=0.09, color="#7fb3d3", edgecolor="none")
@@ -380,8 +385,14 @@ def draw_overflow_temperature_fig(ds: "xr.Dataset") -> "Optional[plt.Figure]":
         .values
     )
 
-    fig, ax = plt.subplots(figsize=(params.W_FULL, 3))
-    ax.plot(time_vals, temp_med, color="#1a3a5c", lw=1.0)
+    fig, ax = plt.subplots(figsize=(report_tokens.W_FULL, params.GRID_PANEL_ROW_IN))
+    grid_despine(ax)
+    ax.plot(
+        time_vals,
+        temp_med,
+        color=params.VAR_COLORS.get("temperature", "#1a3a5c"),
+        lw=1.0,
+    )
     ax.set_ylabel(params.vlabel("temperature"))
     hab = waterdepth - actual_p
     ax.set_title(

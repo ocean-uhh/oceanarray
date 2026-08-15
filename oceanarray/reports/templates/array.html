@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% import "_macros.html" as m %}
 {% block title %}{{ array_name }} &ndash; array summary{% endblock %}
 {% block page_styles %}
   .meta-grid div { font-size:0.82rem; }
@@ -40,6 +41,7 @@
 {% if fig_map_b64 %}
 <h2>Mooring positions</h2>
 <img class="fig" src="data:image/png;base64,{{ fig_map_b64 }}" alt="Array map">
+{{- m.dbg(fig_map_b64, "max-width 60%") }}
 {% endif %}
 
 <h2 id="moorings">Moorings</h2>

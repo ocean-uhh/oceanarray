@@ -11,6 +11,7 @@ microcat (serial 2941), velocity functions on the aquadopp (serial 9920).
 import matplotlib.pyplot as plt
 import pytest
 
+from oceanarray.config import report_tokens
 from oceanarray.reports import _plots
 
 
@@ -28,20 +29,20 @@ def _make_trivial_fig() -> plt.Figure:
 
 def test_render_b64_returns_string_for_good_draw(monkeypatch):
     """``render_b64`` returns a non-empty base64 string when *draw* succeeds."""
-    monkeypatch.setattr(_plots, "RAISE_ON_PLOT_ERROR", False)
+    monkeypatch.setattr(report_tokens, "RAISE_ON_PLOT_ERROR", False)
     result = _plots.render_b64(_make_trivial_fig)
     assert isinstance(result, str) and len(result) > 0
 
 
 def test_render_b64_returns_none_when_draw_returns_none(monkeypatch):
     """``render_b64`` propagates ``None`` from *draw* without error."""
-    monkeypatch.setattr(_plots, "RAISE_ON_PLOT_ERROR", False)
+    monkeypatch.setattr(report_tokens, "RAISE_ON_PLOT_ERROR", False)
     assert _plots.render_b64(lambda: None) is None
 
 
 def test_render_b64_swallows_exception_when_guard_off(monkeypatch):
     """``render_b64`` swallows errors and returns ``None`` when guard is off."""
-    monkeypatch.setattr(_plots, "RAISE_ON_PLOT_ERROR", False)
+    monkeypatch.setattr(report_tokens, "RAISE_ON_PLOT_ERROR", False)
 
     def bad_draw():
         raise RuntimeError("broken")
@@ -51,7 +52,7 @@ def test_render_b64_swallows_exception_when_guard_off(monkeypatch):
 
 def test_render_b64_reraises_when_guard_on(monkeypatch):
     """``render_b64`` re-raises when guard is on (test mode)."""
-    monkeypatch.setattr(_plots, "RAISE_ON_PLOT_ERROR", True)
+    monkeypatch.setattr(report_tokens, "RAISE_ON_PLOT_ERROR", True)
 
     def bad_draw():
         raise RuntimeError("broken")
@@ -62,7 +63,7 @@ def test_render_b64_reraises_when_guard_on(monkeypatch):
 
 def test_render_b64_closes_figure_on_success(monkeypatch):
     """``render_b64`` closes the Figure after encoding so it does not leak."""
-    monkeypatch.setattr(_plots, "RAISE_ON_PLOT_ERROR", False)
+    monkeypatch.setattr(report_tokens, "RAISE_ON_PLOT_ERROR", False)
     fig = _make_trivial_fig()
     fig_num = fig.number
     _plots.render_b64(lambda: fig)
@@ -71,39 +72,21 @@ def test_render_b64_closes_figure_on_success(monkeypatch):
 
 def test_render_b64_none_optional_false_guard_on_raises(monkeypatch):
     """``render_b64`` raises ``ValueError`` when *draw* returns ``None``, guard on, optional=False."""
-    monkeypatch.setattr(_plots, "RAISE_ON_PLOT_ERROR", True)
-    with pytest.raises(ValueError, match="returned None"):
+    monkeypatch.setattr(report_tokens, "RAISE_ON_PLOT_ERROR", True)
+    with pytest.raises(RuntimeError, match="returned None"):
         _plots.render_b64(lambda: None, optional=False)
 
 
 def test_render_b64_none_optional_true_guard_on_returns_none(monkeypatch):
     """``render_b64`` silently returns ``None`` when *draw* returns ``None`` and optional=True."""
-    monkeypatch.setattr(_plots, "RAISE_ON_PLOT_ERROR", True)
+    monkeypatch.setattr(report_tokens, "RAISE_ON_PLOT_ERROR", True)
     assert _plots.render_b64(lambda: None, optional=True) is None
 
 
 def test_render_b64_none_optional_false_guard_off_returns_none(monkeypatch):
     """``render_b64`` returns ``None`` (no raise) when guard is off regardless of optional."""
-    monkeypatch.setattr(_plots, "RAISE_ON_PLOT_ERROR", False)
+    monkeypatch.setattr(report_tokens, "RAISE_ON_PLOT_ERROR", False)
     assert _plots.render_b64(lambda: None, optional=False) is None
-
-
-# ---------------------------------------------------------------------------
-# The guard mechanism itself
-# ---------------------------------------------------------------------------
-
-
-def test_plot_failed_raises_when_enabled(monkeypatch):
-    """``_plot_failed`` re-raises the original exception when the guard is on."""
-    monkeypatch.setattr(_plots, "RAISE_ON_PLOT_ERROR", True)
-    with pytest.raises(ValueError, match="boom"):
-        _plots._plot_failed(ValueError("boom"))
-
-
-def test_plot_failed_returns_none_when_disabled(monkeypatch):
-    """``_plot_failed`` swallows and returns ``None`` when the guard is off."""
-    monkeypatch.setattr(_plots, "RAISE_ON_PLOT_ERROR", False)
-    assert _plots._plot_failed(ValueError("boom")) is None
 
 
 # ---------------------------------------------------------------------------
@@ -181,7 +164,7 @@ def test_render_b64_skips_tight_layout_for_constrained_layout_fig(monkeypatch):
     raises RuntimeError.  ``render_b64`` must detect the layout engine and skip
     the call to avoid this.
     """
-    monkeypatch.setattr(_plots, "RAISE_ON_PLOT_ERROR", True)
+    monkeypatch.setattr(report_tokens, "RAISE_ON_PLOT_ERROR", True)
 
     def _make_constrained_with_colorbar():
         import numpy as np

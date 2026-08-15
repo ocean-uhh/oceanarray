@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 
+from . import _figdebug
 from ._env import render_template
 from ._html_helpers import (
     _fig_to_base64,
@@ -33,6 +34,9 @@ from ._plots import (
     render_b64,
 )
 from .. import parameters as params
+from ..plotters.helpers import ordered_line_colors
+from ..plotters.primitives import date_offset_left
+from oceanarray.config import report_tokens
 
 
 # ---------------------------------------------------------------------------
@@ -73,6 +77,13 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
     if not aq_indices:
         return None
 
+    # Cap the number of stacked panels so the figure stays a sane height for PDF
+    # pagination (one panel is ~2.8 in; 5 → ~14 in).  Deep-first order is kept, so
+    # the deepest Aquadopps are shown; a note flags any that were dropped.
+    _MAX_TILT_ROWS = 5
+    _n_dropped = max(0, len(aq_indices) - _MAX_TILT_ROWS)
+    aq_indices = aq_indices[:_MAX_TILT_ROWS]
+
     has_pitch = "pitch" in ds.data_vars
     has_roll = "roll" in ds.data_vars
     has_tilt_p = "tilt_from_pressure" in ds.data_vars
@@ -84,7 +95,7 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
 
     def _draw() -> "plt.Figure":
         fig = plt.figure(
-            figsize=(params.W_FULL, 2.8 * n_panels), constrained_layout=True
+            figsize=(report_tokens.W_FULL, 2.8 * n_panels), constrained_layout=True
         )
         gs = fig.add_gridspec(n_panels, 3, width_ratios=[2, 2, 1])
 
@@ -142,6 +153,7 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
                 loc = mdates.AutoDateLocator()
                 ax_ts.xaxis.set_major_locator(loc)
                 ax_ts.xaxis.set_major_formatter(mdates.ConciseDateFormatter(loc))
+                date_offset_left(ax_ts)
                 ax_ts.tick_params(axis="x")
 
             if tp_data is not None and np.any(np.isfinite(tp_data)):
@@ -200,6 +212,13 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
                 )
                 ax_sc.set_axis_off()
 
+        if _n_dropped:
+            fig.suptitle(
+                f"Showing {_MAX_TILT_ROWS} deepest Aquadopps "
+                f"({_n_dropped} more not shown)",
+                fontsize=report_tokens.ANNOT_FS,
+                y=0.995,
+            )
         return fig
 
     return render_b64(_draw, optional=True)
@@ -254,7 +273,7 @@ def generate_stack_page(
                 {
                     "serial": _ser,
                     "instr_type": instr_types[i],
-                    "hab": f"{habs[i]:.1f}",
+                    "hab": f"{habs[i]:.0f}",
                     "depth": depth,
                     "stage": "",
                     "report_href": _instrument_report_href(mooring_name, _ser),
@@ -265,8 +284,34 @@ def generate_stack_page(
             )
 
         _serial_list = list(serials)
-        _tab20 = plt.get_cmap("tab20")
-        _serial_colors = {s: _tab20(i % 20) for i, s in enumerate(_serial_list)}
+
+        def _var_line_styling(varname: str) -> "tuple[dict, dict]":
+            """Per-serial (colour, linestyle) for one variable, deep-first ordered.
+
+            Instruments are ordered deep-first and mapped onto the variable's
+            **line** colormap (:data:`params.LINE_CMAPS_BY_VARIABLE`, falling back
+            to the field map then viridis) so, e.g., temperature runs from the
+            cold/deep (blue) end to the warm/shallow (red) end and pressure from
+            dark to lighter blue.  Each colour is shared by a consecutive **pair**
+            of instruments distinguished by linestyle (solid then dashed), which
+            halves the number of distinct colours so the ramp stays legible for
+            many instruments.  Washed-out colours are skipped by luminance (see
+            :func:`ordered_line_colors`) rather than a fixed trim, so a diverging
+            map's pale midpoint does not swallow the mid-depth lines.
+            """
+            _cmap_name = (
+                params.LINE_CMAPS_BY_VARIABLE.get(varname)
+                or params.CMAPS_BY_VARIABLE.get(varname)
+                or "viridis"
+            )
+            _styles_ladder = ["-", "--"]
+            _n_pairs = max(1, (len(_serial_list) + 1) // 2)  # 2 linestyles per colour
+            _pair_colors = ordered_line_colors(_cmap_name, _n_pairs)
+            colors, styles = {}, {}
+            for _i, _s in enumerate(_serial_list):
+                colors[_s] = _pair_colors[_i // len(_styles_ladder)]
+                styles[_s] = _styles_ladder[_i % len(_styles_ladder)]
+            return colors, styles
 
         def _ts_fig(
             varname: str,
@@ -283,20 +328,28 @@ def generate_stack_page(
             if qc_varname in ds.data_vars:
                 qc = ds[qc_varname].values
                 arr[qc >= 3] = np.nan
+            _serial_colors, _serial_styles = _var_line_styling(varname)
             with plt.style.context(str(params.MPLSTYLE)):
-                fig, ax = plt.subplots(figsize=(params.W_FULL, 3.2))
+                fig, ax = plt.subplots(figsize=(report_tokens.W_FULL, 3.2))
                 plotted = False
                 for i in range(n_instr):
                     if exclude_types and instr_types[i].lower() in exclude_types:
                         continue
                     serial = _serial_list[i]
                     color = _serial_colors[serial]
+                    style = _serial_styles[serial]
                     y = arr[::step, i]
                     if not np.any(np.isfinite(y)):
                         continue
                     plotted = True
                     ax.plot(
-                        time_ds, y, color=color, lw=0.7, alpha=0.85, label=f"{serial}"
+                        time_ds,
+                        y,
+                        color=color,
+                        ls=style,
+                        lw=0.7,
+                        alpha=0.85,
+                        label=f"{serial}",
                     )
                     if dot_overlay:
                         ax.plot(
@@ -319,6 +372,7 @@ def generate_stack_page(
                 locator = mdates.AutoDateLocator()
                 ax.xaxis.set_major_locator(locator)
                 ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+                date_offset_left(ax)
                 ax.set_ylabel(ylabel)
                 ax.set_xlabel("Time")
                 ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.3)
@@ -344,57 +398,39 @@ def generate_stack_page(
                 # bbox_inches="tight", so the PNG expands to include the legend
                 # while the plot keeps its full height.
                 b64 = _fig_to_base64(fig)
+                _figdebug.record(b64, f"_ts_fig[{varname}]", fig)
                 plt.close(fig)
                 return b64
 
         fig_pressure_b64 = _ts_fig(
             "pressure", params.vlabel("pressure"), invert=True, exclude_types={"adcp"}
         )
-        fig_temp_b64 = _ts_fig(
-            "temperature",
-            f"Temperature ({ds['temperature'].attrs.get('units', '°C')})"
-            if "temperature" in ds
-            else "Temperature",
-        )
+        fig_temp_b64 = _ts_fig("temperature", params.vlabel("temperature"))
         fig_sal_b64 = (
-            _ts_fig(
-                "salinity",
-                f"Salinity ({ds['salinity'].attrs.get('units', '')})"
-                if "salinity" in ds
-                else None,
-            )
-            if "salinity" in ds
-            else None
+            _ts_fig("salinity", params.vlabel("salinity")) if "salinity" in ds else None
         )
         fig_dissolved_oxygen_b64 = (
-            _ts_fig(
-                "dissolved_oxygen",
-                f"Dissolved oxygen ({ds['dissolved_oxygen'].attrs.get('units', 'µmol/L')})",
-            )
+            _ts_fig("dissolved_oxygen", params.vlabel("dissolved_oxygen"))
             if "dissolved_oxygen" in ds
             else None
         )
         fig_east_vel_b64 = (
-            _ts_fig("east_velocity", "U — East velocity (m/s)")
+            _ts_fig("east_velocity", params.vlabel("east_velocity", prefix="U — "))
             if "east_velocity" in ds
             else None
         )
         fig_north_vel_b64 = (
-            _ts_fig("north_velocity", "V — North velocity (m/s)")
+            _ts_fig("north_velocity", params.vlabel("north_velocity", prefix="V — "))
             if "north_velocity" in ds
             else None
         )
         fig_up_vel_b64 = (
-            _ts_fig("up_velocity", "W — Up velocity (m/s)")
+            _ts_fig("up_velocity", params.vlabel("up_velocity", prefix="W — "))
             if "up_velocity" in ds
             else None
         )
         fig_turbidity_b64 = (
-            _ts_fig(
-                "turbidity",
-                f"Turbidity ({ds['turbidity'].attrs.get('units', 'NTU')})",
-                dot_overlay=True,
-            )
+            _ts_fig("turbidity", params.vlabel("turbidity"), dot_overlay=True)
             if "turbidity" in ds
             else None
         )
@@ -465,7 +501,7 @@ def generate_stack_page(
                     all_spacings.extend(valid.tolist())
                 if all_spacings:
                     with plt.style.context(str(params.MPLSTYLE)):
-                        fig_sp, ax_sp = plt.subplots(figsize=(params.W_THIRD, 3))
+                        fig_sp, ax_sp = plt.subplots(figsize=(report_tokens.W_THIRD, 3))
                         ax_sp.hist(
                             all_spacings, bins=60, color="steelblue", edgecolor="white"
                         )
@@ -474,6 +510,9 @@ def generate_stack_page(
                         ax_sp.set_title("Adjacent instrument spacing distribution")
                         plt.tight_layout()
                         fig_spacing_b64 = _fig_to_base64(fig_sp)
+                        _figdebug.record(
+                            fig_spacing_b64, "_make_pressure_spacing", fig_sp
+                        )
                         plt.close(fig_sp)
             except Exception as _exc_sp:
                 warnings.warn(
