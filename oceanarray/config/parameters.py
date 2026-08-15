@@ -588,9 +588,12 @@ VAR_COLORS: dict[str, str] = {
 def vlabel(var: str, prefix: str = "") -> str:
     """Return a matplotlib axis label for *var* from the :data:`VARIABLES` registry.
 
-    Format is ``"{prefix}Label (units)"`` when ``label_units`` is non-empty,
-    or ``"{prefix}Label"`` for dimensionless quantities.  The ``prefix`` is
-    prepended to the label component only, not the units, so
+    Format is ``"{prefix}Label (units)"`` when ``label_units`` is non-empty, or
+    ``"{prefix}Label (1)"`` for a dimensionless quantity — ``1`` is the CF /
+    UDUNITS unit string for dimensionless (e.g. practical salinity, whose NetCDF
+    ``units`` attribute is ``"1"``), so the label matches the stored metadata
+    rather than leaving the reader to wonder whether a unit was forgotten.  The
+    ``prefix`` is prepended to the label component only, not the units, so
     ``vlabel("temperature", prefix="Δ")`` produces ``"ΔTemperature (°C)"``.
 
     Parameters
@@ -609,8 +612,13 @@ def vlabel(var: str, prefix: str = "") -> str:
     """
     entry = VARIABLES.get(var, {})
     lbl = f"{prefix}{entry.get('label', var)}"
+    if var not in VARIABLES:
+        # Unknown variable: return the bare name.  Do NOT append "( )" — that
+        # would falsely assert the quantity is dimensionless when we simply have
+        # no registry entry for it.
+        return lbl
     lu = entry.get("label_units", "")
-    return f"{lbl} ({lu})" if lu else lbl
+    return f"{lbl} ({lu})" if lu else f"{lbl} (1)"
 
 
 def vunit(var: str) -> str:

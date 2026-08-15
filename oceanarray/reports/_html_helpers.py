@@ -29,6 +29,27 @@ from ..utilities import (  # noqa: F401  (re-exported)
 # helpers
 # ---------------------------------------------------------------------------
 
+#: ISO timestamp with fractional seconds, e.g. ``2026-07-11T20:30:00.000000000``.
+_ISO_FRAC_TS_RE = re.compile(r"^(.*T\d\d:\d\d:\d\d)\.(\d+)$")
+
+
+def _round_ts_for_display(value: str) -> str:
+    """Round a fractional-second ISO timestamp string to 0.1 s for the report.
+
+    Deployment/recovery times are stored at nanosecond precision (from
+    ``datetime64[ns]``), which is spurious detail in the report's global-attribute
+    table.  Non-timestamp strings and timestamps without fractional seconds are
+    returned unchanged.  This affects the report display only, not the saved file.
+    """
+    m = _ISO_FRAC_TS_RE.match(value)
+    if not m:
+        return value
+    head, frac = m.group(1), m.group(2)
+    tenths = int(round(int(frac) / 10 ** len(frac) * 10))  # 0..10
+    if tenths >= 10:  # .95+ rounds up; keep .9 rather than carry into seconds
+        return f"{head}.9"
+    return head if tenths == 0 else f"{head}.{tenths}"
+
 
 def _safe_serial(serial: Any) -> str:
     """Return a filename-safe serial token (see :func:`oceanarray.paths.safe_serial`)."""
@@ -301,7 +322,11 @@ def _read_nc_metadata(nc_path: Path) -> Dict[str, Any]:
                 info["is_qc"] = vname in qc_vars
                 time_vars.append(info)
 
-        global_attrs = {k: str(val) for k, val in ds.attrs.items() if k != "history"}
+        global_attrs = {
+            k: _round_ts_for_display(str(val))
+            for k, val in ds.attrs.items()
+            if k != "history"
+        }
         dims = {str(d): int(s) for d, s in ds.sizes.items()}
         ds.close()
         return {

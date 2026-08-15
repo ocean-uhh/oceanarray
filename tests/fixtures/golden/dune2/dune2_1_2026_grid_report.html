@@ -180,6 +180,8 @@ footer a { color: var(--muted); }
 p, li { max-width: none; }
 .masthead-plain { background:#fff; color:var(--text); border:1px solid var(--rule); }
 .masthead-plain .wordmark { display:none; }
+/* Wordmark is now an <a> to the repo; keep the pill look (no link underline). */
+.wordmark, .wordmark:hover { text-decoration:none; }
 .masthead-title { display:flex; justify-content:space-between; align-items:baseline; gap:1rem; }
 .masthead-type { font-size:var(--fs-type); opacity:0.85; white-space:nowrap; }
 .masthead .sub { display:flex; justify-content:space-between; font-size:var(--fs-meta); opacity:0.88; margin:0 0 0.15rem; }
@@ -269,7 +271,7 @@ td.mono { font-family:var(--font-mono); font-size:var(--fs-xs); }
     <div><dt>Source&nbsp;file</dt><dd>dune2_1_2026_grid.nc</dd></div>
   
   </dl>
-  <span class="wordmark">oceanarray</span>
+  <a class="wordmark" href="https://github.com/ocean-uhh/oceanarray" target="_blank" rel="noopener noreferrer">oceanarray</a>
 </div>
 
 
@@ -645,12 +647,12 @@ td.mono { font-family:var(--font-mono); font-size:var(--fs-xs); }
     
     <tr>
       <td class="mono">deployment_time</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-11T20:30:00.000000000</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-11T20:30:00</td>
     </tr>
     
     <tr>
       <td class="mono">recovery_time</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T11:44:00.000000000</td>
+      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T11:44:00</td>
     </tr>
     
     <tr>

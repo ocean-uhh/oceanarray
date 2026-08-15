@@ -26,29 +26,6 @@ from ..config import report_tokens
 _SLOT_BY_B64: dict[str, str] = {}
 
 
-def nearest_slot(frac: float) -> str:
-    """Return the :data:`report_tokens.SLOTS` name whose fraction is closest to *frac*.
-
-    Used for the one legitimately dynamic-width figure (the current-rose grid,
-    whose width scales with the number of roses): its computed width fraction is
-    snapped to the nearest standard slot so it, too, renders at a slot width.
-
-    Parameters
-    ----------
-    frac : float
-        Target width as a fraction of the full content width (0-1).
-
-    Returns
-    -------
-    str
-        The closest slot name.
-
-    """
-    return min(
-        report_tokens.SLOTS, key=lambda name: abs(report_tokens.SLOTS[name][0] - frac)
-    )
-
-
 def render(
     draw: Callable[..., Any],
     /,

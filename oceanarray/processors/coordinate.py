@@ -121,7 +121,10 @@ def apply_beam_to_enu(
                 )
             )
             ds.attrs["magnetic_declination"] = declination
-            ds.attrs["magnetic_declination_units"] = "degrees_east"
+            # Declination is a plane angle in degrees (sign convention: positive
+            # east).  NOT "degrees_east" — that is the CF unit for longitude.
+            ds.attrs["magnetic_declination_units"] = "degree"
+            ds.attrs["magnetic_declination_sign_convention"] = "positive_east"
             ds.attrs["magnetic_declination_method"] = (
                 "ppigrf IGRF at deployment midpoint"
             )
@@ -319,7 +322,10 @@ def apply_declination_to_enu(
         ds["north_velocity"].values[:] = -u * np.sin(D) + v * np.cos(D)
 
         ds.attrs["magnetic_declination"] = declination
-        ds.attrs["magnetic_declination_units"] = "degrees_east"
+        # Declination is a plane angle in degrees (sign convention: positive east).
+        # NOT "degrees_east" — that is the CF unit for longitude.
+        ds.attrs["magnetic_declination_units"] = "degree"
+        ds.attrs["magnetic_declination_sign_convention"] = "positive_east"
         ds.attrs["magnetic_declination_method"] = "ppigrf IGRF at deployment midpoint"
         ds.attrs["magnetic_declination_lat"] = lat
         ds.attrs["magnetic_declination_lon"] = lon

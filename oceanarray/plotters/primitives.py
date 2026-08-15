@@ -154,6 +154,8 @@ def square_axes_grid(
     per_panel_colorbar: bool = False,
     top_pad_in: float = 0.0,
     bottom_pad_in: float = 0.0,
+    wgap_in: "Optional[float]" = None,
+    cbar_txt_in: "Optional[float]" = None,
 ) -> "tuple[plt.Figure, np.ndarray, Any]":
     """Lay out an ``nrows × ncols`` grid of square axes deterministically in inches.
 
@@ -191,6 +193,15 @@ def square_axes_grid(
     bottom_pad_in : float
         Extra inches reserved below the x-tick strip, e.g. for rotated tick
         labels or a second x-axis label line.  Default 0.
+    wgap_in : float, optional
+        Override the inter-column gap (inches).  Default (``None``) uses the
+        standard gap, which reserves room for each column's y-labels; a caller
+        whose panels share a y-axis (right panel hides its y-labels) can pass a
+        smaller value to close the gap.
+    cbar_txt_in : float, optional
+        Override the reserved width (inches) for the shared colorbar's tick
+        labels and axis label.  Default (``None``) uses the standard reserve;
+        pass a larger value for a long colorbar label so it stays on-canvas.
 
     Returns
     -------
@@ -200,18 +211,22 @@ def square_axes_grid(
         ``(nrows, ncols)`` object array when *per_panel_colorbar* is set.
 
     """
-    _cbar_reserve = _SQ_CBAR_GAP_IN + _SQ_CBAR_W_IN + _SQ_CBAR_TXT_IN
+    # Optional overrides: a caller with a shared y-axis (right panel hides its
+    # y-labels) can pass a smaller *wgap_in*; a long shared-colorbar label needs a
+    # wider *cbar_txt_in* reserve so it stays on-canvas.
+    _cbar_txt = cbar_txt_in if cbar_txt_in is not None else _SQ_CBAR_TXT_IN
+    _cbar_reserve = _SQ_CBAR_GAP_IN + _SQ_CBAR_W_IN + _cbar_txt
     if per_panel_colorbar:
         # Each cell = y-labels + square panel + its own (tight) colorbar.
         per_cell_fixed = (
             _SQ_LABEL_IN + _SQ_CBAR_GAP_IN + _SQ_CBAR_W_IN + _SQ_CBAR_TXT_PP_IN
         )
-        _wgap = _SQ_WGAP_PP_IN
+        _wgap = wgap_in if wgap_in is not None else _SQ_WGAP_PP_IN
         avail_w = fig_w - ncols * per_cell_fixed - (ncols - 1) * _wgap
     else:
-        _wgap = _SQ_WGAP_IN
+        _wgap = wgap_in if wgap_in is not None else _SQ_WGAP_IN
         right_in = _cbar_reserve if colorbar else _SQ_LABEL_IN
-        avail_w = fig_w - _SQ_LABEL_IN - right_in - (ncols - 1) * _SQ_WGAP_IN
+        avail_w = fig_w - _SQ_LABEL_IN - right_in - (ncols - 1) * _wgap
     side = max(avail_w / ncols, 0.5)  # square panel side (inches)
     grid_h = nrows * side + (nrows - 1) * _SQ_HGAP_IN
     bottom_in = _SQ_XTICK_IN + bottom_pad_in
@@ -244,11 +259,11 @@ def square_axes_grid(
 
     cax = None
     if colorbar:
-        cx0 = _SQ_LABEL_IN + ncols * side + (ncols - 1) * _SQ_WGAP_IN + _SQ_CBAR_GAP_IN
+        cx0 = _SQ_LABEL_IN + ncols * side + (ncols - 1) * _wgap + _SQ_CBAR_GAP_IN
         # If the panels were floored to 0.5" (a too-small fig_w), cx0 can run past
         # the figure edge — clamp so the colorbar stays on-canvas rather than
         # rendering clipped/invisible.
-        cx0 = min(cx0, fig_w - _SQ_CBAR_W_IN - _SQ_CBAR_TXT_IN)
+        cx0 = min(cx0, fig_w - _SQ_CBAR_W_IN - _cbar_txt)
         cax = fig.add_axes(
             [cx0 / fig_w, bottom_in / fig_h, _SQ_CBAR_W_IN / fig_w, grid_h / fig_h]
         )

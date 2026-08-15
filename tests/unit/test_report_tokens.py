@@ -160,9 +160,9 @@ def test_no_raw_hex_in_template_inline_styles():
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.skip(reason="Phase 4: §10.2 PNG-geometry over a rendered fixture page")
-def test_png_geometry_on_rendered_page():
-    """Every data: URI in a rendered page is round(SLOTS[slot].inches * FIG_DPI) wide."""
+# §10.2 PNG-geometry (every slot figure's PNG width == round(SLOTS[slot]·FIG_DPI))
+# is implemented as ``test_png_geometry_on_rendered_page`` in test_report_golden.py,
+# where the rendered-page fixture already lives.
 
 
 @pytest.mark.skip(reason="Phase 4: §10.3 no stray fontsize=/linewidth= in plotters")

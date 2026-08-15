@@ -134,3 +134,40 @@ def test_report_page_matches_golden(rendered_dir: pathlib.Path, page: str) -> No
             f"{page} drifted from its golden. If this change is intended, "
             f"re-baseline with REBASELINE_GOLDEN=1.\n{diff[:4000]}"
         )
+
+
+_SLOT_IMG_RE = re.compile(
+    r'<img class="fig slot-([a-z-]+)"[^>]*base64,([A-Za-z0-9+/=]+)'
+)
+
+
+def test_png_geometry_on_rendered_page(rendered_dir: pathlib.Path) -> None:
+    """Every ``slot-*``-classed figure's PNG width equals its slot width in px.
+
+    The U0.2 slot system renders each figure at ``SLOTS[slot].inches`` wide and
+    the template labels it ``class="fig slot-<name>"``, so the saved PNG is
+    ``round(SLOTS[slot].inches * FIG_DPI)`` pixels wide.  This pins that invariant
+    (spec §10.2): a figure can never again render at one width while the page
+    displays it at another (the class-vs-``width:100%`` bug U0.2 fixed).  Only
+    slot-classed figures are checked — bare ``class="fig"`` figures render
+    full-canvas or in flex layouts and are covered by the golden HTML test.
+    """
+    import base64
+    import io
+
+    from PIL import Image
+
+    from oceanarray.config import report_tokens as tok
+
+    checked = 0
+    for page in _PAGES:
+        html = (rendered_dir / page).read_text(encoding="utf-8")
+        for slot, b64 in _SLOT_IMG_RE.findall(html):
+            width_px = Image.open(io.BytesIO(base64.b64decode(b64))).size[0]
+            expected = round(tok.SLOTS[slot][1] * tok.FIG_DPI)
+            assert width_px == expected, (
+                f"{page}: slot-{slot} figure is {width_px}px, expected {expected}px "
+                f"(SLOTS[{slot!r}].inches={tok.SLOTS[slot][1]} * FIG_DPI={tok.FIG_DPI})"
+            )
+            checked += 1
+    assert checked > 0, "no slot-classed figures found; test is not exercising anything"

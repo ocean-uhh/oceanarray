@@ -41,7 +41,7 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 import numpy as np
 
 from .helpers import grid_despine
-from .primitives import date_offset_left
+from .primitives import date_offset_left, square_axes_grid
 from .. import parameters as params
 from oceanarray.config import report_tokens
 
@@ -623,17 +623,30 @@ def plot_knockdown_displacement(
 
     x_max = max(float(np.nanmax(all_x)) if len(all_x) else 1.0, 1.0)
     p_max = float(np.nanmax(all_p)) * 1.05 if len(all_p) else 1.0
-    # Square-axes logic: a single equal extent on both axes so that, with a
-    # square box and 1 dbar ≈ 1 m, the scatter reads at true 1:1 scale (a mooring
-    # barely tilts, so the near-vertical shape is the physical point).  Anchored
-    # at 0 rather than centred (displacement and depth both start at the anchor),
-    # so this adapts square_limits() to the knockdown's 0-based geometry.
-    sq_extent = max(x_max, p_max)
-
     with plt.style.context(str(params.MPLSTYLE)):
-        fig, (ax1, ax2) = plt.subplots(
-            1, 2, figsize=(width_in, 4.5), sharey=True, sharex=True
+        # Deterministic square panels with the colorbar in its OWN reserved column.
+        # (plt.subplots + fig.colorbar(ax=ax2) took the colorbar's width out of the
+        # right panel, so set_box_aspect(1) then shrank its height and it no longer
+        # matched the left panel — square_axes_grid places both by construction.)
+        # Tight inter-panel gap (the heatmap shares the scatter's y-axis and hides
+        # its own y-labels) and a wider colorbar-text reserve for the long label.
+        fig, axs, cax = square_axes_grid(
+            width_in, 1, 2, colorbar=True, wgap_in=0.3, cbar_txt_in=1.0
         )
+        ax1, ax2 = axs[0, 0], axs[0, 1]
+
+        # The panels are square (square_axes_grid), but each axis spans its OWN
+        # data range — displacement on x (0..x_max), pressure on y (0..p_max) — so
+        # the displacement structure fills the panel instead of being squeezed into
+        # a thin strip against the full depth range.  This is NOT a 1:1 physical
+        # scale (true-scale, a mooring barely tilts and reads as an empty vertical
+        # sliver); readability wins for a QC diagnostic.
+        for _ax in (ax1, ax2):
+            _ax.set_xlim(0, x_max)
+            _ax.set_ylim(0, p_max)
+            _ax.invert_yaxis()
+            _ax.set_xlabel("Horizontal displacement (m)")
+            grid_despine(_ax)
 
         # --- left panel: scatter ---
         for serial, x_thin, p_thin, color in scatter_data:
@@ -647,26 +660,13 @@ def plot_knockdown_displacement(
                 label=str(serial),
                 rasterized=True,
             )
-        ax1.set_xlim(0, sq_extent)  # sharex propagates to ax2
-        ax1.set_xlabel("Horizontal displacement (m)")
         ax1.set_ylabel("Measured pressure (dbar)")
         ax1.legend(fontsize=9, loc="lower right", markerscale=3)
-        ax1.set_box_aspect(1)  # square box; equal extent above keeps 100 m x = 100 m y
-        grid_despine(ax1)
-
-        # Shared tick step so x and y gridlines fall at the same intervals
-        import matplotlib.ticker as mticker
-
-        _ax_range = sq_extent
-        _step = next(
-            s for s in [10, 20, 25, 50, 100, 200, 250, 500, 1000] if _ax_range / s <= 6
-        )
-        ax1.xaxis.set_major_locator(mticker.MultipleLocator(_step))
-        ax1.yaxis.set_major_locator(mticker.MultipleLocator(_step))
 
         # --- right panel: per-instrument normalised heatmap ---
         # Each instrument's 2-D histogram is divided by its own total before
         # summing, so all instruments contribute equally regardless of record length.
+        ax2.tick_params(labelleft=False)  # same y-axis as the scatter panel
         n_bins = 40
         x_edges = np.linspace(0, x_max, n_bins + 1)
         p_edges = np.linspace(0, p_max, n_bins + 1)
@@ -695,18 +695,12 @@ def plot_knockdown_displacement(
             mesh = ax2.pcolormesh(x_edges, p_edges, H_norm.T, norm=norm, cmap="YlOrRd")
             fig.colorbar(
                 mesh,
-                ax=ax2,
+                cax=cax,
                 ticks=bounds[:: max(1, len(bounds) // 6)],
                 label="Normalised density (sum = 1 per instrument)",
             )
-
-        ax2.set_ylim(0, sq_extent)  # sharey propagates this to ax1
-        ax2.set_box_aspect(1)
-        ax2.invert_yaxis()
-        ax2.set_xlabel("Horizontal displacement (m)")
-        grid_despine(ax2)
-
-        plt.tight_layout()
+        else:
+            cax.set_axis_off()  # nothing to show; don't leave an empty colorbar box
         return fig
 
 
@@ -1327,7 +1321,10 @@ def draw_data_histogram(
             else:
                 bin_edges = 80
 
-            # Grey: all finite data; blue: kept (not bad/missing)
+            # Grey: all finite data.  Kept bars use the variable's own line colour
+            # (VAR_COLORS) so the distribution matches its time-series line, falling
+            # back to the default blue for variables without a registered colour.
+            _kept_color = params.VAR_COLORS.get(vname, "#2980b9")
             ax.hist(
                 all_data,
                 bins=bin_edges,
@@ -1341,7 +1338,7 @@ def draw_data_histogram(
                 ax.hist(
                     kept_data,
                     bins=bin_edges,
-                    color="#2980b9",
+                    color=_kept_color,
                     alpha=0.85,
                     edgecolor="none",
                     zorder=2,
