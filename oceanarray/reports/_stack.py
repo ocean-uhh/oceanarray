@@ -407,9 +407,7 @@ def generate_stack_page(
         )
         fig_temp_b64 = _ts_fig("temperature", params.vlabel("temperature"))
         fig_sal_b64 = (
-            _ts_fig("salinity", params.vlabel("salinity"))
-            if "salinity" in ds
-            else None
+            _ts_fig("salinity", params.vlabel("salinity")) if "salinity" in ds else None
         )
         fig_dissolved_oxygen_b64 = (
             _ts_fig("dissolved_oxygen", params.vlabel("dissolved_oxygen"))

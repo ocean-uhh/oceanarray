@@ -205,7 +205,9 @@ def draw_grid_hydro(
     time = ds["time"].values
     n = len(panels)
     fig, axes = plt.subplots(
-        n, 1, figsize=(report_tokens.W_FULL, params.GRID_PANEL_ROW_IN * n),
+        n,
+        1,
+        figsize=(report_tokens.W_FULL, params.GRID_PANEL_ROW_IN * n),
         sharex=True,
         squeeze=False,
         layout="constrained",
@@ -311,7 +313,9 @@ def draw_grid_velocity_stacked(ds: "xr.Dataset") -> "Optional[plt.Figure]":
 
     n = len(present)
     fig, axes = plt.subplots(
-        n, 1, figsize=(report_tokens.W_FULL, params.GRID_PANEL_ROW_IN * n),
+        n,
+        1,
+        figsize=(report_tokens.W_FULL, params.GRID_PANEL_ROW_IN * n),
         sharex=True,
         squeeze=False,
         layout="constrained",
@@ -337,9 +341,7 @@ def draw_grid_velocity_stacked(ds: "xr.Dataset") -> "Optional[plt.Figure]":
             pad=0.02,
             ticks=nice_colorbar_ticks(float(bounds[0]), float(bounds[-1])),
         )
-        cb.ax.set_title(
-            params.vunit("east_velocity"), fontsize=report_tokens.ANNOT_FS
-        )
+        cb.ax.set_title(params.vunit("east_velocity"), fontsize=report_tokens.ANNOT_FS)
         pressure_axis(ax)
         ax.set_title(_LABELS[var], loc="left")
 
@@ -366,7 +368,9 @@ def draw_grid_sigma(ds: "xr.Dataset") -> "Optional[plt.Figure]":
     time = ds["time"].values
     n = len(sigma_vars)
     fig, axes = plt.subplots(
-        n, 1, figsize=(report_tokens.W_FULL, params.GRID_PANEL_ROW_IN * n),
+        n,
+        1,
+        figsize=(report_tokens.W_FULL, params.GRID_PANEL_ROW_IN * n),
         sharex=True,
         squeeze=False,
         layout="constrained",
@@ -446,7 +450,9 @@ def draw_grid_n2(ds: "xr.Dataset", lat: float = 0.0) -> "Optional[plt.Figure]":
     pressure_axis(ax)
     date_axis(ax)
     ax.set_xlabel("Time")
-    ax.set_title(r"Buoyancy frequency squared N² ($\log_{10}$ scale; purple = stratified)")
+    ax.set_title(
+        r"Buoyancy frequency squared N² ($\log_{10}$ scale; purple = stratified)"
+    )
     return fig
 
 

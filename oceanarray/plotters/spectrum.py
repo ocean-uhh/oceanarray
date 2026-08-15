@@ -46,9 +46,8 @@ def _mark_frequency_line(ax: "plt.Axes", period: float, color: str) -> None:
         Line colour.
 
     """
-    ax.axvline(
-        period, color=color, lw=report_tokens.pen("thin"), ls=":", alpha=0.65
-    )
+    ax.axvline(period, color=color, lw=report_tokens.pen("thin"), ls=":", alpha=0.65)
+
 
 if TYPE_CHECKING:
     import matplotlib.axes
@@ -536,7 +535,9 @@ def draw_spectrum(
     n_win_hf_label = str(n_win_hf) if psds_hf else "0"
     # Two-line panel titles: heading + window detail, so the detail fits the
     # narrow square panels without overflowing.
-    ax_hf.set_title(f"High frequency\n{hf_seg_label} windows ({n_win_hf_label}, gap-aware)")
+    ax_hf.set_title(
+        f"High frequency\n{hf_seg_label} windows ({n_win_hf_label}, gap-aware)"
+    )
 
     fig.suptitle("Temperature power spectrum — Welch PSD per depth")
 

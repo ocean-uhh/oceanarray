@@ -243,12 +243,7 @@ def square_axes_grid(
 
     cax = None
     if colorbar:
-        cx0 = (
-            _SQ_LABEL_IN
-            + ncols * side
-            + (ncols - 1) * _SQ_WGAP_IN
-            + _SQ_CBAR_GAP_IN
-        )
+        cx0 = _SQ_LABEL_IN + ncols * side + (ncols - 1) * _SQ_WGAP_IN + _SQ_CBAR_GAP_IN
         # If the panels were floored to 0.5" (a too-small fig_w), cx0 can run past
         # the figure edge — clamp so the colorbar stays on-canvas rather than
         # rendering clipped/invisible.
@@ -404,9 +399,7 @@ def plot_trajectory(
         lc = LineCollection(segments, cmap=cmap, norm=norm, linewidth=1.5)
         lc.set_array(color_data[:-1])
         ax.add_collection(lc)
-        unit_colorbar(
-            cax, lc, unit=colorbar_unit or colorbar_label, ticks=bounds[::2]
-        )
+        unit_colorbar(cax, lc, unit=colorbar_unit or colorbar_label, ticks=bounds[::2])
     else:
         ax.plot(x, y, color="steelblue", linewidth=1.5)
 

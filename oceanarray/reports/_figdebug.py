@@ -63,7 +63,10 @@ def record(b64: Optional[str], func: str, fig: Any) -> None:
     _COLLECTED[b64] = {
         "func": func,
         "figsize_in": (round(w_in, 2), round(h_in, 2)),
-        "png_px": (round(w_in * report_tokens.FIG_DPI), round(h_in * report_tokens.FIG_DPI)),
+        "png_px": (
+            round(w_in * report_tokens.FIG_DPI),
+            round(h_in * report_tokens.FIG_DPI),
+        ),
     }
 
 

@@ -500,9 +500,9 @@ def nice_colorbar_ticks(vmin: float, vmax: float, *, max_ticks: int = 6) -> np.n
     """
     import matplotlib.ticker as mticker
 
-    ticks = mticker.MaxNLocator(
-        nbins=max_ticks, steps=[1, 2, 2.5, 5, 10]
-    ).tick_values(vmin, vmax)
+    ticks = mticker.MaxNLocator(nbins=max_ticks, steps=[1, 2, 2.5, 5, 10]).tick_values(
+        vmin, vmax
+    )
     return ticks[(ticks >= vmin) & (ticks <= vmax)]
 
 

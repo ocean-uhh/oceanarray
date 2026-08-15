@@ -75,11 +75,15 @@ def _ts_heatmap_panel(
     from ..utilities import nice_colorbar_ticks
     from .primitives import unit_colorbar
 
-    s_lo, s_hi = s_lim if s_lim is not None else (
-        float(np.nanpercentile(S, plo)), float(np.nanpercentile(S, phi))
+    s_lo, s_hi = (
+        s_lim
+        if s_lim is not None
+        else (float(np.nanpercentile(S, plo)), float(np.nanpercentile(S, phi)))
     )
-    t_lo, t_hi = t_lim if t_lim is not None else (
-        float(np.nanpercentile(T, plo)), float(np.nanpercentile(T, phi))
+    t_lo, t_hi = (
+        t_lim
+        if t_lim is not None
+        else (float(np.nanpercentile(T, plo)), float(np.nanpercentile(T, phi)))
     )
     s_edges = np.linspace(s_lo, s_hi, n_bins + 1)
     t_edges = np.linspace(t_lo, t_hi, n_bins + 1)
@@ -394,7 +398,12 @@ def draw_stack_ts_diagram(ds: "xr.Dataset") -> "Optional[plt.Figure]":
 
     # --- Middle panel: count heatmap (shares the scatter's limits) ---
     _ts_heatmap_panel(
-        ax_heat, fig, S_flat[finite], T_flat[finite], s_lim=_s_lim, t_lim=_t_lim,
+        ax_heat,
+        fig,
+        S_flat[finite],
+        T_flat[finite],
+        s_lim=_s_lim,
+        t_lim=_t_lim,
         cax=_cax[0, 1],
     )
 
@@ -501,8 +510,14 @@ def draw_grid_ts_diagram(
 
     # Panel 1: count heatmap (shares the data limits + matched colorbar)
     _ts_heatmap_panel(
-        axes[0], fig, S[finite], T[finite], n_bins=n_bins,
-        s_lim=(s_lo, s_hi), t_lim=(t_lo, t_hi), cax=_cax[0, 0],
+        axes[0],
+        fig,
+        S[finite],
+        T[finite],
+        n_bins=n_bins,
+        s_lim=(s_lo, s_hi),
+        t_lim=(t_lo, t_hi),
+        cax=_cax[0, 0],
     )
     axes[0].set_title(r"T-S count ($\log_{10}$ samples per bin)")
 

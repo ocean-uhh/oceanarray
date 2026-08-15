@@ -1525,9 +1525,7 @@ def draw_adcp_hodograph(
 
     sm = sm_far or sm_near
     if sm is not None:
-        unit_colorbar(
-            cax, sm, ticks=np.array([0.0, 1.0]), ticklabels=["start", "end"]
-        )
+        unit_colorbar(cax, sm, ticks=np.array([0.0, 1.0]), ticklabels=["start", "end"])
     elif cax is not None:
         cax.set_visible(False)
 
@@ -1582,7 +1580,9 @@ def draw_grid_hodograph(
     else:
         pressure = np.arange(n_levels, dtype=float)
 
-    units = params.vunit("east_velocity") or ds["east_velocity"].attrs.get("units", "m s⁻¹")
+    units = params.vunit("east_velocity") or ds["east_velocity"].attrs.get(
+        "units", "m s⁻¹"
+    )
 
     if "time" in ds.coords and ds["time"].size >= 2:
         t_ns = ds["time"].values.astype("datetime64[ns]").astype(float)
@@ -1640,9 +1640,7 @@ def draw_grid_hodograph(
         )
 
     if sm is not None:
-        unit_colorbar(
-            cax, sm, ticks=np.array([0.0, 1.0]), ticklabels=["start", "end"]
-        )
+        unit_colorbar(cax, sm, ticks=np.array([0.0, 1.0]), ticklabels=["start", "end"])
     elif cax is not None:
         cax.set_visible(False)
 
