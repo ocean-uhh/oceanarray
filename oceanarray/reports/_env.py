@@ -19,7 +19,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from . import _figdebug
 from . import _slots
-from ._css import emit_css
+from ._report_css import SHARED_CSS
 from .. import parameters as params
 
 #: Directory holding the report page templates.
@@ -42,9 +42,9 @@ _ENV.globals["slot_for"] = _slots.slot_for
 #: Generated stylesheet — the single source of truth for report CSS (tokens,
 #: type/spacing scale, slot classes, shared chrome).  base.html injects it via
 #: ``{{ css | safe }}``; page-specific rules live in a small local block that
-#: references these token variables (U0.1).  The vendored ``_css.py`` is called,
-#: never edited.
-_ENV.globals["css"] = emit_css(params.PACKAGE_NAME)
+#: references these token variables (U0.1).  The accent is applied in the local
+#: ``_report_css`` wiring; the vendored ``_css.py`` names no package.
+_ENV.globals["css"] = SHARED_CSS
 
 
 def render_template(name: str, /, **context: Any) -> str:

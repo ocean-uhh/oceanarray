@@ -829,13 +829,11 @@ def _stage_token(value: str) -> "int | str":
         If *value* is not recognised by :func:`~oceanarray.processors.resolve_stage`.
 
     """
-    import argparse as _ap
-
     coerced: int | str = int(value) if value.isdigit() else value
     try:
         resolve_stage(coerced)
     except ValueError as exc:
-        raise _ap.ArgumentTypeError(str(exc)) from exc
+        raise argparse.ArgumentTypeError(str(exc)) from exc
     return coerced
 
 

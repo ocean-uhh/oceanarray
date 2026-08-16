@@ -165,8 +165,11 @@ def test_png_geometry_on_rendered_page(rendered_dir: pathlib.Path) -> None:
         for slot, b64 in _SLOT_IMG_RE.findall(html):
             width_px = Image.open(io.BytesIO(base64.b64decode(b64))).size[0]
             expected = round(tok.SLOTS[slot][1] * tok.FIG_DPI)
-            assert width_px == expected, (
-                f"{page}: slot-{slot} figure is {width_px}px, expected {expected}px "
+            # ±1 px: a half-integer inches*dpi (e.g. quarter = 2.25*150 = 337.5)
+            # is truncated by matplotlib (337) while round() gives 338.  The check
+            # exists to catch mis-slots, which are off by hundreds of px.
+            assert abs(width_px - expected) <= 1, (
+                f"{page}: slot-{slot} figure is {width_px}px, expected ~{expected}px "
                 f"(SLOTS[{slot!r}].inches={tok.SLOTS[slot][1]} * FIG_DPI={tok.FIG_DPI})"
             )
             checked += 1

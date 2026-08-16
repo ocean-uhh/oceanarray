@@ -1,15 +1,16 @@
 """Shared CSS for the report HTML pages, generated from the design tokens.
 
-``emit_css(package)`` builds the whole stylesheet string from
+``emit_css(package_accent)`` builds the whole stylesheet string from
 ``..config.report_tokens`` — colours, typography, spacing, radii and the slot
 table — so no value is restated here.  Its output is concatenated into each page
 template's ``<style>`` block (``{{ css | safe }}``).
 
 This module is written to be **vendored** across the packages that share the
-report design system: it names no package and reads shared values only through
-``..config.report_tokens``.  Which package's accent to render is an argument to
-``emit_css``, supplied by the (package-specific) caller — so the file itself
-carries no package-specific edit (Phase A; no cross-repo hash test yet, spec §9).
+report design system: it names no package and holds no per-package colour table,
+reading shared values only through ``..config.report_tokens``.  The accent
+colour to render is an argument to ``emit_css``, supplied by the
+(package-specific) caller — so the file itself carries no package-specific edit
+(Phase A; no cross-repo hash test yet, spec §9).
 """
 
 from __future__ import annotations
@@ -20,7 +21,6 @@ from ..config.report_tokens import (
     FONT_MONO,
     FONT_SANS,
     GRAYS,
-    PACKAGE_ACCENT,
     RADII,
     ROLE_ACCENT,
     SEMANTIC,
@@ -69,22 +69,26 @@ def _emit_slots() -> str:
     return "\n".join(out)
 
 
-def emit_css(package: str) -> str:
+def emit_css(package_accent: str) -> str:
     """Return the full shared stylesheet as a string, generated from the tokens.
 
     Reproduces the established page look from the design tokens (spec §12–15 v2.0
     are the current values, not a redesign).  The only additions over
     the previous hand-written stylesheet are the package accent's two homes — a
     masthead ``.wordmark`` and the footer's ``border-top`` — plus the ``78ch``
-    reading measure and the structural ``break-inside`` print rules.
+    reading measure and the ``@media print`` rules for browser printing.  (The
+    PDF renderer additionally injects :func:`print_css`, which layers ``@page``
+    geometry on top for the WeasyPrint path.)
 
     Parameters
     ----------
-    package : str
-        Which package's accent to render (a key into ``PACKAGE_ACCENT``).  Passed
-        by the package-specific caller; the function itself names no package.
+    package_accent : str
+        The accent colour to render as ``--package-accent`` — any CSS colour
+        value, e.g. a hex literal or ``var(--ocean)``.  Chosen by the
+        package-specific caller; the function itself names no package and holds
+        no per-package colour table.
     """
-    root = _emit_root(PACKAGE_ACCENT[package])
+    root = _emit_root(package_accent)
     slots = _emit_slots()
     return f"""\
 {root}
@@ -98,15 +102,15 @@ body {{
 p, li {{ max-width: 78ch; }}
 .masthead {{
   background: var(--ocean); color: #fff; position: relative;
-  padding: 1.6rem 2rem; border-radius: 8px; margin-bottom: 2rem;
+  padding: 1.6rem 2rem; border-radius: var(--radius-card); margin-bottom: 2rem;
 }}
 .masthead h1 {{ margin: 0 0 0.3rem; font-size: var(--fs-h1); font-weight: 700; }}
-.masthead .sub {{ font-size: var(--fs-meta); opacity: 0.85; margin: 0 0 0.15rem; }}
+.masthead .sub {{ font-size: var(--fs-meta); opacity: 0.85; margin: 0 0 0.15rem; max-width: none; }}
 .wordmark {{
   position: absolute; right: 2rem; bottom: 1.2rem;
   font-size: var(--fs-dt); font-weight: 700; letter-spacing: 0.04em;
   color: var(--package-accent); background: #fff; opacity: 0.85;
-  padding: 0.1rem 0.5rem; border-radius: 999px; text-decoration: none;
+  padding: 0.1rem 0.5rem; border-radius: var(--radius-pill); text-decoration: none;
 }}
 .wordmark:hover {{ opacity: 1; }}
 .meta-grid {{
@@ -130,10 +134,23 @@ h2 {{
   text-decoration: none; margin-left: auto;
 }}
 .top-link:hover {{ color: var(--ocean); text-decoration: underline; }}
-.note {{
+.caption {{
   color: var(--gray-5); font-size: var(--fs-note);
-  margin-top: -0.5rem; margin-bottom: 0.75rem;
+  margin-top: 0.75rem; margin-bottom: 0.75rem;
 }}
+h2 + .caption {{ margin-top: -0.5rem; }}
+.explainer {{
+  font-size: var(--fs-note); color: var(--text);
+  background: var(--bg-sunken); border-left: 3px solid var(--muted);
+  padding: var(--sp-3); margin: -0.25rem 0 0.75rem; border-radius: var(--radius-btn);
+}}
+.warn {{
+  font-size: var(--fs-note); color: var(--text);
+  background: var(--warn-bg); border-left: 3px solid var(--warn);
+  padding: var(--sp-3); margin-bottom: 0.5rem; border-radius: var(--radius-btn);
+}}
+.warn::before {{ content: "⚠ "; }}
+.warn.error {{ border-left-color: var(--error); }}
 .jump-nav {{
   background: var(--seafoam); padding: 0.55rem 1rem;
   border-radius: 6px; margin-bottom: 1.5rem;
@@ -152,10 +169,26 @@ h2 {{
 .fig-col {{ display: flex; flex-direction: column; gap: 0.75rem; }}
 figure {{ margin: 0; }}
 figure img {{
-  border: 1px solid var(--rule); border-radius: 4px;
+  border: 1px solid var(--rule); border-radius: var(--radius-btn);
   display: block; width: 100%; height: auto;
 }}
 figcaption {{ font-size: var(--fs-cap); color: var(--gray-5); margin-top: 0.25rem; }}
+table {{
+  width: 100%; border-collapse: collapse;
+  font-size: var(--fs-note); margin: 0.6rem 0 1.2rem;
+}}
+th {{
+  background: var(--package-accent); color: #fff; text-align: left;
+  font-weight: 600; padding: 0.4rem 0.65rem;
+}}
+th.num {{ text-align: right; }}
+td {{
+  padding: 0.35rem 0.65rem; border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}}
+tr:nth-child(even) td {{ background: var(--bg-sunken); }}
+td.num, .num {{ text-align: right; font-variant-numeric: tabular-nums; }}
+td.mono {{ font-family: var(--font-mono); font-size: var(--fs-xs); }}
 {slots}
 .masthead-header {{
   display: flex; justify-content: space-between; align-items: flex-start;
@@ -169,7 +202,7 @@ figcaption {{ font-size: var(--fs-cap); color: var(--gray-5); margin-top: 0.25re
 .nav-btns {{ display: flex; gap: 0.5rem; }}
 .btn-nav {{
   background: var(--ocean); color: #fff; padding: 0.25rem 0.75rem;
-  border-radius: 999px; text-decoration: none; font-size: var(--fs-nav);
+  border-radius: var(--radius-pill); text-decoration: none; font-size: var(--fs-nav);
 }}
 .btn-nav:hover {{ opacity: 0.85; }}
 footer {{
@@ -188,6 +221,31 @@ footer a {{ color: var(--muted); }}
   .jump-nav {{ display: none; }}
 }}
 """
+
+
+def print_css(*, terse: bool = False) -> str:
+    """Return the print stylesheet, injected at PDF render time (spec §8.1).
+
+    These WeasyPrint-specific rules are kept out of the screen stylesheet so
+    screen output is byte-identical; a PDF renderer appends them at render time.
+    The shared stylesheet keeps only the structural ``@media print`` rules (page
+    breaks).  With *terse* ``True`` the ``.explainer`` prose is hidden (the
+    ``--pdf-terse`` variant); by default nothing is hidden — captions, explainers
+    and warnings all print.
+    """
+    css = """\
+@page { size: A4; margin: 18mm 16mm 20mm 16mm; }
+body { max-width: 100%; padding: 0; }
+p, li, .explainer { max-width: 78ch; }
+img { max-width: 100%; height: auto; }
+.masthead { -webkit-print-color-adjust: exact; print-color-adjust: exact; padding: 0.9rem 1.25rem; }
+.masthead-header h1, .masthead h1 { font-size: var(--fs-h1); }
+.meta-grid { grid-template-columns: repeat(4, 1fr); gap: 0.3rem 1rem; font-size: var(--fs-xs); }
+.jump-nav, .nav-btns, .btn-nav, .top-link { display: none; }
+"""
+    if terse:
+        css += ".explainer { display: none; }\n"
+    return css
 
 
 _JS_TOP_LINKS: str = """\

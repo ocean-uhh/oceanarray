@@ -337,3 +337,68 @@ def test_should_skip_regeneration_up_to_date(tmp_path):
     _touch(yaml, 100)
     _touch(out, 200)
     assert utilities.should_skip_regeneration(out, False, False, src, yaml) is True
+
+
+def test_dms_to_deg_plain_float():
+    """A plain decimal-degree string parses unchanged, sign preserved."""
+    assert utilities._dms_to_deg("-27.8") == pytest.approx(-27.8)
+    assert utilities._dms_to_deg("65.7319") == pytest.approx(65.7319)
+
+
+def test_dms_to_deg_hemisphere_suffix():
+    """A trailing S/W hemisphere negates the summed magnitude."""
+    assert utilities._dms_to_deg("29 25.878 W") == pytest.approx(-29.4313, abs=1e-4)
+    assert utilities._dms_to_deg("65 34.004 N") == pytest.approx(65.56673, abs=1e-4)
+
+
+def test_dms_to_deg_signed_degrees_negate_whole_value():
+    """A leading minus signs the whole magnitude, not just the degrees field.
+
+    Regression: ``"-27 48.000"`` is -(27 + 48/60) = -27.8, not -27 + 48/60 = -26.2.
+    """
+    assert utilities._dms_to_deg("-27 48.000") == pytest.approx(-27.8)
+
+
+def test_format_latlon_hemisphere_from_sign():
+    """format_latlon derives N/S and E/W from the sign; magnitude is unsigned."""
+    lat_s, lon_s = utilities.format_latlon(65.7319, -27.8)
+    assert lat_s == "65.7319° N"
+    assert lon_s == "27.8000° W"
+    lat_s, lon_s = utilities.format_latlon(-12.5, 42.0, ndp=1)
+    assert lat_s == "12.5° S"
+    assert lon_s == "42.0° E"
+
+
+def test_parse_latlon_with_source_unknown_when_absent():
+    """An empty config yields (0, 0) tagged as an unknown source."""
+    lat, lon, source = utilities.parse_latlon_with_source({})
+    assert (lat, lon) == (0.0, 0.0)
+    assert source.startswith("unknown")
+
+
+def test_parse_latlon_with_source_skips_zero_placeholder():
+    """A (0, 0) seabed placeholder is skipped for a later key with a real fix."""
+    cfg = {
+        "seabed_latitude": 0.0,
+        "seabed_longitude": 0.0,
+        "deployment_latitude": "-27 48.000",
+        "deployment_longitude": "10 30.000 E",
+    }
+    lat, lon, source = utilities.parse_latlon_with_source(cfg)
+    assert lat == pytest.approx(-27.8)
+    assert lon == pytest.approx(10.5)
+    assert source == "deployment_latitude/deployment_longitude"
+
+
+def test_parse_latlon_with_source_skips_unparseable_key():
+    """An unparseable coordinate string is skipped for the next valid key pair."""
+    cfg = {
+        "seabed_latitude": "not-a-coord",
+        "seabed_longitude": "also-bad",
+        "latitude": "65 34.004 N",
+        "longitude": "29 25.878 W",
+    }
+    lat, lon, source = utilities.parse_latlon_with_source(cfg)
+    assert lat == pytest.approx(65.56673, abs=1e-4)
+    assert lon == pytest.approx(-29.4313, abs=1e-4)
+    assert source == "latitude/longitude"
