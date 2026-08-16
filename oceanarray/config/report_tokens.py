@@ -207,15 +207,10 @@ ROLE_ACCENT: dict[str, str] = {
     "map": "#ee3377",
 }
 
-# Package accent (spec §12.2): confined to two additive places so it restyles no
-# existing pixel — a small masthead wordmark and the footer's border-top.  h2
-# underlines stay --seafoam and links stay --ocean.
-PACKAGE_ACCENT: dict[str, str] = {
-    "oceanarray": "#1a3a5c",
-    "ctdcast": "#0e6e6e",
-    "caldip": "#7a4b8a",  # reserved
-    "amocatlas": "#8a5a2b",  # reserved
-}
+# The package accent (spec §12.2) — a small masthead wordmark, the table header
+# and the footer's border-top — is NOT a value in this vendored file.  Each
+# package chooses it locally and passes it to ``emit_css(package_accent)`` (see
+# each repo's ``reports/_report_css.py``), so no per-package colour is encoded here.
 
 # Neutral gray scale — consolidates the ad-hoc grays that the per-page template
 # <style> blocks used (text shades, hairlines, sunken fills).  Emitted as
