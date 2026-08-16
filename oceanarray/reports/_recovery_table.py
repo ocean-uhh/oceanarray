@@ -295,6 +295,7 @@ def generate_recovery_table(
     """
     from datetime import datetime, timezone
 
+    from ..utilities import format_latlon, parse_latlon_with_source
     from ._html_helpers import _duration_str
 
     proc_dir = Path(proc_dir)
@@ -318,19 +319,15 @@ def generate_recovery_table(
     deploy_dt = _parse_dt(cfg.get("deployment_time"))
     recover_dt = _parse_dt(cfg.get("recovery_time"))
 
-    # Latitude/longitude for the canonical meta fields, if available.
-    lat = (
-        cfg.get("seabed_latitude")
-        or cfg.get("deployment_latitude")
-        or cfg.get("latitude")
-    )
-    lon = (
-        cfg.get("seabed_longitude")
-        or cfg.get("deployment_longitude")
-        or cfg.get("longitude")
-    )
-    latitude = f"{lat} N" if lat else ""
-    longitude = f"{lon} W" if lon else ""
+    # Latitude/longitude for the canonical meta fields, if available.  Route through
+    # the shared parser (DMS-aware, pairs lat/lon from one key set, skips the (0, 0)
+    # placeholder) then format with the hemisphere derived from the sign — never a
+    # hardcoded suffix, which produced the malformed "-27.8 W" for signed inputs.
+    lat_v, lon_v, source = parse_latlon_with_source(cfg)
+    if source.startswith("unknown"):
+        latitude = longitude = ""
+    else:
+        latitude, longitude = format_latlon(lat_v, lon_v)
 
     rows, comments = _build_rows(proc_dir, mooring_name, cfg)
 

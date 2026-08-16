@@ -684,7 +684,13 @@ def cast_output_dtypes(ds: xr.Dataset) -> xr.Dataset:
 
 
 def _dms_to_deg(s: str) -> float:
-    """Parse 'DD MM.mmm N/S/E/W' or a plain float string to decimal degrees."""
+    """Parse 'DD MM.mmm N/S/E/W', signed 'DD MM.mmm', or a plain float to decimal degrees.
+
+    The sign of a coordinate applies to the whole magnitude, not just the degrees
+    field: ``"-27 48.000"`` is -(27 + 48/60) = -27.8, not -27 + 48/60.  A leading
+    minus on the degrees field and a trailing ``S``/``W`` hemisphere are equivalent
+    ways to mark a negative value; either one negates the summed magnitude.
+    """
     s = s.strip()
     try:
         return float(s)
@@ -693,10 +699,38 @@ def _dms_to_deg(s: str) -> float:
     parts = s.upper().split()
     hemi = parts[-1] if parts[-1] in ("N", "S", "E", "W") else None
     nums = parts[:-1] if hemi else parts
-    val = sum(float(x) / 60.0**i for i, x in enumerate(nums))
-    if hemi in ("S", "W"):
-        val = -val
-    return val
+    negative = nums[0].startswith("-") or hemi in ("S", "W")
+    magnitude = sum(abs(float(x)) / 60.0**i for i, x in enumerate(nums))
+    return -magnitude if negative else magnitude
+
+
+def format_latlon(lat: float, lon: float, *, ndp: int = 4) -> tuple[str, str]:
+    """Return (lat, lon) as hemisphere-suffixed strings from signed decimal degrees.
+
+    The sign selects the hemisphere and the magnitude is shown unsigned, so a
+    formatted value can never carry both a minus sign and a hemisphere letter
+    (e.g. the malformed ``"-27.8 W"``).  Latitude uses ``N``/``S``, longitude
+    ``E``/``W``; a value of exactly 0 is rendered on the positive hemisphere.
+
+    Parameters
+    ----------
+    lat, lon : float
+        Latitude and longitude in signed decimal degrees.
+    ndp : int, optional
+        Number of decimal places for the magnitude (default 4 ≈ 11 m).
+
+    Returns
+    -------
+    tuple[str, str]
+        ``(lat_str, lon_str)``, e.g. ``("65.7319° N", "27.8000° W")``.
+
+    """
+    lat_hemi = "N" if lat >= 0 else "S"
+    lon_hemi = "E" if lon >= 0 else "W"
+    return (
+        f"{abs(lat):.{ndp}f}° {lat_hemi}",
+        f"{abs(lon):.{ndp}f}° {lon_hemi}",
+    )
 
 
 def parse_latlon(cfg: dict) -> tuple[float, float]:
