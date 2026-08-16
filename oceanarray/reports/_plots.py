@@ -23,7 +23,6 @@ from ..plotters.primitives import (
 )
 from ..plotters.helpers import (  # noqa: F401
     _rose_ax,
-    _velocity_panel_style,
     grid_despine,
 )
 from ..plotters.timeseries import (
@@ -659,11 +658,11 @@ def _make_speed_boxplot(nc_path: str) -> Optional[str]:
     import xarray as xr
     from oceanarray.plotters.current import plot_speed_boxplot
 
-    def _draw() -> "plt.Figure":
+    def _draw(*, width_in: float = report_tokens.W_QUARTER) -> "plt.Figure":
         with xr.open_dataset(nc_path) as ds:
-            return plot_speed_boxplot(ds)
+            return plot_speed_boxplot(ds, width_in=width_in)
 
-    return render_b64(_draw, optional=True)
+    return render_slot(_draw, slot="quarter", optional=True)
 
 
 def _make_hodograph_b64(nc_path: str) -> Optional[str]:
@@ -866,7 +865,7 @@ def _make_knockdown_hab_b64(ds: "xr.Dataset") -> Optional[str]:
     """
     from oceanarray.plotters.diagnostic import plot_knockdown_hab
 
-    return render_b64(plot_knockdown_hab, ds, optional=True)
+    return render_slot(plot_knockdown_hab, ds, slot="half", optional=True)
 
 
 def _make_knockdown_displacement_b64(ds: "xr.Dataset") -> Optional[str]:
@@ -879,7 +878,7 @@ def _make_knockdown_displacement_b64(ds: "xr.Dataset") -> Optional[str]:
     """
     from oceanarray.plotters.diagnostic import plot_knockdown_displacement
 
-    return render_b64(plot_knockdown_displacement, ds, optional=True)
+    return render_slot(plot_knockdown_displacement, ds, slot="full", optional=True)
 
 
 def _make_knockdown_anomaly_b64(ds: "xr.Dataset") -> Optional[str]:
@@ -893,7 +892,7 @@ def _make_knockdown_anomaly_b64(ds: "xr.Dataset") -> Optional[str]:
     """
     from oceanarray.plotters.diagnostic import plot_knockdown_anomaly
 
-    return render_b64(plot_knockdown_anomaly, ds, optional=True)
+    return render_slot(plot_knockdown_anomaly, ds, slot="half", optional=True)
 
 
 def _make_clock_check_b64(

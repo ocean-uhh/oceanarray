@@ -2,18 +2,8 @@
 {% import "_macros.html" as m %}
 {% block title %}{{ mooring_name }} &ndash; recovery report{% endblock %}
 {% block page_styles %}
-  table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
-  th {
-    background: var(--ocean);
-    color: #fff;
-    padding: 0.45rem 0.7rem;
-    text-align: left;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-  td { padding: 0.38rem 0.7rem; border-bottom: 1px solid #ecf0f1; vertical-align: middle; }
-  tr:nth-child(even) td { background: var(--seafoam); }
-  tr:hover td { background: #d6eaf8; }
+  /* Table style is now canonical in emit_css (shared).  Only page-specific
+     content styles remain here. */
   .pipeline { white-space: nowrap; display: flex; flex-wrap: wrap; gap: 0.2rem; align-items: center; }
   .badge {
     display: inline-block;
@@ -492,7 +482,7 @@ recovery_time:   '{{ yaml_recover_time or '?' }}'</textarea>
 
 {% if fig_clock_check_b64 %}
 <h3 style="font-size:0.9rem;margin-top:1.2rem;">Clock alignment check</h3>
-<p class="note">
+<p class="caption">
   Overlaid temperature records zoomed to the first and last 30 minutes of the deployment.
   If instrument clocks are misaligned the temperature curves will appear shifted in time.
   Data are from stage&#8209;3 (or stage&#8209;2 if stage&#8209;3 is not yet available).
@@ -669,33 +659,33 @@ recovery_time:   '{{ yaml_recover_time or '?' }}'</textarea>
 <div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-start">
 {% if fig_knockdown_hab_b64 %}
 <div style="flex:1;min-width:260px">
-<p class="note">Nominal HAB (x) vs. measured pressure (y). The dashed line shows expected pressure
+<p class="caption">Nominal HAB (x) vs. measured pressure (y). The dashed line shows expected pressure
   (water&nbsp;depth&nbsp;&minus;&nbsp;HAB). Instruments below the line were knocked down.
   Interpolated pressure (QC&nbsp;flag&nbsp;8) excluded.</p>
 <img style="width:100%;border:1px solid var(--rule);border-radius:4px" src="data:image/png;base64,{{ fig_knockdown_hab_b64 }}" alt="Knockdown HAB vs pressure">
-{{- m.dbg(fig_knockdown_hab_b64, "flex ~half column") }}
+{{- m.dbg(fig_knockdown_hab_b64, "slot-" ~ slot_for(fig_knockdown_hab_b64) ~ " (flex 2-up)") }}
 </div>
 {% endif %}
 {% if fig_knockdown_anomaly_b64 %}
 <div style="flex:1;min-width:260px">
-<p class="note">IQR of pressure anomaly (measured &minus; nominal) per instrument.
+<p class="caption">IQR of pressure anomaly (measured &minus; nominal) per instrument.
   Positive = deeper than design depth.
   <span style="color:mediumseagreen">Green</span> &lt;&nbsp;100&nbsp;dbar,
   <span style="color:goldenrod">yellow</span> 100–200,
   <span style="color:darkorange">amber</span> 200–300,
   <span style="color:firebrick">red</span> &gt;&nbsp;300&nbsp;dbar.</p>
 <img style="width:100%;border:1px solid var(--rule);border-radius:4px" src="data:image/png;base64,{{ fig_knockdown_anomaly_b64 }}" alt="Knockdown pressure anomaly">
-{{- m.dbg(fig_knockdown_anomaly_b64, "flex ~half column") }}
+{{- m.dbg(fig_knockdown_anomaly_b64, "slot-" ~ slot_for(fig_knockdown_anomaly_b64) ~ " (flex 2-up)") }}
 </div>
 {% endif %}
 </div>
 {% if fig_knockdown_displacement_b64 %}
-<p class="note">Estimated horizontal displacement (m) vs. measured pressure.
+<p class="caption">Estimated horizontal displacement (m) vs. measured pressure.
   Left: scatter per instrument; right: normalised 2-D density across all instruments.
   Displacement derived from the rigid-pendulum approximation:
   <em>x</em>&nbsp;=&nbsp;&radic;(hab<sub>nom</sub>&sup2;&nbsp;&minus;&nbsp;hab<sub>meas</sub>&sup2;).</p>
-<img style="width:100%;border:1px solid var(--rule);border-radius:4px" src="data:image/png;base64,{{ fig_knockdown_displacement_b64 }}" alt="Knockdown horizontal displacement">
-{{- m.dbg(fig_knockdown_displacement_b64, "width 100%") }}
+<img class="fig slot-{{ slot_for(fig_knockdown_displacement_b64) }}" style="border:1px solid var(--rule);border-radius:4px" src="data:image/png;base64,{{ fig_knockdown_displacement_b64 }}" alt="Knockdown horizontal displacement">
+{{- m.dbg(fig_knockdown_displacement_b64, "slot-" ~ slot_for(fig_knockdown_displacement_b64)) }}
 {% endif %}
 {% endif %}
 

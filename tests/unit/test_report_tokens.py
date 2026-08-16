@@ -65,6 +65,7 @@ def test_png_palette_colors():
         ("half", 675),
         ("two-fifths", 540),
         ("third", 450),
+        ("quarter", 338),
     ],
 )
 def test_png_width_table(slot, expected_px):
@@ -80,6 +81,7 @@ def test_width_aliases_match_slots():
     assert tok.W_HALF == tok.SLOTS["half"][1]
     assert tok.W_TWO_FIFTHS == tok.SLOTS["two-fifths"][1]
     assert tok.W_THIRD == tok.SLOTS["third"][1]
+    assert tok.W_QUARTER == tok.SLOTS["quarter"][1]
 
 
 def test_mplstyle_path_resolves():

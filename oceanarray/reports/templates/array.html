@@ -2,20 +2,15 @@
 {% import "_macros.html" as m %}
 {% block title %}{{ array_name }} &ndash; array summary{% endblock %}
 {% block page_styles %}
+  /* Table + caption styles are canonical in emit_css now. */
   .meta-grid div { font-size:0.82rem; }
-  table { border-collapse:collapse; width:100%; margin:0.6rem 0 1.2rem; font-size:0.84rem; }
-  th { background:var(--ocean); color:#fff; padding:0.4rem 0.6rem; text-align:left; }
-  td { padding:0.35rem 0.6rem; border-bottom:1px solid #e8ecef; }
-  tr:nth-child(even) td { background:#f7f9fb; }
-  .num { text-align:right; }
   .btn { display:inline-block; padding:0.15em 0.55em; border-radius:4px; font-size:0.75rem;
          font-weight:700; text-decoration:none; color:#fff; margin:0 0.15rem 0.2rem 0; }
   .btn-sum { background:#2c3e50; }
   .btn-stk { background:#2980b9; }
   .btn-grd { background:#8e44ad; }
   .btn-miss { background:#bbb; cursor:default; pointer-events:none; }
-  .note { font-size:0.78rem; color:#555; margin:0.2rem 0 0.6rem; }
-  .fig { max-width:60%; display:block; margin:0.5rem auto 1rem; border:1px solid #e0e4e8; border-radius:4px; }
+  .fig { max-width:60%; display:block; margin:0.5rem auto 1rem; border:1px solid var(--rule); border-radius:4px; }
 {% endblock %}
 {% block masthead_title %}{{ array_name }}{% endblock %}
 {% block masthead_type %}Array{% endblock %}
@@ -31,7 +26,7 @@
   {% endblock %}
 {% block content %}
 
-<p class="note" style="margin:0 0 0.8rem">
+<p class="caption" style="margin:0 0 0.8rem">
   Jump to:
   <a href="#moorings">Moorings</a> &bull;
   <a href="#type-summary">Instrument summary</a> &bull;

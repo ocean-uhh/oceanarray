@@ -59,7 +59,7 @@ PNG_PALETTE_COLORS: int = 256  # 8-bit palette quantization in the encoder
 # Invariant asserted by the slot-contract test: inches == W_FULL * fraction, so
 # display_px / fig_in is identical for every figure and one font size renders at
 # one on-screen size everywhere.  Test 2 asserts each saved PNG is exactly
-# round(inches * FIG_DPI) px wide (1350 / 900 / 810 / 675 / 540 / 450).
+# round(inches * FIG_DPI) px wide (1350 / 900 / 810 / 675 / 540 / 450 / 338).
 SLOTS: dict[str, tuple[float, float]] = {
     "full": (1.0, 9.0),
     "twothirds": (2 / 3, 6.0),
@@ -67,6 +67,7 @@ SLOTS: dict[str, tuple[float, float]] = {
     "half": (0.5, 4.5),
     "two-fifths": (0.4, 3.6),
     "third": (1 / 3, 3.0),
+    "quarter": (0.25, 2.25),
 }
 
 # Ergonomic width aliases (inches) for plotter call sites; derived from SLOTS.
@@ -75,6 +76,7 @@ W_THREE_FIFTHS: float = SLOTS["three-fifths"][1]
 W_HALF: float = SLOTS["half"][1]
 W_TWO_FIFTHS: float = SLOTS["two-fifths"][1]
 W_THIRD: float = SLOTS["third"][1]
+W_QUARTER: float = SLOTS["quarter"][1]
 
 # Aspect-locked figure constants (spec §14).
 SECTION_STRETCH: float = (

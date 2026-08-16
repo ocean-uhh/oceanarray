@@ -288,7 +288,7 @@ def draw_grid_velocity_stacked(
 
     """
     import matplotlib.pyplot as plt
-    from ..reports._plots import _velocity_panel_style
+    from .helpers import _velocity_panel_style
 
     vel_vars = [
         "east_velocity",

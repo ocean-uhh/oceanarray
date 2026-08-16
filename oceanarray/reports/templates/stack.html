@@ -5,12 +5,7 @@
   /* No width here: the slot class sets each figure's width (U0.2); width:100%
      would override the slot and force full-width. */
   .fig { border:1px solid var(--rule); border-radius:var(--radius-btn); margin-bottom:1.5rem; }
-  .var-table, .instr-table { width:100%; border-collapse:collapse; font-size:0.82rem; margin-bottom:1.5rem; }
-  .var-table th, .instr-table th { background:var(--seafoam); text-align:left;
-       padding:0.4rem 0.6rem; border-bottom:2px solid #cde; }
-  .var-table td, .instr-table td { padding:0.3rem 0.6rem; border-bottom:1px solid #eef; vertical-align:top; }
-  .var-table tr:nth-child(even) td, .instr-table tr:nth-child(even) td { background:#f4f9fc; }
-  .var-table tr:hover td, .instr-table tr:hover td { background:#e8f4f8; }
+  /* .var-table / .instr-table drop to the canonical emit_css table style. */
 {% endblock %}
 {% block masthead_type %}Stacked{% endblock %}
 {% block masthead_meta %}
@@ -84,7 +79,7 @@
 <!-- Pressure time series -->
 {% if fig_pressure_b64 %}
 <h2 id="pressure">Pressure records (all instruments)</h2>
-<p class="note">Values with QC flag &ge; 3 (suspect/bad) masked to NaN before plotting. All data values are in <code>{{ nc_file }}</code> without masking.</p>
+<p class="caption">Values with QC flag &ge; 3 (suspect/bad) masked to NaN before plotting. All data values are in <code>{{ nc_file }}</code> without masking.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_pressure_b64 }}" alt="Pressure time series">
 {{- m.dbg(fig_pressure_b64, "full (100%)") }}
 {% endif %}
@@ -92,7 +87,7 @@
 <!-- Temperature time series -->
 {% if fig_temp_b64 %}
 <h2 id="temp">Temperature (all instruments)</h2>
-<p class="note">Values with QC flag &ge; 3 (suspect/bad) masked to NaN before plotting. All data values are in <code>{{ nc_file }}</code> without masking.</p>
+<p class="caption">Values with QC flag &ge; 3 (suspect/bad) masked to NaN before plotting. All data values are in <code>{{ nc_file }}</code> without masking.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_temp_b64 }}" alt="Temperature time series">
 {{- m.dbg(fig_temp_b64, "full (100%)") }}
 {% endif %}
@@ -100,14 +95,14 @@
 <!-- Salinity time series -->
 {% if fig_sal_b64 %}
 <h2 id="sal">Salinity (all instruments)</h2>
-<p class="note">Values with QC flag &ge; 3 (suspect/bad) masked to NaN before plotting. All data values are in <code>{{ nc_file }}</code> without masking.</p>
+<p class="caption">Values with QC flag &ge; 3 (suspect/bad) masked to NaN before plotting. All data values are in <code>{{ nc_file }}</code> without masking.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_sal_b64 }}" alt="Salinity time series">
 {{- m.dbg(fig_sal_b64, "full (100%)") }}
 {% endif %}
 
 {% if fig_dissolved_oxygen_b64 %}
 <h2 id="dissolved-oxygen">Dissolved oxygen (all instruments)</h2>
-<p class="note">One line per instrument with dissolved oxygen data (SBE ODO sensor); QC flags &ge; 3 masked. Units: µmol L⁻¹. % saturation available in per-instrument reports.</p>
+<p class="caption">One line per instrument with dissolved oxygen data (SBE ODO sensor); QC flags &ge; 3 masked. Units: µmol L⁻¹. % saturation available in per-instrument reports.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_dissolved_oxygen_b64 }}" alt="Dissolved oxygen time series">
 {{- m.dbg(fig_dissolved_oxygen_b64, "full (100%)") }}
 {% endif %}
@@ -115,35 +110,35 @@
 <!-- Velocity time series -->
 {% if fig_east_vel_b64 %}
 <h2 id="vel">East velocity (U)</h2>
-<p class="note">ENU frame. Values with <code>velocity_flag</code> &ge; 3 masked to NaN before plotting. All data values are in <code>{{ nc_file }}</code> without masking. Instruments without velocity data omitted.</p>
+<p class="caption">ENU frame. Values with <code>velocity_flag</code> &ge; 3 masked to NaN before plotting. All data values are in <code>{{ nc_file }}</code> without masking. Instruments without velocity data omitted.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_east_vel_b64 }}" alt="East velocity time series">
 {{- m.dbg(fig_east_vel_b64, "full (100%)") }}
 {% endif %}
 
 {% if fig_north_vel_b64 %}
 <h2>North velocity (V)</h2>
-<p class="note">ENU frame. Values with <code>velocity_flag</code> &ge; 3 masked to NaN before plotting. All data values are in <code>{{ nc_file }}</code> without masking.</p>
+<p class="caption">ENU frame. Values with <code>velocity_flag</code> &ge; 3 masked to NaN before plotting. All data values are in <code>{{ nc_file }}</code> without masking.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_north_vel_b64 }}" alt="North velocity time series">
 {{- m.dbg(fig_north_vel_b64, "full (100%)") }}
 {% endif %}
 
 {% if fig_up_vel_b64 %}
 <h2>Vertical velocity (W)</h2>
-<p class="note">ENU frame. Values with <code>velocity_flag</code> &ge; 3 masked to NaN before plotting. All data values are in <code>{{ nc_file }}</code> without masking.</p>
+<p class="caption">ENU frame. Values with <code>velocity_flag</code> &ge; 3 masked to NaN before plotting. All data values are in <code>{{ nc_file }}</code> without masking.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_up_vel_b64 }}" alt="Vertical velocity time series">
 {{- m.dbg(fig_up_vel_b64, "full (100%)") }}
 {% endif %}
 
 {% if fig_turbidity_b64 %}
 <h2 id="turbidity">Turbidity</h2>
-<p class="note">One line per instrument with turbidity data; QC flags &ge; 3 masked. Dots overlaid to reveal individual samples near zero. Units from file attrs (verify: NTU, FTU, or V depending on sensor).</p>
+<p class="caption">One line per instrument with turbidity data; QC flags &ge; 3 masked. Dots overlaid to reveal individual samples near zero. Units from file attrs (verify: NTU, FTU, or V depending on sensor).</p>
 <img class="fig" src="data:image/png;base64,{{ fig_turbidity_b64 }}" alt="Turbidity time series">
 {{- m.dbg(fig_turbidity_b64, "full (100%)") }}
 {% endif %}
 
 {% if fig_trajectories_b64 or fig_adcp_trajectories_b64 %}
 <h2 id="trajectories">Particle trajectories</h2>
-<p class="note">
+<p class="caption">
   Pseudo-Lagrangian displacement: east/north velocity integrated over time
   (Euler forward; NaN velocities set to zero).  All trajectories share a common origin (0,&nbsp;0).
   Aquadopp: colour shows temperature (shared scale); end points labelled with serial and HAB.
@@ -169,7 +164,7 @@
 
 {% if fig_speed_profile_b64 %}
 <h2 id="speed-profile">Aquadopp speed profile</h2>
-<p class="note">
+<p class="caption">
   Horizontal boxplot per Aquadopp, positioned at its nominal height above bottom
   (per-instrument design value; does not account for mooring knockdown).
   Box = interquartile range; line = median; whiskers = 1.5&times;IQR; dots = outliers.
@@ -181,7 +176,7 @@
 
 {% if fig_analog_b64 %}
 <h2 id="analog">Analog channels</h2>
-<p class="note">
+<p class="caption">
   Full-record time series of analog channel variables containing non-zero, non-NaN data.
   One panel per channel.
 </p>
@@ -191,14 +186,14 @@
 
 {% if fig_ts_stack_b64 %}
 <h2 id="ts">T-S diagram</h2>
-<p class="note">Left: scatter coloured by pressure. Middle: 2-D count heatmap. Right (when oxygen data present): scatter coloured by O₂ saturation (%). Bad (flag&nbsp;4) and missing (flag&nbsp;9) excluded; interpolated pressure (flag&nbsp;8) retained.</p>
+<p class="caption">Left: scatter coloured by pressure. Middle: 2-D count heatmap. Right (when oxygen data present): scatter coloured by O₂ saturation (%). Bad (flag&nbsp;4) and missing (flag&nbsp;9) excluded; interpolated pressure (flag&nbsp;8) retained.</p>
 <img class="fig" src="data:image/png;base64,{{ fig_ts_stack_b64 }}" alt="T-S diagram">
 {{- m.dbg(fig_ts_stack_b64, "full (100%)") }}
 {% endif %}
 
 {% if fig_rose_grid_b64 %}
 <h2 id="roses">Current rose diagrams</h2>
-<p class="note">Direction the current flows toward (oceanographic convention, 0&deg;=N). Speed coloured light&rarr;dark blue (slow&rarr;fast). QC-flagged samples excluded. Title shows serial number and height above bottom (m).</p>
+<p class="caption">Direction the current flows toward (oceanographic convention, 0&deg;=N). Speed coloured light&rarr;dark blue (slow&rarr;fast). QC-flagged samples excluded. Title shows serial number and height above bottom (m).</p>
 {% if rose_declination_warn %}
 <p style="font-size:0.82rem;background:var(--warn-bg);border-left:4px solid var(--warn);padding:0.5rem 0.8rem;margin-bottom:0.6rem;">
   ⚠ Magnetic declination could not be applied to
@@ -208,14 +203,14 @@
   Affected ENU velocities currently use 0° declination (magnetic north, not true north).
 </p>
 {% endif %}
-{% if rose_declination_note %}<p class="note">{{ rose_declination_note }}</p>{% endif %}
+{% if rose_declination_note %}<p class="caption">{{ rose_declination_note }}</p>{% endif %}
 <img class="fig slot-full" src="data:image/png;base64,{{ fig_rose_grid_b64 }}" alt="Current rose grid">
 {{- m.dbg(fig_rose_grid_b64, "slot-full") }}
 {% endif %}
 
 {% if fig_aquadopp_tilt_b64 %}
 <h2 id="tilt">Aquadopp tilt (|pitch| / |roll| / pressure estimate)</h2>
-<p class="note">
+<p class="caption">
   One panel per Aquadopp (deep-first). Blue = |pitch|, green = |roll|, orange dashed = tilt
   estimated from pressure difference between the Aquadopp and the nearest instrument &ge;10 m above
   with valid pressure (arccos(&Delta;P / rope length)).  All curves are non-negative.
@@ -229,14 +224,14 @@
 
 {% if fig_spacing_b64 %}
 <h2 id="spacing">Adjacent instrument spacing</h2>
-<p class="note">Distribution of pressure differences between adjacent instrument pairs (pairs &lt; 2 dbar apart excluded as co-located).</p>
+<p class="caption">Distribution of pressure differences between adjacent instrument pairs (pairs &lt; 2 dbar apart excluded as co-located).</p>
 <img style="max-width:33%;border:1px solid var(--rule);border-radius:4px" src="data:image/png;base64,{{ fig_spacing_b64 }}" alt="Instrument spacing histogram">
 {{- m.dbg(fig_spacing_b64, "max-width 33%") }}
 {% endif %}
 
 {% if fig_clock_check_b64 %}
 <h2 id="clock-check">Clock alignment check</h2>
-<p class="note">
+<p class="caption">
   Temperature records from all instruments overlaid, zoomed to the first and last
   10&thinsp;minutes of the deployment.  A horizontal shift between curves indicates
   a clock offset between instruments.  Data are from stage&#8209;3 (or stage&#8209;2

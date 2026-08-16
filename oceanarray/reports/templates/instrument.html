@@ -3,18 +3,10 @@
 {% block title %}{{ instr_type | title }} &ndash; s/n {{ serial }}{% endblock %}
 {% block page_styles %}
   :root { --accent:#1e8449; --accent-link:#d5f5e3; }
-  .file-table { width:100%; border-collapse:collapse; font-size:0.81rem; margin-bottom:1.2rem; }
-  .file-table th { background:var(--seafoam); color:var(--text); text-align:left;
-                   padding:0.35rem 0.65rem; border-bottom:2px solid #cde; font-weight:700; }
-  .file-table td { padding:0.3rem 0.65rem; border-bottom:1px solid #eef; vertical-align:middle; }
-  .file-table tr:nth-child(even) td { background:#f4f9fc; }
+  /* Table style is canonical in emit_css now; only the file-table's cell
+     colour classes remain page-specific. */
   .file-table .ok { color:var(--good); font-weight:700; }
-  .file-table .miss { color:#bbb; }
-  table { width:100%; border-collapse:collapse; font-size:0.82rem; }
-  th { background:var(--ocean); color:#fff; padding:0.4rem 0.65rem;
-       text-align:left; font-weight:600; white-space:nowrap; }
-  td { padding:0.35rem 0.65rem; border-bottom:1px solid #ecf0f1; vertical-align:middle; }
-  tr:nth-child(even) td { background:var(--seafoam); }
+  .file-table .miss { color:var(--gray-3); }
   .badge { display:inline-block; padding:0.12em 0.45em; border-radius:3px;
            font-size:0.7rem; font-weight:700; white-space:nowrap; }
   .b-ok   { background:var(--good);   color:#fff; }
@@ -254,14 +246,14 @@
 <!-- ══ Speed distribution ══ -->
 {% if fig_speed_boxplot_b64 %}
 <h2 id="speed">Current speed distribution</h2>
-<img class="fig" src="data:image/png;base64,{{ fig_speed_boxplot_b64 }}" style="max-width:300px;">
-{{- m.dbg(fig_speed_boxplot_b64, "max-width 300px") }}
+<img class="fig slot-{{ slot_for(fig_speed_boxplot_b64) }}" src="data:image/png;base64,{{ fig_speed_boxplot_b64 }}">
+{{- m.dbg(fig_speed_boxplot_b64, "slot-" ~ slot_for(fig_speed_boxplot_b64)) }}
 {% endif %}
 
 <!-- ══ Analog channels ══ -->
 {% if fig_analog_b64 %}
 <h2 id="analog">Analog channels</h2>
-<p class="note">
+<p class="caption">
   Full-record time series of analog channel variables containing non-zero, non-NaN data.
   One panel per channel.
   Labels and units are read from the mooring YAML — update them there to change what appears here.

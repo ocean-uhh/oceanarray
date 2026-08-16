@@ -54,8 +54,10 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 /* Figures never exceed the content column; the oversampled PNG downscales
    crisply (spec §11 OVERSAMPLE). Pages may override (e.g. array uses 60%). */
 .fig { max-width:100%; height:auto; display:block; }
-td.num { text-align:right; font-variant-numeric:tabular-nums; }
-td.mono { font-family:var(--font-mono); font-size:var(--fs-xs); }
+/* A bare .fig (no slot class) is a full-width figure: fill the column. A
+   slot-* figure gets its width from the .slot-* rule instead — so this must NOT
+   apply to slotted figures (that was the width:100%-overrides-slot bug). */
+.fig:not([class*="slot-"]) { width:100%; }
 .none-note { color:var(--muted); font-style:italic; }
 .var-qc { color:var(--good); font-size:var(--fs-xs); }
 /* Figure-debug line under a plot (OCEANARRAY_REPORT_DEBUG=1): slot the
