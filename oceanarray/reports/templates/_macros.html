@@ -22,8 +22,8 @@
 {% if p.caption %}<p class="caption">{{ p.caption }}</p>
 {% endif -%}
 <details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig slot-{{ p.slot }}" src="data:image/png;base64,{{ p.payload }}" alt="{{ p.id }}">
-{{- dbg(p.payload, "slot-" ~ p.slot) }}
+<img class="fig{% if p.slot %} slot-{{ p.slot }}{% endif %}" src="data:image/png;base64,{{ p.payload }}" alt="{{ p.id }}">
+{{- dbg(p.payload, ("slot-" ~ p.slot) if p.slot else "full-canvas") }}
 </details>
 {%- else %}
 {% if p.caption %}<p class="caption">{{ p.caption }}</p>

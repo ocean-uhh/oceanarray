@@ -66,3 +66,32 @@ def render_template(name: str, /, **context: Any) -> str:
     """
     context.setdefault("debug", _figdebug.enabled())
     return _ENV.get_template(name).render(**context)
+
+
+# ---------------------------------------------------------------------------
+# Shared report partials — one copy of the history list and the NetCDF metadata
+# tables, rendered to markup for manifest ``html``/``table`` panel payloads on
+# every page (grid, stack, instrument, mooring).  The template files are still
+# named ``_grid_*.html`` for now; renaming them to ``_report_*.html`` is a
+# cosmetic follow-up (needs ``git mv``), tracked in minor-fixes.
+# ---------------------------------------------------------------------------
+
+
+def render_history(history_entries: Any) -> str:
+    """Render the processing-history list to markup (``history`` panel payload)."""
+    return render_template("_grid_history.html", history_entries=history_entries)
+
+
+def render_nc_variables(nc_meta: Any, nc_file: str) -> str:
+    """Render the NetCDF time-variable table (``nc_variables`` panel payload)."""
+    return render_template("_grid_nc_variables.html", nc_meta=nc_meta, nc_file=nc_file)
+
+
+def render_nc_scalars(nc_meta: Any) -> str:
+    """Render the scalar-metadata table (``nc_scalars`` panel payload)."""
+    return render_template("_grid_nc_scalars.html", nc_meta=nc_meta)
+
+
+def render_nc_globals(nc_meta: Any) -> str:
+    """Render the global-attributes table (``nc_globals`` panel payload)."""
+    return render_template("_grid_nc_globals.html", nc_meta=nc_meta)

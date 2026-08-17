@@ -1,0 +1,11 @@
+{# NetCDF dimensions table — the `nc_dims` panel payload (kind="table"). #}
+{% if nc_meta.dims %}
+<table class="var-table" style="max-width:28rem">
+  <thead><tr><th>Dimension</th><th class="num">Size</th></tr></thead>
+  <tbody>
+    {% for dim, size in nc_meta.dims.items() %}
+    <tr><td class="mono">{{ dim }}</td><td class="num">{{ "{:,}".format(size) }}</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}

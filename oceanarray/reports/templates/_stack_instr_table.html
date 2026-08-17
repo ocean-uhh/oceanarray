@@ -1,0 +1,16 @@
+{# Deep-first instrument summary table — the `instr_table` panel payload
+   (kind="table").  Serials link to per-instrument reports when they exist. #}
+<table class="instr-table">
+  <thead><tr><th>#</th><th>Type</th><th>Serial</th><th>HAB (m)</th><th>~Depth (m)</th></tr></thead>
+  <tbody>
+  {% for row in instr_rows %}
+  <tr>
+    <td>{{ loop.index0 }}</td>
+    <td>{{ row.instr_type }}</td>
+    <td>{% if row.report_exists %}<a href="{{ row.report_href }}">{{ row.serial }}</a>{% else %}{{ row.serial }}{% endif %}</td>
+    <td>{{ row.hab }}</td>
+    <td>{{ row.depth }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>

@@ -7,10 +7,6 @@
      .fig fills via base.html's max-width:100%.  Setting width:100% here would
      override the slot and force every figure full-width (U0.2). */
   .fig { border:1px solid var(--rule); border-radius:var(--radius-btn); margin-bottom:0.5rem; }
-  details summary.collapse-toggle { color:var(--muted); font-size:0.76rem; cursor:pointer;
-    list-style:none; padding:0.15rem 0 0.4rem; user-select:none; }
-  details summary.collapse-toggle::before { content:"▾ "; }
-  details[open] summary.collapse-toggle::before { content:"▴ "; }
   /* Dense NetCDF-table sub-headings and cells (rep/06 sweep). Values verbatim
      from the attributes they replaced; they relocate to a shared sheet when the
      other pages port. */
