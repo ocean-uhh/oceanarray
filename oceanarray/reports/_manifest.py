@@ -33,6 +33,11 @@ def _always(_ctx: Any) -> bool:
     return True
 
 
+def _unavailable_never(_ctx: Any) -> str | None:
+    """Return None for any context (the default ``unavailable_if`` predicate)."""
+    return None
+
+
 # ---------------------------------------------------------------------------
 # Authored model — what a profile is built from
 # ---------------------------------------------------------------------------
@@ -68,6 +73,14 @@ class Panel:
     applies_to : Callable, optional
         Predicate deciding whether the panel is attempted at all.  ``False``
         omits the panel silently (it is excluded, not merely unavailable).
+    unavailable_if : Callable, optional
+        Precondition checked *before* ``render``: given the context, return a
+        reason string when the panel applies but cannot be produced (e.g. a
+        required metadata field is missing), or ``None`` to proceed.  A returned
+        reason becomes a ``.warn`` stub *with that reason* and ``render`` is not
+        called.  This is the channel for defects knowable from context; a
+        ``render`` that still returns ``None`` gets the generic stub reason,
+        because that is the "should have worked and didn't" case.
 
     """
 
@@ -77,6 +90,30 @@ class Panel:
     slot: str | Callable[[Any], str] = "full"
     caption: str | None = None
     applies_to: Callable[[Any], bool] = _always
+    unavailable_if: Callable[[Any], str | None] = _unavailable_never
+
+
+@dataclass(frozen=True)
+class PanelGroup:
+    """A :attr:`Section.panels` entry that expands to N panels at resolution time.
+
+    Places a data-driven run of panels — one per item — under a single heading
+    without inflating the section count.  Use this (not :class:`Expand`) when the
+    run is over a *numeric or unbounded* set, e.g. one panel per isopycnal;
+    reserve :class:`Expand`'s section-level expansion for a *closed editorial
+    vocabulary*.  Numbering reflects editorial structure, not data cardinality.
+
+    Parameters
+    ----------
+    over : Callable
+        Returns the sequence of items to expand over, in display order.
+    panel : Callable
+        Builds one :class:`Panel` per item yielded by ``over``.
+
+    """
+
+    over: Callable[[Any], Sequence[Any]]
+    panel: Callable[[Any], Panel]
 
 
 @dataclass(frozen=True)
@@ -90,8 +127,10 @@ class Section:
         and the cross-reference key.
     title : str
         Human-readable heading text (without a number — the number is computed).
-    panels : tuple of str
-        Panel ids, in display order.
+    panels : tuple of (str or PanelGroup)
+        Panel ids, in display order.  An entry may instead be a
+        :class:`PanelGroup`, which expands to a data-driven run of panels under
+        this one heading.
     level : int, optional
         Heading level (``2`` for ``<h2>``).
     intro : str, optional
@@ -109,7 +148,7 @@ class Section:
 
     id: str
     title: str
-    panels: tuple[str, ...]
+    panels: tuple[str | PanelGroup, ...]
     level: int = 2
     intro: str | None = None
     applies_to: Callable[[Any], bool] | None = None
@@ -230,11 +269,27 @@ def _expand(entries: Sequence[Section | Expand], ctx: Any) -> list[Section]:
     return out
 
 
+def _section_panels(sec: Section, ctx: Any, panels: dict[str, Panel]) -> list[Panel]:
+    """Flatten a section's entries to concrete panels: ids looked up, groups expanded.
+
+    A :class:`PanelGroup` entry is expanded by calling ``over(ctx)`` and building
+    one panel per item, spliced in place; a string entry is looked up in the
+    registry.
+    """
+    out: list[Panel] = []
+    for entry in sec.panels:
+        if isinstance(entry, PanelGroup):
+            out.extend(entry.panel(item) for item in entry.over(ctx))
+        else:
+            out.append(panels[entry])
+    return out
+
+
 def _section_applies(sec: Section, ctx: Any, panels: dict[str, Panel]) -> bool:
     """Decide whether *sec* is included: explicit predicate, else any panel applies."""
     if sec.applies_to is not None:
         return bool(sec.applies_to(ctx))
-    return any(panels[pid].applies_to(ctx) for pid in sec.panels)
+    return any(p.applies_to(ctx) for p in _section_panels(sec, ctx, panels))
 
 
 def _resolve_slot(panel: Panel, ctx: Any) -> str:
@@ -250,12 +305,18 @@ def _resolve_panels(
     A kept section whose panels all drop out (none apply, or all render None)
     keeps one stub so the heading is never empty.
     """
+    concrete = _section_panels(sec, ctx, panels)
     resolved: list[ResolvedPanel] = []
-    for pid in sec.panels:
-        panel = panels[pid]
+    for panel in concrete:
         if not panel.applies_to(ctx):
             continue
-        payload = panel.render(ctx)
+        reason = panel.unavailable_if(ctx)
+        if reason is not None:
+            # Precondition failed: stub with the specific reason, do not render.
+            payload, stub_reason = None, reason
+        else:
+            payload = panel.render(ctx)
+            stub_reason = None if payload is not None else _STUB_REASON
         resolved.append(
             ResolvedPanel(
                 id=panel.id,
@@ -263,12 +324,12 @@ def _resolve_panels(
                 slot=_resolve_slot(panel, ctx),
                 payload=payload,
                 caption=panel.caption,
-                stub_reason=None if payload is not None else _STUB_REASON,
+                stub_reason=stub_reason,
             )
         )
     if not resolved:
         # Kept but empty (case 2): keep the heading with a single stub.
-        first = panels[sec.panels[0]] if sec.panels else None
+        first = concrete[0] if concrete else None
         resolved.append(
             ResolvedPanel(
                 id=first.id if first else f"{sec.id}_stub",
@@ -282,7 +343,13 @@ def _resolve_panels(
     return tuple(resolved)
 
 
-def resolve(profile: Profile, ctx: Any, panels: dict[str, Panel]) -> ResolvedReport:
+def resolve(
+    profile: Profile,
+    ctx: Any,
+    panels: dict[str, Panel],
+    *,
+    drop_stub: bool = False,
+) -> ResolvedReport:
     """Resolve *profile* against *ctx* into a numbered :class:`ResolvedReport`.
 
     One pass: expand :class:`Expand` entries, drop sections whose ``applies_to``
@@ -299,6 +366,15 @@ def resolve(profile: Profile, ctx: Any, panels: dict[str, Panel]) -> ResolvedRep
         (dataset, config, paths — whatever the page's panels need).
     panels : dict of str to Panel
         The panel registry; section ``panels`` entries are ids into this map.
+    drop_stub : bool, optional
+        When True, a section that *applies* but whose panels are *all* stubs
+        (applicable-but-entirely-unavailable) is dropped and the survivors
+        renumber over it, so the page closes cleanly.  Default False keeps the
+        heading with its stub, which surfaces the failure rather than hiding it.
+        A section dropped this way is **not** added to ``not_applicable`` — that
+        list stays reserved for genuinely-not-applicable-to-this-deployment
+        sections, so a plot failure never reads as "not applicable".  A section
+        with any non-stub panel is never dropped.
 
     Returns
     -------
@@ -326,7 +402,12 @@ def resolve(profile: Profile, ctx: Any, panels: dict[str, Panel]) -> ResolvedRep
         if not _section_applies(sec, ctx, panels):
             not_applicable.append(sec.title)
             continue
-        kept.append((sec, _resolve_panels(sec, ctx, panels)))
+        rpanels = _resolve_panels(sec, ctx, panels)
+        if drop_stub and all(p.is_stub for p in rpanels):
+            # Applicable but entirely unavailable: drop silently, renumber over
+            # it.  Not added to not_applicable — that is case-1 only.
+            continue
+        kept.append((sec, rpanels))
 
     resolved: list[ResolvedSection] = []
     content_n = 0
