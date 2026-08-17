@@ -1,0 +1,51 @@
+{# Sensor-calibration table with collapsible coefficient cells.  The
+   `calibration` panel payload (kind="html").  The `details.coeff` style block
+   moved to mooring.html page_styles. #}
+{% set has_sensors = instruments | selectattr("sensors") | list %}
+{% if has_sensors %}
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Type</th>
+      <th>Instr&nbsp;S/N</th>
+      <th>Sensor</th>
+      <th>Model</th>
+      <th>Sensor&nbsp;S/N</th>
+      <th>Cal&nbsp;date</th>
+      <th>Coefficients</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% set ns = namespace(idx=0) %}
+    {% for instr in instruments %}
+      {% if instr.sensors %}
+        {% set ns.idx = ns.idx + 1 %}
+        {% for sensor in instr.sensors %}
+        <tr>
+          <td class="num">{% if loop.index0 == 0 %}{{ ns.idx }}{% endif %}</td>
+          <td>{% if loop.index0 == 0 %}{{ instr.instr_type }}{% endif %}</td>
+          <td>{% if loop.index0 == 0 %}<code>{{ instr.serial }}</code>{% endif %}</td>
+          <td>{{ sensor.sensor_type | title }}</td>
+          <td>{{ sensor.sensor_model }}</td>
+          <td><code>{{ sensor.sensor_serial }}</code></td>
+          <td>{{ sensor.cal_date }}</td>
+          <td>
+            {% if sensor.coefficients %}
+            <details class="coeff">
+              <summary>show</summary>
+              <pre>{{ sensor.coefficients }}</pre>
+            </details>
+            {% else %}
+            <span class="none-note">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      {% endif %}
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="none-note">No sensor calibration metadata found in processed files.</p>
+{% endif %}

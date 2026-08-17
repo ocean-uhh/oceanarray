@@ -1,0 +1,156 @@
+{# Deployment-timing intro prose + timing table + two-column YAML textarea
+   comparison.  The `timing` panel payload (kind="html"). #}
+<p style="font-size:0.82rem;color:var(--gray-5);margin-top:-0.5rem;">
+  <em>Stage&nbsp;1</em> and <em>Sugg.&nbsp;(raw)</em> columns are in the <strong>raw
+  instrument clock</strong> (uncorrected).  <em>Sugg.&nbsp;UTC</em> columns
+  apply the constant clock offset (and drift, for the end) and are safe to
+  paste into the YAML <code>deployment_time</code> /
+  <code>recovery_time</code> fields.  Suggested UTC cells are highlighted
+  <span style="background:var(--hl-amber);padding:0 0.3em">amber</span> when the
+  pressure-derived suggested time differs from the YAML time by more than
+  2&thinsp;&Delta;t (indicating a sinking/rising transient was detected).
+  The Stage&nbsp;1 last cell is highlighted
+  <span style="background:var(--hl-orange);padding:0 0.3em">orange</span> when the
+  raw record ended more than 2&thinsp;&Delta;t before the YAML recovery time
+  (instrument may have stopped early).
+  Serial numbers link to the per-instrument report; the
+  <em>6&thinsp;h</em> link jumps directly to the start/end window plots.
+</p>
+<p style="font-size:0.85rem;background:var(--warn-bg);border-left:3px solid var(--warn);padding:0.5em 0.8em;margin:0.6rem 0">
+  <strong>Spot-check recommended:</strong> open the 6&thinsp;h start/end
+  window plots for each instrument (click <em>6&thinsp;h</em>) and visually
+  confirm that the orange suggested line (or green YAML line if they match)
+  sits at a plausible transition in the pressure (or temperature) record
+  before updating the YAML times.
+</p>
+<div style="overflow-x:auto">
+<table style="font-size:0.8rem;white-space:nowrap">
+  <thead>
+    <tr>
+      <th rowspan="2">#</th>
+      <th rowspan="2">Type</th>
+      <th rowspan="2">S/N</th>
+      <th colspan="3" style="text-align:center;border-bottom:1px solid var(--gray-3)">Start</th>
+      <th colspan="3" style="text-align:center;border-bottom:1px solid var(--gray-3)">End</th>
+    </tr>
+    <tr>
+      <th>Stage1 first</th>
+      <th>Sugg.&nbsp;start (raw)</th>
+      <th>Sugg.&nbsp;start (UTC)</th>
+      <th>Stage1 last</th>
+      <th>Sugg.&nbsp;end (raw)</th>
+      <th>Sugg.&nbsp;end (UTC)</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for instr in instruments %}
+    {% set tm = instr.timing %}
+    <tr>
+      <td class="num">{{ loop.index }}</td>
+      <td>{{ instr.instr_type }}</td>
+      <td>
+        <a href="instrument/{{ mooring_name }}_{{ instr.serial }}_report.html"
+           title="Per-instrument report"><code>{{ instr.serial }}</code></a>
+        <a href="instrument/{{ mooring_name }}_{{ instr.serial }}_report.html#start"
+           style="font-size:0.75rem;margin-left:0.3em;color:var(--interp)"
+           title="Start/end 6 h windows">6&thinsp;h</a>
+      </td>
+      {% if tm %}
+        {# Anchor dates for deduplication: show only time when on the same day #}
+        {% set d_start = (tm.get("stage1_start") or "")[:10] %}
+        {% set d_end   = (tm.get("stage1_end")   or "")[:10] %}
+        {# Stage1 first — always full date+time; anchors deduplication for start columns #}
+        <td>{{ tm.get("stage1_start") or "—" }}</td>
+        {# Sugg. start (raw) — only present for pressure instruments; time only when same date #}
+        {% set v = tm.get("sugg_start") or "" %}
+        <td{% if tm.get("sugg_start_differs") %} style="background:var(--hl-amber)"{% endif %}>
+          {{- v[11:] if (v and v[:10] == d_start) else (v or "—") -}}
+        </td>
+        {# Sugg. start (UTC) #}
+        {% set v = tm.get("sugg_start_utc") or "" %}
+        <td{% if tm.get("sugg_start_differs") %} style="background:var(--hl-amber)"{% endif %}>
+          {{- v[11:] if (v and v[:10] == d_start) else (v or "—") -}}
+        </td>
+        {# Stage1 last — orange-amber when instrument stopped early #}
+        <td{% if tm.get("stage1_end_early") %} style="background:var(--hl-orange)"{% endif %}>
+          {{- tm.get("stage1_end") or "—" -}}
+        </td>
+        {# Sugg. end (raw) #}
+        {% set v = tm.get("sugg_end") or "" %}
+        <td{% if tm.get("sugg_end_differs") %} style="background:var(--hl-amber)"{% endif %}>
+          {{- v[11:] if (v and v[:10] == d_end) else (v or "—") -}}
+        </td>
+        {# Sugg. end (UTC) #}
+        {% set v = tm.get("sugg_end_utc") or "" %}
+        <td{% if tm.get("sugg_end_differs") %} style="background:var(--hl-amber)"{% endif %}>
+          {{- v[11:] if (v and v[:10] == d_end) else (v or "—") -}}
+        </td>
+      {% elif instr.skipped %}
+        <td colspan="6" class="none-note">skipped</td>
+      {% else %}
+        <td colspan="6" class="none-note">no stage 2 file</td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </tbody>
+  {% if rec_deploy_sec or rec_recover_sec %}
+  <tfoot>
+    <tr style="background:var(--seafoam);font-weight:600;border-top:2px solid var(--ocean)">
+      <td class="num">★</td>
+      <td colspan="2" style="font-style:italic">Mooring</td>
+      <td><span class="none-note">—</span></td>
+      <td style="font-style:italic">Mooring start</td>
+      <td>{{ rec_deploy_sec or "—" }}</td>
+      <td><span class="none-note">—</span></td>
+      <td style="font-style:italic">Mooring end</td>
+      <td>{{ rec_recover_sec or "—" }}</td>
+    </tr>
+  </tfoot>
+  {% endif %}
+</table>
+</div>
+
+{% if yaml_deploy_time or yaml_recover_time or rec_deploy or rec_recover %}
+<div style="margin:1.2rem 0 0.5rem">
+{% if rec_differs %}
+<p style="font-size:0.82rem;color:var(--gray-5);margin:0 0 0.4rem">
+  <strong>Deployment times</strong> — pressure-based instruments suggest times that differ
+  from the current YAML.  Copy the suggested snippet (blue border) into your YAML file.
+  Times are given to the minute.
+</p>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem">
+  <div>
+    <p style="font-size:0.78rem;color:var(--gray-4);margin:0 0 0.2rem;font-weight:600">
+      Current YAML</p>
+    <textarea readonly rows="2"
+      style="width:100%;font-family:monospace;font-size:0.85rem;padding:0.5rem 0.6rem;
+             border:1px solid var(--gray-3);border-radius:4px;background:var(--rule);
+             resize:vertical;color:var(--gray-5)"
+      onclick="this.select()">deployment_time: '{{ yaml_deploy_time or '?' }}'
+recovery_time:   '{{ yaml_recover_time or '?' }}'</textarea>
+  </div>
+  <div>
+    <p style="font-size:0.78rem;color:var(--gray-4);margin:0 0 0.2rem;font-weight:600">
+      Suggested (copy &rarr; paste into YAML)</p>
+    <textarea readonly rows="2"
+      style="width:100%;font-family:monospace;font-size:0.85rem;padding:0.5rem 0.6rem;
+             border:1px solid var(--interp);border-radius:4px;background:var(--bg-sunken);
+             resize:vertical;color:var(--text)"
+      onclick="this.select()">deployment_time: '{{ rec_deploy or '?' }}'
+recovery_time:   '{{ rec_recover or '?' }}'</textarea>
+  </div>
+</div>
+{% else %}
+<p style="font-size:0.82rem;color:var(--good);margin:0 0 0.4rem">
+  &#10003; Current YAML times match the pressure-based suggestion from the instruments.</p>
+<p style="font-size:0.78rem;color:var(--gray-4);margin:0 0 0.2rem;font-weight:600">
+  Current YAML times</p>
+<textarea readonly rows="2"
+  style="width:40%;font-family:monospace;font-size:0.85rem;padding:0.5rem 0.6rem;
+         border:1px solid var(--gray-3);border-radius:4px;background:var(--rule);
+         resize:vertical;color:var(--gray-5)"
+  onclick="this.select()">deployment_time: '{{ yaml_deploy_time or '?' }}'
+recovery_time:   '{{ yaml_recover_time or '?' }}'</textarea>
+{% endif %}
+</div>
+{% endif %}

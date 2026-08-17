@@ -1,0 +1,59 @@
+{# Clock-corrections intro prose + per-instrument offset/drift table.  The
+   `clock_table` panel payload (kind="html").  The clock-alignment-check figure
+   is a separate figure panel. #}
+<p style="font-size:0.82rem;color:var(--gray-5);margin-top:-0.5rem;">
+  Positive drift/offset = instrument was <em>slow</em> (behind UTC); correction shifts times later.
+  Negative = instrument was <em>fast</em> (ahead of UTC); correction shifts times earlier.
+</p>
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Type</th>
+      <th>S/N</th>
+      <th>Hab&nbsp;(m)</th>
+      <th>Offset&nbsp;(s)</th>
+      <th>Computer time at recovery</th>
+      <th>Instrument time at recovery</th>
+      <th>Drift&nbsp;(s)</th>
+      <th>Source</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for instr in instruments %}
+    <tr>
+      <td class="num">{{ loop.index }}</td>
+      <td>{{ instr.instr_type }}</td>
+      <td><code>{{ instr.serial }}</code></td>
+      <td class="num">{{ "%.1f"|format(instr.hab) }}</td>
+      <td class="num">
+        {% if instr.clock.offset_s == 0 %}
+          <span class="none-note">—</span>
+        {% elif instr.clock.offset_s > 0 %}
+          <span class="pos">+{{ "%.1f"|format(instr.clock.offset_s) }}</span>
+        {% else %}
+          <span class="neg">{{ "%.1f"|format(instr.clock.offset_s) }}</span>
+        {% endif %}
+      </td>
+      <td>{% if instr.clock.computer_time %}{{ instr.clock.computer_time }}{% else %}<span class="none-note">—</span>{% endif %}</td>
+      <td>{% if instr.clock.instrument_time %}{{ instr.clock.instrument_time }}{% else %}<span class="none-note">—</span>{% endif %}</td>
+      <td class="num">
+        {% if instr.clock.drift_s is none or instr.clock.drift_s == 0 %}
+          <span class="none-note">—</span>
+        {% elif instr.clock.drift_s > 0 %}
+          <span class="pos">+{{ "%.1f"|format(instr.clock.drift_s) }}</span>
+        {% else %}
+          <span class="neg">{{ "%.1f"|format(instr.clock.drift_s) }}</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if instr.clock.method == "none" %}
+          <span class="none-note">none</span>
+        {% else %}
+          {{ instr.clock.method }}
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>

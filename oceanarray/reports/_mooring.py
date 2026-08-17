@@ -35,6 +35,7 @@ from . import _figdebug, _slots
 from ._env import render_template
 from ._grid import generate_grid_page
 from ._instrument import generate_instrument_pages
+from ._manifest import Panel, Profile, Section, resolve
 from ._plots import (
     _make_clock_check_b64,
     _make_knockdown_displacement_b64,
@@ -43,6 +44,176 @@ from ._plots import (
 )
 from ._stack import generate_stack_page
 from ..utilities import extract_inline_instruments
+
+
+# ---------------------------------------------------------------------------
+# Section manifest — mooring registry (rep/07)
+#
+# The context is the ``ctx`` dict ``_build_context`` already returns (instrument
+# records + figures + timing/QC fields), so panels read it by key — the same
+# dict-context pattern the instrument page uses.  Bespoke tables/prose render
+# through html sub-templates (emitted ``|safe``); the four figure panels
+# (clock-check + three knockdown) are bare-``.fig`` panels whose payload is the
+# base64 PNG and whose caption is a plain-text data field.  The hand-typed
+# section numbers ("2 —", "3 —", …) are dropped: the resolver numbers the
+# rendered subset ``1..N`` automatically, which fixes the old off-by-one start.
+# ---------------------------------------------------------------------------
+
+
+#: Mooring figure captions, keyed by panel id — plain text, Unicode notation.
+MOORING_CAPTIONS: dict[str, str] = {
+    "clock_check": (
+        "Clock alignment check. Overlaid temperature records zoomed to the first "
+        "and last 30 minutes of the deployment. If instrument clocks are "
+        "misaligned the temperature curves will appear shifted in time. Data are "
+        "from stage 3 (or stage 2 if stage 3 is not yet available). Instruments "
+        "with no temperature data are omitted."
+    ),
+    "knockdown_hab": (
+        "Nominal HAB (x) vs. measured pressure (y). The dashed line shows "
+        "expected pressure (water depth − HAB). Instruments below the line were "
+        "knocked down. Interpolated pressure (QC flag 8) excluded."
+    ),
+    "knockdown_anomaly": (
+        "IQR of pressure anomaly (measured − nominal) per instrument. Positive = "
+        "deeper than design depth. Green < 100 dbar, yellow 100–200, amber "
+        "200–300, red > 300 dbar."
+    ),
+    "knockdown_displacement": (
+        "Estimated horizontal displacement (m) vs. measured pressure. Left: "
+        "scatter per instrument; right: normalised 2-D density across all "
+        "instruments. Displacement derived from the rigid-pendulum "
+        "approximation: x = √(hab_nom² − hab_meas²)."
+    ),
+}
+
+
+def _fig_panel(pid: str, fig_key: str) -> Panel:
+    """Build a bare-``.fig`` mooring figure panel that reads *fig_key* from ctx."""
+    return Panel(
+        pid,
+        render=lambda c, _k=fig_key: c.get(_k),
+        slot=None,
+        caption=MOORING_CAPTIONS.get(pid),
+        applies_to=lambda c, _k=fig_key: bool(c.get(_k)),
+    )
+
+
+#: Mooring panel registry (dict-context: panels read ctx by key).
+MOORING_PANELS: dict[str, Panel] = {
+    "pipeline": Panel(
+        "pipeline",
+        render=lambda c: render_template(
+            "_mooring_pipeline.html",
+            instruments=c["instruments"],
+            mooring_name=c["mooring_name"],
+        ),
+        kind="html",
+    ),
+    "instruments": Panel(
+        "instruments",
+        render=lambda c: render_template(
+            "_mooring_instruments.html",
+            instruments=c["instruments"],
+            mooring_name=c["mooring_name"],
+            grid_p_start=c["grid_p_start"],
+            grid_p_end=c["grid_p_end"],
+        ),
+        kind="html",
+    ),
+    "timing": Panel(
+        "timing",
+        render=lambda c: render_template(
+            "_mooring_timing.html",
+            instruments=c["instruments"],
+            mooring_name=c["mooring_name"],
+            rec_deploy=c["rec_deploy"],
+            rec_recover=c["rec_recover"],
+            rec_deploy_sec=c["rec_deploy_sec"],
+            rec_recover_sec=c["rec_recover_sec"],
+            rec_differs=c["rec_differs"],
+            yaml_deploy_time=c["yaml_deploy_time"],
+            yaml_recover_time=c["yaml_recover_time"],
+        ),
+        kind="html",
+    ),
+    "clock_table": Panel(
+        "clock_table",
+        render=lambda c: render_template(
+            "_mooring_clock_table.html", instruments=c["instruments"]
+        ),
+        kind="html",
+    ),
+    "clock_check": _fig_panel("clock_check", "fig_clock_check_b64"),
+    "calibration": Panel(
+        "calibration",
+        render=lambda c: render_template(
+            "_mooring_calibration.html", instruments=c["instruments"]
+        ),
+        kind="html",
+    ),
+    "qc": Panel(
+        "qc",
+        render=lambda c: render_template(
+            "_mooring_qc.html", instruments=c["instruments"]
+        ),
+        kind="html",
+    ),
+    "knockdown_hab": _fig_panel("knockdown_hab", "fig_knockdown_hab_b64"),
+    "knockdown_anomaly": _fig_panel("knockdown_anomaly", "fig_knockdown_anomaly_b64"),
+    "knockdown_displacement": _fig_panel(
+        "knockdown_displacement", "fig_knockdown_displacement_b64"
+    ),
+    "diagram": Panel(
+        "diagram",
+        render=lambda c: render_template(
+            "_mooring_diagram.html", diagram_b64=c["diagram_b64"]
+        ),
+        kind="html",
+        applies_to=lambda c: bool(c.get("diagram_b64")),
+    ),
+    "issues": Panel(
+        "issues",
+        render=lambda c: render_template("_mooring_issues.html", issues=c["issues"]),
+        kind="html",
+        applies_to=lambda c: bool(c.get("issues", {}).get("any")),
+    ),
+}
+
+
+#: Mooring sections, in display order.  Numbering is automatic (``1..N`` over the
+#: rendered subset), replacing the hand-typed "2 —"/"3 —"/… headings.
+MOORING_SECTIONS: dict[str, Section] = {
+    "pipeline": Section("pipeline", "Processing pipeline", ("pipeline",)),
+    "instruments": Section("instruments", "Instrument summary", ("instruments",)),
+    "timing": Section("timing", "Deployment timing", ("timing",)),
+    "clock": Section("clock", "Clock corrections", ("clock_table", "clock_check")),
+    "calibration": Section("calibration", "Sensor calibration", ("calibration",)),
+    "qc": Section("qc", "QC flag summary", ("qc",)),
+    "knockdown": Section(
+        "knockdown",
+        "Mooring knockdown",
+        ("knockdown_hab", "knockdown_anomaly", "knockdown_displacement"),
+    ),
+    "diagram": Section("diagram", "Mooring diagram", ("diagram",)),
+    "issues": Section("issues", "Issues for cruise report", ("issues",)),
+}
+
+#: Default mooring profile.
+MOORING_DEFAULT = Profile(
+    numbering="flat",
+    entries=(
+        MOORING_SECTIONS["pipeline"],
+        MOORING_SECTIONS["instruments"],
+        MOORING_SECTIONS["timing"],
+        MOORING_SECTIONS["clock"],
+        MOORING_SECTIONS["calibration"],
+        MOORING_SECTIONS["qc"],
+        MOORING_SECTIONS["knockdown"],
+        MOORING_SECTIONS["diagram"],
+        MOORING_SECTIONS["issues"],
+    ),
+)
 
 
 # ---------------------------------------------------------------------------
@@ -673,4 +844,5 @@ class MooringReport:
         }
 
     def _render(self, ctx: Dict[str, Any]) -> str:
+        ctx["report"] = resolve(MOORING_DEFAULT, ctx, MOORING_PANELS)
         return render_template("mooring.html", **ctx)
