@@ -88,12 +88,18 @@ MOORING_CAPTIONS: dict[str, str] = {
 }
 
 
-def _fig_panel(pid: str, fig_key: str) -> Panel:
-    """Build a bare-``.fig`` mooring figure panel that reads *fig_key* from ctx."""
+def _fig_panel(pid: str, fig_key: str, slot: "str | None" = None) -> Panel:
+    """Build a mooring figure panel that reads *fig_key* from ctx.
+
+    *slot* must match the width the adapter renders at (``render_slot``): the
+    knockdown HAB and anomaly plots are drawn at ``"half"``, so they carry
+    ``slot="half"``; a bare ``None`` (full-width ``.fig``) is for full-canvas
+    figures.
+    """
     return Panel(
         pid,
         render=lambda c, _k=fig_key: c.get(_k),
-        slot=None,
+        slot=slot,
         caption=MOORING_CAPTIONS.get(pid),
         applies_to=lambda c, _k=fig_key: bool(c.get(_k)),
     )
@@ -159,8 +165,10 @@ MOORING_PANELS: dict[str, Panel] = {
         ),
         kind="html",
     ),
-    "knockdown_hab": _fig_panel("knockdown_hab", "fig_knockdown_hab_b64"),
-    "knockdown_anomaly": _fig_panel("knockdown_anomaly", "fig_knockdown_anomaly_b64"),
+    "knockdown_hab": _fig_panel("knockdown_hab", "fig_knockdown_hab_b64", slot="half"),
+    "knockdown_anomaly": _fig_panel(
+        "knockdown_anomaly", "fig_knockdown_anomaly_b64", slot="half"
+    ),
     "knockdown_displacement": _fig_panel(
         "knockdown_displacement", "fig_knockdown_displacement_b64"
     ),
@@ -170,7 +178,14 @@ MOORING_PANELS: dict[str, Panel] = {
             "_mooring_diagram.html", diagram_b64=c["diagram_b64"]
         ),
         kind="html",
-        applies_to=lambda c: bool(c.get("diagram_b64")),
+        # A mooring diagram is always *applicable*; it is just *not available*
+        # when no PDF was produced — so it stubs ("not available") rather than
+        # dropping to the "not applicable to this deployment" footer.
+        unavailable_if=lambda c: (
+            None
+            if c.get("diagram_b64")
+            else "Mooring diagram not available (no _diagram.pdf found)."
+        ),
     ),
     "issues": Panel(
         "issues",

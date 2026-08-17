@@ -300,10 +300,16 @@ INSTRUMENT_SECTIONS: dict[str, Section] = {
         ("dist",),
     ),
     "qc": Section("qc", "QC flag breakdown", ("qc",)),
-    "netcdf": Section(
-        "netcdf",
-        "NetCDF metadata",
-        ("nc_dims", "nc_variables", "nc_scalars", "nc_globals"),
+    "netcdf_variables": Section(
+        "netcdf_variables",
+        "NetCDF variables",
+        ("nc_dims", "nc_variables", "nc_scalars"),
+        role="appendix",
+    ),
+    "netcdf_attributes": Section(
+        "netcdf_attributes",
+        "NetCDF attributes",
+        ("nc_globals",),
         role="appendix",
     ),
 }
@@ -326,7 +332,8 @@ INSTRUMENT_DEFAULT = Profile(
         INSTRUMENT_SECTIONS["analog"],
         INSTRUMENT_SECTIONS["distributions"],
         INSTRUMENT_SECTIONS["qc"],
-        INSTRUMENT_SECTIONS["netcdf"],
+        INSTRUMENT_SECTIONS["netcdf_variables"],
+        INSTRUMENT_SECTIONS["netcdf_attributes"],
     ),
 )
 

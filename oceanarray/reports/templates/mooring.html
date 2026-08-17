@@ -87,5 +87,5 @@
     <div><dt>Instruments</dt><dd>{{ n_instruments }}</dd></div>
   {% endblock %}
 {% block content %}
-{{ m.report_body(report, "deployment", generated, proc_machine, yaml_path) }}
+{{ m.report_body(report, "deployment", generated, cruise, yaml_path) }}
 {% endblock %}

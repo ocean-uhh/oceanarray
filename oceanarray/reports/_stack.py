@@ -552,10 +552,16 @@ STACK_SECTIONS: dict[str, Section] = {
     ),
     "spacing": Section("spacing", "Adjacent instrument spacing", ("spacing",)),
     "clock_check": Section("clock_check", "Clock alignment check", ("clock_check",)),
-    "netcdf": Section(
-        "netcdf",
-        "NetCDF metadata",
-        ("nc_dims", "nc_variables", "nc_scalars", "nc_globals"),
+    "netcdf_variables": Section(
+        "netcdf_variables",
+        "NetCDF variables",
+        ("nc_dims", "nc_variables", "nc_scalars"),
+        role="appendix",
+    ),
+    "netcdf_attributes": Section(
+        "netcdf_attributes",
+        "NetCDF attributes",
+        ("nc_globals",),
         role="appendix",
     ),
 }
@@ -577,7 +583,8 @@ STACK_DEFAULT = Profile(
         STACK_SECTIONS["tilt"],
         STACK_SECTIONS["spacing"],
         STACK_SECTIONS["clock_check"],
-        STACK_SECTIONS["netcdf"],
+        STACK_SECTIONS["netcdf_variables"],
+        STACK_SECTIONS["netcdf_attributes"],
     ),
 )
 

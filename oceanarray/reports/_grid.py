@@ -519,7 +519,13 @@ GRID_SECTIONS: dict[str, Section] = {
     "netcdf_variables": Section(
         "netcdf_variables",
         "NetCDF variables",
-        ("nc_variables", "nc_scalars", "nc_globals"),
+        ("nc_variables", "nc_scalars"),
+        role="appendix",
+    ),
+    "netcdf_attributes": Section(
+        "netcdf_attributes",
+        "NetCDF attributes",
+        ("nc_globals",),
         role="appendix",
     ),
 }
@@ -537,6 +543,7 @@ GRID_DEFAULT = Profile(
         GRID_SECTIONS["overflow"],
         GRID_SECTIONS["frequency_analysis"],
         GRID_SECTIONS["netcdf_variables"],
+        GRID_SECTIONS["netcdf_attributes"],
     ),
 )
 
@@ -553,6 +560,7 @@ GRID_COMBINED_HYDRO = replace(
         GRID_SECTIONS["overflow"],
         GRID_SECTIONS["frequency_analysis"],
         GRID_SECTIONS["netcdf_variables"],
+        GRID_SECTIONS["netcdf_attributes"],
     ),
 )
 

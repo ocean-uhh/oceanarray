@@ -67,7 +67,7 @@ def test_grid_default_shape_is_eight_content_plus_appendix():
         "overflow",
         "frequency_analysis",
     ]
-    assert [s.id for s in appendix] == ["netcdf_variables"]
+    assert [s.id for s in appendix] == ["netcdf_variables", "netcdf_attributes"]
 
 
 def test_combined_hydro_folds_ts_and_drops_the_section():
@@ -222,10 +222,10 @@ def test_resolved_content_numbers_are_1_to_n(resolved_default):
     assert [s.number for s in content] == [str(i) for i in range(1, len(content) + 1)]
 
 
-def test_resolved_appendix_is_lettered_A(resolved_default):
-    """The single appendix section is numbered 'A', not padded into the content run."""
+def test_resolved_appendices_are_lettered_A_B(resolved_default):
+    """The two appendix sections are lettered A, B — not padded into the content run."""
     appendix = [s for s in resolved_default.sections if s.role == "appendix"]
-    assert [s.number for s in appendix] == ["A"]
+    assert [s.number for s in appendix] == ["A", "B"]
 
 
 def test_complete_fixture_drops_nothing(resolved_default):
@@ -241,6 +241,7 @@ def test_complete_fixture_drops_nothing(resolved_default):
         "overflow",
         "frequency_analysis",
         "netcdf_variables",
+        "netcdf_attributes",
     ]
 
 

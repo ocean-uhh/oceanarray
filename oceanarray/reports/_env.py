@@ -32,6 +32,22 @@ _ENV = Environment(
 )
 #: Package identity available to every template (masthead wordmark).
 _ENV.globals["package_name"] = params.PACKAGE_NAME
+
+
+def _package_version() -> str:
+    """Installed package version, or ``"0.0.0"`` for an unversioned dev tree."""
+    from importlib.metadata import PackageNotFoundError, version
+
+    try:
+        return version("oceanarray")
+    except PackageNotFoundError:  # pragma: no cover - editable/source checkout
+        return "0.0.0"
+
+
+#: Package version for the footer.  The footer shows it only when meaningful
+#: (``!= "0.0.0"``), so a dev/source tree renders no version and the golden stays
+#: stable, while a real (setuptools-scm-tagged) install shows the release.
+_ENV.globals["package_version"] = _package_version()
 #: Per-figure debug lookup (``func · figsize · png``) for templates' ``.debug``
 #: sections; returns "" unless ``OCEANARRAY_REPORT_DEBUG`` is set.
 _ENV.globals["figdbg"] = _figdebug.figdbg

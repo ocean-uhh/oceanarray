@@ -38,11 +38,11 @@ _PAGES = [
     "instrument/dune2_1_2026_9920_report.html",
 ]
 
-# The generation timestamp appears only as "generated <ts>" (masthead) and
-# "...oceanarray</strong> on <ts>" (footer).  Anchor to those exact contexts so
-# real data timestamps rendered elsewhere are left untouched: deployment/recovery
-# times (in <dd> meta-grid cells) and any prose "recovered on <date>".
-_TS_RE = re.compile(r"(generated |</strong> on )\d{4}-\d\d-\d\d \d\d:\d\d UTC")
+# The generation timestamp appears as "generated <ts>" (masthead) and as the
+# last "&bull; <ts>" segment of the shared report footer.  Anchor to those exact
+# contexts so real data timestamps rendered elsewhere are left untouched:
+# deployment/recovery times (in <dd> meta-grid cells) and any prose dates.
+_TS_RE = re.compile(r"(generated |&bull; )\d{4}-\d\d-\d\d \d\d:\d\d UTC")
 # File "Last modified" cells (bare <td>).  st_mtime is not preserved by git, so
 # it varies on every checkout; mask it.  Deploy/recovery times use <dd> cells.
 _MTIME_RE = re.compile(r"<td>\s*\d{4}-\d\d-\d\d \d\d:\d\d UTC\s*</td>")

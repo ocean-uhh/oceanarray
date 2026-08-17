@@ -32,5 +32,5 @@
     <div><dt>Source&nbsp;file</dt><dd>{{ nc_file }}{% if data_stage and data_stage != 'stage3' %} <span style="color:var(--warn);font-weight:bold">({{ data_stage }} — QC not applied)</span>{% endif %}</dd></div>
   {% endblock %}
 {% block content %}
-{{ m.report_body(report, "instrument", generated, proc_machine) }}
+{{ m.report_body(report, "instrument", generated, cruise) }}
 {% endblock %}

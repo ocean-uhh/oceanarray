@@ -62,10 +62,10 @@ def test_timeseries_and_windows_use_panelgroups():
     assert any(isinstance(p, PanelGroup) for p in start.panels)
 
 
-def test_appendix_is_the_netcdf_section():
-    """NetCDF metadata is the one appendix-role section."""
+def test_appendix_is_the_netcdf_sections():
+    """NetCDF variables and attributes are the two appendix-role sections (A, B)."""
     appendix = [s for s in INSTRUMENT_DEFAULT.entries if s.role == "appendix"]
-    assert [s.id for s in appendix] == ["netcdf"]
+    assert [s.id for s in appendix] == ["netcdf_variables", "netcdf_attributes"]
 
 
 def test_all_profile_entries_are_sections():
