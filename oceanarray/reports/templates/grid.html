@@ -7,16 +7,13 @@
      .fig fills via base.html's max-width:100%.  Setting width:100% here would
      override the slot and force every figure full-width (U0.2). */
   .fig { border:1px solid var(--rule); border-radius:var(--radius-btn); margin-bottom:0.5rem; }
-  /* Table + caption styles are canonical in emit_css now (.var-table drops to the shared table style). */
-  .style-label { font-size:0.8rem; font-weight:600; color:var(--muted); margin:0.4rem 0 0.2rem; text-transform:uppercase; letter-spacing:0.05em; }
   details summary.collapse-toggle { color:var(--muted); font-size:0.76rem; cursor:pointer;
     list-style:none; padding:0.15rem 0 0.4rem; user-select:none; }
   details summary.collapse-toggle::before { content:"▾ "; }
   details[open] summary.collapse-toggle::before { content:"▴ "; }
-  /* Sub-headings and dense NetCDF-table cells, swept from inline styles (rep/06
-     sweep). Values are verbatim from the attributes they replace; they relocate
-     to a shared sheet at the manifest port, when this page_styles block goes. */
-  h3.subhead { font-size:0.9rem; color:var(--ocean); margin:1.5rem 0 0.4rem; }
+  /* Dense NetCDF-table sub-headings and cells (rep/06 sweep). Values verbatim
+     from the attributes they replaced; they relocate to a shared sheet when the
+     other pages port. */
   h3.subhead-sm { font-size:0.88rem; color:var(--ocean); margin:1rem 0 0.4rem; }
   h3.subhead-md { font-size:0.88rem; color:var(--ocean); margin:1.4rem 0 0.4rem; }
   .var-table td.cell-xs { font-size:0.75rem; }
@@ -49,261 +46,21 @@
 
 <nav class="jump-nav">
   Jump to:
-  {% if history_entries %}<a href="#history">History</a>{% endif %}
-  {% if fig_hydro_b64 %}<a href="#hydro">Hydrography</a>{% endif %}
-  {% if fig_vel_stacked_b64 %}<a href="#vel">Velocity</a>{% endif %}
-  {% if fig_ts_grid_b64 %}<a href="#ts">T-S diagram</a>{% endif %}
-  {% if fig_vel_iqr_b64 %}<a href="#vel-iqr">Velocity profiles</a>{% endif %}
-  {% if fig_grid_rose_b64 %}<a href="#grid-rose">Current roses</a>{% endif %}
-  {% if fig_grid_hodograph_b64 %}<a href="#grid-hodograph">Hodograph</a>{% endif %}
-  {% if fig_grid_traj_b64 %}<a href="#grid-traj">Particle trajectory</a>{% endif %}
-  {% if fig_grid_ts_b64 %}<a href="#grid-ts">Velocity time series</a>{% endif %}
-  {% if fig_sigma_b64 or fig_n2_b64 %}<a href="#strat">Stratification</a>{% endif %}
-  {% if sigma_sections or fig_overflow_temp_b64 or fig_isopycnal_coverage_b64 %}<a href="#overflow">Overflow</a>{% endif %}
-  {% if fig_spectrum_b64 %}<a href="#spectrum">Power spectrum</a>{% endif %}
-  {% if fig_wavelet_b64 %}<a href="#wavelet">Wavelet</a>{% endif %}
-  {% if fig_rotary_b64 %}<a href="#rotary">Rotary spectrum</a>{% endif %}
-  <a href="#vars">Variables</a>
+  {% for sec in report.sections %}<a href="#{{ sec.id }}">{{ sec.title }}</a>{% endfor %}
 </nav>
 
-{% if history_entries %}
-<h2 id="history">Processing history</h2>
-<ul class="history-list">
-  {% for e in history_entries %}
-  <li>
-    <span class="history-ts">{{ e.timestamp }}</span>
-    <span class="history-text">{{ e.text }}</span>
-  </li>
-  {% endfor %}
-</ul>
-{% endif %}
-
-<!-- ══ Hydrography: T and S ══ -->
-{% if fig_hydro_b64 %}
-<h2 id="hydro">Hydrography</h2>
-<p class="caption">Temperature, salinity, dissolved oxygen, and O₂ saturation (when present). Vertically interpolated to regular pressure grid &bull; 20 discrete colour levels.</p>
-<details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" src="data:image/png;base64,{{ fig_hydro_b64 }}" alt="Temperature and salinity">
-{{- m.dbg(fig_hydro_b64, "full (100%)") }}
-</details>
-{% endif %}
-
-<!-- ══ Velocity: E / N / Up ══ -->
-{% if fig_vel_stacked_b64 %}
-<h2 id="vel">Velocity</h2>
-<p class="caption">East, north, and up velocity. QC-flagged samples excluded before interpolation. Shared symmetric Spectral_r colormap for east/north; separate bounds for up. No temporal gap fill — NaN where no data.</p>
-<details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" src="data:image/png;base64,{{ fig_vel_stacked_b64 }}" alt="Velocity pcolormesh">
-{{- m.dbg(fig_vel_stacked_b64, "full (100%)") }}
-</details>
-{% endif %}
-
-<!-- ══ T-S diagram (before derived quantities) ══ -->
-{% if fig_ts_grid_b64 %}
-<h2 id="ts">T-S diagram</h2>
-<p class="caption">Left: log₁₀(count+1) per T-S bin. Right (when O₂ present): median O₂ saturation per T-S bin — bins with &lt;5 samples masked. Colour scale: BrBG (brown=low, teal=high).</p>
-<details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig slot-{{ slot_for(fig_ts_grid_b64) }}" src="data:image/png;base64,{{ fig_ts_grid_b64 }}" alt="T-S diagram">
-{{- m.dbg(fig_ts_grid_b64, "slot-" ~ slot_for(fig_ts_grid_b64)) }}
-</details>
-{% endif %}
-
-<!-- ══ Velocity IQR profiles ══ -->
-{% if fig_vel_iqr_b64 %}
-<h2 id="vel-iqr">Velocity IQR profiles</h2>
-<p class="caption">Median (solid line) and interquartile range (shaded, 25–75 %) across the full deployment at each pressure level. 2.5–97.5 % outer envelope for speed. Right panel: count of non-NaN values per depth.</p>
-<details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" src="data:image/png;base64,{{ fig_vel_iqr_b64 }}" alt="Velocity IQR profiles">
-{{- m.dbg(fig_vel_iqr_b64, "full (100%)") }}
-</details>
-{% endif %}
-
-<!-- ══ Current roses per pressure level ══ -->
-{% if fig_grid_rose_b64 %}
-<h2 id="grid-rose">Current roses</h2>
-<p class="caption">One rose per pressure level (up to 12, evenly subsampled). Suspect/bad QC excluded. Each petal shows the fraction of time current flowed in that direction; petal length encodes speed (m s⁻¹).</p>
-<details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" src="data:image/png;base64,{{ fig_grid_rose_b64 }}" alt="Current roses by pressure level">
-{{- m.dbg(fig_grid_rose_b64, "full (100%)") }}
-</details>
-{% endif %}
-
-<!-- ══ Hodograph ══ -->
-{% if fig_grid_hodograph_b64 %}
-<h2 id="grid-hodograph">Hodograph</h2>
-<p class="caption">Current hodographs at two pressure levels (25th and 75th percentile of the valid range). Top row = shallower level; bottom row = deeper level. Left = Tukey-smoothed raw; right = eddy component (LP mean removed). Colour indicates fractional time through the deployment (lime circle = start, red square = end). QC-bad data excluded.</p>
-<details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" src="data:image/png;base64,{{ fig_grid_hodograph_b64 }}" alt="Hodograph at two pressure levels">
-{{- m.dbg(fig_grid_hodograph_b64, "full (100%)") }}
-</details>
-{% endif %}
-
-<!-- ══ Particle trajectory ══ -->
-{% if fig_grid_traj_b64 %}
-<h2 id="grid-traj">Particle trajectory</h2>
-<p class="caption">Pseudo-Lagrangian trajectories at each gridded pressure level, integrated from east and north velocity (Euler forward). All start at the origin. Coloured by pressure (dbar).</p>
-<details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig slot-{{ slot_for(fig_grid_traj_b64) }}" src="data:image/png;base64,{{ fig_grid_traj_b64 }}" alt="Grid particle trajectory">
-{{- m.dbg(fig_grid_traj_b64, "slot-" ~ slot_for(fig_grid_traj_b64)) }}
-</details>
-{% endif %}
-
-<!-- ══ Velocity time series at depth of max speed ══ -->
-{% if fig_grid_ts_b64 %}
-<h2 id="grid-ts">Velocity time series at depth of maximum mean speed</h2>
-<p class="caption">Depth chosen as the pressure level with the highest time-mean current speed. Speed, east, and north velocity at that level.</p>
-<details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" src="data:image/png;base64,{{ fig_grid_ts_b64 }}" alt="Velocity time series at max-speed depth">
-{{- m.dbg(fig_grid_ts_b64, "full (100%)") }}
-</details>
-{% endif %}
-
-<!-- ══ Stratification: sigma0 + N² + isopycnal depths + spectrum ══ -->
-{% if fig_sigma_b64 or fig_n2_b64 %}
-<h2 id="strat">Stratification</h2>
-{% endif %}
-
-{% if fig_sigma_b64 %}
-<p class="caption">Potential density. 20 discrete colour levels.</p>
-<details open><summary class="collapse-toggle">show / hide sigma0</summary>
-<img class="fig" src="data:image/png;base64,{{ fig_sigma_b64 }}" alt="Potential density pcolormesh">
-{{- m.dbg(fig_sigma_b64, "full (100%)") }}
-</details>
-{% endif %}
-
-{% if fig_n2_b64 %}
-<h3 class="subhead">Buoyancy frequency squared (N²)</h3>
-<p class="caption">log₁₀(N²) in s⁻². Purple = strongly stratified; yellow = weakly stratified. Computed from T and S via GSW.</p>
-<details open><summary class="collapse-toggle">show / hide N²</summary>
-<img class="fig" src="data:image/png;base64,{{ fig_n2_b64 }}" alt="N² pcolormesh">
-{{- m.dbg(fig_n2_b64, "full (100%)") }}
-</details>
-{% endif %}
-
-{% if sigma_sections or fig_overflow_temp_b64 or fig_isopycnal_coverage_b64 %}
-<h2 id="overflow">Overflow</h2>
-{% endif %}
-
-{% if fig_isopycnal_coverage_b64 %}
-<h3 class="subhead">Isopycnal coverage diagnostic</h3>
-<p class="caption">Percentage of time steps during which each σ₀ surface (0.1&nbsp;kg&nbsp;m⁻³ spacing) lies within the measured column range. Green&nbsp;≥&nbsp;80&nbsp;%; amber&nbsp;50–80&nbsp;%; red&nbsp;&lt;&nbsp;50&nbsp;%. Orange diamond&nbsp;= current <code>--sig-level</code> target. Dashed line&nbsp;=&nbsp;80&nbsp;% threshold. NaN gaps in the tracking figure above correspond to times when the isopycnal is outside the measured range (pycnocline above the shallowest grid level, or below the deepest).</p>
-<details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" src="data:image/png;base64,{{ fig_isopycnal_coverage_b64 }}" alt="Isopycnal coverage diagnostic">
-{{- m.dbg(fig_isopycnal_coverage_b64, "full (100%)") }}
-</details>
-{% endif %}
-
-{% for sec in sigma_sections %}
-{% if sec.isopycnal_b64 %}
-<h3 class="subhead">Isopycnal height above seabed &mdash; {{ sec.name }}</h3>
-<p class="caption">Height above seabed (m) of each target σ₀ surface through time. Tracked by linear interpolation in density space from the gridded {{ sec.name }} field; 1-hour running median applied. NaN where the surface outcrops or is outside the observed range. Light blue = lighter water (shallower); dark blue = denser water (deeper). Targets set by <code>--sig-level</code> (default σ₀&nbsp;=&nbsp;27.70).</p>
-<details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" src="data:image/png;base64,{{ sec.isopycnal_b64 }}" alt="Isopycnal height above seabed">
-</details>
-{% endif %}
+{% for sec in report.sections %}
+<h{{ sec.level }} id="{{ sec.id }}">{% if sec.number %}{{ sec.number }}. {% endif %}{{ sec.title }}</h{{ sec.level }}>
+{%- if sec.intro %}
+<p class="caption">{{ sec.intro }}</p>
+{%- endif %}
+{%- for p in sec.panels %}
+{{ m.panel(p) }}
+{%- endfor %}
 {% endfor %}
 
-{% if fig_overflow_temp_b64 %}
-<h3 class="subhead">Temperature ~100 m above seabed</h3>
-<p class="caption">1-hour running median temperature at the grid pressure level nearest to 100&nbsp;m above the seabed. Level and height-above-seabed shown in figure title.</p>
-<details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" src="data:image/png;base64,{{ fig_overflow_temp_b64 }}" alt="Temperature near seabed">
-{{- m.dbg(fig_overflow_temp_b64, "full (100%)") }}
-</details>
-{% endif %}
-
-{% if fig_spectrum_b64 %}
-<h3 class="subhead" id="spectrum">Temperature power spectrum</h3>
-<p class="caption"><strong>Left:</strong> low-frequency overview — 14-day Hann windows, 50&nbsp;% overlap. <strong>Right:</strong> high-frequency zoom — 1-day windows (~14&times; more windows, smoother tidal/inertial estimate); x-axis in hours. LF markers: M2, 1.8&nbsp;d, 4&nbsp;d, f. HF markers: M2 (12.4&nbsp;h), f (inertial). Dashed black line: &minus;2 spectral slope. Colour encodes pressure (light blue = shallow, dark blue = deep). Window length controllable via <code>hf_segment_days</code> in <code>_make_spectrum_fig_b64</code>.</p>
-<details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" src="data:image/png;base64,{{ fig_spectrum_b64 }}" alt="Temperature power spectrum">
-{{- m.dbg(fig_spectrum_b64, "full (100%)") }}
-</details>
-{% endif %}
-
-{% if fig_wavelet_b64 %}
-<h3 class="subhead" id="wavelet">Temperature wavelet scalogram</h3>
-<p class="caption">Continuous wavelet transform (Morlet, &omega;<sub>0</sub>&nbsp;=&nbsp;6; Torrence &amp; Compo 1998).  Three depth levels: 2nd from top, middle, 2nd from bottom of the 100-dbar-multiple valid levels.  Colour shows log<sub>10</sub>(power) (°C²&nbsp;d); hatched grey region = cone of influence (edge-affected); hatched cross region = gap-filled data; black contour = 95&nbsp;% significance against red noise.</p>
-<details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" src="data:image/png;base64,{{ fig_wavelet_b64 }}" alt="Temperature wavelet scalogram">
-{{- m.dbg(fig_wavelet_b64, "full (100%)") }}
-</details>
-{% endif %}
-
-{% if fig_rotary_b64 %}
-<h2 id="rotary">Rotary velocity spectrum</h2>
-<p class="caption">CW (clockwise, anticyclonic, solid red lines) and CCW (counter-clockwise, cyclonic, dashed blue lines) power spectra and rotary coefficient r&nbsp;=&nbsp;(CCW&minus;CW)/(CCW+CW). Welch PSD, Hann window, 14-day segments, 50&nbsp;% overlap. Up to 4 pressure levels (at most 1/5th of valid levels); colour encodes pressure depth. Vertical lines: M2, K1, 1.8&nbsp;d, 4&nbsp;d, and inertial period (f). r&nbsp;&gt;&nbsp;0&nbsp;=&nbsp;CCW dominant; r&nbsp;&lt;&nbsp;0&nbsp;=&nbsp;CW dominant. Physical interpretation (NH): inertial oscillations are inherently CW; for internal waves (f&nbsp;&lt;&nbsp;&omega;), CW dominance indicates upward energy propagation / downward phase propagation (Leaman &amp; Sanford 1975).</p>
-<details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" src="data:image/png;base64,{{ fig_rotary_b64 }}" alt="Rotary velocity spectrum">
-{{- m.dbg(fig_rotary_b64, "full (100%)") }}
-</details>
-{% endif %}
-
-<!-- ══ NetCDF variables ══ -->
-<h2 id="vars">NetCDF variables &mdash; {{ nc_file }}</h2>
-{% if nc_meta.get("error") %}
-<p class="none-note">Could not read file: {{ nc_meta.error }}</p>
-{% else %}
-
-<h3 class="subhead-sm">Variables</h3>
-<table class="var-table">
-  <thead>
-    <tr><th>Variable</th><th>Type</th><th>Dims</th><th class="num">N</th><th class="num">Valid</th><th class="num">Min / Max</th><th>Units</th><th>Long name</th><th>Standard name</th><th>QC&nbsp;flag</th></tr>
-  </thead>
-  <tbody>
-    {% for v in nc_meta.time_vars %}
-    {% if not v.is_qc %}
-    <tr>
-      <td class="mono">{{ v.name }}</td>
-      <td class="mono cell-xs">{{ v.dtype }}</td>
-      <td class="mono cell-xs">{{ v.dims }}</td>
-      <td class="num">{{ "{:,}".format(v.n) }}</td>
-      <td class="num{% if v.n_valid is defined and v.n_valid < v.n %} cell-bad{% endif %}">{{ "{:,}".format(v.n_valid) if v.n_valid is defined else "&mdash;" }}</td>
-      <td class="num cell-minmax">{% if v.v_min is not none %}{{ v.v_min }} / {{ v.v_max }}{% else %}&mdash;{% endif %}</td>
-      <td>{{ v.units }}</td>
-      <td>{{ v.long_name }}</td>
-      <td class="cell-muted">{{ v.standard_name }}</td>
-      <td class="cell-center">{% if v.has_qc %}<span class="var-qc">✓</span>{% else %}&ndash;{% endif %}</td>
-    </tr>
-    {% endif %}
-    {% endfor %}
-  </tbody>
-</table>
-
-{% if nc_meta.scalar_vars %}
-<h3 class="subhead-md">Scalar metadata variables</h3>
-<table class="var-table">
-  <thead>
-    <tr><th>Variable</th><th>Value</th><th>Units</th><th>Long name</th></tr>
-  </thead>
-  <tbody>
-    {% for v in nc_meta.scalar_vars %}
-    <tr>
-      <td class="mono">{{ v.name }}</td>
-      <td class="mono cell-break">{{ v.value }}</td>
-      <td>{{ v.units }}</td>
-      <td>{{ v.long_name }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-{% endif %}
-
-{% if nc_meta.global_attrs %}
-<h3 class="subhead-md">Global attributes</h3>
-<table class="var-table">
-  <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
-  <tbody>
-    {% for k, v in nc_meta.global_attrs.items() %}
-    <tr>
-      <td class="mono">{{ k }}</td>
-      <td class="cell-break-lg">{{ v }}</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-{% endif %}
-
+{% if report.not_applicable %}
+<p class="none-note">Not applicable to this deployment: {{ report.not_applicable | join(", ") }}.</p>
 {% endif %}
 
 <div class="report-footer">

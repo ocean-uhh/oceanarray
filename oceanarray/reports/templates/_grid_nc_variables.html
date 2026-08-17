@@ -1,0 +1,30 @@
+{# NetCDF time-varying variables table — the `nc_variables` panel payload
+   (kind="table").  Transcribed from grid.html's pre-manifest markup. #}
+{% if nc_meta.get("error") %}
+<p class="none-note">Could not read file: {{ nc_meta.error }}</p>
+{% else %}
+<h3 class="subhead-sm">Variables</h3>
+<table class="var-table">
+  <thead>
+    <tr><th>Variable</th><th>Type</th><th>Dims</th><th class="num">N</th><th class="num">Valid</th><th class="num">Min / Max</th><th>Units</th><th>Long name</th><th>Standard name</th><th>QC&nbsp;flag</th></tr>
+  </thead>
+  <tbody>
+    {% for v in nc_meta.time_vars %}
+    {% if not v.is_qc %}
+    <tr>
+      <td class="mono">{{ v.name }}</td>
+      <td class="mono cell-xs">{{ v.dtype }}</td>
+      <td class="mono cell-xs">{{ v.dims }}</td>
+      <td class="num">{{ "{:,}".format(v.n) }}</td>
+      <td class="num{% if v.n_valid is defined and v.n_valid < v.n %} cell-bad{% endif %}">{{ "{:,}".format(v.n_valid) if v.n_valid is defined else "&mdash;" }}</td>
+      <td class="num cell-minmax">{% if v.v_min is not none %}{{ v.v_min }} / {{ v.v_max }}{% else %}&mdash;{% endif %}</td>
+      <td>{{ v.units }}</td>
+      <td>{{ v.long_name }}</td>
+      <td class="cell-muted">{{ v.standard_name }}</td>
+      <td class="cell-center">{% if v.has_qc %}<span class="var-qc">✓</span>{% else %}&ndash;{% endif %}</td>
+    </tr>
+    {% endif %}
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}
