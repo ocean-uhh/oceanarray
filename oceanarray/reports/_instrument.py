@@ -64,7 +64,8 @@ INSTRUMENT_CAPTIONS: dict[str, str] = {
     "adcp_velocity": (
         "Time–range colour plots of the four velocity components (east, north, "
         "up, error). Y-axis: range from transducer (m). Colour scale: symmetric "
-        "about zero; percentile 2/98 of all components combined."
+        "about zero; percentile 2/98 of all components combined. Magnetic "
+        "declination is applied at stage 3 only."
     ),
     "ts_diagram": (
         "Coloured by pressure (or sample index). × = suspect | × = bad (QC flags)."
@@ -72,7 +73,8 @@ INSTRUMENT_CAPTIONS: dict[str, str] = {
     "adcp_rose": (
         "Depth-average followed by bins nearest 100, 200, 300 and 400 m from the "
         "transducer. Bins with fewer than two valid samples are omitted. "
-        "Direction toward which the current flows; 0° = N, clockwise."
+        "Direction toward which the current flows; 0° = N, clockwise. Magnetic "
+        "declination is applied at stage 3 only."
     ),
     "rose": (
         "ENU panels split by QARTOD flag: good (flag ≤ 2, Blues), suspect "
@@ -127,6 +129,23 @@ def _instrument_history_unavailable(c: "dict") -> "str | None":
     return None if c.get("history_entries") else "No history attribute found."
 
 
+def _empty_note(pid: str, reason: str, when_empty: Callable) -> Panel:
+    """A panel that shows *reason* as a stub only when *when_empty(ctx)* is True.
+
+    Used so a PanelGroup section (paginated time-series, start/end windows) keeps
+    its specific "nothing to show" message — e.g. "No plottable variables found."
+    — instead of falling to the resolver's generic empty-section stub.  It applies
+    only when the run is empty, so it adds nothing when there are figures.
+    """
+    return Panel(
+        pid,
+        render=lambda _c: None,
+        kind="html",
+        applies_to=when_empty,
+        unavailable_if=lambda _c: reason,
+    )
+
+
 #: Instrument panel registry (dict-context: panels read ctx by key).
 INSTRUMENT_PANELS: dict[str, Panel] = {
     "files": Panel(
@@ -143,6 +162,16 @@ INSTRUMENT_PANELS: dict[str, Panel] = {
         render=lambda c: render_history(c["history_entries"]),
         kind="html",
         unavailable_if=_instrument_history_unavailable,
+    ),
+    "timeseries_empty": _empty_note(
+        "timeseries_empty",
+        "No plottable variables found.",
+        lambda c: not c.get("fig_ts_b64"),
+    ),
+    "windows_empty": _empty_note(
+        "windows_empty",
+        "Insufficient data for start/end windows.",
+        lambda c: not c.get("fig_windows_b64"),
     ),
     "adcp_velocity": _fig_panel("adcp_velocity", "fig_adcp_velocity_b64"),
     "windows_note": Panel(
@@ -177,6 +206,9 @@ INSTRUMENT_PANELS: dict[str, Panel] = {
         render=lambda c: c.get("fig_dt_b64"),
         slot=None,
         caption=INSTRUMENT_CAPTIONS["dist"],
+        unavailable_if=lambda c: (
+            None if c.get("fig_dt_b64") else "Not enough samples to compute."
+        ),
     ),
     "qc": Panel(
         "qc",
@@ -192,7 +224,7 @@ INSTRUMENT_PANELS: dict[str, Panel] = {
         "nc_dims",
         render=lambda c: render_template("_stack_nc_dims.html", nc_meta=c["nc_meta"]),
         kind="table",
-        applies_to=lambda c: bool(c["nc_meta"].get("dims")),
+        applies_to=lambda c: bool(c.get("nc_meta", {}).get("dims")),
     ),
     "nc_variables": Panel(
         "nc_variables",
@@ -207,7 +239,7 @@ INSTRUMENT_PANELS: dict[str, Panel] = {
             "_instrument_nc_scalars.html", nc_meta=c["nc_meta"]
         ),
         kind="table",
-        applies_to=lambda c: bool(c["nc_meta"].get("scalar_vars")),
+        applies_to=lambda c: bool(c.get("nc_meta", {}).get("scalar_vars")),
     ),
     "nc_globals": Panel(
         "nc_globals",
@@ -215,7 +247,7 @@ INSTRUMENT_PANELS: dict[str, Panel] = {
             "_instrument_nc_globals.html", nc_meta=c["nc_meta"]
         ),
         kind="table",
-        applies_to=lambda c: bool(c["nc_meta"].get("global_attrs")),
+        applies_to=lambda c: bool(c.get("nc_meta", {}).get("global_attrs")),
     ),
 }
 
@@ -231,32 +263,29 @@ _WINDOWS_IMGS = PanelGroup(
 )
 
 
-def _always_true(_c: "Any") -> bool:
-    """Section predicate forcing inclusion (keeps a heading + anchor even if empty)."""
-    return True
-
-
 #: Instrument sections.  ``start`` keeps its id (mooring.html deep-links to it).
+#: Sections whose only figures come from a PanelGroup pair an ``*_empty`` note
+#: panel (a specific "nothing to show" message) with the image run, so the
+#: section is always kept via an applicable panel — no explicit section predicate
+#: is needed.
 INSTRUMENT_SECTIONS: dict[str, Section] = {
-    "files": Section("files", "Files", ("files",), applies_to=_always_true),
+    "files": Section("files", "Files", ("files",)),
     "processing_history": Section(
         "processing_history",
         "Processing history",
         ("history",),
-        applies_to=_always_true,
     ),
     "adcp_velocity": Section("adcp_velocity", "Velocity", ("adcp_velocity",)),
     "timeseries": Section(
         "timeseries",
         "Time series (full deployment)",
-        (_TIMESERIES_IMGS,),
-        applies_to=_always_true,
+        ("timeseries_empty", _TIMESERIES_IMGS),
+        intro="line = data; × = suspect; × = bad; + = interpolated.",
     ),
     "start": Section(
         "start",
         "Start & end windows — first / last 6 h",
-        ("windows_note", _WINDOWS_IMGS),
-        applies_to=_always_true,
+        ("windows_note", "windows_empty", _WINDOWS_IMGS),
     ),
     "ts_diagram": Section("ts_diagram", "T-S diagram", ("ts_diagram",)),
     "adcp_rose": Section("adcp_rose", "Current roses", ("adcp_rose",)),
@@ -269,7 +298,6 @@ INSTRUMENT_SECTIONS: dict[str, Section] = {
         "distributions",
         "Data value distributions",
         ("dist",),
-        applies_to=_always_true,
     ),
     "qc": Section("qc", "QC flag breakdown", ("qc",)),
     "netcdf": Section(

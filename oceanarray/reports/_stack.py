@@ -278,11 +278,13 @@ STACK_CAPTIONS: dict[str, str] = {
     ),
     "north_velocity": (
         "ENU frame. Values with velocity_flag ≥ 3 masked to NaN before "
-        "plotting. Instruments without velocity data omitted."
+        "plotting. All data values are in the source file without masking. "
+        "Instruments without velocity data omitted."
     ),
     "up_velocity": (
         "ENU frame. Values with velocity_flag ≥ 3 masked to NaN before "
-        "plotting. Instruments without velocity data omitted."
+        "plotting. All data values are in the source file without masking. "
+        "Instruments without velocity data omitted."
     ),
     "turbidity": (
         "One line per instrument with turbidity data; QC flags ≥ 3 masked. Dots "
@@ -493,6 +495,7 @@ STACK_PANELS: dict[str, Panel] = {
         "nc_dims",
         render=lambda c: render_template("_stack_nc_dims.html", nc_meta=c.nc_meta),
         kind="table",
+        applies_to=lambda c: bool(c.nc_meta.get("dims")),
     ),
     "nc_variables": Panel(
         "nc_variables",
