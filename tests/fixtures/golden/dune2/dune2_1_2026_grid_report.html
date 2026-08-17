@@ -269,6 +269,19 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
     list-style:none; padding:0.15rem 0 0.4rem; user-select:none; }
   details summary.collapse-toggle::before { content:"▾ "; }
   details[open] summary.collapse-toggle::before { content:"▴ "; }
+  /* Sub-headings and dense NetCDF-table cells, swept from inline styles (rep/06
+     sweep). Values are verbatim from the attributes they replace; they relocate
+     to a shared sheet at the manifest port, when this page_styles block goes. */
+  h3.subhead { font-size:0.9rem; color:var(--ocean); margin:1.5rem 0 0.4rem; }
+  h3.subhead-sm { font-size:0.88rem; color:var(--ocean); margin:1rem 0 0.4rem; }
+  h3.subhead-md { font-size:0.88rem; color:var(--ocean); margin:1.4rem 0 0.4rem; }
+  .var-table td.cell-xs { font-size:0.75rem; }
+  .var-table td.cell-minmax { font-size:0.76rem; white-space:nowrap; }
+  .var-table td.cell-muted { font-size:0.78rem; color:var(--muted); }
+  .var-table td.cell-break { font-size:0.78rem; word-break:break-all; }
+  .var-table td.cell-break-lg { font-size:0.8rem; word-break:break-all; }
+  .var-table td.cell-center { text-align:center; }
+  .var-table td.cell-bad { color:var(--bad); font-weight:600; }
 
 </style>
 
@@ -434,7 +447,7 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 
 
 
-<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;">Buoyancy frequency squared (N²)</h3>
+<h3 class="subhead">Buoyancy frequency squared (N²)</h3>
 <p class="caption">log₁₀(N²) in s⁻². Purple = strongly stratified; yellow = weakly stratified. Computed from T and S via GSW.</p>
 <details open><summary class="collapse-toggle">show / hide N²</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="N² pcolormesh">
@@ -446,7 +459,7 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 
 
 
-<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;">Isopycnal coverage diagnostic</h3>
+<h3 class="subhead">Isopycnal coverage diagnostic</h3>
 <p class="caption">Percentage of time steps during which each σ₀ surface (0.1&nbsp;kg&nbsp;m⁻³ spacing) lies within the measured column range. Green&nbsp;≥&nbsp;80&nbsp;%; amber&nbsp;50–80&nbsp;%; red&nbsp;&lt;&nbsp;50&nbsp;%. Orange diamond&nbsp;= current <code>--sig-level</code> target. Dashed line&nbsp;=&nbsp;80&nbsp;% threshold. NaN gaps in the tracking figure above correspond to times when the isopycnal is outside the measured range (pycnocline above the shallowest grid level, or below the deepest).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="Isopycnal coverage diagnostic">
@@ -455,7 +468,7 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 
 
 
-<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;">Isopycnal height above seabed &mdash; sigma0</h3>
+<h3 class="subhead">Isopycnal height above seabed &mdash; sigma0</h3>
 <p class="caption">Height above seabed (m) of each target σ₀ surface through time. Tracked by linear interpolation in density space from the gridded sigma0 field; 1-hour running median applied. NaN where the surface outcrops or is outside the observed range. Light blue = lighter water (shallower); dark blue = denser water (deeper). Targets set by <code>--sig-level</code> (default σ₀&nbsp;=&nbsp;27.70).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="Isopycnal height above seabed">
@@ -464,7 +477,7 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 
 
 
-<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;">Temperature ~100 m above seabed</h3>
+<h3 class="subhead">Temperature ~100 m above seabed</h3>
 <p class="caption">1-hour running median temperature at the grid pressure level nearest to 100&nbsp;m above the seabed. Level and height-above-seabed shown in figure title.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="Temperature near seabed">
@@ -472,7 +485,7 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 
 
 
-<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;" id="spectrum">Temperature power spectrum</h3>
+<h3 class="subhead" id="spectrum">Temperature power spectrum</h3>
 <p class="caption"><strong>Left:</strong> low-frequency overview — 14-day Hann windows, 50&nbsp;% overlap. <strong>Right:</strong> high-frequency zoom — 1-day windows (~14&times; more windows, smoother tidal/inertial estimate); x-axis in hours. LF markers: M2, 1.8&nbsp;d, 4&nbsp;d, f. HF markers: M2 (12.4&nbsp;h), f (inertial). Dashed black line: &minus;2 spectral slope. Colour encodes pressure (light blue = shallow, dark blue = deep). Window length controllable via <code>hf_segment_days</code> in <code>_make_spectrum_fig_b64</code>.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="Temperature power spectrum">
@@ -480,7 +493,7 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 
 
 
-<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;" id="wavelet">Temperature wavelet scalogram</h3>
+<h3 class="subhead" id="wavelet">Temperature wavelet scalogram</h3>
 <p class="caption">Continuous wavelet transform (Morlet, &omega;<sub>0</sub>&nbsp;=&nbsp;6; Torrence &amp; Compo 1998).  Three depth levels: 2nd from top, middle, 2nd from bottom of the 100-dbar-multiple valid levels.  Colour shows log<sub>10</sub>(power) (°C²&nbsp;d); hatched grey region = cone of influence (edge-affected); hatched cross region = gap-filled data; black contour = 95&nbsp;% significance against red noise.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="Temperature wavelet scalogram">
@@ -499,7 +512,7 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 <h2 id="vars">NetCDF variables &mdash; dune2_1_2026_grid.nc</h2>
 
 
-<h3 style="font-size:0.88rem;color:var(--ocean);margin:1rem 0 0.4rem;">Variables</h3>
+<h3 class="subhead-sm">Variables</h3>
 <table class="var-table">
   <thead>
     <tr><th>Variable</th><th>Type</th><th>Dims</th><th class="num">N</th><th class="num">Valid</th><th class="num">Min / Max</th><th>Units</th><th>Long name</th><th>Standard name</th><th>QC&nbsp;flag</th></tr>
@@ -509,135 +522,135 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
     
     <tr>
       <td class="mono">conductivity</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time, pressure</td>
+      <td class="mono cell-xs">float32</td>
+      <td class="mono cell-xs">time, pressure</td>
       <td class="num">4,920</td>
-      <td class="num" style="color:var(--bad);font-weight:600">3,879</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">29.22 / 36.3</td>
+      <td class="num cell-bad">3,879</td>
+      <td class="num cell-minmax">29.22 / 36.3</td>
       <td>mS/cm</td>
       <td>Conductivity</td>
-      <td style="font-size:0.78rem;color:var(--muted)">sea_water_electrical_conductivity</td>
-      <td style="text-align:center">&ndash;</td>
+      <td class="cell-muted">sea_water_electrical_conductivity</td>
+      <td class="cell-center">&ndash;</td>
     </tr>
     
     
     
     <tr>
       <td class="mono">current_direction</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time, pressure</td>
+      <td class="mono cell-xs">float32</td>
+      <td class="mono cell-xs">time, pressure</td>
       <td class="num">4,920</td>
-      <td class="num" style="color:var(--bad);font-weight:600">3,511</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">1.051 / 359.3</td>
+      <td class="num cell-bad">3,511</td>
+      <td class="num cell-minmax">1.051 / 359.3</td>
       <td>degrees</td>
       <td>Current direction (0=N, clockwise)</td>
-      <td style="font-size:0.78rem;color:var(--muted)">direction_of_sea_water_velocity</td>
-      <td style="text-align:center">&ndash;</td>
+      <td class="cell-muted">direction_of_sea_water_velocity</td>
+      <td class="cell-center">&ndash;</td>
     </tr>
     
     
     
     <tr>
       <td class="mono">current_speed</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time, pressure</td>
+      <td class="mono cell-xs">float32</td>
+      <td class="mono cell-xs">time, pressure</td>
       <td class="num">4,920</td>
-      <td class="num" style="color:var(--bad);font-weight:600">3,511</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">0.0162 / 0.9045</td>
+      <td class="num cell-bad">3,511</td>
+      <td class="num cell-minmax">0.0162 / 0.9045</td>
       <td>m s-1</td>
       <td>Horizontal current speed</td>
-      <td style="font-size:0.78rem;color:var(--muted)">sea_water_speed</td>
-      <td style="text-align:center">&ndash;</td>
+      <td class="cell-muted">sea_water_speed</td>
+      <td class="cell-center">&ndash;</td>
     </tr>
     
     
     
     <tr>
       <td class="mono">east_velocity</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time, pressure</td>
+      <td class="mono cell-xs">float32</td>
+      <td class="mono cell-xs">time, pressure</td>
       <td class="num">4,920</td>
-      <td class="num" style="color:var(--bad);font-weight:600">3,511</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.8029 / 0.7687</td>
+      <td class="num cell-bad">3,511</td>
+      <td class="num cell-minmax">-0.8029 / 0.7687</td>
       <td>m s-1</td>
       <td>Eastward sea water velocity</td>
-      <td style="font-size:0.78rem;color:var(--muted)">eastward_sea_water_velocity</td>
-      <td style="text-align:center">&ndash;</td>
+      <td class="cell-muted">eastward_sea_water_velocity</td>
+      <td class="cell-center">&ndash;</td>
     </tr>
     
     
     
     <tr>
       <td class="mono">north_velocity</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time, pressure</td>
+      <td class="mono cell-xs">float32</td>
+      <td class="mono cell-xs">time, pressure</td>
       <td class="num">4,920</td>
-      <td class="num" style="color:var(--bad);font-weight:600">3,511</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.7064 / 0.7343</td>
+      <td class="num cell-bad">3,511</td>
+      <td class="num cell-minmax">-0.7064 / 0.7343</td>
       <td>m s-1</td>
       <td>Northward sea water velocity</td>
-      <td style="font-size:0.78rem;color:var(--muted)">northward_sea_water_velocity</td>
-      <td style="text-align:center">&ndash;</td>
+      <td class="cell-muted">northward_sea_water_velocity</td>
+      <td class="cell-center">&ndash;</td>
     </tr>
     
     
     
     <tr>
       <td class="mono">salinity</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time, pressure</td>
+      <td class="mono cell-xs">float32</td>
+      <td class="mono cell-xs">time, pressure</td>
       <td class="num">4,920</td>
-      <td class="num" style="color:var(--bad);font-weight:600">3,879</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">34.57 / 35.54</td>
+      <td class="num cell-bad">3,879</td>
+      <td class="num cell-minmax">34.57 / 35.54</td>
       <td>1</td>
       <td>Practical Salinity</td>
-      <td style="font-size:0.78rem;color:var(--muted)">sea_water_practical_salinity</td>
-      <td style="text-align:center">&ndash;</td>
+      <td class="cell-muted">sea_water_practical_salinity</td>
+      <td class="cell-center">&ndash;</td>
     </tr>
     
     
     
     <tr>
       <td class="mono">sigma0</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time, pressure</td>
+      <td class="mono cell-xs">float32</td>
+      <td class="mono cell-xs">time, pressure</td>
       <td class="num">4,920</td>
-      <td class="num" style="color:var(--bad);font-weight:600">3,879</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">27.43 / 28.05</td>
+      <td class="num cell-bad">3,879</td>
+      <td class="num cell-minmax">27.43 / 28.05</td>
       <td>kg m-3</td>
       <td>Potential density anomaly referenced to surface (sigma-0)</td>
-      <td style="font-size:0.78rem;color:var(--muted)">sea_water_sigma_t</td>
-      <td style="text-align:center">&ndash;</td>
+      <td class="cell-muted">sea_water_sigma_t</td>
+      <td class="cell-center">&ndash;</td>
     </tr>
     
     
     
     <tr>
       <td class="mono">temperature</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time, pressure</td>
+      <td class="mono cell-xs">float32</td>
+      <td class="mono cell-xs">time, pressure</td>
       <td class="num">4,920</td>
-      <td class="num" style="color:var(--bad);font-weight:600">4,201</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.06961 / 8.025</td>
+      <td class="num cell-bad">4,201</td>
+      <td class="num cell-minmax">-0.06961 / 8.025</td>
       <td>degC</td>
       <td>Temperature</td>
-      <td style="font-size:0.78rem;color:var(--muted)">sea_water_temperature</td>
-      <td style="text-align:center">&ndash;</td>
+      <td class="cell-muted">sea_water_temperature</td>
+      <td class="cell-center">&ndash;</td>
     </tr>
     
     
     
     <tr>
       <td class="mono">up_velocity</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time, pressure</td>
+      <td class="mono cell-xs">float32</td>
+      <td class="mono cell-xs">time, pressure</td>
       <td class="num">4,920</td>
-      <td class="num" style="color:var(--bad);font-weight:600">3,511</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.2906 / 0.4569</td>
+      <td class="num cell-bad">3,511</td>
+      <td class="num cell-minmax">-0.2906 / 0.4569</td>
       <td>m s-1</td>
       <td>Upward sea water velocity</td>
-      <td style="font-size:0.78rem;color:var(--muted)">upward_sea_water_velocity</td>
-      <td style="text-align:center">&ndash;</td>
+      <td class="cell-muted">upward_sea_water_velocity</td>
+      <td class="cell-center">&ndash;</td>
     </tr>
     
     
@@ -647,64 +660,64 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 
 
 
-<h3 style="font-size:0.88rem;color:var(--ocean);margin:1.4rem 0 0.4rem;">Global attributes</h3>
+<h3 class="subhead-md">Global attributes</h3>
 <table class="var-table">
   <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
   <tbody>
     
     <tr>
       <td class="mono">mooring_name</td>
-      <td style="font-size:0.8rem;word-break:break-all">dune2_1_2026</td>
+      <td class="cell-break-lg">dune2_1_2026</td>
     </tr>
     
     <tr>
       <td class="mono">waterdepth</td>
-      <td style="font-size:0.8rem;word-break:break-all">745</td>
+      <td class="cell-break-lg">745</td>
     </tr>
     
     <tr>
       <td class="mono">latitude</td>
-      <td style="font-size:0.8rem;word-break:break-all">65 43.913</td>
+      <td class="cell-break-lg">65 43.913</td>
     </tr>
     
     <tr>
       <td class="mono">longitude</td>
-      <td style="font-size:0.8rem;word-break:break-all">-27 48.000</td>
+      <td class="cell-break-lg">-27 48.000</td>
     </tr>
     
     <tr>
       <td class="mono">deployment_time</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-11T20:30:00</td>
+      <td class="cell-break-lg">2026-07-11T20:30:00</td>
     </tr>
     
     <tr>
       <td class="mono">recovery_time</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T11:44:00</td>
+      <td class="cell-break-lg">2026-07-25T11:44:00</td>
     </tr>
     
     <tr>
       <td class="mono">dt_seconds</td>
-      <td style="font-size:0.8rem;word-break:break-all">3600</td>
+      <td class="cell-break-lg">3600</td>
     </tr>
     
     <tr>
       <td class="mono">Conventions</td>
-      <td style="font-size:0.8rem;word-break:break-all">CF-1.13</td>
+      <td class="cell-break-lg">CF-1.13</td>
     </tr>
     
     <tr>
       <td class="mono">p_start_dbar</td>
-      <td style="font-size:0.8rem;word-break:break-all">100.0</td>
+      <td class="cell-break-lg">100.0</td>
     </tr>
     
     <tr>
       <td class="mono">p_end_dbar</td>
-      <td style="font-size:0.8rem;word-break:break-all">800.0</td>
+      <td class="cell-break-lg">800.0</td>
     </tr>
     
     <tr>
       <td class="mono">dp_dbar</td>
-      <td style="font-size:0.8rem;word-break:break-all">50.0</td>
+      <td class="cell-break-lg">50.0</td>
     </tr>
     
   </tbody>

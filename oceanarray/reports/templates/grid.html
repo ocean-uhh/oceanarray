@@ -13,6 +13,19 @@
     list-style:none; padding:0.15rem 0 0.4rem; user-select:none; }
   details summary.collapse-toggle::before { content:"▾ "; }
   details[open] summary.collapse-toggle::before { content:"▴ "; }
+  /* Sub-headings and dense NetCDF-table cells, swept from inline styles (rep/06
+     sweep). Values are verbatim from the attributes they replace; they relocate
+     to a shared sheet at the manifest port, when this page_styles block goes. */
+  h3.subhead { font-size:0.9rem; color:var(--ocean); margin:1.5rem 0 0.4rem; }
+  h3.subhead-sm { font-size:0.88rem; color:var(--ocean); margin:1rem 0 0.4rem; }
+  h3.subhead-md { font-size:0.88rem; color:var(--ocean); margin:1.4rem 0 0.4rem; }
+  .var-table td.cell-xs { font-size:0.75rem; }
+  .var-table td.cell-minmax { font-size:0.76rem; white-space:nowrap; }
+  .var-table td.cell-muted { font-size:0.78rem; color:var(--muted); }
+  .var-table td.cell-break { font-size:0.78rem; word-break:break-all; }
+  .var-table td.cell-break-lg { font-size:0.8rem; word-break:break-all; }
+  .var-table td.cell-center { text-align:center; }
+  .var-table td.cell-bad { color:var(--bad); font-weight:600; }
 {% endblock %}
 {% block masthead_type %}Gridded{% endblock %}
 {% block masthead_meta %}
@@ -159,7 +172,7 @@
 {% endif %}
 
 {% if fig_n2_b64 %}
-<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;">Buoyancy frequency squared (N²)</h3>
+<h3 class="subhead">Buoyancy frequency squared (N²)</h3>
 <p class="caption">log₁₀(N²) in s⁻². Purple = strongly stratified; yellow = weakly stratified. Computed from T and S via GSW.</p>
 <details open><summary class="collapse-toggle">show / hide N²</summary>
 <img class="fig" src="data:image/png;base64,{{ fig_n2_b64 }}" alt="N² pcolormesh">
@@ -172,7 +185,7 @@
 {% endif %}
 
 {% if fig_isopycnal_coverage_b64 %}
-<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;">Isopycnal coverage diagnostic</h3>
+<h3 class="subhead">Isopycnal coverage diagnostic</h3>
 <p class="caption">Percentage of time steps during which each σ₀ surface (0.1&nbsp;kg&nbsp;m⁻³ spacing) lies within the measured column range. Green&nbsp;≥&nbsp;80&nbsp;%; amber&nbsp;50–80&nbsp;%; red&nbsp;&lt;&nbsp;50&nbsp;%. Orange diamond&nbsp;= current <code>--sig-level</code> target. Dashed line&nbsp;=&nbsp;80&nbsp;% threshold. NaN gaps in the tracking figure above correspond to times when the isopycnal is outside the measured range (pycnocline above the shallowest grid level, or below the deepest).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,{{ fig_isopycnal_coverage_b64 }}" alt="Isopycnal coverage diagnostic">
@@ -182,7 +195,7 @@
 
 {% for sec in sigma_sections %}
 {% if sec.isopycnal_b64 %}
-<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;">Isopycnal height above seabed &mdash; {{ sec.name }}</h3>
+<h3 class="subhead">Isopycnal height above seabed &mdash; {{ sec.name }}</h3>
 <p class="caption">Height above seabed (m) of each target σ₀ surface through time. Tracked by linear interpolation in density space from the gridded {{ sec.name }} field; 1-hour running median applied. NaN where the surface outcrops or is outside the observed range. Light blue = lighter water (shallower); dark blue = denser water (deeper). Targets set by <code>--sig-level</code> (default σ₀&nbsp;=&nbsp;27.70).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,{{ sec.isopycnal_b64 }}" alt="Isopycnal height above seabed">
@@ -191,7 +204,7 @@
 {% endfor %}
 
 {% if fig_overflow_temp_b64 %}
-<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;">Temperature ~100 m above seabed</h3>
+<h3 class="subhead">Temperature ~100 m above seabed</h3>
 <p class="caption">1-hour running median temperature at the grid pressure level nearest to 100&nbsp;m above the seabed. Level and height-above-seabed shown in figure title.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,{{ fig_overflow_temp_b64 }}" alt="Temperature near seabed">
@@ -200,7 +213,7 @@
 {% endif %}
 
 {% if fig_spectrum_b64 %}
-<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;" id="spectrum">Temperature power spectrum</h3>
+<h3 class="subhead" id="spectrum">Temperature power spectrum</h3>
 <p class="caption"><strong>Left:</strong> low-frequency overview — 14-day Hann windows, 50&nbsp;% overlap. <strong>Right:</strong> high-frequency zoom — 1-day windows (~14&times; more windows, smoother tidal/inertial estimate); x-axis in hours. LF markers: M2, 1.8&nbsp;d, 4&nbsp;d, f. HF markers: M2 (12.4&nbsp;h), f (inertial). Dashed black line: &minus;2 spectral slope. Colour encodes pressure (light blue = shallow, dark blue = deep). Window length controllable via <code>hf_segment_days</code> in <code>_make_spectrum_fig_b64</code>.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,{{ fig_spectrum_b64 }}" alt="Temperature power spectrum">
@@ -209,7 +222,7 @@
 {% endif %}
 
 {% if fig_wavelet_b64 %}
-<h3 style="font-size:0.9rem;color:var(--ocean);margin:1.5rem 0 0.4rem;" id="wavelet">Temperature wavelet scalogram</h3>
+<h3 class="subhead" id="wavelet">Temperature wavelet scalogram</h3>
 <p class="caption">Continuous wavelet transform (Morlet, &omega;<sub>0</sub>&nbsp;=&nbsp;6; Torrence &amp; Compo 1998).  Three depth levels: 2nd from top, middle, 2nd from bottom of the 100-dbar-multiple valid levels.  Colour shows log<sub>10</sub>(power) (°C²&nbsp;d); hatched grey region = cone of influence (edge-affected); hatched cross region = gap-filled data; black contour = 95&nbsp;% significance against red noise.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,{{ fig_wavelet_b64 }}" alt="Temperature wavelet scalogram">
@@ -232,7 +245,7 @@
 <p class="none-note">Could not read file: {{ nc_meta.error }}</p>
 {% else %}
 
-<h3 style="font-size:0.88rem;color:var(--ocean);margin:1rem 0 0.4rem;">Variables</h3>
+<h3 class="subhead-sm">Variables</h3>
 <table class="var-table">
   <thead>
     <tr><th>Variable</th><th>Type</th><th>Dims</th><th class="num">N</th><th class="num">Valid</th><th class="num">Min / Max</th><th>Units</th><th>Long name</th><th>Standard name</th><th>QC&nbsp;flag</th></tr>
@@ -242,15 +255,15 @@
     {% if not v.is_qc %}
     <tr>
       <td class="mono">{{ v.name }}</td>
-      <td class="mono" style="font-size:0.75rem">{{ v.dtype }}</td>
-      <td class="mono" style="font-size:0.75rem">{{ v.dims }}</td>
+      <td class="mono cell-xs">{{ v.dtype }}</td>
+      <td class="mono cell-xs">{{ v.dims }}</td>
       <td class="num">{{ "{:,}".format(v.n) }}</td>
-      <td class="num" {% if v.n_valid is defined and v.n_valid < v.n %}style="color:var(--bad);font-weight:600"{% endif %}>{{ "{:,}".format(v.n_valid) if v.n_valid is defined else "&mdash;" }}</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">{% if v.v_min is not none %}{{ v.v_min }} / {{ v.v_max }}{% else %}&mdash;{% endif %}</td>
+      <td class="num{% if v.n_valid is defined and v.n_valid < v.n %} cell-bad{% endif %}">{{ "{:,}".format(v.n_valid) if v.n_valid is defined else "&mdash;" }}</td>
+      <td class="num cell-minmax">{% if v.v_min is not none %}{{ v.v_min }} / {{ v.v_max }}{% else %}&mdash;{% endif %}</td>
       <td>{{ v.units }}</td>
       <td>{{ v.long_name }}</td>
-      <td style="font-size:0.78rem;color:var(--muted)">{{ v.standard_name }}</td>
-      <td style="text-align:center">{% if v.has_qc %}<span class="var-qc">✓</span>{% else %}&ndash;{% endif %}</td>
+      <td class="cell-muted">{{ v.standard_name }}</td>
+      <td class="cell-center">{% if v.has_qc %}<span class="var-qc">✓</span>{% else %}&ndash;{% endif %}</td>
     </tr>
     {% endif %}
     {% endfor %}
@@ -258,7 +271,7 @@
 </table>
 
 {% if nc_meta.scalar_vars %}
-<h3 style="font-size:0.88rem;color:var(--ocean);margin:1.4rem 0 0.4rem;">Scalar metadata variables</h3>
+<h3 class="subhead-md">Scalar metadata variables</h3>
 <table class="var-table">
   <thead>
     <tr><th>Variable</th><th>Value</th><th>Units</th><th>Long name</th></tr>
@@ -267,7 +280,7 @@
     {% for v in nc_meta.scalar_vars %}
     <tr>
       <td class="mono">{{ v.name }}</td>
-      <td class="mono" style="font-size:0.78rem;word-break:break-all">{{ v.value }}</td>
+      <td class="mono cell-break">{{ v.value }}</td>
       <td>{{ v.units }}</td>
       <td>{{ v.long_name }}</td>
     </tr>
@@ -277,14 +290,14 @@
 {% endif %}
 
 {% if nc_meta.global_attrs %}
-<h3 style="font-size:0.88rem;color:var(--ocean);margin:1.4rem 0 0.4rem;">Global attributes</h3>
+<h3 class="subhead-md">Global attributes</h3>
 <table class="var-table">
   <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
   <tbody>
     {% for k, v in nc_meta.global_attrs.items() %}
     <tr>
       <td class="mono">{{ k }}</td>
-      <td style="font-size:0.8rem;word-break:break-all">{{ v }}</td>
+      <td class="cell-break-lg">{{ v }}</td>
     </tr>
     {% endfor %}
   </tbody>
