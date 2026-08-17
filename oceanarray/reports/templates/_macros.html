@@ -5,3 +5,29 @@
    Renders nothing unless debug capture recorded this figure (figdbg is a Jinja
    global returning "" when off), so it is a no-op in normal builds. #}
 {% macro dbg(b64, slot) %}{% set d = figdbg(b64) %}{% if d %}<div class="debug">slot: {{ slot }}  |  {{ d }}</div>{% endif %}{% endmacro %}
+
+{# Resolved-panel wrapper (section-manifest port): the single place a figure's
+   "fig slot-*" class is emitted.  Branches on the panel kind so |safe applies
+   only to authored table/html markup — a "figure" payload is a base64 PNG
+   escaped into an img src, and captions are plain text emitted escaped (they are
+   a data field that will become user-editable via YAML, so they are never
+   trusted markup).  Captions render *above* the figure.  A stub (payload is
+   None) renders its reason as a .warn line so an applicable-but-unavailable
+   panel is visible, not hidden.  The collapse toggle is preserved for every
+   figure. #}
+{% macro panel(p) %}
+{%- if p.is_stub %}
+<p class="warn">{{ p.stub_reason }}</p>
+{%- elif p.kind == "figure" %}
+{% if p.caption %}<p class="caption">{{ p.caption }}</p>
+{% endif -%}
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig slot-{{ p.slot }}" src="data:image/png;base64,{{ p.payload }}" alt="{{ p.id }}">
+{{- dbg(p.payload, "slot-" ~ p.slot) }}
+</details>
+{%- else %}
+{% if p.caption %}<p class="caption">{{ p.caption }}</p>
+{% endif -%}
+{{ p.payload | safe }}
+{%- endif %}
+{%- endmacro %}

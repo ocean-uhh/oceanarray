@@ -1,0 +1,18 @@
+{# NetCDF scalar-metadata variables table — the `nc_scalars` panel payload
+   (kind="table").  The panel's applies_to gates on scalar_vars being present. #}
+<h3 class="subhead-md">Scalar metadata variables</h3>
+<table class="var-table">
+  <thead>
+    <tr><th>Variable</th><th>Value</th><th>Units</th><th>Long name</th></tr>
+  </thead>
+  <tbody>
+    {% for v in nc_meta.scalar_vars %}
+    <tr>
+      <td class="mono">{{ v.name }}</td>
+      <td class="mono cell-break">{{ v.value }}</td>
+      <td>{{ v.units }}</td>
+      <td>{{ v.long_name }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>

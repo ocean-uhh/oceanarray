@@ -1,0 +1,10 @@
+{# Processing-history list — rendered to a string and emitted as the `history`
+   panel's payload (kind="html"). #}
+<ul class="history-list">
+  {% for e in history_entries %}
+  <li>
+    <span class="history-ts">{{ e.timestamp }}</span>
+    <span class="history-text">{{ e.text }}</span>
+  </li>
+  {% endfor %}
+</ul>
