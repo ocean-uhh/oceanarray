@@ -170,7 +170,7 @@ MOORING_PANELS: dict[str, Panel] = {
         "knockdown_anomaly", "fig_knockdown_anomaly_b64", slot="half"
     ),
     "knockdown_displacement": _fig_panel(
-        "knockdown_displacement", "fig_knockdown_displacement_b64"
+        "knockdown_displacement", "fig_knockdown_displacement_b64", slot="full"
     ),
     "diagram": Panel(
         "diagram",
@@ -209,6 +209,7 @@ MOORING_SECTIONS: dict[str, Section] = {
         "knockdown",
         "Mooring knockdown",
         ("knockdown_hab", "knockdown_anomaly", "knockdown_displacement"),
+        layout="row",
     ),
     "diagram": Section("diagram", "Mooring diagram", ("diagram",)),
     "issues": Section("issues", "Issues for cruise report", ("issues",)),

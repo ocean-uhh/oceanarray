@@ -189,7 +189,7 @@ INSTRUMENT_PANELS: dict[str, Panel] = {
         applies_to=lambda c: bool(c.get("declination_warn")),
     ),
     "rose": _fig_panel("rose", "fig_rose_b64"),
-    "trajectory": _fig_panel("trajectory", "fig_trajectory_b64"),
+    "trajectory": _fig_panel("trajectory", "fig_trajectory_b64", slot="half"),
     "hodograph": _fig_panel("hodograph", "fig_hodograph_b64"),
     "speed": _fig_panel("speed", "fig_speed_boxplot_b64", slot="quarter"),
     "analog": _fig_panel("analog", "fig_analog_b64"),

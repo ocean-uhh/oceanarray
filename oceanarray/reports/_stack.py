@@ -410,18 +410,22 @@ def _stack_history_unavailable(c: StackContext) -> "str | None":
     return "No processing history recorded in the file attributes."
 
 
-def _figure_panel(pid: str, applies_to: Optional[Callable] = None) -> Panel:
-    """Build a bare-``.fig`` (``slot=None``) stack figure panel from the registry.
+def _figure_panel(
+    pid: str,
+    applies_to: Optional[Callable] = None,
+    slot: "str | None" = None,
+) -> Panel:
+    """Build a stack figure panel from the registry.
 
     The stack figures are pre-built by the ad-hoc closures in
-    :func:`generate_stack_page` (not the slot renderer), so they carry no
-    ``slot-*`` class and fill the content column — matching the pre-manifest
-    stack layout.  ``speed_profile`` is the one exception (rendered at ``half``).
+    :func:`generate_stack_page`.  Most fill the content column (``slot=None`` →
+    bare ``.fig``); the trajectory panels carry ``slot="half"`` so the row-layout
+    section places them side-by-side.
     """
     kwargs: dict = {
         "render": _fig(pid),
         "caption": STACK_CAPTIONS[pid],
-        "slot": None,
+        "slot": slot,
     }
     if applies_to is not None:
         kwargs["applies_to"] = applies_to
@@ -454,9 +458,11 @@ STACK_PANELS: dict[str, Panel] = {
     "north_velocity": _figure_panel("north_velocity", _has("north_velocity")),
     "up_velocity": _figure_panel("up_velocity", _has("up_velocity")),
     "turbidity": _figure_panel("turbidity", _has("turbidity")),
-    "trajectories_aquadopp": _figure_panel("trajectories_aquadopp", _has_aquadopp),
+    "trajectories_aquadopp": _figure_panel(
+        "trajectories_aquadopp", _has_aquadopp, slot="half"
+    ),
     "trajectories_adcp": _figure_panel(
-        "trajectories_adcp", lambda c: "adcp" in c.instr_types
+        "trajectories_adcp", lambda c: "adcp" in c.instr_types, slot="half"
     ),
     "speed_profile": Panel(
         "speed_profile",
@@ -540,6 +546,7 @@ STACK_SECTIONS: dict[str, Section] = {
         "trajectories",
         "Particle trajectories",
         ("trajectories_aquadopp", "trajectories_adcp"),
+        layout="row",
     ),
     "speed_profile": Section(
         "speed_profile", "Aquadopp speed profile", ("speed_profile",)

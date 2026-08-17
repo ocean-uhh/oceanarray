@@ -34,9 +34,13 @@
 {%- if sec.intro %}
 <p class="caption">{{ sec.intro }}</p>
 {%- endif %}
+{%- if sec.layout == "row" %}
+{{ panel_row(sec) }}
+{%- else %}
 {%- for p in sec.panels %}
 {{ panel(p) }}
 {%- endfor %}
+{%- endif %}
 {% endfor %}
 {% if report.not_applicable %}
 <p class="none-note">Not applicable to this {{ na_scope }}: {{ report.not_applicable | join(", ") }}.</p>
@@ -51,14 +55,14 @@
 </script>
 {% endmacro %}
 
-{% macro panel(p) %}
+{% macro panel(p, bare=false) %}
 {%- if p.is_stub %}
 <p class="warn">{{ p.stub_reason }}</p>
 {%- elif p.kind == "figure" %}
 {% if p.caption %}<p class="caption">{{ p.caption }}</p>
 {% endif -%}
 <details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig{% if p.slot %} slot-{{ p.slot }}{% endif %}" src="data:image/png;base64,{{ p.payload }}" alt="{{ p.id }}">
+<img class="fig{% if not bare and p.slot %} slot-{{ p.slot }}{% endif %}" src="data:image/png;base64,{{ p.payload }}" alt="{{ p.id }}">
 {{- dbg(p.payload, ("slot-" ~ p.slot) if p.slot else "full-canvas") }}
 </details>
 {%- else %}
@@ -67,3 +71,17 @@
 {{ p.payload | safe }}
 {%- endif %}
 {%- endmacro %}
+
+{# Row layout for a section (Section.layout="row"): each panel sits in a flex
+   cell sized by its slot (slot-half → ~50%, slot-full → 100% → wraps to its own
+   line).  The figure inside the cell is rendered *bare* (class="fig", 100% of
+   the cell) so the cell — not the img — controls the display width. #}
+{% macro panel_row(sec) %}
+<div class="fig-row">
+{%- for p in sec.panels %}
+<div class="fig-cell{% if p.slot %} slot-{{ p.slot }}{% endif %}">
+{{- panel(p, bare=true) }}
+</div>
+{%- endfor %}
+</div>
+{% endmacro %}

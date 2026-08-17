@@ -47,6 +47,10 @@ _TS_RE = re.compile(r"(generated |&bull; )\d{4}-\d\d-\d\d \d\d:\d\d UTC")
 # it varies on every checkout; mask it.  Deploy/recovery times use <dd> cells.
 _MTIME_RE = re.compile(r"<td>\s*\d{4}-\d\d-\d\d \d\d:\d\d UTC\s*</td>")
 _PNG_RE = re.compile(r"base64,[A-Za-z0-9+/=]+")
+# Footer package version ("...oceanarray</strong> v0.3.0.post1.dev1 &bull;").  It
+# comes from setuptools-scm (_version.py) and moves with every commit/build, so
+# mask it — the footer's *presence* of a version is what matters, not the value.
+_VER_RE = re.compile(r"(</strong>) v[\w.+!-]+")
 
 
 def _normalise(html: str) -> str:
@@ -60,6 +64,7 @@ def _normalise(html: str) -> str:
     """
     html = _TS_RE.sub(r"\1<GENERATED>", html)
     html = _MTIME_RE.sub("<td><MTIME></td>", html)
+    html = _VER_RE.sub(r"\1 v<VERSION>", html)
     return _PNG_RE.sub("base64,<PNG>", html)
 
 
