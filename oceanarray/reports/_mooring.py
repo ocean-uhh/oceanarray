@@ -31,7 +31,7 @@ from ._html_helpers import (
     _stage_files,
     _status,
 )
-from . import _figdebug, _slots
+from . import _figdebug
 from ._env import render_template
 from ._grid import generate_grid_page
 from ._instrument import generate_instrument_pages
@@ -403,12 +403,11 @@ class MooringReport:
         grid: bool = False,
         stack: bool = False,
     ) -> Optional[Path]:
-        # Reset the per-figure debug capture and the b64->slot registry at the
-        # start of each report so a long-lived process (a batch of moorings) does
-        # not accumulate them unbounded, nor leak a slot recorded for one report
-        # onto a byte-identical figure in the next.
+        # Reset the per-figure debug capture at the start of each report so a
+        # long-lived process (a batch of moorings) does not accumulate it
+        # unbounded.  (The b64->slot side registry is gone: the slot now travels
+        # on the resolved panel.)
         _figdebug.clear()
-        _slots.clear()
         proc_dir = self._resolve_proc_dir(mooring_name)
         if not proc_dir.exists():
             print(f"ERROR: Processing directory not found: {proc_dir}")

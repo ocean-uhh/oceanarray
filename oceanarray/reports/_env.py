@@ -18,7 +18,6 @@ from typing import Any
 from jinja2 import Environment, FileSystemLoader
 
 from . import _figdebug
-from . import _slots
 from ._report_css import SHARED_CSS
 from .. import parameters as params
 
@@ -51,10 +50,6 @@ _ENV.globals["package_version"] = _package_version()
 #: Per-figure debug lookup (``func · figsize · png``) for templates' ``.debug``
 #: sections; returns "" unless ``OCEANARRAY_REPORT_DEBUG`` is set.
 _ENV.globals["figdbg"] = _figdebug.figdbg
-#: Display slot recorded for each figure (``slot_for(b64) -> slot name``), so a
-#: template can pick its ``.slot-*`` width class from the same slot the figure was
-#: rendered at (U0.2).
-_ENV.globals["slot_for"] = _slots.slot_for
 #: Generated stylesheet — the single source of truth for report CSS (tokens,
 #: type/spacing scale, slot classes, shared chrome).  base.html injects it via
 #: ``{{ css | safe }}``; page-specific rules live in a small local block that
