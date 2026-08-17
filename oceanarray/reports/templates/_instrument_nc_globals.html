@@ -1,0 +1,14 @@
+{# Instrument NetCDF global-attributes table — the `nc_globals` panel payload
+   (kind="table").  applies_to gates on global_attrs being present. #}
+<h3 style="font-size:0.88rem;color:var(--ocean);margin:1.4rem 0 0.4rem;">Global attributes</h3>
+<table>
+  <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+  <tbody>
+    {% for k, v in nc_meta.global_attrs.items() %}
+    <tr>
+      <td class="mono">{{ k }}</td>
+      <td style="font-size:0.8rem;word-break:break-all">{{ v }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>

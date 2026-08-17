@@ -1,0 +1,6 @@
+{# Magnetic-declination warning for the current-roses section — the
+   `rose_declination` panel payload (kind="html"). #}
+<p style="font-size:0.82rem;background:var(--warn-bg);border-left:4px solid var(--warn);padding:0.5rem 0.8rem;margin-bottom:0.6rem;">
+  ⚠ Magnetic declination could not be applied &mdash; latitude/longitude are missing or all-zero in the mooring YAML (check <code>seabed_latitude</code>, <code>deployment_latitude</code>, or <code>latitude</code>/<code>longitude</code>).
+  ENU velocities use 0° declination (magnetic north, not true north).
+</p>

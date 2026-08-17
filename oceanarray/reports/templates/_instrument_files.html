@@ -1,0 +1,39 @@
+{# Raw + stage file listing — the `files` panel payload (kind="table"). #}
+<table class="file-table">
+  <thead><tr><th>Stage</th><th>Filename</th><th>Size</th><th>Last modified</th></tr></thead>
+  <tbody>
+  {% if raw_file.exists %}
+  <tr>
+    <td>Raw</td>
+    <td class="mono">{{ raw_file.name }}</td>
+    <td class="num">{{ raw_file.size }}</td>
+    <td>{{ raw_file.mtime }}</td>
+  </tr>
+  {% elif raw_file.unknown %}
+  <tr>
+    <td>Raw</td>
+    <td class="mono">{{ raw_file.name }}</td>
+    <td colspan="2">&mdash; not checked (no --raw-dir)</td>
+  </tr>
+  {% else %}
+  <tr>
+    <td>Raw</td>
+    <td class="mono miss">{{ raw_file.name }}</td>
+    <td colspan="2" class="miss">&mdash; not found</td>
+  </tr>
+  {% endif %}
+  {% for f in stage_files %}
+  <tr>
+    <td>{{ f.label }}</td>
+    {% if f.exists %}
+    <td class="mono">{{ f.name }}</td>
+    <td class="num">{{ f.size }}</td>
+    <td>{{ f.mtime }}</td>
+    {% else %}
+    <td class="mono miss">{{ f.name }}</td>
+    <td colspan="2" class="miss">&mdash; not generated</td>
+    {% endif %}
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>

@@ -1,0 +1,12 @@
+{# Per-channel analog-YAML source info — the `analog_yaml` panel payload
+   (kind="html"), shown above the analog figure. #}
+<ul style="font-size:0.8rem;margin:0.3rem 0 0.8rem 1.5rem;color:var(--gray-5);">
+  {% for ch in analog_yaml_info %}
+  <li>
+    <code>{{ ch.varname }}</code> — from YAML:
+    <code>{{ ch.yaml_key }}: {{ ch.label if ch.label else "(not set)" }}</code>{% if ch.units %},
+    <code>{{ ch.yaml_key }}_units: "{{ ch.units }}"</code>{% endif %}{% if ch.serial %},
+    <code>{{ ch.yaml_key }}_serial_number: {{ ch.serial }}</code>{% endif %}
+  </li>
+  {% endfor %}
+</ul>
