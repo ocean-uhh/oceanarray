@@ -88,7 +88,13 @@ def test_overflow_uses_a_panelgroup_for_isopycnals():
 
 def test_n2_precondition_stubs_on_unresolved_latitude():
     """n2's unavailable_if returns a latitude reason when lat is unresolved, else None."""
-    _kw = {"ds": None, "ts_bounds": {}, "dt_s": 3600.0, "history_entries": [], "nc_meta": {}}
+    _kw = {
+        "ds": None,
+        "ts_bounds": {},
+        "dt_s": 3600.0,
+        "history_entries": [],
+        "nc_meta": {},
+    }
     unresolved = GridContext(lat=0.0, lat_resolved=False, **_kw)
     resolved = GridContext(lat=65.0, lat_resolved=True, **_kw)
     reason = GRID_PANELS["n2"].unavailable_if(unresolved)
