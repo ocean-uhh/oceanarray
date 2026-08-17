@@ -350,17 +350,20 @@ def draw_grid_velocity_stacked(
                 break
         fv = data.ravel()
         fv = fv[np.isfinite(fv)]
-        bounds, norm, cmap, _cb_label = _velocity_panel_style(var, fv, div_abs_max)
+        bounds, norm, cmap, cb_label = _velocity_panel_style(var, fv, div_abs_max)
         pc = ax.pcolormesh(
             time, pressure, data, shading="nearest", cmap=cmap, norm=norm
         )
-        cb = fig.colorbar(
-            pc,
-            ax=ax,
-            pad=0.02,
-            ticks=nice_colorbar_ticks(float(bounds[0]), float(bounds[-1])),
-        )
-        cb.ax.set_title(params.vunit("east_velocity"), fontsize=report_tokens.ANNOT_FS)
+        # Current direction is cyclic 0–360°: tick at the compass points rather
+        # than the generic nice_colorbar_ticks (which gives 0/100/200/300).
+        if var == "current_direction":
+            cb_ticks = [0, 90, 180, 270, 360]
+        else:
+            cb_ticks = nice_colorbar_ticks(float(bounds[0]), float(bounds[-1]))
+        cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=cb_ticks)
+        # Use the per-variable colorbar label from _velocity_panel_style (°T for
+        # direction, m s⁻¹ for velocity/speed) — not a hardcoded east-velocity unit.
+        cb.ax.set_title(cb_label, fontsize=report_tokens.ANNOT_FS)
         pressure_axis(ax)
         ax.set_title(_LABELS[var], loc="left")
 
