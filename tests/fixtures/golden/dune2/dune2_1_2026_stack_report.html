@@ -308,12 +308,21 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 
 
 <nav class="jump-nav">
-  Jump to:
-  <a href="#processing_history">Processing history</a><a href="#instruments">Instruments (deep-first)</a><a href="#hydrography">Hydrography</a><a href="#velocity">Velocity</a><a href="#trajectories">Particle trajectories</a><a href="#speed_profile">Aquadopp speed profile</a><a href="#ts_diagram">T-S diagram</a><a href="#roses">Current rose diagrams</a><a href="#tilt">Aquadopp tilt (|pitch| / |roll| / pressure estimate)</a><a href="#spacing">Adjacent instrument spacing</a><a href="#clock_check">Clock alignment check</a><a href="#netcdf">NetCDF metadata</a>
+<a href="#processing_history">(1) Processing history</a>
+<a href="#instruments">(2) Instruments (deep-first)</a>
+<a href="#hydrography">(3) Hydrography</a>
+<a href="#velocity">(4) Velocity</a>
+<a href="#trajectories">(5) Particle trajectories</a>
+<a href="#speed_profile">(6) Aquadopp speed profile</a>
+<a href="#ts_diagram">(7) T-S diagram</a>
+<a href="#roses">(8) Current rose diagrams</a>
+<a href="#tilt">(9) Aquadopp tilt (|pitch| / |roll| / pressure estimate)</a>
+<a href="#spacing">(10) Adjacent instrument spacing</a>
+<a href="#clock_check">(11) Clock alignment check</a>
+<a href="#netcdf">(A) NetCDF metadata</a>
 </nav>
 
-
-<h2 id="processing_history">1. Processing history</h2>
+<h2 id="processing_history">(1) Processing history</h2>
 
 
 <ul class="history-list">
@@ -330,7 +339,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
   
 </ul>
 
-<h2 id="instruments">2. Instruments (deep-first)</h2>
+<h2 id="instruments">(2) Instruments (deep-first)</h2>
 <p class="caption">HAB = height above bottom (m).</p>
 
 
@@ -517,7 +526,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
   </tbody>
 </table>
 
-<h2 id="hydrography">3. Hydrography</h2>
+<h2 id="hydrography">(3) Hydrography</h2>
 
 <p class="caption">Values with QC flag ≥ 3 (suspect/bad) masked to NaN before plotting. All data values are in the source file without masking. ADCP instruments excluded.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
@@ -534,7 +543,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <img class="fig" src="data:image/png;base64,<PNG>" alt="salinity">
 </details>
 
-<h2 id="velocity">4. Velocity</h2>
+<h2 id="velocity">(4) Velocity</h2>
 
 <p class="caption">ENU frame. Values with velocity_flag ≥ 3 masked to NaN before plotting. All data values are in the source file without masking. Instruments without velocity data omitted.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
@@ -551,28 +560,28 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <img class="fig" src="data:image/png;base64,<PNG>" alt="up_velocity">
 </details>
 
-<h2 id="trajectories">5. Particle trajectories</h2>
+<h2 id="trajectories">(5) Particle trajectories</h2>
 
 <p class="caption">Pseudo-Lagrangian particle trajectories integrated from each Aquadopp&#39;s east/north velocity. Start at the origin; coloured by time through the deployment.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="trajectories_aquadopp">
 </details>
 
-<h2 id="speed_profile">6. Aquadopp speed profile</h2>
+<h2 id="speed_profile">(6) Aquadopp speed profile</h2>
 
 <p class="caption">Aquadopp current-speed profile: median and interquartile range of speed against height above bottom across the deployment.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig slot-half" src="data:image/png;base64,<PNG>" alt="speed_profile">
 </details>
 
-<h2 id="ts_diagram">7. T-S diagram</h2>
+<h2 id="ts_diagram">(7) T-S diagram</h2>
 
 <p class="caption">Left: scatter coloured by pressure. Middle: 2-D count heatmap. Right (when oxygen data present): scatter coloured by O₂ saturation (%). Bad (flag 4) and missing (flag 9) excluded; interpolated pressure (flag 8) retained.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="ts_diagram">
 </details>
 
-<h2 id="roses">8. Current rose diagrams</h2>
+<h2 id="roses">(8) Current rose diagrams</h2>
 
 
 
@@ -583,28 +592,28 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <img class="fig" src="data:image/png;base64,<PNG>" alt="roses">
 </details>
 
-<h2 id="tilt">9. Aquadopp tilt (|pitch| / |roll| / pressure estimate)</h2>
+<h2 id="tilt">(9) Aquadopp tilt (|pitch| / |roll| / pressure estimate)</h2>
 
 <p class="caption">|pitch| / |roll| / pressure-estimate tilt per Aquadopp, sharing a y-axis. Horizontal lines mark the suspect and fail thresholds from the file attributes.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="tilt">
 </details>
 
-<h2 id="spacing">10. Adjacent instrument spacing</h2>
+<h2 id="spacing">(10) Adjacent instrument spacing</h2>
 
 <p class="caption">Distribution of pressure differences between adjacent instrument pairs (pairs &lt; 2 dbar apart excluded as co-located).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" src="data:image/png;base64,<PNG>" alt="spacing">
+<img class="fig slot-third" src="data:image/png;base64,<PNG>" alt="spacing">
 </details>
 
-<h2 id="clock_check">11. Clock alignment check</h2>
+<h2 id="clock_check">(11) Clock alignment check</h2>
 
 <p class="caption">One temperature trace per instrument, zoomed to the first and last 30 min of the deployment, to check clock alignment across instruments.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="clock_check">
 </details>
 
-<h2 id="netcdf">A. NetCDF metadata</h2>
+<h2 id="netcdf">(A) NetCDF metadata</h2>
 
 
 
@@ -1192,9 +1201,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 </table>
 
 
-
 <p class="none-note">Not applicable to this deployment: Turbidity, Analog channels.</p>
-
 
 <div class="report-footer">
   Generated by <strong>oceanarray</strong> on <GENERATED> &bull; TESTHOST
@@ -1204,6 +1211,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
     const a = document.createElement('a'); a.href = '#top'; a.className = 'top-link'; a.textContent = '↑ top'; h.appendChild(a);
   });
 </script>
+
 
 </body>
 </html>

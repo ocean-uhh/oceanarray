@@ -18,6 +18,7 @@ from ._env import (
     render_template,
 )
 from ._manifest import Panel, Profile, Section, resolve
+from ._slots import render as render_slot
 from ._html_helpers import (
     _fig_to_base64,
     _find_array_report_href,
@@ -480,8 +481,12 @@ STACK_PANELS: dict[str, Panel] = {
     ),
     "roses": _figure_panel("roses", _has_stack_velocity),
     "tilt": _figure_panel("tilt", _has_aquadopp),
-    "spacing": _figure_panel(
-        "spacing", lambda c: c.n_instr > 1 and "pressure" in c.present_vars
+    "spacing": Panel(
+        "spacing",
+        render=_fig("spacing"),
+        slot="third",
+        caption=STACK_CAPTIONS["spacing"],
+        applies_to=lambda c: c.n_instr > 1 and "pressure" in c.present_vars,
     ),
     "clock_check": _figure_panel("clock_check"),
     "nc_dims": Panel(
@@ -842,20 +847,28 @@ def generate_stack_page(
                     valid = spacing[np.isfinite(spacing) & (spacing >= 2.0)]
                     all_spacings.extend(valid.tolist())
                 if all_spacings:
-                    with plt.style.context(str(params.MPLSTYLE)):
-                        fig_sp, ax_sp = plt.subplots(figsize=(report_tokens.W_THIRD, 3))
-                        ax_sp.hist(
-                            all_spacings, bins=60, color="steelblue", edgecolor="white"
-                        )
-                        ax_sp.set_xlabel("Instrument spacing (dbar)")
-                        ax_sp.set_ylabel("Count (instrument pair × time step)")
-                        ax_sp.set_title("Adjacent instrument spacing distribution")
-                        plt.tight_layout()
-                        fig_spacing_b64 = _fig_to_base64(fig_sp)
-                        _figdebug.record(
-                            fig_spacing_b64, "_make_pressure_spacing", fig_sp
-                        )
-                        plt.close(fig_sp)
+
+                    def _draw_spacing(
+                        *, width_in: float = report_tokens.W_THIRD
+                    ) -> "Any":
+                        with plt.style.context(str(params.MPLSTYLE)):
+                            fig_sp, ax_sp = plt.subplots(figsize=(width_in, 3))
+                            ax_sp.hist(
+                                all_spacings,
+                                bins=60,
+                                color="steelblue",
+                                edgecolor="white",
+                            )
+                            ax_sp.set_xlabel("Instrument spacing (dbar)")
+                            ax_sp.set_ylabel("Count (instrument pair × time step)")
+                            ax_sp.set_title("Adjacent instrument spacing distribution")
+                            return fig_sp
+
+                    # Render at the "third" slot so the PNG width matches the
+                    # displayed .slot-third class (crisp, not a CSS downscale).
+                    fig_spacing_b64 = render_slot(
+                        _draw_spacing, slot="third", optional=True
+                    )
             except Exception as _exc_sp:
                 warnings.warn(
                     f"pressure spacing figure failed: {_exc_sp}", stacklevel=2

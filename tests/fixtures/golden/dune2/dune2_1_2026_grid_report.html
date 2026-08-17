@@ -323,12 +323,18 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 
 
 <nav class="jump-nav">
-  Jump to:
-  <a href="#processing_history">Processing history</a><a href="#hydrography">Hydrography</a><a href="#ts_diagram">T-S diagram</a><a href="#velocity">Velocity</a><a href="#velocity_structure">Velocity structure</a><a href="#stratification">Stratification</a><a href="#overflow">Overflow</a><a href="#frequency_analysis">Frequency analysis</a><a href="#netcdf_variables">NetCDF variables</a>
+<a href="#processing_history">(1) Processing history</a>
+<a href="#hydrography">(2) Hydrography</a>
+<a href="#ts_diagram">(3) T-S diagram</a>
+<a href="#velocity">(4) Velocity</a>
+<a href="#velocity_structure">(5) Velocity structure</a>
+<a href="#stratification">(6) Stratification</a>
+<a href="#overflow">(7) Overflow</a>
+<a href="#frequency_analysis">(8) Frequency analysis</a>
+<a href="#netcdf_variables">(A) NetCDF variables</a>
 </nav>
 
-
-<h2 id="processing_history">1. Processing history</h2>
+<h2 id="processing_history">(1) Processing history</h2>
 
 
 <ul class="history-list">
@@ -355,21 +361,21 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
   
 </ul>
 
-<h2 id="hydrography">2. Hydrography</h2>
+<h2 id="hydrography">(2) Hydrography</h2>
 
 <p class="caption">Temperature, salinity, dissolved oxygen, and O₂ saturation (when present). Vertically interpolated to regular pressure grid • 20 discrete colour levels.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig slot-full" src="data:image/png;base64,<PNG>" alt="hydro">
 </details>
 
-<h2 id="ts_diagram">3. T-S diagram</h2>
+<h2 id="ts_diagram">(3) T-S diagram</h2>
 
 <p class="caption">Left: log₁₀(count+1) per T-S bin. Right (when O₂ present): median O₂ saturation per T-S bin — bins with &lt;5 samples masked. Colour scale: BrBG (brown=low, teal=high).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig slot-half" src="data:image/png;base64,<PNG>" alt="ts_diagram">
 </details>
 
-<h2 id="velocity">4. Velocity</h2>
+<h2 id="velocity">(4) Velocity</h2>
 
 <p class="caption">East, north, and up velocity. QC-flagged samples excluded before interpolation. Shared symmetric Spectral_r colormap for east/north; separate bounds for up. No temporal gap fill — NaN where no data.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
@@ -386,7 +392,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <img class="fig slot-full" src="data:image/png;base64,<PNG>" alt="vel_timeseries">
 </details>
 
-<h2 id="velocity_structure">5. Velocity structure</h2>
+<h2 id="velocity_structure">(5) Velocity structure</h2>
 
 <p class="caption">Current roses. One rose per pressure level (up to 12, evenly subsampled). Suspect/bad QC excluded. Each petal shows the fraction of time current flowed in that direction; petal length encodes speed (m s⁻¹).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
@@ -403,7 +409,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <img class="fig slot-half" src="data:image/png;base64,<PNG>" alt="trajectory">
 </details>
 
-<h2 id="stratification">6. Stratification</h2>
+<h2 id="stratification">(6) Stratification</h2>
 
 <p class="caption">Potential density. 20 discrete colour levels.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
@@ -415,7 +421,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <img class="fig slot-full" src="data:image/png;base64,<PNG>" alt="n2">
 </details>
 
-<h2 id="overflow">7. Overflow</h2>
+<h2 id="overflow">(7) Overflow</h2>
 
 <p class="caption">Isopycnal coverage diagnostic. Percentage of time steps during which each σ₀ surface (0.1 kg m⁻³ spacing) lies within the measured column range. Green ≥ 80 %; amber 50–80 %; red &lt; 50 %. Orange diamond = current --sig-level target. Dashed line = 80 % threshold. NaN gaps in the tracking figure above correspond to times when the isopycnal is outside the measured range (pycnocline above the shallowest grid level, or below the deepest).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
@@ -432,7 +438,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <img class="fig slot-full" src="data:image/png;base64,<PNG>" alt="overflow_temp">
 </details>
 
-<h2 id="frequency_analysis">8. Frequency analysis</h2>
+<h2 id="frequency_analysis">(8) Frequency analysis</h2>
 
 <p class="caption">Temperature power spectrum. Left: low-frequency overview — 14-day Hann windows, 50 % overlap. Right: high-frequency zoom — 1-day windows (~14× more windows, smoother tidal/inertial estimate); x-axis in hours. LF markers: M2, 1.8 d, 4 d, f. HF markers: M2 (12.4 h), f (inertial). Dashed black line: −2 spectral slope. Colour encodes pressure (light blue = shallow, dark blue = deep). Window length controllable via hf_segment_days in _make_spectrum_fig_b64.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
@@ -449,7 +455,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <img class="fig slot-full" src="data:image/png;base64,<PNG>" alt="rotary_spectrum">
 </details>
 
-<h2 id="netcdf_variables">A. NetCDF variables</h2>
+<h2 id="netcdf_variables">(A) NetCDF variables</h2>
 
 
 
@@ -664,8 +670,6 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 </table>
 
 
-
-
 <div class="report-footer">
   Generated by <strong>oceanarray</strong> on <GENERATED> &bull; TESTHOST
 </div>
@@ -674,6 +678,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
     const a = document.createElement('a'); a.href = '#top'; a.className = 'top-link'; a.textContent = '↑ top'; h.appendChild(a);
   });
 </script>
+
 
 </body>
 </html>
