@@ -214,7 +214,7 @@ def _velocity_panel_style(
         norm = mcolors.BoundaryNorm(bounds, ncolors=256)
         # Cyclic colormap so 0° and 360° share a colour; twilight is perceptually
         # uniform (hsv is not).  Hard-coded here, not in parameters.py.
-        return bounds, norm, "twilight", "°T"
+        return bounds, norm, "twilight", "°"
     if var == "bin_pressure":
         p_lo = float(np.percentile(finite_vals, 2)) if len(finite_vals) else 0.0
         p_hi = float(np.percentile(finite_vals, 98)) if len(finite_vals) else 1000.0
