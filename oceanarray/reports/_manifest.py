@@ -146,6 +146,11 @@ class Section:
         ``"content"`` (numbered ``1..N``) or ``"appendix"`` (numbered ``A..``),
         so appendix material such as a NetCDF-variable table does not pad the
         science numbering.
+    layout : str, optional
+        Within-section panel arrangement.  ``None`` (default) stacks panels
+        vertically; ``"row"`` lays them out in a wrapping flex row, each panel in
+        a cell sized by its ``slot`` (so two ``slot="half"`` figures sit
+        side-by-side and a ``slot="full"`` one wraps to its own line).
 
     """
 
@@ -156,6 +161,7 @@ class Section:
     intro: str | None = None
     applies_to: Callable[[Any], bool] | None = None
     role: str = "content"
+    layout: str | None = None
 
 
 @dataclass(frozen=True)
@@ -227,6 +233,7 @@ class ResolvedSection:
     intro: str | None
     panels: tuple[ResolvedPanel, ...]
     role: str
+    layout: str | None = None
 
 
 @dataclass(frozen=True)
@@ -433,6 +440,7 @@ def resolve(
                 intro=sec.intro,
                 panels=rpanels,
                 role=sec.role,
+                layout=sec.layout,
             )
         )
 
