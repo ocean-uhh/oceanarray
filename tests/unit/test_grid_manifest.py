@@ -91,9 +91,11 @@ def test_n2_precondition_stubs_on_unresolved_latitude():
     _kw = {
         "ds": None,
         "ts_bounds": {},
+        "ts_b64": None,
         "dt_s": 3600.0,
         "history_entries": [],
         "nc_meta": {},
+        "nc_file": "x.nc",
     }
     unresolved = GridContext(lat=0.0, lat_resolved=False, **_kw)
     resolved = GridContext(lat=65.0, lat_resolved=True, **_kw)
@@ -130,6 +132,70 @@ _GRID_NC = (
     / "dune2_1_2026"
     / "dune2_1_2026_grid.nc"
 )
+
+
+class _FakeDS:
+    """Minimal stand-in for xarray.Dataset for applies_to predicate tests."""
+
+    def __init__(self, names):
+        self._names = set(names)
+
+    @property
+    def data_vars(self):
+        return self._names
+
+    def __contains__(self, key):
+        return key in self._names
+
+
+def _ctx(ds=None, history_entries=(), ts_b64=None):
+    """Build a GridContext for predicate/render tests without opening a file."""
+    return GridContext(
+        ds=ds,
+        lat=0.0,
+        lat_resolved=True,
+        ts_bounds={},
+        ts_b64=ts_b64,
+        dt_s=3600.0,
+        history_entries=list(history_entries),
+        nc_meta={},
+        nc_file="x.nc",
+    )
+
+
+def test_hydro_gate_is_temperature_only_ts_diagram_needs_salinity():
+    """Temperature-only moorings still get Hydrography; the T-S diagram does not.
+
+    Regression guard: draw_grid_hydro renders a temperature-only panel, so
+    Hydrography must not be gated on salinity/conductivity — only the T-S diagram
+    (a T-vs-S scatter) needs both.
+    """
+    t_only = _ctx(ds=_FakeDS(["temperature"]))
+    assert GRID_PANELS["hydro"].applies_to(t_only) is True
+    assert GRID_PANELS["ts_diagram"].applies_to(t_only) is False
+    with_salt = _ctx(ds=_FakeDS(["temperature", "salinity"]))
+    assert GRID_PANELS["ts_diagram"].applies_to(with_salt) is True
+
+
+def test_ts_diagram_panel_returns_cached_b64_without_rerender():
+    """The ts_diagram panel returns the eagerly-cached figure, not a fresh render."""
+    assert GRID_PANELS["ts_diagram"].render(_ctx(ts_b64="CACHED")) == "CACHED"
+
+
+def test_empty_history_stubs_rather_than_footering_as_not_applicable():
+    """Missing processing history is a visible stub, never 'not applicable'.
+
+    Provenance sections are not deployment-conditional, so an absent history must
+    not land in the not-applicable footer (which would misstate a metadata gap as
+    a deployment characteristic).
+    """
+    profile = Profile(entries=(GRID_SECTIONS["processing_history"],))
+    report = resolve(profile, _ctx(history_entries=()), GRID_PANELS)
+    assert report.not_applicable == ()
+    assert [s.id for s in report.sections] == ["processing_history"]
+    panel = report.sections[0].panels[0]
+    assert panel.is_stub
+    assert "history" in panel.stub_reason.lower()
 
 
 @pytest.fixture(scope="module")

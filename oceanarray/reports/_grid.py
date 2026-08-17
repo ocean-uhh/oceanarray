@@ -162,9 +162,10 @@ GRID_CAPTIONS: dict[str, str] = {
 class GridContext:
     """Shared inputs for the grid page's panels, computed once (design §9.3).
 
-    ``ts_bounds`` is produced by the T-S diagram and consumed by Hydrography, so
-    it is computed eagerly — independent of whether the T-S *section* is in the
-    profile — by :func:`build_grid_context`.
+    The T-S diagram is drawn once, eagerly, by :func:`build_grid_context`: it
+    both produces ``ts_bounds`` (consumed by Hydrography, independent of whether
+    the T-S *section* is in the profile) and yields ``ts_b64``, which the
+    ``ts_diagram`` panel returns directly rather than re-rendering the figure.
 
     Parameters
     ----------
@@ -178,12 +179,18 @@ class GridContext:
         spectra still compute at ``lat=0`` as before.
     ts_bounds : dict
         Shared T-S axis limits, from :func:`_make_grid_ts_diagram`.
+    ts_b64 : str or None
+        The rendered T-S diagram (base64 PNG), or ``None`` if it could not be
+        drawn.  Cached here so the figure is drawn once, not once for the bounds
+        and again for the panel.
     dt_s : float
         Sample interval in seconds.
     history_entries : list
         Parsed processing-history entries (for the history panel).
     nc_meta : dict
         NetCDF metadata (variables/scalars/globals) for the appendix tables.
+    nc_file : str
+        The gridded NetCDF file's name, for the appendix table heading.
 
     """
 
@@ -191,9 +198,11 @@ class GridContext:
     lat: float
     lat_resolved: bool
     ts_bounds: dict
+    ts_b64: "str | None"
     dt_s: float
     history_entries: list
     nc_meta: dict
+    nc_file: str
 
 
 def build_grid_context(ds: Any, grid_path: Path) -> GridContext:
@@ -222,21 +231,30 @@ def build_grid_context(ds: Any, grid_path: Path) -> GridContext:
             stacklevel=2,
         )
         lat_v = 0.0
-    _, ts_bounds = _make_grid_ts_diagram(ds)
+    ts_b64, ts_bounds = _make_grid_ts_diagram(ds)
     dt_s = float(ds.attrs.get("dt_seconds", 3600))
     return GridContext(
         ds=ds,
         lat=lat_v,
         lat_resolved=lat_resolved,
         ts_bounds=ts_bounds,
+        ts_b64=ts_b64,
         dt_s=dt_s,
         history_entries=_parse_history(ds.attrs.get("history", "")),
         nc_meta=_read_nc_metadata(grid_path),
+        nc_file=grid_path.name,
     )
 
 
 def _has_temperature(ctx: GridContext) -> bool:
-    """True when the dataset carries a ``temperature`` variable (spectra gate)."""
+    """True when the dataset carries a ``temperature`` variable.
+
+    Gates Hydrography and the temperature spectra.  Hydrography needs only
+    temperature — ``draw_grid_hydro`` renders whichever of T / S / O₂ is present
+    and returns ``None`` only when none are — so a temperature-only mooring still
+    gets a (temperature-only) Hydrography panel.  The T-S *diagram* is stricter
+    (it needs both T and S): see :func:`_has_hydro`.
+    """
     return "temperature" in ctx.ds
 
 
@@ -275,21 +293,31 @@ def _has_sigma(ctx: GridContext) -> bool:
     return bool(_sigma_vars(ctx))
 
 
-def _has_history(ctx: GridContext) -> bool:
-    """True when the dataset carries any parsed processing-history entries."""
-    return bool(ctx.history_entries)
+def _history_unavailable(ctx: GridContext) -> "str | None":
+    """Reason the processing-history panel cannot render, or ``None`` to proceed.
+
+    Processing history is a provenance section that *always* belongs on a
+    processing report — it is not conditional on the deployment — so it is
+    surfaced through ``unavailable_if`` (a visible stub) rather than
+    ``applies_to`` (which would drop it into the "not applicable to this
+    deployment" footer, misstating a missing-metadata gap as a deployment
+    characteristic).
+    """
+    if ctx.history_entries:
+        return None
+    return "No processing history recorded in the file attributes."
 
 
 def _render_history(ctx: GridContext) -> "str | None":
     """Render the processing-history list to markup (``history`` panel payload)."""
-    if not ctx.history_entries:
-        return None
     return render_template("_grid_history.html", history_entries=ctx.history_entries)
 
 
 def _render_nc_variables(ctx: GridContext) -> "str | None":
     """Render the NetCDF time-variable table (``nc_variables`` panel payload)."""
-    return render_template("_grid_nc_variables.html", nc_meta=ctx.nc_meta)
+    return render_template(
+        "_grid_nc_variables.html", nc_meta=ctx.nc_meta, nc_file=ctx.nc_file
+    )
 
 
 def _render_nc_scalars(ctx: GridContext) -> "str | None":
@@ -348,7 +376,10 @@ def _isopycnal_ts_panel(sigma_var: str) -> Panel:
 GRID_PANELS: dict[str, Panel] = {
     # non-figure appendix / history — payloads are markup from sub-templates
     "history": Panel(
-        "history", render=_render_history, kind="html", applies_to=_has_history
+        "history",
+        render=_render_history,
+        kind="html",
+        unavailable_if=_history_unavailable,
     ),
     "nc_variables": Panel("nc_variables", render=_render_nc_variables, kind="table"),
     "nc_scalars": Panel(
@@ -368,11 +399,11 @@ GRID_PANELS: dict[str, Panel] = {
         "hydro",
         render=lambda c: _make_grid_hydro_b64(c.ds, var_bounds=c.ts_bounds),
         caption=GRID_CAPTIONS["hydro"],
-        applies_to=_has_hydro,
+        applies_to=_has_temperature,
     ),
     "ts_diagram": Panel(
         "ts_diagram",
-        render=lambda c: _make_grid_ts_diagram(c.ds)[0],
+        render=lambda c: c.ts_b64,
         slot="half",
         caption=GRID_CAPTIONS["ts_diagram"],
         applies_to=_has_hydro,
