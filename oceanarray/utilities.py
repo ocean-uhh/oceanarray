@@ -449,13 +449,17 @@ def _safe_rel(path: Path, root: Path) -> str:
 def _nice_colorbar_bounds(vmin: float, vmax: float, n: int = 20) -> np.ndarray:
     """Return a boundary array for a discrete colorbar with approximately *n* levels.
 
-    The step is rounded to 1 significant figure so tick labels land on clean values.
-    The range is centered on the midpoint of [vmin, vmax].
+    The step is snapped to the "nice" 1 / 2 / 2.5 / 5 family (the same set
+    :class:`matplotlib.ticker.MaxNLocator` uses), and the boundaries are aligned
+    to integer multiples of that step spanning ``[vmin, vmax]``.  This guarantees
+    that round labelled ticks (0.2, 100, …) land exactly on colour-step
+    boundaries instead of between them — otherwise a boundary step of, say, 0.03
+    or 30 leaves the labels sitting between the discrete colour changes.
 
     Examples
     --------
-    Temperature  vmin=0.87, vmax=7.23 → step=0.3,  bounds 1.2–7.2  (20 levels)
-    Salinity     vmin=34.782, vmax=35.139 → step=0.02, bounds 34.76–35.16 (20 levels)
+    Temperature  vmin=0.87, vmax=7.23 → step=0.25, bounds 0.75–7.25
+    Salinity     vmin=34.782, vmax=35.139 → step=0.02, bounds 34.78–35.14
 
     """
     span = vmax - vmin
@@ -463,17 +467,13 @@ def _nice_colorbar_bounds(vmin: float, vmax: float, n: int = 20) -> np.ndarray:
         return np.linspace(vmin - 1, vmin + 1, n + 1)
     raw_step = span / n
     mag = 10.0 ** math.floor(math.log10(raw_step))
-    rounded = round(raw_step / mag)
-    if rounded == 0:
-        rounded = 1
-    elif rounded >= 10:
-        mag *= 10
-        rounded = 1
-    nice_step = rounded * mag
-    mid = (vmin + vmax) / 2
-    mid_aligned = round(mid / nice_step) * nice_step
-    lo = mid_aligned - (n / 2) * nice_step
-    return np.array([lo + i * nice_step for i in range(n + 1)])
+    frac = raw_step / mag  # in [1, 10)
+    nice_frac = min((1.0, 2.0, 2.5, 5.0, 10.0), key=lambda c: abs(c - frac))
+    nice_step = nice_frac * mag
+    lo = math.floor(vmin / nice_step) * nice_step
+    hi = math.ceil(vmax / nice_step) * nice_step
+    n_steps = int(round((hi - lo) / nice_step))
+    return lo + nice_step * np.arange(n_steps + 1)
 
 
 def nice_colorbar_ticks(vmin: float, vmax: float, *, max_ticks: int = 6) -> np.ndarray:

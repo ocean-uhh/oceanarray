@@ -165,3 +165,30 @@ def test_plot_trajectory_lc_array_length():
         f"expected {len(x) - 1} (one per segment)"
     )
     plt.close(fig)
+
+
+def test_nice_axis_limits_pads_and_rounds():
+    """1/99 percentiles, +5% pad each side, rounded outward to a clean step."""
+    from oceanarray.plotters.ts import _nice_axis_limits
+
+    # linspace 0..100 has exact 1st/99th percentiles of 1 and 99 (range 98):
+    # 1 - 0.05*98 = -3.9 floors to -4; 99 + 4.9 = 103.9 ceils to 104 (step 1).
+    x = np.linspace(0.0, 100.0, 101)
+    assert _nice_axis_limits(x) == (-4.0, 104.0)
+
+
+def test_nice_axis_limits_excludes_outliers():
+    """Outliers past the 1/99 percentiles must not stretch the limits."""
+    from oceanarray.plotters.ts import _nice_axis_limits
+
+    x = np.concatenate([np.linspace(34.66, 35.18, 999), [30.0, 40.0]])
+    lo, hi = _nice_axis_limits(x)
+    assert 34.5 < lo < 34.66 and 35.18 < hi < 35.4  # outliers 30/40 excluded
+
+
+def test_nice_axis_limits_degenerate_range():
+    """Zero-width data falls back to a symmetric ±0.5 window (no crash)."""
+    from oceanarray.plotters.ts import _nice_axis_limits
+
+    lo, hi = _nice_axis_limits(np.full(50, 5.0))
+    assert lo == 4.5 and hi == 5.5

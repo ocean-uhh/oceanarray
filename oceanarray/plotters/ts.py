@@ -283,6 +283,44 @@ def draw_ts_diagram(
     return fig
 
 
+def _nice_axis_limits(
+    x: np.ndarray, *, plow: float = 1.0, phigh: float = 99.0, pad_frac: float = 0.05
+) -> "tuple[float, float]":
+    """Return padded, outward-rounded axis limits from robust percentiles.
+
+    Takes the *plow*/*phigh* percentiles of *x* (default 1st/99th) so outliers do
+    not stretch the axis, pads by *pad_frac* of that percentile range on each side
+    (default 5%, i.e. 10% of the range total), then rounds the low bound down and
+    the high bound up to a clean step (one tenth of the range's order of
+    magnitude) so the axis ticks land on round values.
+
+    Parameters
+    ----------
+    x : numpy.ndarray
+        Finite data values for the axis.
+    plow, phigh : float, optional
+        Low/high percentiles bounding the data core.  Default 1 and 99.
+    pad_frac : float, optional
+        Fraction of the percentile range added as padding on each side.
+        Default 0.05.
+
+    Returns
+    -------
+    tuple of float
+        ``(lo, hi)`` axis limits.
+
+    """
+    p_lo = float(np.nanpercentile(x, plow))
+    p_hi = float(np.nanpercentile(x, phigh))
+    rng = p_hi - p_lo
+    if not np.isfinite(rng) or rng <= 0:
+        return p_lo - 0.5, p_hi + 0.5
+    lo = p_lo - pad_frac * rng
+    hi = p_hi + pad_frac * rng
+    step = 10.0 ** np.floor(np.log10(rng)) / 10.0
+    return float(np.floor(lo / step) * step), float(np.ceil(hi / step) * step)
+
+
 def draw_stack_ts_diagram(
     ds: "xr.Dataset", *, width_in: float = report_tokens.W_FULL
 ) -> "Optional[plt.Figure]":
@@ -392,13 +430,11 @@ def draw_stack_ts_diagram(
     ax_scatter.set_ylabel(params.vlabel("temperature"))
     ax_scatter.set_title("T-S (colour = pressure)")
 
-    # Shared limits (scatter's data range) so the heatmap matches (boxes are
-    # already square from square_axes_grid).
-    _sf, _tf = S_flat[finite], T_flat[finite]
-    _sp = 0.02 * (float(np.nanmax(_sf) - np.nanmin(_sf)) + 1e-9)
-    _tp = 0.02 * (float(np.nanmax(_tf) - np.nanmin(_tf)) + 1e-9)
-    _s_lim = (float(np.nanmin(_sf)) - _sp, float(np.nanmax(_sf)) + _sp)
-    _t_lim = (float(np.nanmin(_tf)) - _tp, float(np.nanmax(_tf)) + _tp)
+    # Shared limits from robust percentiles (1/99, padded 5% each side and rounded
+    # outward) so a few outliers don't stretch the box; the heatmap matches (boxes
+    # are already square from square_axes_grid).
+    _s_lim = _nice_axis_limits(S_flat[finite])
+    _t_lim = _nice_axis_limits(T_flat[finite])
     ax_scatter.set_xlim(*_s_lim)
     ax_scatter.set_ylim(*_t_lim)
 
@@ -496,11 +532,11 @@ def draw_grid_ts_diagram(
     if finite.sum() < 10:
         return None
 
-    # Axis limits from the data — returned to caller so hydro panels share scales.
-    s_lo = float(np.nanpercentile(S[finite], 0.01))
-    s_hi = float(np.nanpercentile(S[finite], 99.99))
-    t_lo = float(np.nanpercentile(T[finite], 0.01))
-    t_hi = float(np.nanpercentile(T[finite], 99.99))
+    # Axis limits from robust percentiles (1/99, padded and rounded outward) so
+    # outliers don't stretch the box — returned to caller so hydro panels share
+    # the same scales.
+    s_lo, s_hi = _nice_axis_limits(S[finite])
+    t_lo, t_hi = _nice_axis_limits(T[finite])
     ts_bounds: dict = {"t_lim": (t_lo, t_hi), "s_lim": (s_lo, s_hi), "o2_lim": None}
 
     has_o2 = "oxygen_saturation_pct" in ds.data_vars

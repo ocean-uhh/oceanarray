@@ -264,10 +264,31 @@ def test_get_dims_2d_pressure():
 
 def test_nice_colorbar_bounds_standard():
     bounds = utilities._nice_colorbar_bounds(0.5, 7.5, n=20)
-    assert len(bounds) == 21  # n+1 edges
     assert np.all(np.diff(bounds) > 0), "bounds must be monotonically increasing"
-    # All values should be finite
     assert np.all(np.isfinite(bounds))
+    # Boundaries span the data range.
+    assert bounds[0] <= 0.5 and bounds[-1] >= 7.5
+    # Step snapped to the nice 1/2/2.5/5 family, and roughly n levels.
+    step = bounds[1] - bounds[0]
+    frac = step / 10.0 ** np.floor(np.log10(step))
+    assert np.isclose(frac, min((1.0, 2.0, 2.5, 5.0), key=lambda c: abs(c - frac)))
+    assert 10 <= len(bounds) <= 40  # count is adaptive, no longer fixed at n+1
+
+
+def test_nice_colorbar_ticks_align_to_bounds():
+    """Labelled ticks must land on discrete colour-step boundaries.
+
+    Regression guard: the boundary step used to be rounded to any 1-sig-fig value
+    (0.03, 30), so round ticks (0.2, 100) fell between the colour changes rather
+    than on them (Eleanor 2026-08-18).
+    """
+    for vmin, vmax in [(27.5, 27.95), (82.0, 808.0), (0.5, 7.5)]:
+        bounds = utilities._nice_colorbar_bounds(vmin, vmax)
+        ticks = utilities.nice_colorbar_ticks(float(bounds[0]), float(bounds[-1]))
+        for t in ticks:
+            assert np.any(np.isclose(t, bounds)), (
+                f"tick {t} off the boundary grid for ({vmin}, {vmax})"
+            )
 
 
 def test_nice_colorbar_bounds_zero_span():
@@ -278,11 +299,10 @@ def test_nice_colorbar_bounds_zero_span():
 
 
 def test_nice_colorbar_bounds_salinity_range():
-    """Typical salinity range gives clean step and correct count."""
+    """Typical salinity range gives a clean 0.02 step covering the data."""
     bounds = utilities._nice_colorbar_bounds(34.78, 35.14, n=20)
-    assert len(bounds) == 21
-    assert bounds[0] < 34.78 or np.isclose(bounds[0], 34.78, atol=0.1)
-    assert bounds[-1] > 35.14 or np.isclose(bounds[-1], 35.14, atol=0.1)
+    assert bounds[0] <= 34.78 and bounds[-1] >= 35.14
+    assert np.isclose(bounds[1] - bounds[0], 0.02)
 
 
 def _touch(path, mtime):

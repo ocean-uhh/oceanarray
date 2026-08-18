@@ -176,7 +176,7 @@ def _velocity_panel_style(
     div (diverging)  east/north/up/error_velocity  Spectral_r  ± div_abs_max
     seq (sequential) current_speed                 plasma       0 → 98th pctile
     seq              bin_pressure                  PuRd         2nd→98th pctile
-    cyc (cyclic)     current_direction             hsv          0–360°
+    cyc (cyclic)     current_direction             twilight     0–360°
 
     Parameters
     ----------
@@ -195,7 +195,9 @@ def _velocity_panel_style(
     tuple
         ``(bounds, norm, cmap, cb_label)`` where *bounds* is a 1-D array of
         colorbar tick/boundary values, *norm* is a ``BoundaryNorm``, *cmap*
-        is a colormap name string, and *cb_label* is the colorbar axis label.
+        is a colormap name string or a :class:`~matplotlib.colors.Colormap`
+        (cyclic panels return a resampled colormap), and *cb_label* is the
+        colorbar axis label.
 
     """
     import matplotlib.colors as mcolors
@@ -210,11 +212,17 @@ def _velocity_panel_style(
         bounds, norm = colorbar_norm(vmin=0.0, vmax=max(spd_max, 1e-4))
         return bounds, norm, "plasma", "m s⁻¹"
     if var == "current_direction":
-        bounds = np.linspace(0, 360, 21)
-        norm = mcolors.BoundaryNorm(bounds, ncolors=256)
+        import matplotlib.pyplot as plt
+
         # Cyclic colormap so 0° and 360° share a colour; twilight is perceptually
-        # uniform (hsv is not).  Hard-coded here, not in parameters.py.
-        return bounds, norm, "twilight", "°"
+        # uniform (hsv is not).  twilight has 510 native colours, so a plain
+        # BoundaryNorm(ncolors=256) maps 0–360° onto only the first half of the
+        # cycle (pale→dark, non-cyclic — Eleanor 2026-08-18).  Resample to one
+        # colour per bin and match ncolors so the full cycle shows and 0°==360°.
+        bounds = np.linspace(0, 360, 21)
+        cmap = plt.get_cmap("twilight", len(bounds) - 1)
+        norm = mcolors.BoundaryNorm(bounds, cmap.N)
+        return bounds, norm, cmap, "°"
     if var == "bin_pressure":
         p_lo = float(np.percentile(finite_vals, 2)) if len(finite_vals) else 0.0
         p_hi = float(np.percentile(finite_vals, 98)) if len(finite_vals) else 1000.0
