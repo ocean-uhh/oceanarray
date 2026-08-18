@@ -436,8 +436,7 @@ Valid ``file_type`` values
    * - ``rdi-raw``
      - RDI raw binary
      - WorkHorse ADCP
-     - Requires the ``dolfyn`` package:
-       ``pip install "mhkit[dolfyn]"``
+     - Read via ``seasenselib`` (``mhkit[dolfyn]``); no extra install needed.
    * - ``adcp-matlab``
      - ADCP MATLAB export
      - RDI WorkHorse

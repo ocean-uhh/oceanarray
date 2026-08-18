@@ -17,12 +17,7 @@ Python tools for processing moored oceanographic array observations from raw ins
 pip install oceanarray
 ```
 
-`seasenselib` is required for reading raw instrument files (available on PyPI but needs `--no-deps`):
-
-```bash
-pip install pyrsktools pycnv
-pip install seasenselib --no-deps
-```
+This pulls in `seasenselib` (used to read raw instrument files in stage 1) automatically.
 
 Python 3.9–3.12 is supported.
 

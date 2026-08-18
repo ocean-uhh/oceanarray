@@ -20,8 +20,8 @@ write Python code.
 Prerequisites
 -------------
 
-**Python 3.10 or later** is required.  First create an isolated environment,
-then clone and install from source.
+**Python 3.10 or later** is required.  Install ``oceanarray`` from PyPI, ideally
+into an isolated environment.
 
 **Option A — conda**
 
@@ -29,6 +29,7 @@ then clone and install from source.
 
    conda create -n oceanarray python=3.11
    conda activate oceanarray
+   pip install oceanarray
 
 **Option B — venv**
 
@@ -37,8 +38,9 @@ then clone and install from source.
    python -m venv venv
    source venv/bin/activate        # macOS / Linux
    # venv\Scripts\activate         # Windows
+   pip install oceanarray
 
-**Clone and install** (after activating either environment):
+For development, install from source instead:
 
 .. code-block:: bash
 
@@ -47,8 +49,7 @@ then clone and install from source.
    pip install -e .
 
 ``oceanarray`` reads raw instrument files via the ``seasenselib`` library,
-which is also not on PyPI.  Install it following the instructions provided
-with your copy of the library.
+which is on PyPI and installed automatically with ``oceanarray``.
 
 .. note::
 
@@ -56,14 +57,9 @@ with your copy of the library.
    run.  Stages 2–3, stack, grid, and report generation work on existing
    NetCDF files without it.
 
-If you need to process RDI WorkHorse ADCP files (``file_type: rdi-raw``),
-install the optional ``dolfyn`` dependency:
-
-.. code-block:: bash
-
-   pip install "mhkit[dolfyn]"
-
-You do not need ``dolfyn`` for SeaBird, RBR, or Nortek Aquadopp files.
+RDI WorkHorse ADCP files (``file_type: rdi-raw``) need no extra install:
+``seasenselib`` reads them via ``mhkit[dolfyn]``, pulled in automatically with
+``oceanarray``.
 
 ----
 
