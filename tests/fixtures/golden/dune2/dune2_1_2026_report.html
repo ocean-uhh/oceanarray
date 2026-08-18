@@ -103,7 +103,10 @@ h2 {
   color: var(--gray-5); font-size: var(--fs-note);
   margin-top: 0.75rem; margin-bottom: 0.75rem;
 }
-h2 + .caption { margin-top: -0.5rem; }
+/* A section intro (the caption directly under a heading) is a lede for the whole
+   figure block, so it spans the content width rather than the 78ch prose measure a
+   paragraph would otherwise inherit — which left it stranded under full-width figures. */
+h2 + .caption { margin-top: -0.5rem; max-width: none; }
 .explainer {
   font-size: var(--fs-note); color: var(--text);
   background: var(--bg-sunken); border-left: 3px solid var(--muted);
@@ -132,12 +135,16 @@ h2 + .caption { margin-top: -0.5rem; }
   align-items: flex-start;
 }
 .fig-col { display: flex; flex-direction: column; gap: 0.75rem; }
+.fig-row.center { justify-content: center; }
 figure { margin: 0; }
 figure img {
   border: 1px solid var(--rule); border-radius: var(--radius-btn);
   display: block; width: 100%; height: auto;
 }
 figcaption { font-size: var(--fs-cap); color: var(--gray-5); margin-top: 0.25rem; }
+/* A stub panel's warning fills the figure slot it stands in for, rather than the
+   78ch prose reading measure it would otherwise inherit as a paragraph. */
+figure .warn { max-width: none; }
 table {
   width: 100%; border-collapse: collapse;
   font-size: var(--fs-note); margin: 0.6rem 0 1.2rem;
@@ -225,7 +232,8 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
             text-decoration:none; margin-left:auto; white-space:nowrap; }
 .top-link:hover { color:var(--ocean); text-decoration:underline; }
 .report-footer { margin-top:3rem; font-size:var(--fs-cap); color:var(--muted);
-                 border-top:1px solid var(--rule); padding-top:0.8rem; }
+                 border-top:1px solid var(--rule); padding-top:0.8rem;
+                 text-align:center; }
 .jump-nav { background:var(--seafoam); padding:0.55rem 1rem; border-radius:6px;
             margin-bottom:1.5rem; font-size:var(--fs-nav); line-height:2.2; }
 .jump-nav a { color:var(--ocean); text-decoration:none; font-weight:600;
@@ -237,6 +245,12 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 .history-list li:last-child { border-bottom:none; }
 .history-ts { color:var(--muted); white-space:nowrap; font-size:var(--fs-cap); min-width:11rem; }
 .history-text { flex:1; }
+/* Figure collapse toggle (shared report chrome — used by the panel() macro on
+   every manifest-ported page). */
+details summary.collapse-toggle { color:var(--muted); font-size:0.76rem; cursor:pointer;
+  list-style:none; padding:0.15rem 0 0.4rem; user-select:none; }
+details summary.collapse-toggle::before { content:"▾ "; }
+details[open] summary.collapse-toggle::before { content:"▴ "; }
 /* Figures never exceed the content column; the oversampled PNG downscales
    crisply (spec §11 OVERSAMPLE). Pages may override (e.g. array uses 60%). */
 .fig { max-width:100%; height:auto; display:block; }
@@ -244,6 +258,10 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
    slot-* figure gets its width from the .slot-* rule instead — so this must NOT
    apply to slotted figures (that was the width:100%-overrides-slot bug). */
 .fig:not([class*="slot-"]) { width:100%; }
+/* A cell in a Section.layout="row" flex row: its width comes from the slot-*
+   class the panel_row macro puts on the cell, and the bare .fig inside fills it. */
+.fig-cell { min-width:0; }
+.fig-cell > .fig { width:100%; }
 .none-note { color:var(--muted); font-style:italic; }
 .var-qc { color:var(--good); font-size:var(--fs-xs); }
 /* Figure-debug line under a plot (OCEANARRAY_REPORT_DEBUG=1): slot the
@@ -278,6 +296,56 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
   .pos { color: var(--warn); font-weight: 600; }
   .neg { color: var(--interp); font-weight: 600; }
   tr.row-warn td { background: #fef3cd !important; }
+  /* No width here: a bare .fig fills the content column via base.html's
+     max-width:100% (knockdown + clock-check are slot=None figures). */
+  img.fig { max-width: 100%; border: 1px solid var(--rule); border-radius: 4px; margin-bottom: 0.5rem; }
+  /* Instrument-summary variable badges (was an inline <style> in that section). */
+  .vbadge {
+    display: inline-block;
+    padding: 0.12em 0.42em;
+    border-radius: 3px;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+  .vb-yes    { background: #27ae60; color: #fff; }
+  .vb-interp { background: #2980b9; color: #fff; }
+  .vb-no     { background: #ecf0f1; color: #aaa; }
+  /* Sensor-calibration collapsible coefficient cells (was an inline <style>). */
+  details.coeff summary {
+    cursor: pointer;
+    color: var(--interp);
+    font-size: 0.78rem;
+    user-select: none;
+  }
+  details.coeff pre {
+    margin: 0.3em 0 0;
+    font-size: 0.72rem;
+    background: #f8f9fa;
+    padding: 0.4em 0.6em;
+    border-radius: 3px;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  /* QC flag summary bars + legend (was an inline <style> in that section). */
+  .qc-bar {
+    display: flex;
+    width: 220px;
+    height: 14px;
+    border-radius: 3px;
+    overflow: hidden;
+    gap: 1px;
+    background: #ecf0f1;
+  }
+  .qc-bar div { height: 100%; }
+  .qc-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem 0.9rem;
+    font-size: 0.75rem;
+    margin: 0.3rem 0 1rem;
+  }
+  .qc-legend span { display: inline-block; width: 10px; height: 10px;
+                    border-radius: 2px; vertical-align: middle; margin-right: 3px; }
 
 </style>
 
@@ -307,19 +375,20 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 
 
 <nav class="jump-nav">
-  Jump to:
-  <a href="#pipeline">Processing pipeline</a>
-  <a href="#instruments">Instruments</a>
-  <a href="#timing">Deployment timing</a>
-  <a href="#clock">Clock corrections</a>
-  <a href="#calibration">Sensor calibration</a>
-  <a href="#qc">QC summary</a>
-  <a href="#knockdown">Knockdown</a>
-  
+<a href="#pipeline">(1) Processing pipeline</a>
+<a href="#instruments">(2) Instrument summary</a>
+<a href="#timing">(3) Deployment timing</a>
+<a href="#clock">(4) Clock corrections</a>
+<a href="#calibration">(5) Sensor calibration</a>
+<a href="#qc">(6) QC flag summary</a>
+<a href="#knockdown">(7) Mooring knockdown</a>
+<a href="#diagram">(8) Mooring diagram</a>
+<a href="#issues">(9) Issues for cruise report</a>
 </nav>
 
-<!-- ══════════════════════════════════ 2. PROCESSING PIPELINE ══ -->
-<h2 id="pipeline">2 &mdash; Processing pipeline</h2>
+<h2 id="pipeline">(1) Processing pipeline</h2>
+
+
 <p style="font-size:0.82rem;color:var(--gray-5);margin-top:-0.5rem;">
   Raw = file present in raw directory &bull;
   Read = format check passed &bull;
@@ -331,7 +400,7 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
   Instruments marked <code>skip: true</code> in the YAML are excluded from all
   processing and are shown with a <em>skipped</em> note in the Note column.
   Stack and Grid pills are grey for any instrument that did not reach Stage&nbsp;3.
-  See <a href="#instruments">Table&nbsp;3</a> for skip reasons where given.
+  See <a href="#instruments">the instrument summary</a> for skip reasons where given.
 </p>
 <table>
   <thead>
@@ -450,27 +519,16 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
   </tbody>
 </table>
 
-<!-- ════════════════════════════════════ 3. INSTRUMENT SUMMARY ══ -->
-<h2 id="instruments">3 &mdash; Instrument summary</h2>
+<h2 id="instruments">(2) Instrument summary</h2>
+
+
 <p style="font-size:0.82rem;color:var(--gray-5);margin-top:-0.5rem;">
   Variables and record length are read from stage&nbsp;3 files where available,
   otherwise stage&nbsp;2.  The <strong>P</strong> badge is shown as present
   whether pressure was directly measured or interpolated from neighbouring
-  instruments — see Table&nbsp;6 (QC flag summary) to distinguish.  Instruments
+  instruments — see <a href="#qc">the QC flag summary</a> to distinguish.  Instruments
   marked <code>skip: true</code> are listed with the skip reason where provided.
 </p>
-<style>
-  .vbadge {
-    display: inline-block;
-    padding: 0.12em 0.42em;
-    border-radius: 3px;
-    font-size: 0.72rem;
-    font-weight: 700;
-  }
-  .vb-yes    { background: #27ae60; color: #fff; }
-  .vb-interp { background: #2980b9; color: #fff; }
-  .vb-no     { background: #ecf0f1; color: #aaa; }
-</style>
 <table>
   <thead>
     <tr>
@@ -620,8 +678,9 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 <pre style="background:var(--gray-1);border:1px solid var(--rule);border-radius:4px;padding:0.5em 0.8em;font-size:0.85rem;display:inline-block;user-select:all;cursor:text">--pmin 340 --pmax 700</pre>
 
 
-<!-- ══════════════════════════════════════ 3.5 DEPLOYMENT TIMING ══ -->
-<h2 id="timing">3.5 &mdash; Deployment timing</h2>
+<h2 id="timing">(3) Deployment timing</h2>
+
+
 <p style="font-size:0.82rem;color:var(--gray-5);margin-top:-0.5rem;">
   <em>Stage&nbsp;1</em> and <em>Sugg.&nbsp;(raw)</em> columns are in the <strong>raw
   instrument clock</strong> (uncorrected).  <em>Sugg.&nbsp;UTC</em> columns
@@ -786,8 +845,9 @@ recovery_time:   '2026-07-25T11:43'</textarea>
 </div>
 
 
-<!-- ══════════════════════════════════════ 4. CLOCK CORRECTIONS ══ -->
-<h2 id="clock">4 &mdash; Clock corrections</h2>
+<h2 id="clock">(4) Clock corrections</h2>
+
+
 <p style="font-size:0.82rem;color:var(--gray-5);margin-top:-0.5rem;">
   Positive drift/offset = instrument was <em>slow</em> (behind UTC); correction shifts times later.
   Negative = instrument was <em>fast</em> (ahead of UTC); correction shifts times earlier.
@@ -859,36 +919,14 @@ recovery_time:   '2026-07-25T11:43'</textarea>
   </tbody>
 </table>
 
+<p class="caption">Clock alignment check. Overlaid temperature records zoomed to the first and last 30 minutes of the deployment. If instrument clocks are misaligned the temperature curves will appear shifted in time. Data are from stage 3 (or stage 2 if stage 3 is not yet available). Instruments with no temperature data are omitted.</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,<PNG>" alt="clock_check">
+</details>
 
-<h3 style="font-size:0.9rem;margin-top:1.2rem;">Clock alignment check</h3>
-<p class="caption">
-  Overlaid temperature records zoomed to the first and last 30 minutes of the deployment.
-  If instrument clocks are misaligned the temperature curves will appear shifted in time.
-  Data are from stage&#8209;3 (or stage&#8209;2 if stage&#8209;3 is not yet available).
-  Instruments with no temperature data are omitted.
-</p>
-<img class="fig" src="data:image/png;base64,<PNG>" alt="Clock alignment check">
+<h2 id="calibration">(5) Sensor calibration</h2>
 
 
-<!-- ══════════════════════════════════════ 5. SENSOR CALIBRATION ══ -->
-<h2 id="calibration">5 &mdash; Sensor calibration</h2>
-<style>
-  details.coeff summary {
-    cursor: pointer;
-    color: var(--interp);
-    font-size: 0.78rem;
-    user-select: none;
-  }
-  details.coeff pre {
-    margin: 0.3em 0 0;
-    font-size: 0.72rem;
-    background: #f8f9fa;
-    padding: 0.4em 0.6em;
-    border-radius: 3px;
-    white-space: pre-wrap;
-    word-break: break-all;
-  }
-</style>
 
 
 <table>
@@ -954,29 +992,9 @@ recovery_time:   '2026-07-25T11:43'</textarea>
 </table>
 
 
-<!-- ══════════════════════════════════════ 6. QC FLAG SUMMARY ══ -->
-<h2 id="qc">6 &mdash; QC flag summary</h2>
-<style>
-  .qc-bar {
-    display: flex;
-    width: 220px;
-    height: 14px;
-    border-radius: 3px;
-    overflow: hidden;
-    gap: 1px;
-    background: #ecf0f1;
-  }
-  .qc-bar div { height: 100%; }
-  .qc-legend {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.3rem 0.9rem;
-    font-size: 0.75rem;
-    margin: 0.3rem 0 1rem;
-  }
-  .qc-legend span { display: inline-block; width: 10px; height: 10px;
-                    border-radius: 2px; vertical-align: middle; margin-right: 3px; }
-</style>
+<h2 id="qc">(6) QC flag summary</h2>
+
+
 <div class="qc-legend">
   <span style="background:var(--good)"></span>good&nbsp;(1)
   <span style="background:var(--qc-good2)"></span>prob.&nbsp;good&nbsp;(2)
@@ -1524,44 +1542,36 @@ recovery_time:   '2026-07-25T11:43'</textarea>
 </table>
 
 
+<h2 id="knockdown">(7) Mooring knockdown</h2>
 
-<!-- ══════════════════════════════════════════ KNOCKDOWN ══ -->
-<h2 id="knockdown">Mooring knockdown</h2>
-<div style="display:flex;gap:1rem;flex-wrap:wrap;align-items:flex-start">
-
-<div style="flex:1;min-width:260px">
-<p class="caption">Nominal HAB (x) vs. measured pressure (y). The dashed line shows expected pressure
-  (water&nbsp;depth&nbsp;&minus;&nbsp;HAB). Instruments below the line were knocked down.
-  Interpolated pressure (QC&nbsp;flag&nbsp;8) excluded.</p>
-<img style="width:100%;border:1px solid var(--rule);border-radius:4px" src="data:image/png;base64,<PNG>" alt="Knockdown HAB vs pressure">
+<div class="fig-row">
+<div class="fig-cell slot-half">
+<p class="caption">Nominal HAB (x) vs. measured pressure (y). The dashed line shows expected pressure (water depth − HAB). Instruments below the line were knocked down. Interpolated pressure (QC flag 8) excluded.</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,<PNG>" alt="knockdown_hab">
+</details>
+</div>
+<div class="fig-cell slot-half">
+<p class="caption">IQR of pressure anomaly (measured − nominal) per instrument. Positive = deeper than design depth. Green &lt; 100 dbar, yellow 100–200, amber 200–300, red &gt; 300 dbar.</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,<PNG>" alt="knockdown_anomaly">
+</details>
+</div>
+<div class="fig-cell slot-full">
+<p class="caption">Estimated horizontal displacement (m) vs. measured pressure. Left: scatter per instrument; right: normalised 2-D density across all instruments. Displacement derived from the rigid-pendulum approximation: x = √(hab_nom² − hab_meas²).</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,<PNG>" alt="knockdown_displacement">
+</details>
+</div>
 </div>
 
 
-<div style="flex:1;min-width:260px">
-<p class="caption">IQR of pressure anomaly (measured &minus; nominal) per instrument.
-  Positive = deeper than design depth.
-  <span style="color:mediumseagreen">Green</span> &lt;&nbsp;100&nbsp;dbar,
-  <span style="color:goldenrod">yellow</span> 100–200,
-  <span style="color:darkorange">amber</span> 200–300,
-  <span style="color:firebrick">red</span> &gt;&nbsp;300&nbsp;dbar.</p>
-<img style="width:100%;border:1px solid var(--rule);border-radius:4px" src="data:image/png;base64,<PNG>" alt="Knockdown pressure anomaly">
-</div>
+<h2 id="diagram">(8) Mooring diagram</h2>
 
-</div>
+<p class="warn">Mooring diagram not available (no _diagram.pdf found).</p>
 
-<p class="caption">Estimated horizontal displacement (m) vs. measured pressure.
-  Left: scatter per instrument; right: normalised 2-D density across all instruments.
-  Displacement derived from the rigid-pendulum approximation:
-  <em>x</em>&nbsp;=&nbsp;&radic;(hab<sub>nom</sub>&sup2;&nbsp;&minus;&nbsp;hab<sub>meas</sub>&sup2;).</p>
-<img class="fig slot-full" style="border:1px solid var(--rule);border-radius:4px" src="data:image/png;base64,<PNG>" alt="Knockdown horizontal displacement">
+<h2 id="issues">(9) Issues for cruise report</h2>
 
-
-
-
-
-<!-- ══════════════════════════════════════════ ISSUES ══ -->
-
-<h2 id="issues">Issues for cruise report</h2>
 
 
 
@@ -1591,18 +1601,15 @@ recovery_time:   '2026-07-25T11:43'</textarea>
 
 
 
-
-<!-- ══════════════════════════════════════════════ FOOTER ══ -->
 <div class="report-footer">
-  Generated by <strong>oceanarray</strong> on <GENERATED> &bull;
-  YAML: <code>dune2_1_2026/dune2_1_2026.mooring.yaml</code>
+  Generated by <strong>oceanarray</strong> v<VERSION> &bull; OdB &bull; <GENERATED> &bull; config: <code>dune2_1_2026/dune2_1_2026.mooring.yaml</code>
 </div>
-
 <script>
   document.querySelectorAll('h2').forEach(h => {
     const a = document.createElement('a'); a.href = '#top'; a.className = 'top-link'; a.textContent = '↑ top'; h.appendChild(a);
   });
 </script>
+
 
 </body>
 </html>

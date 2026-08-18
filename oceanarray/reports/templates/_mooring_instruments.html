@@ -1,0 +1,101 @@
+{# Instrument-summary intro prose + summary table + trailing dt-mismatch note
+   and grid-pressure recommendation.  The `instruments` panel payload
+   (kind="html").  The `.vbadge` style block moved to mooring.html page_styles.
+   The QC-flag cross-reference is link text without a number. #}
+<p style="font-size:0.82rem;color:var(--gray-5);margin-top:-0.5rem;">
+  Variables and record length are read from stage&nbsp;3 files where available,
+  otherwise stage&nbsp;2.  The <strong>P</strong> badge is shown as present
+  whether pressure was directly measured or interpolated from neighbouring
+  instruments — see <a href="#qc">the QC flag summary</a> to distinguish.  Instruments
+  marked <code>skip: true</code> are listed with the skip reason where provided.
+</p>
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Type</th>
+      <th>S/N</th>
+      <th>Hab&nbsp;(m)</th>
+      <th>First sample</th>
+      <th>Last sample</th>
+      <th>N records</th>
+      <th title="Observed p90 sample interval (s); * = differs from YAML value by &gt;10%">Δt&nbsp;(s)</th>
+      <th title="Pressure range from stage-2/3 trimmed record, excluding non-positive values">P range (dbar)</th>
+      <th style="text-align:center">T</th>
+      <th style="text-align:center">C</th>
+      <th style="text-align:center">P</th>
+      <th style="text-align:center">U</th>
+      <th style="text-align:center">V</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for instr in instruments %}
+    <tr{% if instr.stopped_early %} class="row-warn"{% endif %}>
+      <td class="num">{{ loop.index }}</td>
+      <td>{{ instr.instr_type }}</td>
+      <td>{% if instr.report_exists %}<a href="instrument/{{ mooring_name }}_{{ instr.serial }}_report.html"
+             style="font-family:monospace;font-size:0.85rem">{{ instr.serial }}</a>{% else %}<span style="font-family:monospace;font-size:0.85rem">{{ instr.serial }}</span>{% endif %}</td>
+      <td class="num">{{ "%.1f"|format(instr.hab) }}</td>
+      {% if instr.nc and instr.nc.get("error") %}
+        <td colspan="10" style="color:var(--bad);font-size:0.8rem;">Error: {{ instr.nc.error }}</td>
+      {% elif instr.nc and instr.nc.get("t_start") %}
+        <td>{{ instr.nc.t_start }}</td>
+        <td>{{ instr.nc.t_end }}</td>
+        <td class="num">{{ "{:,}".format(instr.nc.n_records) }}</td>
+        <td class="num">
+          {% set dt = instr.nc.dt_s %}
+          {% if dt == dt %}{# NaN check: NaN != NaN #}
+            {{ "%.0f"|format(dt) }}{% if instr.dt_mismatch %}<span title="YAML: {{ instr.yaml_interval_s }} s" style="color:var(--warn);font-weight:bold"> *</span>{% endif %}
+          {% else %}
+            <span class="none-note">—</span>
+          {% endif %}
+        </td>
+        <td class="num">
+          {% if instr.nc.p_min is not none and instr.nc.p_max is not none %}
+            {% if instr.nc.get("pressure_interpolated") %}
+              <em title="pressure interpolated">({{ "%.0f"|format(instr.nc.p_min) }}, {{ "%.0f"|format(instr.nc.p_max) }})</em>
+            {% else %}
+              ({{ "%.0f"|format(instr.nc.p_min) }}, {{ "%.0f"|format(instr.nc.p_max) }})
+            {% endif %}
+          {% else %}
+            <span class="none-note">—</span>
+          {% endif %}
+        </td>
+        {% for label, present in instr.nc.shorthands %}
+        <td style="text-align:center">
+          {% if label == "P" and present and instr.nc.get("pressure_interpolated") %}
+          <span class="vbadge vb-interp" title="pressure interpolated from neighbouring instruments">{{ label }}</span>
+          {% else %}
+          <span class="vbadge {{ 'vb-yes' if present else 'vb-no' }}">{{ label }}</span>
+          {% endif %}
+        </td>
+        {% endfor %}
+      {% elif instr.skipped %}
+        <td colspan="10" class="none-note">skipped{% if instr.skip_reason %} — {{ instr.skip_reason }}{% endif %}</td>
+      {% else %}
+        <td colspan="10" class="none-note">no processed file</td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% set dt_mismatches = instruments | selectattr("dt_mismatch") | list %}
+{% if dt_mismatches %}
+<p style="font-size:0.82rem;color:var(--gray-5);margin-top:0.4rem;">
+  <span style="color:var(--warn);font-weight:bold">*</span> Δt mismatch (YAML vs observed p90):
+  {% for instr in dt_mismatches %}
+    <br>&nbsp;&nbsp;<span style="font-family:monospace">{{ instr.serial }}</span>:
+    YAML gives Δt of {{ instr.yaml_interval_s }}&thinsp;s;
+    stage file shows Δt of {{ "%.0f"|format(instr.nc.dt_s) }}&thinsp;s.
+  {% endfor %}
+</p>
+{% endif %}
+
+{% if grid_p_start is not none and grid_p_end is not none %}
+<p style="font-size:0.82rem;color:var(--gray-5);margin-top:0.8rem;">
+  Recommended pressure range for <code>oceanarray grid</code>, derived from the
+  min/max pressure across all instruments (rounded outward to the nearest 20&thinsp;dbar):
+</p>
+<pre style="background:var(--gray-1);border:1px solid var(--rule);border-radius:4px;padding:0.5em 0.8em;font-size:0.85rem;display:inline-block;user-select:all;cursor:text">--pmin {{ grid_p_start }} --pmax {{ grid_p_end }}</pre>
+{% endif %}

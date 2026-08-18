@@ -18,8 +18,8 @@ from typing import Any
 from jinja2 import Environment, FileSystemLoader
 
 from . import _figdebug
-from . import _slots
 from ._report_css import SHARED_CSS
+from .. import __version__ as _oceanarray_version
 from .. import parameters as params
 
 #: Directory holding the report page templates.
@@ -32,13 +32,17 @@ _ENV = Environment(
 )
 #: Package identity available to every template (masthead wordmark).
 _ENV.globals["package_name"] = params.PACKAGE_NAME
+
+
+#: Package version for the footer, from ``oceanarray.__version__`` (the
+#: setuptools-scm ``_version.py``, falling back to installed metadata, else
+#: ``"0.0.0"``).  The footer always renders it (so the golden is stable across
+#: build/no-build checkouts); the golden test masks the value so a version bump
+#: does not churn the fixtures.
+_ENV.globals["package_version"] = _oceanarray_version
 #: Per-figure debug lookup (``func · figsize · png``) for templates' ``.debug``
 #: sections; returns "" unless ``OCEANARRAY_REPORT_DEBUG`` is set.
 _ENV.globals["figdbg"] = _figdebug.figdbg
-#: Display slot recorded for each figure (``slot_for(b64) -> slot name``), so a
-#: template can pick its ``.slot-*`` width class from the same slot the figure was
-#: rendered at (U0.2).
-_ENV.globals["slot_for"] = _slots.slot_for
 #: Generated stylesheet — the single source of truth for report CSS (tokens,
 #: type/spacing scale, slot classes, shared chrome).  base.html injects it via
 #: ``{{ css | safe }}``; page-specific rules live in a small local block that
@@ -66,3 +70,32 @@ def render_template(name: str, /, **context: Any) -> str:
     """
     context.setdefault("debug", _figdebug.enabled())
     return _ENV.get_template(name).render(**context)
+
+
+# ---------------------------------------------------------------------------
+# Shared report partials — one copy of the history list and the NetCDF metadata
+# tables, rendered to markup for manifest ``html``/``table`` panel payloads on
+# every page (grid, stack, instrument, mooring).  The template files are still
+# named ``_grid_*.html`` for now; renaming them to ``_report_*.html`` is a
+# cosmetic follow-up (needs ``git mv``), tracked in minor-fixes.
+# ---------------------------------------------------------------------------
+
+
+def render_history(history_entries: Any) -> str:
+    """Render the processing-history list to markup (``history`` panel payload)."""
+    return render_template("_grid_history.html", history_entries=history_entries)
+
+
+def render_nc_variables(nc_meta: Any, nc_file: str) -> str:
+    """Render the NetCDF time-variable table (``nc_variables`` panel payload)."""
+    return render_template("_grid_nc_variables.html", nc_meta=nc_meta, nc_file=nc_file)
+
+
+def render_nc_scalars(nc_meta: Any) -> str:
+    """Render the scalar-metadata table (``nc_scalars`` panel payload)."""
+    return render_template("_grid_nc_scalars.html", nc_meta=nc_meta)
+
+
+def render_nc_globals(nc_meta: Any) -> str:
+    """Render the global-attributes table (``nc_globals`` panel payload)."""
+    return render_template("_grid_nc_globals.html", nc_meta=nc_meta)

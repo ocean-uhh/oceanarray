@@ -1,0 +1,30 @@
+{# Instrument NetCDF time-series variables table — the `nc_variables` panel
+   payload (kind="table"). #}
+{% if nc_meta.get("error") %}
+<p class="none-note">Could not read file: {{ nc_meta.error }}</p>
+{% else %}
+<h3 style="font-size:0.88rem;color:var(--ocean);margin:1rem 0 0.4rem;">Time-series variables</h3>
+<table>
+  <thead>
+    <tr><th>Variable</th><th>Type</th><th>Dims</th><th class="num">N</th><th class="num">Valid</th><th class="num">Min / Max</th><th>Units</th><th>Long name</th><th>Standard name</th><th>QC&nbsp;flag</th></tr>
+  </thead>
+  <tbody>
+    {% for v in nc_meta.time_vars %}
+    {% if not v.is_qc %}
+    <tr>
+      <td class="mono">{{ v.name }}</td>
+      <td class="mono" style="font-size:0.75rem">{{ v.dtype }}</td>
+      <td class="mono" style="font-size:0.75rem">{{ v.dims }}</td>
+      <td class="num">{{ "{:,}".format(v.n) }}</td>
+      <td class="num" {% if v.n_valid is defined and v.n_valid < v.n %}style="color:var(--bad);font-weight:600"{% endif %}>{{ "{:,}".format(v.n_valid) if v.n_valid is defined else "&mdash;" }}</td>
+      <td class="num" style="font-size:0.76rem;white-space:nowrap">{% if v.v_min is not none %}{{ v.v_min }} / {{ v.v_max }}{% else %}&mdash;{% endif %}</td>
+      <td>{{ v.units }}</td>
+      <td>{{ v.long_name }}</td>
+      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">{{ v.standard_name }}</td>
+      <td style="text-align:center">{% if v.has_qc %}<span class="var-qc">✓</span>{% else %}&ndash;{% endif %}</td>
+    </tr>
+    {% endif %}
+    {% endfor %}
+  </tbody>
+</table>
+{% endif %}

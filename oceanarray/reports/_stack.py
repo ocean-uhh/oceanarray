@@ -3,13 +3,22 @@
 from __future__ import annotations
 
 import warnings
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
 
 from . import _figdebug
-from ._env import render_template
+from ._env import (
+    render_history,
+    render_nc_globals,
+    render_nc_scalars,
+    render_nc_variables,
+    render_template,
+)
+from ._manifest import Panel, Profile, Section, resolve
+from ._slots import render as render_slot
 from ._html_helpers import (
     _fig_to_base64,
     _find_array_report_href,
@@ -228,6 +237,363 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
 # ---------------------------------------------------------------------------
 # Page generator
 # ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# Section manifest — stack registry (rep/07)
+#
+# Unlike grid (lazy adapters rendered during resolve), the stack figures are
+# built by closures over the open dataset in ``generate_stack_page``; the port
+# keeps that unchanged and collects the results into ``StackContext`` (a bag of
+# pre-built base64 figures plus the variable/instrument sets the ``applies_to``
+# predicates need).  Panels return the cached b64; the manifest drives structure
+# (grouped Hydrography/Velocity sections, generated jump-nav, numbering, stubs).
+# ---------------------------------------------------------------------------
+
+#: Stack panel captions, keyed by panel id — plain text, Unicode notation, no
+#: markup (a future ``config/report.yaml`` makes these user-editable; see grid).
+STACK_CAPTIONS: dict[str, str] = {
+    "pressure": (
+        "Values with QC flag ≥ 3 (suspect/bad) masked to NaN before plotting. "
+        "All data values are in the source file without masking. ADCP "
+        "instruments excluded."
+    ),
+    "temperature": (
+        "Values with QC flag ≥ 3 (suspect/bad) masked to NaN before plotting. "
+        "All data values are in the source file without masking."
+    ),
+    "salinity": (
+        "Values with QC flag ≥ 3 (suspect/bad) masked to NaN before plotting. "
+        "All data values are in the source file without masking."
+    ),
+    "dissolved_oxygen": (
+        "One line per instrument with dissolved oxygen data (SBE ODO sensor); "
+        "QC flags ≥ 3 masked. Units: µmol L⁻¹. % saturation available in "
+        "per-instrument reports."
+    ),
+    "east_velocity": (
+        "ENU frame. Values with velocity_flag ≥ 3 masked to NaN before "
+        "plotting. All data values are in the source file without masking. "
+        "Instruments without velocity data omitted."
+    ),
+    "north_velocity": (
+        "ENU frame. Values with velocity_flag ≥ 3 masked to NaN before "
+        "plotting. All data values are in the source file without masking. "
+        "Instruments without velocity data omitted."
+    ),
+    "up_velocity": (
+        "ENU frame. Values with velocity_flag ≥ 3 masked to NaN before "
+        "plotting. All data values are in the source file without masking. "
+        "Instruments without velocity data omitted."
+    ),
+    "turbidity": (
+        "One line per instrument with turbidity data; QC flags ≥ 3 masked. Dots "
+        "overlaid to reveal individual samples near zero. Units from file attrs "
+        "(verify: NTU, FTU, or V depending on sensor)."
+    ),
+    "trajectories_aquadopp": (
+        "Pseudo-Lagrangian particle trajectories integrated from each Aquadopp's "
+        "east/north velocity. Start at the origin; coloured by time through the "
+        "deployment."
+    ),
+    "trajectories_adcp": (
+        "Pseudo-Lagrangian particle trajectories integrated from ADCP bin "
+        "east/north velocity, one path per bin."
+    ),
+    "speed_profile": (
+        "Aquadopp current-speed profile: median and interquartile range of speed "
+        "against height above bottom across the deployment."
+    ),
+    "analog": (
+        "Full-record time series of analog channel variables containing "
+        "non-zero, non-NaN data. One panel per channel."
+    ),
+    "ts_diagram": (
+        "Left: scatter coloured by pressure. Middle: 2-D count heatmap. Right "
+        "(when oxygen data present): scatter coloured by O₂ saturation (%). Bad "
+        "(flag 4) and missing (flag 9) excluded; interpolated pressure (flag 8) "
+        "retained."
+    ),
+    "roses": (
+        "Direction the current flows toward (oceanographic convention, 0°=N). "
+        "Speed coloured light→dark blue (slow→fast). QC-flagged samples "
+        "excluded. Title shows serial number and height above bottom (m)."
+    ),
+    "tilt": (
+        "|pitch| / |roll| / pressure-estimate tilt per Aquadopp, sharing a "
+        "y-axis. Horizontal lines mark the suspect and fail thresholds from the "
+        "file attributes."
+    ),
+    "spacing": (
+        "Distribution of pressure differences between adjacent instrument pairs "
+        "(pairs < 2 dbar apart excluded as co-located)."
+    ),
+    "clock_check": (
+        "One temperature trace per instrument, zoomed to the first and last "
+        "30 min of the deployment, to check clock alignment across instruments."
+    ),
+}
+
+
+@dataclass(frozen=True)
+class StackContext:
+    """Pre-built figures and applies_to inputs for the stack page's panels.
+
+    Parameters
+    ----------
+    figs : dict
+        ``panel id -> base64 PNG`` (or ``None``) for every figure panel, built
+        eagerly by :func:`generate_stack_page`.
+    present_vars : set
+        Data-variable names present in the stack dataset (for ``applies_to``).
+    instr_types : set
+        Lower-cased instrument types present (aquadopp / adcp / …).
+    n_instr : int
+        Number of instrument levels.
+    has_analog : bool
+        Whether any analog channels are present.
+    history_entries : list
+        Parsed processing-history entries.
+    instr_rows : list
+        Per-instrument summary rows for the deep-first instruments table.
+    nc_meta : dict
+        NetCDF metadata (dims/variables/scalars/globals) for the appendix.
+    nc_file : str
+        The stack NetCDF file's name.
+    rose_note : str or None
+        Magnetic-declination note for the current-roses section, if any.
+    rose_warn : bool
+        Whether an Aquadopp is missing its magnetic declination.
+    rose_missing_serials : list
+        Serials of Aquadopps missing declination (for the warning).
+
+    """
+
+    figs: dict
+    present_vars: set
+    instr_types: set
+    n_instr: int
+    has_analog: bool
+    history_entries: list
+    instr_rows: list
+    nc_meta: dict
+    nc_file: str
+    rose_note: "str | None"
+    rose_warn: bool
+    rose_missing_serials: list
+
+
+def _fig(panel_id: str) -> Callable[[StackContext], "str | None"]:
+    """Return a render callable that yields the pre-built figure for *panel_id*."""
+    return lambda c: c.figs.get(panel_id)
+
+
+def _has(var: str) -> Callable[[StackContext], bool]:
+    """Return an applies_to predicate: the named variable is present."""
+    return lambda c: var in c.present_vars
+
+
+def _has_stack_velocity(c: StackContext) -> bool:
+    """True when eastward or northward velocity is present."""
+    return "east_velocity" in c.present_vars or "north_velocity" in c.present_vars
+
+
+def _has_aquadopp(c: StackContext) -> bool:
+    """True when an Aquadopp instrument is present."""
+    return "aquadopp" in c.instr_types
+
+
+def _stack_history_unavailable(c: StackContext) -> "str | None":
+    """Reason the history panel cannot render, or None (provenance always applies)."""
+    if c.history_entries:
+        return None
+    return "No processing history recorded in the file attributes."
+
+
+def _figure_panel(
+    pid: str,
+    applies_to: Optional[Callable] = None,
+    slot: "str | None" = None,
+) -> Panel:
+    """Build a stack figure panel from the registry.
+
+    The stack figures are pre-built by the ad-hoc closures in
+    :func:`generate_stack_page`.  Most fill the content column (``slot=None`` →
+    bare ``.fig``); the trajectory panels carry ``slot="half"`` so the row-layout
+    section places them side-by-side.
+    """
+    kwargs: dict = {
+        "render": _fig(pid),
+        "caption": STACK_CAPTIONS[pid],
+        "slot": slot,
+    }
+    if applies_to is not None:
+        kwargs["applies_to"] = applies_to
+    return Panel(pid, **kwargs)
+
+
+#: Stack panel registry.  Figure panels return the pre-built b64 from the
+#: context; html/table panels render sub-templates (shared where identical to
+#: grid).  ``speed_profile`` is half-width, ``spacing`` a third; trajectories are
+#: full-width and stacked (the old side-by-side flex is a later CSS enhancement).
+STACK_PANELS: dict[str, Panel] = {
+    "history": Panel(
+        "history",
+        render=lambda c: render_history(c.history_entries),
+        kind="html",
+        unavailable_if=_stack_history_unavailable,
+    ),
+    "instr_table": Panel(
+        "instr_table",
+        render=lambda c: render_template(
+            "_stack_instr_table.html", instr_rows=c.instr_rows
+        ),
+        kind="table",
+    ),
+    "pressure": _figure_panel("pressure", _has("pressure")),
+    "temperature": _figure_panel("temperature", _has("temperature")),
+    "salinity": _figure_panel("salinity", _has("salinity")),
+    "dissolved_oxygen": _figure_panel("dissolved_oxygen", _has("dissolved_oxygen")),
+    "east_velocity": _figure_panel("east_velocity", _has("east_velocity")),
+    "north_velocity": _figure_panel("north_velocity", _has("north_velocity")),
+    "up_velocity": _figure_panel("up_velocity", _has("up_velocity")),
+    "turbidity": _figure_panel("turbidity", _has("turbidity")),
+    "trajectories_aquadopp": _figure_panel(
+        "trajectories_aquadopp", _has_aquadopp, slot="half"
+    ),
+    "trajectories_adcp": _figure_panel(
+        "trajectories_adcp", lambda c: "adcp" in c.instr_types, slot="half"
+    ),
+    "speed_profile": Panel(
+        "speed_profile",
+        render=_fig("speed_profile"),
+        slot="half",
+        caption=STACK_CAPTIONS["speed_profile"],
+        applies_to=_has_aquadopp,
+    ),
+    "analog": _figure_panel("analog", lambda c: c.has_analog),
+    "ts_diagram": _figure_panel(
+        "ts_diagram",
+        lambda c: "temperature" in c.present_vars and "salinity" in c.present_vars,
+    ),
+    "roses_declination": Panel(
+        "roses_declination",
+        render=lambda c: render_template(
+            "_stack_roses_note.html",
+            note=c.rose_note,
+            warn=c.rose_warn,
+            missing=c.rose_missing_serials,
+        ),
+        kind="html",
+        applies_to=lambda c: bool(c.rose_warn or c.rose_note),
+    ),
+    "roses": _figure_panel("roses", _has_stack_velocity),
+    "tilt": _figure_panel("tilt", _has_aquadopp),
+    "spacing": Panel(
+        "spacing",
+        render=_fig("spacing"),
+        slot="third",
+        caption=STACK_CAPTIONS["spacing"],
+        applies_to=lambda c: c.n_instr > 1 and "pressure" in c.present_vars,
+    ),
+    "clock_check": _figure_panel("clock_check"),
+    "nc_dims": Panel(
+        "nc_dims",
+        render=lambda c: render_template("_stack_nc_dims.html", nc_meta=c.nc_meta),
+        kind="table",
+        applies_to=lambda c: bool(c.nc_meta.get("dims")),
+    ),
+    "nc_variables": Panel(
+        "nc_variables",
+        render=lambda c: render_nc_variables(c.nc_meta, c.nc_file),
+        kind="table",
+    ),
+    "nc_scalars": Panel(
+        "nc_scalars",
+        render=lambda c: render_nc_scalars(c.nc_meta),
+        kind="table",
+        applies_to=lambda c: bool(c.nc_meta.get("scalar_vars")),
+    ),
+    "nc_globals": Panel(
+        "nc_globals",
+        render=lambda c: render_nc_globals(c.nc_meta),
+        kind="table",
+        applies_to=lambda c: bool(c.nc_meta.get("global_attrs")),
+    ),
+}
+
+#: Stack sections (design §7 grouping — Hydrography and Velocity folded).
+STACK_SECTIONS: dict[str, Section] = {
+    "processing_history": Section(
+        "processing_history", "Processing history", ("history",)
+    ),
+    "instruments": Section(
+        "instruments",
+        "Instruments (deep-first)",
+        ("instr_table",),
+        intro="HAB = height above bottom (m).",
+    ),
+    "hydrography": Section(
+        "hydrography",
+        "Hydrography",
+        ("pressure", "temperature", "salinity", "dissolved_oxygen"),
+    ),
+    "velocity": Section(
+        "velocity", "Velocity", ("east_velocity", "north_velocity", "up_velocity")
+    ),
+    "turbidity": Section("turbidity", "Turbidity", ("turbidity",)),
+    "trajectories": Section(
+        "trajectories",
+        "Particle trajectories",
+        ("trajectories_aquadopp", "trajectories_adcp"),
+        layout="row",
+    ),
+    "speed_profile": Section(
+        "speed_profile", "Aquadopp speed profile", ("speed_profile",)
+    ),
+    "analog": Section("analog", "Analog channels", ("analog",)),
+    "ts_diagram": Section("ts_diagram", "T-S diagram", ("ts_diagram",)),
+    "roses": Section("roses", "Current rose diagrams", ("roses_declination", "roses")),
+    "tilt": Section(
+        "tilt", "Aquadopp tilt (|pitch| / |roll| / pressure estimate)", ("tilt",)
+    ),
+    "spacing": Section("spacing", "Adjacent instrument spacing", ("spacing",)),
+    "clock_check": Section("clock_check", "Clock alignment check", ("clock_check",)),
+    "netcdf_variables": Section(
+        "netcdf_variables",
+        "NetCDF variables",
+        ("nc_dims", "nc_variables", "nc_scalars"),
+        role="appendix",
+    ),
+    "netcdf_attributes": Section(
+        "netcdf_attributes",
+        "NetCDF attributes",
+        ("nc_globals",),
+        role="appendix",
+    ),
+}
+
+#: Default stack profile.
+STACK_DEFAULT = Profile(
+    numbering="flat",
+    entries=(
+        STACK_SECTIONS["processing_history"],
+        STACK_SECTIONS["instruments"],
+        STACK_SECTIONS["hydrography"],
+        STACK_SECTIONS["velocity"],
+        STACK_SECTIONS["turbidity"],
+        STACK_SECTIONS["trajectories"],
+        STACK_SECTIONS["speed_profile"],
+        STACK_SECTIONS["analog"],
+        STACK_SECTIONS["ts_diagram"],
+        STACK_SECTIONS["roses"],
+        STACK_SECTIONS["tilt"],
+        STACK_SECTIONS["spacing"],
+        STACK_SECTIONS["clock_check"],
+        STACK_SECTIONS["netcdf_variables"],
+        STACK_SECTIONS["netcdf_attributes"],
+    ),
+)
 
 
 def generate_stack_page(
@@ -498,20 +864,28 @@ def generate_stack_page(
                     valid = spacing[np.isfinite(spacing) & (spacing >= 2.0)]
                     all_spacings.extend(valid.tolist())
                 if all_spacings:
-                    with plt.style.context(str(params.MPLSTYLE)):
-                        fig_sp, ax_sp = plt.subplots(figsize=(report_tokens.W_THIRD, 3))
-                        ax_sp.hist(
-                            all_spacings, bins=60, color="steelblue", edgecolor="white"
-                        )
-                        ax_sp.set_xlabel("Instrument spacing (dbar)")
-                        ax_sp.set_ylabel("Count (instrument pair × time step)")
-                        ax_sp.set_title("Adjacent instrument spacing distribution")
-                        plt.tight_layout()
-                        fig_spacing_b64 = _fig_to_base64(fig_sp)
-                        _figdebug.record(
-                            fig_spacing_b64, "_make_pressure_spacing", fig_sp
-                        )
-                        plt.close(fig_sp)
+
+                    def _draw_spacing(
+                        *, width_in: float = report_tokens.W_THIRD
+                    ) -> "Any":
+                        with plt.style.context(str(params.MPLSTYLE)):
+                            fig_sp, ax_sp = plt.subplots(figsize=(width_in, 3))
+                            ax_sp.hist(
+                                all_spacings,
+                                bins=60,
+                                color="steelblue",
+                                edgecolor="white",
+                            )
+                            ax_sp.set_xlabel("Instrument spacing (dbar)")
+                            ax_sp.set_ylabel("Count (instrument pair × time step)")
+                            ax_sp.set_title("Adjacent instrument spacing distribution")
+                            return fig_sp
+
+                    # Render at the "third" slot so the PNG width matches the
+                    # displayed .slot-third class (crisp, not a CSS downscale).
+                    fig_spacing_b64 = render_slot(
+                        _draw_spacing, slot="third", optional=True
+                    )
             except Exception as _exc_sp:
                 warnings.warn(
                     f"pressure spacing figure failed: {_exc_sp}", stacklevel=2
@@ -542,6 +916,10 @@ def generate_stack_page(
             _clock_nc_paths, _deploy_dt, _recover_dt
         )
 
+        # Capture the applies_to inputs before closing the dataset.
+        present_vars = set(ds.data_vars)
+        instr_types_set = {str(t).lower() for t in instr_types}
+
         ds.close()
 
         nc_meta = _read_nc_metadata(stack_path)
@@ -550,6 +928,43 @@ def generate_stack_page(
             _make_analog_timeseries(stack_path, analog_vars) if analog_vars else None
         )
         grid_exists = (stack_path.parent / f"{mooring_name}_grid.nc").exists()
+
+        report = resolve(
+            STACK_DEFAULT,
+            StackContext(
+                figs={
+                    "pressure": fig_pressure_b64,
+                    "temperature": fig_temp_b64,
+                    "salinity": fig_sal_b64,
+                    "dissolved_oxygen": fig_dissolved_oxygen_b64,
+                    "east_velocity": fig_east_vel_b64,
+                    "north_velocity": fig_north_vel_b64,
+                    "up_velocity": fig_up_vel_b64,
+                    "turbidity": fig_turbidity_b64,
+                    "trajectories_aquadopp": fig_trajectories_b64,
+                    "trajectories_adcp": fig_adcp_trajectories_b64,
+                    "speed_profile": fig_speed_profile_b64,
+                    "analog": fig_analog_b64,
+                    "ts_diagram": fig_ts_stack_b64,
+                    "roses": fig_rose_grid_b64,
+                    "tilt": fig_aquadopp_tilt_b64,
+                    "spacing": fig_spacing_b64,
+                    "clock_check": fig_clock_check_b64,
+                },
+                present_vars=present_vars,
+                instr_types=instr_types_set,
+                n_instr=n_instr,
+                has_analog=bool(analog_vars),
+                history_entries=stack_history,
+                instr_rows=instr_rows,
+                nc_meta=nc_meta,
+                nc_file=stack_path.name,
+                rose_note=rose_declination_note,
+                rose_warn=rose_declination_warn,
+                rose_missing_serials=rose_declination_missing_serials,
+            ),
+            STACK_PANELS,
+        )
 
         html = render_template(
             "stack.html",
@@ -562,6 +977,7 @@ def generate_stack_page(
                 current_report="stack",
                 array_report_href=_find_array_report_href(out_dir),
             ),
+            report=report,
             cruise=ctx.get("cruise", "—"),
             ship=ctx.get("ship", "—"),
             deploy_time=ctx["deploy_time"],
@@ -571,34 +987,10 @@ def generate_stack_page(
             n_instr=n_instr,
             dt_seconds=dt_seconds,
             n_time=n_time,
-            mooring_report_link=f"{mooring_name}_report.html",
             grid_exists=grid_exists,
             latitude=ctx.get("latitude", "—"),
             longitude=ctx.get("longitude", "—"),
-            history_entries=stack_history,
-            instr_rows=instr_rows,
-            nc_meta=nc_meta,
             nc_file=stack_path.name,
-            fig_pressure_b64=fig_pressure_b64,
-            fig_temp_b64=fig_temp_b64,
-            fig_sal_b64=fig_sal_b64,
-            fig_east_vel_b64=fig_east_vel_b64,
-            fig_north_vel_b64=fig_north_vel_b64,
-            fig_up_vel_b64=fig_up_vel_b64,
-            fig_turbidity_b64=fig_turbidity_b64,
-            fig_dissolved_oxygen_b64=fig_dissolved_oxygen_b64,
-            fig_rose_grid_b64=fig_rose_grid_b64,
-            rose_declination_note=rose_declination_note,
-            rose_declination_warn=rose_declination_warn,
-            rose_declination_missing_serials=rose_declination_missing_serials,
-            fig_spacing_b64=fig_spacing_b64,
-            fig_ts_stack_b64=fig_ts_stack_b64,
-            fig_aquadopp_tilt_b64=fig_aquadopp_tilt_b64,
-            fig_trajectories_b64=fig_trajectories_b64,
-            fig_adcp_trajectories_b64=fig_adcp_trajectories_b64,
-            fig_speed_profile_b64=fig_speed_profile_b64,
-            fig_clock_check_b64=fig_clock_check_b64,
-            fig_analog_b64=fig_analog_b64,
             generated=ctx["generated"],
             proc_machine=ctx.get("proc_machine", ""),
         )

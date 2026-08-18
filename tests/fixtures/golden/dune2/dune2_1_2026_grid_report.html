@@ -103,7 +103,10 @@ h2 {
   color: var(--gray-5); font-size: var(--fs-note);
   margin-top: 0.75rem; margin-bottom: 0.75rem;
 }
-h2 + .caption { margin-top: -0.5rem; }
+/* A section intro (the caption directly under a heading) is a lede for the whole
+   figure block, so it spans the content width rather than the 78ch prose measure a
+   paragraph would otherwise inherit — which left it stranded under full-width figures. */
+h2 + .caption { margin-top: -0.5rem; max-width: none; }
 .explainer {
   font-size: var(--fs-note); color: var(--text);
   background: var(--bg-sunken); border-left: 3px solid var(--muted);
@@ -132,12 +135,16 @@ h2 + .caption { margin-top: -0.5rem; }
   align-items: flex-start;
 }
 .fig-col { display: flex; flex-direction: column; gap: 0.75rem; }
+.fig-row.center { justify-content: center; }
 figure { margin: 0; }
 figure img {
   border: 1px solid var(--rule); border-radius: var(--radius-btn);
   display: block; width: 100%; height: auto;
 }
 figcaption { font-size: var(--fs-cap); color: var(--gray-5); margin-top: 0.25rem; }
+/* A stub panel's warning fills the figure slot it stands in for, rather than the
+   78ch prose reading measure it would otherwise inherit as a paragraph. */
+figure .warn { max-width: none; }
 table {
   width: 100%; border-collapse: collapse;
   font-size: var(--fs-note); margin: 0.6rem 0 1.2rem;
@@ -225,7 +232,8 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
             text-decoration:none; margin-left:auto; white-space:nowrap; }
 .top-link:hover { color:var(--ocean); text-decoration:underline; }
 .report-footer { margin-top:3rem; font-size:var(--fs-cap); color:var(--muted);
-                 border-top:1px solid var(--rule); padding-top:0.8rem; }
+                 border-top:1px solid var(--rule); padding-top:0.8rem;
+                 text-align:center; }
 .jump-nav { background:var(--seafoam); padding:0.55rem 1rem; border-radius:6px;
             margin-bottom:1.5rem; font-size:var(--fs-nav); line-height:2.2; }
 .jump-nav a { color:var(--ocean); text-decoration:none; font-weight:600;
@@ -237,6 +245,12 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 .history-list li:last-child { border-bottom:none; }
 .history-ts { color:var(--muted); white-space:nowrap; font-size:var(--fs-cap); min-width:11rem; }
 .history-text { flex:1; }
+/* Figure collapse toggle (shared report chrome — used by the panel() macro on
+   every manifest-ported page). */
+details summary.collapse-toggle { color:var(--muted); font-size:0.76rem; cursor:pointer;
+  list-style:none; padding:0.15rem 0 0.4rem; user-select:none; }
+details summary.collapse-toggle::before { content:"▾ "; }
+details[open] summary.collapse-toggle::before { content:"▴ "; }
 /* Figures never exceed the content column; the oversampled PNG downscales
    crisply (spec §11 OVERSAMPLE). Pages may override (e.g. array uses 60%). */
 .fig { max-width:100%; height:auto; display:block; }
@@ -244,6 +258,10 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
    slot-* figure gets its width from the .slot-* rule instead — so this must NOT
    apply to slotted figures (that was the width:100%-overrides-slot bug). */
 .fig:not([class*="slot-"]) { width:100%; }
+/* A cell in a Section.layout="row" flex row: its width comes from the slot-*
+   class the panel_row macro puts on the cell, and the bare .fig inside fills it. */
+.fig-cell { min-width:0; }
+.fig-cell > .fig { width:100%; }
 .none-note { color:var(--muted); font-style:italic; }
 .var-qc { color:var(--good); font-size:var(--fs-xs); }
 /* Figure-debug line under a plot (OCEANARRAY_REPORT_DEBUG=1): slot the
@@ -263,10 +281,6 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
      .fig fills via base.html's max-width:100%.  Setting width:100% here would
      override the slot and force every figure full-width (U0.2). */
   .fig { border:1px solid var(--rule); border-radius:var(--radius-btn); margin-bottom:0.5rem; }
-  details summary.collapse-toggle { color:var(--muted); font-size:0.76rem; cursor:pointer;
-    list-style:none; padding:0.15rem 0 0.4rem; user-select:none; }
-  details summary.collapse-toggle::before { content:"▾ "; }
-  details[open] summary.collapse-toggle::before { content:"▴ "; }
   /* Dense NetCDF-table sub-headings and cells (rep/06 sweep). Values verbatim
      from the attributes they replaced; they relocate to a shared sheet when the
      other pages port. */
@@ -314,12 +328,19 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 
 
 <nav class="jump-nav">
-  Jump to:
-  <a href="#processing_history">Processing history</a><a href="#hydrography">Hydrography</a><a href="#ts_diagram">T-S diagram</a><a href="#velocity">Velocity</a><a href="#velocity_structure">Velocity structure</a><a href="#stratification">Stratification</a><a href="#overflow">Overflow</a><a href="#frequency_analysis">Frequency analysis</a><a href="#netcdf_variables">NetCDF variables</a>
+<a href="#processing_history">(1) Processing history</a>
+<a href="#hydrography">(2) Hydrography</a>
+<a href="#ts_diagram">(3) T-S diagram</a>
+<a href="#velocity">(4) Velocity</a>
+<a href="#velocity_structure">(5) Velocity structure</a>
+<a href="#stratification">(6) Stratification</a>
+<a href="#overflow">(7) Overflow</a>
+<a href="#frequency_analysis">(8) Frequency analysis</a>
+<a href="#netcdf_variables">(A) NetCDF variables</a>
+<a href="#netcdf_attributes">(B) NetCDF attributes</a>
 </nav>
 
-
-<h2 id="processing_history">1. Processing history</h2>
+<h2 id="processing_history">(1) Processing history</h2>
 
 
 <ul class="history-list">
@@ -346,21 +367,21 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
   
 </ul>
 
-<h2 id="hydrography">2. Hydrography</h2>
+<h2 id="hydrography">(2) Hydrography</h2>
 
 <p class="caption">Temperature, salinity, dissolved oxygen, and O₂ saturation (when present). Vertically interpolated to regular pressure grid • 20 discrete colour levels.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig slot-full" src="data:image/png;base64,<PNG>" alt="hydro">
 </details>
 
-<h2 id="ts_diagram">3. T-S diagram</h2>
+<h2 id="ts_diagram">(3) T-S diagram</h2>
 
 <p class="caption">Left: log₁₀(count+1) per T-S bin. Right (when O₂ present): median O₂ saturation per T-S bin — bins with &lt;5 samples masked. Colour scale: BrBG (brown=low, teal=high).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig slot-half" src="data:image/png;base64,<PNG>" alt="ts_diagram">
 </details>
 
-<h2 id="velocity">4. Velocity</h2>
+<h2 id="velocity">(4) Velocity</h2>
 
 <p class="caption">East, north, and up velocity. QC-flagged samples excluded before interpolation. Shared symmetric Spectral_r colormap for east/north; separate bounds for up. No temporal gap fill — NaN where no data.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
@@ -377,7 +398,7 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 <img class="fig slot-full" src="data:image/png;base64,<PNG>" alt="vel_timeseries">
 </details>
 
-<h2 id="velocity_structure">5. Velocity structure</h2>
+<h2 id="velocity_structure">(5) Velocity structure</h2>
 
 <p class="caption">Current roses. One rose per pressure level (up to 12, evenly subsampled). Suspect/bad QC excluded. Each petal shows the fraction of time current flowed in that direction; petal length encodes speed (m s⁻¹).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
@@ -394,7 +415,7 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 <img class="fig slot-half" src="data:image/png;base64,<PNG>" alt="trajectory">
 </details>
 
-<h2 id="stratification">6. Stratification</h2>
+<h2 id="stratification">(6) Stratification</h2>
 
 <p class="caption">Potential density. 20 discrete colour levels.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
@@ -406,7 +427,7 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 <img class="fig slot-full" src="data:image/png;base64,<PNG>" alt="n2">
 </details>
 
-<h2 id="overflow">7. Overflow</h2>
+<h2 id="overflow">(7) Overflow</h2>
 
 <p class="caption">Isopycnal coverage diagnostic. Percentage of time steps during which each σ₀ surface (0.1 kg m⁻³ spacing) lies within the measured column range. Green ≥ 80 %; amber 50–80 %; red &lt; 50 %. Orange diamond = current --sig-level target. Dashed line = 80 % threshold. NaN gaps in the tracking figure above correspond to times when the isopycnal is outside the measured range (pycnocline above the shallowest grid level, or below the deepest).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
@@ -423,7 +444,7 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 <img class="fig slot-full" src="data:image/png;base64,<PNG>" alt="overflow_temp">
 </details>
 
-<h2 id="frequency_analysis">8. Frequency analysis</h2>
+<h2 id="frequency_analysis">(8) Frequency analysis</h2>
 
 <p class="caption">Temperature power spectrum. Left: low-frequency overview — 14-day Hann windows, 50 % overlap. Right: high-frequency zoom — 1-day windows (~14× more windows, smoother tidal/inertial estimate); x-axis in hours. LF markers: M2, 1.8 d, 4 d, f. HF markers: M2 (12.4 h), f (inertial). Dashed black line: −2 spectral slope. Colour encodes pressure (light blue = shallow, dark blue = deep). Window length controllable via hf_segment_days in _make_spectrum_fig_b64.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
@@ -440,7 +461,7 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 <img class="fig slot-full" src="data:image/png;base64,<PNG>" alt="rotary_spectrum">
 </details>
 
-<h2 id="netcdf_variables">A. NetCDF variables</h2>
+<h2 id="netcdf_variables">(A) NetCDF variables</h2>
 
 
 
@@ -590,6 +611,8 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 </table>
 
 
+<h2 id="netcdf_attributes">(B) NetCDF attributes</h2>
+
 
 <h3 class="subhead-md">Global attributes</h3>
 <table class="var-table">
@@ -655,16 +678,15 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 </table>
 
 
-
-
 <div class="report-footer">
-  Generated by <strong>oceanarray</strong> on <GENERATED> &bull; TESTHOST
+  Generated by <strong>oceanarray</strong> v<VERSION> &bull; OdB &bull; <GENERATED>
 </div>
 <script>
   document.querySelectorAll('h2').forEach(h => {
     const a = document.createElement('a'); a.href = '#top'; a.className = 'top-link'; a.textContent = '↑ top'; h.appendChild(a);
   });
 </script>
+
 
 </body>
 </html>

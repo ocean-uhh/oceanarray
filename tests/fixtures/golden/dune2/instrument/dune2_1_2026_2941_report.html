@@ -103,7 +103,10 @@ h2 {
   color: var(--gray-5); font-size: var(--fs-note);
   margin-top: 0.75rem; margin-bottom: 0.75rem;
 }
-h2 + .caption { margin-top: -0.5rem; }
+/* A section intro (the caption directly under a heading) is a lede for the whole
+   figure block, so it spans the content width rather than the 78ch prose measure a
+   paragraph would otherwise inherit — which left it stranded under full-width figures. */
+h2 + .caption { margin-top: -0.5rem; max-width: none; }
 .explainer {
   font-size: var(--fs-note); color: var(--text);
   background: var(--bg-sunken); border-left: 3px solid var(--muted);
@@ -132,12 +135,16 @@ h2 + .caption { margin-top: -0.5rem; }
   align-items: flex-start;
 }
 .fig-col { display: flex; flex-direction: column; gap: 0.75rem; }
+.fig-row.center { justify-content: center; }
 figure { margin: 0; }
 figure img {
   border: 1px solid var(--rule); border-radius: var(--radius-btn);
   display: block; width: 100%; height: auto;
 }
 figcaption { font-size: var(--fs-cap); color: var(--gray-5); margin-top: 0.25rem; }
+/* A stub panel's warning fills the figure slot it stands in for, rather than the
+   78ch prose reading measure it would otherwise inherit as a paragraph. */
+figure .warn { max-width: none; }
 table {
   width: 100%; border-collapse: collapse;
   font-size: var(--fs-note); margin: 0.6rem 0 1.2rem;
@@ -225,7 +232,8 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
             text-decoration:none; margin-left:auto; white-space:nowrap; }
 .top-link:hover { color:var(--ocean); text-decoration:underline; }
 .report-footer { margin-top:3rem; font-size:var(--fs-cap); color:var(--muted);
-                 border-top:1px solid var(--rule); padding-top:0.8rem; }
+                 border-top:1px solid var(--rule); padding-top:0.8rem;
+                 text-align:center; }
 .jump-nav { background:var(--seafoam); padding:0.55rem 1rem; border-radius:6px;
             margin-bottom:1.5rem; font-size:var(--fs-nav); line-height:2.2; }
 .jump-nav a { color:var(--ocean); text-decoration:none; font-weight:600;
@@ -237,6 +245,12 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 .history-list li:last-child { border-bottom:none; }
 .history-ts { color:var(--muted); white-space:nowrap; font-size:var(--fs-cap); min-width:11rem; }
 .history-text { flex:1; }
+/* Figure collapse toggle (shared report chrome — used by the panel() macro on
+   every manifest-ported page). */
+details summary.collapse-toggle { color:var(--muted); font-size:0.76rem; cursor:pointer;
+  list-style:none; padding:0.15rem 0 0.4rem; user-select:none; }
+details summary.collapse-toggle::before { content:"▾ "; }
+details[open] summary.collapse-toggle::before { content:"▴ "; }
 /* Figures never exceed the content column; the oversampled PNG downscales
    crisply (spec §11 OVERSAMPLE). Pages may override (e.g. array uses 60%). */
 .fig { max-width:100%; height:auto; display:block; }
@@ -244,6 +258,10 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
    slot-* figure gets its width from the .slot-* rule instead — so this must NOT
    apply to slotted figures (that was the width:100%-overrides-slot bug). */
 .fig:not([class*="slot-"]) { width:100%; }
+/* A cell in a Section.layout="row" flex row: its width comes from the slot-*
+   class the panel_row macro puts on the cell, and the bare .fig inside fills it. */
+.fig-cell { min-width:0; }
+.fig-cell > .fig { width:100%; }
 .none-note { color:var(--muted); font-style:italic; }
 .var-qc { color:var(--good); font-size:var(--fs-xs); }
 /* Figure-debug line under a plot (OCEANARRAY_REPORT_DEBUG=1): slot the
@@ -302,27 +320,20 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 
 
 <nav class="jump-nav">
-  Jump to:
-  <a href="#files">Files</a>
-  <a href="#history">History</a>
-  
-  <a href="#timeseries">Time series</a>
-  <a href="#start">Start/end windows</a>
-  <a href="#ts">T-S diagram</a>
-  
-  
-  
-  
-  
-  
-  <a href="#dist">Distributions</a>
-  <a href="#qc">QC thresholds &amp; flags</a>
-  <a href="#dims">Dimensions</a>
-  <a href="#vars">Variables</a>
+<a href="#files">(1) Files</a>
+<a href="#processing_history">(2) Processing history</a>
+<a href="#timeseries">(3) Time series (full deployment)</a>
+<a href="#start">(4) Start &amp; end windows — first / last 6 h</a>
+<a href="#ts_diagram">(5) T-S diagram</a>
+<a href="#distributions">(6) Data value distributions</a>
+<a href="#qc">(7) QC flag breakdown</a>
+<a href="#netcdf_variables">(A) NetCDF variables</a>
+<a href="#netcdf_attributes">(B) NetCDF attributes</a>
 </nav>
 
-<!-- ══ Files ══ -->
-<h2 id="files">Files</h2>
+<h2 id="files">(1) Files</h2>
+
+
 <table class="file-table">
   <thead><tr><th>Stage</th><th>Filename</th><th>Size</th><th>Last modified</th></tr></thead>
   <tbody>
@@ -364,8 +375,8 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
   </tbody>
 </table>
 
-<!-- ══ Processing history ══ -->
-<h2 id="history">Processing history</h2>
+<h2 id="processing_history">(2) Processing history</h2>
+
 
 <ul class="history-list">
   
@@ -416,21 +427,15 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
   
 </ul>
 
+<h2 id="timeseries">(3) Time series (full deployment)</h2>
+<p class="caption">line = data; × = suspect; × = bad; + = interpolated.</p>
 
-<!-- ══ ADCP velocity colour plots ══ -->
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,<PNG>" alt="timeseries_0">
+</details>
 
+<h2 id="start">(4) Start &amp; end windows — first / last 6 h</h2>
 
-<!-- ══ Full time series ══ -->
-<h2 id="timeseries">Time series (full deployment)</h2>
-
-
-<img class="fig" src="data:image/png;base64,<PNG>"
-     title="line = data; × = suspect; × = bad; + = interpolated">
-
-
-
-<!-- ══ Start / end windows ══ -->
-<h2 id="start">Start &amp; end windows &mdash; first / last 6 h</h2>
 
 <p style="font-size:0.8rem;color:var(--gray-5);margin-top:-0.5rem;">
   Left panel = first 7&thinsp;h (1&thinsp;h lead-in + 6&thinsp;h of record) &nbsp;|&nbsp;
@@ -467,50 +472,26 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
   Check the timing table in the mooring summary report for the suggested UTC time.
 </p>
 
-<img class="fig" src="data:image/png;base64,<PNG>">
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,<PNG>" alt="windows_0">
+</details>
 
+<h2 id="ts_diagram">(5) T-S diagram</h2>
 
+<p class="caption">Coloured by pressure (or sample index). × = suspect | × = bad (QC flags).</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,<PNG>" alt="ts_diagram">
+</details>
 
-<!-- ══ T-S diagram ══ -->
+<h2 id="distributions">(6) Data value distributions</h2>
 
-<h2 id="ts">T-S diagram</h2>
-<p style="font-size:0.8rem;color:var(--gray-5);margin-top:-0.5rem;">
-  Coloured by pressure (or sample index). &times; = suspect &nbsp;|&nbsp; &times; = bad (QC flags).
-</p>
-<img class="fig" src="data:image/png;base64,<PNG>">
+<p class="caption">Orange dashed = suspect threshold | Red dotted = fail threshold (gross-range QC). Histogram shows non-bad data only; bad-flagged count noted in red.</p>
+<details open><summary class="collapse-toggle">show / hide</summary>
+<img class="fig" src="data:image/png;base64,<PNG>" alt="dist">
+</details>
 
+<h2 id="qc">(7) QC flag breakdown</h2>
 
-<!-- ══ ADCP current roses ══ -->
-
-
-<!-- ══ Current roses ══ -->
-
-
-<!-- ══ Lagrangian trajectory ══ -->
-
-
-<!-- ══ Hodograph ══ -->
-
-
-<!-- ══ Speed distribution ══ -->
-
-
-<!-- ══ Analog channels ══ -->
-
-
-<!-- ══ Data distributions ══ -->
-<h2 id="dist">Data value distributions</h2>
-<p style="font-size:0.8rem;color:var(--gray-5);margin-top:-0.5rem;">
-  Orange dashed = suspect threshold &nbsp;|&nbsp; Red dotted = fail threshold (gross-range QC).
-  Histogram shows non-bad data only; bad-flagged count noted in red.
-</p>
-
-<img class="fig" src="data:image/png;base64,<PNG>">
-
-
-<!-- ══ QC flag breakdown ══ -->
-
-<h2 id="qc">QC flag breakdown</h2>
 
 
 <h3 style="font-size:0.85rem;color:var(--ocean);margin:0.8rem 0 0.3rem;">Thresholds applied (as stored in stage&nbsp;3 file)</h3>
@@ -703,10 +684,10 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
   </tbody>
 </table>
 
+<h2 id="netcdf_variables">(A) NetCDF variables</h2>
 
-<!-- ══ NetCDF dimensions ══ -->
 
-<h2 id="dims">NetCDF dimensions &mdash; dune2_1_2026_2941_stage3.nc</h2>
+
 <table class="var-table" style="max-width:28rem">
   <thead><tr><th>Dimension</th><th class="num">Size</th></tr></thead>
   <tbody>
@@ -717,8 +698,6 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 </table>
 
 
-<!-- ══ NetCDF variables ══ -->
-<h2 id="vars">NetCDF variables &mdash; dune2_1_2026_2941_stage3.nc</h2>
 
 
 <h3 style="font-size:0.88rem;color:var(--ocean);margin:1rem 0 0.4rem;">Time-series variables</h3>
@@ -800,6 +779,7 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 </table>
 
 
+
 <h3 style="font-size:0.88rem;color:var(--ocean);margin:1.4rem 0 0.4rem;">Scalar metadata variables</h3>
 <table>
   <thead>
@@ -874,6 +854,7 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
   </tbody>
 </table>
 
+<h2 id="netcdf_attributes">(B) NetCDF attributes</h2>
 
 
 <h3 style="font-size:0.88rem;color:var(--ocean);margin:1.4rem 0 0.4rem;">Global attributes</h3>
@@ -1095,16 +1076,17 @@ h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--s
 </table>
 
 
-
+<p class="none-note">Not applicable to this instrument: Velocity, Current roses, Current rose diagrams, Particle trajectory, Hodograph, Current speed distribution, Analog channels.</p>
 
 <div class="report-footer">
-  Generated by <strong>oceanarray</strong> on <GENERATED> &bull; TESTHOST
+  Generated by <strong>oceanarray</strong> v<VERSION> &bull; OdB &bull; <GENERATED>
 </div>
 <script>
   document.querySelectorAll('h2').forEach(h => {
     const a = document.createElement('a'); a.href = '#top'; a.className = 'top-link'; a.textContent = '↑ top'; h.appendChild(a);
   });
 </script>
+
 
 </body>
 </html>

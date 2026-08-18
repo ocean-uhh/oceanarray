@@ -10,7 +10,13 @@ from typing import Any, Dict
 import numpy as np
 
 from ..utilities import parse_latlon_with_source
-from ._env import render_template
+from ._env import (
+    render_history,
+    render_nc_globals,
+    render_nc_scalars,
+    render_nc_variables,
+    render_template,
+)
 from ._html_helpers import (
     _find_array_report_href,
     _nav_buttons_html,
@@ -308,28 +314,6 @@ def _history_unavailable(ctx: GridContext) -> "str | None":
     return "No processing history recorded in the file attributes."
 
 
-def _render_history(ctx: GridContext) -> "str | None":
-    """Render the processing-history list to markup (``history`` panel payload)."""
-    return render_template("_grid_history.html", history_entries=ctx.history_entries)
-
-
-def _render_nc_variables(ctx: GridContext) -> "str | None":
-    """Render the NetCDF time-variable table (``nc_variables`` panel payload)."""
-    return render_template(
-        "_grid_nc_variables.html", nc_meta=ctx.nc_meta, nc_file=ctx.nc_file
-    )
-
-
-def _render_nc_scalars(ctx: GridContext) -> "str | None":
-    """Render the scalar-metadata table (``nc_scalars`` panel payload)."""
-    return render_template("_grid_nc_scalars.html", nc_meta=ctx.nc_meta)
-
-
-def _render_nc_globals(ctx: GridContext) -> "str | None":
-    """Render the global-attributes table (``nc_globals`` panel payload)."""
-    return render_template("_grid_nc_globals.html", nc_meta=ctx.nc_meta)
-
-
 def _has_scalar_vars(ctx: GridContext) -> bool:
     """True when the NetCDF file exposes scalar-metadata variables."""
     return bool(ctx.nc_meta.get("scalar_vars"))
@@ -377,20 +361,24 @@ GRID_PANELS: dict[str, Panel] = {
     # non-figure appendix / history — payloads are markup from sub-templates
     "history": Panel(
         "history",
-        render=_render_history,
+        render=lambda c: render_history(c.history_entries),
         kind="html",
         unavailable_if=_history_unavailable,
     ),
-    "nc_variables": Panel("nc_variables", render=_render_nc_variables, kind="table"),
+    "nc_variables": Panel(
+        "nc_variables",
+        render=lambda c: render_nc_variables(c.nc_meta, c.nc_file),
+        kind="table",
+    ),
     "nc_scalars": Panel(
         "nc_scalars",
-        render=_render_nc_scalars,
+        render=lambda c: render_nc_scalars(c.nc_meta),
         kind="table",
         applies_to=_has_scalar_vars,
     ),
     "nc_globals": Panel(
         "nc_globals",
-        render=_render_nc_globals,
+        render=lambda c: render_nc_globals(c.nc_meta),
         kind="table",
         applies_to=_has_global_attrs,
     ),
@@ -531,7 +519,13 @@ GRID_SECTIONS: dict[str, Section] = {
     "netcdf_variables": Section(
         "netcdf_variables",
         "NetCDF variables",
-        ("nc_variables", "nc_scalars", "nc_globals"),
+        ("nc_variables", "nc_scalars"),
+        role="appendix",
+    ),
+    "netcdf_attributes": Section(
+        "netcdf_attributes",
+        "NetCDF attributes",
+        ("nc_globals",),
         role="appendix",
     ),
 }
@@ -549,6 +543,7 @@ GRID_DEFAULT = Profile(
         GRID_SECTIONS["overflow"],
         GRID_SECTIONS["frequency_analysis"],
         GRID_SECTIONS["netcdf_variables"],
+        GRID_SECTIONS["netcdf_attributes"],
     ),
 )
 
@@ -565,6 +560,7 @@ GRID_COMBINED_HYDRO = replace(
         GRID_SECTIONS["overflow"],
         GRID_SECTIONS["frequency_analysis"],
         GRID_SECTIONS["netcdf_variables"],
+        GRID_SECTIONS["netcdf_attributes"],
     ),
 )
 
