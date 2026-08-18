@@ -35,9 +35,10 @@ _ENV.globals["package_name"] = params.PACKAGE_NAME
 
 
 #: Package version for the footer, from ``oceanarray.__version__`` (the
-#: setuptools-scm ``_version.py``, falling back to installed metadata).  The
-#: footer shows it only when meaningful (``!= "0.0.0"``); the golden test masks
-#: it so a version bump does not churn the fixtures.
+#: setuptools-scm ``_version.py``, falling back to installed metadata, else
+#: ``"0.0.0"``).  The footer always renders it (so the golden is stable across
+#: build/no-build checkouts); the golden test masks the value so a version bump
+#: does not churn the fixtures.
 _ENV.globals["package_version"] = _oceanarray_version
 #: Per-figure debug lookup (``func · figsize · png``) for templates' ``.debug``
 #: sections; returns "" unless ``OCEANARRAY_REPORT_DEBUG`` is set.

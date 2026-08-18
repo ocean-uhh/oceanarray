@@ -361,7 +361,7 @@ def draw_grid_velocity_stacked(
         else:
             cb_ticks = nice_colorbar_ticks(float(bounds[0]), float(bounds[-1]))
         cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=cb_ticks)
-        # Use the per-variable colorbar label from _velocity_panel_style (°T for
+        # Use the per-variable colorbar label from _velocity_panel_style (° for
         # direction, m s⁻¹ for velocity/speed) — not a hardcoded east-velocity unit.
         cb.ax.set_title(cb_label, fontsize=report_tokens.ANNOT_FS)
         pressure_axis(ax)
