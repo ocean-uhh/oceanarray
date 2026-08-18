@@ -457,16 +457,25 @@ def draw_grid_n2(
     CT = gsw.CT_from_t(SA, T_pt, p_2d)
     N2, p_mid = gsw.Nsquared(SA, CT, p_2d, lat=lat)
     p_mid_1d = np.nanmean(p_mid, axis=1)
+    # Floor non-positive/unstable N² to 1e-12 so it renders as the lowest colour
+    # (weakly stratified / off-scale low) rather than blank.
     N2_log = np.log10(np.maximum(N2, 1e-12))
 
     fig, ax = plt.subplots(
         figsize=(width_in, params.GRID_PANEL_ROW_IN), layout="constrained"
     )
-    # Clip the colorbar to the 2.5-97.5 percentiles of log10(N²) so a few extreme
-    # cells don't wash out the stratification structure.
-    _finite = N2_log[np.isfinite(N2_log)]
-    _lo = float(np.nanpercentile(_finite, 2.5)) if _finite.size else -12.0
-    _hi = float(np.nanpercentile(_finite, 97.5)) if _finite.size else 0.0
+    # Colour limits from the 1st-99th percentile of log10(N²) over *positive*
+    # (statically stable) cells only.  Non-positive N² is floored to 1e-12 for the
+    # plot, but including that floor in the percentile would peg the low limit at
+    # log10(1e-12) = -12 and wash out the stratification structure whenever more
+    # than ~1% of cells are unstable (Eleanor 2026-08-18).
+    _pos = N2[np.isfinite(N2) & (N2 > 0)]
+    if _pos.size:
+        _logpos = np.log10(_pos)
+        _lo = float(np.nanpercentile(_logpos, 1))
+        _hi = float(np.nanpercentile(_logpos, 99))
+    else:
+        _lo, _hi = -12.0, 0.0
     bounds, norm = colorbar_norm(vmin=_lo, vmax=_hi)
     pc = ax.pcolormesh(
         time_vals, p_mid_1d, N2_log, shading="nearest", cmap="plasma_r", norm=norm

@@ -56,9 +56,11 @@ from oceanarray.config import report_tokens
 def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
     """One subplot per Aquadopp showing pitch, roll, and tilt_from_pressure.
 
-    All three curves share the same y-axis so they can be compared directly.
-    Horizontal reference lines are drawn at the suspect and fail thresholds
-    read from ds.attrs (falling back to 20° / 30° if absent).
+    Within each row the time-series panel and its paired scatter panel share one
+    0–90° y-axis, so the pitch/roll time series and the pressure-tilt scatter read
+    on the same scale.  Gridlines are drawn on both panels.  Horizontal reference
+    lines are drawn at the suspect and fail thresholds read from ds.attrs (falling
+    back to 20° / 30° if absent).
     Returns None if no Aquadopp levels are found or none of the relevant
     variables exist.
     """
@@ -87,7 +89,7 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
         return None
 
     # Cap the number of stacked panels so the figure stays a sane height for PDF
-    # pagination (one panel is ~2.8 in; 5 → ~14 in).  Deep-first order is kept, so
+    # pagination (one panel is ~2.24 in; 5 → ~11 in).  Deep-first order is kept, so
     # the deepest Aquadopps are shown; a note flags any that were dropped.
     _MAX_TILT_ROWS = 5
     _n_dropped = max(0, len(aq_indices) - _MAX_TILT_ROWS)
@@ -104,8 +106,11 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
 
     def _draw() -> "plt.Figure":
         fig = plt.figure(
-            figsize=(report_tokens.W_FULL, 2.8 * n_panels), constrained_layout=True
+            figsize=(report_tokens.W_FULL, 2.24 * n_panels), constrained_layout=True
         )
+        # Tighten the inter-row gap; upper rows drop their x tick labels/label so
+        # the rows can pack closer.
+        fig.get_layout_engine().set(h_pad=0.03, hspace=0.0)
         gs = fig.add_gridspec(n_panels, 3, width_ratios=[2, 2, 1])
 
         ax_ts_first = None
@@ -116,7 +121,9 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
             ax_ts = fig.add_subplot(gs[row, :2], sharex=ax_ts_first)
             if ax_ts_first is None:
                 ax_ts_first = ax_ts
-            ax_sc = fig.add_subplot(gs[row, 2])
+            # Scatter shares this row's y-axis so pitch/roll read on the same
+            # 0–90° scale as the time series.
+            ax_sc = fig.add_subplot(gs[row, 2], sharey=ax_ts)
 
             p_data = r_data = tp_data = None
             if has_pitch:
@@ -143,8 +150,9 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
 
             ax_ts.axhline(tilt_suspect, color="tab:orange", lw=0.8, ls="--", zorder=0)
             ax_ts.axhline(tilt_fail, color="tab:red", lw=0.8, ls=":", zorder=0)
-            ax_ts.set_ylim(bottom=0.0)
+            ax_ts.set_ylim(0.0, 90.0)
             ax_ts.set_ylabel("Degrees (°)")
+            grid_despine(ax_ts)
 
             _ref_note = ""
             if ref_habs is not None and np.isfinite(ref_habs[i]):
@@ -185,10 +193,9 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
                         label="|roll|",
                         **sc_kw,
                     )
-                _lim = max(ax_sc.get_xlim()[1], ax_sc.get_ylim()[1], 35.0)
                 ax_sc.plot(
-                    [0, _lim],
-                    [0, _lim],
+                    [0, 90],
+                    [0, 90],
                     color="0.4",
                     lw=0.8,
                     ls="--",
@@ -203,10 +210,18 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
                     tilt_suspect, color="tab:orange", lw=0.7, ls="--", zorder=0
                 )
                 ax_sc.axhline(tilt_fail, color="tab:red", lw=0.7, ls=":", zorder=0)
-                ax_sc.set_xlim(left=0.0)
-                ax_sc.set_ylim(bottom=0.0)
-                ax_sc.set_xlabel("tilt (pressure) [°]")
+                ax_sc.set_xlim(0.0, 90.0)
+                ax_sc.set_ylim(0.0, 90.0)  # re-assert after scatter autoscale
+                # Match x/y ticks (both are 0–90° tilt); the shared y also sets the
+                # time-series panel's y-ticks.
+                ax_sc.set_xticks([0, 30, 60, 90])
+                ax_sc.set_yticks([0, 30, 60, 90])
                 ax_sc.set_ylabel("|pitch|, |roll| [°]")
+                if row == n_panels - 1:
+                    ax_sc.set_xlabel("tilt (pressure) [°]")
+                else:
+                    ax_sc.tick_params(labelbottom=False)
+                grid_despine(ax_sc)
                 # No scatter legend — the time-series panel legend already names
                 # pitch/roll; a second legend here is a redundant repeat.
             else:
