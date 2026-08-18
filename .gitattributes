@@ -1,3 +1,8 @@
-# Generated report HTML: collapse in diffs, exclude from GitHub language stats.
+# Generated report HTML: exclude both from GitHub language stats and collapse in
+# PR diffs (linguist-generated). Golden fixtures stay diffable — their images are
+# masked, so text/structure diffs are meaningful on rebaseline. The hosted demo
+# reports are pure display artifacts: `binary` (= -diff -merge -text) treats them
+# as opaque blobs — no textual diff, no merge, no line-ending normalization. Both
+# remain tracked/committed (the demo suite is served from _static by Sphinx).
 tests/fixtures/golden/** linguist-generated=true
-docs/source/_static/demo/** linguist-generated=true
+docs/source/_static/demo/** linguist-generated=true binary
