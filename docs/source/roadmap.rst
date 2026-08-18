@@ -127,7 +127,6 @@ Dependencies
 ============
 
 - ``scipy``: Welch PSD for spectral figures in the grid report
-- ``dolfyn`` (via ``mhkit[dolfyn]``): RDI raw ADCP file reader (``rdi-raw`` file type)
 - ``ioos_qc``: QARTOD gross-range and spike tests
 - ``gsw`` (TEOS-10): seawater property calculations
 - ``xarray`` / ``netCDF4``: core data handling
@@ -135,4 +134,5 @@ Dependencies
 - ``matplotlib``: all figures
 - ``ppigrf``: IGRF magnetic declination for BEAM→ENU rotation
 - ``seasenselib``: raw instrument format readers (sbe-cnv, sbe-ascii, nortek-ascii,
-  nortek-csv, rbr-rsk, rbr-dat, rbr-hex)
+  nortek-csv, rbr-rsk, rbr-dat, rbr-hex, rdi-raw); pulls in ``mhkit[dolfyn]`` for
+  the RDI reader

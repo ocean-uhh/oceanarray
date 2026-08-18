@@ -15,14 +15,16 @@ ppigrf  # IGRF magnetic declination (used in stage3 for Nortek BEAM→ENU correc
 # QC
 ioos_qc
 
-
-# RDI ADCP reader (rdi-raw file type) requires dolfyn via mhkit
-dolfyn  # or: pip install "mhkit[dolfyn]"
+# RDI ADCP reading (rdi-raw file type) is handled by seasenselib, which pulls in
+# mhkit[dolfyn]; oceanarray does not import dolfyn directly.
 
 # Wavelet analysis (grid report temperature scalogram)
 pycwt  # Torrence & Compo 1998 CWT; Morlet and Mexican hat wavelets
 
-# seasenselib is installed separately: pip install -e seasenselib
+# Raw instrument-file readers (stage 1). On PyPI; its runtime deps resolve
+# against the stack above, so the old `--no-deps` workaround is obsolete.
+# (Local development can override with an editable checkout: pip install -e ../seasenselib.)
+seasenselib
 
 # Logsheets (oceanarray logsheet subcommand)
 jinja2>=3.0       # LaTeX template rendering

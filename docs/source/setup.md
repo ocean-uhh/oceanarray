@@ -7,25 +7,35 @@ dependencies and is not recommended for production use.
 
 ## Install oceanarray
 
-`oceanarray` is not distributed on PyPI.  Create an isolated Python
-environment first, then clone and install from source.
+`oceanarray` is on PyPI:
 
-### Option A — conda
+```bash
+pip install oceanarray
+```
+
+This pulls in its dependencies, including `seasenselib` — the reader
+`oceanarray` uses for raw instrument files in stage 1.
+
+### In an isolated environment (recommended)
+
+#### Option A — conda
 
 ```bash
 conda create -n oceanarray python=3.11
 conda activate oceanarray
+pip install oceanarray
 ```
 
-### Option B — venv
+#### Option B — venv
 
 ```bash
 python -m venv venv
 source venv/bin/activate        # macOS / Linux
 # venv\Scripts\activate         # Windows
+pip install oceanarray
 ```
 
-### Clone and install (after activating either environment)
+### Development install (from source)
 
 ```bash
 git clone https://github.com/ocean-uhh/oceanarray
@@ -34,35 +44,22 @@ pip install -e .
 ```
 
 The `-e` flag installs in editable mode so that any local changes take effect
-immediately without reinstalling.
+immediately without reinstalling.  See [Troubleshooting](troubleshooting.rst)
+if a dependency fails to build.
 
-## Install seasenselib
+## Stage 1 and seasenselib
 
-`oceanarray` reads raw instrument files via `seasenselib`, which is available
-on PyPI but declares version constraints on some of its dependencies
-(`pyrsktools`, `pycnv`, `pyproj`) that can conflict with the rest of the
-oceanarray environment.  Install those packages first — letting pip satisfy
-them against oceanarray's own requirements — then install `seasenselib` without
-its dependency resolver:
-
-```bash
-pip install pyrsktools pycnv
-pip install seasenselib --no-deps
-```
-
-Without `seasenselib`, stage 1 processing cannot run.  Stages 2–3 and
+Stage 1 (reading raw instrument files) needs `seasenselib`, which is installed
+automatically with `oceanarray` (above).  Without `seasenselib`, stage 1
+processing cannot run.  Stages 2–3 and
 mooring-level processing (stack, grid, reports) can still run on existing
 NetCDF files.  See [Troubleshooting](troubleshooting.rst) if the install fails.
 
-## Optional: RDI ADCP support
+## RDI ADCP support
 
-Processing RDI WorkHorse ADCP files (`file_type: rdi-raw`) requires `dolfyn`:
-
-```bash
-pip install "mhkit[dolfyn]"
-```
-
-This dependency is not needed for SeaBird, RBR, or Nortek Aquadopp files.
+Processing RDI WorkHorse ADCP files (`file_type: rdi-raw`) needs no extra
+install: `seasenselib` reads them via `mhkit[dolfyn]`, which is pulled in
+automatically with `oceanarray`.
 
 ## Verify the installation
 

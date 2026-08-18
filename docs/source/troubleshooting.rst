@@ -13,27 +13,15 @@ It was assembled from real installation notes on macOS (Python 3.11, Homebrew).
 Installation problems
 ---------------------
 
-seasenselib dependency conflicts (pyrsktools, pycnv, pyproj)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+seasenselib / pyproj build failures
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-``seasenselib`` is on PyPI but declares version constraints on several packages
-(``pyrsktools``, ``pycnv``, ``pyproj``) that can conflict with the rest of the
-oceanarray environment when pip tries to resolve everything at once.
+``seasenselib`` (the raw-file reader, installed automatically with
+``oceanarray``) and its dependency ``pyproj`` occasionally fail to build from
+source on some platforms or pip versions.
 
-The fix is to install those packages first — letting pip satisfy them against
-oceanarray's own requirements — then install ``seasenselib`` without its
-dependency resolver:
-
-.. code-block:: bash
-
-   pip install pyrsktools pycnv
-   pip install seasenselib --no-deps
-
-This is safe because oceanarray already provides compatible versions of the
-packages that ``seasenselib`` needs at runtime.
-
-**If pyproj still fails to install** (some pip versions fail to build it from
-source), force a pre-built binary wheel before the step above:
+**If pyproj fails to install**, force a pre-built binary wheel, then re-run the
+install:
 
 .. code-block:: bash
 
@@ -43,7 +31,7 @@ source), force a pre-built binary wheel before the step above:
        --only-binary=:all: \
        "pyproj>=3.7.0"
 
-Then re-run the ``pyrsktools``/``pycnv``/``seasenselib`` steps.
+   pip install oceanarray
 
 If all else fails, recreate the virtual environment with Python 3.11 exactly
 (``python3.11 -m venv venv``) and start from scratch.
