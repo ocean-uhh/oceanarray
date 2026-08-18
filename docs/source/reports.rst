@@ -24,6 +24,32 @@ Or generate all reports in one go with ``oceanarray run`` (see :doc:`cli_referen
 
 ----
 
+Live example
+------------
+
+The report suite below was generated from the ``dune2_1_2026`` test mooring and
+is hosted alongside these docs so you can explore the real output interactively.
+
+.. figure:: /_static/oceanarray_report_header.png
+   :target: _static/demo/dune2/dune2_1_2026_report.html
+   :align: center
+   :alt: Live dune2_1_2026 Summary report — click to open
+
+   **Click to open the live** ``dune2_1_2026`` **example report.**  It opens the
+   Summary page; the header pills link through to the Stack, Grid, and
+   per-instrument pages.  Every figure is embedded in the page — no web server,
+   downloads, or extra assets needed.
+
+Direct links to each page:
+
+- `Summary <_static/demo/dune2/dune2_1_2026_report.html>`__
+- `Stack <_static/demo/dune2/dune2_1_2026_stack_report.html>`__
+- `Grid <_static/demo/dune2/dune2_1_2026_grid_report.html>`__
+- `Instrument — microcat 2941 <_static/demo/dune2/instrument/dune2_1_2026_2941_report.html>`__
+- `Instrument — aquadopp 9920 <_static/demo/dune2/instrument/dune2_1_2026_9920_report.html>`__
+
+----
+
 Report pages
 ------------
 
@@ -205,12 +231,3 @@ by a colour-coded pill:
 
 Stack and Grid pills are grey for any instrument that did not reach Stage 3
 (only Stage 3 output is included in the stack).
-
-----
-
-.. note::
-
-   A complete worked example report is planned for a future release.  Once an
-   example mooring dataset is available, the full HTML report will be hosted
-   alongside this documentation so that the layout and sections can be explored
-   interactively.
