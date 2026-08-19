@@ -447,9 +447,7 @@ def draw_spectrum(
     ax_lf.set_ylabel("PSD (°C² cpd⁻¹)")
     plot_title(ax_lf, f"Low frequency\n14-day windows ({n_win_lf})")
     # Single shared legend -- depth labels from LF lines serve both panels
-    ax_lf.legend(
-        loc="upper right", title="Depth", fontsize="small", title_fontsize="small"
-    )
+    ax_lf.legend(loc="upper right", title="Depth")
 
     # -- HF panel --
     if psds_hf and freq_hf is not None:
@@ -717,7 +715,7 @@ def draw_wavelet(
             transform=tax[i].transAxes,
             ha="left",
             va="bottom",
-            fontsize="small",
+            fontsize=report_tokens.ANNOT_FS,
             bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.7),
         )
         plt.setp(tax[i].get_xticklabels(), visible=False)

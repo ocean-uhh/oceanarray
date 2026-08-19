@@ -28,6 +28,7 @@ from ._html_helpers import (
 )
 from ._plots import render_b64
 from ..plotters.helpers import grid_despine
+from ..config import report_tokens
 
 
 # ---------------------------------------------------------------------------
@@ -136,7 +137,7 @@ def _make_array_map_b64(
                     (r["lon"], r["lat"]),
                     textcoords="offset points",
                     xytext=(5, 3),
-                    fontsize=10,
+                    fontsize=report_tokens.ANNOT_FS,
                     color=color,
                 )
         ax.set_xlabel("Longitude (°)")

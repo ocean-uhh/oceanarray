@@ -414,7 +414,7 @@ def plot_hodograph(
             "No east/north velocities",
             ha="center",
             va="center",
-            fontsize=12,
+            fontsize=report_tokens.ANNOT_FS,
             color="#95a5a6",
         )
         return fig

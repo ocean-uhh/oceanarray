@@ -828,6 +828,12 @@ def generate_stack_page(
                             )
                         except Exception:
                             pass
+                # No instrument had finite data in any row: drop the figure so the
+                # panel stubs as "not available" rather than publishing empty axes
+                # (matches the old per-variable _ts_fig behaviour).
+                if not _handles:
+                    plt.close(fig)
+                    return None
                 _ax_last = _axs[-1, 0]
                 _loc = mdates.AutoDateLocator()
                 _ax_last.xaxis.set_major_locator(_loc)

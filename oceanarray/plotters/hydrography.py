@@ -89,7 +89,7 @@ def draw_isopycnal_ts_fig(
         ax.plot(time_vals, h_med, color=col, lw=1.0, label=f"σ₀ = {sval:.2f}")
 
     if n_levels <= 8:
-        ax.legend(loc="upper right", framealpha=0.8, fontsize=9)
+        ax.legend(loc="upper right", framealpha=0.8)
     else:
         bounds, norm = colorbar_norm(
             vmin=float(sigma_vals.min()),
@@ -288,7 +288,7 @@ def draw_isopycnal_coverage(
     ax1.set_xlabel("Time present (%)")
     ax1.set_xlim(0, 105)
     ax1.tick_params(axis="y", which="both", left=False)
-    ax1.legend(loc="lower right", fontsize=9, framealpha=0.7)
+    ax1.legend(loc="lower right", framealpha=0.7)
     plot_title(ax1, "Coverage")
 
     # ---- Panel 2: depth distribution ----
@@ -332,7 +332,7 @@ def draw_isopycnal_coverage(
         Line2D([0], [0], color="#2980b9", lw=3.5, label="IQR (25–75 %)"),
         Line2D([0], [0], color="#95a5a6", lw=1, label="5–95 %"),
     ]
-    ax2.legend(handles=legend_elems, loc="lower right", fontsize=9, framealpha=0.7)
+    ax2.legend(handles=legend_elems, loc="lower right", framealpha=0.7)
 
     return fig
 
@@ -413,7 +413,6 @@ def draw_overflow_temperature_fig(
     plot_title(
         ax,
         f"{actual_p:.0f} dbar  ({hab:.0f} m above seabed)",
-        fontsize=10,
         pad=4,
     )
     date_axis(ax)

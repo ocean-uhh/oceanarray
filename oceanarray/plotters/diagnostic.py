@@ -315,7 +315,7 @@ def plot_knockdown_pressure(
             zorder=0,
             label="actual = nominal",
         )
-        ax.legend(fontsize=9, loc="upper left")
+        ax.legend(loc="upper left")
         ax.set_xlabel("Nominal pressure (dbar)")
         ax.set_ylabel("Measured pressure (dbar)")
         grid_despine(ax)
@@ -429,7 +429,7 @@ def plot_knockdown_hab(
             zorder=0,
             label="expected pressure",
         )
-        ax.legend(fontsize=9, loc="upper right")
+        ax.legend(loc="upper right")
         ax.set_xlabel("Nominal HAB (m)")
         ax.set_ylabel("Measured pressure (dbar)")
 
@@ -661,7 +661,7 @@ def plot_knockdown_displacement(
                 rasterized=True,
             )
         ax1.set_ylabel("Measured pressure (dbar)")
-        ax1.legend(fontsize=9, loc="lower right", markerscale=3)
+        ax1.legend(loc="lower right", markerscale=3)
 
         # --- right panel: per-instrument normalised heatmap ---
         # Each instrument's 2-D histogram is divided by its own total before
