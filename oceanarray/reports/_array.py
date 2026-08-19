@@ -141,7 +141,7 @@ def _make_array_map_b64(
                 )
         ax.set_xlabel("Longitude (°)")
         ax.set_ylabel("Latitude (°)")
-        ax.set_title(array_name, fontsize=9)
+        ax.set_title(array_name)
         grid_despine(ax)
         plt.tight_layout()
         return fig

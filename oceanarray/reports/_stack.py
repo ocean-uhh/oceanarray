@@ -44,7 +44,7 @@ from ._plots import (
 )
 from .. import parameters as params
 from ..plotters.helpers import grid_despine, ordered_line_colors
-from ..plotters.primitives import date_offset_left
+from ..plotters.primitives import date_offset_left, plot_title
 from oceanarray.config import report_tokens
 
 
@@ -268,38 +268,24 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
 #: Stack panel captions, keyed by panel id — plain text, Unicode notation, no
 #: markup (a future ``config/report.yaml`` makes these user-editable; see grid).
 STACK_CAPTIONS: dict[str, str] = {
-    "pressure": (
-        "Values with QC flag ≥ 3 (suspect/bad) masked to NaN before plotting. "
-        "All data values are in the source file without masking. ADCP "
-        "instruments excluded."
-    ),
-    "temperature": (
-        "Values with QC flag ≥ 3 (suspect/bad) masked to NaN before plotting. "
-        "All data values are in the source file without masking."
-    ),
-    "salinity": (
-        "Values with QC flag ≥ 3 (suspect/bad) masked to NaN before plotting. "
-        "All data values are in the source file without masking."
+    "hydro_pts": (
+        "Pressure, temperature and salinity for the full deployment — one row "
+        "each on a shared time axis. One colour per instrument (shared across "
+        "rows, ordered by height) so a line can be followed through all three "
+        "panels; the single legend spans the union of instruments. Values with "
+        "QC flag ≥ 3 (suspect/bad) masked to NaN; ADCP excluded from pressure."
     ),
     "dissolved_oxygen": (
         "One line per instrument with dissolved oxygen data (SBE ODO sensor); "
         "QC flags ≥ 3 masked. Units: µmol L⁻¹. % saturation available in "
         "per-instrument reports."
     ),
-    "east_velocity": (
-        "ENU frame. Values with velocity_flag ≥ 3 masked to NaN before "
-        "plotting. All data values are in the source file without masking. "
-        "Instruments without velocity data omitted."
-    ),
-    "north_velocity": (
-        "ENU frame. Values with velocity_flag ≥ 3 masked to NaN before "
-        "plotting. All data values are in the source file without masking. "
-        "Instruments without velocity data omitted."
-    ),
-    "up_velocity": (
-        "ENU frame. Values with velocity_flag ≥ 3 masked to NaN before "
-        "plotting. All data values are in the source file without masking. "
-        "Instruments without velocity data omitted."
+    "vel_uvw": (
+        "Eastward (U), northward (V) and upward (W) velocity in the ENU frame — "
+        "one row each on a shared time axis, one colour per instrument (shared "
+        "across rows, ordered by height) with a single legend over the union of "
+        "instruments. Values with velocity_flag ≥ 3 masked to NaN; instruments "
+        "without velocity data omitted."
     ),
     "turbidity": (
         "One line per instrument with turbidity data; QC flags ≥ 3 masked. Dots "
@@ -465,13 +451,14 @@ STACK_PANELS: dict[str, Panel] = {
         ),
         kind="table",
     ),
-    "pressure": _figure_panel("pressure", _has("pressure")),
-    "temperature": _figure_panel("temperature", _has("temperature")),
-    "salinity": _figure_panel("salinity", _has("salinity")),
+    "hydro_pts": _figure_panel(
+        "hydro_pts",
+        lambda c: any(
+            v in c.present_vars for v in ("pressure", "temperature", "salinity")
+        ),
+    ),
     "dissolved_oxygen": _figure_panel("dissolved_oxygen", _has("dissolved_oxygen")),
-    "east_velocity": _figure_panel("east_velocity", _has("east_velocity")),
-    "north_velocity": _figure_panel("north_velocity", _has("north_velocity")),
-    "up_velocity": _figure_panel("up_velocity", _has("up_velocity")),
+    "vel_uvw": _figure_panel("vel_uvw", _has_stack_velocity),
     "turbidity": _figure_panel("turbidity", _has("turbidity")),
     "trajectories_aquadopp": _figure_panel(
         "trajectories_aquadopp", _has_aquadopp, slot="half"
@@ -551,11 +538,9 @@ STACK_SECTIONS: dict[str, Section] = {
     "hydrography": Section(
         "hydrography",
         "Hydrography",
-        ("pressure", "temperature", "salinity", "dissolved_oxygen"),
+        ("hydro_pts", "dissolved_oxygen"),
     ),
-    "velocity": Section(
-        "velocity", "Velocity", ("east_velocity", "north_velocity", "up_velocity")
-    ),
+    "velocity": Section("velocity", "Velocity", ("vel_uvw",)),
     "turbidity": Section("turbidity", "Turbidity", ("turbidity",)),
     "trajectories": Section(
         "trajectories",
@@ -784,32 +769,128 @@ def generate_stack_page(
                 plt.close(fig)
                 return b64
 
-        fig_pressure_b64 = _ts_fig(
-            "pressure", params.vlabel("pressure"), invert=True, exclude_types={"adcp"}
-        )
-        fig_temp_b64 = _ts_fig("temperature", params.vlabel("temperature"))
-        fig_sal_b64 = (
-            _ts_fig("salinity", params.vlabel("salinity")) if "salinity" in ds else None
+        def _combined_ts_fig(_rows: "List[tuple]", _color_var: str) -> Optional[str]:
+            """Stacked multi-variable time series with one shared instrument legend.
+
+            Each entry in *_rows* is ``(varname, ylabel, invert, exclude_types)``.
+            The rows share one time axis and one instrument colour scheme (that of
+            *_color_var*, height-ordered), so a colour tracks an instrument through
+            every panel, and a single legend spans the union of instruments over
+            the full figure height.  Used for the P/T/S and U/V/W groups so their
+            many instruments share one tall legend instead of one per variable.
+            """
+            _rows = [r for r in _rows if r[0] in ds.data_vars]
+            if not _rows:
+                return None
+            # One colour/linestyle per instrument, shared across rows (colour
+            # tracks an instrument through every panel).
+            _s_colors, _s_styles = _var_line_styling(_color_var)
+            with plt.style.context(str(params.MPLSTYLE)):
+                fig, _axs = plt.subplots(
+                    len(_rows),
+                    1,
+                    figsize=(report_tokens.W_FULL, 2.56 * len(_rows)),
+                    sharex=True,
+                    squeeze=False,
+                )
+                _handles: dict = {}  # serial -> Line2D (union, height order)
+                for _ax, (_var, _ylabel, _invert, _excl) in zip(_axs[:, 0], _rows):
+                    _a = ds[_var].values.copy()
+                    _qcv = f"{_var}_qc"
+                    if _qcv in ds.data_vars:
+                        _a[ds[_qcv].values >= 3] = np.nan
+                    for _i in range(n_instr):
+                        if _excl and instr_types[_i].lower() in _excl:
+                            continue
+                        _serial = _serial_list[_i]
+                        _y = _a[::step, _i]
+                        if not np.any(np.isfinite(_y)):
+                            continue
+                        (_ln,) = _ax.plot(
+                            time_ds,
+                            _y,
+                            color=_s_colors[_serial],
+                            ls=_s_styles[_serial],
+                            lw=0.7,
+                            alpha=0.85,
+                            label=f"{_serial}",
+                        )
+                        _handles.setdefault(_serial, _ln)
+                    if _invert:
+                        _ax.invert_yaxis()
+                    _ax.set_ylabel(_ylabel)
+                    grid_despine(_ax)
+                    if _t_cov_start and _t_cov_end:
+                        try:
+                            _ax.set_xlim(
+                                np.datetime64(_t_cov_start),
+                                np.datetime64(_t_cov_end),
+                            )
+                        except Exception:
+                            pass
+                _ax_last = _axs[-1, 0]
+                _loc = mdates.AutoDateLocator()
+                _ax_last.xaxis.set_major_locator(_loc)
+                _ax_last.xaxis.set_major_formatter(mdates.ConciseDateFormatter(_loc))
+                date_offset_left(_ax_last)
+                _ax_last.set_xlabel("Time")
+                # Single legend over the union of instruments in height order,
+                # spanning the full figure height on the right.
+                _ordered = [s for s in _serial_list if s in _handles]
+                if _ordered:
+                    # Anchor just right of the panels' actual right edge (not the
+                    # figure edge, which leaves a gap), centred vertically.
+                    _right = max(_ax.get_position().x1 for _ax in _axs[:, 0])
+                    fig.legend(
+                        handles=[_handles[s] for s in _ordered],
+                        labels=_ordered,
+                        loc="center left",
+                        bbox_to_anchor=(_right + 0.01, 0.5),
+                        bbox_transform=fig.transFigure,
+                        borderaxespad=0,
+                        framealpha=0.8,
+                        ncol=1,
+                    )
+                b64 = _fig_to_base64(fig)
+                _figdebug.record(b64, f"_combined[{_color_var}]", fig)
+                plt.close(fig)
+                return b64
+
+        fig_hydro_pts_b64 = _combined_ts_fig(
+            [
+                ("pressure", params.vlabel("pressure"), True, {"adcp"}),
+                ("temperature", params.vlabel("temperature"), False, None),
+                ("salinity", params.vlabel("salinity"), False, None),
+            ],
+            "temperature",
         )
         fig_dissolved_oxygen_b64 = (
             _ts_fig("dissolved_oxygen", params.vlabel("dissolved_oxygen"))
             if "dissolved_oxygen" in ds
             else None
         )
-        fig_east_vel_b64 = (
-            _ts_fig("east_velocity", params.vlabel("east_velocity", prefix="U — "))
-            if "east_velocity" in ds
-            else None
-        )
-        fig_north_vel_b64 = (
-            _ts_fig("north_velocity", params.vlabel("north_velocity", prefix="V — "))
-            if "north_velocity" in ds
-            else None
-        )
-        fig_up_vel_b64 = (
-            _ts_fig("up_velocity", params.vlabel("up_velocity", prefix="W — "))
-            if "up_velocity" in ds
-            else None
+        fig_vel_uvw_b64 = _combined_ts_fig(
+            [
+                (
+                    "east_velocity",
+                    params.vlabel("east_velocity", prefix="U — "),
+                    False,
+                    None,
+                ),
+                (
+                    "north_velocity",
+                    params.vlabel("north_velocity", prefix="V — "),
+                    False,
+                    None,
+                ),
+                (
+                    "up_velocity",
+                    params.vlabel("up_velocity", prefix="W — "),
+                    False,
+                    None,
+                ),
+            ],
+            "east_velocity",
         )
         fig_turbidity_b64 = (
             _ts_fig("turbidity", params.vlabel("turbidity"), dot_overlay=True)
@@ -893,7 +974,7 @@ def generate_stack_page(
                             )
                             ax_sp.set_xlabel("Instrument spacing (dbar)")
                             ax_sp.set_ylabel("Count (instrument pair × time step)")
-                            ax_sp.set_title("Adjacent instrument spacing distribution")
+                            plot_title(ax_sp, "Instrument spacing")
                             return fig_sp
 
                     # Render at the "third" slot so the PNG width matches the
@@ -948,13 +1029,9 @@ def generate_stack_page(
             STACK_DEFAULT,
             StackContext(
                 figs={
-                    "pressure": fig_pressure_b64,
-                    "temperature": fig_temp_b64,
-                    "salinity": fig_sal_b64,
+                    "hydro_pts": fig_hydro_pts_b64,
                     "dissolved_oxygen": fig_dissolved_oxygen_b64,
-                    "east_velocity": fig_east_vel_b64,
-                    "north_velocity": fig_north_vel_b64,
-                    "up_velocity": fig_up_vel_b64,
+                    "vel_uvw": fig_vel_uvw_b64,
                     "turbidity": fig_turbidity_b64,
                     "trajectories_aquadopp": fig_trajectories_b64,
                     "trajectories_adcp": fig_adcp_trajectories_b64,

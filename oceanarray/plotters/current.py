@@ -33,10 +33,13 @@ from oceanarray.plotters.helpers import grid_despine, tukey_smooth
 from oceanarray.plotters.primitives import (
     colorbar_norm,
     date_axis,
+    figure_title,
     hodograph_panel,
+    plot_title,
     plot_trajectory,
     square_axes_grid,
     square_limits,
+    ytick_reserve_in,
     unit_colorbar,
 )
 from oceanarray.plotters.helpers import _rose_ax, _velocity_panel_style
@@ -168,7 +171,7 @@ def plot_speed_boxplot(
     ax.set_xticks([])
     instr_id = ds.attrs.get("id", "")
     if instr_id:
-        ax.set_title(instr_id, fontsize=9)
+        plot_title(ax, instr_id)
     grid_despine(ax, axis="y")
     fig.tight_layout()
     return fig
@@ -262,7 +265,11 @@ def plot_multi_aquadopp_trajectories(
         _bounds = _nice_colorbar_bounds(0.0, 1.0, n=20)
     norm: mcolors.BoundaryNorm = mcolors.BoundaryNorm(_bounds, ncolors=256)
 
-    fig, axes, cax = square_axes_grid(width_in, 1, 1, colorbar=has_temp)
+    _all_x = np.concatenate([x for _, x, _, _ in trajs])
+    _all_y = np.concatenate([y for _, _, y, _ in trajs])
+    fig, axes, cax = square_axes_grid(
+        width_in, 1, 1, colorbar=has_temp, left_in=ytick_reserve_in(_all_y)
+    )
     ax = axes[0, 0]
 
     for instr_i, x, y, temp in trajs:
@@ -305,7 +312,6 @@ def plot_multi_aquadopp_trajectories(
             xy=(x[-1], y[-1]),
             xytext=(6, 3),
             textcoords="offset points",
-            fontsize=7,
             color="black",
             ha="left",
             va="bottom",
@@ -313,7 +319,7 @@ def plot_multi_aquadopp_trajectories(
 
     # Origin marker (all trajectories share the same start)
     ax.plot(0, 0, "o", color="black", markersize=7, zorder=6, label="Start (all)")
-    ax.legend(fontsize=8, loc="upper left")
+    ax.legend(loc="upper left")
 
     if has_temp and cax is not None:
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
@@ -324,8 +330,6 @@ def plot_multi_aquadopp_trajectories(
 
     # Square the axes to the union of all trajectories so equal aspect fills the
     # panel and the shared colorbar height stays matched.
-    _all_x = np.concatenate([x for _, x, _, _ in trajs])
-    _all_y = np.concatenate([y for _, _, y, _ in trajs])
     xlim, ylim = square_limits(_all_x, _all_y)
     ax.set_xlim(*xlim)
     ax.set_ylim(*ylim)
@@ -338,7 +342,7 @@ def plot_multi_aquadopp_trajectories(
     if not title:
         title = ds.attrs.get("id", "")
     if title:
-        ax.set_title(title)
+        plot_title(ax, title)
     return fig
 
 
@@ -397,7 +401,7 @@ def plot_hodograph(
     )
     ax_raw, ax_eddy = axes[0, 0], axes[0, 1]
     if instr_id:
-        fig.suptitle(instr_id)
+        figure_title(fig, instr_id)
 
     if u_var not in ds.data_vars or v_var not in ds.data_vars:
         for ax in axes.ravel():
@@ -455,7 +459,7 @@ def plot_hodograph(
             ax.text(
                 0.5, 0.5, "No data", transform=ax.transAxes, ha="center", va="center"
             )
-            ax.set_title(title)
+            plot_title(ax, title)
             return None
         return hodograph_panel(ax, e[mask], n[mask], t_frac[mask], title, units)
 
@@ -572,7 +576,6 @@ def plot_aquadopp_speed_profile(
             hab,
             f"s/n {serial}",
             va="center",
-            fontsize=7,
             color="#333",
         )
 
@@ -693,7 +696,9 @@ def plot_adcp_trajectories(
 
     # Half width — shown in a 50% flex column beside the Aquadopp trajectory
     # (see stack.html), matching plot_multi_aquadopp_trajectories.
-    fig, axes, cax = square_axes_grid(width_in, 1, 1)
+    _all_x = np.concatenate([x for _, x, _ in trajs])
+    _all_y = np.concatenate([y for _, _, y in trajs])
+    fig, axes, cax = square_axes_grid(width_in, 1, 1, left_in=ytick_reserve_in(_all_y))
     ax = axes[0, 0]
 
     for hab, x, y in trajs:
@@ -708,9 +713,7 @@ def plot_adcp_trajectories(
     unit_colorbar(cax, sm, unit="m", ticks=_bounds[::2])
 
     ax.plot(0, 0, "o", color="black", markersize=7, zorder=6, label="Start")
-    ax.legend(fontsize=8, loc="upper left")
-    _all_x = np.concatenate([x for _, x, _ in trajs])
-    _all_y = np.concatenate([y for _, _, y in trajs])
+    ax.legend(loc="upper left")
     xlim, ylim = square_limits(_all_x, _all_y)
     ax.set_xlim(*xlim)
     ax.set_ylim(*ylim)
@@ -720,7 +723,7 @@ def plot_adcp_trajectories(
     ax.axvline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
     ax.set_aspect("equal", adjustable="datalim")
     grid_despine(ax)
-    ax.set_title("ADCP bins coloured by HAB")
+    plot_title(ax, "ADCP bins coloured by HAB")
     return fig
 
 
@@ -926,17 +929,28 @@ def draw_rose_grid(
     ncols = 4
     nrows = math.ceil(n / ncols)
 
+    _fig_h = nrows * (width_in / ncols + 0.65)
     fig, axs = plt.subplots(
         nrows,
         ncols,
-        figsize=(width_in, nrows * (width_in / ncols + 0.65)),
+        figsize=(width_in, _fig_h),
         subplot_kw={"projection": "polar"},
         squeeze=False,
     )
     # Trim the outer left/right margins and the inter-panel gap (the tucked-in
-    # N/E/S/W labels no longer need the wide gap).  Encoder skips tight_layout for
-    # polar figures, so set the margins explicitly.
-    fig.subplots_adjust(left=0.05, right=0.95, wspace=0.4)
+    # N/E/S/W labels no longer need the wide gap).  Also trim the top/bottom
+    # margins to a small fixed inch reserve: the matplotlib defaults (0.88/0.11)
+    # left ~1-2 rows of whitespace above and below on a tall grid (Eleanor
+    # 2026-08-18).  Encoder skips tight_layout for polar figures, so set the
+    # margins explicitly.
+    fig.subplots_adjust(
+        left=0.05,
+        right=0.95,
+        wspace=0.4,
+        hspace=0.45,
+        top=1 - 0.4 / _fig_h,
+        bottom=0.2 / _fig_h,
+    )
     axs_flat = axs.flatten()
 
     for plot_i, instr_i in enumerate(aqd_idx):
@@ -1094,7 +1108,9 @@ def draw_grid_trajectory(
     _bounds, norm = colorbar_norm(vmin=min(p_vals), vmax=max(p_vals))
     cmap = plt.get_cmap("viridis_r")  # shallow (low p) → light; deep → dark
 
-    fig, axes, cax = square_axes_grid(width_in, 1, 1)
+    _all_x = np.concatenate([x for _, x, _ in trajs])
+    _all_y = np.concatenate([y for _, _, y in trajs])
+    fig, axes, cax = square_axes_grid(width_in, 1, 1, left_in=ytick_reserve_in(_all_y))
     ax = axes[0, 0]
 
     for p_val, x, y in trajs:
@@ -1109,9 +1125,7 @@ def draw_grid_trajectory(
     unit_colorbar(cax, sm, unit=params.vunit("pressure"), ticks=_bounds[::2])
 
     ax.plot(0, 0, "o", color="black", markersize=6, zorder=6, label="Start")
-    ax.legend(fontsize=8, loc="upper left")
-    _all_x = np.concatenate([x for _, x, _ in trajs])
-    _all_y = np.concatenate([y for _, _, y in trajs])
+    ax.legend(loc="upper left")
     xlim, ylim = square_limits(_all_x, _all_y)
     ax.set_xlim(*xlim)
     ax.set_ylim(*ylim)
@@ -1327,7 +1341,7 @@ def draw_adcp_velocity(
             cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=bounds[::2])
             cb.set_label(cb_label)
             ax.set_ylabel(ylabel)
-            ax.set_title(label, loc="left")
+            plot_title(ax, label)
             grid_despine(ax)
             # Show from 0 (includes blanking zone) to deepest valid bin.
             # set_ylim with reversed args inverts for downward-looking.
@@ -1706,7 +1720,7 @@ def draw_grid_hodograph(
             ax.text(
                 0.5, 0.5, "No data", transform=ax.transAxes, ha="center", va="center"
             )
-            ax.set_title(label)
+            plot_title(ax, label)
             continue
         t_frac = np.linspace(0.0, 1.0, len(east_2d[:, i_lev]))[mask]
         sm = hodograph_panel(

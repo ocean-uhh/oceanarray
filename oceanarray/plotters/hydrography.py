@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     import matplotlib.pyplot as plt
     import xarray as xr
 
-from .primitives import colorbar_norm, date_axis
+from .primitives import colorbar_norm, date_axis, plot_title
 from .helpers import grid_despine, ordered_line_colors
 from .. import parameters as params
 from oceanarray.config import report_tokens
@@ -266,7 +266,7 @@ def draw_isopycnal_coverage(
         ax0.axhline(tgt, color="#e67e22", lw=0.6, ls=":", zorder=3)
     ax0.set_xlabel("Occurrence (%)")
     ax0.set_ylabel(f"σ₀ (kg m⁻³)  [{sv}]")
-    ax0.set_title("Distribution")
+    plot_title(ax0, "Distribution")
     ax0.set_ylim(y_lo, y_hi)
     ax0.invert_yaxis()
 
@@ -289,7 +289,7 @@ def draw_isopycnal_coverage(
     ax1.set_xlim(0, 105)
     ax1.tick_params(axis="y", which="both", left=False)
     ax1.legend(loc="lower right", fontsize=9, framealpha=0.7)
-    ax1.set_title("Coverage")
+    plot_title(ax1, "Coverage")
 
     # ---- Panel 2: depth distribution ----
     valid_med = np.isfinite(med)
@@ -323,7 +323,7 @@ def draw_isopycnal_coverage(
             if abs(targets[nearest_idx] - tgt) < 0.06 and np.isfinite(med[nearest_idx]):
                 ax2.axhline(tgt, color="#e67e22", lw=0.6, ls=":", zorder=1)
     ax2.set_xlabel(xlbl2)
-    ax2.set_title("Depth distribution")
+    plot_title(ax2, "Depth distribution")
     if not use_hab:
         ax2.invert_xaxis()
     ax2.tick_params(axis="y", which="both", left=False)
@@ -410,10 +410,10 @@ def draw_overflow_temperature_fig(
     )
     ax.set_ylabel(params.vlabel("temperature"))
     hab = waterdepth - actual_p
-    ax.set_title(
+    plot_title(
+        ax,
         f"{actual_p:.0f} dbar  ({hab:.0f} m above seabed)",
         fontsize=10,
-        loc="left",
         pad=4,
     )
     date_axis(ax)

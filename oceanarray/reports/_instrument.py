@@ -483,13 +483,13 @@ def generate_instrument_pages(
             _yaml_recover_str = _yaml_recover_str.isoformat()
         _window_vlines: List[tuple] = []
         if _sugg_deploy_utc:
-            _window_vlines.append((_sugg_deploy_utc, "#e67e22", "Sugg. deploy"))
+            _window_vlines.append((_sugg_deploy_utc, "#e67e22", "Suggested"))
         if _sugg_recover_utc:
-            _window_vlines.append((_sugg_recover_utc, "#e67e22", "Sugg. recover"))
+            _window_vlines.append((_sugg_recover_utc, "#e67e22", "Suggested"))
         if _yaml_deploy_str:
-            _window_vlines.append((_yaml_deploy_str, "#27ae60", "YAML deploy"))
+            _window_vlines.append((_yaml_deploy_str, "#27ae60", "YAML"))
         if _yaml_recover_str:
-            _window_vlines.append((_yaml_recover_str, "#27ae60", "YAML recover"))
+            _window_vlines.append((_yaml_recover_str, "#27ae60", "YAML"))
 
         # File listing — raw source and stage1/2/3 NC files
         raw_filename = instr.get("filename", "")

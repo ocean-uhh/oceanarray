@@ -25,7 +25,7 @@ import numpy as np
 
 from oceanarray.utilities import _nice_colorbar_bounds, period_axis_ticks
 from ..analysis.spectral import gonella_rotary_spectrum
-from .primitives import square_axes_grid
+from .primitives import figure_title, plot_title, square_axes_grid
 from .helpers import grid_despine
 from oceanarray.config import report_tokens
 
@@ -169,7 +169,7 @@ def wavelet_panel(
         ax.yaxis.set_minor_locator(NullLocator())
     ax.set_ylabel("Period")
     if title:
-        ax.set_title(title, fontsize="small")
+        plot_title(ax, title)
 
     return cf
 
@@ -445,7 +445,7 @@ def draw_spectrum(
 
     ax_lf.set_xlabel("Period")
     ax_lf.set_ylabel("PSD (°C² cpd⁻¹)")
-    ax_lf.set_title(f"Low frequency\n14-day windows ({n_win_lf})")
+    plot_title(ax_lf, f"Low frequency\n14-day windows ({n_win_lf})")
     # Single shared legend -- depth labels from LF lines serve both panels
     ax_lf.legend(
         loc="upper right", title="Depth", fontsize="small", title_fontsize="small"
@@ -541,11 +541,12 @@ def draw_spectrum(
     n_win_hf_label = str(n_win_hf) if psds_hf else "0"
     # Two-line panel titles: heading + window detail, so the detail fits the
     # narrow square panels without overflowing.
-    ax_hf.set_title(
-        f"High frequency\n{hf_seg_label} windows ({n_win_hf_label}, gap-aware)"
+    plot_title(
+        ax_hf,
+        f"High frequency\n{hf_seg_label} windows ({n_win_hf_label}, gap-aware)",
     )
 
-    fig.suptitle("Temperature power spectrum — Welch PSD per depth")
+    figure_title(fig, "Temperature power spectrum — Welch PSD per depth")
 
     return fig
 
@@ -705,8 +706,7 @@ def draw_wavelet(
         # Temperature time series (top)
         ts = arr[sel[i], :]
         tax[i].plot(times, ts, lw=0.6, color="0.3")
-        tax[i].set_ylabel("T (°C)", fontsize="small")
-        tax[i].tick_params(labelsize="small")
+        tax[i].set_ylabel("T (°C)")
         grid_despine(tax[i])
         # Pressure level in the bottom-left corner (was a title, which overlapped
         # the scalogram of the pair above).
@@ -920,12 +920,30 @@ def draw_grid_rotary_spectrum(
         f_inert_cpd = f_inert * 86400.0 / (2.0 * np.pi)
         markers.append(("f", 1.0 / f_inert_cpd, "#27ae60"))
 
+    # Show at most 3 depth levels: the shallowest maps to the palest colour and is
+    # hard to see against white, so drop it and evenly subsample the rest.
+    if len(press_plotted) > 3:
+        _order = list(np.argsort(press_plotted))  # shallow -> deep
+        _keep = _order[1:]  # drop the shallowest
+        if len(_keep) > 3:
+            _pick = np.linspace(0, len(_keep) - 1, 3).round().astype(int)
+            _keep = [_keep[i] for i in _pick]
+        _keep = sorted(_keep)
+        s_cw_list = [s_cw_list[i] for i in _keep]
+        s_ccw_list = [s_ccw_list[i] for i in _keep]
+        r_list = [r_list[i] for i in _keep]
+        r_banded_list = [r_banded_list[i] for i in _keep]
+        press_plotted = [press_plotted[i] for i in _keep]
+
     p_arr = np.array(press_plotted)
     p_min, p_max = p_arr.min(), p_arr.max()
     if p_min == p_max:
         p_min -= 1.0
         p_max += 1.0
-    norm_p = mcolors.Normalize(vmin=p_min, vmax=p_max)
+    # Floor the colour scale part-way up the colormap so even the shallowest kept
+    # level is a visible shade (the pure-white end is invisible on white).
+    _span = p_max - p_min
+    norm_p = mcolors.Normalize(vmin=p_min - 0.54 * _span, vmax=p_max)
     cmap_cw = plt.get_cmap("Reds")
     cmap_ccw = plt.get_cmap("Blues")
 
@@ -948,10 +966,10 @@ def draw_grid_rotary_spectrum(
             _mark_frequency_line(ax_spec, period_d, color)
             ax_spec.text(
                 period_d,
-                0.03,
+                0.97,
                 label,
                 rotation=90,
-                va="bottom",
+                va="top",
                 ha="center",
                 color=color,
                 transform=trans1,
@@ -966,7 +984,7 @@ def draw_grid_rotary_spectrum(
     ax_spec.xaxis.set_minor_locator(_NL())
     ax_spec.set_xlabel("Period")
     ax_spec.set_ylabel("PSD (m² s⁻² cpd⁻¹)")
-    ax_spec.set_title("Rotary spectra")
+    plot_title(ax_spec, "Rotary spectra")
     # Depth legend replaces the pressure colorbar (frees horizontal space so the
     # panels can be square): one blue (CCW-shade) swatch per level, plus the
     # CW/CCW line-style key.  Colour intensity = depth; red family = CW, blue = CCW.
@@ -981,8 +999,7 @@ def draw_grid_rotary_spectrum(
     ax_spec.legend(
         handles=_style_handles + _depth_handles,
         loc="lower left",
-        fontsize=8,
-        title="Direction / depth",
+        fontsize=report_tokens.ANNOT_FS,
         framealpha=0.85,
     )
 
@@ -1032,7 +1049,7 @@ def draw_grid_rotary_spectrum(
     ax_rot.set_ylim(-1.1, 1.1)
     ax_rot.set_xlabel("Period")
     ax_rot.set_ylabel("Rotary coefficient r")
-    ax_rot.set_title(f"r = (CCW - CW) / (CCW + CW)  [DOF ~= {2 * _dof_half}]")
+    plot_title(ax_rot, f"r = (CCW - CW) / (CCW + CW)  [DOF ~= {2 * _dof_half}]")
     ax_rot.text(
         0.02,
         0.97,
@@ -1063,7 +1080,7 @@ def draw_grid_rotary_spectrum(
             )
         ],
         loc="upper right",
-        fontsize=9,
+        fontsize=report_tokens.ANNOT_FS,
         framealpha=0.7,
     )
     # Depth is conveyed by the panel-1 legend; no pressure colorbar here (keeps

@@ -192,3 +192,77 @@ def test_nice_axis_limits_degenerate_range():
 
     lo, hi = _nice_axis_limits(np.full(50, 5.0))
     assert lo == 4.5 and hi == 5.5
+
+
+def test_ytick_reserve_in_no_shrink_for_short_labels():
+    """<=4-character y-tick labels keep the base reserve (no square shrink)."""
+    from oceanarray.plotters.primitives import ytick_reserve_in, _SQ_LABEL_IN
+
+    # "-800" and "-250" are 4 characters -> base reserve unchanged.
+    assert ytick_reserve_in(np.array([-800.0, 50.0])) == _SQ_LABEL_IN
+    assert ytick_reserve_in(np.array([-250.0, 120.0])) == _SQ_LABEL_IN
+
+
+def test_ytick_reserve_in_grows_for_wide_labels():
+    """Wide (>=5-char) tick labels reserve more left margin, monotonically."""
+    from oceanarray.plotters.primitives import (
+        ytick_reserve_in,
+        _SQ_LABEL_IN,
+        _SQ_PER_CHAR_IN,
+    )
+
+    # "-1600" is 5 characters -> base + one extra char.
+    assert ytick_reserve_in(np.array([-1600.0, 0.0])) == _SQ_LABEL_IN + _SQ_PER_CHAR_IN
+    # "-25000" (6 chars) reserves strictly more than "-1600" (5 chars).
+    assert ytick_reserve_in(np.array([-25000.0, 0.0])) > ytick_reserve_in(
+        np.array([-1600.0, 0.0])
+    )
+
+
+def test_ytick_reserve_in_all_nan_returns_base():
+    """All-NaN y falls back to the base reserve rather than raising."""
+    from oceanarray.plotters.primitives import ytick_reserve_in, _SQ_LABEL_IN
+
+    assert ytick_reserve_in(np.full(5, np.nan)) == _SQ_LABEL_IN
+
+
+def test_distinct_line_styles_unique_pairs():
+    """Up to 32 lines get a unique (color, linestyle) pair; 33rd clamps, no raise."""
+    from oceanarray.plotters.helpers import distinct_line_styles, OKABE_ITO
+
+    styles = distinct_line_styles(29)
+    assert len(styles) == 29
+    assert len({(c, ls) for c, ls, _lw in styles}) == 29  # all distinct
+    # Colour cycles the 8-colour Okabe-Ito palette.
+    assert styles[0][0] == OKABE_ITO[0]
+    assert styles[8][0] == OKABE_ITO[0] and styles[8][1] == "--"  # next linestyle
+    # Linewidth increases with the linestyle group; dash-dot and dotted both thicker.
+    lw_by_ls = {ls: lw for _c, ls, lw in styles}
+    assert lw_by_ls["-"] < lw_by_ls["--"] < lw_by_ls["-."]
+    assert lw_by_ls["-."] == lw_by_ls[":"]
+    # >32 lines clamp the linestyle group rather than raising.
+    assert len(distinct_line_styles(40)) == 40
+    assert distinct_line_styles(0) == []
+
+
+def test_plot_title_is_left_aligned():
+    """plot_title left-aligns the panel title by default."""
+    import matplotlib.pyplot as plt
+    from oceanarray.plotters.primitives import plot_title
+
+    fig, ax = plt.subplots()
+    t = plot_title(ax, "Panel")
+    assert t.get_horizontalalignment() == "left"
+    plt.close(fig)
+
+
+def test_figure_title_is_centered():
+    """figure_title places a centred figure-level suptitle."""
+    import matplotlib.pyplot as plt
+    from oceanarray.plotters.primitives import figure_title
+
+    fig, _ax = plt.subplots()
+    t = figure_title(fig, "Figure")
+    assert t.get_horizontalalignment() == "center"
+    assert fig._suptitle is not None
+    plt.close(fig)

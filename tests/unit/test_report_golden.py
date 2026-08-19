@@ -145,6 +145,17 @@ _SLOT_IMG_RE = re.compile(
     r'<img class="fig slot-([a-z-]+)"[^>]*base64,([A-Za-z0-9+/=]+)'
 )
 
+# Row-layout (Section.layout="row") figures carry the slot on the ``.fig-cell``
+# wrapper while the enclosed img is bare ``class="fig"`` (it fills the cell), so
+# they are invisible to _SLOT_IMG_RE.  This pairs each cell's slot with the next
+# enclosed PNG without crossing into the following cell (tempered ``(?!fig-cell)``).
+_CELL_IMG_RE = re.compile(
+    r'fig-cell slot-([a-z-]+)">'
+    r"(?:(?!fig-cell).)*?"
+    r'<img class="fig"[^>]*base64,([A-Za-z0-9+/=]+)',
+    re.DOTALL,
+)
+
 
 def test_png_geometry_on_rendered_page(rendered_dir: pathlib.Path) -> None:
     """Every ``slot-*``-classed figure's PNG width equals its slot width in px.
@@ -156,6 +167,10 @@ def test_png_geometry_on_rendered_page(rendered_dir: pathlib.Path) -> None:
     displays it at another (the class-vs-``width:100%`` bug U0.2 fixed).  Only
     slot-classed figures are checked — bare ``class="fig"`` figures render
     full-canvas or in flex layouts and are covered by the golden HTML test.
+    Row-layout (``Section.layout="row"``) figures are the exception: their slot
+    lives on the ``.fig-cell`` wrapper, so they are checked separately below to
+    stop a row panel's declared slot silently diverging from its adapter's render
+    width (rep/09).
     """
     import base64
     import io
@@ -176,6 +191,15 @@ def test_png_geometry_on_rendered_page(rendered_dir: pathlib.Path) -> None:
             assert abs(width_px - expected) <= 1, (
                 f"{page}: slot-{slot} figure is {width_px}px, expected ~{expected}px "
                 f"(SLOTS[{slot!r}].inches={tok.SLOTS[slot][1]} * FIG_DPI={tok.FIG_DPI})"
+            )
+            checked += 1
+        # Row-layout figures: slot on the .fig-cell wrapper, bare img inside.
+        for slot, b64 in _CELL_IMG_RE.findall(html):
+            width_px = Image.open(io.BytesIO(base64.b64decode(b64))).size[0]
+            expected = round(tok.SLOTS[slot][1] * tok.FIG_DPI)
+            assert abs(width_px - expected) <= 1, (
+                f"{page}: fig-cell slot-{slot} figure is {width_px}px, expected "
+                f"~{expected}px — row-layout slot vs adapter render-width mismatch"
             )
             checked += 1
     assert checked > 0, "no slot-classed figures found; test is not exercising anything"
