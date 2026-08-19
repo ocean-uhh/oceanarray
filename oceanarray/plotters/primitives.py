@@ -29,6 +29,61 @@ from .helpers import grid_despine
 from ..utilities import _nice_colorbar_bounds, nice_colorbar_ticks
 
 
+def plot_title(ax: Any, text: str, *, loc: str = "left", **kwargs: Any) -> Any:
+    """Set an axes (panel) title, left-aligned by default.
+
+    The single place panel-title alignment is decided for report figures, so the
+    left-vs-centre choice for every panel title can be switched here in one line.
+    Figure-level titles that span several panels use :func:`figure_title`
+    (centred) instead — do not route those through this helper.  Colorbar unit
+    labels (``cb.ax.set_title``) are not panel titles and must not use this
+    helper either.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        Axes whose title is set.
+    text : str
+        Title text.
+    loc : str, optional
+        Horizontal alignment passed to ``set_title`` (default ``"left"``).
+    **kwargs : Any
+        Forwarded to ``matplotlib.axes.Axes.set_title`` (e.g. ``fontsize``).
+
+    Returns
+    -------
+    matplotlib.text.Text
+        The created title artist.
+
+    """
+    return ax.set_title(text, loc=loc, **kwargs)
+
+
+def figure_title(fig: Any, text: str, **kwargs: Any) -> Any:
+    """Set a figure-level title (``suptitle``), centred over all panels.
+
+    Use for a title that spans a multi-panel figure; per-panel titles use
+    :func:`plot_title` (left-aligned).  Keeping both in one module makes the
+    left-vs-centre policy a single switch point.
+
+    Parameters
+    ----------
+    fig : matplotlib.figure.Figure
+        Figure whose suptitle is set.
+    text : str
+        Title text.
+    **kwargs : Any
+        Forwarded to ``matplotlib.figure.Figure.suptitle`` (e.g. ``y``, ``fontsize``).
+
+    Returns
+    -------
+    matplotlib.text.Text
+        The created suptitle artist.
+
+    """
+    return fig.suptitle(text, **kwargs)
+
+
 def pcolormesh_panel(
     fig: Any,
     ax: Any,
@@ -43,7 +98,7 @@ def pcolormesh_panel(
     vmax: Optional[float] = None,
     n: int = 20,
     cb_label: Optional[str] = None,
-    title_loc: str = "center",
+    title_loc: str = "left",
     date_fmt: bool = True,
 ) -> Any:
     """Draw one (pressure × time) field as a discrete-colorbar panel on *ax*.
@@ -78,7 +133,8 @@ def pcolormesh_panel(
     cb_label : str, optional
         Colorbar label.  Defaults to ``"{title} ({units})"`` or ``"{title}"``.
     title_loc : str, optional
-        Horizontal alignment of the axes title.  Default ``"center"``.
+        Horizontal alignment of the axes title.  Default ``"left"`` (the report
+        panel-title convention; pass ``"center"`` for a centred title).
     date_fmt : bool, optional
         When ``True`` (default), apply :func:`date_axis` to *ax*.  Pass
         ``False`` for stacked panels where only the last axis needs the
@@ -115,7 +171,7 @@ def pcolormesh_panel(
     pressure_axis(ax)
     if date_fmt:
         date_axis(ax)
-    ax.set_title(title, loc=title_loc)
+    plot_title(ax, title, loc=title_loc)
     return pc
 
 
@@ -143,6 +199,42 @@ _SQ_CBAR_TXT_IN: float = 0.52  # colorbar tick text + unit title width
 # left y-label + right colorbar).
 _SQ_CBAR_TXT_PP_IN: float = 0.30
 _SQ_WGAP_PP_IN: float = 0.34
+# Extra left-margin inches per y-tick-label character beyond the ~4 that the base
+# _SQ_LABEL_IN reserve already fits.  Sizes the adaptive left reserve for wide
+# labels (large trajectory displacements) so the rotated axis label stays
+# on-canvas without shrinking the square when labels are short.
+_SQ_PER_CHAR_IN: float = 0.10
+
+
+def ytick_reserve_in(y: "np.ndarray | float") -> float:
+    """Left-margin inches to fit the widest y-tick label plus rotated y-axis label.
+
+    Sizes the ``left_in`` reserve for :func:`square_axes_grid` from the y-data
+    range instead of a fixed shrink: the base reserve (``_SQ_LABEL_IN``) already
+    fits up to ~4-character tick labels, and each additional character (a larger
+    magnitude, or a leading minus) adds ``_SQ_PER_CHAR_IN``.  Returns the base
+    reserve unchanged for <=4-character labels, so a small-displacement
+    trajectory keeps the full square (no 9% shrink) while a thousands-of-km one
+    reserves just enough.
+
+    Parameters
+    ----------
+    y : numpy.ndarray or float
+        The y values (or the maximum absolute y-limit) about to be plotted.
+
+    Returns
+    -------
+    float
+        Left-margin reserve in inches, always >= ``_SQ_LABEL_IN``.
+
+    """
+    arr = np.asarray(y, dtype=float).ravel()
+    finite = arr[np.isfinite(arr)]
+    if finite.size == 0:
+        return _SQ_LABEL_IN
+    n_digits = len(str(int(round(float(np.max(np.abs(finite)))))))
+    n_chars = n_digits + (1 if np.any(finite < 0) else 0)
+    return _SQ_LABEL_IN + max(0, n_chars - 4) * _SQ_PER_CHAR_IN
 
 
 def square_axes_grid(
@@ -156,6 +248,7 @@ def square_axes_grid(
     bottom_pad_in: float = 0.0,
     wgap_in: "Optional[float]" = None,
     cbar_txt_in: "Optional[float]" = None,
+    left_in: "Optional[float]" = None,
 ) -> "tuple[plt.Figure, np.ndarray, Any]":
     """Lay out an ``nrows × ncols`` grid of square axes deterministically in inches.
 
@@ -202,6 +295,14 @@ def square_axes_grid(
         Override the reserved width (inches) for the shared colorbar's tick
         labels and axis label.  Default (``None``) uses the standard reserve;
         pass a larger value for a long colorbar label so it stays on-canvas.
+    left_in : float, optional
+        Override the reserved left-margin width (inches) for the y-tick labels
+        plus rotated y-axis label.  Default (``None``) uses the standard reserve
+        (``_SQ_LABEL_IN``), which fits up to ~4-character tick labels; pass a
+        larger value when the y-tick labels are wide (e.g. thousands-of-km
+        trajectory displacements) so the axis label stays on-canvas.  Applies to
+        the standard (non ``per_panel_colorbar``) layout.  Use
+        :func:`ytick_reserve_in` to size it from the data range.
 
     Returns
     -------
@@ -216,6 +317,7 @@ def square_axes_grid(
     # wider *cbar_txt_in* reserve so it stays on-canvas.
     _cbar_txt = cbar_txt_in if cbar_txt_in is not None else _SQ_CBAR_TXT_IN
     _cbar_reserve = _SQ_CBAR_GAP_IN + _SQ_CBAR_W_IN + _cbar_txt
+    _left = left_in if left_in is not None else _SQ_LABEL_IN
     if per_panel_colorbar:
         # Each cell = y-labels + square panel + its own (tight) colorbar.
         per_cell_fixed = (
@@ -226,7 +328,7 @@ def square_axes_grid(
     else:
         _wgap = wgap_in if wgap_in is not None else _SQ_WGAP_IN
         right_in = _cbar_reserve if colorbar else _SQ_LABEL_IN
-        avail_w = fig_w - _SQ_LABEL_IN - right_in - (ncols - 1) * _wgap
+        avail_w = fig_w - _left - right_in - (ncols - 1) * _wgap
     side = max(avail_w / ncols, 0.5)  # square panel side (inches)
     grid_h = nrows * side + (nrows - 1) * _SQ_HGAP_IN
     bottom_in = _SQ_XTICK_IN + bottom_pad_in
@@ -241,7 +343,7 @@ def square_axes_grid(
             if per_panel_colorbar:
                 x0 = c * (side + per_cell_fixed + _wgap) + _SQ_LABEL_IN
             else:
-                x0 = _SQ_LABEL_IN + c * (side + _wgap)
+                x0 = _left + c * (side + _wgap)
             # Row 0 at the top; y measured from the figure bottom.
             y0 = bottom_in + (nrows - 1 - r) * (side + _SQ_HGAP_IN)
             axes[r, c] = fig.add_axes(
@@ -406,7 +508,12 @@ def plot_trajectory(
     matplotlib.figure.Figure
 
     """
-    fig, axes, cax = square_axes_grid(width_in, 1, 1, colorbar=color_data is not None)
+    # Reserve left margin for wide y-tick labels (thousands-of-km displacements)
+    # so the rotated y-axis label is not clipped; short labels keep the full
+    # square (see ytick_reserve_in).
+    fig, axes, cax = square_axes_grid(
+        width_in, 1, 1, colorbar=color_data is not None, left_in=ytick_reserve_in(y)
+    )
     ax = axes[0, 0]
 
     if color_data is not None:
@@ -434,7 +541,7 @@ def plot_trajectory(
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     if title:
-        ax.set_title(title)
+        plot_title(ax, title)
     ax.axhline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
     ax.axvline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
     # datalim keeps the square box (from square_axes_grid) authoritative so the
@@ -527,7 +634,7 @@ def hodograph_panel(
     ax.axvline(0, color="#888", lw=0.7)
     ax.set_xlabel(f"East ({units})")
     ax.set_ylabel(f"North ({units})")
-    ax.set_title(title)
+    plot_title(ax, title)
     grid_despine(ax)
     return sm
 

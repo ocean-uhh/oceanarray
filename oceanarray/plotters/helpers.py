@@ -17,6 +17,54 @@ if TYPE_CHECKING:
     import matplotlib.pyplot as plt
 
 
+#: Okabe-Ito 8-colour qualitative palette — the accessibility-standard
+#: colourblind-safe set (distinguishable under protan/deutan/tritan CVD).  Note
+#: the yellow (#F0E442) is pale on a white background; the linewidth tiers in
+#: :func:`distinct_line_styles` and the linestyle help keep it legible.
+OKABE_ITO: "list[str]" = [
+    "#000000",  # black
+    "#E69F00",  # orange
+    "#56B4E9",  # sky blue
+    "#009E73",  # bluish green
+    "#F0E442",  # yellow
+    "#0072B2",  # blue
+    "#D55E00",  # vermillion
+    "#CC79A7",  # reddish purple
+]
+
+
+def distinct_line_styles(n: int) -> "list[tuple[str, str, float]]":
+    """Return *n* colourblind-safe ``(color, linestyle, linewidth)`` line styles.
+
+    Cycles the 8-colour :data:`OKABE_ITO` palette and advances the linestyle
+    every 8 lines (solid → dashed → dash-dot → dotted), so up to 32 lines each
+    get a unique ``(color, linestyle)`` pair — enough to tell apart a mooring's
+    worth of instruments where colour alone (max 8–20 hues) collides.  Linewidth
+    increases with the linestyle group so the sparser styles (dash-dot, dotted)
+    stay as visible as the solid ones: solid thinnest, dashed thin, dash-dot and
+    dotted thicker.  Beyond 32 lines the linestyle group is clamped (styles
+    repeat) rather than raising.
+
+    Parameters
+    ----------
+    n : int
+        Number of line styles to return (>= 0).
+
+    Returns
+    -------
+    list of (str, str, float)
+        ``(hex_color, linestyle, linewidth)`` per line, in order.
+
+    """
+    linestyles = ["-", "--", "-.", ":"]
+    linewidths = [0.8, 1.1, 1.5, 1.5]  # solid thinnest; dash-dot/dotted thicker
+    out: "list[tuple[str, str, float]]" = []
+    for i in range(max(n, 0)):
+        grp = min(i // len(OKABE_ITO), len(linestyles) - 1)
+        out.append((OKABE_ITO[i % len(OKABE_ITO)], linestyles[grp], linewidths[grp]))
+    return out
+
+
 def grid_despine(ax: "plt.Axes", *, axis: str = "both") -> None:
     """Turn the grid on and hide the top and right spines (report convention).
 

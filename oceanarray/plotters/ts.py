@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Optional
 
 import numpy as np
 
-from .primitives import colorbar_norm, square_axes_grid, unit_colorbar
+from .primitives import colorbar_norm, plot_title, square_axes_grid, unit_colorbar
 from .helpers import QC_MARKER as _QC_MARKER
 from ..utilities import nice_colorbar_ticks
 from .. import parameters as params
@@ -45,7 +45,7 @@ def _add_sigma0_contours(
             linestyles="--",
             zorder=1,
         )
-        ax.clabel(cs, fmt="%.1f", fontsize=7, inline=True)
+        ax.clabel(cs, fmt="%.1f", fontsize=report_tokens.CLABEL_FS, inline=True)
     except (TypeError, ValueError):
         pass
 
@@ -111,7 +111,7 @@ def _ts_heatmap_panel(
     ax.set_ylim(t_lo, t_hi)
     ax.set_xlabel(params.vlabel("salinity"))
     ax.set_ylabel(params.vlabel("temperature"))
-    ax.set_title("T-S heat map")
+    plot_title(ax, "T-S heat map")
 
 
 def draw_ts_diagram(
@@ -228,7 +228,7 @@ def draw_ts_diagram(
     _add_sigma0_contours(ax_l, S[finite], T[finite])
     ax_l.set_xlabel(params.vlabel("salinity"))
     ax_l.set_ylabel(params.vlabel("temperature"))
-    ax_l.set_title("T-S (colour = pressure)")
+    plot_title(ax_l, "T-S (colour = pressure)")
 
     # Shared T-S axis limits (the dot plot's data range) so the heatmap and O₂
     # panels use identical axes; square every panel box.
@@ -276,7 +276,7 @@ def draw_ts_diagram(
             _add_sigma0_contours(ax_sat, S[sat_finite], T[sat_finite])
         ax_sat.set_xlabel(params.vlabel("salinity"))
         ax_sat.set_ylabel(params.vlabel("temperature"))
-        ax_sat.set_title("T-S (colour = O₂ sat.)")
+        plot_title(ax_sat, "T-S (colour = O₂ sat.)")
         ax_sat.set_xlim(*_s_lim)
         ax_sat.set_ylim(*_t_lim)
 
@@ -428,7 +428,7 @@ def draw_stack_ts_diagram(
     _add_sigma0_contours(ax_scatter, S_flat[finite], T_flat[finite])
     ax_scatter.set_xlabel(params.vlabel("salinity"))
     ax_scatter.set_ylabel(params.vlabel("temperature"))
-    ax_scatter.set_title("T-S (colour = pressure)")
+    plot_title(ax_scatter, "T-S (colour = pressure)")
 
     # Shared limits from robust percentiles (1/99, padded 5% each side and rounded
     # outward) so a few outliers don't stretch the box; the heatmap matches (boxes
@@ -479,7 +479,7 @@ def draw_stack_ts_diagram(
         _add_sigma0_contours(ax_sat, S_flat[sat_finite], T_flat[sat_finite])
         ax_sat.set_xlabel(params.vlabel("salinity"))
         ax_sat.set_ylabel(params.vlabel("temperature"))
-        ax_sat.set_title("T-S (colour = O₂ sat.)")
+        plot_title(ax_sat, "T-S (colour = O₂ sat.)")
         ax_sat.set_xlim(*_s_lim)
         ax_sat.set_ylim(*_t_lim)
 
@@ -564,7 +564,7 @@ def draw_grid_ts_diagram(
         t_lim=(t_lo, t_hi),
         cax=_cax[0, 0],
     )
-    axes[0].set_title(r"T-S count ($\log_{10}$ samples per bin)")
+    plot_title(axes[0], r"T-S count ($\log_{10}$ samples per bin)")
 
     # Panel 2: median O2 saturation per T-S bin
     if has_o2 and O2 is not None:
@@ -616,6 +616,6 @@ def draw_grid_ts_diagram(
             axes[1].set_ylim(t_lo, t_hi)
         axes[1].set_xlabel(params.vlabel("salinity"))
         axes[1].set_ylabel(params.vlabel("temperature"))
-        axes[1].set_title("Median O₂ saturation per T-S bin")
+        plot_title(axes[1], "Median O₂ saturation per T-S bin")
 
     return fig, ts_bounds

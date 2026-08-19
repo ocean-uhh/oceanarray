@@ -184,7 +184,7 @@ def animate_hodograph(
         ax.axvline(0, color="#bbb", lw=0.7, zorder=0)
         ax.set_xlabel(f"East ({units})")
         ax.set_ylabel(f"North ({units})")
-        ax.set_title(title, fontsize=10)
+        ax.set_title(title)
         ax.grid(True, linestyle="--", linewidth=0.4, alpha=0.4)
 
     def _draw_frame(frame_idx: int) -> None:

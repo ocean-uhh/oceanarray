@@ -39,11 +39,13 @@ from .primitives import (
     colorbar_norm,
     date_axis,
     date_offset_left,
+    figure_title,
+    plot_title,
     pressure_axis,
     pcolormesh_panel,
 )
 from ..utilities import nice_colorbar_ticks
-from .helpers import grid_despine
+from .helpers import OKABE_ITO, grid_despine
 from .. import parameters as params
 from oceanarray.config import report_tokens
 
@@ -117,13 +119,13 @@ def draw_grid_fig(
             linewidths=0.8,
             alpha=0.75,
         )
-        ax.clabel(ct, fmt="%.1f", fontsize=7, inline=True)
+        ax.clabel(ct, fmt="%.1f", fontsize=report_tokens.CLABEL_FS, inline=True)
     cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=bounds)
     cb.set_label(f"{title} ({units})" if units else title)
     pressure_axis(ax)
     date_axis(ax)
     ax.set_xlabel("Time")
-    ax.set_title(f"{title} [{style}]")
+    plot_title(ax, f"{title} [{style}]")
     return fig
 
 
@@ -365,7 +367,7 @@ def draw_grid_velocity_stacked(
         # direction, m s⁻¹ for velocity/speed) — not a hardcoded east-velocity unit.
         cb.ax.set_title(cb_label, fontsize=report_tokens.ANNOT_FS)
         pressure_axis(ax)
-        ax.set_title(_LABELS[var], loc="left")
+        plot_title(ax, _LABELS[var])
 
     date_axis(axes[-1, 0])
     return fig
@@ -490,8 +492,8 @@ def draw_grid_n2(
     pressure_axis(ax)
     date_axis(ax)
     ax.set_xlabel("Time")
-    ax.set_title(
-        r"Buoyancy frequency squared N² ($\log_{10}$ scale; purple = stratified)"
+    plot_title(
+        ax, r"Buoyancy frequency squared N² ($\log_{10}$ scale; purple = stratified)"
     )
     return fig
 
@@ -564,7 +566,9 @@ def draw_grid_timeseries(
     east_ts = east[:, k_max]
     north_ts = north[:, k_max]
 
-    fig, axs = plt.subplots(2, 1, figsize=(width_in, 5), sharex=True)
+    fig, axs = plt.subplots(
+        2, 1, figsize=(width_in, 5), sharex=True, layout="constrained"
+    )
     _C_EAST = "#0072B2"
     _C_NORTH = "#E69F00"
 
@@ -586,9 +590,9 @@ def draw_grid_timeseries(
         mdates.ConciseDateFormatter(axs[-1].xaxis.get_major_locator())
     )
     date_offset_left(axs[-1])
-    fig.suptitle(
+    figure_title(
+        fig,
         f"Velocity time series at {p_target:.0f} dbar (depth of maximum mean speed)",
-        y=1.01,
     )
     return fig
 
@@ -637,7 +641,7 @@ def draw_analog_timeseries(
             squeeze=False,
         )
 
-        colors = ["steelblue", "darkorange", "seagreen", "crimson"]
+        colors = OKABE_ITO  # colourblind-safe palette (cycles at 8)
         for row, vname in enumerate(analog_vars):
             ax = axes[row][0]
             raw = ds[vname].values
@@ -663,12 +667,11 @@ def draw_analog_timeseries(
                         )
                         n_plotted += 1
                 if n_plotted > 1 and "serial" in ds.coords:
-                    ax.legend(fontsize=6, loc="upper right")
+                    ax.legend(loc="upper right")
             else:
-                ax.plot(time, raw, linewidth=0.8, color="steelblue")
+                ax.plot(time, raw, linewidth=0.8, color=OKABE_ITO[0])
 
-            ax.set_ylabel(ylabel, fontsize=7)
-            ax.tick_params(axis="both", labelsize=7)
+            ax.set_ylabel(ylabel)
             grid_despine(ax)
 
         fig.autofmt_xdate(rotation=30, ha="right")

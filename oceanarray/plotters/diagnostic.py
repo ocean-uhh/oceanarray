@@ -40,8 +40,8 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
 
 import numpy as np
 
-from .helpers import grid_despine
-from .primitives import date_offset_left, square_axes_grid
+from .helpers import distinct_line_styles, grid_despine
+from .primitives import date_offset_left, figure_title, plot_title, square_axes_grid
 from .. import parameters as params
 from oceanarray.config import report_tokens
 
@@ -315,7 +315,7 @@ def plot_knockdown_pressure(
             zorder=0,
             label="actual = nominal",
         )
-        ax.legend(fontsize=9, loc="upper left")
+        ax.legend(loc="upper left")
         ax.set_xlabel("Nominal pressure (dbar)")
         ax.set_ylabel("Measured pressure (dbar)")
         grid_despine(ax)
@@ -429,7 +429,7 @@ def plot_knockdown_hab(
             zorder=0,
             label="expected pressure",
         )
-        ax.legend(fontsize=9, loc="upper right")
+        ax.legend(loc="upper right")
         ax.set_xlabel("Nominal HAB (m)")
         ax.set_ylabel("Measured pressure (dbar)")
 
@@ -661,7 +661,7 @@ def plot_knockdown_displacement(
                 rasterized=True,
             )
         ax1.set_ylabel("Measured pressure (dbar)")
-        ax1.legend(fontsize=9, loc="lower right", markerscale=3)
+        ax1.legend(loc="lower right", markerscale=3)
 
         # --- right panel: per-instrument normalised heatmap ---
         # Each instrument's 2-D histogram is divided by its own total before
@@ -816,8 +816,10 @@ def plot_clock_offset_check(
         if n_panels == 1:
             axes = [axes]
 
-        _tab20 = plt.get_cmap("tab20")
-        colors = {s: _tab20(i % 20) for i, s in enumerate(series)}
+        # Colourblind-safe styles: colour alone (tab20 = 20 hues) collided once
+        # a mooring had >20 instruments, and tab20 is not CVD-safe.  Vary colour
+        # (Okabe-Ito) and linestyle so up to 32 lines are each distinct.
+        styles = {s: st for s, st in zip(series, distinct_line_styles(len(series)))}
 
         plotted_serials: set = set()
         for ax, (t_lo, t_hi, title) in zip(axes, windows):
@@ -830,10 +832,11 @@ def plot_clock_offset_check(
                 if not np.isfinite(sd) or sd == 0:
                     continue  # flat window: no timing info, normalisation undefined
                 tw_norm = (tw - np.nanmean(tw)) / sd
-                ax.plot(t[mask], tw_norm, color=colors[serial], lw=1.0)
+                _c, _ls, _lw = styles[serial]
+                ax.plot(t[mask], tw_norm, color=_c, linestyle=_ls, lw=_lw)
                 plotted_serials.add(serial)
 
-            ax.set_title(title)
+            plot_title(ax, title)
             ax.set_ylabel("Normalised temperature (std)")
             grid_despine(ax)
             locator = mdates.AutoDateLocator()
@@ -851,22 +854,44 @@ def plot_clock_offset_check(
         from matplotlib.lines import Line2D
 
         handles = [
-            Line2D([0], [0], color=colors[s], lw=1.0, label=str(s))
+            Line2D(
+                [0],
+                [0],
+                color=styles[s][0],
+                linestyle=styles[s][1],
+                lw=styles[s][2],
+                label=str(s),
+            )
             for s in series
             if s in plotted_serials
         ]
+        # Shared legend below the axes.  A fixed bottom reserve overlapped the
+        # panels once the instrument count was large (~24 → 6 cols × 4 rows), so
+        # size a dedicated legend band from the row count and grow the figure
+        # height by it — the panels keep their height and the legend's top edge
+        # stays below the date labels (Eleanor 2026-08-18).
+        ncol = min(len(handles), 6)
+        n_rows = int(np.ceil(len(handles) / ncol))
+        panel_in = 3.5
+        # Padding includes a gap above the legend for the date-offset labels, so
+        # the legend's top edge clears the dates (Eleanor 2026-08-18).
+        legend_in = 0.55 + n_rows * 0.19  # padding + per-row height (inches)
+        fig.set_size_inches(width_in, panel_in + legend_in)
         fig.legend(
             handles=handles,
             loc="lower center",
-            ncol=min(len(handles), 6),
-            bbox_to_anchor=(0.5, 0.01),
+            ncol=ncol,
+            bbox_to_anchor=(0.5, 0.005),
             frameon=True,
         )
 
-        # Reserve space for the below-axes legend and keep it: mark the figure
+        # Reserve the legend band at the bottom and keep it: mark the figure
         # manual so the encoder does not re-run tight_layout and undo the reserve
         # (which clipped the legend and overspilled the slot at full-canvas save).
-        fig.subplots_adjust(bottom=0.24, top=0.9, left=0.08, right=0.97, wspace=0.22)
+        _bottom = legend_in / (panel_in + legend_in) + 0.03
+        fig.subplots_adjust(
+            bottom=_bottom, top=0.92, left=0.08, right=0.97, wspace=0.22
+        )
         fig._manual_layout = True  # noqa: SLF001 — encoder layout opt-out
         return fig
 
@@ -1081,7 +1106,6 @@ def draw_windows(
                         rotation=90,
                         va="bottom",
                         ha="left",
-                        fontsize=7,
                         color=_vc,
                         zorder=5,
                         clip_on=False,
@@ -1177,15 +1201,16 @@ def draw_windows(
             ax_r.yaxis.tick_right()
             ax_r.yaxis.set_label_position("right")
             if row_i == 0:
-                ax_l.set_title(f"First {hours} h")
-                ax_r.set_title(f"Last {hours} h")
+                plot_title(ax_l, f"First {hours} h")
+                plot_title(ax_r, f"Last {hours} h")
 
         serial = (
             ds["serial_number"].item()
             if "serial_number" in ds
             else ds.attrs.get("serial_number", "?")
         )
-        fig.suptitle(
+        figure_title(
+            fig,
             f"{instr_type.title()} s/n {serial} — deployment start / end",
         )
         return fig
