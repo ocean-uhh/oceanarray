@@ -45,7 +45,7 @@ from .primitives import (
     pcolormesh_panel,
 )
 from ..utilities import nice_colorbar_ticks
-from .helpers import grid_despine
+from .helpers import OKABE_ITO, grid_despine
 from .. import parameters as params
 from oceanarray.config import report_tokens
 
@@ -641,7 +641,7 @@ def draw_analog_timeseries(
             squeeze=False,
         )
 
-        colors = ["steelblue", "darkorange", "seagreen", "crimson"]
+        colors = OKABE_ITO  # colourblind-safe palette (cycles at 8)
         for row, vname in enumerate(analog_vars):
             ax = axes[row][0]
             raw = ds[vname].values
@@ -669,7 +669,7 @@ def draw_analog_timeseries(
                 if n_plotted > 1 and "serial" in ds.coords:
                     ax.legend(loc="upper right")
             else:
-                ax.plot(time, raw, linewidth=0.8, color="steelblue")
+                ax.plot(time, raw, linewidth=0.8, color=OKABE_ITO[0])
 
             ax.set_ylabel(ylabel)
             grid_despine(ax)
