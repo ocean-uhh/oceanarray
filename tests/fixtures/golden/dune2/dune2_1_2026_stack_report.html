@@ -534,36 +534,16 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 
 <h2 id="hydrography">(3) Hydrography</h2>
 
-<p class="caption">Values with QC flag ≥ 3 (suspect/bad) masked to NaN before plotting. All data values are in the source file without masking. ADCP instruments excluded.</p>
+<p class="caption">Pressure, temperature and salinity for the full deployment — one row each on a shared time axis. One colour per instrument (shared across rows, ordered by height) so a line can be followed through all three panels; the single legend spans the union of instruments. Values with QC flag ≥ 3 (suspect/bad) masked to NaN; ADCP excluded from pressure.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" src="data:image/png;base64,<PNG>" alt="pressure">
-</details>
-
-<p class="caption">Values with QC flag ≥ 3 (suspect/bad) masked to NaN before plotting. All data values are in the source file without masking.</p>
-<details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" src="data:image/png;base64,<PNG>" alt="temperature">
-</details>
-
-<p class="caption">Values with QC flag ≥ 3 (suspect/bad) masked to NaN before plotting. All data values are in the source file without masking.</p>
-<details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" src="data:image/png;base64,<PNG>" alt="salinity">
+<img class="fig" src="data:image/png;base64,<PNG>" alt="hydro_pts">
 </details>
 
 <h2 id="velocity">(4) Velocity</h2>
 
-<p class="caption">ENU frame. Values with velocity_flag ≥ 3 masked to NaN before plotting. All data values are in the source file without masking. Instruments without velocity data omitted.</p>
+<p class="caption">Eastward (U), northward (V) and upward (W) velocity in the ENU frame — one row each on a shared time axis, one colour per instrument (shared across rows, ordered by height) with a single legend over the union of instruments. Values with velocity_flag ≥ 3 masked to NaN; instruments without velocity data omitted.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" src="data:image/png;base64,<PNG>" alt="east_velocity">
-</details>
-
-<p class="caption">ENU frame. Values with velocity_flag ≥ 3 masked to NaN before plotting. All data values are in the source file without masking. Instruments without velocity data omitted.</p>
-<details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" src="data:image/png;base64,<PNG>" alt="north_velocity">
-</details>
-
-<p class="caption">ENU frame. Values with velocity_flag ≥ 3 masked to NaN before plotting. All data values are in the source file without masking. Instruments without velocity data omitted.</p>
-<details open><summary class="collapse-toggle">show / hide</summary>
-<img class="fig" src="data:image/png;base64,<PNG>" alt="up_velocity">
+<img class="fig" src="data:image/png;base64,<PNG>" alt="vel_uvw">
 </details>
 
 <h2 id="trajectories">(5) Particle trajectories</h2>
