@@ -342,7 +342,7 @@ def _rose_ax(
 
     total = len(speed)
     freqs = np.zeros((n_dir, n_spd))
-    for i, (d0, d1) in enumerate(zip(dir_edges[:-1], dir_edges[1:])):
+    for i, (d0, d1) in enumerate(zip(dir_edges[:-1], dir_edges[1:], strict=False)):
         in_dir = (direction >= d0) & (direction < d1)
         for j in range(n_spd):
             in_spd = (speed >= spd_edges[j]) & (speed < spd_edges[j + 1])

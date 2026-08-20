@@ -37,7 +37,7 @@ def plot_microcat_raw(ds, save_path=None):
     if nrows == 1:
         axs = [axs]
 
-    for ax, (var, label, color) in zip(axs, panels):
+    for ax, (var, label, color) in zip(axs, panels, strict=False):
         ax.plot(ds["time"], ds[var], color=color, linewidth=0.5)
         ax.set_ylabel(label)
     axs[-1].set_xlabel("Time")
@@ -85,7 +85,7 @@ def plot_aquadopp_raw(ds, save_path=None):
     if nrows == 1:
         axs = [axs]
 
-    for ax, (var, label, color, invert) in zip(axs, panels):
+    for ax, (var, label, color, invert) in zip(axs, panels, strict=False):
         ax.plot(ds["time"], ds[var], color=color, linewidth=0.5)
         if var in ("east_velocity", "north_velocity"):
             ax.axhline(0, color="k", linewidth=0.5, linestyle="--")

@@ -397,7 +397,7 @@ def draw_spectrum(
     period_plot_lf = 1.0 / freq_plot_lf
 
     # -- LF panel --
-    for psd, pv in zip(psds_lf, press_plotted_lf):
+    for psd, pv in zip(psds_lf, press_plotted_lf, strict=False):
         ax_lf.loglog(
             period_plot_lf,
             psd[fmask_lf],
@@ -455,7 +455,7 @@ def draw_spectrum(
         freq_plot_hf = freq_hf[fmask_hf]
         period_plot_hf = 1.0 / freq_plot_hf
 
-        for psd, pv in zip(psds_hf, press_plotted_hf):
+        for psd, pv in zip(psds_hf, press_plotted_hf, strict=False):
             ax_hf.loglog(
                 period_plot_hf * hf_scale,
                 psd[fmask_hf],
@@ -887,7 +887,7 @@ def draw_grid_rotary_spectrum(
     )
     p_band_centers = 10 ** (0.5 * (_log_edges[:-1] + _log_edges[1:]))
     r_banded_list: List[np.ndarray] = []
-    for _scw, _sccw in zip(s_cw_list, s_ccw_list):
+    for _scw, _sccw in zip(s_cw_list, s_ccw_list, strict=False):
         _scw_f, _sccw_f = _scw[fmask], _sccw[fmask]
         _rb = np.full(n_bands, np.nan)
         for _i in range(n_bands):
@@ -950,7 +950,7 @@ def draw_grid_rotary_spectrum(
     ax_spec, ax_rot = _axes[0, 0], _axes[0, 1]
 
     # Panel 1: CW (solid, reds) + CCW (dashed, blues)
-    for s_cw, s_ccw, p in zip(s_cw_list, s_ccw_list, press_plotted):
+    for s_cw, s_ccw, p in zip(s_cw_list, s_ccw_list, press_plotted, strict=False):
         cw_col = cmap_cw(norm_p(p))
         ccw_col = cmap_ccw(norm_p(p))
         ax_spec.loglog(period_plot, s_cw[fmask], color=cw_col, lw=1.0, alpha=0.85)
@@ -1002,7 +1002,7 @@ def draw_grid_rotary_spectrum(
     )
 
     # Panel 2: Rotary coefficient r -- raw (thin) + band-averaged (thick) + significance
-    for r, r_banded, p in zip(r_list, r_banded_list, press_plotted):
+    for r, r_banded, p in zip(r_list, r_banded_list, press_plotted, strict=False):
         col = cmap_ccw(norm_p(p))
         # Raw per-bin r: thin, semi-transparent
         ax_rot.semilogx(period_plot, r[fmask], color=col, lw=0.5, alpha=0.25)

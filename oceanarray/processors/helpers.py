@@ -310,7 +310,7 @@ def _nearest_subsample(
         if vname not in _STACK_RAW:
             src_v = _apply_qc_mask(src_v, ds, vname)
         out = np.full(n, np.nan)
-        for i, (t_tgt, k) in enumerate(zip(tgt_t, idx)):
+        for i, (t_tgt, k) in enumerate(zip(tgt_t, idx, strict=False)):
             # Check candidates at k-1 and k
             best_dt = np.inf
             best_v = np.nan

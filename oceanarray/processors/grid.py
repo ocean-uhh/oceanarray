@@ -591,7 +591,7 @@ class TimeGriddingProcessor:
         starts = np.where(diff_mask == 1)[0]
         ends = np.where(diff_mask == -1)[0]
 
-        for start, end in zip(starts, ends):
+        for start, end in zip(starts, ends, strict=False):
             segment_length = end - start
 
             # Only filter segments with sufficient length

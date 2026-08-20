@@ -281,7 +281,9 @@ def build_climatology(
     for month in range(1, 13):
         mask_month = flat_month == month
 
-        for j, (tmin, tmax) in enumerate(zip(temp_bins[:-1], temp_bins[1:])):
+        for j, (tmin, tmax) in enumerate(
+            zip(temp_bins[:-1], temp_bins[1:], strict=False)
+        ):
             mask_temp = (flat_temp >= tmin) & (flat_temp < tmax)
 
             combined_mask = mask_month & mask_temp

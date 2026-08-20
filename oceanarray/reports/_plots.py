@@ -105,7 +105,9 @@ def _plot_aquadopp_quick(ds: "xr.Dataset") -> "plt.Figure":
         if v in ds.data_vars
     ]
     if enu:
-        for vname, color in zip(enu, ["tab:blue", "tab:orange", "tab:cyan"], strict=False):
+        for vname, color in zip(
+            enu, ["tab:blue", "tab:orange", "tab:cyan"], strict=False
+        ):
             label = (
                 vname.replace("_velocity", " vel.").replace("_", " ").title() + " (m/s)"
             )
