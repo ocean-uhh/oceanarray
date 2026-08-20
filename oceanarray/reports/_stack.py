@@ -794,7 +794,9 @@ def generate_stack_page(
                     squeeze=False,
                 )
                 _handles: dict = {}  # serial -> Line2D (union, height order)
-                for _ax, (_var, _ylabel, _invert, _excl) in zip(_axs[:, 0], _rows):
+                for _ax, (_var, _ylabel, _invert, _excl) in zip(
+                    _axs[:, 0], _rows, strict=False
+                ):
                     _a = ds[_var].values.copy()
                     _qcv = f"{_var}_qc"
                     if _qcv in ds.data_vars:

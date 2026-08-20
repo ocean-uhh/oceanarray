@@ -228,7 +228,7 @@ def draw_grid_hydro(
         layout="constrained",
     )
 
-    for ax, (var, cmap) in zip(axes[:, 0], panels):
+    for ax, (var, cmap) in zip(axes[:, 0], panels, strict=False):
         da = ds[var]
         data = da.transpose("pressure", "time").values
         units = params.vunit(var) or da.attrs.get("units", "")
@@ -342,7 +342,7 @@ def draw_grid_velocity_stacked(
         layout="constrained",
     )
 
-    for ax, var in zip(axes[:, 0], present):
+    for ax, var in zip(axes[:, 0], present, strict=False):
         data = ds[var].transpose("pressure", "time").values
         # Apply QC mask via the variable's own QC flag, or fall back to east_velocity_qc
         for _qv in (f"{var}_qc", "east_velocity_qc"):
@@ -402,7 +402,7 @@ def draw_grid_sigma(
         layout="constrained",
     )
 
-    for ax, sv in zip(axes[:, 0], sigma_vars):
+    for ax, sv in zip(axes[:, 0], sigma_vars, strict=False):
         da = ds[sv]
         data = da.transpose("pressure", "time").values
         units = params.vunit("potential_density") or da.attrs.get("units", "kg m⁻³")

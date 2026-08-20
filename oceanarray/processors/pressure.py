@@ -112,8 +112,12 @@ def interp_pressure_for_hab(
         if log_fn:
             log_fn(f"  {serial} (hab={hab_t:.1f}m): {method}")
     else:
-        below = [(s, h) for s, h in zip(sorted_sources, habs) if h < hab_t]
-        above = [(s, h) for s, h in zip(sorted_sources, habs) if h > hab_t]
+        below = [
+            (s, h) for s, h in zip(sorted_sources, habs, strict=False) if h < hab_t
+        ]
+        above = [
+            (s, h) for s, h in zip(sorted_sources, habs, strict=False) if h > hab_t
+        ]
 
         if below and above:
             src_below, h_below = below[-1]

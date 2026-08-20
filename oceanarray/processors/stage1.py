@@ -484,7 +484,7 @@ class MooringProcessor:
         if _vel_src != _vel_dst:
             rename_map = {
                 src: dst
-                for src, dst in zip(_vel_src, _vel_dst)
+                for src, dst in zip(_vel_src, _vel_dst, strict=False)
                 if src in dataset.data_vars
             }
             if rename_map:

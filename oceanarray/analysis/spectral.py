@@ -205,7 +205,7 @@ def compute_cwt(
         gap_starts = np.where(edge_diff == 1)[0]
         gap_ends = np.where(edge_diff == -1)[0]
         t_all = np.arange(n, dtype=float)
-        for s, e in zip(gap_starts, gap_ends):
+        for s, e in zip(gap_starts, gap_ends, strict=False):
             eff_coi[s:e] = 0.0  # entire gap column is unreliable
             # Distance (samples) to the nearer gap boundary, outside the gap
             dist = np.minimum(
@@ -322,7 +322,7 @@ def welch_psd_gapaware(
     freq_out: np.ndarray | None = None
     psd_sum: np.ndarray | None = None
     total_wins = 0
-    for s, e in zip(starts, ends):
+    for s, e in zip(starts, ends, strict=False):
         seg = x[s:e]
         if len(seg) < segment_length:
             continue

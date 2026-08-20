@@ -40,7 +40,7 @@ See the [documentation](https://ocean-uhh.github.io/oceanarray/) for the recomme
 ```python
 import oceanarray
 
-oceanarray.process('dsG3_1_2026', raw_dir='/data/raw', proc_dir='/data/proc')
+oceanarray.process("dsG3_1_2026", raw_dir="/data/raw", proc_dir="/data/proc")
 ```
 
 See the [API reference](https://ocean-uhh.github.io/oceanarray/oceanarray.html) for the full interface.

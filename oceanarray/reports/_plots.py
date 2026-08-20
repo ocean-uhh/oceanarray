@@ -105,7 +105,9 @@ def _plot_aquadopp_quick(ds: "xr.Dataset") -> "plt.Figure":
         if v in ds.data_vars
     ]
     if enu:
-        for vname, color in zip(enu, ["tab:blue", "tab:orange", "tab:cyan"]):
+        for vname, color in zip(
+            enu, ["tab:blue", "tab:orange", "tab:cyan"], strict=False
+        ):
             label = (
                 vname.replace("_velocity", " vel.").replace("_", " ").title() + " (m/s)"
             )
@@ -132,7 +134,7 @@ def _plot_aquadopp_quick(ds: "xr.Dataset") -> "plt.Figure":
         if nrows == 1:
             axs = [axs]
 
-        for ax, (vname, label, color, invert) in zip(axs, panels):
+        for ax, (vname, label, color, invert) in zip(axs, panels, strict=False):
             ax.plot(ds["time"], ds[vname], color=color, linewidth=0.5)
             if "velocity" in vname:
                 ax.axhline(0, color="k", linewidth=0.5, linestyle="--")
@@ -250,7 +252,7 @@ def _build_fig_from_ds(
 
         time = ds["time"].values
 
-        for ax, (vname, label, color, invert) in zip(axs, panels):
+        for ax, (vname, label, color, invert) in zip(axs, panels, strict=False):
             grid_despine(ax)
             if vname == "_pitch_roll_combo":
                 _suspect_t = float(ds.attrs.get("tilt_suspect_threshold", 20.0))
@@ -690,7 +692,7 @@ def _make_multi_aquadopp_trajectories(ds: "xr.Dataset") -> Optional[str]:
     """
     from oceanarray.plotters.current import plot_multi_aquadopp_trajectories
 
-    return render_b64(plot_multi_aquadopp_trajectories, ds, optional=True)
+    return render_slot(plot_multi_aquadopp_trajectories, ds, slot="half", optional=True)
 
 
 def _make_aquadopp_speed_profile(ds: "xr.Dataset") -> Optional[str]:
@@ -710,7 +712,7 @@ def _make_adcp_trajectories_b64(ds: "xr.Dataset") -> Optional[str]:
     """
     from oceanarray.plotters.current import plot_adcp_trajectories
 
-    return render_b64(plot_adcp_trajectories, ds, optional=True)
+    return render_slot(plot_adcp_trajectories, ds, slot="half", optional=True)
 
 
 def _make_adcp_velocity_b64(nc_path: str) -> Optional[str]:

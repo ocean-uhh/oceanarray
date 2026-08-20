@@ -78,7 +78,7 @@ def draw_isopycnal_ts_fig(
     fig, ax = plt.subplots(figsize=(width_in, params.GRID_PANEL_ROW_IN))
     grid_despine(ax)
 
-    for i, (sval, col) in enumerate(zip(sigma_vals, colors)):
+    for i, (sval, col) in enumerate(zip(sigma_vals, colors, strict=False)):
         h = height[i, :]
         h_med = (
             pd.Series(h)

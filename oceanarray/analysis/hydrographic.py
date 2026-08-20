@@ -99,7 +99,9 @@ def find_cold_entry_exit(
     starts = np.r_[idx[0], idx[1:][gaps]]
     ends = np.r_[idx[:-1][gaps], idx[-1]]
 
-    runs = [(s, e) for s, e in zip(starts, ends) if (e - s + 1) >= min_len]
+    runs = [
+        (s, e) for s, e in zip(starts, ends, strict=False) if (e - s + 1) >= min_len
+    ]
     if not runs:
         return None, None, thr
 

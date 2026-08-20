@@ -539,6 +539,7 @@ def print_correlation_summary(combined_ds, correlation_results):
             correlation_results["lags"],
             correlation_results["max_correlations"],
             correlation_results["clock_offsets"],
+            strict=False,
         )
     ):
         print(
@@ -626,7 +627,9 @@ def plot_deployment_boundaries(
             continue
 
         # Plot each boundary
-        for ax, title, idx, time_ref in zip(axes, titles, indices, times_ref):
+        for ax, title, idx, time_ref in zip(
+            axes, titles, indices, times_ref, strict=False
+        ):
             # Define range around the boundary
             start_range = max(0, idx - n_samples)
             end_range = min(len(time_orig), idx + n_samples + 1)

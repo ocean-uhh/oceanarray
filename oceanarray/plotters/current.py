@@ -816,7 +816,7 @@ def draw_instrument_rose(
         subplot_kw={"projection": "polar"},
         squeeze=False,
     )
-    for ax, (east, north, title, cmap) in zip(axs[0], panels):
+    for ax, (east, north, title, cmap) in zip(axs[0], panels, strict=False):
         _rose_ax(ax, east, north, title=title, cmap=cmap)
 
     # Polar figures skip the encoder's tight_layout, so set panel spacing here;
@@ -1324,7 +1324,7 @@ def draw_adcp_velocity(
                     range_max = float(range_coord[bin_has_data].max())
                 break
 
-        for ax, (var, label, _pt) in zip(axes[:, 0], present):
+        for ax, (var, label, _pt) in zip(axes[:, 0], present, strict=False):
             raw = arrays[var]
             data2d = raw if isinstance(raw, np.ndarray) else raw.values
             # Ensure (time, N_BINS) then transpose to (N_BINS, time) for pcolormesh
@@ -1451,7 +1451,7 @@ def draw_adcp_rose(
             squeeze=False,
         )
         spd_edges = colors = None
-        for ax, (east, north, title) in zip(axs[0], panels):
+        for ax, (east, north, title) in zip(axs[0], panels, strict=False):
             result = _rose_ax(ax, east, north, title=title, max_speed=shared_max)
             if result is not None:
                 spd_edges, colors = result

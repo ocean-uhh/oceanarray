@@ -672,7 +672,7 @@ def plot_knockdown_displacement(
         p_edges = np.linspace(0, p_max, n_bins + 1)
 
         H_norm = np.zeros((n_bins, n_bins))
-        for x_arr, p_arr in zip(all_x_list, all_p_list):
+        for x_arr, p_arr in zip(all_x_list, all_p_list, strict=False):
             valid_i = np.isfinite(x_arr) & np.isfinite(p_arr)
             if not valid_i.sum():
                 continue
@@ -819,10 +819,13 @@ def plot_clock_offset_check(
         # Colourblind-safe styles: colour alone (tab20 = 20 hues) collided once
         # a mooring had >20 instruments, and tab20 is not CVD-safe.  Vary colour
         # (Okabe-Ito) and linestyle so up to 32 lines are each distinct.
-        styles = {s: st for s, st in zip(series, distinct_line_styles(len(series)))}
+        styles = {
+            s: st
+            for s, st in zip(series, distinct_line_styles(len(series)), strict=False)
+        }
 
         plotted_serials: set = set()
-        for ax, (t_lo, t_hi, title) in zip(axes, windows):
+        for ax, (t_lo, t_hi, title) in zip(axes, windows, strict=False):
             for serial, (t, temp) in series.items():
                 mask = (t >= t_lo) & (t <= t_hi) & np.isfinite(temp)
                 if not np.any(mask):
@@ -1288,7 +1291,7 @@ def draw_data_histogram(
         for k in range(len(plot_panels), len(axs)):
             axs[k].set_visible(False)
 
-        for ax, (vname, ylabel, flatten) in zip(axs, plot_panels):
+        for ax, (vname, ylabel, flatten) in zip(axs, plot_panels, strict=False):
             data = (
                 ds[vname].values.astype(float).ravel()
                 if flatten
