@@ -27,7 +27,7 @@ Contents
    :caption: Getting started
 
    quickstart
-   installation <setup>
+   installation
    troubleshooting
 
 
