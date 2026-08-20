@@ -101,13 +101,19 @@ def _fmt_clock_str(s: Optional[str]) -> Optional[str]:
 
     Handles both compact ISO (``20260710T21:03:00``) and spaced ISO
     (``2026-07-10T21:03:00``) inputs.  Returns *None* if *s* is falsy.
+
+    The compact date form (``YYYYMMDD``) is normalised to extended
+    (``YYYY-MM-DD``) before parsing: Python 3.10's ``datetime.fromisoformat``
+    rejects the compact form (3.11+ accepts it), so without this, 3.10 fell
+    through to the raw ``str(s)[:16]`` fallback and rendered malformed
+    timestamps (e.g. ``20260725T13:13:2``) in reports.
     """
     if not s:
         return None
+    txt = str(s).replace("T", " ").strip()
+    txt = re.sub(r"^(\d{4})(\d{2})(\d{2})(?=[ ]|$)", r"\1-\2-\3", txt)
     try:
-        return datetime.fromisoformat(str(s).replace("T", " ").strip()).strftime(
-            "%Y-%m-%d %H:%M"
-        )
+        return datetime.fromisoformat(txt).strftime("%Y-%m-%d %H:%M")
     except ValueError:
         return str(s)[:16]
 
