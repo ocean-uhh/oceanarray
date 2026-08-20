@@ -28,13 +28,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
 
-      - name: Install dependencies
+      - name: Install oceanarray (dev extra = runtime + test + docs + pdf + tooling)
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
-
-      - name: Install oceanarray
-        run: pip install -e . --no-deps --force-reinstall
+          pip install -e ".[dev]"
 
       - name: Run unit tests
         run: >
@@ -52,17 +49,12 @@ jobs:
           python-version: "3.11"
           cache: "pip"
 
-      - name: Install dependencies
-        # requirements-test.txt = requirements-dev.txt + the PyPI seasenselib
-        # release, so the golden integration tests (stage2/stage3/grid) run for
-        # real here rather than skipping.
+      # seasenselib is a core dependency, so the golden integration tests
+      # (stage2/stage3/grid) run for real here rather than skipping.
+      - name: Install oceanarray (dev extra)
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-test.txt
-
-      - name: Install oceanarray
-        run: pip install -e . --no-deps --force-reinstall
+          pip install -e ".[dev]"
 
       - name: Run integration tests
-        # needs_seasenselib is NOT excluded here: seasenselib is installed above.
         run: pytest tests/integration -m "not local" -q

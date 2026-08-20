@@ -104,12 +104,14 @@ Processing flows from raw files → Stage 1 (CF-NetCDF) → Stage 2 (trimming + 
 git clone https://github.com/ocean-uhh/oceanarray.git
 cd oceanarray
 python -m venv venv && source venv/bin/activate
-pip install -e .
-pip install -r requirements-dev.txt
-# seasenselib (needed for raw file reading):
-pip install pyrsktools pycnv
-pip install seasenselib --no-deps
+pip install --upgrade pip
+pip install -e ".[dev]"
 ```
+
+This installs the runtime stack (including `seasenselib` for raw-file reading),
+plus the test and docs tooling and `ruff`, in one resolution. To also work on
+PDF report output (WeasyPrint, which needs native pango/cairo libraries), use
+`pip install -e ".[all]"` (everything, equivalent to `.[dev,pdf]`).
 
 ### Workflow
 
@@ -157,7 +159,7 @@ New or changed code must have a test. For anything numerical, assert a **value**
 Documentation is built with Sphinx from `docs/source/`. To build locally:
 
 ```bash
-pip install -r requirements-dev.txt
+pip install -e ".[docs]"
 cd docs && make clean html
 open build/html/index.html
 ```

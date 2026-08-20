@@ -19,7 +19,7 @@ pip install oceanarray
 
 This pulls in `seasenselib` (used to read raw instrument files in stage 1) automatically.
 
-Python 3.9–3.12 is supported.
+Python 3.10–3.12 is supported.
 
 ## Quick start
 

@@ -14,7 +14,7 @@ license = { file = "LICENSE" }
 maintainers = [
   { name = "Eleanor Frajka-Williams", email = "eleanorfrajka@gmail.com" },
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 keywords = [
   "oceanography",
   "mooring",
@@ -31,7 +31,6 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Oceanography",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
@@ -50,6 +49,33 @@ urls."Issue Tracker" = "https://github.com/ocean-uhh/oceanarray/issues"
 # libraries (pango, cairo, gdk-pixbuf) so it is kept out of the core install.
 pdf = [
   "weasyprint>=60",
+]
+test = [
+  "pytest>=8.0",
+  "pytest-cov>=4.1",
+]
+docs = [
+  "sphinx>=7.2",
+  "sphinx-rtd-theme>=2.0",
+  "myst-nb>=1.0",
+  "nbsphinx>=0.9",
+  "pypandoc>=1.11",
+]
+# Everything a contributor needs for code+tests+docs: core runtime deps (incl.
+# seasenselib, resolved from requirements.txt via dynamic dependencies) + test +
+# docs + tooling.  One command: `pip install -e ".[dev]"`.  ``pdf`` is deliberately
+# NOT included — WeasyPrint's native libraries (pango/cairo) are fragile across
+# platforms, so PDF work uses `pip install -e ".[dev,pdf]"`.
+dev = [
+  "oceanarray[test,docs]",
+  "ruff>=0.3",
+  "jupyterlab>=4.0",
+  "nbconvert>=7.8",
+]
+# Everything, including the native-library-dependent pdf extra. Shorthand for
+# `.[dev,pdf]`; opt-in only (not used in CI, which stays pdf-free).
+all = [
+  "oceanarray[dev,pdf]",
 ]
 
 

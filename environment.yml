@@ -5,9 +5,5 @@ dependencies:
   - pip
   - pandoc
   - pip:
-      - -r requirements.txt
-      - -r requirements-dev.txt
-# seasenselib is not listed here because it requires --no-deps to avoid
-# version conflicts with pyrsktools.  Install it separately after activating:
-#   pip install pyrsktools pycnv
-#   pip install seasenselib --no-deps
+      # dev extra = runtime (incl. seasenselib) + test + docs + pdf + ruff
+      - -e .[dev]
