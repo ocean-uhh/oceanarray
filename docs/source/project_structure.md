@@ -93,8 +93,7 @@ oceanarray/
 ├── CLAUDE.md                      # Claude Code guidance (local-only)
 ├── CITATION.cff                   # Citation metadata
 ├── CHANGELOG.md
-├── pyproject.toml                 # Build system and project metadata
-├── requirements.txt
+├── pyproject.toml                 # Build system, deps, and project metadata
 └── README.md
 ```
 

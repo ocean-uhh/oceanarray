@@ -35,8 +35,23 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
 ]
+dependencies = [
+  "numpy>=1.23",
+  "pandas>=2.0",
+  "xarray>=2023.12.0",
+  "netcdf4>=1.6",         # xarray NetCDF read/write engine (used implicitly, no direct import)
+  "scipy>=1.10",
+  "matplotlib>=3.7",
+  "pillow>=9.0",          # report figure PNG palette-quantization in _fig_to_base64
+  "gsw>=3.6.16",          # seawater properties (TEOS-10)
+  "ppigrf",               # IGRF magnetic declination (stage3 BEAM->ENU correction)
+  "ioos_qc",              # QARTOD QC tests
+  "pycwt",                # wavelet analysis (grid report temperature scalogram)
+  "seasenselib",          # raw instrument-file readers (stage 1); pulls mhkit[dolfyn] for RDI
+  "jinja2>=3.0",          # template rendering (reports)
+  "ruamel.yaml>=0.18",    # YAML stub generation (preserves inline comments)
+]
 dynamic = [
-  "dependencies",
   "version",
 ]
 urls.Documentation = "https://ocean-uhh.github.io/oceanarray"
@@ -62,8 +77,8 @@ docs = [
   "pypandoc>=1.11",
 ]
 # Everything a contributor needs for code+tests+docs: core runtime deps (incl.
-# seasenselib, resolved from requirements.txt via dynamic dependencies) + test +
-# docs + tooling.  One command: `pip install -e ".[dev]"`.  ``pdf`` is deliberately
+# seasenselib) + test + docs + tooling.  One command: `pip install -e ".[dev]"`.
+# ``pdf`` is deliberately
 # NOT included — WeasyPrint's native libraries (pango/cairo) are fragile across
 # platforms, so PDF work uses `pip install -e ".[dev,pdf]"`.
 dev = [
@@ -96,9 +111,6 @@ oceanarray = [
 ]
 
 [tool.setuptools.dynamic]
-dependencies = { file = [
-  "requirements.txt",
-] }
 readme = { file = "README.md", content-type = "text/markdown" }
 
 [tool.setuptools_scm]
@@ -116,6 +128,15 @@ ignore = [
   "notebooks/*",
   "tests",
   "tests/*",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "integration: requires real data files or exercises a full processing pipeline (skip on CI)",
+  "slow: takes more than ~5 s even with synthetic data (excluded from CI; run with -m slow)",
+  "local: requires developer-machine context (mounted volumes, GUIs, instrument-specific paths); never on CI",
+  "needs_seasenselib: requires seasenselib to be installed",
 ]
 
 [tool.coverage.run]
