@@ -345,7 +345,11 @@ def _linear_interp(
             result[vname] = np.full(len(common_time), np.nan)
             continue
         if vname.endswith("_qc"):
-            # QC flag arrays must not be linearly interpolated — use nearest valid
+            # QC flag arrays must not be linearly interpolated. Select the valid
+            # sample at or after each target time (np.searchsorted insertion
+            # index), clamped to the last sample — a forward "next" step, not a
+            # true nearest-neighbour pick. Pinned by
+            # test_linear_interp_qc_uses_step_selection_not_averaging.
             src_t_v = src_t[valid]
             src_v_v = src_v[valid]
             nn_idx = np.clip(np.searchsorted(src_t_v, tgt_t), 0, len(src_t_v) - 1)

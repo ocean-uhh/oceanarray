@@ -318,19 +318,43 @@ def test_derive_oxygen_saturation_noop_when_inputs_missing():
     assert "oxygen_saturation_pct" not in out.data_vars
 
 
-def test_derive_oxygen_saturation_adds_derived_vars():
-    n = 3
+def test_derive_oxygen_saturation_matches_independent_gsw_computation():
+    """O2 % saturation / AOU are cross-checked against an independent gsw path.
+
+    A finiteness-only assertion would pass any wrong-but-finite formula; instead
+    we recompute the documented relation
+    (100 x O2_kg / O2sol, O2_kg from in-situ seawater density) via gsw here and
+    assert the module matches — catching a unit (µmol/L vs µmol/kg), density
+    (seawater vs freshwater), or sign regression.
+    """
+    import gsw
+
+    do_L, t, sp, p = 250.0, 8.0, 35.0, 500.0  # µmol/L, °C, PSU, dbar
     ds = xr.Dataset(
         {
-            "dissolved_oxygen": ("time", np.full(n, 250.0)),  # µmol/L
-            "temperature": ("time", np.full(n, 8.0)),
-            "salinity": ("time", np.full(n, 35.0)),
-            "pressure": ("time", np.full(n, 500.0)),
+            "dissolved_oxygen": ("time", np.full(2, do_L)),
+            "temperature": ("time", np.full(2, t)),
+            "salinity": ("time", np.full(2, sp)),
+            "pressure": ("time", np.full(2, p)),
         },
-        coords={"time": _dt(list(range(n)))},
+        coords={"time": _dt([0, 1])},
     )
     out = Q.derive_oxygen_saturation(ds)
     assert "oxygen_saturation_pct" in out.data_vars
     assert "apparent_oxygen_utilization" in out.data_vars
-    # percent saturation should be a finite, positive-ish physical value
-    assert np.isfinite(out["oxygen_saturation_pct"].values).all()
+
+    # Independent expectation (lon/lat default to 0.0 in the module).
+    sa = gsw.SA_from_SP(sp, p, 0.0, 0.0)
+    pt = gsw.pt0_from_t(sa, t, p)
+    ct = gsw.CT_from_t(sa, t, p)
+    o2sol = gsw.O2sol_SP_pt(sp, pt)  # µmol/kg
+    o2_kg = do_L / (gsw.rho(sa, ct, p) / 1000.0)  # µmol/kg
+    exp_pct = 100.0 * o2_kg / o2sol
+    exp_aou = o2sol - o2_kg
+
+    np.testing.assert_allclose(out["oxygen_saturation_pct"].values, exp_pct, rtol=1e-3)
+    np.testing.assert_allclose(
+        out["apparent_oxygen_utilization"].values, exp_aou, rtol=1e-3
+    )
+    # Sanity: undersaturated water (< 100 %) must give positive AOU.
+    assert (exp_pct < 100.0) == (exp_aou > 0.0)
