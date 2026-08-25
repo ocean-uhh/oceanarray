@@ -345,15 +345,21 @@ def _linear_interp(
             result[vname] = np.full(len(common_time), np.nan)
             continue
         if vname.endswith("_qc"):
-            # QC flag arrays must not be linearly interpolated. Select the valid
-            # sample at or after each target time (np.searchsorted insertion
-            # index), clamped to the last sample — a forward "next" step, not a
-            # true nearest-neighbour pick. Pinned by
-            # test_linear_interp_qc_uses_step_selection_not_averaging.
+            # QC flag arrays must not be linearly interpolated (a flag of 2.5 is
+            # meaningless). Resample conservatively: each target inherits the
+            # *worst* flag of its two bracketing source samples on the OceanSITES
+            # priority (see _worst_flag), so a bad flag adjacent to a target is
+            # never laundered into a good one. A target coinciding exactly with a
+            # source sample takes that sample's flag alone (left == right);
+            # out-of-range targets take the nearest edge flag.
             src_t_v = src_t[valid]
             src_v_v = src_v[valid]
-            nn_idx = np.clip(np.searchsorted(src_t_v, tgt_t), 0, len(src_t_v) - 1)
-            result[vname] = src_v_v[nn_idx]
+            n = len(src_t_v)
+            left = np.clip(np.searchsorted(src_t_v, tgt_t, side="right") - 1, 0, n - 1)
+            right = np.clip(np.searchsorted(src_t_v, tgt_t, side="left"), 0, n - 1)
+            result[vname] = _worst_flag(src_v_v[left], src_v_v[right]).astype(
+                np.float64
+            )
         else:
             result[vname] = np.interp(
                 tgt_t, src_t[valid], src_v[valid], left=np.nan, right=np.nan

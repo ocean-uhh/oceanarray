@@ -153,23 +153,32 @@ def test_linear_interp_nan_outside_range():
     assert np.isnan(out["temperature"]).all()
 
 
-def test_linear_interp_qc_uses_step_selection_not_averaging():
-    """*_qc flag arrays are never linearly averaged.
+def test_linear_interp_qc_takes_worst_bracketing_flag():
+    """*_qc flag arrays are resampled conservatively, never linearly averaged.
 
-    The implementation selects via ``np.searchsorted`` — the valid sample at or
-    *after* the target index — so a target between two samples takes the *later*
-    flag, not a true nearest-neighbour. (The docstring says "nearest valid"; the
-    behaviour is searchsorted-based. Minor discrepancy — see
-    ``.claude/20260820-minor-fixes.md``.) The important invariant, asserted here,
-    is that no interpolated intermediate flag (e.g. 2.5) is ever produced.
+    Each target inherits the *worst* flag of its two bracketing source samples on
+    the OceanSITES priority, so a bad flag adjacent to a target is never laundered
+    into a good one. Two invariants: (1) no interpolated intermediate flag (e.g.
+    2.5) is ever produced; (2) a target between a bad and a good sample takes the
+    bad flag *regardless of ordering* — the earlier searchsorted "next" pick
+    dropped a leading bad flag, which this guards against.
     """
+    # good-then-bad: midpoint takes the bad(4) flag; endpoints match exactly.
     ds = xr.Dataset(
         {"temperature_qc": ("time", np.array([1, 4], dtype=np.int8))},
         coords={"time": _dt([0.0, 10.0])},
     )
     out = H._linear_interp(ds, _dt([0.0, 5.0, 10.0]))
-    # searchsorted([0,10], [0,5,10]) = [0,1,1] -> flags [1,4,4]
     np.testing.assert_array_equal(out["temperature_qc"], [1.0, 4.0, 4.0])
+
+    # bad-then-good: the midpoint must NOT drop the leading bad(4) flag. This is
+    # the case the old searchsorted-"next" behaviour got wrong (it returned 1).
+    ds_rev = xr.Dataset(
+        {"temperature_qc": ("time", np.array([4, 1], dtype=np.int8))},
+        coords={"time": _dt([0.0, 10.0])},
+    )
+    out_rev = H._linear_interp(ds_rev, _dt([0.0, 5.0, 10.0]))
+    np.testing.assert_array_equal(out_rev["temperature_qc"], [4.0, 4.0, 1.0])
 
 
 # ---------------------------------------------------------------------------
