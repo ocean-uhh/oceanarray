@@ -353,6 +353,12 @@ def cmd_report(args: argparse.Namespace) -> int:
                     "--pdf is not supported in --array mode; the array index is "
                     "HTML-only. Run 'report MOORING --pdf' per mooring instead.",
                 )
+            if getattr(args, "outdir", None):
+                _status(
+                    "error",
+                    "-o/--output-dir is ignored in --array mode; the array index "
+                    "goes to the tree root. Use --report-dir to set it.",
+                )
             # Resolve the YAML path: try as-given first, then relative to proc_dir.
             _yaml_path = Path(args.mooring)
             if not _yaml_path.exists() and not _yaml_path.is_absolute():
@@ -1148,7 +1154,8 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         default=False,
         help="Treat the positional argument as a *.array.yaml path and generate an "
-        "array-level HTML index linking all mooring reports.",
+        "array-level HTML index linking all mooring reports.  --report-dir is the "
+        "output root for the index.",
     )
     p_report.add_argument(
         "--cruise-table",

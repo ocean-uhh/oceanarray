@@ -231,3 +231,52 @@ class TestBuildTypeSummary:
         instruments = [self._make_instrument("microcat")]
         result = _build_type_summary(instruments)
         assert "notes" in result[0]
+
+
+class TestArrayModeOutputDir:
+    """``report --array`` output-location handling.
+
+    ``--report-dir`` sets the array index location; ``-o/--output-dir`` does not
+    apply to a multi-mooring index and must be reported (not silently ignored)
+    while the index is still generated.
+    """
+
+    def test_outdir_warns_but_report_dir_is_honoured(
+        self, tmp_path, capsys, monkeypatch
+    ):
+        import argparse
+        from pathlib import Path
+
+        from oceanarray import cli
+        from oceanarray.reports import _array
+
+        seen = {}
+
+        def _fake_generate(**kwargs):
+            seen["report_dir"] = kwargs["report_dir"]
+            out = tmp_path / "arr_array_report.html"
+            out.write_text("<html></html>")
+            return out
+
+        monkeypatch.setattr(_array, "generate_array_report", _fake_generate)
+
+        yaml_path = tmp_path / "arr.array.yaml"
+        yaml_path.write_text("name: arr\n")
+        central = tmp_path / "central"
+        args = argparse.Namespace(
+            mooring=str(yaml_path),
+            array=True,
+            outdir="/tmp/ignored",
+            report_dir=str(central),
+            proc_dir=str(tmp_path),
+            raw_dir=None,
+            force=False,
+        )
+
+        rc = cli.cmd_report(args)
+        out = capsys.readouterr().out
+
+        assert rc == 0
+        assert "-o/--output-dir is ignored in --array mode" in out
+        # The flag that DOES apply in array mode is honoured, not dropped.
+        assert seen["report_dir"] == Path(str(central))
