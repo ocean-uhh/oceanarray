@@ -1,7 +1,7 @@
 Stack: Common Time Axis
 =======================
 
-The ``oceanarray stack`` command reads all instruments for one mooring deployment from their
+The ``stack`` stage reads all instruments for one mooring deployment from their
 best available stage file, resamples them onto a common time axis, and writes a single
 multi-instrument NetCDF file.
 
@@ -10,7 +10,7 @@ Command
 
 .. code-block:: bash
 
-   oceanarray stack {mooring} --proc-dir /data/proc [--dt 60] [--force]
+   oceanarray process {mooring} --proc-dir /data/proc --stage stack [--dt 60] [--force]
 
 Python API
 ----------

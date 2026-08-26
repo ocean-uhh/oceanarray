@@ -4,6 +4,24 @@ All notable changes to oceanarray are documented here.
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- **`oceanarray run` report redirection**: `run` now accepts `-o/--output-dir`, `--report-dir`, and `--sig-level` and threads them through to the report step, so the full pipeline can write a portable central report tree with custom grid isopycnal targets in one command.
+
+### Breaking changes
+
+- **`oceanarray stack` / `oceanarray grid` removed**: the standalone subcommands (deprecated since 0.2.0) are deleted. Use `oceanarray process MOORING --stage stack grid` instead — all flags (`--dt`, `--dp`, `--pmin`, `--pmax`, `--force`, `--proc-dir`) carry over. The `stack`/`grid` steps remain available as `--stage` tokens.
+- **`oceanarray logsheet` removed**: the disabled subcommand is deleted. `oceanarray logsheet` now returns an argparse "invalid choice" error instead of a `DeprecationWarning`. Use the standalone [`logsheet`](https://github.com/eleanorfrajka/logsheet) package.
+- **`oceanarray.cli.cmd_stub` renamed to `cmd_init`**; `cmd_stack`, `cmd_grid`, `cmd_logsheet` deleted. Only affects code importing these functions directly; the `oceanarray init` CLI command is unchanged.
+
+### Fixed
+
+- **`--help` crash on Python 3.11**: `process`/`report`/`run` `--help` raised an argparse usage-formatting `AssertionError` on 3.11 (a single-member `mutually_exclusive_group` around the suppressed `--basedir` flag). The group is removed; `--help` works on 3.11 and 3.12.
+
+---
+
 ## [0.3.0] — 2026-08-11
 
 ### Breaking changes

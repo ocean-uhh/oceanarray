@@ -78,7 +78,7 @@ class MooringGridder:
 
         if not stack_found:
             print(f"ERROR: Stack file not found: {merge_path}")
-            print("       Run 'oceanarray stack' first.")
+            print("       Run 'oceanarray process MOORING --stage stack' first.")
             return False
 
         if output_found and not force:

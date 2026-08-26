@@ -1,7 +1,7 @@
 Grid: Vertical Pressure Grid
 =============================
 
-The ``oceanarray grid`` command linearly interpolates the stacked ``(N_LEVELS, time)``
+The ``grid`` stage linearly interpolates the stacked ``(N_LEVELS, time)``
 dataset onto a regular pressure grid, producing ``(time, pressure)`` output suitable for
 quick T-S section plots and density diagnostics.
 
@@ -18,7 +18,7 @@ Command
 
 .. code-block:: bash
 
-   oceanarray grid {mooring} --proc-dir /data/proc [--p-start 200] [--p-end 1000] [--dp 20] [--force]
+   oceanarray process {mooring} --proc-dir /data/proc --stage grid [--pmin 200] [--pmax 1000] [--dp 20] [--force]
 
 Python API
 ----------
@@ -37,7 +37,7 @@ sparse instrument levels onto a uniform pressure axis. The result is a
 ``(time, pressure)`` dataset convenient for section plots, density cross-sections, and
 further analysis.
 
-Run ``oceanarray stack`` first; the grid step requires a ``{mooring}_stack.nc`` file
+Run ``oceanarray process {mooring} --stage stack`` first; the grid step requires a ``{mooring}_stack.nc`` file
 containing a ``pressure`` variable.
 
 Input files

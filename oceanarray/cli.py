@@ -425,132 +425,6 @@ def cmd_report(args: argparse.Namespace) -> int:
             _sigma_restore[0].SIGMA_GRID = _sigma_restore[1]
 
 
-def cmd_stack(args: argparse.Namespace) -> int:
-    """Combine all instruments from a mooring onto a common time axis.
-
-    Reads ``{mooring}_{serial}_stage3.nc`` (falling back to ``_stage2.nc``) for
-    every instrument listed in the mooring YAML and resamples each time series to
-    a uniform sampling interval (default 60 s).  Writes a single multi-instrument
-    file ``{mooring}_stack.nc`` in the proc directory.
-
-    Prerequisite: stage 1 and 2 (and ideally stage 3) must have completed for all
-    instruments before running this command.
-    """
-    import warnings
-
-    warnings.warn(
-        "'oceanarray stack' is deprecated and will be removed in v0.3.0. "
-        "Use 'oceanarray process MOORING --stage stack' instead.",
-        DeprecationWarning,
-        stacklevel=1,
-    )
-    from .processors.stack import MooringStacker
-    from .processors.helpers import _best_nc
-    from .utilities import extract_inline_instruments
-    import yaml as _yaml
-
-    _, proc_root = _parse_dirs_checked(args)
-    proc_dir = proc_root / args.mooring
-
-    if getattr(args, "dry_run", False):
-        _status("section", f"Stack (dry run): {args.mooring}")
-        yaml_path = proc_dir / f"{args.mooring}.mooring.yaml"
-        if not yaml_path.exists():
-            print(f"ERROR: config not found: {yaml_path}")
-            return 1
-        with open(yaml_path) as fh:
-            cfg = _yaml.safe_load(fh)
-        instrument_list = list(cfg.get("clamp", cfg.get("instruments", [])))
-        instrument_list += extract_inline_instruments(cfg.get("inline", []))
-        would_include = []
-        missing = []
-        for entry in instrument_list:
-            if not isinstance(entry, dict):
-                continue
-            if entry.get("hab") is None and entry.get("hab_bottom") is None:
-                continue
-            serial = str(entry.get("serial", "")).split(",")[0].strip()
-            instr_type = entry.get("instrument", "unknown")
-            nc = _best_nc(proc_dir, instr_type, args.mooring, serial)
-            if nc is not None:
-                would_include.append(
-                    f"  INCLUDE  {instr_type:12s}  s/n {serial:8s}  {nc.name}"
-                )
-            else:
-                missing.append(
-                    f"  MISSING  {instr_type:12s}  s/n {serial:8s}  (no stage2/stage3 file)"
-                )
-        out_path = proc_dir / f"{args.mooring}_stack.nc"
-        print(f"Output would be: {out_path}")
-        print(
-            f"  {'EXISTS' if out_path.exists() else 'does not exist'} (--force {'required' if out_path.exists() and not args.force else 'not needed'})"
-        )
-        for line in would_include:
-            print(line)
-        for line in missing:
-            print(f"  WARNING: {line.strip()}")
-        return 0
-
-    _status("section", f"Stack: {args.mooring}")
-    stacker = MooringStacker(proc_dir=str(proc_root))
-    ok = stacker.stack(
-        args.mooring,
-        dt_seconds=args.dt,
-        force=args.force,
-    )
-    return 0 if ok else 1
-
-
-def cmd_grid(args: argparse.Namespace) -> int:
-    """Vertically interpolate a mooring stack onto a uniform pressure grid.
-
-    Reads ``{mooring}_stack.nc`` (produced by ``oceanarray stack``) and
-    interpolates scalar variables onto a regular pressure axis between
-    ``--pmin`` and ``--pmax`` dbar at ``--dp`` dbar spacing.  Writes
-    ``{mooring}_grid.nc`` in the proc directory.
-
-    Prerequisite: ``oceanarray stack`` must have completed successfully.
-    """
-    import warnings
-
-    warnings.warn(
-        "'oceanarray grid' is deprecated and will be removed in v0.3.0. "
-        "Use 'oceanarray process MOORING --stage grid' instead.",
-        DeprecationWarning,
-        stacklevel=1,
-    )
-    from .processors.grid import MooringGridder
-
-    _, proc_root = _parse_dirs_checked(args)
-
-    if getattr(args, "dry_run", False):
-        _status("section", f"Grid (dry run): {args.mooring}")
-        proc_dir = proc_root / args.mooring
-        stack_nc = proc_dir / f"{args.mooring}_stack.nc"
-        out_nc = proc_dir / f"{args.mooring}_grid.nc"
-        print(f"Input:  {stack_nc}  ({'EXISTS' if stack_nc.exists() else 'MISSING'})")
-        print(
-            f"Output: {out_nc}  ({'exists' if out_nc.exists() else 'does not exist'})"
-        )
-        print(
-            f"Grid:   pmin={args.pmin} dbar  pmax={args.pmax} dbar  dp={args.dp} dbar"
-        )
-        if not stack_nc.exists():
-            print("WARNING: stack file missing — run 'oceanarray stack' first.")
-        return 0
-
-    _status("section", f"Grid: {args.mooring}")
-    gridder = MooringGridder(proc_dir=str(proc_root))
-    ok = gridder.grid(
-        args.mooring,
-        p_start=args.pmin,
-        p_end=args.pmax,
-        dp=args.dp,
-        force=args.force,
-    )
-    return 0 if ok else 1
-
-
 def cmd_run(args: argparse.Namespace) -> int:
     """Run the complete processing pipeline for one mooring.
 
@@ -562,6 +436,10 @@ def cmd_run(args: argparse.Namespace) -> int:
     Stage failures are non-fatal: each subsequent stage runs regardless, except
     that a stack failure skips grid (grid reads stack.nc as its input).  The
     command returns exit code 1 if any step fails.
+
+    The report step honours ``--output-dir``/``--report-dir`` (to redirect the
+    HTML tree) and ``--sig-level`` (grid isopycnal targets); when unset it writes
+    to the default ``{proc-dir}/{mooring}/report/`` with the default σ₀ grid.
     """
     from .processors import process as _process
 
@@ -588,7 +466,9 @@ def cmd_run(args: argparse.Namespace) -> int:
     report_args = argparse.Namespace(
         mooring=args.mooring,
         force=args.force,
-        outdir=None,
+        outdir=getattr(args, "outdir", None),
+        report_dir=getattr(args, "report_dir", None),
+        sig_level=getattr(args, "sig_level", None),
         serial=serials,
         instruments=True,
         grid=True,
@@ -775,41 +655,6 @@ def cmd_list(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_logsheet(_args: "argparse.Namespace") -> int:
-    """Removed — logsheet generation moved to the standalone ``logsheet`` package.
-
-    Emits a ``DeprecationWarning`` and exits 1. The subparser will be fully removed
-    in v0.3.0.
-
-    Parameters
-    ----------
-    _args : argparse.Namespace
-        Unused; kept for argparse dispatch compatibility.
-
-    Returns
-    -------
-    int
-        Always ``1``.
-
-    """
-    import warnings
-
-    warnings.warn(
-        "'oceanarray logsheet' has been removed. "
-        "Install the standalone package and run 'logsheet build ...' instead:\n"
-        "  pip install git+https://github.com/ocean-uhh/logsheet",
-        DeprecationWarning,
-        stacklevel=1,
-    )
-    print(
-        "ERROR: 'oceanarray logsheet' has been removed.\n"
-        "Install the standalone logsheet package:\n"
-        "  pip install git+https://github.com/ocean-uhh/logsheet\n"
-        "Then run:  logsheet build --type recovery --mooring MOORING --config-dir DIR/",
-    )
-    return 1
-
-
 def _stage_token(value: str) -> "int | str":
     """Convert a ``--stage`` CLI token to ``int`` or canonical ``str`` via :func:`resolve_stage`.
 
@@ -842,11 +687,10 @@ def _add_dir_args(p: "argparse.ArgumentParser", raw_needed: bool = True) -> None
 
     Adds ``--raw-dir`` / ``--proc-dir``, plus a hidden ``--basedir`` flag that
     only exists to emit a migration message (see :func:`_parse_dirs`).  When
-    *raw_needed* is False (e.g. for ``stack``,
-    ``grid``, ``report``, ``animate`` which operate on already-processed NetCDF
-    files) ``--raw-dir`` is silently omitted and the argument defaults to None.
-    Stage 1 processing requires raw instrument files and therefore sets
-    *raw_needed=True*.
+    *raw_needed* is False (e.g. for ``report``, ``animate`` which operate on
+    already-processed NetCDF files) ``--raw-dir`` is silently omitted and the
+    argument defaults to None.  Stage 1 processing requires raw instrument files
+    and therefore sets *raw_needed=True*.
 
     Parameters
     ----------
@@ -854,14 +698,15 @@ def _add_dir_args(p: "argparse.ArgumentParser", raw_needed: bool = True) -> None
         The subparser to add arguments to.
     raw_needed : bool
         Whether to add ``--raw-dir``.  Pass False for commands that do not
-        read raw instrument data files (stack, grid, report, animate).
+        read raw instrument data files (report, plot, animate).
 
     """
-    grp = p.add_mutually_exclusive_group()
     # --basedir is removed: it is accepted (undiscoverable in --help) only so we
     # can print a migration message instead of an argparse "unrecognized argument"
-    # error.  See _parse_dirs.
-    grp.add_argument(
+    # error.  See _parse_dirs.  It is a plain suppressed argument -- a
+    # single-member mutually-exclusive group added nothing and tripped a
+    # usage-formatting assertion in the Python 3.11 argparse.
+    p.add_argument(
         "--basedir",
         default=None,
         metavar="DIR",
@@ -887,7 +732,93 @@ def _add_dir_args(p: "argparse.ArgumentParser", raw_needed: bool = True) -> None
     )
 
 
-def cmd_stub(args: argparse.Namespace) -> int:
+def _add_stack_grid_args(p: "argparse.ArgumentParser") -> None:
+    """Add the shared stack/grid tuning arguments (--dt, --dp, --pmin, --pmax).
+
+    Used by ``process`` and ``run``, which drive the mooring-level stack and grid
+    steps with identical defaults.
+
+    Parameters
+    ----------
+    p : argparse.ArgumentParser
+        The subparser to add arguments to.
+
+    """
+    p.add_argument(
+        "--dt",
+        type=int,
+        default=60,
+        metavar="SECONDS",
+        help="Stack time-grid interval in seconds (default: 60)",
+    )
+    p.add_argument(
+        "--dp",
+        type=float,
+        default=20.0,
+        metavar="DBAR",
+        help="Pressure grid spacing in dbar (default: 20)",
+    )
+    p.add_argument(
+        "--pmin",
+        type=float,
+        default=200.0,
+        metavar="DBAR",
+        help="Shallowest pressure level for grid (default: 200)",
+    )
+    p.add_argument(
+        "--pmax",
+        type=float,
+        default=1000.0,
+        metavar="DBAR",
+        help="Deepest pressure level for grid (default: 1000)",
+    )
+
+
+def _add_shared_report_args(p: "argparse.ArgumentParser") -> None:
+    """Add the report-location and grid-isopycnal arguments shared by report/run.
+
+    ``-o/--output-dir``, ``--report-dir``, and ``--sig-level`` are honoured by
+    both the ``report`` and ``run`` subcommands to redirect the HTML report tree
+    and set the grid isopycnal targets.
+
+    Parameters
+    ----------
+    p : argparse.ArgumentParser
+        The subparser to add arguments to.
+
+    """
+    p.add_argument(
+        "-o",
+        "--output-dir",
+        default=None,
+        dest="outdir",
+        metavar="DIR",
+        help="Directory for the HTML report (default: {proc-dir}/{mooring}/report/)",
+    )
+    p.add_argument(
+        "--report-dir",
+        default=None,
+        dest="report_dir",
+        metavar="DIR",
+        help="Central directory for all mooring reports.  Each mooring's pages are "
+        "written to DIR/{mooring}/ instead of proc/{mooring}/report/, making the "
+        "whole report tree portable.",
+    )
+    p.add_argument(
+        "--sig-level",
+        nargs="+",
+        type=float,
+        default=None,
+        metavar="SIG",
+        dest="sig_level",
+        help="σ₀ target values (kg m⁻³, referenced to 0 dbar) for isopycnal "
+        "height-above-seabed tracking in the grid report.  Pass one or more "
+        "values; they are sorted before use.  Example: --sig-level 27.5 27.7 27.9  "
+        "(default: 27.7).",
+    )
+
+
+def cmd_init(args: argparse.Namespace) -> int:
     """Create a skeleton mooring YAML in {proc_dir}/{mooring}/{mooring}.mooring.yaml."""
     try:
         from ruamel.yaml import YAML
@@ -1081,7 +1012,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p_stub = sub.add_parser(
+    p_init = sub.add_parser(
         "init",
         help="Create a skeleton mooring YAML file.",
         description=(
@@ -1090,15 +1021,15 @@ def build_parser() -> argparse.ArgumentParser:
             "Edit the file to fill in real values and delete unused instrument blocks."
         ),
     )
-    p_stub.add_argument("mooring", help="Mooring name, e.g. dsG3_1_2026")
-    p_stub.add_argument(
+    p_init.add_argument("mooring", help="Mooring name, e.g. dsG3_1_2026")
+    p_init.add_argument(
         "--proc-dir",
         dest="proc_dir",
         metavar="DIR",
         required=True,
         help="Cruise-level processed output directory (stub is written to {proc_dir}/{mooring}/).",
     )
-    p_stub.set_defaults(func=cmd_stub)
+    p_init.set_defaults(func=cmd_init)
 
     p_process = sub.add_parser(
         "process",
@@ -1124,34 +1055,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Stage(s) to run (default: 1 2). "
         "Use 'stack' and 'grid' for mooring-level steps.",
     )
-    p_process.add_argument(
-        "--dt",
-        type=int,
-        default=60,
-        metavar="SECONDS",
-        help="Stack time-grid interval in seconds (default: 60)",
-    )
-    p_process.add_argument(
-        "--dp",
-        type=float,
-        default=20.0,
-        metavar="DBAR",
-        help="Pressure grid spacing in dbar (default: 20)",
-    )
-    p_process.add_argument(
-        "--pmin",
-        type=float,
-        default=200.0,
-        metavar="DBAR",
-        help="Shallowest pressure level for grid (default: 200)",
-    )
-    p_process.add_argument(
-        "--pmax",
-        type=float,
-        default=1000.0,
-        metavar="DBAR",
-        help="Deepest pressure level for grid (default: 1000)",
-    )
+    _add_stack_grid_args(p_process)
     p_process.add_argument(
         "--plot",
         action="store_true",
@@ -1189,23 +1093,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_report.add_argument("mooring", help="Mooring name, e.g. dsG3_1_2026")
     _add_dir_args(p_report, raw_needed=True)
-    p_report.add_argument(
-        "-o",
-        "--output-dir",
-        default=None,
-        dest="outdir",
-        metavar="DIR",
-        help="Directory for the HTML report (default: {proc-dir}/{mooring}/report/)",
-    )
-    p_report.add_argument(
-        "--report-dir",
-        default=None,
-        dest="report_dir",
-        metavar="DIR",
-        help="Central directory for all mooring reports.  Each mooring's pages are "
-        "written to DIR/{mooring}/ instead of proc/{mooring}/report/, making the "
-        "whole report tree portable.  Also used as the output root for --array.",
-    )
+    _add_shared_report_args(p_report)
     p_report.add_argument(
         "--force", action="store_true", help="Overwrite existing report"
     )
@@ -1271,18 +1159,6 @@ def build_parser() -> argparse.ArgumentParser:
         "cruise reports (one per mooring: {mooring}_recovery_table.html).",
     )
     p_report.add_argument(
-        "--sig-level",
-        nargs="+",
-        type=float,
-        default=None,
-        metavar="SIG",
-        dest="sig_level",
-        help="σ₀ target values (kg m⁻³, referenced to 0 dbar) for isopycnal "
-        "height-above-seabed tracking in the grid report.  Pass one or more "
-        "values; they are sorted before use.  Example: --sig-level 27.5 27.7 27.9  "
-        "(default: 27.7).",
-    )
-    p_report.add_argument(
         "-n",
         "--dry-run",
         action="store_true",
@@ -1300,84 +1176,6 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p_report.set_defaults(func=cmd_report)
 
-    p_stack = sub.add_parser(
-        "stack",
-        description=(
-            "Reads all _stage3.nc (or _stage2.nc) files for a mooring and interpolates\n"
-            "every instrument onto a uniform time grid, producing {mooring}_stack.nc.\n"
-            "Run after 'oceanarray process --stage 1 2 3'."
-        ),
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    p_stack.add_argument("mooring", help="Mooring name, e.g. dsG3_1_2026")
-    _add_dir_args(p_stack, raw_needed=False)
-    p_stack.add_argument(
-        "--dt",
-        type=int,
-        default=60,
-        metavar="SECONDS",
-        help="Common time-grid interval in seconds (default: 60)",
-    )
-    p_stack.add_argument(
-        "--force", action="store_true", help="Overwrite existing output file"
-    )
-    p_stack.add_argument(
-        "-n",
-        "--dry-run",
-        action="store_true",
-        dest="dry_run",
-        default=False,
-        help="Show which instruments would be stacked (no files written).",
-    )
-    p_stack.set_defaults(func=cmd_stack)
-
-    p_grid = sub.add_parser(
-        "grid",
-        description=(
-            "Reads {mooring}_stack.nc and interpolates temperature, salinity, and other\n"
-            "scalar fields onto a uniform pressure grid, producing {mooring}_grid.nc.\n"
-            "Run after 'oceanarray stack'.\n\n"
-            "Example:\n"
-            "  oceanarray grid MOORING --proc-dir /data/proc --pmin 100 --pmax 2000 --dp 20"
-        ),
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    p_grid.add_argument("mooring", help="Mooring name, e.g. dsG3_1_2026")
-    _add_dir_args(p_grid, raw_needed=False)
-    p_grid.add_argument(
-        "--pmin",
-        type=float,
-        default=200.0,
-        metavar="DBAR",
-        help="Shallowest pressure level (default: 200)",
-    )
-    p_grid.add_argument(
-        "--pmax",
-        type=float,
-        default=1000.0,
-        metavar="DBAR",
-        help="Deepest pressure level (default: 1000)",
-    )
-    p_grid.add_argument(
-        "--dp",
-        type=float,
-        default=20.0,
-        metavar="DBAR",
-        help="Pressure grid spacing in dbar (default: 20)",
-    )
-    p_grid.add_argument(
-        "--force", action="store_true", help="Overwrite existing output file"
-    )
-    p_grid.add_argument(
-        "-n",
-        "--dry-run",
-        action="store_true",
-        dest="dry_run",
-        default=False,
-        help="Show what would be generated (no files written).",
-    )
-    p_grid.set_defaults(func=cmd_grid)
-
     p_run = sub.add_parser(
         "run",
         help="Full pipeline: stages 1-3, stack, grid, and all reports in one command.",
@@ -1394,34 +1192,8 @@ def build_parser() -> argparse.ArgumentParser:
         default=[],
         help="Restrict to these serial number(s) for processing and per-instrument reports",
     )
-    p_run.add_argument(
-        "--dt",
-        type=int,
-        default=60,
-        metavar="SECONDS",
-        help="Stack time-grid interval in seconds (default: 60)",
-    )
-    p_run.add_argument(
-        "--dp",
-        type=float,
-        default=20.0,
-        metavar="DBAR",
-        help="Pressure grid spacing in dbar (default: 20)",
-    )
-    p_run.add_argument(
-        "--pmin",
-        type=float,
-        default=200.0,
-        metavar="DBAR",
-        help="Shallowest pressure level for grid (default: 200)",
-    )
-    p_run.add_argument(
-        "--pmax",
-        type=float,
-        default=1000.0,
-        metavar="DBAR",
-        help="Deepest pressure level for grid (default: 1000)",
-    )
+    _add_stack_grid_args(p_run)
+    _add_shared_report_args(p_run)
     p_run.set_defaults(func=cmd_run)
 
     p_validate = sub.add_parser(
@@ -1585,10 +1357,6 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> None:
     """Entry point for the ``oceanarray`` command-line tool."""
-    # Intercept the removed 'logsheet' verb before argparse sees it, so that
-    # both 'oceanarray logsheet' and 'oceanarray logsheet --help' hit the stub.
-    if len(sys.argv) > 1 and sys.argv[1] == "logsheet":
-        sys.exit(cmd_logsheet(argparse.Namespace()))
     parser = build_parser()
     args, _unknown = parser.parse_known_args()
     if _unknown:

@@ -107,11 +107,11 @@ Mooring-level processing
 After per-instrument processing (stages 0–3.5), multiple instruments on the same
 mooring are combined:
 
-- **Stack** (``oceanarray stack``): Resample all instruments onto a common time axis
+- **Stack** (``process --stage stack``): Resample all instruments onto a common time axis
   (default 60 s) and stack into a single NetCDF file with an ``N_LEVELS`` dimension
   ordered deep-first (``{mooring}_stack.nc``).  Fast-sampling instruments (Δt ≤ 60 s)
   are subsampled by nearest-neighbour; slower instruments are linearly interpolated.
-- **Grid** (``oceanarray grid``): Linearly interpolate the stacked file onto a regular
+- **Grid** (``process --stage grid``): Linearly interpolate the stacked file onto a regular
   pressure grid (``{mooring}_grid.nc``).  Values outside the instrument range at each
   time step are set to NaN.  QC flags are not consulted — data flagged suspect or bad
   in stage 3 are treated the same as good data unless already NaN.
