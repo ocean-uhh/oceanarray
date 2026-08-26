@@ -23,6 +23,7 @@ from oceanarray.reports._html_helpers import (
     _read_nc_metadata,
     _read_qc_summary,
     _resolve_clock,
+    _resolve_diagram_pdf,
     _safe_serial,
     _stage_files,
 )
@@ -301,6 +302,33 @@ class TestHtmlHelpers:
         assert result["stage1"] is True
         assert result["stage2"] is False
         assert result["stage3"] is False
+
+    def test_resolve_diagram_pdf_none_when_absent(self, tmp_path):
+        assert _resolve_diagram_pdf(tmp_path, "TEST_M1") is None
+
+    def test_resolve_diagram_pdf_prefers_canonical(self, tmp_path):
+        canonical = tmp_path / "TEST_M1_diagram.pdf"
+        canonical.write_bytes(b"%PDF-1.4")
+        (tmp_path / "dsG1_single.pdf").write_bytes(b"%PDF-1.4")
+        (tmp_path / "TEST_M1_hardware.pdf").write_bytes(b"%PDF-1.4")
+        assert _resolve_diagram_pdf(tmp_path, "TEST_M1") == canonical
+
+    def test_resolve_diagram_pdf_single_before_hardware(self, tmp_path):
+        single = tmp_path / "dsG1_single.pdf"
+        single.write_bytes(b"%PDF-1.4")
+        (tmp_path / "TEST_M1_hardware.pdf").write_bytes(b"%PDF-1.4")
+        assert _resolve_diagram_pdf(tmp_path, "TEST_M1") == single
+
+    def test_resolve_diagram_pdf_hardware_fallback(self, tmp_path):
+        hardware = tmp_path / "TEST_M1_hardware.pdf"
+        hardware.write_bytes(b"%PDF-1.4")
+        assert _resolve_diagram_pdf(tmp_path, "TEST_M1") == hardware
+
+    def test_resolve_diagram_pdf_ignores_appledouble_sidecar(self, tmp_path):
+        (tmp_path / "._dsG1_single.pdf").write_bytes(b"junk")
+        real = tmp_path / "TEST_M1_hardware.pdf"
+        real.write_bytes(b"%PDF-1.4")
+        assert _resolve_diagram_pdf(tmp_path, "TEST_M1") == real
 
 
 # ---------------------------------------------------------------------------

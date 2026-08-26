@@ -253,10 +253,35 @@ def _fig_to_base64(fig: Any) -> str:
     return base64.b64encode(out.getvalue()).decode("ascii")
 
 
-def _load_pdf_b64(path: Path) -> Optional[str]:
+def _load_pdf_b64(path: Optional[Path]) -> Optional[str]:
     """Return base64-encoded PDF bytes if *path* exists, else None."""
-    if path.is_file():
+    if path is not None and path.is_file():
         return base64.b64encode(path.read_bytes()).decode("ascii")
+    return None
+
+
+def _resolve_diagram_pdf(proc_dir: Path, mooring_name: str) -> Optional[Path]:
+    """Locate the mooring-diagram PDF for a mooring in *proc_dir*.
+
+    Resolution order, first match wins:
+
+    1. The canonical ``{mooring}_diagram.pdf``.
+    2. Any ``*_single.pdf`` (single-mooring output of the ``mooring_diagram``
+       package, whose stem may use a short prefix, e.g. ``dsG1_single.pdf``).
+    3. Any ``*_hardware.pdf`` (hardware diagram output).
+
+    macOS AppleDouble sidecars (``._*``) are ignored.  Returns ``None`` when
+    no diagram is present.
+    """
+    preferred = proc_dir / f"{mooring_name}_diagram.pdf"
+    if preferred.is_file():
+        return preferred
+    for pattern in ("*_single.pdf", "*_hardware.pdf"):
+        candidates = sorted(
+            p for p in proc_dir.glob(pattern) if not p.name.startswith("._")
+        )
+        if candidates:
+            return candidates[0]
     return None
 
 

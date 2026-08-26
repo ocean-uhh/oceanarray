@@ -26,6 +26,7 @@ from ._html_helpers import (
     _read_sensor_info,
     _read_timing_info,
     _resolve_clock,
+    _resolve_diagram_pdf,
     _safe_serial,
     _should_skip,
     _stage_files,
@@ -184,7 +185,7 @@ MOORING_PANELS: dict[str, Panel] = {
         unavailable_if=lambda c: (
             None
             if c.get("diagram_b64")
-            else "Mooring diagram not available (no _diagram.pdf found)."
+            else "Mooring diagram not available (no _diagram.pdf, _single.pdf, or _hardware.pdf found)."
         ),
     ),
     "issues": Panel(
@@ -854,7 +855,7 @@ class MooringReport:
             "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
             "proc_machine": socket.gethostname().split(".")[0],
             "yaml_path": self._rel(yaml_path),
-            "diagram_b64": _load_pdf_b64(proc_dir / f"{mooring_name}_diagram.pdf"),
+            "diagram_b64": _load_pdf_b64(_resolve_diagram_pdf(proc_dir, mooring_name)),
             "issues": _build_issues(instruments, recover_dt),
         }
 
