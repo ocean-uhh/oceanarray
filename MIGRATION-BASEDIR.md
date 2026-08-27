@@ -88,9 +88,7 @@ oceanarray run "$MOORING" \
 Individual steps:
 
 ```bash
-oceanarray process dsG3_1_2026 --raw-dir $RAW --proc-dir $PROC --stage 1 2 3
-oceanarray stack   dsG3_1_2026 --proc-dir $PROC
-oceanarray grid    dsG3_1_2026 --proc-dir $PROC --dp 10
+oceanarray process dsG3_1_2026 --raw-dir $RAW --proc-dir $PROC --stage 1 2 3 stack grid --dp 10
 oceanarray report  dsG3_1_2026 --raw-dir $RAW --proc-dir $PROC --instruments --stack --grid
 ```
 

@@ -127,7 +127,7 @@ Mooring processing
 stack
 ^^^^^
 Interpolate multiple instruments onto a common time grid and stack into a
-single mooring dataset (``oceanarray stack``).
+single mooring dataset (``oceanarray process MOORING --stage stack``).
 
 .. automodule:: oceanarray.processors.stack
    :members:
@@ -136,7 +136,7 @@ single mooring dataset (``oceanarray stack``).
 grid
 ^^^^
 Interpolate stacked mooring data onto a regular pressure grid
-(``oceanarray grid``).
+(``oceanarray process MOORING --stage grid``).
 
 .. automodule:: oceanarray.processors.grid
    :members:

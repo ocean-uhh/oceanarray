@@ -24,8 +24,12 @@ def test_build_parser_has_expected_subcommands():
     ]
     assert subparsers_actions, "parser has no subcommands"
     choices = set(subparsers_actions[0].choices.keys())
-    for cmd in ("process", "stack", "grid", "report", "validate", "init", "run"):
+    for cmd in ("process", "report", "validate", "init", "run"):
         assert cmd in choices, f"subcommand '{cmd}' missing from parser"
+    # 'stack' and 'grid' were removed as standalone subcommands; they survive
+    # only as --stage tokens on 'process'/'run'.
+    assert "stack" not in choices
+    assert "grid" not in choices
 
 
 def test_build_parser_version_action_present():
@@ -77,8 +81,6 @@ def test_build_parser_version_action_present():
             "dp",
             10.0,
         ),
-        (["stack", "mymoor", "--proc-dir", "/tmp/p"], "mooring", "mymoor"),
-        (["grid", "mymoor", "--proc-dir", "/tmp/p", "--dp", "25"], "dp", 25.0),
         (
             ["report", "mymoor", "--proc-dir", "/tmp/p", "--instruments"],
             "instruments",
@@ -149,26 +151,26 @@ class TestStageToken:
         assert stage_action.choices == expected
 
 
-def test_logsheet_stub_warns_and_returns_1():
-    """'oceanarray logsheet' emits DeprecationWarning and returns 1.
-
-    Guards that the stub is not silently dropped before the planned v0.3.0 removal.
-    """
-    from oceanarray.cli import cmd_logsheet
-
-    with pytest.warns(DeprecationWarning, match="logsheet"):
-        result = cmd_logsheet(argparse.Namespace())
-    assert result == 1
-
-
-def test_logsheet_hidden_from_help():
-    """'logsheet' must not appear in oceanarray --help output."""
-    import subprocess
-    import sys
-
-    result = subprocess.run(
-        [sys.executable, "-m", "oceanarray", "--help"],
-        capture_output=True,
-        text=True,
+def test_run_accepts_shared_report_args():
+    """'run' honours the report-redirect args shared with 'report'."""
+    parser = build_parser()
+    ns = parser.parse_args(
+        [
+            "run",
+            "mymoor",
+            "--proc-dir",
+            "/tmp/p",
+            "--raw-dir",
+            "/tmp/r",
+            "-o",
+            "/tmp/out",
+            "--report-dir",
+            "/tmp/central",
+            "--sig-level",
+            "27.5",
+            "27.7",
+        ]
     )
-    assert "logsheet" not in result.stdout
+    assert ns.outdir == "/tmp/out"
+    assert ns.report_dir == "/tmp/central"
+    assert ns.sig_level == [27.5, 27.7]

@@ -5,8 +5,8 @@ CLI Reference
 ===================
 
 The typical workflow is: validate the YAML, run ``oceanarray process`` stage by
-stage, inspect with ``oceanarray report``, combine with ``oceanarray stack`` and
-``oceanarray grid``, then use ``oceanarray run`` to reproduce the full pipeline
+stage (including the ``stack`` and ``grid`` stages), inspect with
+``oceanarray report``, then use ``oceanarray run`` to reproduce the full pipeline
 in one command.
 
 All processing subcommands accept a mooring name as the first positional
@@ -174,9 +174,15 @@ The recommended sequence for a new mooring is:
   Aquadopp velocities to earth coordinates, and applies magnetic declination
   correction.  Writes ``{mooring}_{serial}_stage3.nc``.
 - **stack**: interpolates all instruments onto a common time axis and writes
-  ``{mooring}_stack.nc``.  Equivalent to ``oceanarray stack`` (now deprecated).
+  ``{mooring}_stack.nc``.  Instruments sampling faster than ``--dt`` are
+  subsampled by nearest-neighbour; slower instruments are interpolated linearly.
+  The 60-second default suits most mooring data; for high-frequency analysis
+  (e.g. internal waves from fast thermistors) work from the ``_stage3.nc`` files
+  or build a finer stack with ``--dt``.
 - **grid**: interpolates the stack onto a regular pressure grid and writes
-  ``{mooring}_grid.nc``.  Equivalent to ``oceanarray grid`` (now deprecated).
+  ``{mooring}_grid.nc``.  Values outside the instrument depth range at each time
+  step are set to NaN.  QC flags from stage 3 are not consulted — data flagged
+  suspect or bad are treated the same as good unless already NaN.
 
 **Output created**
 
@@ -349,138 +355,6 @@ Cruise recovery table:
 .. code-block:: bash
 
    oceanarray report dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --cruise-table
-
-----
-
-``oceanarray stack`` *(deprecated)*
--------------------------------------
-
-.. deprecated:: 0.2.0
-
-   ``oceanarray stack`` is deprecated and will be removed in v0.3.0.
-   Use ``oceanarray process MOORING --stage stack`` instead.
-
-Combine individual instrument time series into a single mooring file by
-"stacking" them one above another, ordered by depth (derived from HAB).
-
-Each instrument may sample at a different rate — some thermistors measure
-every 1–3 s, some microCATs every 15–60 s.  A common time interval must be
-chosen so that all instruments appear on the same time axis in the output.
-The default is 60 seconds, which is appropriate for most mooring data.
-Instruments sampling faster than the target interval are subsampled using
-nearest-neighbour; instruments sampling slower are interpolated linearly.
-
-.. note::
-
-   The 60-second default is chosen for straightforward processing.  For
-   scientific questions that require the original sampling rate (e.g.
-   high-frequency internal wave analysis from fast thermistors), you may
-   want to work with the individual ``_stage3.nc`` files rather than the
-   stack, or produce a separate stack at a finer interval using ``--dt``.
-
-**Synopsis**
-
-.. code-block:: text
-
-   oceanarray stack MOORING [--proc-dir DIR] [--dt SECONDS] [--force]
-
-**Flags**
-
-.. list-table::
-   :header-rows: 1
-   :widths: 25 10 10 55
-
-   * - Flag
-     - Type
-     - Default
-     - Description
-   * - ``--proc-dir DIR``
-     - path
-     - (required)
-     - Cruise-level processed data directory.
-   * - ``--dt SECONDS``
-     - integer
-     - 60
-     - Target time step in seconds.
-   * - ``--force``
-     - flag
-     - off
-     - Overwrite an existing stack file.
-
-**Output created**
-
-``{proc_dir}/{mooring}/{mooring}_stack.nc``
-
-**Example**
-
-.. code-block:: bash
-
-   oceanarray stack dsG3_1_2026 --proc-dir /data/proc --dt 60
-
-----
-
-``oceanarray grid`` *(deprecated)*
-------------------------------------
-
-.. deprecated:: 0.2.0
-
-   ``oceanarray grid`` is deprecated and will be removed in v0.3.0.
-   Use ``oceanarray process MOORING --stage grid`` instead.
-
-Interpolate the stack file onto a regular pressure grid.  Run after
-``oceanarray process MOORING --stage stack`` (or the deprecated ``oceanarray stack``).
-
-Values outside the depth range of available instruments at each time step
-are set to NaN.  QC flags from stage 3 are not consulted — data flagged
-suspect or bad are treated the same as good data unless they are already NaN.
-
-**Synopsis**
-
-.. code-block:: text
-
-   oceanarray grid MOORING [--proc-dir DIR] [--dp DBAR]
-                           [--pmin DBAR] [--pmax DBAR] [--force]
-
-**Flags**
-
-.. list-table::
-   :header-rows: 1
-   :widths: 25 10 10 55
-
-   * - Flag
-     - Type
-     - Default
-     - Description
-   * - ``--proc-dir DIR``
-     - path
-     - (required)
-     - Cruise-level processed data directory.
-   * - ``--dp DBAR``
-     - number
-     - 20
-     - Pressure grid spacing in dbar.
-   * - ``--pmin DBAR``
-     - number
-     - 200
-     - Shallowest pressure level (dbar).
-   * - ``--pmax DBAR``
-     - number
-     - 1000
-     - Deepest pressure level (dbar).
-   * - ``--force``
-     - flag
-     - off
-     - Overwrite an existing grid file.
-
-**Output created**
-
-``{proc_dir}/{mooring}/{mooring}_grid.nc``
-
-**Example**
-
-.. code-block:: bash
-
-   oceanarray grid dsG3_1_2026 --proc-dir /data/proc --dp 20 --pmin 100 --pmax 2000
 
 ----
 
