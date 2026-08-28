@@ -1,45 +1,29 @@
-You can delete unused sections.
+<!--
+Title: prefix with one tag — [DOC] [FIX] [FEAT] [REFACTOR] [TEST] [CI] [CLEANUP]
+Example: [FIX] Correct dimension handling in RBR reader
+Keep it concise. Delete any section that does not apply (except Summary).
+Write each bullet/paragraph as one continuous line — GitHub soft-wraps.
+-->
 
-## PR Title Convention
+## Summary
 
-Please prefix your pull request title with one of the following tags:
+What changed and why, in one short paragraph.
 
-- `[DOC]` for documentation updates
-- `[FIX]` for bug fixes
-- `[FEAT]` for new features
-- `[REFACTOR]` for code improvements
-- `[TEST]` for tests
-- `[CI]` for CI/CD or automation updates
-- `[CLEANUP]` for general maintenance
+## What's changed
 
-Example:
-> `[FIX] Correct dimension handling in RBR reader`
+- Concrete change (one bullet each).
 
-**Description:**
+## Breaking changes
 
-Please describe your changes clearly and concisely.
+Each breaking change and how to migrate (removed/renamed public API or CLI flag, changed signature or parameter meaning, changed output/config layout). Write "None" if there are none — keep the section so reviewers see it was considered.
 
-- What is the purpose of this pull request?
-- What issue(s) does it address? Please link them (e.g., closes #12).
-- Briefly explain the approach taken.
+## Notes
 
-**Checklist:**
+Optional — design decisions or trade-offs, screenshots if outputs changed, related issues (Fixes #, Related to #), and anything reviewers should look at closely.
 
-- [ ] I have followed the [code conventions](CONTRIBUTING.md).
-- [ ] I have updated or added tests to cover my changes.
-- [ ] I have updated the documentation if needed.
-- [ ] I have run `ruff check . --fix` and `pytest` — all tests pass.
+## Checklist
 
-**Related Issues / Pull Requests:**
-
-Link any related issues, pull requests, or discussions:
-- Fixes #
-- Related to #
-
-**Additional Notes:**
-
-Include any additional information reviewers might need:
-
-- Screenshots (if outputs are affected)
-- Design decisions or trade-offs
-- Anything reviewers should look at closely
+- [ ] Followed the [code conventions](CONTRIBUTING.md)
+- [ ] Added or updated tests to cover the change
+- [ ] Updated documentation if needed
+- [ ] Ran `ruff check . --fix` and `pytest` — all pass
