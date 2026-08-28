@@ -111,6 +111,10 @@ class TestSlugFor:
         p = tmp_path / "instrument" / "dune2_1_2026_2941_report.html"
         assert _slug_for(p, "dune2_1_2026") == "instr-2941"
 
+    def test_unknown_file_falls_back_to_sanitised_stem(self, tmp_path: Path) -> None:
+        """A non-report file (e.g. a cover page) slugs from its sanitised stem."""
+        assert _slug_for(tmp_path / "cover_map.html", "M1") == "cover-map"
+
 
 class TestBuildCombinedHtml:
     """The single-document transform: id namespacing + inter-page link rewriting.
@@ -182,6 +186,14 @@ class TestBuildCombinedHtml:
             ]
         )
         assert out.count("<style>") == 1  # identical blocks collapsed to one
+
+    def test_page_without_body_tag_uses_whole_html(self) -> None:
+        """A page with no ``<body>`` falls back to using its full HTML (defensive)."""
+        out = _build_combined_html(
+            [("summary", "M1_report.html", '<div id="top">bare</div>')]
+        )
+        assert 'id="summary__top"' in out
+        assert '<section class="pdf-page">' in out
 
     def test_each_page_wrapped_in_pdf_page_section(self) -> None:
         one = "<html><body><p>a</p></body></html>"
