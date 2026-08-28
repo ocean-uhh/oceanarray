@@ -12,6 +12,7 @@ oceanarray[pdf]``.
 
 from __future__ import annotations
 
+import re
 from glob import escape as _glob_escape
 from pathlib import Path
 from typing import List, Optional
@@ -29,9 +30,29 @@ _PRINT_CSS = """
         color: #666;
     }
 }
-/* Keep figures, tables and cards from splitting across a page break. */
-figure, table, .card, .metric-card, .instrument-card {
+/* Keep figures and cards from splitting across a page break. */
+figure, .card, .metric-card, .instrument-card {
     break-inside: avoid;
+}
+/* Tables may break across pages, but only at row boundaries — so a tall table
+   (e.g. NetCDF global attributes) fills the space under its heading and
+   continues overleaf, instead of jumping whole to the next page and orphaning
+   the heading with a gap above it.  Individual rows stay intact and the header
+   row repeats on each page. */
+table {
+    break-inside: auto;
+}
+thead {
+    display: table-header-group;
+}
+tr {
+    break-inside: avoid;
+}
+/* Keep a section heading with the start of its content: never leave a heading
+   stranded at the bottom of a page.  (_report_css handles h2; the NetCDF
+   attribute/variable tables use h3/h4 subheads, so cover those too.) */
+h2, h3, h4 {
+    break-after: avoid;
 }
 /* Cap figures at the printable content width as an overflow ceiling, but do NOT
    use !important: the templates give many figures an inline per-figure cap
@@ -106,6 +127,12 @@ p, li {
 .pdf-section-break {
     break-before: page;
 }
+/* Each source report is wrapped in a .pdf-page section when combined into one
+   document; start every page after the first on a fresh sheet (the leading
+   report keeps the first page, no blank cover). */
+.pdf-page + .pdf-page {
+    break-before: page;
+}
 """
 
 
@@ -146,6 +173,156 @@ def _ordered_report_files(report_dir: Path, mooring_name: str) -> List[Path]:
             files.append(p)
 
     return files
+
+
+# Regexes for the single-document combine.  These namespace anchor ids per page
+# so links resolve within the merged PDF (see .claude/report-crosslinks-plan.md).
+#
+# SAFETY CONDITION — no inline SVG.  Rewriting ``id="x"`` is safe only because
+# figures embed as base64 PNG (``_encode.py::_fig_to_base64``) and there is no
+# ``<svg>`` anywhere under ``oceanarray/reports/``.  SVG references its own ids
+# via ``url(#grad1)`` and ``xlink:href="#…"``, which this pass does NOT rewrite;
+# namespacing ``id=`` without them would detach gradients/clip-paths and yield a
+# silently unstyled figure in the PDF only.  If figures ever switch to SVG, this
+# combine must also rewrite ``url(#…)`` / ``xlink:href``.
+_ID_ATTR_RE = re.compile(r'(?<=\s)id="([^"]*)"')
+_LOCAL_HREF_RE = re.compile(r'href="#([^"]*)"')
+_STYLE_RE = re.compile(r"<style[^>]*>(.*?)</style>", re.DOTALL | re.IGNORECASE)
+_BODY_RE = re.compile(r"<body[^>]*>(.*?)</body>", re.DOTALL | re.IGNORECASE)
+
+
+def _slug_for(path: Path, mooring_name: str) -> str:
+    """Return the in-document slug for a source report file.
+
+    ``{mooring}_report.html`` → ``summary``; ``..._stack_report.html`` →
+    ``stack``; ``..._grid_report.html`` → ``grid``; an instrument page
+    ``instrument/{mooring}_{serial}_report.html`` → ``instr-{serial}``; anything
+    else (e.g. a cover page) falls back to the sanitised file stem.
+
+    Parameters
+    ----------
+    path : Path
+        The source report HTML file.
+    mooring_name : str
+        Mooring identifier used as the filename stem.
+
+    Returns
+    -------
+    str
+        The slug used to namespace that page's ids in the merged document.
+
+    """
+    name = path.name
+    if name == f"{mooring_name}_report.html":
+        return "summary"
+    if name == f"{mooring_name}_stack_report.html":
+        return "stack"
+    if name == f"{mooring_name}_grid_report.html":
+        return "grid"
+    prefix = f"{mooring_name}_"
+    suffix = "_report.html"
+    if (
+        path.parent.name == "instrument"
+        and name.startswith(prefix)
+        and name.endswith(suffix)
+    ):
+        return f"instr-{name[len(prefix) : -len(suffix)]}"
+    return re.sub(r"[^A-Za-z0-9]+", "-", path.stem).strip("-") or "page"
+
+
+def _namespace_page(slug: str, html: str) -> "tuple[list[str], str]":
+    """Extract a page's ``<style>`` blocks and its namespaced ``<body>`` inner HTML.
+
+    Every ``id="x"`` becomes ``id="{slug}__x"`` and every same-page
+    ``href="#x"`` becomes ``href="#{slug}__x"``, so anchors from different source
+    pages cannot collide once concatenated.  Inter-page links (whole filenames)
+    are left for :func:`_rewrite_interpage_hrefs`, which runs after every page's
+    slug is known.
+
+    Parameters
+    ----------
+    slug : str
+        The page's slug (see :func:`_slug_for`).
+    html : str
+        The page's full HTML.
+
+    Returns
+    -------
+    tuple of (list of str, str)
+        The page's ``<style>`` block contents and its namespaced body inner HTML.
+
+    """
+    styles = _STYLE_RE.findall(html)
+    body_match = _BODY_RE.search(html)
+    body = body_match.group(1) if body_match else html
+    body = _ID_ATTR_RE.sub(lambda m: f'id="{slug}__{m.group(1)}"', body)
+    body = _LOCAL_HREF_RE.sub(lambda m: f'href="#{slug}__{m.group(1)}"', body)
+    return styles, body
+
+
+def _rewrite_interpage_hrefs(body: str, target_anchors: "dict[str, str]") -> str:
+    """Rewrite links to sibling report files into in-document anchors.
+
+    Parameters
+    ----------
+    body : str
+        A page's (already id-namespaced) body inner HTML.
+    target_anchors : dict of {str: str}
+        Maps a source filename as it appears in an ``href`` (e.g.
+        ``dune2_1_2026_stack_report.html``) to that page's in-document anchor
+        (e.g. ``#stack__top``).  A trailing ``#fragment`` on the link is dropped
+        (phase 1 is a whole-page jump).
+
+    Returns
+    -------
+    str
+        The body with inter-page links rewritten.
+
+    """
+    for filename, anchor in target_anchors.items():
+        pattern = re.compile(r'href="[^"]*' + re.escape(filename) + r'(?:#[^"]*)?"')
+        body = pattern.sub(f'href="{anchor}"', body)
+    return body
+
+
+def _build_combined_html(pages: "list[tuple[str, str, str]]") -> str:
+    """Assemble one HTML document from ordered ``(slug, filename, html)`` pages.
+
+    Each page's ids are namespaced by slug, inter-page links are rewritten to
+    in-document anchors, and each page is wrapped in a ``.pdf-page`` section so
+    the print stylesheet starts it on a fresh sheet.  The whole-page jump target
+    for a page is its masthead ``#{slug}__top`` (every page carries ``id="top"``
+    from ``base.html``).  Identical ``<style>`` blocks — the same report CSS on
+    every page — are de-duplicated.
+
+    Parameters
+    ----------
+    pages : list of (str, str, str)
+        Ordered ``(slug, filename, html)`` triples, one per source report.
+
+    Returns
+    -------
+    str
+        A single self-contained HTML document ready for one WeasyPrint render.
+
+    """
+    target_anchors = {filename: f"#{slug}__top" for slug, filename, _ in pages}
+    seen_styles: List[str] = []
+    sections: List[str] = []
+    for slug, _filename, html in pages:
+        styles, body = _namespace_page(slug, html)
+        body = _rewrite_interpage_hrefs(body, target_anchors)
+        for block in styles:
+            if block not in seen_styles:
+                seen_styles.append(block)
+        sections.append(f'<section class="pdf-page">{body}</section>')
+    style_tag = "\n".join(f"<style>{block}</style>" for block in seen_styles)
+    body_html = "\n".join(sections)
+    return (
+        "<!DOCTYPE html>\n"
+        '<html lang="en">\n<head>\n<meta charset="utf-8">\n'
+        f"{style_tag}\n</head>\n<body>\n{body_html}\n</body>\n</html>\n"
+    )
 
 
 def combine_mooring_pdf(
@@ -210,15 +387,21 @@ def combine_mooring_pdf(
         sources.append(Path(cover_html))
     sources.extend(files)
 
-    documents = [
-        HTML(filename=str(f), base_url=str(f.parent)).render(stylesheets=[css])
+    # Build ONE document from all pages and render it once: WeasyPrint only
+    # resolves internal hyperlinks within a single render(), so cross-page links
+    # (stack/grid/instrument header cards) are dead when each file is rendered
+    # separately.  Ids are namespaced per page first so anchors do not collide.
+    pages = [
+        (_slug_for(f, mooring_name), f.name, f.read_text(encoding="utf-8"))
         for f in sources
     ]
-    pages = [page for doc in documents for page in doc.pages]
+    combined_html = _build_combined_html(pages)
 
     if output_path is None:
         output_path = report_dir / f"{mooring_name}_report.pdf"
     output_path = Path(output_path)
 
-    documents[0].copy(pages).write_pdf(str(output_path))
+    HTML(string=combined_html, base_url=str(report_dir)).write_pdf(
+        str(output_path), stylesheets=[css]
+    )
     return output_path

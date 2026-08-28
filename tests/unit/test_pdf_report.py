@@ -10,7 +10,11 @@ import pytest
 import yaml
 
 from oceanarray.reports import MooringReport, combine_mooring_pdf
-from oceanarray.reports._pdf import _ordered_report_files
+from oceanarray.reports._pdf import (
+    _build_combined_html,
+    _ordered_report_files,
+    _slug_for,
+)
 
 # Minimal mooring YAML that MooringReport.generate() can render a summary from
 # (mirrors the fixture in test_report.py::TestMooringReport).
@@ -88,6 +92,109 @@ class TestOrderedReportFiles:
         assert _ordered_report_files(tmp_path, "M1") == []
 
 
+class TestSlugFor:
+    """Slug derivation for each source report file type."""
+
+    def test_summary(self, tmp_path: Path) -> None:
+        assert _slug_for(tmp_path / "M1_report.html", "M1") == "summary"
+
+    def test_stack_and_grid(self, tmp_path: Path) -> None:
+        assert _slug_for(tmp_path / "M1_stack_report.html", "M1") == "stack"
+        assert _slug_for(tmp_path / "M1_grid_report.html", "M1") == "grid"
+
+    def test_instrument_serial(self, tmp_path: Path) -> None:
+        p = tmp_path / "instrument" / "M1_9920_report.html"
+        assert _slug_for(p, "M1") == "instr-9920"
+
+    def test_mooring_name_with_underscores(self, tmp_path: Path) -> None:
+        """A serial is extracted correctly when the mooring name itself has ``_``."""
+        p = tmp_path / "instrument" / "dune2_1_2026_2941_report.html"
+        assert _slug_for(p, "dune2_1_2026") == "instr-2941"
+
+
+class TestBuildCombinedHtml:
+    """The single-document transform: id namespacing + inter-page link rewriting.
+
+    Pure string transform — no WeasyPrint needed.
+    """
+
+    def test_interpage_link_rewritten_and_ids_namespaced(self) -> None:
+        summary = (
+            "<html><head><style>.masthead{}</style></head><body>"
+            '<div id="top">summary</div>'
+            '<a href="M1_stack_report.html">stack</a>'
+            '<a href="#qc">qc</a><h2 id="qc">QC</h2>'
+            "</body></html>"
+        )
+        stack = (
+            "<html><head><style>.masthead{}</style></head><body>"
+            '<div id="top">stack</div></body></html>'
+        )
+        out = _build_combined_html(
+            [
+                ("summary", "M1_report.html", summary),
+                ("stack", "M1_stack_report.html", stack),
+            ]
+        )
+        # inter-page file link becomes an in-document anchor to the target masthead
+        assert 'href="#stack__top"' in out
+        assert "M1_stack_report.html" not in out  # no dead file link remains
+        # per-page ids and same-page anchors are namespaced by slug
+        assert 'id="summary__top"' in out
+        assert 'id="stack__top"' in out
+        assert 'href="#summary__qc"' in out
+        assert 'id="summary__qc"' in out
+        # Completeness tripwire: no id survives without a slug prefix.  Scan with a
+        # BROADER pattern than the transform (either quote style, spaces around =)
+        # so it fails loudly if a future template uses a spelling the transform's
+        # `id="..."` regex would miss.
+        import re
+
+        ids = re.findall(r"""id\s*=\s*["']([^"']*)["']""", out)
+        assert ids  # sanity: some ids present
+        assert all("__" in v for v in ids), f"unprefixed id(s) survived: {ids}"
+
+    def test_interpage_link_with_fragment_and_path_rewritten(self) -> None:
+        """An ``instrument/...#start`` link maps to the whole-page anchor (phase 1)."""
+        summary = (
+            "<html><body>"
+            '<a href="instrument/M1_9920_report.html#start">6 h</a>'
+            "</body></html>"
+        )
+        instr = '<html><body><div id="top">i</div></body></html>'
+        out = _build_combined_html(
+            [
+                ("summary", "M1_report.html", summary),
+                ("instr-9920", "M1_9920_report.html", instr),
+            ]
+        )
+        assert 'href="#instr-9920__top"' in out
+        assert "M1_9920_report.html" not in out
+
+    def test_identical_styles_deduplicated(self) -> None:
+        css = ".masthead{color:red}"
+        p1 = f"<html><head><style>{css}</style></head><body><p>1</p></body></html>"
+        p2 = f"<html><head><style>{css}</style></head><body><p>2</p></body></html>"
+        out = _build_combined_html(
+            [
+                ("summary", "M1_report.html", p1),
+                ("stack", "M1_stack_report.html", p2),
+            ]
+        )
+        assert out.count("<style>") == 1  # identical blocks collapsed to one
+
+    def test_each_page_wrapped_in_pdf_page_section(self) -> None:
+        one = "<html><body><p>a</p></body></html>"
+        two = "<html><body><p>b</p></body></html>"
+        out = _build_combined_html(
+            [
+                ("summary", "M1_report.html", one),
+                ("stack", "M1_stack_report.html", two),
+            ]
+        )
+        assert out.count('<section class="pdf-page">') == 2
+
+
 class TestCombineMooringPdf:
     """End-to-end PDF combination."""
 
@@ -110,6 +217,42 @@ class TestCombineMooringPdf:
         data = out.read_bytes()
         assert data.startswith(b"%PDF-")
         assert len(data) > 0
+
+    def test_crosspage_link_resolves_inside_merged_pdf(self, tmp_path: Path) -> None:
+        """A summary→stack link becomes an internal PDF destination, not a dead URI.
+
+        This is the whole point of the single-document combine: rendering each
+        page separately (the old behaviour) leaves the inter-page link as an
+        external ``/URI`` to a ``.html`` file that does not exist in the PDF.
+        WeasyPrint compresses annotations into object streams, so the check
+        inflates the FlateDecode streams before searching.
+        """
+        pytest.importorskip("weasyprint", reason="pdf extra not installed")
+        import re
+        import zlib
+
+        (tmp_path / "M1_report.html").write_text(
+            '<html><body><div id="top">summary</div>'
+            '<a href="M1_stack_report.html">stack</a></body></html>'
+        )
+        (tmp_path / "M1_stack_report.html").write_text(
+            '<html><body><div id="top">stack</div></body></html>'
+        )
+
+        out = combine_mooring_pdf(tmp_path, "M1")
+        pdf = out.read_bytes()
+
+        blob = pdf
+        for m in re.finditer(rb"stream\r?\n(.*?)\r?\nendstream", pdf, re.DOTALL):
+            try:
+                blob += zlib.decompress(m.group(1))
+            except zlib.error:
+                continue
+
+        assert b"/Link" in blob, "no link annotation emitted"
+        assert b"/Dest" in blob, "link did not resolve to an internal destination"
+        assert b"/URI" not in blob, "link left as an external URI"
+        assert b".html" not in blob, "dead .html file link survived into the PDF"
 
     def test_custom_output_path(self, tmp_path: Path) -> None:
         """An explicit output_path is honoured."""
