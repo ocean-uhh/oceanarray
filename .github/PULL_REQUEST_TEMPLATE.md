@@ -15,7 +15,7 @@ What changed and why, in one short paragraph.
 
 ## Breaking changes
 
-Each breaking change and how to migrate (removed/renamed public API or CLI flag, changed signature or parameter meaning, changed output/config layout). Delete this section if there are none.
+Each breaking change and how to migrate (removed/renamed public API or CLI flag, changed signature or parameter meaning, changed output/config layout). Write "None" if there are none — keep the section so reviewers see it was considered.
 
 ## Notes
 
