@@ -45,6 +45,11 @@ def _write_html(path: Path, title: str) -> None:
     path.write_text(f"<html><body><h1>{title}</h1></body></html>")
 
 
+def _html_page(body: str, style: str = ".masthead{}") -> str:
+    """Wrap *body* in a minimal HTML document with one ``<style>`` block."""
+    return f"<html><head><style>{style}</style></head><body>{body}</body></html>"
+
+
 class TestOrderedReportFiles:
     """Reading-order resolution: summary -> instruments -> stack -> grid."""
 
@@ -123,17 +128,12 @@ class TestBuildCombinedHtml:
     """
 
     def test_interpage_link_rewritten_and_ids_namespaced(self) -> None:
-        summary = (
-            "<html><head><style>.masthead{}</style></head><body>"
+        summary = _html_page(
             '<div id="top">summary</div>'
             '<a href="M1_stack_report.html">stack</a>'
             '<a href="#qc">qc</a><h2 id="qc">QC</h2>'
-            "</body></html>"
         )
-        stack = (
-            "<html><head><style>.masthead{}</style></head><body>"
-            '<div id="top">stack</div></body></html>'
-        )
+        stack = _html_page('<div id="top">stack</div>')
         out = _build_combined_html(
             [
                 ("summary", "M1_report.html", summary),
@@ -177,12 +177,10 @@ class TestBuildCombinedHtml:
 
     def test_identical_styles_deduplicated(self) -> None:
         css = ".masthead{color:red}"
-        p1 = f"<html><head><style>{css}</style></head><body><p>1</p></body></html>"
-        p2 = f"<html><head><style>{css}</style></head><body><p>2</p></body></html>"
         out = _build_combined_html(
             [
-                ("summary", "M1_report.html", p1),
-                ("stack", "M1_stack_report.html", p2),
+                ("summary", "M1_report.html", _html_page("<p>1</p>", css)),
+                ("stack", "M1_stack_report.html", _html_page("<p>2</p>", css)),
             ]
         )
         assert out.count("<style>") == 1  # identical blocks collapsed to one

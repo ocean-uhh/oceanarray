@@ -123,10 +123,6 @@ p, li {
 .nav-buttons, .nav, a.nav-button {
     display: none !important;
 }
-/* Start each source report on a fresh page. */
-.pdf-section-break {
-    break-before: page;
-}
 /* Each source report is wrapped in a .pdf-page section when combined into one
    document; start every page after the first on a fresh sheet (the leading
    report keeps the first page, no blank cover). */
@@ -230,7 +226,7 @@ def _slug_for(path: Path, mooring_name: str) -> str:
     return re.sub(r"[^A-Za-z0-9]+", "-", path.stem).strip("-") or "page"
 
 
-def _namespace_page(slug: str, html: str) -> "tuple[list[str], str]":
+def _namespace_page(slug: str, html: str) -> tuple[list[str], str]:
     """Extract a page's ``<style>`` blocks and its namespaced ``<body>`` inner HTML.
 
     Every ``id="x"`` becomes ``id="{slug}__x"`` and every same-page
@@ -260,7 +256,7 @@ def _namespace_page(slug: str, html: str) -> "tuple[list[str], str]":
     return styles, body
 
 
-def _rewrite_interpage_hrefs(body: str, target_anchors: "dict[str, str]") -> str:
+def _rewrite_interpage_hrefs(body: str, target_anchors: dict[str, str]) -> str:
     """Rewrite links to sibling report files into in-document anchors.
 
     Parameters
@@ -285,7 +281,7 @@ def _rewrite_interpage_hrefs(body: str, target_anchors: "dict[str, str]") -> str
     return body
 
 
-def _build_combined_html(pages: "list[tuple[str, str, str]]") -> str:
+def _build_combined_html(pages: list[tuple[str, str, str]]) -> str:
     """Assemble one HTML document from ordered ``(slug, filename, html)`` pages.
 
     Each page's ids are namespaced by slug, inter-page links are rewritten to
@@ -307,16 +303,18 @@ def _build_combined_html(pages: "list[tuple[str, str, str]]") -> str:
 
     """
     target_anchors = {filename: f"#{slug}__top" for slug, filename, _ in pages}
-    seen_styles: List[str] = []
+    all_styles: List[str] = []
     sections: List[str] = []
     for slug, _filename, html in pages:
         styles, body = _namespace_page(slug, html)
         body = _rewrite_interpage_hrefs(body, target_anchors)
-        for block in styles:
-            if block not in seen_styles:
-                seen_styles.append(block)
+        all_styles.extend(styles)
         sections.append(f'<section class="pdf-page">{body}</section>')
-    style_tag = "\n".join(f"<style>{block}</style>" for block in seen_styles)
+    # De-duplicate identical <style> blocks (the same report CSS on every page),
+    # order-preserving.
+    style_tag = "\n".join(
+        f"<style>{block}</style>" for block in dict.fromkeys(all_styles)
+    )
     body_html = "\n".join(sections)
     return (
         "<!DOCTYPE html>\n"
@@ -346,8 +344,8 @@ def combine_mooring_pdf(
         Destination PDF path.  Defaults to
         ``report_dir / f"{mooring_name}_report.pdf"``.
     cover_html : Path, optional
-        HTML file to render as a leading cover page (e.g. a location map).
-        Reserved for future use; ``None`` produces no cover.
+        HTML file prepended as the leading page (e.g. a location map).
+        ``None`` produces no cover.
 
     Returns
     -------
