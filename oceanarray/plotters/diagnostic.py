@@ -456,14 +456,14 @@ def plot_knockdown_anomaly(
     A vertical reference line at x = 0 marks zero knockdown.  Box colour
     indicates the magnitude of the median knockdown:
 
-    =========  ========================
-    Colour     Knockdown magnitude
-    =========  ========================
-    green      < 100 dbar
-    gold       100–200 dbar
-    darkorange 200–300 dbar
-    firebrick  > 300 dbar
-    =========  ========================
+    ==========  ========================
+    Colour      Knockdown magnitude
+    ==========  ========================
+    green       < 100 dbar
+    gold        100–200 dbar
+    darkorange  200–300 dbar
+    firebrick   > 300 dbar
+    ==========  ========================
 
     Interpolated pressure (QC flag 8) is excluded.  Rendered at half-width
     in the stack report.

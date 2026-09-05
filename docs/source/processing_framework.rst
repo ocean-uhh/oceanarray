@@ -44,27 +44,28 @@ The instrument-level processing carries out the following steps:
   (``_stage2.nc``).
 - **Stage 3:** Applied in this order:
 
-  1. Pressure interpolation for instruments without a native pressure sensor, using
+  1. Optional caldip calibration correction **(planned, not yet implemented)** — when the
+     mooring is configured with caldip casts, per-instrument temperature/conductivity/pressure
+     offsets from post-cruise caldip dips are applied to the raw values *first*, before
+     pressure interpolation, so every downstream step sees corrected data.  Omitted when no
+     caldip input is given, leaving the output unchanged from today.  See the note below.
+  2. Pressure interpolation for instruments without a native pressure sensor, using
      HAB and the pressure records of neighbouring instruments.
-  2. Conductivity unit check — converts S/m → mS/cm where needed.
-  3. Derivation of practical salinity via ``gsw.SP_from_C(C, T, p)``.
-  4. QARTOD gross-range and spike QC tests on temperature, conductivity, salinity,
+  3. Conductivity unit check — converts S/m → mS/cm where needed.
+  4. Derivation of practical salinity via ``gsw.SP_from_C(C, T, p)``.
+  5. QARTOD gross-range and spike QC tests on temperature, conductivity, salinity,
      and pressure — applied *after* pressure interpolation so that interpolated
      pressures also receive QC flags.
-  5. XYZ→ENU coordinate rotation for Aquadopps, using heading, pitch, roll, and
+  6. XYZ→ENU coordinate rotation for Aquadopps, using heading, pitch, roll, and
      magnetic declination correction.  (Stage 1 applies the prior BEAM→XYZ step
      using the instrument T matrix from the ``.hdr`` file.)
-  6. Tilt QC for Aquadopps: velocity variables flagged suspect or bad when pitch/roll
+  7. Tilt QC for Aquadopps: velocity variables flagged suspect or bad when pitch/roll
      exceed configurable thresholds (default 20°/30°).  For RDI ADCPs with four
      beams, ``error_velocity`` is used for QC instead.
 
   Output: ``_stage3.nc``.  Applied QC thresholds are stored as attributes on each
   ``*_qc`` variable so the exact configuration can be recovered from the file.
 
-- **Stage 3.5 (planned):** Apply instrument calibrations from post-cruise caldip casts
-  or laboratory comparisons, and create a traceable calibration log.  See the
-  `caldip package <https://github.com/ocean-uhh/caldip>`_ for calibration dip
-  processing.
 - **Stage 4 (planned):** Full export to OceanSITES format with rich metadata.
 
 .. note::
@@ -79,10 +80,12 @@ The instrument-level processing carries out the following steps:
 
 .. note::
 
-  Stage 3.5 only *applies* calibration corrections.  The corrections themselves are
-  determined separately — from a calibration cast (pre- and post-deployment) or from
-  laboratory calibrations — using the `caldip <https://github.com/ocean-uhh/caldip>`_
-  package.
+  The caldip calibration correction (Stage 3, step 1) is **planned, not yet implemented**.
+  When built it will be *optional* and will only *apply* corrections — the corrections
+  themselves are determined separately, from a calibration cast (pre- and post-deployment) or
+  from laboratory calibrations, using the `caldip <https://github.com/ocean-uhh/caldip>`_
+  package.  With no caldip input the Stage 3 output is unchanged; there is a single
+  ``_stage3.nc``, calibrated when caldip is configured.
 
 **Further details:**
 
@@ -104,7 +107,7 @@ Mooring-level processing
 
   Mooring-level processing workflow.
 
-After per-instrument processing (stages 0–3.5), multiple instruments on the same
+After per-instrument processing (stages 0–3), multiple instruments on the same
 mooring are combined:
 
 - **Stack** (``process --stage stack``): Resample all instruments onto a common time axis
@@ -189,10 +192,10 @@ Summary table
      - Restrict to deployment period; apply clock offset/drift corrections
    * - 3
      - QC & rotation
-     - Pressure interpolation; QARTOD QC flags; salinity; velocity rotation
-   * - 3.5
-     - Calibration (planned)
-     - Apply post-cruise calibration corrections; traceable calibration log
+     - Pressure interpolation; QARTOD QC flags; salinity; velocity rotation (optional caldip T/C/P correction at the front — planned)
+   * - 4
+     - OceanSITES export (planned)
+     - Full export to OceanSITES format with rich metadata
    * - A
      - Stack
      - Resample all instruments onto a common time axis; stack with depth dimension

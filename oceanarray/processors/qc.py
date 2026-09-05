@@ -207,14 +207,16 @@ def apply_tilt_qc(
 
     Primary path — pitch_qc / roll_qc already exist (created by the gross-range
     QC step when pitch and/or roll appear in ``qc_ranges`` in the YAML):
-      The two flag arrays are merged element-wise (worst flag wins) and the
-      result is propagated to every velocity variable.  Any time step where
-      pitch OR roll is flagged suspect (3) or bad (4) will flag the velocities
-      with the same severity.
+
+        The two flag arrays are merged element-wise (worst flag wins) and the
+        result is propagated to every velocity variable.  Any time step where
+        pitch OR roll is flagged suspect (3) or bad (4) will flag the velocities
+        with the same severity.
 
     Fallback path — neither pitch_qc nor roll_qc exist:
-      tilt is computed as max(|pitch|, |roll|) and compared against
-      tilt_cfg thresholds (``suspect_threshold`` / ``fail_threshold``).
+
+        tilt is computed as max(``|pitch|``, ``|roll|``) and compared against
+        tilt_cfg thresholds (``suspect_threshold`` / ``fail_threshold``).
 
     In both paths ``tilt_suspect_threshold`` and ``tilt_fail_threshold`` are
     written to global attrs so the report can draw reference lines on the tilt

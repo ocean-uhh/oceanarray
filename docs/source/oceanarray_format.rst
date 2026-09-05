@@ -453,23 +453,23 @@ NetCDF coordinates are a special subset of variables. Coordinate variables orien
      - | **data type**: double
        | **long_name** = "Latitude north (WGS84)"
        | **standard_name** = "latitude"
-       | **units" = "degrees_north"
+       | **units** = "degrees_north"
        | **axis** = "Y"
        | **_FillValue** = -9999.9
        | **valid_min** = -90.0, **valid_max** = 90.0
-       | **ancillary_variables" = "LATITUDE_QC"
+       | **ancillary_variables** = "LATITUDE_QC"
        | **interpolation_methodology** = ""
      - HD
    * - ``PRESSURE``
      - ``N_LEVELS``
      - | **data type**: double
-       | **long_name" = "Pressure below surface of the water body"
+       | **long_name** = "Pressure below surface of the water body"
        | **standard_name** = "sea_water_pressure"
        | **units** = "dbar"
        | **axis** = "Z"
        | **positive** = "down"
        | **_FillValue** = -9999.9
-       | **valid_min" = 0.0, **valid_max** = 10000.0
+       | **valid_min** = 0.0, **valid_max** = 10000.0
        | **ancillary_variables** = "PRESSURE_QC"
        | **interpolation_methodology** = ""
      - HD

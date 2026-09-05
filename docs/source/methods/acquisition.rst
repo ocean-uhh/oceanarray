@@ -36,7 +36,7 @@ then converted to .cnv format using the ‘tools’ menu (see section 18.6).
 Cunningham, S.A. (2010) RRS Discovery Cruise D344, 21 Oct-18 Nov 2009. RAPID Mooring Cruise Report. Southampton, UK, National Oceanography Centre Southampton, 225pp. (National Oceanography Centre Southampton Cruise Report 51) https://nora.nerc.ac.uk/id/eprint/263915/1/nocscr051.pdf
 
 Instrument Data Acquisition
---------------------------
+---------------------------
 
 This section outlines the procedures for downloading data from Seabird SBE37 SMP instruments, depending on firmware version.
 
@@ -71,7 +71,7 @@ For most instruments with serial numbers below 6000, use **SeaTerm**:
 16. Confirm upload completion and check contents of `.asc` file.
 
 Modern Firmware (3.0d and above)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
 For instruments with serial numbers >6000 or upgraded units, use **SeaTermV2**:

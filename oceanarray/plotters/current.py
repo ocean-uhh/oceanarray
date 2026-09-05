@@ -1159,20 +1159,20 @@ def draw_adcp_velocity(
 
     Panels rendered for each variable present in the file:
 
-    ====================  ================================  ===================
+    ====================  ================================  =====================
     Variable              Label                             Colormap
-    ====================  ================================  ===================
-    east_velocity         East velocity (m s⁻¹)            Spectral_r (div)
-    north_velocity        North velocity (m s⁻¹)           Spectral_r (div)
-    up_velocity           Up velocity (m s⁻¹)              Spectral_r (div)
-    error_velocity        Error velocity (m s⁻¹)           Spectral_r (div)
-    current_speed         Current speed (m s⁻¹)            plasma (seq, 0→98th)
+    ====================  ================================  =====================
+    east_velocity         East velocity (m s⁻¹)             Spectral_r (div)
+    north_velocity        North velocity (m s⁻¹)            Spectral_r (div)
+    up_velocity           Up velocity (m s⁻¹)               Spectral_r (div)
+    error_velocity        Error velocity (m s⁻¹)            Spectral_r (div)
+    current_speed         Current speed (m s⁻¹)             plasma (seq, 0→98th)
     current_direction     Current direction (°T)            hsv (cyclic, 0–360°)
     bin_pressure          Bin pressure (dbar)               viridis (seq)
-    ====================  ================================  ===================
+    ====================  ================================  =====================
 
     Diverging panels (east/north/up/error) share symmetric colormap bounds set to
-    ±max(|2nd pctile|, |98th pctile|) of all finite ENU velocity values.
+    ±max(``|2nd pctile|``, ``|98th pctile|``) of all finite ENU velocity values.
 
     Bins flagged at or below the seabed (``seabed_qc >= 3``) are masked to NaN.
     Y-axis (range coordinate) is inverted for downward-looking instruments (pressure

@@ -117,7 +117,7 @@ To automatically format code when you save a file, add this to your **Workspace 
 ```
 
 You can also add a VSCode task to format manually:
-```json
+```text
 {
   "label": "Format Code",
   "type": "shell",
