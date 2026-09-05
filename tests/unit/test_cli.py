@@ -96,6 +96,16 @@ def test_build_parser_version_action_present():
             "pdf",
             False,
         ),
+        (
+            ["report", "mymoor", "--proc-dir", "/tmp/p", "--pdf-dir", "/tmp/pdfs"],
+            "pdf_dir",
+            "/tmp/pdfs",
+        ),
+        (
+            ["report", "mymoor", "--proc-dir", "/tmp/p"],
+            "pdf_dir",
+            None,
+        ),
     ],
 )
 def test_build_parser_parses_basic_args(args, attr, expected):
