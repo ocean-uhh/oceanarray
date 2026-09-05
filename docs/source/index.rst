@@ -48,8 +48,8 @@ Contents
    1. Standardisation <methods/standardisation>
    2. Clock Offset Analysis (optional) <clock_offset>
    2. Trim to Deployment   <methods/trimming>
-   3. Automatic QC  <methods/auto_qc>
    3. Apply Calibration  <methods/calibration>
+   3. Automatic QC  <methods/auto_qc>
    3. Coordinate Transform   <methods/nortek_coordinate_transform>
 
 .. toctree::

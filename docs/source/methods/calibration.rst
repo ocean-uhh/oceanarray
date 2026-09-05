@@ -46,6 +46,17 @@ resolves correctly::
 A mooring with a single dip is an ordinary case; the attributes record which end supplied the
 correction.
 
+**Path resolution.** ``--caldip-dir`` is a root only. Locate each cast's file by its name
+``{cast}_detailed_statistics.csv``, matched on the **strict** ``_detailed_statistics.csv``
+suffix so the ``-old`` / ``_all`` / ``_fixed`` variants that sit beside it are excluded (the
+caldip package's own reader matches the same strict suffix). Search recursively under
+``--caldip-dir``: real output appears in two shapes — flat
+(``outputs/castM6_detailed_statistics.csv``) and nested
+(``data/proc_calib/{cruise}/cal_dip/castB1_detailed_statistics.csv``) — so use the YAML
+``cruise`` to disambiguate when a cast name recurs. Record the resolved source filename in the
+attributes (a cast name alone does not identify which file was read, and it distinguishes the
+excluded variants).
+
 CSV contract
 ------------
 
@@ -59,8 +70,10 @@ detailed CSV (not the summary, which keeps only the deepest stop). Columns:
      - Meaning / unit
    * - ``serial``
      - instrument serial; the join key (clean with the same serial-safe rule as filenames)
+   * - ``instrument_type``
+     - instrument family (``rbr``, ``sbe37``, …); the machine-readable discriminator for which variables to expect
    * - ``bl_press``
-     - bottle-stop pressure (dbar)
+     - bottle-stop pressure (dbar) — a **rounded nominal stop label**, not a measured CTD pressure
    * - ``temp_diff`` / ``cond_diff`` / ``press_diff``
      - offset = **instrument − CTD** (°C / **mS/cm** / dbar)
    * - ``temp_std`` / ``cond_std`` / ``press_std``
@@ -86,9 +99,14 @@ detailed CSV (not the summary, which keeps only the deepest stop). Columns:
 2. ``ctd_sensor_used`` is **not always present** — some casts omit the column. Treat a missing
    column as ``UNK`` with a warning; never raise, never default to ``1``.
 3. There is **no ``ctd_press`` column** — derive the CTD pressure as ``inst_press − press_diff``
-   and name the derivation in an attribute, or request it from caldip.
-4. ``*_status`` is **prose, not an enum** — do not parse it into a code. ``NO DATA`` is the
-   reliable signal that a variable has no result at that stop.
+   and name the derivation in an attribute, or request it from caldip. Do **not** substitute
+   ``bl_press`` for it: ``bl_press`` is a rounded nominal stop label, not a measured pressure.
+4. ``*_status`` is **letter-prefixed prose** from a small set of templates — e.g. ``T OK``,
+   ``C NO DATA``, ``T reads high by 0.009`` — so a bare ``== "NO DATA"`` never matches (the cell
+   is ``"C NO DATA"``). Classify against the three known templates with a warn-on-unknown
+   fallback (as caldip's own status parser does), and treat this as a stopgap: caldip plans to
+   emit machine-readable ``temp_usable`` / ``cond_usable`` / ``press_usable`` fields to replace
+   the prose.
 
 Sign convention — the highest-risk line
 ----------------------------------------
