@@ -77,6 +77,48 @@ def resolve_report_dir(
     return mooring_proc_dir(proc_root, mooring) / "report"
 
 
+def resolve_pdf_path(
+    mooring: str,
+    pdf_dir: Optional[_PathLike],
+    report_html_dir: _PathLike,
+) -> Path:
+    """Return the path a mooring's combined report PDF is written to.
+
+    Single source of truth for PDF output-path resolution, mirrored by both
+    ``cmd_report``'s dry-run preview and its real PDF branch so the two never
+    drift.  When *pdf_dir* is set, every mooring's PDF collects in that one
+    shareable directory as ``pdf_dir/<mooring>_report.pdf``; when it is ``None``
+    the PDF stays beside the HTML pages at
+    ``report_html_dir/<mooring>_report.pdf``.
+
+    This function is pure: it does not create any directory (so the dry-run
+    preview stays side-effect-free).  The caller creates the parent before
+    writing.
+
+    Parameters
+    ----------
+    mooring : str
+        Mooring name, used as the filename stem.
+    pdf_dir : str or Path, optional
+        Central directory collecting every mooring's PDF (``--pdf-dir``); when
+        set it takes precedence over the beside-the-HTML default.
+    report_html_dir : str or Path
+        The mooring's resolved HTML report directory (from
+        :func:`resolve_report_dir`); the default PDF location when *pdf_dir* is
+        unset.
+
+    Returns
+    -------
+    Path
+        The resolved ``<mooring>_report.pdf`` path.
+
+    """
+    filename = f"{mooring}_report.pdf"
+    if pdf_dir:
+        return Path(pdf_dir) / filename
+    return Path(report_html_dir) / filename
+
+
 def raw_mooring_dir(raw_root: _PathLike, mooring: str) -> Path:
     """Return the mooring-level raw-data directory.
 

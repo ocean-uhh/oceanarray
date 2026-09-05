@@ -16,6 +16,7 @@ from oceanarray.paths import (
     mooring_proc_dir,
     raw_mooring_dir,
     require_current_layout,
+    resolve_pdf_path,
     resolve_report_dir,
     safe_serial,
     stage_output_name,
@@ -38,6 +39,28 @@ class TestResolveReportDir:
     def test_default_is_proc_mooring_report(self) -> None:
         """With neither, the default is proc_root/<mooring>/report."""
         assert resolve_report_dir("M1", None, None, "/proc") == Path("/proc/M1/report")
+
+
+class TestResolvePdfPath:
+    """PDF output-path resolution: pdf_dir/<mooring>_report.pdf > beside the HTML."""
+
+    def test_default_is_beside_html(self) -> None:
+        """With no pdf_dir, the PDF sits beside the HTML pages."""
+        assert resolve_pdf_path("M1", None, "/proc/M1/report") == Path(
+            "/proc/M1/report/M1_report.pdf"
+        )
+
+    def test_pdf_dir_wins(self) -> None:
+        """A pdf_dir collects every mooring's PDF under one directory."""
+        assert resolve_pdf_path("M1", "/shared", "/proc/M1/report") == Path(
+            "/shared/M1_report.pdf"
+        )
+
+    def test_pure_no_directory_created(self, tmp_path) -> None:
+        """The resolver is side-effect-free: it never creates pdf_dir."""
+        target = tmp_path / "does_not_exist"
+        resolve_pdf_path("M1", target, tmp_path)
+        assert not target.exists()
 
 
 @pytest.mark.parametrize(

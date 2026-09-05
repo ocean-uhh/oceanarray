@@ -414,7 +414,9 @@ def cmd_report(args: argparse.Namespace) -> int:
             _html_dir = paths.resolve_report_dir(
                 args.mooring, getattr(args, "outdir", None), report_dir, proc_root
             )
-            pdf_path = _html_dir / f"{args.mooring}_report.pdf"
+            pdf_path = paths.resolve_pdf_path(
+                args.mooring, getattr(args, "pdf_dir", None), _html_dir
+            )
             print(f"PDF:      {pdf_path}  (combined from the HTML pages above)")
         return 0
 
@@ -484,8 +486,14 @@ def cmd_report(args: argparse.Namespace) -> int:
         html_dir = paths.resolve_report_dir(
             args.mooring, getattr(args, "outdir", None), report_dir, proc_root
         )
+        # --pdf-dir redirects the PDF to a shared directory; when unset it stays
+        # beside the HTML.  Resolved identically to the dry-run preview above.
+        pdf_path = paths.resolve_pdf_path(
+            args.mooring, getattr(args, "pdf_dir", None), html_dir
+        )
+        pdf_path.parent.mkdir(parents=True, exist_ok=True)
         try:
-            pdf_path = combine_mooring_pdf(html_dir, args.mooring)
+            pdf_path = combine_mooring_pdf(html_dir, args.mooring, output_path=pdf_path)
             _status("file", str(pdf_path))
         except (ImportError, FileNotFoundError) as exc:
             # An explicit --pdf request that cannot be honoured is a failure.
@@ -1215,6 +1223,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Combine the generated HTML report pages into a single A4 PDF "
         "({mooring}_report.pdf).  Requires the 'pdf' extra: pip install "
         "oceanarray[pdf].  Implied by --all.",
+    )
+    p_report.add_argument(
+        "--pdf-dir",
+        dest="pdf_dir",
+        default=None,
+        metavar="DIR",
+        help="Write the combined PDF to DIR/{mooring}_report.pdf instead of beside "
+        "the HTML pages, so every mooring's PDF collects in one shareable directory "
+        "(created if needed).  Only affects PDF placement; still needs --pdf or --all "
+        "to build the PDF at all.",
     )
     p_report.add_argument(
         "--array",

@@ -4,6 +4,9 @@ dependencies:
   - python=3.11
   - pip
   - pandoc
-  - pip:
-      # dev extra = runtime (incl. seasenselib) + test + docs + pdf + ruff
-      - -e .[dev]
+  # The editable install (`-e .[dev]`, dev extra = runtime incl. seasenselib +
+  # test + docs + pdf + ruff) is done in the workflow's "Install package
+  # (editable)" step, not here: setup-micromamba runs an environment-file pip
+  # section from the file's own directory (docs/), where `.` has no
+  # pyproject.toml. The run step executes from the repo root, so the path
+  # resolves correctly and cannot drift with the action's working directory.

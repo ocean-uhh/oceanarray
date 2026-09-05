@@ -35,7 +35,7 @@ jobs:
         shell: bash -l {0}
         run: |
           micromamba run -n oceanarray python -m pip install --upgrade pip
-          micromamba run -n oceanarray python -m pip install -e . --no-deps --force-reinstall
+          micromamba run -n oceanarray python -m pip install -e ".[dev]" --force-reinstall
 
       - name: Build documentation
         shell: bash -l {0}

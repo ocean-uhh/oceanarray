@@ -38,9 +38,20 @@ figure, .card, .metric-card, .instrument-card {
    (e.g. NetCDF global attributes) fills the space under its heading and
    continues overleaf, instead of jumping whole to the next page and orphaning
    the heading with a gap above it.  Individual rows stay intact and the header
-   row repeats on each page. */
+   row repeats on each page.
+
+   ``table-layout: fixed`` (with an explicit width, required for it to engage) is
+   a large PERFORMANCE fix, not cosmetics: with the default ``auto`` layout
+   WeasyPrint scans every cell to compute intrinsic column widths, and a single
+   huge cell — e.g. the ~7.7 KB one-line seasenselib ``raw-opaque`` provenance
+   JSON in an ADCP global-attributes table — makes that O(content) pass
+   pathological (one page went from 0.3 s to 47 s).  Fixed layout skips it:
+   columns size from the first row, long values wrap.  Overall report render
+   dropped ~50 s → ~6 s.  Print-only, so on-screen tables are unaffected. */
 table {
     break-inside: auto;
+    table-layout: fixed;
+    width: 100%;
 }
 thead {
     display: table-header-group;
