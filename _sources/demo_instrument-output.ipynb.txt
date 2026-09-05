@@ -1,0 +1,502 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "c6a29764-f39c-431c-8e77-fbc6bfe20f01",
+   "metadata": {},
+   "source": [
+    "# Demo: Instrument-Level Processing (Compact Workflow)\n",
+    "\n",
+    "This notebook walks through the complete instrument-level processing pipeline in the oceanarray codebase, from raw files to science-ready datasets. It demonstrates the same processing steps as `demo_stage1.ipynb` and `demo_stage2.ipynb` but in a more compact, streamlined format.\n",
+    "\n",
+    "## Processing Overview\n",
+    "\n",
+    "### Stage 1: Format Conversion (`*_raw.nc`)\n",
+    "- **Purpose**: Convert raw instrument files to standardized NetCDF format\n",
+    "- **Input**: Raw instrument files (`.cnv`, `.rsk`, `.dat`, `.mat`)  \n",
+    "- **Output**: Standardized NetCDF files (`*_raw.nc`)\n",
+    "- **Processing**: Uses `oceanarray.stage1.MooringProcessor` - same as `demo_stage1.ipynb`\n",
+    "\n",
+    "### Stage 2: Temporal Corrections & Trimming (`*_use.nc`)\n",
+    "- **Purpose**: Apply clock corrections and trim to deployment periods\n",
+    "- **Input**: Stage1 files (`*_raw.nc`) + updated YAML with clock offsets\n",
+    "- **Output**: Time-corrected files (`*_use.nc`)\n",
+    "- **Processing**: Uses `oceanarray.stage2.process_multiple_moorings_stage2` - same as `demo_stage2.ipynb`\n",
+    "\n",
+    "### Stage 3: Calibrations & Corrections (Optional)\n",
+    "- **Purpose**: Apply sensor-specific calibrations and corrections\n",
+    "- **Status**: Commented out sections showing how to apply additional calibrations\n",
+    "\n",
+    "### Stage 4: Format Conversion (Optional)\n",
+    "- **Purpose**: Convert to OceanSites or other standardized formats\n",
+    "- **Status**: Commented out sections for format conversion\n",
+    "\n",
+    "## Key Features\n",
+    "\n",
+    "- **Compact Format**: Covers the same ground as separate stage notebooks in one place\n",
+    "- **Instrument-Level Processing**: Each instrument processed independently before mooring-level coordination\n",
+    "- **Multiple Instrument Types**: Handles various instrument types with analysis functions\n",
+    "- **Visualization**: Includes plotting and analysis of processed results\n",
+    "- **Metadata Management**: YAML configuration files drive processing parameters\n",
+    "\n",
+    "## Comparison with Other Notebooks\n",
+    "\n",
+    "- **vs demo_stage1.ipynb**: Same Stage1 processing but more concise\n",
+    "- **vs demo_stage2.ipynb**: Same Stage2 processing but integrated workflow  \n",
+    "- **vs demo_step1.ipynb**: Focuses on individual instruments rather than mooring-level time gridding\n",
+    "\n",
+    "Choose this notebook if you want a complete instrument processing workflow in one place, or use the separate stage notebooks for more detailed exploration of each processing step.\n",
+    "\n",
+    "Version: 1.0  \n",
+    "Date: 2025-01-15"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "6a1920f3",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-09-05T19:28:08.259918Z",
+     "iopub.status.busy": "2026-09-05T19:28:08.259795Z",
+     "iopub.status.idle": "2026-09-05T19:28:09.954772Z",
+     "shell.execute_reply": "2026-09-05T19:28:09.954049Z"
+    }
+   },
+   "outputs": [
+    {
+     "ename": "ModuleNotFoundError",
+     "evalue": "No module named 'oceanarray.stage1'",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[31m---------------------------------------------------------------------------\u001b[39m",
+      "\u001b[31mModuleNotFoundError\u001b[39m                       Traceback (most recent call last)",
+      "\u001b[36mCell\u001b[39m\u001b[36m \u001b[39m\u001b[32mIn[1]\u001b[39m\u001b[32m, line 6\u001b[39m\n\u001b[32m      2\u001b[39m \n\u001b[32m      3\u001b[39m \u001b[38;5;28;01mimport\u001b[39;00m matplotlib.pyplot \u001b[38;5;28;01mas\u001b[39;00m plt\n\u001b[32m      4\u001b[39m \u001b[38;5;28;01mimport\u001b[39;00m xarray \u001b[38;5;28;01mas\u001b[39;00m xr\n\u001b[32m      5\u001b[39m \n\u001b[32m----> \u001b[39m\u001b[32m6\u001b[39m \u001b[38;5;28;01mfrom\u001b[39;00m oceanarray.stage1 \u001b[38;5;28;01mimport\u001b[39;00m MooringProcessor\n\u001b[32m      7\u001b[39m \u001b[38;5;28;01mfrom\u001b[39;00m oceanarray \u001b[38;5;28;01mimport\u001b[39;00m writers\n",
+      "\u001b[31mModuleNotFoundError\u001b[39m: No module named 'oceanarray.stage1'"
+     ]
+    }
+   ],
+   "source": [
+    "from pathlib import Path\n",
+    "\n",
+    "import matplotlib.pyplot as plt\n",
+    "import xarray as xr\n",
+    "\n",
+    "from oceanarray.stage1 import MooringProcessor\n",
+    "from oceanarray import writers"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "3e40a0b1",
+   "metadata": {},
+   "source": [
+    "## Configuration\n",
+    " \n",
+    "Set up the base directory and mooring lists for processing"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "dff9ed08",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-09-05T19:28:09.956550Z",
+     "iopub.status.busy": "2026-09-05T19:28:09.956393Z",
+     "iopub.status.idle": "2026-09-05T19:28:09.959344Z",
+     "shell.execute_reply": "2026-09-05T19:28:09.958830Z"
+    }
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Base directory: ../data/\n",
+      "Processing 1 moorings: ['dsE_1_2018']\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Base directory containing the mooring data\n",
+    "basedir = \"../data/\"\n",
+    "\n",
+    "# Define mooring lists\n",
+    "single_test = [\"dsE_1_2018\"]\n",
+    "\n",
+    "# Choose which set to process\n",
+    "moorlist = single_test\n",
+    "\n",
+    "print(f\"Base directory: {basedir}\")\n",
+    "print(f\"Processing {len(moorlist)} moorings: {moorlist}\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "58fd7f96",
+   "metadata": {},
+   "source": [
+    "## Stage 1: Load raw instrument files and convert to *_raw.nc\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "ed615f11",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-09-05T19:28:09.960916Z",
+     "iopub.status.busy": "2026-09-05T19:28:09.960787Z",
+     "iopub.status.idle": "2026-09-05T19:28:09.971034Z",
+     "shell.execute_reply": "2026-09-05T19:28:09.970490Z"
+    }
+   },
+   "outputs": [
+    {
+     "ename": "NameError",
+     "evalue": "name 'MooringProcessor' is not defined",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[31m---------------------------------------------------------------------------\u001b[39m",
+      "\u001b[31mNameError\u001b[39m                                 Traceback (most recent call last)",
+      "\u001b[36mCell\u001b[39m\u001b[36m \u001b[39m\u001b[32mIn[3]\u001b[39m\u001b[32m, line 2\u001b[39m\n\u001b[32m      1\u001b[39m \u001b[38;5;66;03m# Initialize the processor\u001b[39;00m\n\u001b[32m----> \u001b[39m\u001b[32m2\u001b[39m processor = MooringProcessor(basedir)\n\u001b[32m      3\u001b[39m \n\u001b[32m      4\u001b[39m \u001b[38;5;66;03m# Process each mooring individually with detailed output\u001b[39;00m\n\u001b[32m      5\u001b[39m results = {}\n",
+      "\u001b[31mNameError\u001b[39m: name 'MooringProcessor' is not defined"
+     ]
+    }
+   ],
+   "source": [
+    "# Initialize the processor\n",
+    "processor = MooringProcessor(basedir)\n",
+    "\n",
+    "# Process each mooring individually with detailed output\n",
+    "results = {}\n",
+    "for mooring_name in moorlist:\n",
+    "    print(f\"\\n{'=' * 60}\")\n",
+    "    print(f\"Processing mooring: {mooring_name}\")\n",
+    "    print(f\"{'=' * 60}\")\n",
+    "\n",
+    "    success = processor.process_mooring(mooring_name)\n",
+    "    results[mooring_name] = success\n",
+    "\n",
+    "    status = \"✅ SUCCESS\" if success else \"❌ FAILED\"\n",
+    "    print(f\"\\nResult for {mooring_name}: {status}\")\n",
+    "\n",
+    "# Print final summary\n",
+    "print(f\"\\n{'=' * 60}\")\n",
+    "print(\"FINAL PROCESSING SUMMARY\")\n",
+    "print(f\"{'=' * 60}\")\n",
+    "successful = sum(results.values())\n",
+    "total = len(results)\n",
+    "print(f\"Successfully processed: {successful}/{total} moorings\")\n",
+    "\n",
+    "for mooring, success in results.items():\n",
+    "    status = \"✅\" if success else \"❌\"\n",
+    "    print(f\"{status} {mooring}\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "6b1ecfad",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-09-05T19:28:09.972424Z",
+     "iopub.status.busy": "2026-09-05T19:28:09.972299Z",
+     "iopub.status.idle": "2026-09-05T19:28:09.985848Z",
+     "shell.execute_reply": "2026-09-05T19:28:09.985266Z"
+    }
+   },
+   "outputs": [
+    {
+     "ename": "NameError",
+     "evalue": "name 'results' is not defined",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[31m---------------------------------------------------------------------------\u001b[39m",
+      "\u001b[31mNameError\u001b[39m                                 Traceback (most recent call last)",
+      "\u001b[36mCell\u001b[39m\u001b[36m \u001b[39m\u001b[32mIn[4]\u001b[39m\u001b[32m, line 84\u001b[39m\n\u001b[32m     80\u001b[39m             print(\u001b[33mf\"   ❌ Error loading {file_path.name}: {e}\"\u001b[39m)\n\u001b[32m     81\u001b[39m \n\u001b[32m     82\u001b[39m \n\u001b[32m     83\u001b[39m \u001b[38;5;66;03m# Example usage\u001b[39;00m\n\u001b[32m---> \u001b[39m\u001b[32m84\u001b[39m \u001b[38;5;28;01mif\u001b[39;00m results \u001b[38;5;28;01mand\u001b[39;00m any(results.values()):\n\u001b[32m     85\u001b[39m     \u001b[38;5;66;03m# Analyze the first successfully processed mooring\u001b[39;00m\n\u001b[32m     86\u001b[39m     successful_mooring = next(\n\u001b[32m     87\u001b[39m         mooring \u001b[38;5;28;01mfor\u001b[39;00m mooring, success \u001b[38;5;28;01min\u001b[39;00m results.items() \u001b[38;5;28;01mif\u001b[39;00m success\n",
+      "\u001b[31mNameError\u001b[39m: name 'results' is not defined"
+     ]
+    }
+   ],
+   "source": [
+    "# Analyze processed files\n",
+    "def analyze_processed_mooring(mooring_name, basedir, instrument_type=\"microcat\"):\n",
+    "    \"\"\"Analyze processed files for a specific mooring and instrument type.\"\"\"\n",
+    "    proc_dir = Path(basedir) / \"moor/proc\" / mooring_name / instrument_type\n",
+    "    fig_dir = proc_dir\n",
+    "\n",
+    "    if not proc_dir.exists():\n",
+    "        print(f\"Directory not found: {proc_dir}\")\n",
+    "        return\n",
+    "\n",
+    "    print(f\"Analyzing processed files in: {proc_dir}\")\n",
+    "\n",
+    "    # Find all NetCDF files\n",
+    "    nc_files = list(proc_dir.glob(\"*raw.nc\"))\n",
+    "    if not nc_files:\n",
+    "        print(\"No NetCDF files found\")\n",
+    "        return\n",
+    "\n",
+    "    print(f\"Found {len(nc_files)} NetCDF files:\")\n",
+    "\n",
+    "    for file_path in nc_files:\n",
+    "        try:\n",
+    "            print(f\"\\n📄 Loading: {file_path.name}\")\n",
+    "\n",
+    "            with xr.open_dataset(file_path) as dataset:\n",
+    "                print(f\"   Variables: {list(dataset.data_vars)}\")\n",
+    "                print(f\"   Attributes: {list(dataset.attrs.keys())}\")\n",
+    "\n",
+    "                # Extract key metadata\n",
+    "                mooring_name_attr = dataset.attrs.get(\"mooring_name\", \"Unknown\")\n",
+    "                instrument_name = (\n",
+    "                    dataset.get(\"instrument\", \"Unknown\").values\n",
+    "                    if \"instrument\" in dataset\n",
+    "                    else \"Unknown\"\n",
+    "                )\n",
+    "                serial_number = (\n",
+    "                    dataset.get(\"serial_number\", 0).values\n",
+    "                    if \"serial_number\" in dataset\n",
+    "                    else 0\n",
+    "                )\n",
+    "\n",
+    "                print(f\"   Mooring: {mooring_name_attr}\")\n",
+    "                print(f\"   Instrument: {instrument_name}\")\n",
+    "                print(f\"   Serial: {serial_number}\")\n",
+    "\n",
+    "                # Plot temperature if available\n",
+    "                if \"temperature\" in dataset.data_vars:\n",
+    "                    fig, ax = plt.subplots(figsize=(12, 4))\n",
+    "                    ax.plot(\n",
+    "                        dataset[\"time\"], dataset[\"temperature\"], \"b-\", linewidth=0.5\n",
+    "                    )\n",
+    "                    ax.set_ylabel(\"Temperature (°C)\")\n",
+    "                    ax.set_title(\n",
+    "                        f\"{mooring_name_attr}: {instrument_name} {serial_number} - Temperature\"\n",
+    "                    )\n",
+    "                    ax.set_xlabel(\"Time\")\n",
+    "                    ax.grid(True, alpha=0.3)\n",
+    "\n",
+    "                    # Add stats\n",
+    "                    temp_mean = dataset[\"temperature\"].mean().values\n",
+    "                    temp_std = dataset[\"temperature\"].std().values\n",
+    "                    ax.text(\n",
+    "                        0.02,\n",
+    "                        0.98,\n",
+    "                        f\"Mean: {temp_mean:.2f}°C\\nStd: {temp_std:.2f}°C\",\n",
+    "                        transform=ax.transAxes,\n",
+    "                        verticalalignment=\"top\",\n",
+    "                        bbox=dict(boxstyle=\"round\", facecolor=\"white\", alpha=0.8),\n",
+    "                    )\n",
+    "\n",
+    "                    plt.tight_layout()\n",
+    "                    plt.show()\n",
+    "\n",
+    "                    # Save plot\n",
+    "                    plot_name = f\"{mooring_name_attr}_{instrument_name}_{serial_number}_temperature_raw.png\"\n",
+    "                    fig.savefig(fig_dir / plot_name, dpi=150, bbox_inches=\"tight\")\n",
+    "                    print(f\"   📊 Plot saved: {plot_name}\")\n",
+    "\n",
+    "        except Exception as e:\n",
+    "            print(f\"   ❌ Error loading {file_path.name}: {e}\")\n",
+    "\n",
+    "\n",
+    "# Example usage\n",
+    "if results and any(results.values()):\n",
+    "    # Analyze the first successfully processed mooring\n",
+    "    successful_mooring = next(\n",
+    "        mooring for mooring, success in results.items() if success\n",
+    "    )\n",
+    "    print(f\"\\nAnalyzing successful mooring: {successful_mooring}\")\n",
+    "    analyze_processed_mooring(successful_mooring, basedir, \"microcat\")\n",
+    "    analyze_processed_mooring(successful_mooring, basedir, \"sbe16\")\n",
+    "    analyze_processed_mooring(successful_mooring, basedir, \"sbe56\")\n",
+    "else:\n",
+    "    print(\"No successfully processed moorings to analyze\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "b74ee21e",
+   "metadata": {},
+   "source": [
+    "## Stage 2: Trim to deployment period"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "0847e657",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-09-05T19:28:09.987161Z",
+     "iopub.status.busy": "2026-09-05T19:28:09.987051Z",
+     "iopub.status.idle": "2026-09-05T19:28:09.995777Z",
+     "shell.execute_reply": "2026-09-05T19:28:09.995125Z"
+    }
+   },
+   "outputs": [
+    {
+     "ename": "ModuleNotFoundError",
+     "evalue": "No module named 'oceanarray.stage2'",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[31m---------------------------------------------------------------------------\u001b[39m",
+      "\u001b[31mModuleNotFoundError\u001b[39m                       Traceback (most recent call last)",
+      "\u001b[36mCell\u001b[39m\u001b[36m \u001b[39m\u001b[32mIn[5]\u001b[39m\u001b[32m, line 1\u001b[39m\n\u001b[32m----> \u001b[39m\u001b[32m1\u001b[39m \u001b[38;5;28;01mfrom\u001b[39;00m oceanarray.stage2 \u001b[38;5;28;01mimport\u001b[39;00m process_multiple_moorings_stage2\n\u001b[32m      2\u001b[39m \n\u001b[32m      3\u001b[39m results = process_multiple_moorings_stage2(moorlist, basedir)\n",
+      "\u001b[31mModuleNotFoundError\u001b[39m: No module named 'oceanarray.stage2'"
+     ]
+    }
+   ],
+   "source": [
+    "from oceanarray.stage2 import process_multiple_moorings_stage2\n",
+    "\n",
+    "results = process_multiple_moorings_stage2(moorlist, basedir)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "4ae7f50d",
+   "metadata": {},
+   "source": [
+    "## Stage 3: Apply calibrations + corrections"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "60fab40c",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-09-05T19:28:09.997179Z",
+     "iopub.status.busy": "2026-09-05T19:28:09.997056Z",
+     "iopub.status.idle": "2026-09-05T19:28:09.999513Z",
+     "shell.execute_reply": "2026-09-05T19:28:09.998904Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# ds_cal = process_rodb.apply_microcat_calibration_from_txt(data_dir / 'wb1_12_2015_005.microcat.txt', data_dir / 'wb1_12_2015_6123.use')\n",
+    "# ds_cal"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "2e19689c",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-09-05T19:28:10.000773Z",
+     "iopub.status.busy": "2026-09-05T19:28:10.000655Z",
+     "iopub.status.idle": "2026-09-05T19:28:10.002835Z",
+     "shell.execute_reply": "2026-09-05T19:28:10.002227Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# fig = plotters.plot_microcat_raw(ds_cal)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "1e1b7d98",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-09-05T19:28:10.003977Z",
+     "iopub.status.busy": "2026-09-05T19:28:10.003857Z",
+     "iopub.status.idle": "2026-09-05T19:28:10.005920Z",
+     "shell.execute_reply": "2026-09-05T19:28:10.005365Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "# ds_diff = tools.calc_ds_difference(ds_cal, ds2)\n",
+    "# fig = plotters.plot_microcat_raw(ds_diff)\n",
+    "# fig.suptitle(\"difference between *.use and *.microcat\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "f0627f85",
+   "metadata": {},
+   "source": [
+    "## Stage 4: Convert to OceanSites format\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "id": "42ff46bc",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-09-05T19:28:10.007324Z",
+     "iopub.status.busy": "2026-09-05T19:28:10.007073Z",
+     "iopub.status.idle": "2026-09-05T19:28:10.010027Z",
+     "shell.execute_reply": "2026-09-05T19:28:10.009288Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "if 0:\n",
+    "    metadata_txt = data_dir / \"wb1_12_2015_6123.use\"\n",
+    "    config_dir = Path(\"..\") / \"oceanarray\" / \"config\"\n",
+    "    var_map_yaml = config_dir / \"OS1_var_names.yaml\"\n",
+    "    vocab_yaml = config_dir / \"OS1_vocab_attrs.yaml\"\n",
+    "    sensor_yaml = config_dir / \"OS1_sensor_attrs.yaml\"\n",
+    "    project_yaml = config_dir / \"project_RAPID.yaml\"\n",
+    "    ds_OS = convertOS.convert_rodb_to_oceansites(\n",
+    "        ds_cal,\n",
+    "        metadata_txt,\n",
+    "        var_map_yaml,\n",
+    "        vocab_yaml,\n",
+    "        sensor_yaml=sensor_yaml,\n",
+    "        project_yaml=project_yaml,\n",
+    "    )\n",
+    "    ds_OS"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "id": "dee6bcea",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-09-05T19:28:10.011235Z",
+     "iopub.status.busy": "2026-09-05T19:28:10.011093Z",
+     "iopub.status.idle": "2026-09-05T19:28:10.013421Z",
+     "shell.execute_reply": "2026-09-05T19:28:10.012788Z"
+    }
+   },
+   "outputs": [],
+   "source": [
+    "if 0:\n",
+    "    filepath = writers.save_OS_instrument(ds_OS, basedir)\n",
+    "    print(filepath)"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "defaultInterpreterPath: 3.11.7.final.0",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.11.16"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}

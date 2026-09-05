@@ -1,0 +1,786 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CLI Reference &mdash; oceanarray v0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=20758594" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=8b92e751"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="YAML Configuration Reference" href="yaml_configuration.html" />
+    <link rel="prev" title="oceanarray API reference" href="oceanarray.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            oceanarray
+              <img src="_static/oceanarray_icon.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Processing framework</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="processing_framework.html">OceanArray processing framework</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reports.html">HTML Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="directory_structure.html">Directory Structure and File Layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file_naming_conventions.html">File Naming Conventions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Stage 1 2 3 - Instrument</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="methods/acquisition.html">0. Data Acquisition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/standardisation.html">1. Standardisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="clock_offset.html">2. Clock Offset Analysis (optional)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/trimming.html">2. Trim to Deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/calibration.html">3. Apply Calibration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/auto_qc.html">3. Automatic QC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/nortek_coordinate_transform.html">3. Coordinate Transform</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Stack &amp; Grid - Moorings</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="methods/time_gridding.html">Stack into one NetCDF</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/vertical_gridding.html">Grid onto pressure</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Caldips</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="calibration_dips.html">Calibration dips</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference external" href="https://github.com/ocean-uhh/oceanarray">GitHub Repo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="oceanarray.html">Python API</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">CLI Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#oceanarray-validate"><code class="docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">validate</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#oceanarray-init"><code class="docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">init</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#oceanarray-process"><code class="docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">process</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#oceanarray-report"><code class="docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">report</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#oceanarray-run"><code class="docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">run</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#oceanarray-list"><code class="docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">list</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#preliminary-visualisation-commands">Preliminary visualisation commands</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#oceanarray-plot"><code class="docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">plot</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#oceanarray-animate"><code class="docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">animate</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#deprecated-flags">Deprecated flags</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#basedir-dir-removed"><code class="docutils literal notranslate"><span class="pre">--basedir</span> <span class="pre">DIR</span></code> (removed)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="yaml_configuration.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="project_structure.html">OceanArray Project Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="oceanarray_format.html">OceanArray Data Format Specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="oceanSITES_manual.html">OceanSITES manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="legacy.html">Legacy modules</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Changelog / Migration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="migration.html">Migrating from the <code class="docutils literal notranslate"><span class="pre">--basedir</span></code> Layout</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="roadmap.html">Development Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="style_guide.html">Project Style Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/conversion.html">Convert to OceanSITES (Stage 4)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/concatenation.html">Combine Deployments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods/multisite_merging.html">Multi-site Merging</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">oceanarray</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">CLI Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/cli_reference.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="cli-reference">
+<span id="id1"></span><h1>CLI Reference<a class="headerlink" href="#cli-reference" title="Link to this heading"></a></h1>
+<p>The typical workflow is: validate the YAML, run <code class="docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">process</span></code> stage by
+stage (including the <code class="docutils literal notranslate"><span class="pre">stack</span></code> and <code class="docutils literal notranslate"><span class="pre">grid</span></code> stages), inspect with
+<code class="docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">report</span></code>, then use <code class="docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">run</span></code> to reproduce the full pipeline
+in one command.</p>
+<p>All processing subcommands accept a mooring name as the first positional
+argument.  The mooring name is used to locate the YAML file at
+<code class="docutils literal notranslate"><span class="pre">{proc_dir}/{mooring}/{mooring}.mooring.yaml</span></code>.</p>
+<p>Without <code class="docutils literal notranslate"><span class="pre">--force</span></code>, every subcommand skips any output file that already
+exists.  Add <code class="docutils literal notranslate"><span class="pre">--force</span></code> to overwrite.</p>
+<hr class="docutils" />
+<section id="oceanarray-validate">
+<h2><code class="docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">validate</span></code><a class="headerlink" href="#oceanarray-validate" title="Link to this heading"></a></h2>
+<p>Check one or more YAML configuration files for missing required fields,
+unrecognised values, and structural errors.  Does not require <code class="docutils literal notranslate"><span class="pre">--raw-dir</span></code>
+or <code class="docutils literal notranslate"><span class="pre">--proc-dir</span></code>.  Run this before any processing to catch typos in
+<code class="docutils literal notranslate"><span class="pre">file_type</span></code>, missing <code class="docutils literal notranslate"><span class="pre">hab</span></code>, or malformed serial numbers.</p>
+<p><strong>Synopsis</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>oceanarray validate YAML [YAML ...]
+</pre></div>
+</div>
+<p><strong>Example</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>oceanarray<span class="w"> </span>validate<span class="w"> </span>/data/proc/dsG3_1_2026/dsG3_1_2026.mooring.yaml
+</pre></div>
+</div>
+<p>Prints errors and warnings to the console.  Exits with a non-zero status
+if any errors are found.</p>
+</section>
+<hr class="docutils" />
+<section id="oceanarray-init">
+<h2><code class="docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">init</span></code><a class="headerlink" href="#oceanarray-init" title="Link to this heading"></a></h2>
+<p>Create a skeleton mooring YAML file with commented template fields for all
+mandatory metadata and one example entry per instrument type.  Edit the file
+to fill in real values and delete unused instrument blocks.  Typically run
+once, before <code class="docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">validate</span></code>.</p>
+<p><strong>Synopsis</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>oceanarray init MOORING --proc-dir DIR
+</pre></div>
+</div>
+<p><strong>Flags</strong></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 15.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Flag</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--proc-dir</span> <span class="pre">DIR</span></code></p></td>
+<td><p>path</p></td>
+<td><p>(required)</p></td>
+<td><p>Cruise-level processed data directory.  The stub is written to
+<code class="docutils literal notranslate"><span class="pre">{proc_dir}/{mooring}/{mooring}.mooring.yaml</span></code>.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>oceanarray<span class="w"> </span>init<span class="w"> </span>dsG3_1_2026<span class="w"> </span>--proc-dir<span class="w"> </span>/data/proc
+</pre></div>
+</div>
+<p>Creates <code class="docutils literal notranslate"><span class="pre">/data/proc/dsG3_1_2026/dsG3_1_2026.mooring.yaml</span></code> (the directory
+is created if it does not exist).</p>
+</section>
+<hr class="docutils" />
+<section id="oceanarray-process">
+<h2><code class="docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">process</span></code><a class="headerlink" href="#oceanarray-process" title="Link to this heading"></a></h2>
+<p>Run one or more per-instrument processing stages.  Stage 2 requires that
+stage 1 has already run; stage 3 requires stage 2.</p>
+<p>The recommended sequence for a new mooring is:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">--stage</span> <span class="pre">1</span></code>: verify that all raw files are reachable.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--stage</span> <span class="pre">2</span></code>: check that trimming looks right; adjust
+<code class="docutils literal notranslate"><span class="pre">deployment_time</span></code> / <code class="docutils literal notranslate"><span class="pre">recovery_time</span></code> in the YAML if needed.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--stage</span> <span class="pre">3</span></code>: apply QC and velocity rotation once stages 1 and 2 are
+confirmed.</p></li>
+</ol>
+<p><strong>Synopsis</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>oceanarray process MOORING [--raw-dir DIR] [--proc-dir DIR]
+                           [--stage {1,2,3,stack,grid} ...]
+                           [--dt SECONDS] [--dp DBAR]
+                           [--pmin DBAR] [--pmax DBAR]
+                           [--serial SN ...] [--force] [-n]
+</pre></div>
+</div>
+<p><strong>Flags</strong></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 15.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Flag</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--raw-dir</span> <span class="pre">DIR</span></code></p></td>
+<td><p>path</p></td>
+<td><p>(required for stage 1)</p></td>
+<td><p>Cruise-level raw data directory.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--proc-dir</span> <span class="pre">DIR</span></code></p></td>
+<td><p>path</p></td>
+<td><p>(required)</p></td>
+<td><p>Cruise-level processed data directory.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--stage</span></code></p></td>
+<td><p>(repeat)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1</span> <span class="pre">2</span></code></p></td>
+<td><p>Which stage(s) to run.  Accepts <code class="docutils literal notranslate"><span class="pre">1</span></code>, <code class="docutils literal notranslate"><span class="pre">2</span></code>, <code class="docutils literal notranslate"><span class="pre">3</span></code>, <code class="docutils literal notranslate"><span class="pre">stack</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">grid</span></code> in any combination: <code class="docutils literal notranslate"><span class="pre">--stage</span> <span class="pre">1</span> <span class="pre">2</span> <span class="pre">3</span> <span class="pre">stack</span> <span class="pre">grid</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--dt</span> <span class="pre">SECONDS</span></code></p></td>
+<td><p>integer</p></td>
+<td><p>60</p></td>
+<td><p>Stack time-grid interval in seconds (used when <code class="docutils literal notranslate"><span class="pre">stack</span></code> is in <code class="docutils literal notranslate"><span class="pre">--stage</span></code>).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--dp</span> <span class="pre">DBAR</span></code></p></td>
+<td><p>number</p></td>
+<td><p>20</p></td>
+<td><p>Pressure grid spacing in dbar (used when <code class="docutils literal notranslate"><span class="pre">grid</span></code> is in <code class="docutils literal notranslate"><span class="pre">--stage</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--pmin</span> <span class="pre">DBAR</span></code></p></td>
+<td><p>number</p></td>
+<td><p>200</p></td>
+<td><p>Shallowest pressure level for grid (dbar).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--pmax</span> <span class="pre">DBAR</span></code></p></td>
+<td><p>number</p></td>
+<td><p>1000</p></td>
+<td><p>Deepest pressure level for grid (dbar).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--serial</span> <span class="pre">SN</span></code></p></td>
+<td><p>string (repeat)</p></td>
+<td><p>(all)</p></td>
+<td><p>Restrict to specific serial number(s).  Useful for iterating on one
+instrument without reprocessing the whole mooring.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--force</span></code></p></td>
+<td><p>flag</p></td>
+<td><p>off</p></td>
+<td><p>Overwrite existing output files.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">-n</span></code></p></td>
+<td><p>flag</p></td>
+<td><p>off</p></td>
+<td><p>Dry run: show what would be done without writing any files.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Stage descriptions</strong></p>
+<ul class="simple">
+<li><p><strong>Stage 1</strong>: reads raw instrument files via seasenselib and writes
+<code class="docutils literal notranslate"><span class="pre">{mooring}_{serial}_stage1.nc</span></code>.  Data are stored as-is — no QC, no
+trimming.</p></li>
+<li><p><strong>Stage 2</strong>: trims to <code class="docutils literal notranslate"><span class="pre">deployment_time</span></code> / <code class="docutils literal notranslate"><span class="pre">recovery_time</span></code> from the
+YAML and applies clock drift correction.  Writes
+<code class="docutils literal notranslate"><span class="pre">{mooring}_{serial}_stage2.nc</span></code>.</p></li>
+<li><p><strong>Stage 3</strong>: applies QARTOD gross-range QC flags, derives salinity,
+interpolates pressure for instruments without a pressure port, rotates
+Aquadopp velocities to earth coordinates, and applies magnetic declination
+correction.  Writes <code class="docutils literal notranslate"><span class="pre">{mooring}_{serial}_stage3.nc</span></code>.</p></li>
+<li><p><strong>stack</strong>: interpolates all instruments onto a common time axis and writes
+<code class="docutils literal notranslate"><span class="pre">{mooring}_stack.nc</span></code>.  Instruments sampling faster than <code class="docutils literal notranslate"><span class="pre">--dt</span></code> are
+subsampled by nearest-neighbour; slower instruments are interpolated linearly.
+The 60-second default suits most mooring data; for high-frequency analysis
+(e.g. internal waves from fast thermistors) work from the <code class="docutils literal notranslate"><span class="pre">_stage3.nc</span></code> files
+or build a finer stack with <code class="docutils literal notranslate"><span class="pre">--dt</span></code>.</p></li>
+<li><p><strong>grid</strong>: interpolates the stack onto a regular pressure grid and writes
+<code class="docutils literal notranslate"><span class="pre">{mooring}_grid.nc</span></code>.  Values outside the instrument depth range at each time
+step are set to NaN.  QC flags from stage 3 are not consulted — data flagged
+suspect or bad are treated the same as good unless already NaN.</p></li>
+</ul>
+<p><strong>Output created</strong></p>
+<p>Per-instrument: <code class="docutils literal notranslate"><span class="pre">{mooring}_{serial}_stage{N}.nc</span></code> in <code class="docutils literal notranslate"><span class="pre">{proc_dir}/{mooring}/{instrument}/</span></code>.
+Mooring-level: <code class="docutils literal notranslate"><span class="pre">{mooring}_stack.nc</span></code> and <code class="docutils literal notranslate"><span class="pre">{mooring}_grid.nc</span></code> in <code class="docutils literal notranslate"><span class="pre">{proc_dir}/{mooring}/</span></code>.</p>
+<p><strong>Examples</strong></p>
+<p>Run stage 1 for all instruments:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>oceanarray<span class="w"> </span>process<span class="w"> </span>dsG3_1_2026<span class="w"> </span>--raw-dir<span class="w"> </span>/data/raw<span class="w"> </span>--proc-dir<span class="w"> </span>/data/proc<span class="w"> </span>--stage<span class="w"> </span><span class="m">1</span>
+</pre></div>
+</div>
+<p>Rerun stage 2 for a single instrument after updating the YAML:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>oceanarray<span class="w"> </span>process<span class="w"> </span>dsG3_1_2026<span class="w"> </span>--raw-dir<span class="w"> </span>/data/raw<span class="w"> </span>--proc-dir<span class="w"> </span>/data/proc<span class="w"> </span>--stage<span class="w"> </span><span class="m">2</span><span class="w"> </span>--serial<span class="w"> </span><span class="m">26261</span><span class="w"> </span>--force
+</pre></div>
+</div>
+<p>Full pipeline — all instrument stages plus stack and grid:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>oceanarray<span class="w"> </span>process<span class="w"> </span>dsG3_1_2026<span class="w"> </span>--raw-dir<span class="w"> </span>/data/raw<span class="w"> </span>--proc-dir<span class="w"> </span>/data/proc<span class="w"> </span>--stage<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="m">3</span><span class="w"> </span>stack<span class="w"> </span>grid
+</pre></div>
+</div>
+<p>Stack and grid only (after stages 1–3 already ran), non-default grid spacing:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>oceanarray<span class="w"> </span>process<span class="w"> </span>dsG3_1_2026<span class="w"> </span>--proc-dir<span class="w"> </span>/data/proc<span class="w"> </span>--stage<span class="w"> </span>stack<span class="w"> </span>grid<span class="w"> </span>--dp<span class="w"> </span><span class="m">10</span><span class="w"> </span>--pmin<span class="w"> </span><span class="m">100</span><span class="w"> </span>--pmax<span class="w"> </span><span class="m">2000</span>
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="oceanarray-report">
+<h2><code class="docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">report</span></code><a class="headerlink" href="#oceanarray-report" title="Link to this heading"></a></h2>
+<p>Generate HTML reports for a mooring.  Without any report-type flags,
+generates only the mooring summary page.  See <a class="reference internal" href="reports.html"><span class="doc">HTML Reports</span></a> for a
+description of what each report page contains.</p>
+<p><strong>Synopsis</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>oceanarray report MOORING [--raw-dir DIR] [--proc-dir DIR]
+                          [-o DIR] [--report-dir DIR]
+                          [--instruments] [--stack] [--grid] [--all]
+                          [--pdf] [--serial SN ...] [--array]
+                          [--cruise-table] [--sig-level SIG ...]
+                          [-n] [--force] [--skip-existing]
+</pre></div>
+</div>
+<p><strong>Flags</strong></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+<col style="width: 55.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Flag</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--raw-dir</span> <span class="pre">DIR</span></code></p></td>
+<td><p>path</p></td>
+<td><p>(required)</p></td>
+<td><p>Cruise-level raw data directory.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--proc-dir</span> <span class="pre">DIR</span></code></p></td>
+<td><p>path</p></td>
+<td><p>(required)</p></td>
+<td><p>Cruise-level processed data directory.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">-o</span> <span class="pre">DIR</span></code></p></td>
+<td><p>path</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{proc_dir}/{mooring}/report/</span></code></p></td>
+<td><p>Override the output directory for HTML files.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--report-dir</span> <span class="pre">DIR</span></code></p></td>
+<td><p>path</p></td>
+<td><p>(none)</p></td>
+<td><p>Central directory for all mooring reports.  Each mooring’s pages are
+written to <code class="docutils literal notranslate"><span class="pre">DIR/{mooring}/</span></code> instead of <code class="docutils literal notranslate"><span class="pre">proc/{mooring}/report/</span></code>,
+making the whole report tree portable.  Also used as the output root
+for <code class="docutils literal notranslate"><span class="pre">--array</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--instruments</span></code></p></td>
+<td><p>flag</p></td>
+<td><p>off</p></td>
+<td><p>Generate per-instrument report pages (one per instrument in the YAML).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--stack</span></code></p></td>
+<td><p>flag</p></td>
+<td><p>off</p></td>
+<td><p>Generate the stack report (requires <code class="docutils literal notranslate"><span class="pre">_stack.nc</span></code>).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--grid</span></code></p></td>
+<td><p>flag</p></td>
+<td><p>off</p></td>
+<td><p>Generate the grid report (requires <code class="docutils literal notranslate"><span class="pre">_grid.nc</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--all</span></code> / <code class="docutils literal notranslate"><span class="pre">-A</span></code></p></td>
+<td><p>flag</p></td>
+<td><p>off</p></td>
+<td><p>Generate all report pages and the combined PDF.  Equivalent to
+<code class="docutils literal notranslate"><span class="pre">--stack</span> <span class="pre">--grid</span> <span class="pre">--instruments</span> <span class="pre">--pdf</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--pdf</span></code></p></td>
+<td><p>flag</p></td>
+<td><p>off</p></td>
+<td><p>Combine the generated HTML report pages into a single A4 PDF
+(<code class="docutils literal notranslate"><span class="pre">{mooring}_report.pdf</span></code>), in reading order
+summary → instruments → stack → grid.  Requires the optional <code class="docutils literal notranslate"><span class="pre">pdf</span></code>
+extra (<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">oceanarray[pdf]</span></code>, which installs WeasyPrint).
+Implied by <code class="docutils literal notranslate"><span class="pre">--all</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--serial</span> <span class="pre">SN</span></code></p></td>
+<td><p>string (repeat)</p></td>
+<td><p>(all)</p></td>
+<td><p>Restrict per-instrument pages to specific serial numbers (implies
+<code class="docutils literal notranslate"><span class="pre">--instruments</span></code> for those serials).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--array</span></code></p></td>
+<td><p>flag</p></td>
+<td><p>off</p></td>
+<td><p>Treat the positional argument as a <code class="docutils literal notranslate"><span class="pre">*.array.yaml</span></code> path and generate
+an array-level HTML index linking all mooring reports.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--cruise-table</span></code></p></td>
+<td><p>flag</p></td>
+<td><p>off</p></td>
+<td><p>Generate a standalone, print-optimised HTML recovery table for use in
+cruise reports (<code class="docutils literal notranslate"><span class="pre">{mooring}_recovery_table.html</span></code>).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--sig-level</span> <span class="pre">SIG</span></code></p></td>
+<td><p>float (repeat)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">27.7</span></code></p></td>
+<td><p>σ₀ target values (kg m⁻³, referenced to 0 dbar) for isopycnal
+height-above-seabed tracking in the grid report.  Pass one or more
+values: <code class="docutils literal notranslate"><span class="pre">--sig-level</span> <span class="pre">27.5</span> <span class="pre">27.7</span> <span class="pre">27.9</span></code>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">-n</span></code> / <code class="docutils literal notranslate"><span class="pre">--dry-run</span></code></p></td>
+<td><p>flag</p></td>
+<td><p>off</p></td>
+<td><p>Show which report files would be generated without writing any.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--force</span></code></p></td>
+<td><p>flag</p></td>
+<td><p>off</p></td>
+<td><p>Regenerate reports even if HTML files already exist.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--skip-existing</span></code></p></td>
+<td><p>flag</p></td>
+<td><p>off</p></td>
+<td><p>Skip any output file that already exists, regardless of source mtime
+(legacy behaviour; <code class="docutils literal notranslate"><span class="pre">--force</span></code> is the opposite and always regenerates).</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Output created</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">{mooring}_report.html</span></code> (always), plus optional
+<code class="docutils literal notranslate"><span class="pre">{mooring}_stack_report.html</span></code>, <code class="docutils literal notranslate"><span class="pre">{mooring}_grid_report.html</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">report/instrument/{mooring}_{serial}_report.html</span></code>.</p>
+<p><strong>Examples</strong></p>
+<p>Summary and per-instrument pages:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>oceanarray<span class="w"> </span>report<span class="w"> </span>dsG3_1_2026<span class="w"> </span>--raw-dir<span class="w"> </span>/data/raw<span class="w"> </span>--proc-dir<span class="w"> </span>/data/proc<span class="w"> </span>--instruments
+</pre></div>
+</div>
+<p>All report types (equivalent to <code class="docutils literal notranslate"><span class="pre">--instruments</span> <span class="pre">--stack</span> <span class="pre">--grid</span></code>):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>oceanarray<span class="w"> </span>report<span class="w"> </span>dsG3_1_2026<span class="w"> </span>--raw-dir<span class="w"> </span>/data/raw<span class="w"> </span>--proc-dir<span class="w"> </span>/data/proc<span class="w"> </span>--all
+</pre></div>
+</div>
+<p>Array-level index across all moorings:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>oceanarray<span class="w"> </span>report<span class="w"> </span>cruise.array.yaml<span class="w"> </span>--array<span class="w"> </span>--report-dir<span class="w"> </span>/data/reports
+</pre></div>
+</div>
+<p>Cruise recovery table:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>oceanarray<span class="w"> </span>report<span class="w"> </span>dsG3_1_2026<span class="w"> </span>--raw-dir<span class="w"> </span>/data/raw<span class="w"> </span>--proc-dir<span class="w"> </span>/data/proc<span class="w"> </span>--cruise-table
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="oceanarray-run">
+<h2><code class="docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">run</span></code><a class="headerlink" href="#oceanarray-run" title="Link to this heading"></a></h2>
+<p>Run the complete processing pipeline in one command: stages 1, 2, and 3,
+followed by stack, grid, and all report pages.  Continues past individual
+instrument failures — check the processing logs in
+<code class="docutils literal notranslate"><span class="pre">{proc_dir}/{mooring}/processing_logs/</span></code> for details.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">run</span></code> only after confirming that stage 1 can read all raw
+files and that the <code class="docutils literal notranslate"><span class="pre">deployment_time</span></code> / <code class="docutils literal notranslate"><span class="pre">recovery_time</span></code> values in the
+YAML produce the correct trim (verified with <code class="docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">process</span> <span class="pre">--stage</span> <span class="pre">2</span></code>
+and a quick report inspection).</p>
+<p><strong>Synopsis</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>oceanarray run MOORING [--raw-dir DIR] [--proc-dir DIR]
+                       [--dt SECONDS] [--dp DBAR]
+                       [--pmin DBAR] [--pmax DBAR]
+                       [--serial SN ...] [--force]
+</pre></div>
+</div>
+<p><strong>Flags</strong></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 15.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Flag</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--raw-dir</span> <span class="pre">DIR</span></code></p></td>
+<td><p>path</p></td>
+<td><p>(required)</p></td>
+<td><p>Cruise-level raw data directory.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--proc-dir</span> <span class="pre">DIR</span></code></p></td>
+<td><p>path</p></td>
+<td><p>(required)</p></td>
+<td><p>Cruise-level processed data directory.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--dt</span> <span class="pre">SECONDS</span></code></p></td>
+<td><p>integer</p></td>
+<td><p>60</p></td>
+<td><p>Time step for the stack output (seconds).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--dp</span> <span class="pre">DBAR</span></code></p></td>
+<td><p>number</p></td>
+<td><p>20</p></td>
+<td><p>Pressure step for the grid output (dbar).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--pmin</span> <span class="pre">DBAR</span></code></p></td>
+<td><p>number</p></td>
+<td><p>200</p></td>
+<td><p>Shallowest pressure level in the grid (dbar).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--pmax</span> <span class="pre">DBAR</span></code></p></td>
+<td><p>number</p></td>
+<td><p>1000</p></td>
+<td><p>Deepest pressure level in the grid (dbar).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--serial</span> <span class="pre">SN</span></code></p></td>
+<td><p>string (repeat)</p></td>
+<td><p>(all)</p></td>
+<td><p>Restrict processing and per-instrument reports to these serial numbers.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--force</span></code></p></td>
+<td><p>flag</p></td>
+<td><p>off</p></td>
+<td><p>Overwrite existing output files at every stage.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Output created</strong></p>
+<p>All stage NC files, <code class="docutils literal notranslate"><span class="pre">{mooring}_stack.nc</span></code>, <code class="docutils literal notranslate"><span class="pre">{mooring}_grid.nc</span></code>,
+mooring summary report, stack report, grid report, and per-instrument
+reports.</p>
+<p><strong>Example</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>oceanarray<span class="w"> </span>run<span class="w"> </span>dsG3_1_2026<span class="w"> </span>--raw-dir<span class="w"> </span>/data/raw<span class="w"> </span>--proc-dir<span class="w"> </span>/data/proc<span class="w"> </span>--force
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="oceanarray-list">
+<h2><code class="docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">list</span></code><a class="headerlink" href="#oceanarray-list" title="Link to this heading"></a></h2>
+<p>Print a reference table of allowed <code class="docutils literal notranslate"><span class="pre">instrument:</span></code> and <code class="docutils literal notranslate"><span class="pre">file_type:</span></code> values
+for mooring YAML configuration.  Use this to look up the correct reader name
+for a given instrument type, or to check which <code class="docutils literal notranslate"><span class="pre">instrument:</span></code> values are
+recognised.</p>
+<p>Does not require a mooring name, <code class="docutils literal notranslate"><span class="pre">--raw-dir</span></code>, or <code class="docutils literal notranslate"><span class="pre">--proc-dir</span></code>.</p>
+<p><strong>Synopsis</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>oceanarray list
+</pre></div>
+</div>
+<p><strong>Example</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>oceanarray<span class="w"> </span>list
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="preliminary-visualisation-commands">
+<h2>Preliminary visualisation commands<a class="headerlink" href="#preliminary-visualisation-commands" title="Link to this heading"></a></h2>
+<p>The following commands produce standalone plots and animations.  They are
+available for quick inspection but are considered preliminary — the output
+style, variable names, and flag set may change in a future release.</p>
+<section id="oceanarray-plot">
+<h3><code class="docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">plot</span></code><a class="headerlink" href="#oceanarray-plot" title="Link to this heading"></a></h3>
+<p>Show an interactive overview plot of processed data, or save it to a file.</p>
+<p><strong>Synopsis</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>oceanarray plot MOORING [--proc-dir DIR] [--var_y VAR]
+                        [--var_color VAR] [--colormap CM]
+                        [--downsample SEC] [--output FILE]
+                        [-o DIR] [--show]
+</pre></div>
+</div>
+<p><strong>Flags</strong></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 15.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Flag</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--proc-dir</span> <span class="pre">DIR</span></code></p></td>
+<td><p>path</p></td>
+<td><p>(required)</p></td>
+<td><p>Cruise-level processed data directory.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--var_y</span> <span class="pre">VAR</span></code></p></td>
+<td><p>string</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">temperature</span></code></p></td>
+<td><p>Variable to plot on the y-axis.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--var_color</span> <span class="pre">VAR</span></code></p></td>
+<td><p>string</p></td>
+<td><p>(same as <code class="docutils literal notranslate"><span class="pre">--var_y</span></code>)</p></td>
+<td><p>Variable to use for colouring data points.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--colormap</span> <span class="pre">CM</span></code></p></td>
+<td><p>string</p></td>
+<td><p>(auto)</p></td>
+<td><p>Matplotlib colormap name.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--downsample</span> <span class="pre">SEC</span></code></p></td>
+<td><p>integer</p></td>
+<td><p>(none)</p></td>
+<td><p>Subsample data to this interval in seconds before plotting.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--output</span> <span class="pre">FILE</span></code></p></td>
+<td><p>path</p></td>
+<td><p>(none)</p></td>
+<td><p>Save the plot to a file (e.g. <code class="docutils literal notranslate"><span class="pre">.png</span></code>, <code class="docutils literal notranslate"><span class="pre">.pdf</span></code>).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">-o</span> <span class="pre">DIR</span></code></p></td>
+<td><p>path</p></td>
+<td><p>(current dir)</p></td>
+<td><p>Directory in which to save the output file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--show</span></code></p></td>
+<td><p>flag</p></td>
+<td><p>on</p></td>
+<td><p>Display an interactive plot window.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>oceanarray<span class="w"> </span>plot<span class="w"> </span>dsG3_1_2026<span class="w"> </span>--proc-dir<span class="w"> </span>/data/proc<span class="w"> </span>--var_y<span class="w"> </span>pressure<span class="w"> </span>--var_color<span class="w"> </span>temperature<span class="w"> </span>--output<span class="w"> </span>overview.png
+</pre></div>
+</div>
+</section>
+<hr class="docutils" />
+<section id="oceanarray-animate">
+<h3><code class="docutils literal notranslate"><span class="pre">oceanarray</span> <span class="pre">animate</span></code><a class="headerlink" href="#oceanarray-animate" title="Link to this heading"></a></h3>
+<p>Generate an animated hodograph (tip of the velocity vector tracing a path
+over time) for Aquadopp or ADCP instruments.  Requires <code class="docutils literal notranslate"><span class="pre">east_velocity</span></code>
+and <code class="docutils literal notranslate"><span class="pre">north_velocity</span></code> in the stage 3 output.  The <code class="docutils literal notranslate"><span class="pre">Pillow</span></code> library must
+be installed for GIF output.</p>
+<p><strong>Synopsis</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>oceanarray animate MOORING [--proc-dir DIR] [--serial SN ...]
+                           [-o FILE] [--u-var VAR] [--v-var VAR]
+</pre></div>
+</div>
+<p><strong>Flags</strong></p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.0%" />
+<col style="width: 10.0%" />
+<col style="width: 15.0%" />
+<col style="width: 50.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Flag</p></th>
+<th class="head"><p>Type</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--proc-dir</span> <span class="pre">DIR</span></code></p></td>
+<td><p>path</p></td>
+<td><p>(required)</p></td>
+<td><p>Cruise-level processed data directory.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--serial</span> <span class="pre">SN</span></code></p></td>
+<td><p>string (repeat)</p></td>
+<td><p>(all)</p></td>
+<td><p>Restrict to specific instrument serial number(s).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">-o</span> <span class="pre">FILE</span></code></p></td>
+<td><p>path</p></td>
+<td><p>(auto)</p></td>
+<td><p>Output file path (e.g. <code class="docutils literal notranslate"><span class="pre">hodograph.gif</span></code>).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--u-var</span> <span class="pre">VAR</span></code></p></td>
+<td><p>string</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">east_velocity</span></code></p></td>
+<td><p>Variable name for the eastward velocity component.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--v-var</span> <span class="pre">VAR</span></code></p></td>
+<td><p>string</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">north_velocity</span></code></p></td>
+<td><p>Variable name for the northward velocity component.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>oceanarray<span class="w"> </span>animate<span class="w"> </span>dsG3_1_2026<span class="w"> </span>--proc-dir<span class="w"> </span>/data/proc<span class="w"> </span>--serial<span class="w"> </span><span class="m">400115</span><span class="w"> </span>-o<span class="w"> </span>dsG3_400115_hodograph.gif
+</pre></div>
+</div>
+</section>
+</section>
+<hr class="docutils" />
+<section id="deprecated-flags">
+<h2>Deprecated flags<a class="headerlink" href="#deprecated-flags" title="Link to this heading"></a></h2>
+<section id="basedir-dir-removed">
+<h3><code class="docutils literal notranslate"><span class="pre">--basedir</span> <span class="pre">DIR</span></code> (removed)<a class="headerlink" href="#basedir-dir-removed" title="Link to this heading"></a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">--basedir</span></code> flag has been <strong>removed</strong>.  Passing it prints a migration
+message naming the replacement and exits without processing.  Use
+<code class="docutils literal notranslate"><span class="pre">--raw-dir</span></code> and <code class="docutils literal notranslate"><span class="pre">--proc-dir</span></code> with the mooring-first layout instead.</p>
+<p>See <a class="reference internal" href="migration.html"><span class="doc">Migrating from the --basedir Layout</span></a> for step-by-step migration instructions.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="oceanarray.html" class="btn btn-neutral float-left" title="oceanarray API reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="yaml_configuration.html" class="btn btn-neutral float-right" title="YAML Configuration Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Eleanor Frajka-Williams, FirstName LastName.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

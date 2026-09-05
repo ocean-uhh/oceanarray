@@ -1,0 +1,880 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>oceanarray.processors.stage3 &mdash; oceanarray v0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/custom.css?v=20758594" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8b92e751"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            oceanarray
+              <img src="../../../_static/oceanarray_icon.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../troubleshooting.html">Troubleshooting</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Processing framework</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../processing_framework.html">OceanArray processing framework</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reports.html">HTML Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../directory_structure.html">Directory Structure and File Layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../file_naming_conventions.html">File Naming Conventions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Stage 1 2 3 - Instrument</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/acquisition.html">0. Data Acquisition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/standardisation.html">1. Standardisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../clock_offset.html">2. Clock Offset Analysis (optional)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/trimming.html">2. Trim to Deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/calibration.html">3. Apply Calibration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/auto_qc.html">3. Automatic QC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/nortek_coordinate_transform.html">3. Coordinate Transform</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Stack &amp; Grid - Moorings</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/time_gridding.html">Stack into one NetCDF</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/vertical_gridding.html">Grid onto pressure</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Caldips</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../calibration_dips.html">Calibration dips</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/ocean-uhh/oceanarray">GitHub Repo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../oceanarray.html">Python API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli_reference.html">CLI Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../yaml_configuration.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../project_structure.html">OceanArray Project Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../oceanarray_format.html">OceanArray Data Format Specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../oceanSITES_manual.html">OceanSITES manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../legacy.html">Legacy modules</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Changelog / Migration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../migration.html">Migrating from the <code class="docutils literal notranslate"><span class="pre">--basedir</span></code> Layout</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../roadmap.html">Development Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../style_guide.html">Project Style Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/conversion.html">Convert to OceanSITES (Stage 4)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/concatenation.html">Combine Deployments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/multisite_merging.html">Multi-site Merging</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">oceanarray</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../processors.html">oceanarray.processors</a></li>
+      <li class="breadcrumb-item active">oceanarray.processors.stage3</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for oceanarray.processors.stage3</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""Stage 3: pressure interpolation + QARTOD QC (gross-range and spike tests).</span>
+
+<span class="sd">Processing order per instrument</span>
+<span class="sd">---------------------------------</span>
+<span class="sd">1. Load ``_stage2.nc``.</span>
+<span class="sd">2. **Pressure interpolation** (targets only — instruments lacking pressure or</span>
+<span class="sd">   whose pressure is flagged bad in the YAML):</span>
+<span class="sd">   a. Near-neighbour if any source has ``|Δhab|`` ≤ ``HAB_THRESHOLD``.</span>
+<span class="sd">   b. Weighted bracketing from the closest source above and below.</span>
+<span class="sd">   c. Extrapolation (with WARNING) when target is outside all source habs.</span>
+<span class="sd">   Interpolated pressure gets ``pressure_qc = 8`` (interpolated_value).</span>
+<span class="sd">3. **QARTOD gross-range test** on temperature, conductivity, pressure, and</span>
+<span class="sd">   velocity components.  Flags 4 (bad) or 3 (suspect) based on thresholds in</span>
+<span class="sd">   ``parameters.QC_GROSS_RANGE`` (overrideable per mooring / per instrument in</span>
+<span class="sd">   YAML via a ``qc_ranges`` key).</span>
+<span class="sd">4. **QARTOD spike test** on the same variables.  Flags from</span>
+<span class="sd">   ``parameters.QC_SPIKE`` (overrideable via ``qc_spike`` in YAML).</span>
+<span class="sd">5. Merge all QC flags using priority order: 9 &gt; 4 &gt; 3 &gt; 8 &gt; 2 &gt; 1.</span>
+<span class="sd">6. Write ``_stage3.nc`` for **all** instruments (not only pressure targets).</span>
+
+<span class="sd">Flag combination priority</span>
+<span class="sd">--------------------------</span>
+<span class="sd">Missing (9) &gt; Bad (4) &gt; Suspect (3) &gt; Interpolated (8) &gt; Prob-good (2) &gt; Good (1)</span>
+
+<span class="sd">This means that if interpolated pressure also fails the range test it is</span>
+<span class="sd">flagged 4 (bad), not 8 (interpolated).</span>
+
+<span class="sd">YAML configuration keys</span>
+<span class="sd">------------------------</span>
+<span class="sd">Top-level (mooring-wide):</span>
+
+<span class="sd">``qc_ranges``</span>
+<span class="sd">    mapping of variable → {fail_span, suspect_span}</span>
+<span class="sd">``qc_spike``</span>
+<span class="sd">    mapping of variable → {suspect_threshold, fail_threshold}</span>
+
+<span class="sd">Per-instrument (in a clamp entry):</span>
+
+<span class="sd">``qc_ranges``</span>
+<span class="sd">    same structure; overrides the mooring-level setting for the variables</span>
+<span class="sd">    listed (others fall back to mooring/global defaults)</span>
+<span class="sd">``qc_spike``</span>
+<span class="sd">    same structure</span>
+<span class="sd">``pressure_qc``</span>
+<span class="sd">    int — mark this instrument's own pressure as bad (≥3) so stage3 replaces</span>
+<span class="sd">    it with an interpolated value.</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">datetime</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray</span><span class="w"> </span><span class="kn">import</span> <span class="n">paths</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.paths</span><span class="w"> </span><span class="kn">import</span> <span class="n">safe_serial</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.utilities</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">cast_output_dtypes</span><span class="p">,</span>
+    <span class="n">drop_all_zero_vars</span><span class="p">,</span>
+    <span class="n">extract_inline_instruments</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.processors.pressure</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">compute_adcp_bin_pressure</span><span class="p">,</span>
+    <span class="n">interpolate_pressure</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.processors.qc</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">apply_enu_velocity_qc</span><span class="p">,</span>
+    <span class="n">apply_qc_tests</span><span class="p">,</span>
+    <span class="n">apply_tilt_qc</span><span class="p">,</span>
+    <span class="n">compute_salinity_data</span><span class="p">,</span>
+    <span class="n">derive_oxygen_saturation</span><span class="p">,</span>
+    <span class="n">ensure_conductivity_units</span><span class="p">,</span>
+    <span class="n">load_qc_config</span><span class="p">,</span>
+    <span class="n">merge_salinity_parent_qc</span><span class="p">,</span>
+    <span class="n">set_qc_attrs</span><span class="p">,</span>
+    <span class="n">unify_velocity_qc</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.processors.coordinate</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">apply_adcp_seabed_qc</span><span class="p">,</span>
+    <span class="n">apply_adcp_surface_qc</span><span class="p">,</span>
+    <span class="n">apply_adcp_velocity_qc</span><span class="p">,</span>
+    <span class="n">apply_beam_to_enu</span><span class="p">,</span>
+    <span class="n">apply_declination_to_enu</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_safe_serial</span><span class="p">(</span><span class="n">serial</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return a filename-safe serial token (see :func:`oceanarray.paths.safe_serial`)."""</span>
+    <span class="k">return</span> <span class="n">safe_serial</span><span class="p">(</span><span class="n">serial</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Stage3Processor">
+<a class="viewcode-back" href="../../../oceanarray.html#oceanarray.processors.stage3.Stage3Processor">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Stage3Processor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Pressure interpolation + QARTOD QC for all mooring instruments."""</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">proc_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Apply QC flags, coordinate rotation, and derived variables to mooring data.</span>
+
+<span class="sd">        Reads stage2 CF-NetCDF files and applies: QARTOD gross-range and spike QC</span>
+<span class="sd">        flags for scalar sensors; pressure interpolation for instruments that lack a</span>
+<span class="sd">        pressure sensor; BEAM→XYZ→ENU coordinate rotation for Aquadopp current meters</span>
+<span class="sd">        (using the instrument T matrix and heading/pitch/roll); and magnetic declination</span>
+<span class="sd">        correction so velocities are referenced to true north.  Writes</span>
+<span class="sd">        ``{mooring}_{serial}_stage3.nc``.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        proc_dir : str</span>
+<span class="sd">            Cruise-level processed output directory. The pipeline appends</span>
+<span class="sd">            ``/{mooring}/`` internally (see :func:`oceanarray.paths.mooring_proc_dir`).</span>
+
+<span class="sd">        """</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_proc_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">proc_dir</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_file</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_setup_logging</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mooring_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">output_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">setup_stage_logging</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_file</span> <span class="o">=</span> <span class="n">setup_stage_logging</span><span class="p">(</span><span class="n">mooring_name</span><span class="p">,</span> <span class="s2">"stage3"</span><span class="p">,</span> <span class="n">output_path</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_file</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_file</span><span class="p">,</span> <span class="s2">"a"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_proc_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mooring_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">paths</span><span class="o">.</span><span class="n">mooring_proc_dir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_proc_dir</span><span class="p">,</span> <span class="n">mooring_name</span><span class="p">)</span>
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+<div class="viewcode-block" id="Stage3Processor.process_mooring">
+<a class="viewcode-back" href="../../../oceanarray.html#oceanarray.processors.stage3.Stage3Processor.process_mooring">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">process_mooring</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">mooring_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">serials</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">force</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">dry_run</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Run Stage 3 QC and pressure interpolation for all instruments on a mooring."""</span>
+        <span class="n">proc_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_proc_dir</span><span class="p">(</span><span class="n">mooring_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">proc_dir</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"ERROR: Processing directory not found: </span><span class="si">{</span><span class="n">proc_dir</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_setup_logging</span><span class="p">(</span><span class="n">mooring_name</span><span class="p">,</span> <span class="n">proc_dir</span><span class="p">)</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="s2">"DRY RUN — "</span> <span class="k">if</span> <span class="n">dry_run</span> <span class="k">else</span> <span class="s2">""</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">mode</span><span class="si">}</span><span class="s2">Stage 3 (pressure interpolation + QC) for: </span><span class="si">{</span><span class="n">mooring_name</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+        <span class="n">config_file</span> <span class="o">=</span> <span class="n">proc_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">mooring_name</span><span class="si">}</span><span class="s2">.mooring.yaml"</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">config_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="sa">f</span><span class="s2">"ERROR: Config not found: </span><span class="si">{</span><span class="n">config_file</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">mooring_config</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="n">instrument_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+            <span class="n">mooring_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"clamp"</span><span class="p">,</span> <span class="n">mooring_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"instruments"</span><span class="p">,</span> <span class="p">[]))</span>
+        <span class="p">)</span>
+        <span class="n">instrument_list</span> <span class="o">+=</span> <span class="n">extract_inline_instruments</span><span class="p">(</span><span class="n">mooring_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"inline"</span><span class="p">,</span> <span class="p">[]))</span>
+
+        <span class="c1"># ── Mooring location for BEAM→ENU declination ──────────────────</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.utilities</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse_latlon_with_source</span>
+
+        <span class="n">_mooring_lat</span><span class="p">,</span> <span class="n">_mooring_lon</span><span class="p">,</span> <span class="n">_latlon_source</span> <span class="o">=</span> <span class="n">parse_latlon_with_source</span><span class="p">(</span>
+            <span class="n">mooring_config</span>
+        <span class="p">)</span>
+
+        <span class="n">_water_depth_m</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">mooring_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"waterdepth"</span><span class="p">)</span> <span class="ow">or</span> <span class="mf">0.0</span><span class="p">)</span>
+
+        <span class="c1"># ── Build instrument table ──────────────────────────────────────</span>
+        <span class="n">instruments</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">instrument_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="n">serial</span> <span class="o">=</span> <span class="n">_safe_serial</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"serial"</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span>
+            <span class="n">instr_type</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"instrument"</span><span class="p">,</span> <span class="s2">"unknown"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"skip"</span><span class="p">):</span>
+                <span class="n">reason</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"skip_reason"</span><span class="p">,</span> <span class="s2">"marked skip:true in YAML"</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  SKIP </span><span class="si">{</span><span class="n">instr_type</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">serial</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">reason</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="n">hab</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"hab"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">hab</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  WARNING: serial </span><span class="si">{</span><span class="n">serial</span><span class="si">}</span><span class="s2"> has no 'hab' — skipping"</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="n">nc_path</span> <span class="o">=</span> <span class="n">proc_dir</span> <span class="o">/</span> <span class="n">instr_type</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">mooring_name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">serial</span><span class="si">}</span><span class="s2">_stage2.nc"</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">nc_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="k">continue</span>
+            <span class="n">qc_flags</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">key</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">]:</span> <span class="nb">int</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">entry</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"_qc"</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+            <span class="p">}</span>
+            <span class="n">gr_cfg</span><span class="p">,</span> <span class="n">sp_cfg</span><span class="p">,</span> <span class="n">tilt_cfg</span><span class="p">,</span> <span class="n">fl_cfg</span> <span class="o">=</span> <span class="n">load_qc_config</span><span class="p">(</span><span class="n">mooring_config</span><span class="p">,</span> <span class="n">entry</span><span class="p">)</span>
+            <span class="c1"># Parse optional hab_segments: list of {from: ISO, hab: float}</span>
+            <span class="c1"># Stored as sorted list of (np.datetime64, float) breakpoints.</span>
+            <span class="n">raw_segs</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"hab_segments"</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="n">hab_segments</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">seg</span> <span class="ow">in</span> <span class="n">raw_segs</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">bp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">datetime64</span><span class="p">(</span><span class="n">seg</span><span class="p">[</span><span class="s2">"from"</span><span class="p">],</span> <span class="s2">"ns"</span><span class="p">)</span>
+                    <span class="n">hab_segments</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">bp</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">seg</span><span class="p">[</span><span class="s2">"hab"</span><span class="p">])))</span>
+                <span class="k">except</span> <span class="p">(</span><span class="ne">KeyError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">)</span> <span class="k">as</span> <span class="n">_e</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">"  WARNING: serial </span><span class="si">{</span><span class="n">serial</span><span class="si">}</span><span class="s2"> hab_segments entry invalid"</span>
+                        <span class="sa">f</span><span class="s2">" (</span><span class="si">{</span><span class="n">seg</span><span class="si">}</span><span class="s2">): </span><span class="si">{</span><span class="n">_e</span><span class="si">}</span><span class="s2"> — skipped"</span>
+                    <span class="p">)</span>
+            <span class="n">hab_segments</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+            <span class="n">instruments</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">"serial"</span><span class="p">:</span> <span class="n">serial</span><span class="p">,</span>
+                    <span class="s2">"instrument"</span><span class="p">:</span> <span class="n">instr_type</span><span class="p">,</span>
+                    <span class="s2">"hab"</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">hab</span><span class="p">),</span>
+                    <span class="s2">"hab_segments"</span><span class="p">:</span> <span class="n">hab_segments</span><span class="p">,</span>
+                    <span class="s2">"nc_path"</span><span class="p">:</span> <span class="n">nc_path</span><span class="p">,</span>
+                    <span class="s2">"qc_flags"</span><span class="p">:</span> <span class="n">qc_flags</span><span class="p">,</span>
+                    <span class="s2">"gross_range"</span><span class="p">:</span> <span class="n">gr_cfg</span><span class="p">,</span>
+                    <span class="s2">"spike"</span><span class="p">:</span> <span class="n">sp_cfg</span><span class="p">,</span>
+                    <span class="s2">"tilt"</span><span class="p">:</span> <span class="n">tilt_cfg</span><span class="p">,</span>
+                    <span class="s2">"flat_line"</span><span class="p">:</span> <span class="n">fl_cfg</span><span class="p">,</span>
+                    <span class="s2">"entry"</span><span class="p">:</span> <span class="n">entry</span><span class="p">,</span>
+                    <span class="s2">"lat"</span><span class="p">:</span> <span class="n">_mooring_lat</span><span class="p">,</span>
+                    <span class="s2">"lon"</span><span class="p">:</span> <span class="n">_mooring_lon</span><span class="p">,</span>
+                    <span class="s2">"latlon_source"</span><span class="p">:</span> <span class="n">_latlon_source</span><span class="p">,</span>
+                    <span class="s2">"water_depth_m"</span><span class="p">:</span> <span class="n">_water_depth_m</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">instruments</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="s2">"ERROR: No _stage2.nc files found with hab values"</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="c1"># Filter by serial early for targeted reruns</span>
+        <span class="k">if</span> <span class="n">serials</span><span class="p">:</span>
+            <span class="n">safe_req</span> <span class="o">=</span> <span class="p">{</span><span class="n">_safe_serial</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">serials</span><span class="p">}</span>
+            <span class="n">instruments</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">instruments</span> <span class="k">if</span> <span class="n">i</span><span class="p">[</span><span class="s2">"serial"</span><span class="p">]</span> <span class="ow">in</span> <span class="n">safe_req</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">instruments</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"  No instruments found matching serial(s): </span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">serials</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+                <span class="p">)</span>
+                <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="c1"># ── Scan what pressure variables each instrument has ────────────</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">_find_pressure_var</span><span class="p">(</span><span class="n">data_vars</span><span class="p">:</span> <span class="nb">set</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="s2">"pressure"</span> <span class="ow">in</span> <span class="n">data_vars</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s2">"pressure"</span>
+            <span class="k">for</span> <span class="n">cand</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span>
+                <span class="n">v</span>
+                <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data_vars</span>
+                <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"pressure_"</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">v</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"_qc"</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="k">return</span> <span class="n">cand</span>
+            <span class="k">return</span> <span class="kc">None</span>
+
+        <span class="k">for</span> <span class="n">info</span> <span class="ow">in</span> <span class="n">instruments</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">with</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s2">"nc_path"</span><span class="p">],</span> <span class="n">decode_timedelta</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">_ds</span><span class="p">:</span>
+                    <span class="n">info</span><span class="p">[</span><span class="s2">"data_vars"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">_ds</span><span class="o">.</span><span class="n">data_vars</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># noqa: BLE001  — missing file skipped; mooring continues</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  WARNING: Could not open </span><span class="si">{</span><span class="n">info</span><span class="p">[</span><span class="s1">'nc_path'</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                <span class="n">info</span><span class="p">[</span><span class="s2">"data_vars"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+            <span class="n">info</span><span class="p">[</span><span class="s2">"pressure_var"</span><span class="p">]</span> <span class="o">=</span> <span class="n">_find_pressure_var</span><span class="p">(</span><span class="n">info</span><span class="p">[</span><span class="s2">"data_vars"</span><span class="p">])</span>
+            <span class="n">info</span><span class="p">[</span><span class="s2">"has_pressure"</span><span class="p">]</span> <span class="o">=</span> <span class="n">info</span><span class="p">[</span><span class="s2">"pressure_var"</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">info</span><span class="p">[</span><span class="s2">"ds"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="k">for</span> <span class="n">varname</span><span class="p">,</span> <span class="n">qc_val</span> <span class="ow">in</span> <span class="n">info</span><span class="p">[</span><span class="s2">"qc_flags"</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">varname</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">info</span><span class="p">[</span><span class="s2">"data_vars"</span><span class="p">]:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">"  WARNING: serial </span><span class="si">{</span><span class="n">info</span><span class="p">[</span><span class="s1">'serial'</span><span class="p">]</span><span class="si">}</span><span class="s2">: "</span>
+                        <span class="sa">f</span><span class="s2">"'</span><span class="si">{</span><span class="n">varname</span><span class="si">}</span><span class="s2">_qc: </span><span class="si">{</span><span class="n">qc_val</span><span class="si">}</span><span class="s2">' in YAML but '</span><span class="si">{</span><span class="n">varname</span><span class="si">}</span><span class="s2">' "</span>
+                        <span class="sa">f</span><span class="s2">"not found in </span><span class="si">{</span><span class="n">info</span><span class="p">[</span><span class="s1">'nc_path'</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> — ignored"</span>
+                    <span class="p">)</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">pressure_bad</span><span class="p">(</span><span class="n">info</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">info</span><span class="p">[</span><span class="s2">"qc_flags"</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"pressure"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">3</span>
+
+        <span class="n">sources</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">instruments</span> <span class="k">if</span> <span class="n">i</span><span class="p">[</span><span class="s2">"has_pressure"</span><span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">pressure_bad</span><span class="p">(</span><span class="n">i</span><span class="p">)]</span>
+        <span class="n">targets</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">instruments</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">i</span><span class="p">[</span><span class="s2">"has_pressure"</span><span class="p">]</span> <span class="ow">or</span> <span class="n">pressure_bad</span><span class="p">(</span><span class="n">i</span><span class="p">)]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">sources</span> <span class="ow">and</span> <span class="n">targets</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span>
+                <span class="s2">"WARNING: No reliable pressure sources found — pressure interpolation skipped"</span>
+            <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"  Pressure sources (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">sources</span><span class="p">)</span><span class="si">}</span><span class="s2">): "</span>
+            <span class="o">+</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">s</span><span class="p">[</span><span class="s1">'instrument'</span><span class="p">]</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">s</span><span class="p">[</span><span class="s1">'serial'</span><span class="p">]</span><span class="si">}</span><span class="s2"> hab=</span><span class="si">{</span><span class="n">s</span><span class="p">[</span><span class="s1">'hab'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">m"</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sources</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">targets</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"  Pressure targets (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span><span class="si">}</span><span class="s2">): "</span>
+                <span class="o">+</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">t</span><span class="p">[</span><span class="s1">'instrument'</span><span class="p">]</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">t</span><span class="p">[</span><span class="s1">'serial'</span><span class="p">]</span><span class="si">}</span><span class="s2"> hab=</span><span class="si">{</span><span class="n">t</span><span class="p">[</span><span class="s1">'hab'</span><span class="p">]</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">m"</span>
+                    <span class="o">+</span> <span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">" [pressure_qc=</span><span class="si">{</span><span class="n">t</span><span class="p">[</span><span class="s1">'qc_flags'</span><span class="p">][</span><span class="s1">'pressure'</span><span class="p">]</span><span class="si">}</span><span class="s2">→replace]"</span>
+                        <span class="k">if</span> <span class="n">pressure_bad</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+                        <span class="k">else</span> <span class="s2">" [no pressure]"</span>
+                    <span class="p">)</span>
+                    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">targets</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">dry_run</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">info</span> <span class="ow">in</span> <span class="n">instruments</span><span class="p">:</span>
+                <span class="n">is_target</span> <span class="o">=</span> <span class="n">info</span> <span class="ow">in</span> <span class="n">targets</span>
+                <span class="n">l3</span> <span class="o">=</span> <span class="n">info</span><span class="p">[</span><span class="s2">"nc_path"</span><span class="p">]</span><span class="o">.</span><span class="n">with_name</span><span class="p">(</span>
+                    <span class="n">info</span><span class="p">[</span><span class="s2">"nc_path"</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"_stage2.nc"</span><span class="p">,</span> <span class="s2">"_stage3.nc"</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">action</span> <span class="o">=</span> <span class="s2">"interpolate pressure + QC"</span> <span class="k">if</span> <span class="n">is_target</span> <span class="k">else</span> <span class="s2">"QC only"</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"    </span><span class="si">{</span><span class="n">info</span><span class="p">[</span><span class="s1">'serial'</span><span class="p">]</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">info</span><span class="p">[</span><span class="s1">'instrument'</span><span class="p">]</span><span class="si">}</span><span class="s2">): </span><span class="si">{</span><span class="n">action</span><span class="si">}</span><span class="s2"> → </span><span class="si">{</span><span class="n">l3</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span>
+                <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="s2">"DRY RUN complete"</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="c1"># ── Load source datasets for pressure interpolation ─────────────</span>
+        <span class="k">for</span> <span class="n">src</span> <span class="ow">in</span> <span class="n">sources</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">src</span><span class="p">[</span><span class="s2">"ds"</span><span class="p">]</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span>
+                    <span class="n">src</span><span class="p">[</span><span class="s2">"nc_path"</span><span class="p">],</span> <span class="n">decode_timedelta</span><span class="o">=</span><span class="kc">False</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># noqa: BLE001  — one bad source must not abort pressure interp</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"  WARNING: Could not load source </span><span class="si">{</span><span class="n">src</span><span class="p">[</span><span class="s1">'nc_path'</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span>
+                <span class="p">)</span>
+                <span class="n">src</span><span class="p">[</span><span class="s2">"ds"</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># ── Process every instrument ────────────────────────────────────</span>
+        <span class="n">success_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">info</span> <span class="ow">in</span> <span class="n">instruments</span><span class="p">:</span>
+            <span class="n">ok</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_instrument</span><span class="p">(</span><span class="n">info</span><span class="p">,</span> <span class="n">sources</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="n">force</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">ok</span><span class="p">:</span>
+                <span class="n">success_count</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">for</span> <span class="n">info</span> <span class="ow">in</span> <span class="n">instruments</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"ds"</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">info</span><span class="p">[</span><span class="s2">"ds"</span><span class="p">]</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"Stage 3 complete: </span><span class="si">{</span><span class="n">success_count</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">instruments</span><span class="p">)</span><span class="si">}</span><span class="s2"> instruments written"</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">instruments</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="s2">"No instruments matched — nothing processed."</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="c1"># Partial success is still success: instruments that processed are written</span>
+        <span class="c1"># and the record summary reports which succeeded and which failed.</span>
+        <span class="k">return</span> <span class="n">success_count</span> <span class="o">&gt;</span> <span class="mi">0</span></div>
+
+
+    <span class="c1"># ------------------------------------------------------------------</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_process_instrument</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">info</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="n">sources</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+        <span class="n">targets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+        <span class="n">force</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Apply Stage 3 processing to one instrument's Stage 2 NetCDF.</span>
+
+<span class="sd">        Steps applied (where applicable to the instrument type):</span>
+
+<span class="sd">        1. Pressure interpolation — targets without a reliable pressure sensor</span>
+<span class="sd">           have pressure interpolated from *sources* (neighbours on the mooring).</span>
+<span class="sd">        2. Conductivity unit normalisation and practical salinity computation</span>
+<span class="sd">           (CTD/microcat instruments only).</span>
+<span class="sd">        3. QARTOD QC tests (gross-range, spike) using thresholds from the config.</span>
+<span class="sd">        4. BEAM→ENU or XYZ→ENU coordinate transformation with magnetic declination</span>
+<span class="sd">           correction (current meters / Aquadopp).</span>
+<span class="sd">        5. Tilt QC — velocity flagged suspect/bad when pitch or roll exceed</span>
+<span class="sd">           configured thresholds.</span>
+<span class="sd">        6. History attribute updated with all processing steps applied.</span>
+
+<span class="sd">        Writes ``{mooring}_{serial}_stage3.nc`` alongside the Stage 2 file.</span>
+<span class="sd">        Skips if the output already exists and *force* is False.</span>
+
+<span class="sd">        Returns True on success or skip, False on error.</span>
+<span class="sd">        """</span>
+        <span class="n">nc_path</span> <span class="o">=</span> <span class="n">info</span><span class="p">[</span><span class="s2">"nc_path"</span><span class="p">]</span>
+        <span class="n">serial</span> <span class="o">=</span> <span class="n">info</span><span class="p">[</span><span class="s2">"serial"</span><span class="p">]</span>
+        <span class="n">l3_path</span> <span class="o">=</span> <span class="n">nc_path</span><span class="o">.</span><span class="n">with_name</span><span class="p">(</span><span class="n">nc_path</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"_stage2.nc"</span><span class="p">,</span> <span class="s2">"_stage3.nc"</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">l3_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">force</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  SKIP (exists): </span><span class="si">{</span><span class="n">l3_path</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">  (--force to overwrite)"</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">l3_path</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">OSError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  ERROR: cannot remove existing </span><span class="si">{</span><span class="n">l3_path</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="n">is_target</span> <span class="o">=</span> <span class="n">info</span> <span class="ow">in</span> <span class="n">targets</span>
+        <span class="n">pressure_bad_flag</span> <span class="o">=</span> <span class="n">info</span><span class="p">[</span><span class="s2">"qc_flags"</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"pressure"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">3</span>
+        <span class="n">is_adcp</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"instrument"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"adcp"</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"--&gt;   Processing </span><span class="si">{</span><span class="n">info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'instrument'</span><span class="p">,</span><span class="w"> </span><span class="s1">'unknown'</span><span class="p">)</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">nc_path</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray</span><span class="w"> </span><span class="kn">import</span> <span class="n">parameters</span> <span class="k">as</span> <span class="n">params</span>
+
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">nc_path</span><span class="p">,</span> <span class="n">decode_timedelta</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+
+            <span class="c1"># Record stage2 source-file provenance as named global attrs</span>
+            <span class="n">_st2_stat</span> <span class="o">=</span> <span class="n">nc_path</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span>
+            <span class="n">_st2_mtime</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span>
+                <span class="n">_st2_stat</span><span class="o">.</span><span class="n">st_mtime</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%SZ"</span><span class="p">)</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">nc_path</span><span class="p">,</span> <span class="s2">"rb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">_f</span><span class="p">:</span>
+                <span class="n">_st2_sha</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">_f</span><span class="o">.</span><span class="n">read</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[:</span><span class="mi">8</span><span class="p">]</span>
+            <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"stage2_source_file"</span><span class="p">]</span> <span class="o">=</span> <span class="n">nc_path</span><span class="o">.</span><span class="n">name</span>
+            <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"stage2_source_mtime"</span><span class="p">]</span> <span class="o">=</span> <span class="n">_st2_mtime</span>
+            <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"stage2_source_sha256"</span><span class="p">]</span> <span class="o">=</span> <span class="n">_st2_sha</span>
+
+            <span class="n">target_time</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">"time"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+            <span class="n">history_notes</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="c1"># ── Pressure interpolation (targets only) ──────────────────</span>
+            <span class="k">if</span> <span class="n">is_target</span> <span class="ow">and</span> <span class="n">sources</span><span class="p">:</span>
+                <span class="n">ds</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="n">interpolate_pressure</span><span class="p">(</span>
+                    <span class="n">ds</span><span class="p">,</span>
+                    <span class="n">info</span><span class="p">,</span>
+                    <span class="n">sources</span><span class="p">,</span>
+                    <span class="n">target_time</span><span class="p">,</span>
+                    <span class="n">pressure_bad_flag</span><span class="p">,</span>
+                    <span class="n">log_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="n">history_notes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"stage3 pressure interpolated (pressure_qc=8) — </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">"</span>
+                <span class="p">)</span>
+
+            <span class="c1"># ── Ensure conductivity is in mS/cm before QC ─────────────</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">ensure_conductivity_units</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">log_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">)</span>
+
+            <span class="c1"># ── Compute salinity data before QC so it gets range-tested ─</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">compute_salinity_data</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">log_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">)</span>
+
+            <span class="c1"># ── QARTOD QC tests (temperature, conductivity, salinity, …) ─</span>
+            <span class="n">gr_cfg</span> <span class="o">=</span> <span class="n">info</span><span class="p">[</span><span class="s2">"gross_range"</span><span class="p">]</span>
+            <span class="n">sp_cfg</span> <span class="o">=</span> <span class="n">info</span><span class="p">[</span><span class="s2">"spike"</span><span class="p">]</span>
+            <span class="n">fl_cfg</span> <span class="o">=</span> <span class="n">info</span><span class="p">[</span><span class="s2">"flat_line"</span><span class="p">]</span>
+            <span class="c1"># For ADCP, exclude 2-D velocity vars from the ioos_qc path</span>
+            <span class="c1"># (gross_range_test expects 1-D input); velocity QC is handled</span>
+            <span class="c1"># below by _apply_adcp_velocity_qc.</span>
+            <span class="k">if</span> <span class="n">is_adcp</span><span class="p">:</span>
+                <span class="n">_ENU_KEYS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"east_velocity"</span><span class="p">,</span> <span class="s2">"north_velocity"</span><span class="p">,</span> <span class="s2">"up_velocity"</span><span class="p">}</span>
+                <span class="n">gr_cfg_scalar</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">gr_cfg</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_ENU_KEYS</span><span class="p">}</span>
+                <span class="n">ds</span> <span class="o">=</span> <span class="n">apply_qc_tests</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">gr_cfg_scalar</span><span class="p">,</span> <span class="n">sp_cfg</span><span class="p">,</span> <span class="n">flat_line</span><span class="o">=</span><span class="n">fl_cfg</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ds</span> <span class="o">=</span> <span class="n">apply_qc_tests</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">gr_cfg</span><span class="p">,</span> <span class="n">sp_cfg</span><span class="p">,</span> <span class="n">flat_line</span><span class="o">=</span><span class="n">fl_cfg</span><span class="p">)</span>
+
+            <span class="c1"># ── Post-QC pressure check ─────────────────────────────────</span>
+            <span class="c1"># If QC (e.g. flat-line test) just flagged ALL pressure values as</span>
+            <span class="c1"># bad and this instrument was not already a pressure target, treat</span>
+            <span class="c1"># it as one now: interpolate from the other sources on the mooring.</span>
+            <span class="c1"># This catches stuck-sensor faults that only become visible after</span>
+            <span class="c1"># the flat-line / gross-range tests run — which is why the pre-scan</span>
+            <span class="c1"># source/target classification cannot catch them.</span>
+            <span class="c1"># Note: if this instrument was already used as a source for a</span>
+            <span class="c1"># previously processed target, those targets will have received bad</span>
+            <span class="c1"># pressure values.  To fix that, re-run stage 3 on the full mooring</span>
+            <span class="c1"># once this instrument's fault is known (e.g. add pressure_qc: 4 to</span>
+            <span class="c1"># the YAML so it is excluded from sources at the outset).</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="ow">not</span> <span class="n">is_target</span>
+                <span class="ow">and</span> <span class="s2">"pressure_qc"</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span>
+                <span class="ow">and</span> <span class="s2">"pressure"</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span>
+            <span class="p">):</span>
+                <span class="n">_pqc</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="s2">"pressure_qc"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">)</span>
+                <span class="n">_n_total</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">_pqc</span><span class="p">)</span>
+                <span class="n">_n_bad</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">_pqc</span><span class="p">,</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">9</span><span class="p">])))</span>
+                <span class="n">_frac_bad</span> <span class="o">=</span> <span class="n">_n_bad</span> <span class="o">/</span> <span class="n">_n_total</span> <span class="k">if</span> <span class="n">_n_total</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mf">0.0</span>
+                <span class="c1"># Trigger interpolation when &gt; 70% of values are bad.  The flat-line</span>
+                <span class="c1"># test leaves the first fail_n samples as flag 1/3 (window startup),</span>
+                <span class="c1"># so strict all-bad checking would never fire for a fully stuck sensor.</span>
+                <span class="k">if</span> <span class="n">_frac_bad</span> <span class="o">&gt;</span> <span class="mf">0.70</span><span class="p">:</span>
+                    <span class="n">_other_sources</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sources</span> <span class="k">if</span> <span class="n">s</span><span class="p">[</span><span class="s2">"serial"</span><span class="p">]</span> <span class="o">!=</span> <span class="n">serial</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">_other_sources</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">"  WARNING: </span><span class="si">{</span><span class="n">serial</span><span class="si">}</span><span class="s2"> — </span><span class="si">{</span><span class="n">_frac_bad</span><span class="si">:</span><span class="s2">.0%</span><span class="si">}</span><span class="s2"> of pressure values "</span>
+                            <span class="sa">f</span><span class="s2">"flagged bad by QC (flat-line or gross-range); replacing "</span>
+                            <span class="sa">f</span><span class="s2">"entire pressure record with interpolation from "</span>
+                            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">_other_sources</span><span class="p">)</span><span class="si">}</span><span class="s2"> source(s). "</span>
+                            <span class="sa">f</span><span class="s2">"Re-run stage 3 on the full mooring with "</span>
+                            <span class="sa">f</span><span class="s2">"'pressure_qc: 4' in the YAML entry for </span><span class="si">{</span><span class="n">serial</span><span class="si">}</span><span class="s2"> "</span>
+                            <span class="sa">f</span><span class="s2">"so it is excluded from sources from the start."</span>
+                        <span class="p">)</span>
+                        <span class="c1"># Temporarily set YAML pressure flag to 4 so that</span>
+                        <span class="c1"># interpolate_pressure stores pressure_orig_qc = 4</span>
+                        <span class="c1"># (the actual QC reason), not the YAML default of 0.</span>
+                        <span class="n">info</span><span class="p">[</span><span class="s2">"qc_flags"</span><span class="p">][</span><span class="s2">"pressure"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span>
+                        <span class="n">ds</span><span class="p">,</span> <span class="n">method</span> <span class="o">=</span> <span class="n">interpolate_pressure</span><span class="p">(</span>
+                            <span class="n">ds</span><span class="p">,</span>
+                            <span class="n">info</span><span class="p">,</span>
+                            <span class="n">_other_sources</span><span class="p">,</span>
+                            <span class="n">target_time</span><span class="p">,</span>
+                            <span class="n">pressure_bad_flag</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                            <span class="n">log_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="n">history_notes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">"stage3 pressure interpolated post-QC "</span>
+                            <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="n">_frac_bad</span><span class="si">:</span><span class="s2">.0%</span><span class="si">}</span><span class="s2"> pressure_qc=4/9 after QC) — </span><span class="si">{</span><span class="n">method</span><span class="si">}</span><span class="s2">"</span>
+                        <span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">"  WARNING: </span><span class="si">{</span><span class="n">serial</span><span class="si">}</span><span class="s2"> — </span><span class="si">{</span><span class="n">_frac_bad</span><span class="si">:</span><span class="s2">.0%</span><span class="si">}</span><span class="s2"> of pressure flagged "</span>
+                            <span class="sa">f</span><span class="s2">"bad but no other pressure sources on this mooring; "</span>
+                            <span class="sa">f</span><span class="s2">"pressure remains bad-flagged."</span>
+                        <span class="p">)</span>
+
+            <span class="c1"># ── Fold T/C/P parent QC into salinity_qc ─────────────────</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">merge_salinity_parent_qc</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+            <span class="c1"># ── BEAM / XYZ → ENU coordinate transform ─────────────────</span>
+            <span class="c1"># Must run before tilt QC so east/north/up_velocity exist to be flagged.</span>
+            <span class="n">coord_sys_before</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"coordinate_system"</span><span class="p">,</span> <span class="s2">"ENU"</span><span class="p">)</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">apply_beam_to_enu</span><span class="p">(</span>
+                <span class="n">ds</span><span class="p">,</span>
+                <span class="n">info</span><span class="p">[</span><span class="s2">"entry"</span><span class="p">],</span>
+                <span class="n">info</span><span class="p">[</span><span class="s2">"lat"</span><span class="p">],</span>
+                <span class="n">info</span><span class="p">[</span><span class="s2">"lon"</span><span class="p">],</span>
+                <span class="n">latlon_source</span><span class="o">=</span><span class="n">info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"latlon_source"</span><span class="p">,</span> <span class="s2">"unknown"</span><span class="p">),</span>
+                <span class="n">log_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="c1"># If instrument was already in ENU (e.g. configured internally),</span>
+            <span class="c1"># still apply the magnetic declination rotation.</span>
+            <span class="k">if</span> <span class="n">coord_sys_before</span> <span class="o">==</span> <span class="s2">"ENU"</span><span class="p">:</span>
+                <span class="n">ds</span> <span class="o">=</span> <span class="n">apply_declination_to_enu</span><span class="p">(</span>
+                    <span class="n">ds</span><span class="p">,</span>
+                    <span class="n">info</span><span class="p">[</span><span class="s2">"lat"</span><span class="p">],</span>
+                    <span class="n">info</span><span class="p">[</span><span class="s2">"lon"</span><span class="p">],</span>
+                    <span class="n">latlon_source</span><span class="o">=</span><span class="n">info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"latlon_source"</span><span class="p">,</span> <span class="s2">"unknown"</span><span class="p">),</span>
+                    <span class="n">log_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="c1"># ── ENU velocity QC + up→east/north flag propagation ──────</span>
+            <span class="k">if</span> <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"coordinate_system"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"ENU"</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">is_adcp</span><span class="p">:</span>
+                    <span class="n">adcp_qc</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">QC_ADCP</span>
+                    <span class="n">ds</span> <span class="o">=</span> <span class="n">apply_adcp_velocity_qc</span><span class="p">(</span>
+                        <span class="n">ds</span><span class="p">,</span>
+                        <span class="n">gr_cfg</span><span class="o">=</span><span class="n">gr_cfg</span><span class="p">,</span>
+                        <span class="n">prcnt_gd_bad</span><span class="o">=</span><span class="n">adcp_qc</span><span class="p">[</span><span class="s2">"percent_good_bad"</span><span class="p">],</span>
+                        <span class="n">prcnt_gd_suspect</span><span class="o">=</span><span class="n">adcp_qc</span><span class="p">[</span><span class="s2">"percent_good_suspect"</span><span class="p">],</span>
+                        <span class="n">error_vel_threshold</span><span class="o">=</span><span class="n">adcp_qc</span><span class="p">[</span><span class="s2">"error_velocity_threshold"</span><span class="p">],</span>
+                        <span class="n">log_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="n">ds</span> <span class="o">=</span> <span class="n">compute_adcp_bin_pressure</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">info</span><span class="p">[</span><span class="s2">"lat"</span><span class="p">],</span> <span class="n">log_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">)</span>
+                    <span class="n">ds</span> <span class="o">=</span> <span class="n">apply_adcp_seabed_qc</span><span class="p">(</span>
+                        <span class="n">ds</span><span class="p">,</span>
+                        <span class="n">water_depth_m</span><span class="o">=</span><span class="n">info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"water_depth_m"</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+                        <span class="n">lat</span><span class="o">=</span><span class="n">info</span><span class="p">[</span><span class="s2">"lat"</span><span class="p">],</span>
+                        <span class="n">log_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="n">ds</span> <span class="o">=</span> <span class="n">apply_adcp_surface_qc</span><span class="p">(</span>
+                        <span class="n">ds</span><span class="p">,</span>
+                        <span class="n">lat</span><span class="o">=</span><span class="n">info</span><span class="p">[</span><span class="s2">"lat"</span><span class="p">],</span>
+                        <span class="n">log_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">ds</span> <span class="o">=</span> <span class="n">apply_enu_velocity_qc</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">gr_cfg</span><span class="p">)</span>
+
+            <span class="c1"># ── Tilt QC ────────────────────────────────────────────────</span>
+            <span class="c1"># Flags all velocity variables when pitch+roll tilt exceeds threshold.</span>
+            <span class="c1"># Skipped for ADCP: percent_good (col 3) and error_velocity capture</span>
+            <span class="c1"># ensemble-level quality without a separate tilt threshold step.</span>
+            <span class="c1"># Note: this does NOT mean tilt is checked per-bin — it is not.</span>
+            <span class="n">tilt_cfg</span> <span class="o">=</span> <span class="n">info</span><span class="p">[</span><span class="s2">"tilt"</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">is_adcp</span><span class="p">:</span>
+                <span class="n">n_tilt_susp</span><span class="p">,</span> <span class="n">n_tilt_bad</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+                <span class="n">history_notes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="s2">"tilt QC skipped for ADCP (percent_good+error_velocity QC applied instead)"</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ds</span><span class="p">,</span> <span class="n">n_tilt_susp</span><span class="p">,</span> <span class="n">n_tilt_bad</span> <span class="o">=</span> <span class="n">apply_tilt_qc</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">tilt_cfg</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">n_tilt_susp</span> <span class="ow">or</span> <span class="n">n_tilt_bad</span><span class="p">:</span>
+                    <span class="n">history_notes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">"tilt QC (tilt≥</span><span class="si">{</span><span class="n">tilt_cfg</span><span class="p">[</span><span class="s1">'suspect_threshold'</span><span class="p">]</span><span class="si">}</span><span class="s2">°→suspect, "</span>
+                        <span class="sa">f</span><span class="s2">"tilt≥</span><span class="si">{</span><span class="n">tilt_cfg</span><span class="p">[</span><span class="s1">'fail_threshold'</span><span class="p">]</span><span class="si">}</span><span class="s2">°→bad): "</span>
+                        <span class="sa">f</span><span class="s2">"suspect=</span><span class="si">{</span><span class="n">n_tilt_susp</span><span class="si">}</span><span class="s2">, bad=</span><span class="si">{</span><span class="n">n_tilt_bad</span><span class="si">}</span><span class="s2">"</span>
+                    <span class="p">)</span>
+
+            <span class="c1"># ── Unify ENU velocity QC ──────────────────────────────────</span>
+            <span class="c1"># After tilt + gross-range QC, combine worst flag across all three</span>
+            <span class="c1"># ENU components and write it back to all three so masking on any</span>
+            <span class="c1"># single component (east, north, or up) gives an identical result.</span>
+            <span class="c1"># This catches e.g. large east/north currents (&gt;3 m/s suspect) that</span>
+            <span class="c1"># would otherwise leave up_velocity_qc unflagged.</span>
+            <span class="k">if</span> <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"coordinate_system"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"ENU"</span><span class="p">:</span>
+                <span class="n">ds</span> <span class="o">=</span> <span class="n">unify_velocity_qc</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"coordinate_system"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"ENU"</span> <span class="ow">and</span> <span class="n">coord_sys_before</span> <span class="o">!=</span> <span class="s2">"ENU"</span><span class="p">:</span>
+                <span class="n">_ba</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"nortek_beam_angle"</span><span class="p">,</span> <span class="s2">"?"</span><span class="p">)</span>
+                <span class="n">_ba_src</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"nortek_beam_angle_source"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
+                <span class="n">_assumed</span> <span class="o">=</span> <span class="s2">"ASSUMED DEFAULT"</span> <span class="ow">in</span> <span class="n">_ba_src</span>
+                <span class="n">history_notes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">"BEAM→ENU rotation applied: "</span>
+                    <span class="sa">f</span><span class="s2">"beam_angle=</span><span class="si">{</span><span class="n">_ba</span><span class="si">}</span><span class="s2">° "</span>
+                    <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="s1">'ASSUMED DEFAULT — not from datasheet'</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">_assumed</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'from YAML'</span><span class="si">}</span><span class="s2">), "</span>
+                    <span class="sa">f</span><span class="s2">"declination=</span><span class="si">{</span><span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'magnetic_declination'</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">° "</span>
+                    <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="s1">'ppigrf IGRF'</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="s1">'magnetic_declination'</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">'assumed 0'</span><span class="si">}</span><span class="s2">)"</span>
+                <span class="p">)</span>
+
+            <span class="c1"># Report which variables got QC flags and their flag counts</span>
+            <span class="n">qc_summary</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"_qc"</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">v</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"_orig_qc"</span><span class="p">):</span>
+                    <span class="n">counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">bincount</span><span class="p">(</span>
+                        <span class="n">ds</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">)</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">9</span><span class="p">)</span><span class="o">.</span><span class="n">ravel</span><span class="p">(),</span> <span class="n">minlength</span><span class="o">=</span><span class="mi">10</span>
+                    <span class="p">)</span>
+                    <span class="n">n_good</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">counts</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="n">n_susp</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">counts</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                    <span class="n">n_bad</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">counts</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+                    <span class="n">n_interp</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">counts</span><span class="p">[</span><span class="mi">8</span><span class="p">])</span>
+                    <span class="n">n_miss</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">counts</span><span class="p">[</span><span class="mi">9</span><span class="p">])</span>
+                    <span class="n">parts</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">"good=</span><span class="si">{</span><span class="n">n_good</span><span class="si">}</span><span class="s2">"</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">n_susp</span><span class="p">:</span>
+                        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"suspect=</span><span class="si">{</span><span class="n">n_susp</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">n_bad</span><span class="p">:</span>
+                        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"bad=</span><span class="si">{</span><span class="n">n_bad</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">n_interp</span><span class="p">:</span>
+                        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"interp=</span><span class="si">{</span><span class="n">n_interp</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">n_miss</span><span class="p">:</span>
+                        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"missing=</span><span class="si">{</span><span class="n">n_miss</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+                    <span class="n">qc_summary</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">=[</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span><span class="si">}</span><span class="s2">]"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">qc_summary</span><span class="p">:</span>
+                <span class="n">history_notes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="s2">"QARTOD gross-range+spike: "</span> <span class="o">+</span> <span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">qc_summary</span><span class="p">)</span>
+                <span class="p">)</span>
+
+            <span class="c1"># ── History ────────────────────────────────────────────────</span>
+            <span class="n">stamp</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%MZ"</span><span class="p">)</span>
+            <span class="n">entry</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">stamp</span><span class="si">}</span><span class="s2">: "</span> <span class="o">+</span> <span class="s2">" | "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">history_notes</span><span class="p">)</span>
+            <span class="n">existing</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"history"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
+            <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"history"</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">existing</span><span class="si">}</span><span class="s2">; </span><span class="si">{</span><span class="n">entry</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">existing</span> <span class="k">else</span> <span class="n">entry</span>
+
+            <span class="c1"># Record the QC treatment so it can be reconstructed from the output</span>
+            <span class="c1"># file alone: the flag convention, the worst-wins merge ordering, and</span>
+            <span class="c1"># the QARTOD -&gt; OceanSITES ingest remap applied to every _qc variable.</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray</span><span class="w"> </span><span class="kn">import</span> <span class="n">parameters</span> <span class="k">as</span> <span class="n">params</span>
+
+            <span class="n">_priority_order</span> <span class="o">=</span> <span class="s2">" &lt; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                <span class="nb">str</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">f</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span>
+                    <span class="n">params</span><span class="o">.</span><span class="n">QC_MERGE_PRIORITY</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">kv</span><span class="p">:</span> <span class="n">kv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"qc_flag_convention"</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">QC_CONVENTION</span>
+            <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"qc_merge_rule"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">"worst flag wins; priority weakest to strongest: "</span> <span class="o">+</span> <span class="n">_priority_order</span>
+            <span class="p">)</span>
+            <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"qc_ingest_remap"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="s2">"QARTOD not_evaluated(2) -&gt; OceanSITES unknown(0) at test ingest"</span>
+            <span class="p">)</span>
+
+            <span class="c1"># Derive O2 % saturation and AOU when dissolved_oxygen + T/S/P are present.</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">derive_oxygen_saturation</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+            <span class="c1"># Normalize CF attrs for known physics variables.</span>
+            <span class="c1"># Derived from params.VARIABLES — single source of truth for standard_name,</span>
+            <span class="c1"># long_name (label), and units.  Only fills missing attrs; never</span>
+            <span class="c1"># overwrites values already set by the reader or derive_* functions.</span>
+            <span class="k">for</span> <span class="n">_vname</span><span class="p">,</span> <span class="n">_entry</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">VARIABLES</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">_vname</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">_vatrs</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="n">_vname</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span>
+                <span class="k">if</span> <span class="s2">"standard_name"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_vatrs</span> <span class="ow">and</span> <span class="n">_entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"standard_name"</span><span class="p">):</span>
+                    <span class="n">_vatrs</span><span class="p">[</span><span class="s2">"standard_name"</span><span class="p">]</span> <span class="o">=</span> <span class="n">_entry</span><span class="p">[</span><span class="s2">"standard_name"</span><span class="p">]</span>
+                <span class="k">if</span> <span class="s2">"long_name"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_vatrs</span> <span class="ow">and</span> <span class="n">_entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"label"</span><span class="p">):</span>
+                    <span class="n">_vatrs</span><span class="p">[</span><span class="s2">"long_name"</span><span class="p">]</span> <span class="o">=</span> <span class="n">_entry</span><span class="p">[</span><span class="s2">"label"</span><span class="p">]</span>
+                <span class="k">if</span> <span class="s2">"units"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_vatrs</span> <span class="ow">and</span> <span class="n">_entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"units"</span><span class="p">):</span>
+                    <span class="n">_vatrs</span><span class="p">[</span><span class="s2">"units"</span><span class="p">]</span> <span class="o">=</span> <span class="n">_entry</span><span class="p">[</span><span class="s2">"units"</span><span class="p">]</span>
+                <span class="k">if</span> <span class="s2">"valid_min"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_vatrs</span> <span class="ow">and</span> <span class="s2">"valid_min"</span> <span class="ow">in</span> <span class="n">_entry</span><span class="p">:</span>
+                    <span class="n">_vatrs</span><span class="p">[</span><span class="s2">"valid_min"</span><span class="p">]</span> <span class="o">=</span> <span class="n">_entry</span><span class="p">[</span><span class="s2">"valid_min"</span><span class="p">]</span>
+                <span class="k">if</span> <span class="s2">"valid_max"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_vatrs</span> <span class="ow">and</span> <span class="s2">"valid_max"</span> <span class="ow">in</span> <span class="n">_entry</span><span class="p">:</span>
+                    <span class="n">_vatrs</span><span class="p">[</span><span class="s2">"valid_max"</span><span class="p">]</span> <span class="o">=</span> <span class="n">_entry</span><span class="p">[</span><span class="s2">"valid_max"</span><span class="p">]</span>
+
+            <span class="c1"># Normalize every _qc variable onto the OceanSITES flag table (single</span>
+            <span class="c1"># source of truth) and attach the status_flag standard_name — done</span>
+            <span class="c1"># after the CF pass above so each parent's standard_name is available.</span>
+            <span class="c1"># Skip *_orig_qc: those preserve the pre-interpolation flag (e.g. a bad</span>
+            <span class="c1"># original pressure = 4) and must stay distinct from the interpolated</span>
+            <span class="c1"># {var}_qc (e.g. 8), so they keep their own attrs.</span>
+            <span class="k">for</span> <span class="n">_qv</span> <span class="ow">in</span> <span class="p">[</span>
+                <span class="n">v</span>
+                <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span>
+                <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"_qc"</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">v</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"_orig_qc"</span><span class="p">)</span>
+            <span class="p">]:</span>
+                <span class="n">set_qc_attrs</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">_qv</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">])</span>
+
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">drop_all_zero_vars</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="p">[</span><span class="s2">"amplitude_beam"</span><span class="p">,</span> <span class="s2">"analog_input_"</span><span class="p">])</span>
+            <span class="n">cast_output_dtypes</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span><span class="o">.</span><span class="n">to_netcdf</span><span class="p">(</span><span class="n">l3_path</span><span class="p">)</span>
+            <span class="n">ds</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"  Creating output file: </span><span class="si">{</span><span class="n">l3_path</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">  (</span><span class="si">{</span><span class="s1">'; '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">qc_summary</span><span class="p">)</span><span class="si">}</span><span class="s2">)"</span>
+            <span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># noqa: BLE001  — log and continue; one instrument must not abort mooring</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  ERROR processing </span><span class="si">{</span><span class="n">serial</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">traceback</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Eleanor Frajka-Williams, FirstName LastName.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

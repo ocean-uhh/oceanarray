@@ -1,0 +1,470 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>oceanarray.tools.readers &mdash; oceanarray v0.0.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/custom.css?v=20758594" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=8b92e751"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            oceanarray
+              <img src="../../../_static/oceanarray_icon.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../troubleshooting.html">Troubleshooting</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Processing framework</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../processing_framework.html">OceanArray processing framework</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reports.html">HTML Reports</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../directory_structure.html">Directory Structure and File Layout</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../file_naming_conventions.html">File Naming Conventions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Stage 1 2 3 - Instrument</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/acquisition.html">0. Data Acquisition</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/standardisation.html">1. Standardisation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../clock_offset.html">2. Clock Offset Analysis (optional)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/trimming.html">2. Trim to Deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/calibration.html">3. Apply Calibration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/auto_qc.html">3. Automatic QC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/nortek_coordinate_transform.html">3. Coordinate Transform</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Stack &amp; Grid - Moorings</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/time_gridding.html">Stack into one NetCDF</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/vertical_gridding.html">Grid onto pressure</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Caldips</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../calibration_dips.html">Calibration dips</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/ocean-uhh/oceanarray">GitHub Repo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../oceanarray.html">Python API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli_reference.html">CLI Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../yaml_configuration.html">YAML Configuration Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../project_structure.html">OceanArray Project Structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../oceanarray_format.html">OceanArray Data Format Specification</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../oceanSITES_manual.html">OceanSITES manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../legacy.html">Legacy modules</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Changelog / Migration</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../migration.html">Migrating from the <code class="docutils literal notranslate"><span class="pre">--basedir</span></code> Layout</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../roadmap.html">Development Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../style_guide.html">Project Style Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/conversion.html">Convert to OceanSITES (Stage 4)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/concatenation.html">Combine Deployments</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/multisite_merging.html">Multi-site Merging</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">oceanarray</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">oceanarray.tools.readers</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for oceanarray.tools.readers</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""NetCDF and legacy-format readers for mooring instrument data."""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">log_info</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.legacy</span><span class="w"> </span><span class="kn">import</span> <span class="n">rodb</span>
+
+<span class="n">DUMMY_VALUES</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1e32</span><span class="p">,</span> <span class="o">-</span><span class="mf">9.0</span><span class="p">,</span> <span class="o">-</span><span class="mf">9.9</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="load_dataset">
+<a class="viewcode-back" href="../../../oceanarray.html#oceanarray.tools.readers.load_dataset">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_dataset</span><span class="p">(</span>
+    <span class="n">source</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]]],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""Load one or more observational data files and return as xarray Datasets.</span>
+
+<span class="sd">    Dispatches based on file extension or known formats.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    source : str, Path, or list of str/Path</span>
+<span class="sd">        Single file or list of files to load.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    xarray.Dataset or list of xarray.Dataset</span>
+<span class="sd">        Loaded dataset(s). A single dataset is returned if one file is given;</span>
+<span class="sd">        a list of datasets is returned for multiple files.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        If file type is unrecognized.</span>
+
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">)):</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="p">[</span><span class="n">Path</span><span class="p">(</span><span class="n">source</span><span class="p">)]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">source</span> <span class="o">=</span> <span class="p">[</span><span class="n">Path</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">source</span><span class="p">]</span>
+
+    <span class="n">datasets</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">source</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">".nc"</span><span class="p">:</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">open_dataset</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">rodb</span><span class="o">.</span><span class="n">is_rodb_file</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+            <span class="n">ds</span> <span class="o">=</span> <span class="n">rodb</span><span class="o">.</span><span class="n">rodbload</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unknown file type: </span><span class="si">{</span><span class="n">f</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>  <span class="c1"># noqa: TRY003</span>
+        <span class="n">datasets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">datasets</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">datasets</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">datasets</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="rodbload_old">
+<a class="viewcode-back" href="../../../oceanarray.html#oceanarray.tools.readers.rodbload_old">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">rodbload_old</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">variables</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Load a RODB-style file into an xarray.Dataset.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    filepath : Path</span>
+<span class="sd">        Path to the .use, .raw or .dat file</span>
+<span class="sd">    variables : list of str</span>
+<span class="sd">        Variables to extract (must be present in columns= line)</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    ds : xr.Dataset</span>
+<span class="sd">        Dataset containing requested variables</span>
+
+<span class="sd">    """</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s2">"r"</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+
+    <span class="c1"># Extract header lines (up to first data block)</span>
+    <span class="n">header_lines</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">data_start_index</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">lines</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"#"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"="</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+            <span class="n">header_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">data_start_index</span> <span class="o">=</span> <span class="n">i</span>
+            <span class="k">break</span>
+
+    <span class="k">if</span> <span class="n">data_start_index</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Could not locate data block in file"</span><span class="p">)</span>  <span class="c1"># noqa: TRY003</span>
+
+    <span class="c1"># Extract columns</span>
+    <span class="n">col_line</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">line</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">header_lines</span> <span class="k">if</span> <span class="s2">"columns"</span> <span class="ow">in</span> <span class="n">line</span><span class="o">.</span><span class="n">lower</span><span class="p">()),</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">col_line</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"No 'columns=' line found in header"</span><span class="p">)</span>  <span class="c1"># noqa: TRY003</span>
+
+    <span class="n">columns</span> <span class="o">=</span> <span class="n">col_line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"="</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">":"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span>
+    <span class="n">log_info</span><span class="p">(</span><span class="s2">"Found columns: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">columns</span><span class="p">)</span>
+
+    <span class="c1"># Validate requested variables</span>
+    <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variables</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">columns</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Variables not found in file: </span><span class="si">{</span><span class="n">missing</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>  <span class="c1"># noqa: TRY003</span>
+
+    <span class="n">col_indices</span> <span class="o">=</span> <span class="p">{</span><span class="n">v</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">columns</span><span class="p">)</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">}</span>
+
+    <span class="c1"># Load data block</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">genfromtxt</span><span class="p">(</span><span class="n">lines</span><span class="p">[</span><span class="n">data_start_index</span><span class="p">:],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>  <span class="c1"># in case of only 1 line</span>
+
+    <span class="c1"># Replace dummy values with NaN</span>
+    <span class="k">for</span> <span class="n">dummy</span> <span class="ow">in</span> <span class="n">DUMMY_VALUES</span><span class="p">:</span>
+        <span class="n">data</span><span class="p">[</span><span class="n">data</span> <span class="o">==</span> <span class="n">dummy</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+    <span class="c1"># Build xarray dataset</span>
+    <span class="n">coords</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"obs"</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])}</span>
+    <span class="n">data_vars</span> <span class="o">=</span> <span class="p">{</span><span class="n">var</span><span class="p">:</span> <span class="p">((</span><span class="s2">"obs"</span><span class="p">,),</span> <span class="n">data</span><span class="p">[:,</span> <span class="n">col_indices</span><span class="p">[</span><span class="n">var</span><span class="p">]])</span> <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">}</span>
+
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="n">data_vars</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="n">coords</span><span class="p">)</span>
+    <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"source_file"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ds</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_clean_nortek_var_name</span><span class="p">(</span><span class="n">col</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Convert a raw Nortek CSV column name to a valid NetCDF variable name."""</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="n">col</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">"[^\w\s]"</span><span class="p">,</span> <span class="s2">" "</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>  <span class="c1"># special chars → spaces</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\s+"</span><span class="p">,</span> <span class="s2">"_"</span><span class="p">,</span> <span class="n">name</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">"_+"</span><span class="p">,</span> <span class="s2">"_"</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">name</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_parse_nortek_csv_columns</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Build a complete variable dict from all columns in a Nortek CSV DataFrame.</span>
+
+<span class="sd">    Nortek AquaPro exports mix two column-naming styles:</span>
+<span class="sd">    - camelCase (``velBeam1#1``, ``speedOfSound``) for the AquaPro velocity block</span>
+<span class="sd">    - Title Case (``Pressure``, ``Temperature``, ``Soundspeed``) for the</span>
+<span class="sd">      environmental summary block</span>
+
+<span class="sd">    Rules applied:</span>
+<span class="sd">    - Column matching for canonical names is case-insensitive.</span>
+<span class="sd">    - When the same name appears more than once (e.g. ``Pressure`` in dbar then</span>
+<span class="sd">      ``Pressure`` in m), the first occurrence maps to the canonical name and</span>
+<span class="sd">      all later occurrences are dropped — the second Pressure column is depth</span>
+<span class="sd">      (derived from pressure) and is not needed.</span>
+<span class="sd">    - All remaining columns are included with cleaned variable names so that</span>
+<span class="sd">      no data from the raw file is silently discarded.</span>
+<span class="sd">    - Time component columns (Year, Month, Day, Hour, Minute, Second) are</span>
+<span class="sd">      dropped because the ``time`` coordinate already captures this information.</span>
+<span class="sd">    """</span>
+    <span class="c1"># Build case-insensitive lookup: lower_name -&gt; first df column name</span>
+    <span class="n">col_map</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">col</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">col_map</span><span class="p">:</span>
+            <span class="n">col_map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">col</span>  <span class="c1"># first occurrence wins</span>
+
+    <span class="c1"># Canonical name mappings — covers both camelCase and Title Case spellings</span>
+    <span class="n">canonical</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># df_col_name -&gt; var_name</span>
+
+    <span class="n">scalar_mappings</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">([</span><span class="s2">"temperature"</span><span class="p">],</span> <span class="s2">"temperature"</span><span class="p">),</span>
+        <span class="p">([</span><span class="s2">"pressure"</span><span class="p">],</span> <span class="s2">"pressure"</span><span class="p">),</span>  <span class="c1"># first = dbar</span>
+        <span class="p">([</span><span class="s2">"heading"</span><span class="p">],</span> <span class="s2">"heading"</span><span class="p">),</span>
+        <span class="p">([</span><span class="s2">"pitch"</span><span class="p">],</span> <span class="s2">"pitch"</span><span class="p">),</span>
+        <span class="p">([</span><span class="s2">"roll"</span><span class="p">],</span> <span class="s2">"roll"</span><span class="p">),</span>
+        <span class="p">([</span><span class="s2">"soundspeed"</span><span class="p">,</span> <span class="s2">"speedofsound"</span><span class="p">],</span> <span class="s2">"speed_of_sound"</span><span class="p">),</span>
+        <span class="p">([</span><span class="s2">"battery voltage"</span><span class="p">,</span> <span class="s2">"batteryvoltage"</span><span class="p">],</span> <span class="s2">"battery_voltage"</span><span class="p">),</span>
+        <span class="p">([</span><span class="s2">"speed"</span><span class="p">],</span> <span class="s2">"speed"</span><span class="p">),</span>
+    <span class="p">]</span>
+    <span class="k">for</span> <span class="n">csv_names</span><span class="p">,</span> <span class="n">var_name</span> <span class="ow">in</span> <span class="n">scalar_mappings</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">csv_name</span> <span class="ow">in</span> <span class="n">csv_names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">csv_name</span> <span class="ow">in</span> <span class="n">col_map</span><span class="p">:</span>
+                <span class="n">canonical</span><span class="p">[</span><span class="n">col_map</span><span class="p">[</span><span class="n">csv_name</span><span class="p">]]</span> <span class="o">=</span> <span class="n">var_name</span>
+                <span class="k">break</span>
+
+    <span class="c1"># AquaPro camelCase beam variables</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]:</span>
+        <span class="k">for</span> <span class="n">data_type</span><span class="p">,</span> <span class="n">prefix</span> <span class="ow">in</span> <span class="p">[</span>
+            <span class="p">(</span><span class="s2">"vel"</span><span class="p">,</span> <span class="s2">"velocity"</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">"amp"</span><span class="p">,</span> <span class="s2">"amplitude"</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">"corr"</span><span class="p">,</span> <span class="s2">"correlation"</span><span class="p">),</span>
+        <span class="p">]:</span>
+            <span class="n">df_col</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">data_type</span><span class="si">}</span><span class="s2">Beam</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">#1"</span>
+            <span class="k">if</span> <span class="n">df_col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                <span class="n">canonical</span><span class="p">[</span><span class="n">df_col</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_beam</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">"</span>
+
+    <span class="c1"># Columns to drop entirely</span>
+    <span class="n">time_components</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"year"</span><span class="p">,</span> <span class="s2">"month"</span><span class="p">,</span> <span class="s2">"day"</span><span class="p">,</span> <span class="s2">"hour"</span><span class="p">,</span> <span class="s2">"minute"</span><span class="p">,</span> <span class="s2">"second"</span><span class="p">}</span>
+    <span class="c1"># The second (and any further) occurrence of "pressure" is depth in metres</span>
+    <span class="n">first_pressure_col</span> <span class="o">=</span> <span class="n">col_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"pressure"</span><span class="p">)</span>
+    <span class="n">duplicate_pressure</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">col</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span>
+        <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"pressure"</span> <span class="ow">and</span> <span class="n">col</span> <span class="o">!=</span> <span class="n">first_pressure_col</span>
+    <span class="p">}</span>
+    <span class="n">drop_cols</span> <span class="o">=</span> <span class="n">time_components</span> <span class="o">|</span> <span class="n">duplicate_pressure</span> <span class="o">|</span> <span class="p">{</span><span class="s2">"datetime"</span><span class="p">}</span>
+
+    <span class="c1"># Build data_vars: canonical names first, then everything else</span>
+    <span class="n">data_vars</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">assigned_df_cols</span><span class="p">:</span> <span class="nb">set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">canonical</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+    <span class="k">for</span> <span class="n">df_col</span><span class="p">,</span> <span class="n">var_name</span> <span class="ow">in</span> <span class="n">canonical</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">data_vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">([</span><span class="s2">"time"</span><span class="p">],</span> <span class="n">df</span><span class="p">[</span><span class="n">df_col</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">df_col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">df_col</span> <span class="ow">in</span> <span class="n">assigned_df_cols</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">if</span> <span class="n">df_col</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="ow">in</span> <span class="n">drop_cols</span> <span class="ow">or</span> <span class="n">df_col</span> <span class="ow">in</span> <span class="n">drop_cols</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">var_name</span> <span class="o">=</span> <span class="n">_clean_nortek_var_name</span><span class="p">(</span><span class="n">df_col</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">var_name</span> <span class="ow">and</span> <span class="n">var_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data_vars</span><span class="p">:</span>
+            <span class="n">data_vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">([</span><span class="s2">"time"</span><span class="p">],</span> <span class="n">df</span><span class="p">[</span><span class="n">df_col</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">data_vars</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_add_nortek_csv_attributes</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Add units and metadata attributes to variables in a Nortek CSV dataset."""</span>
+    <span class="n">attr_map</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"temperature"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"units"</span><span class="p">:</span> <span class="s2">"degrees_C"</span><span class="p">,</span> <span class="s2">"long_name"</span><span class="p">:</span> <span class="s2">"Water Temperature"</span><span class="p">},</span>
+        <span class="s2">"pressure"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"units"</span><span class="p">:</span> <span class="s2">"dbar"</span><span class="p">,</span> <span class="s2">"long_name"</span><span class="p">:</span> <span class="s2">"Pressure"</span><span class="p">},</span>
+        <span class="s2">"heading"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"units"</span><span class="p">:</span> <span class="s2">"degrees"</span><span class="p">,</span> <span class="s2">"long_name"</span><span class="p">:</span> <span class="s2">"Heading"</span><span class="p">},</span>
+        <span class="s2">"pitch"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"units"</span><span class="p">:</span> <span class="s2">"degrees"</span><span class="p">,</span> <span class="s2">"long_name"</span><span class="p">:</span> <span class="s2">"Pitch"</span><span class="p">},</span>
+        <span class="s2">"roll"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"units"</span><span class="p">:</span> <span class="s2">"degrees"</span><span class="p">,</span> <span class="s2">"long_name"</span><span class="p">:</span> <span class="s2">"Roll"</span><span class="p">},</span>
+        <span class="s2">"speed_of_sound"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"units"</span><span class="p">:</span> <span class="s2">"m/s"</span><span class="p">,</span> <span class="s2">"long_name"</span><span class="p">:</span> <span class="s2">"Speed of Sound"</span><span class="p">},</span>
+        <span class="s2">"battery_voltage"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"units"</span><span class="p">:</span> <span class="s2">"V"</span><span class="p">,</span> <span class="s2">"long_name"</span><span class="p">:</span> <span class="s2">"Battery Voltage"</span><span class="p">},</span>
+    <span class="p">}</span>
+    <span class="k">for</span> <span class="n">var_name</span><span class="p">,</span> <span class="n">attrs</span> <span class="ow">in</span> <span class="n">attr_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">var_name</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span><span class="p">:</span>
+            <span class="n">ds</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">attrs</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="sa">f</span><span class="s2">"velocity_beam</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">"</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span><span class="p">:</span>
+            <span class="n">ds</span><span class="p">[</span><span class="sa">f</span><span class="s2">"velocity_beam</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">"</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">"units"</span><span class="p">:</span> <span class="s2">"m/s"</span><span class="p">,</span>
+                    <span class="s2">"long_name"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"Velocity Beam </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                    <span class="s2">"coordinate_system"</span><span class="p">:</span> <span class="s2">"BEAM"</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="sa">f</span><span class="s2">"amplitude_beam</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">"</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span><span class="p">:</span>
+            <span class="n">ds</span><span class="p">[</span><span class="sa">f</span><span class="s2">"amplitude_beam</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">"</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                <span class="p">{</span><span class="s2">"units"</span><span class="p">:</span> <span class="s2">"counts"</span><span class="p">,</span> <span class="s2">"long_name"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"Amplitude Beam </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">"</span><span class="p">}</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="sa">f</span><span class="s2">"correlation_beam</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">"</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span><span class="p">:</span>
+            <span class="n">ds</span><span class="p">[</span><span class="sa">f</span><span class="s2">"correlation_beam</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">"</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+                <span class="p">{</span><span class="s2">"units"</span><span class="p">:</span> <span class="s2">"%"</span><span class="p">,</span> <span class="s2">"long_name"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"Correlation Beam </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">"</span><span class="p">}</span>
+            <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ds</span>
+
+
+<div class="viewcode-block" id="load_nortek_csv">
+<a class="viewcode-back" href="../../../oceanarray.html#oceanarray.tools.readers.load_nortek_csv">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_nortek_csv</span><span class="p">(</span>
+    <span class="n">file_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
+    <span class="n">header_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="c1"># noqa: ARG001</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Load Nortek CSV data exported from AquaPro software.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    file_path : str or Path</span>
+<span class="sd">        Path to the semicolon-delimited CSV data file (e.g. "Average Velocity DF3.csv").</span>
+<span class="sd">    header_file : str, optional</span>
+<span class="sd">        Path to the accompanying Units.csv file (reserved for future metadata use).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    xr.Dataset</span>
+<span class="sd">        Dataset with time coordinate and variables for velocity beams,</span>
+<span class="sd">        amplitude, correlation, and environmental channels.</span>
+
+<span class="sd">    """</span>
+    <span class="n">file_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">file_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Nortek CSV file not found: </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>  <span class="c1"># noqa: TRY003</span>
+
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">";"</span><span class="p">)</span>
+    <span class="n">df</span><span class="p">[</span><span class="s2">"datetime"</span><span class="p">]</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"dateTime"</span><span class="p">])</span>
+    <span class="n">times</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s2">"datetime"</span><span class="p">]</span><span class="o">.</span><span class="n">values</span>
+
+    <span class="n">data_vars</span> <span class="o">=</span> <span class="n">_parse_nortek_csv_columns</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">(</span><span class="n">data_vars</span><span class="p">,</span> <span class="n">coords</span><span class="o">=</span><span class="p">{</span><span class="s2">"time"</span><span class="p">:</span> <span class="n">times</span><span class="p">})</span>
+
+    <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+        <span class="p">{</span>
+            <span class="s2">"instrument_type"</span><span class="p">:</span> <span class="s2">"Nortek_Aquadopp"</span><span class="p">,</span>
+            <span class="s2">"filename"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">file_path</span><span class="p">),</span>
+            <span class="s2">"data_format"</span><span class="p">:</span> <span class="s2">"Nortek_CSV_Export"</span><span class="p">,</span>
+            <span class="s2">"coordinate_system"</span><span class="p">:</span> <span class="s2">"BEAM"</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="s2">"serialNumber"</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">ds</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"serial_number"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="s2">"serialNumber"</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">_add_nortek_csv_attributes</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+
+    <span class="n">log_info</span><span class="p">(</span><span class="s2">"Nortek CSV: loaded </span><span class="si">%d</span><span class="s2"> samples from </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">),</span> <span class="n">file_path</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ds</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Eleanor Frajka-Williams, FirstName LastName.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
