@@ -451,11 +451,12 @@ def interpolate_internal(
     -----
     This function performs dual integration (from above and below) and blends the two
     estimates using linear weighting. Duplicate pressure values are removed in the final output.
+
     - Adapted from original Matlab function `t_int0.m`.
     - Author: T. Kanzow, 4 April 2000.
     - Part of the vertical interpolation scheme described in Johns et al. (2001):
-        "The Kuroshio east of Taiwan: Moored transport observations from the WOCE PCM-1 Array."
-        This version translated to Python and adapted for TEOS-10 Conservative Temperature and Absolute Salinity.
+      "The Kuroshio east of Taiwan: Moored transport observations from the WOCE PCM-1 Array."
+      This version translated to Python and adapted for TEOS-10 Conservative Temperature and Absolute Salinity.
 
     See Also
     --------

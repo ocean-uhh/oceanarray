@@ -19,11 +19,12 @@ def xyz_to_enu(
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Vectorised XYZ → ENU rotation per Nortek Support reference script.
 
-    R = H @ P where (with hdg = heading - 90 + declination):
-      H = [[cos(hdg), sin(hdg), 0], [-sin(hdg), cos(hdg), 0], [0, 0, 1]]
-      P = [[cos(p), -sin(p)*sin(r), -cos(r)*sin(p)],
-           [0,       cos(r),        -sin(r)],
-           [sin(p),  sin(r)*cos(p),  cos(p)*cos(r)]]
+    R = H @ P where (with hdg = heading - 90 + declination)::
+
+        H = [[cos(hdg), sin(hdg), 0], [-sin(hdg), cos(hdg), 0], [0, 0, 1]]
+        P = [[cos(p), -sin(p)*sin(r), -cos(r)*sin(p)],
+             [0,       cos(r),        -sin(r)],
+             [sin(p),  sin(r)*cos(p),  cos(p)*cos(r)]]
 
     The -90 offset accounts for the Nortek Aquadopp instrument frame where
     heading=90° aligns X→East, Y→North (standard geography at zero tilt).
@@ -560,12 +561,12 @@ def apply_adcp_velocity_qc(
     ``percent_good_qc(time, N_BINS)``
         RDI ADCPs write four percent-good columns per ensemble per bin:
 
-        =======  =============================================================
-        Col 0    % pings accepted as 3-beam solutions (one beam rejected)
-        Col 1    % pings rejected by the error-velocity threshold
-        Col 2    % pings rejected by low correlation or low amplitude
+        =========  =============================================================
+        Col 0      % pings accepted as 3-beam solutions (one beam rejected)
+        Col 1      % pings rejected by the error-velocity threshold
+        Col 2      % pings rejected by low correlation or low amplitude
         **Col 3**  **% pings accepted as 4-beam solutions ← quality metric**
-        =======  =============================================================
+        =========  =============================================================
 
         Column 3 (4-beam solutions) is the relevant quality indicator.
         Averaging all four columns is wrong: when data is perfect, col 3 ≈
@@ -582,7 +583,7 @@ def apply_adcp_velocity_qc(
         independent estimates of vertical velocity from opposite beam pairs.
         It is zero for a perfect measurement; large values indicate beam
         decorrelation (e.g. fish, bubbles, mooring motion).
-        |error_velocity| > *error_vel_threshold* → bad (4).
+        ``|error_velocity|`` > *error_vel_threshold* → bad (4).
 
     Parameters
     ----------
@@ -596,7 +597,7 @@ def apply_adcp_velocity_qc(
         4-beam percent good below this (but above prcnt_gd_bad) → flag 3
         (suspect). Percent.
     error_vel_threshold : float
-        |error_velocity| above this → flag 4 (bad). m s⁻¹.
+        ``|error_velocity|`` above this → flag 4 (bad). m s⁻¹.
     log_fn : callable, optional
         Logging callback.
 

@@ -169,7 +169,7 @@ per instrument in the mooring YAML — see `Configuration`_ below.
      - 0.0 to 150.0
      - > 200 % implies bubble entrainment or sensor fault
 
-**Spike test** — point *n* is spiked when |x[n] − (x[n-1]+x[n+1])/2| exceeds the threshold → flag 3:
+**Spike test** — point *n* is spiked when ``|x[n] − (x[n-1]+x[n+1])/2|`` exceeds the threshold → flag 3:
 
 .. list-table::
    :header-rows: 1

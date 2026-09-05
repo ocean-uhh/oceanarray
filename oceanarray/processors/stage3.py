@@ -5,7 +5,7 @@ Processing order per instrument
 1. Load ``_stage2.nc``.
 2. **Pressure interpolation** (targets only — instruments lacking pressure or
    whose pressure is flagged bad in the YAML):
-   a. Near-neighbour if any source has |Δhab| ≤ ``HAB_THRESHOLD``.
+   a. Near-neighbour if any source has ``|Δhab|`` ≤ ``HAB_THRESHOLD``.
    b. Weighted bracketing from the closest source above and below.
    c. Extrapolation (with WARNING) when target is outside all source habs.
    Interpolated pressure gets ``pressure_qc = 8`` (interpolated_value).
@@ -28,15 +28,22 @@ flagged 4 (bad), not 8 (interpolated).
 YAML configuration keys
 ------------------------
 Top-level (mooring-wide):
-  ``qc_ranges`` : mapping of variable → {fail_span, suspect_span}
-  ``qc_spike``  : mapping of variable → {suspect_threshold, fail_threshold}
+
+``qc_ranges``
+    mapping of variable → {fail_span, suspect_span}
+``qc_spike``
+    mapping of variable → {suspect_threshold, fail_threshold}
 
 Per-instrument (in a clamp entry):
-  ``qc_ranges`` : same structure; overrides the mooring-level setting for
-                  the variables listed (others fall back to mooring/global defaults)
-  ``qc_spike``  : same structure
-  ``pressure_qc`` : int — mark this instrument's own pressure as bad (≥3) so
-                    stage3 replaces it with an interpolated value.
+
+``qc_ranges``
+    same structure; overrides the mooring-level setting for the variables
+    listed (others fall back to mooring/global defaults)
+``qc_spike``
+    same structure
+``pressure_qc``
+    int — mark this instrument's own pressure as bad (≥3) so stage3 replaces
+    it with an interpolated value.
 """
 
 from __future__ import annotations

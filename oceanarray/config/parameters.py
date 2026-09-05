@@ -349,20 +349,27 @@ ALL_FILE_TYPES: frozenset = frozenset(
 #: Display metadata for each physical variable.
 #:
 #: Each entry has:
-#:   ``label``         — human-readable name for plot titles and legends.
-#:   ``label_units``   — Unicode units string for plot axis labels (e.g. ``"°C"``).
-#:                       Use :func:`vlabel` to get the combined ``"Label (units)"``
-#:                       string.  Empty string for dimensionless quantities.
-#:   ``units``         — udunits-2 / CF-compliant ASCII units for NetCDF attributes
-#:                       (e.g. ``"degree_Celsius"``).  May differ from ``label_units``
-#:                       only in encoding (Unicode → ASCII).
-#:   ``standard_name`` — CF standard name.  ``None`` when no standard name exists
-#:                       (e.g. turbidity in NTU, which has no udunits-2 unit).
-#:   ``cmap``          — default matplotlib colormap name, or ``None`` for variables
-#:                       without a natural diverging / sequential convention.
-#:   ``valid_min``     — CF ``valid_min`` attribute written to NetCDF output (physically
-#:   ``valid_max``       valid range).  Present only where :file:`OS1_vocab_attrs.yaml`
-#:                       provides an authoritative value; absent for other variables.
+#:
+#: ``label``
+#:     human-readable name for plot titles and legends.
+#: ``label_units``
+#:     Unicode units string for plot axis labels (e.g. ``"°C"``).
+#:     Use :func:`vlabel` to get the combined ``"Label (units)"``
+#:     string.  Empty string for dimensionless quantities.
+#: ``units``
+#:     udunits-2 / CF-compliant ASCII units for NetCDF attributes
+#:     (e.g. ``"degree_Celsius"``).  May differ from ``label_units``
+#:     only in encoding (Unicode → ASCII).
+#: ``standard_name``
+#:     CF standard name.  ``None`` when no standard name exists
+#:     (e.g. turbidity in NTU, which has no udunits-2 unit).
+#: ``cmap``
+#:     default matplotlib colormap name, or ``None`` for variables
+#:     without a natural diverging / sequential convention.
+#: ``valid_min`` / ``valid_max``
+#:     CF ``valid_min`` / ``valid_max`` attributes written to NetCDF output
+#:     (physically valid range).  Present only where :file:`OS1_vocab_attrs.yaml`
+#:     provides an authoritative value; absent for other variables.
 VARIABLES: dict[str, dict] = {
     "temperature": {
         "label": "Temperature",
