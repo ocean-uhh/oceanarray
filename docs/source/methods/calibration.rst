@@ -9,6 +9,12 @@ Calibration — applying caldip corrections at the front of Stage 3
    a builder needs. Settled decisions are stated as firm; open ones are marked
    **TBD — do not invent**.
 
+   **The input carrier is changing.** caldip's machine-readable output is moving from the
+   statistics CSV to one netCDF per cast, with the CSV kept as a derived export for
+   cruise-report tables. Everything on this page about *what the correction does* — placement,
+   stop selection, thresholds, the sign convention, provenance, acceptance — is settled and
+   carrier-independent. Only the input section below is provisional.
+
 Calibration applies post-deployment drift corrections to sensor data (temperature,
 conductivity, pressure) from calibration-dip comparisons against a shipboard CTD. The
 corrections are *computed by the separate* `caldip <https://github.com/ocean-uhh/caldip>`_
@@ -57,11 +63,34 @@ caldip package's own reader matches the same strict suffix). Search recursively 
 attributes (a cast name alone does not identify which file was read, and it distinguishes the
 excluded variants).
 
-CSV contract
-------------
+caldip's output — CSV today, netCDF next
+------------------------------------------
 
-caldip writes one **detailed** CSV per cast, one row per instrument per bottle stop. Read the
-detailed CSV (not the summary, which keeps only the deepest stop). Columns:
+The table below is the CSV as caldip writes it today: one **detailed** CSV per cast, one row
+per instrument per bottle stop (read the detailed CSV, not the summary, which keeps only the
+deepest stop).
+
+In the netCDF, per-row values become variables and cast-level facts become global attributes,
+which removes four of the problems listed under the gotchas below:
+
+.. list-table::
+   :header-rows: 1
+
+   * - CSV problem
+     - netCDF equivalent
+   * - empty cell vs ``0`` for a variable an instrument lacks
+     - native ``NaN`` with ``_FillValue``
+   * - ``ctd_sensor_used`` sometimes absent
+     - a global attribute, present or absent unambiguously
+   * - no ``ctd_press`` column
+     - a variable, with units
+   * - ``*_status`` is prose in three templates
+     - a CF flag variable with ``flag_values`` / ``flag_meanings``
+
+Units and the sign convention likewise become variable metadata rather than prose on this
+page: ``cond_diff`` carries ``units = "mS cm-1"`` and every ``*_diff`` carries
+``comment = "instrument minus CTD; corrected = measured - diff"``. Build the reader against
+the netCDF once caldip emits it; the CSV columns are:
 
 .. list-table::
    :header-rows: 1
@@ -127,7 +156,7 @@ Units guard
 
 ``cond_diff`` is **mS/cm** (confirmed by magnitude: CTD conductivity ~32–33 is mS/cm; S/m would
 be ~3.2–3.3). oceanarray stores conductivity in mS/cm or ``S m-1`` depending on the path.
-Convert the offset once, at the CSV boundary; assert the target variable's unit before applying
+Convert the offset once, at the input boundary; assert the target variable's unit before applying
 and refuse on a mismatch; assert the incoming magnitude is in the mS/cm band, so a future units
 change in caldip fails loudly instead of scaling the data by ten.
 
@@ -189,6 +218,13 @@ both ``caldip_inst_<var>`` and ``caldip_ctd_<var>`` at the stop; and ``caldip_ct
 skipped correction is an explicit ``caldip_applied = "none — <reason>"``, never a missing
 attribute. Never silently substitute a default.
 
+Also copy through caldip's own provenance so the reference is reconstructable from the
+``_stage3.nc`` alone: the reference sensor serials and calibration dates, the CTD's slope and
+offset *as values* (not a "corrected / uncorrected" label), the ctdcast ``tracking_id`` and
+stage caldip read, caldip's ``input_mode``, and whether the output was a draft. See
+``.claude/notes/2026-09-06-threeway-coordination-ctdcast-caldip-oceanarray.md`` for the shared
+contract.
+
 Acceptance criteria
 -------------------
 
@@ -197,6 +233,12 @@ Acceptance criteria
   pressures, not raw — verifiable against a hand-computed value.
 - Both the raw instrument value and the CTD reference value are recorded per corrected variable,
   so the applied offset is reproducible by subtraction.
+- caldip output carrying no provenance is **refused**, not warned about: applying a correction
+  whose reference cannot be identified is acting on unknown provenance.
+- Before applying, the recorded CTD identity is checked against the ctdcast file now on disk,
+  by calling caldip's own classifier rather than reimplementing the comparison. A moved
+  reference is a refusal or a warning depending on whether the difference exceeds the apply
+  threshold.
 
 Legacy reference (RAPID)
 ------------------------
