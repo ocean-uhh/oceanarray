@@ -88,6 +88,7 @@ from oceanarray.processors.coordinate import (
     apply_beam_to_enu,
     apply_declination_to_enu,
 )
+from oceanarray.processors.caldip import CALDIP_STUB_APPLIED
 
 
 def _safe_serial(serial: Any) -> str:
@@ -146,8 +147,19 @@ class Stage3Processor:
         serials: Optional[List[str]] = None,
         force: bool = False,
         dry_run: bool = False,
+        caldip_dir: Optional[str] = None,
     ) -> bool:
-        """Run Stage 3 QC and pressure interpolation for all instruments on a mooring."""
+        """Run Stage 3 QC and pressure interpolation for all instruments on a mooring.
+
+        ``caldip_dir`` is the entry point for the planned front-of-Stage-3 calibration-dip
+        correction. It is **not yet implemented** (:mod:`oceanarray.processors.caldip` is a
+        stub): supplying it logs a warning and continues, so the science data is unchanged, but
+        each output stamps a ``caldip_applied`` attribute recording that only the stub ran, so
+        the first real correction is visible as a change in that attribute. A caldip request
+        also reprocesses existing ``_stage3.nc`` outputs (like ``force``) so the marker reaches
+        every instrument, not only freshly-written ones. ``None`` (the default) leaves the
+        output exactly as before.
+        """
         proc_dir = self._get_proc_dir(mooring_name)
         if not proc_dir.exists():
             print(f"ERROR: Processing directory not found: {proc_dir}")
@@ -156,6 +168,11 @@ class Stage3Processor:
         self._setup_logging(mooring_name, proc_dir)
         mode = "DRY RUN — " if dry_run else ""
         self._log(f"{mode}Stage 3 (pressure interpolation + QC) for: {mooring_name}")
+        if caldip_dir is not None:
+            self._log(
+                "  WARNING: caldip correction requested but not implemented; Stage 3 "
+                "science data is unchanged (see the caldip_applied attribute)."
+            )
 
         config_file = proc_dir / f"{mooring_name}.mooring.yaml"
         if not config_file.exists():
@@ -196,6 +213,11 @@ class Stage3Processor:
                 continue
             nc_path = proc_dir / instr_type / f"{mooring_name}_{serial}_stage2.nc"
             if not nc_path.exists():
+                self._log(
+                    f"  SKIP {instr_type} {serial}: no {nc_path.name} "
+                    f"(run Stage 2 first, or check the instrument type matches the "
+                    f"'{instr_type}/' directory casing)"
+                )
                 continue
             qc_flags = {
                 key[:-3]: int(val)
@@ -283,6 +305,14 @@ class Stage3Processor:
                         f"not found in {info['nc_path'].name} — ignored"
                     )
 
+        # ── caldip correction insertion point (front of Stage 3) ────────
+        # When implemented, apply per-instrument caldip offsets to each instrument's stage-2
+        # data *here*, before the sources/targets split below, so a sensorless target's
+        # pressure interpolates from already-corrected neighbours. Use the interface in
+        # oceanarray.processors.caldip: find_caldip_casts → read_caldip_cast → assign_dip_role
+        # → select_offsets → apply_caldip. Until then `caldip_dir` is a null action: a warning
+        # is logged above, and caldip_applied is stamped on each output at write time.
+
         def pressure_bad(info: Dict[str, Any]) -> bool:
             return info["qc_flags"].get("pressure", 0) >= 3
 
@@ -342,7 +372,9 @@ class Stage3Processor:
         # ── Process every instrument ────────────────────────────────────
         success_count = 0
         for info in instruments:
-            ok = self._process_instrument(info, sources, targets, force=force)
+            ok = self._process_instrument(
+                info, sources, targets, force=force, caldip_dir=caldip_dir
+            )
             if ok:
                 success_count += 1
 
@@ -367,6 +399,7 @@ class Stage3Processor:
         sources: List[Dict[str, Any]],
         targets: List[Dict[str, Any]],
         force: bool = False,
+        caldip_dir: Optional[str] = None,
     ) -> bool:
         """Apply Stage 3 processing to one instrument's Stage 2 NetCDF.
 
@@ -384,7 +417,8 @@ class Stage3Processor:
         6. History attribute updated with all processing steps applied.
 
         Writes ``{mooring}_{serial}_stage3.nc`` alongside the Stage 2 file.
-        Skips if the output already exists and *force* is False.
+        Skips if the output already exists and *force* is False and no *caldip_dir* is
+        given (a caldip request reprocesses so the correction/marker is applied).
 
         Returns True on success or skip, False on error.
         """
@@ -393,7 +427,10 @@ class Stage3Processor:
         l3_path = nc_path.with_name(nc_path.name.replace("_stage2.nc", "_stage3.nc"))
 
         if l3_path.exists():
-            if not force:
+            # A caldip request invalidates an existing output the same way --force does, so
+            # the correction (here, the stub marker) is guaranteed to reach every output —
+            # otherwise a pre-existing _stage3.nc would be indistinguishable from a caldip run.
+            if not force and caldip_dir is None:
                 self._log(f"  SKIP (exists): {l3_path.name}  (--force to overwrite)")
                 return True
             try:
@@ -428,6 +465,13 @@ class Stage3Processor:
 
             target_time = ds["time"].values
             history_notes = []
+            if caldip_dir is not None:
+                # Front-of-Stage-3 caldip correction is the first step; record the null
+                # action in the timestamped history so the stub → real transition is dated.
+                history_notes.append(
+                    "caldip: correction requested but not implemented (stub); "
+                    "science data unchanged"
+                )
 
             # ── Pressure interpolation (targets only) ──────────────────
             if is_target and sources:
@@ -701,6 +745,11 @@ class Stage3Processor:
                 if v.endswith("_qc") and not v.endswith("_orig_qc")
             ]:
                 set_qc_attrs(ds, _qv[:-3])
+
+            # caldip stub provenance: a machine-readable marker alongside the dated
+            # history note above, so the first real correction is visible here too.
+            if caldip_dir is not None:
+                ds.attrs["caldip_applied"] = CALDIP_STUB_APPLIED
 
             ds = drop_all_zero_vars(ds, ["amplitude_beam", "analog_input_"])
             cast_output_dtypes(ds).to_netcdf(l3_path)

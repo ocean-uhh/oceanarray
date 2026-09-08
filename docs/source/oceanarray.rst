@@ -115,7 +115,9 @@ Coordinate system transformations (BEAM → XYZ → ENU, magnetic declination).
 
 caldip
 ^^^^^^
-Cal-dip cast processing (stub; full implementation in progress).
+Calibration-dip correction contract and interface, applied at the front of Stage 3.
+Currently a stub: the interface functions raise ``NotImplementedError`` pending the
+implementation (see :doc:`methods/calibration`).
 
 .. automodule:: oceanarray.processors.caldip
    :members:

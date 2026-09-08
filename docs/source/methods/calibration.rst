@@ -9,6 +9,30 @@ Calibration — applying caldip corrections at the front of Stage 3
    a builder needs. Settled decisions are stated as firm; open ones are marked
    **TBD — do not invent**.
 
+The interface to fill in
+------------------------
+
+The stub on ``main`` fixes the interface this specification implements.
+``oceanarray/processors/caldip.py`` exports the shared contract — ``CALDIP_SUFFIX``,
+``SUPPORTED_SCHEMA_VERSION``, ``CALDIP_FLAG_OK``, ``REQUIRED_PROVENANCE_GLOBALS``,
+``PROVENANCE_PASSTHROUGH_GLOBALS``, and ``normalize_serial`` (the shared join-key rule) — and
+five functions to implement, each currently raising ``NotImplementedError``:
+
+- ``read_caldip_cast(path)`` — open and validate one ``{cast}_caldip.nc``;
+- ``find_caldip_casts(caldip_dir, serial)`` — the set of casts an instrument appears in
+  (oceanarray searches; caldip never pairs dips);
+- ``assign_dip_role(cast_time, deployment_time, recovery_time)`` — pre/post from the
+  deployment window;
+- ``select_offsets(ds, serial, variable)`` — the per-variable stop choice (below);
+- ``apply_caldip(ds, offsets_pre, offsets_post)`` — subtract the offset, combining pre and
+  post in time.
+
+Develop against the committed real cast ``tests/fixtures/caldip/castM4_caldip.nc`` (a
+``.cnv``-input cast, so its ``ctd_*`` provenance is legitimately ``UNK``). Stage 3 already
+exposes a ``caldip_dir`` argument as a null action that stamps ``caldip_applied`` on each
+output; wiring these functions at the insertion point in ``Stage3Processor.process_mooring``
+replaces the stub.
+
 Calibration applies post-deployment drift corrections to sensor data (temperature,
 conductivity, pressure) from calibration-dip comparisons against a shipboard CTD. The
 corrections are *computed by the separate* `caldip <https://github.com/ocean-uhh/caldip>`_
