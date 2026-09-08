@@ -14,7 +14,6 @@ Tier classification:  Tier-2 domain functions (xr.Dataset-in / file-out).
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional, Union
 
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
@@ -27,7 +26,7 @@ from oceanarray.utilities import _nice_colorbar_bounds
 
 def animate_hodograph(
     ds: xr.Dataset,
-    output_path: Union[str, Path],
+    output_path: str | Path,
     u_var: str = "east_velocity",
     v_var: str = "north_velocity",
     lp_days: float = 4.0,
@@ -35,7 +34,7 @@ def animate_hodograph(
     frame_hours: float = 6.0,
     fps: int = 20,
     dpi: int = 100,
-) -> Optional[Path]:
+) -> Path | None:
     """Write an animated GIF of the smoothed hodograph drawing itself through time.
 
     Each frame advances by *frame_hours* of real deployment time and reveals

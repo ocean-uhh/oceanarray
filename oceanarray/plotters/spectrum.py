@@ -17,20 +17,21 @@ Post-OdB remaining migrations from report/_plots.py:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 
-from oceanarray.utilities import _nice_colorbar_bounds, period_axis_ticks
-from ..analysis.spectral import gonella_rotary_spectrum
-from .primitives import figure_title, plot_title, square_axes_grid
-from .helpers import grid_despine
 from oceanarray.config import report_tokens
+from oceanarray.utilities import _nice_colorbar_bounds, period_axis_ticks
+
+from ..analysis.spectral import gonella_rotary_spectrum
+from .helpers import grid_despine
+from .primitives import figure_title, plot_title, square_axes_grid
 
 
-def _mark_frequency_line(ax: "plt.Axes", period: float, color: str) -> None:
+def _mark_frequency_line(ax: plt.Axes, period: float, color: str) -> None:
     """Draw a marked-frequency reference line (tidal/inertial) on a spectrum.
 
     Uniform style across the temperature and rotary spectra: a thin dotted
@@ -56,12 +57,12 @@ if TYPE_CHECKING:
 
 
 def wavelet_panel(
-    ax: "matplotlib.axes.Axes",
+    ax: matplotlib.axes.Axes,
     times: np.ndarray,
     periods: np.ndarray,
     power: np.ndarray,
     coi: np.ndarray,
-    signif: Optional[np.ndarray] = None,
+    signif: np.ndarray | None = None,
     title: str = "",
 ) -> mcolors.ScalarMappable:
     """Draw one wavelet scalogram panel onto *ax*.
@@ -175,14 +176,14 @@ def wavelet_panel(
 
 
 def draw_spectrum(
-    da_temp: "xr.DataArray",
+    da_temp: xr.DataArray,
     dt_seconds: float,
     lat: float = 0.0,
     hf_segment_days: float = 1.0,
     hf_x_max_days: float = 3.0,
     *,
     width_in: float = report_tokens.W_FULL,
-) -> "Optional[plt.Figure]":
+) -> plt.Figure | None:
     """Two-panel Welch PSD of gridded temperature, one line per depth level.
 
     Left panel: low-frequency overview using 14-day Hann windows.
@@ -232,9 +233,10 @@ def draw_spectrum(
         f, p, _ = welch_psd_gapaware(col, dt_days, segment_length_lf)
 
     """
-    import matplotlib.pyplot as plt
     import matplotlib.colors as mcolors
+    import matplotlib.pyplot as plt
     from matplotlib.transforms import blended_transform_factory
+
     from ..tools import welch_psd, welch_psd_gapaware
 
     if da_temp.dims[0] != "pressure":
@@ -283,10 +285,10 @@ def draw_spectrum(
         valid_lev_idx = []
 
     freq_lf = freq_hf = None
-    psds_lf: List[np.ndarray] = []
-    press_plotted_lf: List[float] = []
-    psds_hf: List[np.ndarray] = []
-    press_plotted_hf: List[float] = []
+    psds_lf: list[np.ndarray] = []
+    press_plotted_lf: list[float] = []
+    psds_hf: list[np.ndarray] = []
+    press_plotted_hf: list[float] = []
     hf_total_wins = 0
     for k in valid_lev_idx:
         col = arr[k, :].copy()
@@ -440,7 +442,12 @@ def draw_spectrum(
                 ha="center",
                 color=clr,
                 transform=trans_lf,
-                bbox=dict(boxstyle="round,pad=0.1", fc="white", ec="none", alpha=0.6),
+                bbox={
+                    "boxstyle": "round,pad=0.1",
+                    "fc": "white",
+                    "ec": "none",
+                    "alpha": 0.6,
+                },
             )
 
     ax_lf.set_xlabel("Period")
@@ -495,9 +502,12 @@ def draw_spectrum(
                     ha="center",
                     color=clr,
                     transform=trans_hf,
-                    bbox=dict(
-                        boxstyle="round,pad=0.1", fc="white", ec="none", alpha=0.6
-                    ),
+                    bbox={
+                        "boxstyle": "round,pad=0.1",
+                        "fc": "white",
+                        "ec": "none",
+                        "alpha": 0.6,
+                    },
                 )
 
     else:
@@ -550,12 +560,12 @@ def draw_spectrum(
 
 
 def draw_wavelet(
-    da_temp: "xr.DataArray",
+    da_temp: xr.DataArray,
     dt_seconds: float,
     wavelet: str = "morlet",
     *,
     width_in: float = report_tokens.W_FULL,
-) -> "Optional[plt.Figure]":
+) -> plt.Figure | None:
     """Continuous wavelet transform scalogram for gridded temperature; return a Figure.
 
     Produces three stacked wavelet + time-series panel pairs.  Depth levels are
@@ -716,7 +726,12 @@ def draw_wavelet(
             ha="left",
             va="bottom",
             fontsize=report_tokens.ANNOT_FS,
-            bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.7),
+            bbox={
+                "boxstyle": "round,pad=0.15",
+                "fc": "white",
+                "ec": "none",
+                "alpha": 0.7,
+            },
         )
         plt.setp(tax[i].get_xticklabels(), visible=False)
 
@@ -744,11 +759,11 @@ def draw_wavelet(
 
 
 def draw_grid_rotary_spectrum(
-    ds: "xr.Dataset",
+    ds: xr.Dataset,
     lat: float = 0.0,
     *,
     width_in: float = report_tokens.W_FULL,
-) -> "Optional[plt.Figure]":
+) -> plt.Figure | None:
     """Two-panel rotary velocity spectrum for the grid report; return a Figure.
 
     Left panel: CW (solid, reds) and CCW (dashed, blues) power spectra on the same axes,
@@ -776,11 +791,11 @@ def draw_grid_rotary_spectrum(
         Figure, or None if insufficient velocity data.
 
     """
-    import matplotlib.pyplot as plt
     import matplotlib.colors as mcolors
+    import matplotlib.pyplot as plt
+    import numpy as np
     from matplotlib.lines import Line2D
     from matplotlib.transforms import blended_transform_factory
-    import numpy as np
 
     if "east_velocity" not in ds.data_vars or "north_velocity" not in ds.data_vars:
         return None
@@ -833,11 +848,11 @@ def draw_grid_rotary_spectrum(
         sel = np.linspace(0, len(valid_lev_idx) - 1, n_select, dtype=int)
         valid_lev_idx = [valid_lev_idx[i] for i in sel]
 
-    freq_out: Optional[np.ndarray] = None
-    s_cw_list: List[np.ndarray] = []
-    s_ccw_list: List[np.ndarray] = []
-    r_list: List[np.ndarray] = []
-    press_plotted: List[float] = []
+    freq_out: np.ndarray | None = None
+    s_cw_list: list[np.ndarray] = []
+    s_ccw_list: list[np.ndarray] = []
+    r_list: list[np.ndarray] = []
+    press_plotted: list[float] = []
 
     for k in valid_lev_idx:
         u_col = arr_u[k, :].copy()
@@ -886,7 +901,7 @@ def draw_grid_rotary_spectrum(
         np.log10(period_plot.min()), np.log10(period_plot.max()), n_bands + 1
     )
     p_band_centers = 10 ** (0.5 * (_log_edges[:-1] + _log_edges[1:]))
-    r_banded_list: List[np.ndarray] = []
+    r_banded_list: list[np.ndarray] = []
     for _scw, _sccw in zip(s_cw_list, s_ccw_list, strict=False):
         _scw_f, _sccw_f = _scw[fmask], _sccw[fmask]
         _rb = np.full(n_bands, np.nan)
@@ -971,7 +986,12 @@ def draw_grid_rotary_spectrum(
                 ha="center",
                 color=color,
                 transform=trans1,
-                bbox=dict(boxstyle="round,pad=0.1", fc="white", ec="none", alpha=0.6),
+                bbox={
+                    "boxstyle": "round,pad=0.1",
+                    "fc": "white",
+                    "ec": "none",
+                    "alpha": 0.6,
+                },
             )
     ax_spec.set_xlim(x_max, x_min)
     _rot_tv, _rot_tl = period_axis_ticks(x_min, x_max)
@@ -1037,7 +1057,12 @@ def draw_grid_rotary_spectrum(
                 ha="center",
                 color=color,
                 transform=trans2,
-                bbox=dict(boxstyle="round,pad=0.1", fc="white", ec="none", alpha=0.6),
+                bbox={
+                    "boxstyle": "round,pad=0.1",
+                    "fc": "white",
+                    "ec": "none",
+                    "alpha": 0.6,
+                },
             )
     ax_rot.axhline(0, color="k", lw=0.8, ls="-", alpha=0.4)
     ax_rot.set_xlim(x_max, x_min)

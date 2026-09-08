@@ -3,10 +3,11 @@
 import argparse
 import sys
 from pathlib import Path
+
 from . import paths
+from ._version import __version__
 from .processors import STAGES, resolve_stage
 from .utilities import _status
-from ._version import __version__
 
 
 def _parse_dirs(
@@ -34,7 +35,7 @@ def _parse_dirs(
     proc_dir = getattr(args, "proc_dir", None)
 
     if basedir:
-        raise SystemExit(  # noqa: TRY003
+        raise SystemExit(
             "ERROR: --basedir has been removed. Use --raw-dir + --proc-dir "
             "(the mooring directory is now <proc-dir>/<mooring>, not "
             "<basedir>/moor/proc/<mooring>). See MIGRATION-BASEDIR.md at the "
@@ -42,9 +43,7 @@ def _parse_dirs(
         )
 
     if not proc_dir:
-        raise SystemExit(  # noqa: TRY003
-            "ERROR: --proc-dir is required (and --raw-dir for stage 1)."
-        )
+        raise SystemExit("ERROR: --proc-dir is required (and --raw-dir for stage 1).")
     return Path(raw_dir) if raw_dir else None, Path(proc_dir)
 
 
@@ -73,6 +72,7 @@ def _print_report(proc_dir: Path) -> None:
     which geophysical variables are present (temperature, salinity, velocity, etc.).
     """
     import datetime
+
     import numpy as np
     import xarray as xr
 
@@ -178,7 +178,7 @@ def cmd_process(args: argparse.Namespace) -> int:
 
     if stages:
         if 1 in stages and raw_dir is None:
-            raise SystemExit("ERROR: --raw-dir is required for stage 1.")  # noqa: TRY003
+            raise SystemExit("ERROR: --raw-dir is required for stage 1.")
         overall_success = _process(
             args.mooring,
             stage=stages,
@@ -202,9 +202,8 @@ def cmd_process(args: argparse.Namespace) -> int:
 
         matplotlib.use("Agg")
         import xarray as xr
-        from .plotters import plot_microcat_raw
 
-        from .plotters import plot_aquadopp_raw
+        from .plotters import plot_aquadopp_raw, plot_microcat_raw
 
         _status("section", f"Plotting: {args.mooring}")
         proc_dir = proc_root / args.mooring
@@ -234,8 +233,9 @@ def cmd_plot(args: argparse.Namespace) -> int:
     is displayed interactively.
     """
     from pathlib import Path
-    from .plotters import plot_mooring_timeseries
+
     from .config import parameters as params
+    from .plotters import plot_mooring_timeseries
 
     _, proc_root = _parse_dirs_checked(args)
 
@@ -322,7 +322,7 @@ def _generate_mooring_report(
     """
     from .reports import MooringReport
 
-    _sigma_restore: "tuple | None" = None
+    _sigma_restore: tuple | None = None
     if sig_level is not None:
         import numpy as _np
 
@@ -377,6 +377,7 @@ def cmd_report(args: argparse.Namespace) -> int:
 
     if getattr(args, "dry_run", False):
         import yaml as _yaml
+
         from .utilities import extract_inline_instruments
 
         _status("section", f"Report (dry run): {args.mooring}")
@@ -397,7 +398,7 @@ def cmd_report(args: argparse.Namespace) -> int:
             p = proc_dir / f"{args.mooring}_grid_report.html"
             print(f"Grid:     {p}  ({'exists' if p.exists() else 'new'})")
         if do_instruments and yaml_path.exists():
-            with open(yaml_path) as fh:
+            with yaml_path.open() as fh:
                 cfg = _yaml.safe_load(fh)
             instrument_list = list(cfg.get("clamp", cfg.get("instruments", [])))
             instrument_list += extract_inline_instruments(cfg.get("inline", []))
@@ -527,7 +528,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     raw_dir, proc_root = _parse_dirs_checked(args)
 
     if raw_dir is None:
-        raise SystemExit("ERROR: --raw-dir is required for stage 1.")  # noqa: TRY003
+        raise SystemExit("ERROR: --raw-dir is required for stage 1.")
 
     serials = args.serial or None
 
@@ -1053,7 +1054,7 @@ def cmd_init(args: argparse.Namespace) -> int:
     yaml.default_flow_style = False
     yaml.width = 120
 
-    with open(out_path, "w") as fh:
+    with out_path.open("w") as fh:
         yaml.dump(doc, fh)
 
     print(f"Wrote stub: {out_path}")

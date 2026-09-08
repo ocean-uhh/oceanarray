@@ -9,9 +9,9 @@ logic is defined once rather than copied per stage.
 import re
 import sys
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
-_PathLike = Union[str, Path]
+_PathLike = str | Path
 
 
 class LegacyLayoutError(RuntimeError):
@@ -41,8 +41,8 @@ def mooring_proc_dir(proc_root: _PathLike, mooring: str) -> Path:
 
 def resolve_report_dir(
     mooring: str,
-    outdir: Optional[_PathLike],
-    report_dir: Optional[_PathLike],
+    outdir: _PathLike | None,
+    report_dir: _PathLike | None,
     proc_root: _PathLike,
 ) -> Path:
     """Return the directory a mooring's HTML report pages are written to.
@@ -79,7 +79,7 @@ def resolve_report_dir(
 
 def resolve_pdf_path(
     mooring: str,
-    pdf_dir: Optional[_PathLike],
+    pdf_dir: _PathLike | None,
     report_html_dir: _PathLike,
 ) -> Path:
     """Return the path a mooring's combined report PDF is written to.
@@ -212,7 +212,7 @@ def require_current_layout(proc_root: _PathLike, mooring: str) -> None:
         return
     for legacy_root in legacy_roots:
         if (legacy_root / mooring).is_dir():
-            raise LegacyLayoutError(  # noqa: TRY003
+            raise LegacyLayoutError(
                 f"--proc-dir points at an old-layout directory (found "
                 f"'{legacy_root / mooring}'). Use --proc-dir {legacy_root} "
                 f"instead (see MIGRATION-BASEDIR.md)."

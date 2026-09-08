@@ -94,7 +94,8 @@ def test_add_fixed_coordinates(sample_ds):
 
 
 def test_add_variable_attributes(sample_ds, vocab_yaml):
-    vocab = yaml.safe_load(open(vocab_yaml))
+    with vocab_yaml.open() as _f:
+        vocab = yaml.safe_load(_f)
     ds_out = add_variable_attributes(sample_ds, vocab)
     assert ds_out["TEMP"].attrs["units"] == "degC"
     assert ds_out["CNDC"].attrs["standard_name"] == "sea_water_electrical_conductivity"

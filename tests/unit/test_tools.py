@@ -22,7 +22,7 @@ def sample_dataset():
     CNDC = np.tile([40.0, 41.0, 42.0], (6, 1)) + np.random.randn(6, 3)
     TEMP = np.tile([10.0, 11.0, 12.0], (6, 1)) + np.random.randn(6, 3)
     PRES = np.array([5, 15, 25])
-    ds = xr.Dataset(
+    return xr.Dataset(
         {
             "CNDC": (("TIME", "DEPTH"), CNDC),
             "TEMP": (("TIME", "DEPTH"), TEMP),
@@ -30,7 +30,6 @@ def sample_dataset():
         },
         coords={"TIME": time, "DEPTH": depth},
     )
-    return ds
 
 
 def test_calc_psal(sample_dataset):

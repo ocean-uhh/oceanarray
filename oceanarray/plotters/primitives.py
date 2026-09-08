@@ -14,7 +14,7 @@ plot_polar_histogram, plot_timeseries.
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 import matplotlib.colors as mcolors
 import matplotlib.dates as mdates
@@ -23,10 +23,11 @@ import matplotlib.ticker as mticker
 import numpy as np
 from matplotlib.collections import LineCollection
 
-from .. import parameters as params
 from oceanarray.config import report_tokens
-from .helpers import grid_despine
+
+from .. import parameters as params
 from ..utilities import _nice_colorbar_bounds, nice_colorbar_ticks
+from .helpers import grid_despine
 
 
 def plot_title(ax: Any, text: str, *, loc: str = "left", **kwargs: Any) -> Any:
@@ -94,10 +95,10 @@ def pcolormesh_panel(
     units: str = "",
     cmap: str = "RdYlBu_r",
     style: str = "pcolormesh",
-    vmin: Optional[float] = None,
-    vmax: Optional[float] = None,
+    vmin: float | None = None,
+    vmax: float | None = None,
     n: int = 20,
-    cb_label: Optional[str] = None,
+    cb_label: str | None = None,
     title_loc: str = "left",
     date_fmt: bool = True,
 ) -> Any:
@@ -206,7 +207,7 @@ _SQ_WGAP_PP_IN: float = 0.34
 _SQ_PER_CHAR_IN: float = 0.10
 
 
-def ytick_reserve_in(y: "np.ndarray | float") -> float:
+def ytick_reserve_in(y: np.ndarray | float) -> float:
     """Left-margin inches to fit the widest y-tick label plus rotated y-axis label.
 
     Sizes the ``left_in`` reserve for :func:`square_axes_grid` from the y-data
@@ -246,10 +247,10 @@ def square_axes_grid(
     per_panel_colorbar: bool = False,
     top_pad_in: float = 0.0,
     bottom_pad_in: float = 0.0,
-    wgap_in: "Optional[float]" = None,
-    cbar_txt_in: "Optional[float]" = None,
-    left_in: "Optional[float]" = None,
-) -> "tuple[plt.Figure, np.ndarray, Any]":
+    wgap_in: float | None = None,
+    cbar_txt_in: float | None = None,
+    left_in: float | None = None,
+) -> tuple[plt.Figure, np.ndarray, Any]:
     """Lay out an ``nrows × ncols`` grid of square axes deterministically in inches.
 
     Every panel is an exact square whose side is computed from the usable width,
@@ -335,7 +336,7 @@ def square_axes_grid(
     fig_h = _SQ_TITLE_IN + grid_h + bottom_in + top_pad_in
 
     fig = plt.figure(figsize=(fig_w, fig_h))
-    fig._manual_layout = True  # noqa: SLF001 — encoder tight_layout opt-out
+    fig._manual_layout = True
     axes = np.empty((nrows, ncols), dtype=object)
     caxes = np.empty((nrows, ncols), dtype=object) if per_panel_colorbar else None
     for r in range(nrows):
@@ -377,7 +378,7 @@ def square_limits(
     y: np.ndarray,
     *,
     pad_frac: float = 0.05,
-) -> "tuple[tuple[float, float], tuple[float, float]]":
+) -> tuple[tuple[float, float], tuple[float, float]]:
     """Return ``(xlim, ylim)`` framing *x*, *y* as an equal-extent square.
 
     The larger of the x and y data ranges is applied to both axes (each centred
@@ -417,8 +418,8 @@ def unit_colorbar(
     mappable: Any,
     *,
     unit: str = "",
-    ticks: Optional[np.ndarray] = None,
-    ticklabels: Optional[list[str]] = None,
+    ticks: np.ndarray | None = None,
+    ticklabels: list[str] | None = None,
 ) -> Any:
     """Draw *mappable*'s colorbar into the pre-placed *cax* with the unit on top.
 
@@ -451,7 +452,7 @@ def unit_colorbar(
     cb = cax.figure.colorbar(mappable, cax=cax, ticks=ticks)
     if ticklabels is not None:
         if ticks is None or len(ticklabels) != len(ticks):
-            raise ValueError("ticklabels must match ticks in length")  # noqa: TRY003
+            raise ValueError("ticklabels must match ticks in length")
         # Pin the locator to the given ticks so the labels can't drift onto
         # auto-placed positions (FixedLocator/FixedFormatter must agree).
         cax.yaxis.set_major_locator(mticker.FixedLocator(list(ticks)))
@@ -464,7 +465,7 @@ def unit_colorbar(
 def plot_trajectory(
     x: np.ndarray,
     y: np.ndarray,
-    color_data: Optional[np.ndarray] = None,
+    color_data: np.ndarray | None = None,
     cmap: str = "coolwarm",
     xlabel: str = "East displacement (m)",
     ylabel: str = "North displacement (m)",
@@ -667,13 +668,13 @@ def pressure_axis(ax: Any) -> None:
 
 
 def colorbar_norm(
-    data: Optional[np.ndarray] = None,
+    data: np.ndarray | None = None,
     *,
-    vmin: Optional[float] = None,
-    vmax: Optional[float] = None,
+    vmin: float | None = None,
+    vmax: float | None = None,
     n: int = 20,
     symmetric: bool = False,
-) -> "tuple[np.ndarray, mcolors.BoundaryNorm]":
+) -> tuple[np.ndarray, mcolors.BoundaryNorm]:
     """Return ``(bounds, norm)`` for a discrete pcolormesh colorbar.
 
     Computes percentile limits from *data* when *vmin* / *vmax* are not given.
@@ -708,7 +709,7 @@ def colorbar_norm(
     """
     if vmin is None or vmax is None:
         if data is None:
-            raise ValueError("Provide either data or both vmin and vmax.")  # noqa: TRY003
+            raise ValueError("Provide either data or both vmin and vmax.")
         finite = data[np.isfinite(data)]
         if finite.size == 0:
             vmin = vmin if vmin is not None else 0.0

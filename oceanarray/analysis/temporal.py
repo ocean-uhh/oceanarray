@@ -97,7 +97,7 @@ def lag_correlation(
     x = np.asarray(x, float)
     y = np.asarray(y, float)
     if x.shape != y.shape:
-        raise ValueError("x and y must have same length (subsample both).")  # noqa: TRY003
+        raise ValueError("x and y must have same length (subsample both).")
     corrs = np.full(2 * max_lag + 1, np.nan)
     for k, lag in enumerate(range(-max_lag, max_lag + 1)):
         if lag < 0:
@@ -154,7 +154,7 @@ def split_value(data: np.ndarray, nbins: int = 30) -> float:
 
     # Step 3: Find minimum between first two major peaks
     if len(peaks) < 2:
-        raise ValueError(  # noqa: TRY003
+        raise ValueError(
             f"split_value: fewer than 2 histogram peaks found in data "
             f"(found {len(peaks)}). Data may be unimodal or nbins={nbins} too coarse."
         )

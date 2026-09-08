@@ -77,7 +77,7 @@ def save_OS_instrument(ds: xr.Dataset, data_dir: Path) -> Path:
 
     """
     if "id" not in ds.attrs:
-        raise ValueError(  # noqa: TRY003
+        raise ValueError(
             "Global attribute 'id' not found. Cannot determine output filename."
         )
 

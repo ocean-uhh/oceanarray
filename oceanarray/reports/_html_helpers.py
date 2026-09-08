@@ -7,11 +7,12 @@ used by both _plots.py and _mooring.py.
 from __future__ import annotations
 
 import base64
+import contextlib
 import io
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import numpy as np
 from PIL import Image
@@ -23,7 +24,6 @@ from ..utilities import (  # noqa: F401  (re-exported)
     _status,
     should_skip_regeneration,
 )
-
 
 # ---------------------------------------------------------------------------
 # helpers
@@ -67,7 +67,7 @@ def _safe_serial(serial: Any) -> str:
     return safe_serial(serial)
 
 
-def _parse_dt(s: Optional[str]) -> Optional[datetime]:
+def _parse_dt(s: str | None) -> datetime | None:
     """Parse clock timestamp: HH:MM:SS, YYYYMMDDTHH:MM:SS, or standard ISO."""
     if not s:
         return None
@@ -83,11 +83,11 @@ def _parse_dt(s: Optional[str]) -> Optional[datetime]:
         return None
 
 
-def _fmt_dt(dt: Optional[datetime], fmt: str = "%Y-%m-%d %H:%M UTC") -> str:
+def _fmt_dt(dt: datetime | None, fmt: str = "%Y-%m-%d %H:%M UTC") -> str:
     return dt.strftime(fmt) if dt else "—"
 
 
-def _duration_str(start: Optional[datetime], end: Optional[datetime]) -> str:
+def _duration_str(start: datetime | None, end: datetime | None) -> str:
     if start is None or end is None:
         return "—"
     delta = end - start
@@ -96,7 +96,7 @@ def _duration_str(start: Optional[datetime], end: Optional[datetime]) -> str:
     return f"{days}d {hours}h"
 
 
-def _fmt_clock_str(s: Optional[str]) -> Optional[str]:
+def _fmt_clock_str(s: str | None) -> str | None:
     """Reformat an ISO-8601 timestamp to 'YYYY-MM-DD HH:MM' (minute precision).
 
     Handles both compact ISO (``20260710T21:03:00``) and spaced ISO
@@ -118,10 +118,10 @@ def _fmt_clock_str(s: Optional[str]) -> Optional[str]:
         return str(s)[:16]
 
 
-def _resolve_clock(entry: Dict[str, Any]) -> Dict[str, Any]:
+def _resolve_clock(entry: dict[str, Any]) -> dict[str, Any]:
     """Extract clock correction info from one YAML instrument entry."""
     offset_s = float(entry.get("clock_offset", 0) or 0)
-    drift_s: Optional[float] = None
+    drift_s: float | None = None
     method = "none"
 
     comp_str = entry.get("computer_clock_at_recovery")
@@ -146,7 +146,7 @@ def _resolve_clock(entry: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def _check_readable(file_path: Path, file_type: str) -> Tuple[bool, str]:
+def _check_readable(file_path: Path, file_type: str) -> tuple[bool, str]:
     """Quick format sanity check — reads a few bytes/lines, not the full file."""
     if not file_path.exists():
         return False, "file missing"
@@ -156,7 +156,7 @@ def _check_readable(file_path: Path, file_type: str) -> Tuple[bool, str]:
             return False, "empty file"
 
         if file_type in ("sbe-cnv", "sbe-ascii"):
-            with open(file_path, "r", errors="ignore") as f:
+            with file_path.open(errors="ignore") as f:
                 head = f.read(800)
             if any(
                 line.lstrip().startswith(("*", "#")) for line in head.splitlines()[:5]
@@ -164,7 +164,7 @@ def _check_readable(file_path: Path, file_type: str) -> Tuple[bool, str]:
                 return True, "ok"
             return False, "no SeaBird header markers"
 
-        elif file_type in ("nortek-ascii", "nortek-raw"):
+        if file_type in ("nortek-ascii", "nortek-raw"):
             hdr = file_path.with_suffix(".hdr")
             if not hdr.exists():
                 candidates = list(file_path.parent.glob(file_path.stem + "*.hdr"))
@@ -172,22 +172,21 @@ def _check_readable(file_path: Path, file_type: str) -> Tuple[bool, str]:
                     return True, "ok (no .hdr found; may fail)"
             return True, "ok"
 
-        elif file_type == "nortek-csv-oa":
-            with open(file_path, "r", errors="ignore") as f:
+        if file_type == "nortek-csv-oa":
+            with file_path.open(errors="ignore") as f:
                 first = f.readline()
             if ";" in first:
                 return True, "ok"
             return False, "expected semicolon delimiter"
 
-        elif file_type in ("rbr-rsk", "rbr-dat"):
-            with open(file_path, "rb") as f:
+        if file_type in ("rbr-rsk", "rbr-dat"):
+            with file_path.open("rb") as f:
                 magic = f.read(16)
             if magic[:6] == b"SQLite":
                 return True, "ok"
             return False, "not SQLite format"
 
-        else:
-            return True, "ok (format not deeply checked)"
+        return True, "ok (format not deeply checked)"
 
     except Exception as exc:
         return False, str(exc)[:80]
@@ -199,11 +198,11 @@ def _check_readable(file_path: Path, file_type: str) -> Tuple[bool, str]:
 
 # Canonical definitions live in plotters/helpers.py (Tier 2) so both plotters/
 # and report/ can use them without a plotters→report circular import.
-from ..plotters.helpers import QC_COLORS as _QC_COLORS, QC_MARKER as _QC_MARKER  # noqa: E402, F401
+from ..plotters.helpers import QC_COLORS as _QC_COLORS  # noqa: E402
 
 # Short display glosses of parameters.QC_FLAG_MEANINGS (OceanSITES table 2).
 # Keep the codes and wording consistent with that table.
-_QC_LABELS: Dict[int, str] = {
+_QC_LABELS: dict[int, str] = {
     0: "unknown",
     1: "good",
     2: "prob. good",
@@ -253,14 +252,14 @@ def _fig_to_base64(fig: Any) -> str:
     return base64.b64encode(out.getvalue()).decode("ascii")
 
 
-def _load_pdf_b64(path: Optional[Path]) -> Optional[str]:
+def _load_pdf_b64(path: Path | None) -> str | None:
     """Return base64-encoded PDF bytes if *path* exists, else None."""
     if path is not None and path.is_file():
         return base64.b64encode(path.read_bytes()).decode("ascii")
     return None
 
 
-def _resolve_diagram_pdf(proc_dir: Path, mooring_name: str) -> Optional[Path]:
+def _resolve_diagram_pdf(proc_dir: Path, mooring_name: str) -> Path | None:
     """Locate the mooring-diagram PDF for a mooring in *proc_dir*.
 
     Resolution order, first match wins:
@@ -290,7 +289,7 @@ def _resolve_diagram_pdf(proc_dir: Path, mooring_name: str) -> Optional[Path]:
 # ---------------------------------------------------------------------------
 
 
-def _parse_history(history_str: str) -> List[Dict[str, str]]:
+def _parse_history(history_str: str) -> list[dict[str, str]]:
     """Split a semicolon-delimited NC history attribute into timestamped entries."""
     if not history_str:
         return []
@@ -317,7 +316,7 @@ def _fmt_minmax(v: float) -> str:
     return f"{v:.4g}"
 
 
-def _read_nc_metadata(nc_path: Path) -> Dict[str, Any]:
+def _read_nc_metadata(nc_path: Path) -> dict[str, Any]:
     """Return variable lists, scalar metadata, and global attrs from a NC file."""
     try:
         import xarray as xr
@@ -325,11 +324,11 @@ def _read_nc_metadata(nc_path: Path) -> Dict[str, Any]:
         ds = xr.open_dataset(nc_path, decode_timedelta=False)
         qc_vars = {v for v in ds.data_vars if v.endswith("_qc")}
         time_vars, scalar_vars = [], []
-        analog_vars: List[str] = []
+        analog_vars: list[str] = []
 
         for vname in sorted(ds.data_vars):
             v = ds[vname]
-            info: Dict[str, Any] = {
+            info: dict[str, Any] = {
                 "name": vname,
                 "units": v.attrs.get("units", ""),
                 "long_name": v.attrs.get("long_name", ""),
@@ -388,7 +387,7 @@ def _read_nc_metadata(nc_path: Path) -> Dict[str, Any]:
         }
 
 
-def _read_qc_thresholds(nc_path: Path) -> List[Dict[str, Any]]:
+def _read_qc_thresholds(nc_path: Path) -> list[dict[str, Any]]:
     """Return the QC thresholds actually applied, as stored in the stage3 NC file.
 
     Reads four types of threshold from the ``{var}_qc`` variable attrs and from
@@ -477,7 +476,7 @@ def _read_qc_thresholds(nc_path: Path) -> List[Dict[str, Any]]:
         return []
 
 
-def _read_qc_summary(nc_path: Path) -> List[Dict[str, Any]]:
+def _read_qc_summary(nc_path: Path) -> list[dict[str, Any]]:
     """Return per-variable QC flag breakdown from a stage3 NC file."""
     try:
         import xarray as xr
@@ -525,7 +524,7 @@ _PRIMARY_VARS = [
 
 def _read_instrument_info(
     proc_dir: Path, instr_type: str, mooring: str, serial: str
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Read record statistics from the best available processed NetCDF file.
 
     Prefers stage-3 output (QC and coordinate-transformed); falls back to
@@ -586,18 +585,16 @@ def _read_instrument_info(
         # in the instrument summary can be coloured blue (interpolated) vs green (measured).
         pressure_interpolated = False
         if "pressure_qc" in ds.data_vars:
-            try:
+            with contextlib.suppress(Exception):
                 pressure_interpolated = bool(
                     np.any(ds["pressure_qc"].values.astype(int) == 8)
                 )
-            except Exception:  # noqa: BLE001
-                pass
 
         # Min/max pressure over the trimmed record (stage2/stage3).
         # Exclude non-positive values (negative or stuck-at-zero sensors are
         # non-physical for a deployed mooring) and QC-bad/missing flag values.
-        p_min: Optional[float] = None
-        p_max: Optional[float] = None
+        p_min: float | None = None
+        p_max: float | None = None
         if "pressure" in ds.data_vars:
             try:
                 pvals = ds["pressure"].values.astype(float)
@@ -613,7 +610,7 @@ def _read_instrument_info(
                     p_min = _pmin
                 if np.isfinite(_pmax):
                     p_max = _pmax
-            except Exception:  # noqa: BLE001
+            except Exception:
                 pass
 
         ds.close()
@@ -638,7 +635,7 @@ def _read_instrument_info(
 
 def _read_timing_info(
     proc_dir: Path, instr_type: str, mooring: str, serial: str
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Read deployment-timing attrs from the stage 2 NC file.
 
     Always reads from stage 2 (not stage 3) because timing metadata is written
@@ -705,7 +702,7 @@ def _read_timing_info(
                     ).total_seconds()
                 )
                 sugg_start_differs = diff_s > 2 * dt_s
-            except Exception:  # noqa: BLE001
+            except Exception:
                 pass
         if sugg_end_utc and stage2_end and np.isfinite(dt_s) and dt_s > 0:
             try:
@@ -716,7 +713,7 @@ def _read_timing_info(
                     ).total_seconds()
                 )
                 sugg_end_differs = diff_s > 2 * dt_s
-            except Exception:  # noqa: BLE001
+            except Exception:
                 pass
 
         # Orange-amber: stage1 last record ends more than 2 sample intervals before
@@ -729,10 +726,10 @@ def _read_timing_info(
                     - datetime.fromisoformat(stage1_end[:16])
                 ).total_seconds()
                 stage1_end_early = diff_s > 2 * dt_s
-            except Exception:  # noqa: BLE001
+            except Exception:
                 pass
 
-        def _fmt(s: Optional[str]) -> Optional[str]:
+        def _fmt(s: str | None) -> str | None:
             if not s:
                 return None
             return str(s)[:16].replace("T", " ")
@@ -753,13 +750,13 @@ def _read_timing_info(
             "stage1_end_early": stage1_end_early,
             "dt_s": dt_s,
         }
-    except Exception:  # noqa: BLE001
+    except Exception:
         return {}
 
 
 def _read_sensor_info(
     proc_dir: Path, instr_type: str, mooring: str, serial: str
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Return one dict per SENSOR_* variable found in the stage2 NC file."""
     nc_path = proc_dir / instr_type / f"{mooring}_{serial}_stage2.nc"
     if not nc_path.exists():
@@ -791,7 +788,7 @@ def _read_sensor_info(
 
 def _stage_files(
     proc_dir: Path, instr_type: str, mooring: str, serial: str
-) -> Dict[str, bool]:
+) -> dict[str, bool]:
     base = proc_dir / instr_type / f"{mooring}_{serial}"
     return {
         "stage1": Path(str(base) + "_stage1.nc").exists(),
@@ -809,7 +806,7 @@ def _fmt_size(n_bytes: int) -> str:
     return f"{n_bytes:.1f} GB"
 
 
-def _file_info(path: Path) -> Dict[str, str]:
+def _file_info(path: Path) -> dict[str, str]:
     """Return size and mtime for a file path, or empty strings if it doesn't exist."""
     if not path.exists():
         return {"exists": False, "name": path.name, "size": "", "mtime": ""}
@@ -894,7 +891,7 @@ def _instrument_report_exists(out_dir: Path, mooring_name: str, serial: str) -> 
 
 def _find_array_report_href(
     out_dir: Path, in_instrument_subdir: bool = False
-) -> Optional[str]:
+) -> str | None:
     """Return a relative href to the array report if one exists in the top-level proc dir.
 
     Parameters
@@ -931,12 +928,12 @@ def _find_array_report_href(
 
 def _nav_buttons_html(
     mooring_name: str,
-    instruments: List[Dict[str, Any]],
+    instruments: list[dict[str, Any]],
     stack_exists: bool = True,
     grid_exists: bool = True,
     current_report: str = "",
     in_instrument_subdir: bool = False,
-    array_report_href: Optional[str] = None,
+    array_report_href: str | None = None,
 ) -> str:
     """Return an HTML navigation snippet for injection into report masthead cards.
 
@@ -1045,7 +1042,7 @@ def _nav_buttons_html(
 
     # Row 2: per-instrument buttons grouped by instrument type.
     # Grey out instruments that have no processed stage files (no report generated).
-    by_type: Dict[str, List[Dict]] = {}
+    by_type: dict[str, list[dict]] = {}
     for instr in instruments:
         itype = str(instr.get("instr_type", instr.get("instrument", "other"))).lower()
         if itype not in by_type:

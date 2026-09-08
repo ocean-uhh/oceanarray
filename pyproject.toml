@@ -110,9 +110,6 @@ oceanarray = [
   "reports/templates/*.html",   # report page templates loaded via FileSystemLoader
 ]
 
-[tool.setuptools.dynamic]
-readme = { file = "README.md", content-type = "text/markdown" }
-
 [tool.setuptools_scm]
 write_to = "oceanarray/_version.py"
 write_to_template = "__version__ = '{version}'"
@@ -151,6 +148,7 @@ omit = [
 
 [tool.ruff]
 line-length = 88
+target-version = "py310"
 exclude = [
   "oceanarray/legacy",   # legacy modules — not maintained to current standards
   "notebooks",           # notebooks are exploratory; not held to production lint standards
@@ -158,47 +156,50 @@ exclude = [
 ]
 
 [tool.ruff.lint]
+# Family reference: ctdcast's ruff configuration (repo-hygiene checklist, 2026-09-08).
 select = [
-  "D",       # pydocstyle
   "E",       # pycodestyle errors
-  "F",       # pyflakes errors
+  "F",       # pyflakes
   "W",       # pycodestyle warnings
-  "C90",     # mccabe complexity
-  "ANN",     # type annotations
   "B",       # flake8-bugbear
-  "BLE",     # bleach checks
-  "TRY",     # tryceratops
-  "ARG",     # flake8-arguments
-  "SLF",     # flake8-self
+  "BLE",     # flake8-blind-except
+  "ARG",     # flake8-unused-arguments
+  "D",       # pydocstyle
+  "ANN",     # flake8-annotations
+  "I",       # isort
+  "UP",      # pyupgrade
+  "C4",      # flake8-comprehensions
+  "RET",     # flake8-return
+  "PIE",     # flake8-pie
+  "SIM",     # flake8-simplify
+  "NPY",     # numpy-specific rules
+  "PTH",     # flake8-use-pathlib
+  "RUF100",  # unused noqa directives
 ]
+extend-select = ["D417"]  # numpy convention drops D417 (undocumented params); we want it
 ignore = [
   "D107",    # missing docstring in __init__
-  "D203",    # 1 blank line required before class docstring
-  "D213",    # multi-line summary docstring style
-  "D401",    # first line should be in imperative mood
-  "E501",    # line‑length
-  "PLR0913", # too many arguments
-  "C901",    # complexity
+  "E501",    # line length — ruff format owns wrapping
   "ANN401",  # typing.Any is allowed — common in dataset/xarray helper signatures
 ]
 
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"   # handles D203 / D213 itself — do not hand-ignore those
+
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["ANN", "D", "SLF001"]   # tests don't need type annotations, docstrings, or private-access guards
-"tests/legacy/**" = ["ANN", "D", "SLF001", "ARG001", "E741", "F841"]  # legacy tests: also allow unused fixture args, short variable names, unused locals
-"oceanarray/analysis/clock.py" = ["ANN", "D"]  # unfinished module (plan §14); interface will change
-"oceanarray/plotters/_cli_legacy.py" = ["ANN", "D"]  # legacy CLI plots; deleted when oceanarray plot <file> redesign lands (§11)
+# NPY002: test scaffolding may use legacy np.random (synthetic data); not production numpy.
+"tests/**" = ["ANN", "D", "NPY002"]   # tests: no type annotations / docstrings; legacy RNG ok
+"tests/legacy/**" = ["ANN", "D", "ARG001", "E741", "F841"]  # legacy tests: unused fixture args, short var names, unused locals
+"oceanarray/analysis/clock.py" = ["ANN", "D"]  # unfinished module; interface will change (backlog)
+"oceanarray/plotters/_cli_legacy.py" = ["ANN", "D"]  # legacy CLI plots; deleted when the plot redesign lands
 "oceanarray/plotters/__init__.py" = ["ANN", "D", "F401"]  # backward-compat shim re-exports
-"oceanarray/tools/rapid_interp.py" = ["ANN", "D", "F841", "SLF001", "TRY003", "BLE001"]  # legacy physics code; rewrite deferred
-# Report generators: every function wraps rendering in try/except → None on failure.
-# This is the established pattern for keeping HTML reports partially working on bad data.
-"oceanarray/reports/_plots.py" = ["BLE001", "TRY300", "TRY301", "TRY003"]
-# Vendored byte-identical from ../ctdcast (shared report foundation, spec §9); kept
-# identical for the planned cross-repo hash check, so lint exemptions live here rather
-# than as edits that would fork the copy. Same try/except-to-None pattern as _plots.py.
-"oceanarray/reports/_encode.py" = ["TRY301", "TRY003", "D413"]
+"oceanarray/tools/rapid_interp.py" = ["ANN", "D", "F841", "BLE001"]  # legacy physics code; rewrite deferred (backlog)
+# Report generators wrap rendering in try/except → None on bad data (partial reports).
+"oceanarray/reports/_plots.py" = ["BLE001"]
+"oceanarray/reports/_encode.py" = ["D413"]  # vendored byte-identical from ../ctdcast
 "oceanarray/reports/_css.py" = ["D413"]  # vendored; docstring section-blank-line style
-"oceanarray/reports/_html_helpers.py" = ["BLE001", "TRY300"]
-"oceanarray/reports/_grid.py" = ["BLE001", "TRY300"]
-"oceanarray/reports/_instrument.py" = ["BLE001", "TRY300", "ARG001"]
-"oceanarray/reports/_mooring.py" = ["BLE001", "TRY003", "TRY300"]
-"oceanarray/reports/_stack.py" = ["BLE001", "TRY300", "ARG001", "F841"]
+"oceanarray/reports/_html_helpers.py" = ["BLE001"]
+"oceanarray/reports/_grid.py" = ["BLE001"]
+"oceanarray/reports/_instrument.py" = ["BLE001", "ARG001"]
+"oceanarray/reports/_mooring.py" = ["BLE001"]
+"oceanarray/reports/_stack.py" = ["BLE001", "ARG001", "F841"]

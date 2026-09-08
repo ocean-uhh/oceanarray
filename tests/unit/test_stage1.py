@@ -121,7 +121,7 @@ class TestMooringProcessor:
     def test_load_mooring_config(self, processor, temp_dir, sample_yaml_data):
         """Test loading YAML configuration."""
         config_file = temp_dir / "test_config.yaml"
-        with open(config_file, "w") as f:
+        with config_file.open("w") as f:
             yaml.dump(sample_yaml_data, f)
 
         loaded_data = processor._load_mooring_config(config_file)
@@ -340,11 +340,13 @@ class TestRbrHexOaAlias:
         processor = MooringProcessor(raw_dir=str(tmp_path), proc_dir=str(tmp_path))
         fake_ds = xr.Dataset({"temperature": ("time", [1.0, 2.0])})
 
-        with mock.patch(
-            "oceanarray.processors.stage1.seasenselib.read", return_value=fake_ds
-        ) as mock_read:
-            with pytest.warns(DeprecationWarning, match="rbr-hex-oa"):
-                out = processor._read_file("rbr-hex-oa", "13875_recovery.hex")
+        with (
+            mock.patch(
+                "oceanarray.processors.stage1.seasenselib.read", return_value=fake_ds
+            ) as mock_read,
+            pytest.warns(DeprecationWarning, match="rbr-hex-oa"),
+        ):
+            out = processor._read_file("rbr-hex-oa", "13875_recovery.hex")
 
         # seasenselib.read was called with the remapped file_format, never rbr-hex-oa.
         assert mock_read.call_args.kwargs["file_format"] == "rbr-hex"

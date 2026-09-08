@@ -15,10 +15,11 @@ untouched).
 
 from __future__ import annotations
 
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
-from . import _figdebug
 from ..config import report_tokens
+from . import _figdebug
 
 
 def render(
@@ -28,7 +29,7 @@ def render(
     slot: str = "full",
     optional: bool = False,
     **kwargs: Any,
-) -> Optional[str]:
+) -> str | None:
     """Render *draw* at the inch-width of *slot* and return the base64 PNG.
 
     Resolves ``report_tokens.SLOTS[slot]`` to an inch width and forwards it to

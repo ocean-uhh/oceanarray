@@ -1,9 +1,11 @@
 """Internal helper functions for mooring-level stack and grid operations."""
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
+
 import numpy as np
 import xarray as xr
+
 from oceanarray import parameters as params
 from oceanarray.paths import safe_serial
 
@@ -92,10 +94,7 @@ def _apply_qc_mask(src_v: np.ndarray, ds: "xr.Dataset", vname: str) -> np.ndarra
     if qc_name not in ds.data_vars:
         return src_v
     qc = ds[qc_name].values
-    if vname == "pressure":
-        keep = np.isin(qc, [0, 1, 2, 8])
-    else:
-        keep = np.isin(qc, [0, 1, 2])
+    keep = np.isin(qc, [0, 1, 2, 8]) if vname == "pressure" else np.isin(qc, [0, 1, 2])
     out = src_v.copy()
     out[~keep] = np.nan
     return out
@@ -129,7 +128,7 @@ def _times_to_float(t: np.ndarray) -> np.ndarray:
 
 def _best_nc(
     proc_dir: Path, instr_type: str, mooring_name: str, serial: str
-) -> Optional[Path]:
+) -> Path | None:
     """Return best available stage3 or stage2 file for one instrument; None if only stage1."""
     base = proc_dir / instr_type / f"{mooring_name}_{serial}"
     for suffix in ("_stage3.nc", "_stage2.nc"):
@@ -198,9 +197,12 @@ def _make_adcp_head_ds(ds_parent: xr.Dataset) -> xr.Dataset:
         if v in _ADCP_HEAD_VARS and ds_parent[v].dims == ("time",)
     ]
     # Also keep the instrument-head pressure if present (1-D, not bin_pressure)
-    if "pressure" in ds_parent.data_vars and ds_parent["pressure"].dims == ("time",):
-        if "pressure" not in keep:
-            keep.append("pressure")
+    if (
+        "pressure" in ds_parent.data_vars
+        and ds_parent["pressure"].dims == ("time",)
+        and "pressure" not in keep
+    ):
+        keep.append("pressure")
     return ds_parent[keep]
 
 
@@ -290,7 +292,7 @@ def _nearest_subsample(
     ds: xr.Dataset,
     common_time: np.ndarray,
     half_window_s: float,
-) -> Dict[str, np.ndarray]:
+) -> dict[str, np.ndarray]:
     """Return nearest-neighbour values on common_time within ±half_window_s seconds.
 
     Returns a dict {varname: array} with NaN where no sample falls within the window.
@@ -301,7 +303,7 @@ def _nearest_subsample(
     half_ns = half_window_s * 1e9  # ns
 
     idx = np.searchsorted(src_t, tgt_t)
-    result: Dict[str, np.ndarray] = {}
+    result: dict[str, np.ndarray] = {}
     for vname in STACK_VARS:
         if vname not in ds.data_vars:
             result[vname] = np.full(n, np.nan)
@@ -328,11 +330,11 @@ def _nearest_subsample(
 def _linear_interp(
     ds: xr.Dataset,
     common_time: np.ndarray,
-) -> Dict[str, np.ndarray]:
+) -> dict[str, np.ndarray]:
     """Linearly interpolate all stack variables onto common_time; NaN outside data range."""
     src_t = _times_to_float(ds["time"].values)
     tgt_t = _times_to_float(common_time)
-    result: Dict[str, np.ndarray] = {}
+    result: dict[str, np.ndarray] = {}
     for vname in STACK_VARS:
         if vname not in ds.data_vars:
             result[vname] = np.full(len(common_time), np.nan)

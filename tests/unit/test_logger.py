@@ -18,7 +18,7 @@ def test_setup_logger_creates_file_and_logs(tmp_path):
     log_file = next(logs_dir.glob("TESTLOG_*_read.log"), None)
     assert log_file is not None, "No log file matching pattern TESTLOG_*_read.log found"
 
-    with open(log_file) as f:
+    with log_file.open() as f:
         contents = f.read()
         assert "This is an info message" in contents
 
@@ -48,7 +48,7 @@ def test_log_warning_creates_entry(tmp_path):
         "No log file matching pattern TESTWARN_*_read.log found"
     )
 
-    with open(log_file) as f:
+    with log_file.open() as f:
         contents = f.read()
         assert "This is a warning!" in contents
 

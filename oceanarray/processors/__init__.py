@@ -17,10 +17,11 @@ Example usage::
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from os import PathLike
 from pathlib import Path
-from typing import Any, Callable, Literal, Optional
+from typing import Any, Literal
 
 __all__ = [
     "Stage",
@@ -57,7 +58,7 @@ class Stage:
     """
 
     name: str
-    number: Optional[int]
+    number: int | None
     scope: Scope
     run: Callable[..., bool]
 
@@ -72,9 +73,9 @@ def _run_stage1(
     mooring: str,
     proc_dir: Path,
     *,
-    raw_dir: Optional[Path] = None,
+    raw_dir: Path | None = None,
     force: bool = False,
-    serials: Optional[list[str]] = None,
+    serials: list[str] | None = None,
     **_kw: Any,
 ) -> bool:
     """Run stage 1 (raw → CF-NetCDF) for *mooring*.
@@ -94,7 +95,7 @@ def _run_stage1(
 
     """
     if raw_dir is None:
-        raise ValueError("stage1 requires raw_dir")  # noqa: TRY003
+        raise ValueError("stage1 requires raw_dir")
     from oceanarray.processors.stage1 import MooringProcessor
 
     proc = MooringProcessor(raw_dir=str(raw_dir), proc_dir=str(proc_dir))
@@ -106,7 +107,7 @@ def _run_stage2(
     proc_dir: Path,
     *,
     force: bool = False,
-    serials: Optional[list[str]] = None,
+    serials: list[str] | None = None,
     **_kw: Any,
 ) -> bool:
     """Run stage 2 (deployment trim + clock-drift correction) for *mooring*.
@@ -137,7 +138,7 @@ def _run_stage3(
     proc_dir: Path,
     *,
     force: bool = False,
-    serials: Optional[list[str]] = None,
+    serials: list[str] | None = None,
     dry_run: bool = False,
     **_kw: Any,
 ) -> bool:
@@ -286,10 +287,10 @@ def resolve_stage(stage: int | str) -> Stage:
 
 def process(
     mooring: str,
-    stage: "int | str | list[int | str] | None" = None,
+    stage: int | str | list[int | str] | None = None,
     *,
     proc_dir: PathLike,
-    raw_dir: Optional[PathLike] = None,
+    raw_dir: PathLike | None = None,
     force: bool = False,
     **kw: Any,
 ) -> bool:

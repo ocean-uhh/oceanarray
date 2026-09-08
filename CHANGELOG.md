@@ -8,17 +8,31 @@ All notable changes to oceanarray are documented here.
 
 ### Added
 
-- **`oceanarray run` report redirection**: `run` now accepts `-o/--output-dir`, `--report-dir`, and `--sig-level` and threads them through to the report step, so the full pipeline can write a portable central report tree with custom grid isopycnal targets in one command.
+- **caldip calibration-dip stub** ([#92](https://github.com/ocean-uhh/oceanarray/pull/92)): `processors/caldip.py` carries the shared contract (constants, `normalize_serial`, `Offsets`) and a five-function interface for the planned front-of-Stage-3 correction. Stage 3 gains a `caldip_dir` argument that is a null action — it logs a warning and stamps a `caldip_applied` provenance attribute — until the correction lands.
+- **PDF reports**: `report --pdf` renders a merged A4 PDF per mooring ([#69](https://github.com/ocean-uhh/oceanarray/pull/69)); `report --pdf-dir DIR` collects each mooring's PDF into one directory ([#90](https://github.com/ocean-uhh/oceanarray/pull/90)), which also sped up PDF rendering (~50 s → ~6 s).
+- **Manifest-driven report system**: a section-manifest model and resolver ([#78](https://github.com/ocean-uhh/oceanarray/pull/78)) now drive the grid ([#79](https://github.com/ocean-uhh/oceanarray/pull/79)) and stack / instrument / mooring ([#80](https://github.com/ocean-uhh/oceanarray/pull/80)) report pages — per-page registries, automatic panel numbering, generated jump-nav, and defect-visible stubs.
+- **`oceanarray run` report redirection** ([#88](https://github.com/ocean-uhh/oceanarray/pull/88)): `run` accepts `-o/--output-dir`, `--report-dir`, and `--sig-level`, threaded through to the report step, so the full pipeline can write a portable central report tree with custom grid isopycnal targets in one command.
+- **Zenodo DOI** ([#68](https://github.com/ocean-uhh/oceanarray/pull/68)): concept-DOI badge in the README and `CITATION.cff`.
+- A hosted, clickable dune2 example report suite in the docs ([#82](https://github.com/ocean-uhh/oceanarray/pull/82)).
 
-### Breaking changes
+### Changed
 
-- **`oceanarray stack` / `oceanarray grid` removed**: the standalone subcommands (deprecated since 0.2.0) are deleted. Use `oceanarray process MOORING --stage stack grid` instead — all flags (`--dt`, `--dp`, `--pmin`, `--pmax`, `--force`, `--proc-dir`) carry over. The `stack`/`grid` steps remain available as `--stage` tokens.
-- **`oceanarray logsheet` removed**: the disabled subcommand is deleted. `oceanarray logsheet` now returns an argparse "invalid choice" error instead of a `DeprecationWarning`. Use the standalone [`logsheet`](https://github.com/eleanorfrajka/logsheet) package.
-- **`oceanarray.cli.cmd_stub` renamed to `cmd_init`**; `cmd_stack`, `cmd_grid`, `cmd_logsheet` deleted. Only affects code importing these functions directly; the `oceanarray init` CLI command is unchanged.
+- **Report subsystem refactor**: vendored the shared design tokens, encoder, and CSS ([#71](https://github.com/ocean-uhh/oceanarray/pull/71)); added a golden-file regression net ([#72](https://github.com/ocean-uhh/oceanarray/pull/72)); renamed `report/` → `reports/` ([#73](https://github.com/ocean-uhh/oceanarray/pull/73)); reworked page templates ([#74](https://github.com/ocean-uhh/oceanarray/pull/74)); encoder / figure sizing ([#75](https://github.com/ocean-uhh/oceanarray/pull/75)); uniform layout fixes ([#76](https://github.com/ocean-uhh/oceanarray/pull/76), [#77](https://github.com/ocean-uhh/oceanarray/pull/77)); plot polish — colorbar ticks, cyclic current direction, T-S bounds, tilt panels ([#83](https://github.com/ocean-uhh/oceanarray/pull/83)); layout polish — shared title helper, trajectory y-labels, clock legend, rose whitespace ([#84](https://github.com/ocean-uhh/oceanarray/pull/84)); smaller files, updated fonts, and multi-panel pagination ([#70](https://github.com/ocean-uhh/oceanarray/pull/70)).
+- **Packaging**: consolidated configuration into `pyproject.toml`, expanded the CI test matrix, and added a ruff lint gate ([#86](https://github.com/ocean-uhh/oceanarray/pull/86)); moved the dev install to pyproject extras ([#85](https://github.com/ocean-uhh/oceanarray/pull/85)); dropped the unused direct `dolfyn` dependency ([#81](https://github.com/ocean-uhh/oceanarray/pull/81)).
+- **Docs**: PyPI-first install instructions ([#81](https://github.com/ocean-uhh/oceanarray/pull/81)); caldip documented as the planned optional front-of-Stage-3 correction ([#91](https://github.com/ocean-uhh/oceanarray/pull/91)).
 
 ### Fixed
 
-- **`--help` crash on Python 3.11**: `process`/`report`/`run` `--help` raised an argparse usage-formatting `AssertionError` on 3.11 (a single-member `mutually_exclusive_group` around the suppressed `--basedir` flag). The group is removed; `--help` works on 3.11 and 3.12.
+- Cross-page links now resolve in the merged PDF — the document is built once and rendered once, with per-page anchor-id namespacing ([#89](https://github.com/ocean-uhh/oceanarray/pull/89)).
+- Conservative QC-flag resampling fix, with unit tests added for the pressure, helpers, and qc paths ([#87](https://github.com/ocean-uhh/oceanarray/pull/87)).
+- `process` / `report` / `run` `--help` no longer crash on Python 3.11 — an argparse usage-formatting `AssertionError` from a single-member mutually-exclusive group around the suppressed `--basedir` flag; the group is removed ([#88](https://github.com/ocean-uhh/oceanarray/pull/88)).
+
+### Breaking changes
+
+- **`oceanarray stack` / `oceanarray grid` removed** ([#88](https://github.com/ocean-uhh/oceanarray/pull/88)): the standalone subcommands (deprecated since 0.2.0) are deleted. Use `oceanarray process MOORING --stage stack grid` — all flags (`--dt`, `--dp`, `--pmin`, `--pmax`, `--force`, `--proc-dir`) carry over; `stack`/`grid` remain available as `--stage` tokens.
+- **`oceanarray logsheet` removed** ([#88](https://github.com/ocean-uhh/oceanarray/pull/88)): the disabled subcommand is deleted (now an argparse "invalid choice" error, not a `DeprecationWarning`). Use the standalone [`logsheet`](https://github.com/eleanorfrajka/logsheet) package.
+- **Python 3.9 dropped** ([#85](https://github.com/ocean-uhh/oceanarray/pull/85)): the minimum supported version is now 3.10.
+- Internal: `oceanarray.cli.cmd_stub` renamed to `cmd_init`; `cmd_stack`, `cmd_grid`, `cmd_logsheet` deleted. Affects only code importing these functions directly; the `oceanarray init` command is unchanged.
 
 ---
 

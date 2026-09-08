@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import socket
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
-
+from typing import Any
 
 from ._env import render_history, render_template
 from ._html_helpers import (
@@ -25,20 +25,19 @@ from ._html_helpers import (
 )
 from ._manifest import Panel, PanelGroup, Profile, Section, resolve
 from ._plots import (
-    _make_instrument_fig,
-    _make_windows_fig,
-    _make_ts_diagram,
-    _make_instrument_rose_b64,
+    _make_adcp_hodograph_b64,
+    _make_adcp_rose_b64,
+    _make_adcp_velocity_b64,
+    _make_analog_timeseries,
     _make_data_histogram,
     _make_hodograph_b64,
+    _make_instrument_fig,
+    _make_instrument_rose_b64,
     _make_speed_boxplot,
     _make_temperature_trajectory,
-    _make_analog_timeseries,
-    _make_adcp_velocity_b64,
-    _make_adcp_rose_b64,
-    _make_adcp_hodograph_b64,
+    _make_ts_diagram,
+    _make_windows_fig,
 )
-
 
 # ---------------------------------------------------------------------------
 # Per-instrument HTML template
@@ -103,12 +102,12 @@ INSTRUMENT_CAPTIONS: dict[str, str] = {
 }
 
 
-def _has_fig(key: str) -> "Callable":
+def _has_fig(key: str) -> Callable:
     """Return an applies_to/`unavailable`-style predicate: figure *key* is present."""
     return lambda c: bool(c.get(key))
 
 
-def _fig_panel(pid: str, fig_key: str, slot: "str | None" = None) -> Panel:
+def _fig_panel(pid: str, fig_key: str, slot: str | None = None) -> Panel:
     """Build a bare-``.fig`` instrument figure panel that reads *fig_key* from ctx."""
     return Panel(
         pid,
@@ -124,13 +123,13 @@ def _img_panel(pid: str, b64: str) -> Panel:
     return Panel(pid, render=lambda _c, _b=b64: _b, slot=None)
 
 
-def _instrument_history_unavailable(c: "dict") -> "str | None":
+def _instrument_history_unavailable(c: dict) -> str | None:
     """Reason the history panel cannot render, or None."""
     return None if c.get("history_entries") else "No history attribute found."
 
 
 def _empty_note(pid: str, reason: str, when_empty: Callable) -> Panel:
-    """A panel that shows *reason* as a stub only when *when_empty(ctx)* is True.
+    """Build a panel that shows *reason* as a stub only when *when_empty(ctx)* is True.
 
     Used so a PanelGroup section (paginated time-series, start/end windows) keeps
     its specific "nothing to show" message — e.g. "No plottable variables found."
@@ -345,13 +344,13 @@ INSTRUMENT_DEFAULT = Profile(
 
 def generate_instrument_pages(
     mooring_name: str,
-    instruments: List[Dict[str, Any]],
-    cfg: Dict[str, Any],
+    instruments: list[dict[str, Any]],
+    cfg: dict[str, Any],
     proc_dir: Path,
     out_dir: Path,
     force: bool,
-    serials: Optional[List[str]] = None,
-    raw_dir: Optional[Path] = None,
+    serials: list[str] | None = None,
+    raw_dir: Path | None = None,
     skip_existing: bool = False,
 ) -> None:
     """Generate one HTML quality-control report page per instrument.
@@ -457,9 +456,9 @@ def generate_instrument_pages(
         median_dt = f"{dt_s:.0f} s" if dt_s and dt_s == dt_s else "—"
         duration = _duration_str(_parse_dt(t_start), _parse_dt(t_end))
 
-        history_entries: List[Dict[str, str]] = []
-        _sugg_deploy_utc: Optional[str] = None
-        _sugg_recover_utc: Optional[str] = None
+        history_entries: list[dict[str, str]] = []
+        _sugg_deploy_utc: str | None = None
+        _sugg_recover_utc: str | None = None
         if best_nc:
             try:
                 import xarray as xr
@@ -481,7 +480,7 @@ def generate_instrument_pages(
             _yaml_deploy_str = _yaml_deploy_str.isoformat()
         if hasattr(_yaml_recover_str, "isoformat"):
             _yaml_recover_str = _yaml_recover_str.isoformat()
-        _window_vlines: List[tuple] = []
+        _window_vlines: list[tuple] = []
         if _sugg_deploy_utc:
             _window_vlines.append((_sugg_deploy_utc, "#e67e22", "Suggested"))
         if _sugg_recover_utc:
@@ -612,7 +611,7 @@ def generate_instrument_pages(
             for e in cfg.get("inline", [])
             if isinstance(e, dict) and "instrument" in e
         ]
-        _yaml_entry: Dict[str, Any] = next(
+        _yaml_entry: dict[str, Any] = next(
             (
                 e
                 for e in _instr_entries
@@ -624,7 +623,7 @@ def generate_instrument_pages(
         # Build per-channel YAML-source info for display in the template.
         # Variable name in NC is always "analog_input_{n}" (seasenselib native).
         # YAML key matches: analog_input_{n}, analog_input_{n}_units, etc.
-        analog_yaml_info: List[Dict[str, str]] = []
+        analog_yaml_info: list[dict[str, str]] = []
         for _av in analog_vars:
             _n = _av.replace("analog_input_", "").replace("analog_", "")
             _yaml_key = f"analog_input_{_n}"

@@ -9,10 +9,10 @@ Pairs with :mod:`oceanarray.plotters.hydrography` for figure output.
 
 from __future__ import annotations
 
+import gsw
 import numpy as np
 import pandas as pd
 import xarray as xr
-import gsw
 
 
 def calc_psal(ds: xr.Dataset) -> xr.Dataset:
@@ -113,7 +113,7 @@ def find_cold_entry_exit(
 def calc_ds_difference(ds1: xr.Dataset, ds2: xr.Dataset) -> xr.Dataset:
     """Compute the variable-by-variable difference between two time-matched datasets."""
     if not np.array_equal(ds1["TIME"].values, ds2["TIME"].values):
-        raise ValueError("TIME grids do not match between datasets.")  # noqa: TRY003
+        raise ValueError("TIME grids do not match between datasets.")
 
     # Variables to exclude from differencing
     exclude_vars = {"YY", "MM", "DD", "HH"}
@@ -263,11 +263,11 @@ def isopycnal_dataset(
 
     """
     if sigma_var not in ds:
-        raise ValueError(f"sigma variable '{sigma_var}' not found in dataset")  # noqa: TRY003
+        raise ValueError(f"sigma variable '{sigma_var}' not found in dataset")
 
     da = ds[sigma_var]
     if "time" not in da.dims or "pressure" not in da.dims:
-        raise ValueError(  # noqa: TRY003
+        raise ValueError(
             f"'{sigma_var}' must have both 'time' and 'pressure' dimensions"
         )
     da_tp = da.transpose("time", "pressure")

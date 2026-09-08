@@ -107,7 +107,7 @@ class TestTimeGriddingProcessor:
         start_time = "2018-08-12T08:00:00"
         end_time = "2018-08-12T12:00:00"
 
-        datasets = [
+        return [
             create_mock_instrument_dataset(
                 start_time, end_time, 10, "microcat", 7518, 100
             ),
@@ -116,8 +116,6 @@ class TestTimeGriddingProcessor:
             ),
             create_mock_instrument_dataset(start_time, end_time, 1, "adcp", 1234, 300),
         ]
-
-        return datasets
 
     def test_init(self, temp_dir):
         """Test TimeGriddingProcessor initialization."""

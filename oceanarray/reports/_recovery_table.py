@@ -13,7 +13,7 @@ Entry point: :func:`generate_recovery_table`.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import yaml
 
@@ -25,12 +25,11 @@ from ._html_helpers import (
     _status,
 )
 
-
 # ---------------------------------------------------------------------------
 # Instrument type → parameter abbreviations
 # ---------------------------------------------------------------------------
 
-_TYPE_PARAMS: Dict[str, str] = {
+_TYPE_PARAMS: dict[str, str] = {
     "microcat": "T, C, P",
     "aquadopp": "U, V, W, T, P",
     "rbrsolo": "T",
@@ -49,7 +48,7 @@ _NON_LOGGING = {"beacon", "release", "float", "swivel", "shackle"}
 # ---------------------------------------------------------------------------
 
 
-def _fmt_drift(offset_s: Optional[float]) -> str:
+def _fmt_drift(offset_s: float | None) -> str:
     """Format a clock offset in seconds as ±HH:MM:SS."""
     if offset_s is None or offset_s == 0:
         return "+00:00:00"
@@ -139,7 +138,7 @@ def _interval_s(seconds: Any) -> str:
 def _build_rows(
     proc_dir: Path,
     mooring_name: str,
-    cfg: Dict[str, Any],
+    cfg: dict[str, Any],
 ) -> tuple:
     """Build table rows and notes list from a mooring YAML config.
 
@@ -265,10 +264,10 @@ def _build_rows(
 def generate_recovery_table(
     mooring_name: str,
     proc_dir: Path,
-    yaml_path: Optional[Path] = None,
-    out_path: Optional[Path] = None,
+    yaml_path: Path | None = None,
+    out_path: Path | None = None,
     force: bool = False,
-) -> Optional[Path]:
+) -> Path | None:
     """Generate a standalone HTML cruise-report recovery table.
 
     Parameters
@@ -313,7 +312,7 @@ def generate_recovery_table(
         print(f"ERROR: YAML not found: {yaml_path}")
         return None
 
-    with open(yaml_path) as fh:
+    with yaml_path.open() as fh:
         cfg = yaml.safe_load(fh) or {}
 
     deploy_dt = _parse_dt(cfg.get("deployment_time"))

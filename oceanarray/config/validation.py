@@ -72,18 +72,17 @@ records what was applied and when.
 
 import re
 from pathlib import Path
-from typing import Dict, List, NamedTuple
+from typing import NamedTuple
 
 import yaml
 
 from oceanarray import parameters as params
 
-
 # Instrument-type validity is single-sourced from ``parameters.KNOWN_INSTRUMENT_TYPES``
 # (derived from ``INSTRUMENT_FILE_TYPES``).  This keeps ``oceanarray list`` and
 # ``oceanarray validate`` in agreement; add new instrument types there, not here.
 
-KNOWN_ALIASES: Dict[str, str] = {
+KNOWN_ALIASES: dict[str, str] = {
     "sbe37": "microcat",
     "nortek": "aquadopp",
 }
@@ -93,7 +92,7 @@ KNOWN_ALIASES: Dict[str, str] = {
 # file types there, not here — this keeps ``validate`` and stage1 in agreement.
 VALID_FILE_TYPES = params.ALL_FILE_TYPES
 
-UNSUPPORTED_FILE_TYPES: Dict[str, str] = {}
+UNSUPPORTED_FILE_TYPES: dict[str, str] = {}
 
 REQUIRED_MOORING_KEYS = ["name", "waterdepth", "deployment_time", "recovery_time"]
 
@@ -105,7 +104,7 @@ class ValidationIssue(NamedTuple):
     message: str
 
 
-def validate_mooring_yaml(yaml_path: str) -> List[ValidationIssue]:
+def validate_mooring_yaml(yaml_path: str) -> list[ValidationIssue]:
     """Validate a mooring YAML configuration file.
 
     Checks:
@@ -118,14 +117,14 @@ def validate_mooring_yaml(yaml_path: str) -> List[ValidationIssue]:
     Returns a list of :class:`ValidationIssue` named-tuples. An empty list
     means the file passed all checks.
     """
-    issues: List[ValidationIssue] = []
+    issues: list[ValidationIssue] = []
     path = Path(yaml_path)
 
     if not path.exists():
         return [ValidationIssue("ERROR", f"File not found: {yaml_path}")]
 
     try:
-        with open(path) as f:
+        with path.open() as f:
             data = yaml.safe_load(f)
     except yaml.YAMLError as e:
         return [ValidationIssue("ERROR", f"YAML parse error: {e}")]
@@ -184,18 +183,19 @@ def validate_mooring_yaml(yaml_path: str) -> List[ValidationIssue]:
         # Fragile serial parsing for inline instruments with compound serials.
         # extract_inline_instruments splits on the first comma and uses the first
         # token as the instrument serial.  Warn so operators can verify the ordering.
-        if entry.get("source") == "inline" or entry in inline_instruments:
-            if "," in serial_str:
-                parts = [p.strip() for p in serial_str.split(",")]
-                issues.append(
-                    ValidationIssue(
-                        "WARNING",
-                        f"{prefix} inline serial='{serial_str}' contains a comma — "
-                        f"the first token '{parts[0]}' will be used as the instrument serial "
-                        f"and '{', '.join(parts[1:])}' stored as beacon_id.  "
-                        f"Confirm the instrument serial comes first.",
-                    )
+        if (
+            entry.get("source") == "inline" or entry in inline_instruments
+        ) and "," in serial_str:
+            parts = [p.strip() for p in serial_str.split(",")]
+            issues.append(
+                ValidationIssue(
+                    "WARNING",
+                    f"{prefix} inline serial='{serial_str}' contains a comma — "
+                    f"the first token '{parts[0]}' will be used as the instrument serial "
+                    f"and '{', '.join(parts[1:])}' stored as beacon_id.  "
+                    f"Confirm the instrument serial comes first.",
                 )
+            )
 
         if instrument is None:
             issues.append(

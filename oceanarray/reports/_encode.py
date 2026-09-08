@@ -122,7 +122,7 @@ def render_b64(
             if not _manages_own_layout(fig):
                 fig.tight_layout()
             return _fig_to_base64(fig)
-    except Exception:  # noqa: BLE001
+    except Exception:
         if _tok.RAISE_ON_PLOT_ERROR:
             raise
         warnings.warn(

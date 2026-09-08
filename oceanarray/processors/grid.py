@@ -1,11 +1,13 @@
 """MooringGridder and TimeGriddingProcessor: grid mooring data onto regular time/depth axes."""
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
+
 import numpy as np
 import xarray as xr
 import yaml
 from seasenselib.writers import NetCdfWriter
+
 from oceanarray import paths
 from oceanarray.utilities import _status, cast_output_dtypes
 
@@ -155,7 +157,7 @@ class MooringGridder:
                 f"(listed in _GRID_EXCLUDE): {', '.join(_excluded)}"
             )
 
-        stacked: Dict[str, np.ndarray] = {
+        stacked: dict[str, np.ndarray] = {
             v: np.full((n_p, n_time), np.nan) for v in grid_vars
         }
         var_data = {v: ds[v].values.astype(np.float64) for v in grid_vars}
@@ -224,7 +226,7 @@ class MooringGridder:
                 )
 
         # Build output dataset; skip variables that are entirely NaN
-        data_vars: Dict = {}
+        data_vars: dict = {}
         for vname in grid_vars:
             if not np.all(np.isnan(stacked[vname])):
                 a = dict(ds[vname].attrs)
@@ -308,20 +310,20 @@ class TimeGriddingProcessor:
         """Print to both console and log file."""
         print(*args, **kwargs)
         if self.log_file:
-            with open(self.log_file, "a") as f:
+            with self.log_file.open("a") as f:
                 print(*args, **kwargs, file=f)
 
-    def _load_mooring_config(self, config_path: Path) -> Dict[str, Any]:
+    def _load_mooring_config(self, config_path: Path) -> dict[str, Any]:
         """Load mooring configuration from YAML file."""
-        with open(config_path, "r") as f:
+        with config_path.open() as f:
             return yaml.safe_load(f)
 
     def _load_instrument_datasets(
         self,
-        mooring_config: Dict[str, Any],
+        mooring_config: dict[str, Any],
         proc_dir: Path,
         file_suffix: str = "_stage2",
-    ) -> List[xr.Dataset]:
+    ) -> list[xr.Dataset]:
         """Load all instrument datasets for a mooring."""
         datasets = []
         mooring_name = mooring_config["name"]
@@ -382,7 +384,7 @@ class TimeGriddingProcessor:
         return datasets
 
     def _ensure_instrument_metadata(
-        self, dataset: xr.Dataset, instrument_config: Dict[str, Any]
+        self, dataset: xr.Dataset, instrument_config: dict[str, Any]
     ) -> xr.Dataset:
         """Ensure all required metadata is present in dataset."""
         # Add missing metadata from config
@@ -415,8 +417,8 @@ class TimeGriddingProcessor:
     def _apply_time_filtering_single(
         self,
         dataset: xr.Dataset,
-        filter_type: Optional[str] = None,
-        filter_params: Optional[Dict[str, Any]] = None,
+        filter_type: str | None = None,
+        filter_params: dict[str, Any] | None = None,
     ) -> xr.Dataset:
         """Apply time-domain filtering to a single instrument dataset.
 
@@ -428,7 +430,8 @@ class TimeGriddingProcessor:
             filter_type: Type of filtering ('lowpass', 'bandpass', 'detide', etc.)
             filter_params: Filter parameters (cutoff frequencies, order, etc.)
 
-        Returns:
+        Returns
+        -------
             Filtered dataset on the same time grid
 
         """
@@ -451,18 +454,15 @@ class TimeGriddingProcessor:
 
         if filter_type.lower() == "lowpass":
             return self._apply_lowpass_filter(dataset, filter_params)
-        elif filter_type.lower() == "detide":
+        if filter_type.lower() == "detide":
             return self._apply_detiding_filter(dataset, filter_params)
-        elif filter_type.lower() == "bandpass":
+        if filter_type.lower() == "bandpass":
             return self._apply_bandpass_filter(dataset, filter_params)
-        else:
-            self._log_print(
-                f"    WARNING: Unknown filter type '{filter_type}', skipping"
-            )
-            return dataset
+        self._log_print(f"    WARNING: Unknown filter type '{filter_type}', skipping")
+        return dataset
 
     def _apply_lowpass_filter(
-        self, dataset: xr.Dataset, filter_params: Optional[Dict[str, Any]] = None
+        self, dataset: xr.Dataset, filter_params: dict[str, Any] | None = None
     ) -> xr.Dataset:
         """Apply low-pass Butterworth filter (e.g., for de-tiding).
 
@@ -609,7 +609,7 @@ class TimeGriddingProcessor:
         return filtered_data
 
     def _apply_detiding_filter(
-        self, dataset: xr.Dataset, filter_params: Optional[Dict[str, Any]] = None
+        self, dataset: xr.Dataset, filter_params: dict[str, Any] | None = None
     ) -> xr.Dataset:
         """Apply harmonic analysis for tidal removal (future implementation)."""
         self._log_print("    WARNING: Harmonic de-tiding not yet implemented")
@@ -621,15 +621,15 @@ class TimeGriddingProcessor:
     def _apply_bandpass_filter(
         self,
         dataset: xr.Dataset,
-        filter_params: Optional[Dict[str, Any]] = None,  # noqa: ARG002
+        filter_params: dict[str, Any] | None = None,  # noqa: ARG002
     ) -> xr.Dataset:
         """Apply band-pass filter (future implementation)."""
         self._log_print("    WARNING: Band-pass filtering not yet implemented")
         return dataset
 
     def _analyze_timing_info(
-        self, datasets: List[xr.Dataset]
-    ) -> Tuple[np.ndarray, np.datetime64, np.datetime64]:
+        self, datasets: list[xr.Dataset]
+    ) -> tuple[np.ndarray, np.datetime64, np.datetime64]:
         """Analyze timing information across all datasets."""
         intervals_min = []
         start_times = []
@@ -697,7 +697,7 @@ class TimeGriddingProcessor:
             end_times.append(end_time)
 
         if not start_times:
-            raise ValueError("No valid datasets with time information found")  # noqa: TRY003
+            raise ValueError("No valid datasets with time information found")
 
         earliest_start = min(start_times)
         latest_end = max(end_times)
@@ -765,8 +765,8 @@ class TimeGriddingProcessor:
         return time_grid, earliest_start, latest_end
 
     def _interpolate_datasets(
-        self, datasets: List[xr.Dataset], time_grid: np.ndarray
-    ) -> List[xr.Dataset]:
+        self, datasets: list[xr.Dataset], time_grid: np.ndarray
+    ) -> list[xr.Dataset]:
         """Interpolate all datasets onto common time grid."""
         datasets_interp = []
 
@@ -807,28 +807,22 @@ class TimeGriddingProcessor:
         return datasets_interp
 
     def _merge_global_attrs(
-        self, ds_list: List[xr.Dataset], order: str = "last"
-    ) -> Dict[str, Any]:
+        self, ds_list: list[xr.Dataset], order: str = "last"
+    ) -> dict[str, Any]:
         """Union of all global attrs across datasets."""
         merged = {}
-        if order == "last":
-            it = ds_list
-        else:  # 'first'
-            it = reversed(ds_list)
+        it = ds_list if order == "last" else reversed(ds_list)  # 'first'
         for ds in it:
             if hasattr(ds, "attrs") and ds.attrs:
                 merged.update(dict(ds.attrs))
         return merged
 
     def _merge_var_attrs(
-        self, varname: str, ds_list: List[xr.Dataset], order: str = "last"
-    ) -> Dict[str, Any]:
+        self, varname: str, ds_list: list[xr.Dataset], order: str = "last"
+    ) -> dict[str, Any]:
         """Union of attrs for a given variable across datasets."""
         merged = {}
-        if order == "last":
-            it = ds_list
-        else:
-            it = reversed(ds_list)
+        it = ds_list if order == "last" else reversed(ds_list)
         for ds in it:
             if varname in ds and getattr(ds[varname], "attrs", None):
                 merged.update(dict(ds[varname].attrs))
@@ -836,9 +830,9 @@ class TimeGriddingProcessor:
 
     def _create_combined_dataset(
         self,
-        datasets_interp: List[xr.Dataset],
+        datasets_interp: list[xr.Dataset],
         time_grid: np.ndarray,  # noqa: ARG002  — reserved for future use (currently inferred from datasets_interp)
-        vars_to_keep: List[str] = None,
+        vars_to_keep: list[str] = None,
     ) -> xr.Dataset:
         """Combine interpolated datasets into single dataset with N_LEVELS dimension."""
         if vars_to_keep is None:
@@ -852,7 +846,7 @@ class TimeGriddingProcessor:
             ]
 
         if not datasets_interp:
-            raise ValueError("No interpolated datasets provided")  # noqa: TRY003
+            raise ValueError("No interpolated datasets provided")
 
         time_coord = datasets_interp[0]["time"]
         n_levels = len(datasets_interp)
@@ -966,11 +960,9 @@ class TimeGriddingProcessor:
         ds.attrs["instrument_names"] = ", ".join(uniq)
 
         # Drop the string variable
-        ds = ds.drop_vars(var_name)
+        return ds.drop_vars(var_name)
 
-        return ds
-
-    def _get_netcdf_writer_params(self) -> Dict[str, Any]:
+    def _get_netcdf_writer_params(self) -> dict[str, Any]:
         """Get standard parameters for NetCDF writer."""
         return {
             "optimize": True,
@@ -1003,11 +995,11 @@ class TimeGriddingProcessor:
     def process_mooring(
         self,
         mooring_name: str,
-        output_path: Optional[str] = None,
+        output_path: str | None = None,
         file_suffix: str = "_stage2",
-        vars_to_keep: List[str] = None,
-        filter_type: Optional[str] = None,
-        filter_params: Optional[Dict[str, Any]] = None,
+        vars_to_keep: list[str] = None,
+        filter_type: str | None = None,
+        filter_params: dict[str, Any] | None = None,
     ) -> bool:
         """Process Step 1 for a single mooring: time gridding and optional filtering.
 
@@ -1019,7 +1011,8 @@ class TimeGriddingProcessor:
             filter_type: Type of time filtering to apply ('lowpass', 'detide', 'bandpass')
             filter_params: Parameters for filtering
 
-        Returns:
+        Returns
+        -------
             bool: True if processing completed successfully
 
         """
@@ -1126,10 +1119,10 @@ class TimeGriddingProcessor:
 def time_gridding_mooring(
     mooring_name: str,
     proc_dir: str,
-    output_path: Optional[str] = None,
+    output_path: str | None = None,
     file_suffix: str = "_stage2",
-    filter_type: Optional[str] = None,
-    filter_params: Optional[Dict[str, Any]] = None,
+    filter_type: str | None = None,
+    filter_params: dict[str, Any] | None = None,
 ) -> bool:
     """Process Step 1 for a single mooring (convenience function).
 
@@ -1141,7 +1134,8 @@ def time_gridding_mooring(
         filter_type: Optional time filtering to apply ('lowpass', 'detide', 'bandpass')
         filter_params: Optional parameters for filtering
 
-    Returns:
+    Returns
+    -------
         bool: True if processing completed successfully
 
     """
@@ -1156,12 +1150,12 @@ def time_gridding_mooring(
 
 
 def process_multiple_moorings_time_gridding(
-    mooring_list: List[str],
+    mooring_list: list[str],
     proc_dir: str,
     file_suffix: str = "_stage2",
-    filter_type: Optional[str] = None,
-    filter_params: Optional[Dict[str, Any]] = None,
-) -> Dict[str, bool]:
+    filter_type: str | None = None,
+    filter_params: dict[str, Any] | None = None,
+) -> dict[str, bool]:
     """Process Step 1 for multiple moorings.
 
     Args:
@@ -1171,7 +1165,8 @@ def process_multiple_moorings_time_gridding(
         filter_type: Optional time filtering to apply ('lowpass', 'detide', 'bandpass')
         filter_params: Optional parameters for filtering
 
-    Returns:
+    Returns
+    -------
         Dict mapping mooring names to success status
 
     """

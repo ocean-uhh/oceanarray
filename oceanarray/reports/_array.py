@@ -11,12 +11,13 @@ from __future__ import annotations
 
 import warnings
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-
-import yaml
+from typing import Any
 
 import numpy as np
+import yaml
 
+from ..config import report_tokens
+from ..plotters.helpers import grid_despine
 from ._env import render_template
 from ._html_helpers import (
     _duration_str,
@@ -27,16 +28,13 @@ from ._html_helpers import (
     _status,
 )
 from ._plots import render_b64
-from ..plotters.helpers import grid_despine
-from ..config import report_tokens
-
 
 # ---------------------------------------------------------------------------
 # Lat/lon parsing
 # ---------------------------------------------------------------------------
 
 
-def _parse_decdeg(val: Any) -> Optional[float]:
+def _parse_decdeg(val: Any) -> float | None:
     """Parse a latitude or longitude value to decimal degrees.
 
     Handles:
@@ -78,7 +76,7 @@ def _parse_decdeg(val: Any) -> Optional[float]:
 # ---------------------------------------------------------------------------
 
 
-def _lat_lon_from_cfg(cfg: Dict[str, Any]) -> tuple:
+def _lat_lon_from_cfg(cfg: dict[str, Any]) -> tuple:
     """Return (lat_dd, lon_dd) decimal degrees from a mooring YAML dict."""
     lat_raw = (
         cfg.get("seabed_latitude")
@@ -95,7 +93,7 @@ def _lat_lon_from_cfg(cfg: Dict[str, Any]) -> tuple:
     return _parse_decdeg(lat_raw), _parse_decdeg(lon_raw)
 
 
-def _count_instruments(cfg: Dict[str, Any]) -> int:
+def _count_instruments(cfg: dict[str, Any]) -> int:
     """Count instruments in a mooring YAML (clamp or instruments key)."""
     entries = cfg.get("clamp") or cfg.get("instruments") or []
     return sum(1 for e in entries if isinstance(e, dict) and not e.get("skip"))
@@ -107,12 +105,12 @@ def _count_instruments(cfg: Dict[str, Any]) -> int:
 
 
 def _make_array_map_b64(
-    rows: List[Dict[str, Any]],
+    rows: list[dict[str, Any]],
     array_name: str,
-) -> Optional[str]:
+) -> str | None:
     """Return a base64-encoded PNG of mooring positions, or None on failure."""
-    import matplotlib.pyplot as plt
     import matplotlib.colors as _mcolors
+    import matplotlib.pyplot as plt
 
     lats = [r["lat"] for r in rows if r["lat"] is not None]
     if len(lats) < 1:
@@ -121,7 +119,7 @@ def _make_array_map_b64(
     mean_lat_rad = float(__import__("math").radians(sum(lats) / len(lats)))
     aspect = 1.0 / __import__("math").cos(mean_lat_rad)
 
-    def _draw() -> "plt.Figure":
+    def _draw() -> plt.Figure:
         _tab20 = plt.get_cmap("tab20")
         fig, ax = plt.subplots(figsize=(6, 5))
         ax.set_aspect(aspect)
@@ -168,9 +166,9 @@ _TYPE_ORDER = [
 def _collect_mooring_instruments(
     proc_dir: Path,
     mooring_id: str,
-    mcfg: Dict[str, Any],
+    mcfg: dict[str, Any],
     recover_dt: Any,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Return a lightweight instrument status list for array-level tables.
 
     Parameters
@@ -255,8 +253,8 @@ def _collect_mooring_instruments(
 
 
 def _build_type_summary(
-    mooring_instruments: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
+    mooring_instruments: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     """Aggregate per-instrument records into a per-type summary table.
 
     Parameters
@@ -268,7 +266,7 @@ def _build_type_summary(
     """
     from collections import defaultdict
 
-    counts: Dict[str, Dict[str, int]] = defaultdict(
+    counts: dict[str, dict[str, int]] = defaultdict(
         lambda: {"deployed": 0, "complete": 0, "skipped": 0, "stopped_early": 0}
     )
     for instr in mooring_instruments:
@@ -309,10 +307,10 @@ def _build_type_summary(
 def generate_array_report(
     array_yaml_path: Path,
     proc_dir: Path,
-    out_path: Optional[Path] = None,
+    out_path: Path | None = None,
     force: bool = False,
-    report_dir: Optional[Path] = None,
-) -> Optional[Path]:
+    report_dir: Path | None = None,
+) -> Path | None:
     """Generate an HTML array-level summary report from an array YAML file.
 
     Parameters
@@ -353,7 +351,7 @@ def generate_array_report(
         warnings.warn(f"array YAML not found: {array_yaml_path}", stacklevel=2)
         return None
 
-    with open(array_yaml_path) as fh:
+    with array_yaml_path.open() as fh:
         array_cfg = yaml.safe_load(fh)
 
     array_name = array_cfg.get("name", array_yaml_path.stem)
@@ -367,19 +365,19 @@ def generate_array_report(
         return out_path
 
     mooring_entries = array_cfg.get("moorings", [])
-    rows: List[Dict[str, Any]] = []
-    all_instruments: List[Dict[str, Any]] = []  # flat list across all moorings
-    mooring_completeness: List[Dict[str, Any]] = []
+    rows: list[dict[str, Any]] = []
+    all_instruments: list[dict[str, Any]] = []  # flat list across all moorings
+    mooring_completeness: list[dict[str, Any]] = []
 
     for pos_idx, entry in enumerate(mooring_entries, start=1):
         mooring_id = entry.get("mooring", "")
         config_name = entry.get("config", f"{mooring_id}.mooring.yaml")
         mooring_yaml = proc_dir / mooring_id / config_name
 
-        mcfg: Dict[str, Any] = {}
+        mcfg: dict[str, Any] = {}
         if mooring_yaml.exists():
             try:
-                with open(mooring_yaml) as fh:
+                with mooring_yaml.open() as fh:
                     mcfg = yaml.safe_load(fh) or {}
             except Exception as exc:  # noqa: BLE001
                 warnings.warn(f"could not read {mooring_yaml}: {exc}", stacklevel=2)

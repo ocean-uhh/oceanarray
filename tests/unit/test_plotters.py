@@ -196,7 +196,7 @@ def test_nice_axis_limits_degenerate_range():
 
 def test_ytick_reserve_in_no_shrink_for_short_labels():
     """<=4-character y-tick labels keep the base reserve (no square shrink)."""
-    from oceanarray.plotters.primitives import ytick_reserve_in, _SQ_LABEL_IN
+    from oceanarray.plotters.primitives import _SQ_LABEL_IN, ytick_reserve_in
 
     # "-800" and "-250" are 4 characters -> base reserve unchanged.
     assert ytick_reserve_in(np.array([-800.0, 50.0])) == _SQ_LABEL_IN
@@ -206,9 +206,9 @@ def test_ytick_reserve_in_no_shrink_for_short_labels():
 def test_ytick_reserve_in_grows_for_wide_labels():
     """Wide (>=5-char) tick labels reserve more left margin, monotonically."""
     from oceanarray.plotters.primitives import (
-        ytick_reserve_in,
         _SQ_LABEL_IN,
         _SQ_PER_CHAR_IN,
+        ytick_reserve_in,
     )
 
     # "-1600" is 5 characters -> base + one extra char.
@@ -221,14 +221,14 @@ def test_ytick_reserve_in_grows_for_wide_labels():
 
 def test_ytick_reserve_in_all_nan_returns_base():
     """All-NaN y falls back to the base reserve rather than raising."""
-    from oceanarray.plotters.primitives import ytick_reserve_in, _SQ_LABEL_IN
+    from oceanarray.plotters.primitives import _SQ_LABEL_IN, ytick_reserve_in
 
     assert ytick_reserve_in(np.full(5, np.nan)) == _SQ_LABEL_IN
 
 
 def test_distinct_line_styles_unique_pairs():
     """Up to 32 lines get a unique (color, linestyle) pair; 33rd clamps, no raise."""
-    from oceanarray.plotters.helpers import distinct_line_styles, OKABE_ITO
+    from oceanarray.plotters.helpers import OKABE_ITO, distinct_line_styles
 
     styles = distinct_line_styles(29)
     assert len(styles) == 29
@@ -248,6 +248,7 @@ def test_distinct_line_styles_unique_pairs():
 def test_plot_title_is_left_aligned():
     """plot_title left-aligns the panel title by default."""
     import matplotlib.pyplot as plt
+
     from oceanarray.plotters.primitives import plot_title
 
     fig, ax = plt.subplots()
@@ -259,6 +260,7 @@ def test_plot_title_is_left_aligned():
 def test_figure_title_is_centered():
     """figure_title places a centred figure-level suptitle."""
     import matplotlib.pyplot as plt
+
     from oceanarray.plotters.primitives import figure_title
 
     fig, _ax = plt.subplots()

@@ -27,7 +27,7 @@ Post-OdB: migrate the following from plotter.py and report/_plots.py:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -35,34 +35,35 @@ if TYPE_CHECKING:
     import matplotlib.pyplot as plt
     import xarray as xr
 
+from oceanarray.config import report_tokens
+
+from .. import parameters as params
+from ..utilities import nice_colorbar_ticks
+from .helpers import OKABE_ITO, grid_despine
 from .primitives import (
     colorbar_norm,
     date_axis,
     date_offset_left,
     figure_title,
+    pcolormesh_panel,
     plot_title,
     pressure_axis,
-    pcolormesh_panel,
 )
-from ..utilities import nice_colorbar_ticks
-from .helpers import OKABE_ITO, grid_despine
-from .. import parameters as params
-from oceanarray.config import report_tokens
 
 
 def draw_grid_fig(
-    da: "xr.DataArray",
+    da: xr.DataArray,
     title: str,
     units: str,
     cmap: str,
     style: str = "pcolormesh",
-    contour_levels: Optional[list] = None,
+    contour_levels: list | None = None,
     symmetric: bool = False,
-    vmin: Optional[float] = None,
-    vmax: Optional[float] = None,
+    vmin: float | None = None,
+    vmax: float | None = None,
     *,
     width_in: float = report_tokens.W_FULL,
-) -> "plt.Figure":
+) -> plt.Figure:
     """Render a grid figure from *da* (dims time × pressure); return a Figure.
 
     Parameters
@@ -130,11 +131,11 @@ def draw_grid_fig(
 
 
 def draw_grid_hydro(
-    ds: "xr.Dataset",
-    var_bounds: "Optional[dict]" = None,
+    ds: xr.Dataset,
+    var_bounds: dict | None = None,
     *,
     width_in: float = report_tokens.W_FULL,
-) -> "Optional[plt.Figure]":
+) -> plt.Figure | None:
     """Stacked temperature / salinity pcolormesh panels for the grid report; return a Figure.
 
     Both panels have pressure (dbar) on the Y-axis (inverted, surface at top).
@@ -265,8 +266,8 @@ def draw_grid_hydro(
 
 
 def draw_grid_velocity_stacked(
-    ds: "xr.Dataset", *, width_in: float = report_tokens.W_FULL
-) -> "Optional[plt.Figure]":
+    ds: xr.Dataset, *, width_in: float = report_tokens.W_FULL
+) -> plt.Figure | None:
     """Stacked east / north / up velocity pcolormesh panels for the grid report.
 
     All three panels share the time axis and show pressure (dbar) on the Y-axis
@@ -290,6 +291,7 @@ def draw_grid_velocity_stacked(
 
     """
     import matplotlib.pyplot as plt
+
     from .helpers import _velocity_panel_style
 
     vel_vars = [
@@ -374,14 +376,15 @@ def draw_grid_velocity_stacked(
 
 
 def draw_grid_sigma(
-    ds: "xr.Dataset", *, width_in: float = report_tokens.W_FULL
-) -> "Optional[plt.Figure]":
+    ds: xr.Dataset, *, width_in: float = report_tokens.W_FULL
+) -> plt.Figure | None:
     """Stacked sigma0 pcolormesh panel(s) for the stratification section.
 
     Returns ``None`` when no sigma variables are present.
 
     """
     import matplotlib.pyplot as plt
+
     from .. import parameters as params
 
     sigma_vars = [
@@ -425,8 +428,8 @@ def draw_grid_sigma(
 
 
 def draw_grid_n2(
-    ds: "xr.Dataset", lat: float = 0.0, *, width_in: float = report_tokens.W_FULL
-) -> "Optional[plt.Figure]":
+    ds: xr.Dataset, lat: float = 0.0, *, width_in: float = report_tokens.W_FULL
+) -> plt.Figure | None:
     """Compute and plot buoyancy frequency squared N² on the pressure-time grid.
 
     Returns ``None`` when temperature or salinity are absent.
@@ -499,8 +502,8 @@ def draw_grid_n2(
 
 
 def draw_grid_timeseries(
-    ds: "xr.Dataset", *, width_in: float = report_tokens.W_FULL
-) -> "Optional[plt.Figure]":
+    ds: xr.Dataset, *, width_in: float = report_tokens.W_FULL
+) -> plt.Figure | None:
     """Velocity time series at the depth of maximum time-mean current speed.
 
     Two stacked panels (shared time axis):
@@ -532,8 +535,9 @@ def draw_grid_timeseries(
 
     """
     import warnings
-    import matplotlib.pyplot as plt
+
     import matplotlib.dates as mdates
+    import matplotlib.pyplot as plt
 
     has_horiz = all(v in ds.data_vars for v in ("east_velocity", "north_velocity"))
     if not has_horiz:
@@ -598,11 +602,11 @@ def draw_grid_timeseries(
 
 
 def draw_analog_timeseries(
-    nc_path: "Path",
-    analog_vars: "List[str]",
+    nc_path: Path,
+    analog_vars: list[str],
     *,
     width_in: float = report_tokens.W_FULL,
-) -> "Optional[plt.Figure]":
+) -> plt.Figure | None:
     """Full-record time series for analog channel variables, one panel per variable.
 
     Returns ``None`` when the dataset lacks a ``time`` dimension.

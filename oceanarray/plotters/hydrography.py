@@ -10,7 +10,7 @@ Pairs with :mod:`oceanarray.analysis.hydrographic` for density computations.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -18,15 +18,16 @@ if TYPE_CHECKING:
     import matplotlib.pyplot as plt
     import xarray as xr
 
-from .primitives import colorbar_norm, date_axis, plot_title
-from .helpers import grid_despine, ordered_line_colors
-from .. import parameters as params
 from oceanarray.config import report_tokens
+
+from .. import parameters as params
+from .helpers import grid_despine, ordered_line_colors
+from .primitives import colorbar_norm, date_axis, plot_title
 
 
 def draw_isopycnal_ts_fig(
-    ds_iso: "xr.Dataset", *, width_in: float = report_tokens.W_FULL
-) -> "Optional[plt.Figure]":
+    ds_iso: xr.Dataset, *, width_in: float = report_tokens.W_FULL
+) -> plt.Figure | None:
     """Isopycnal height-above-seabed time series; return a Figure.
 
     Plots a 1-hour running median of each σ₀ surface's height above seabed.
@@ -49,8 +50,8 @@ def draw_isopycnal_ts_fig(
         Figure, or ``None`` if required data are absent.
 
     """
-    import pandas as pd
     import matplotlib.pyplot as plt
+    import pandas as pd
 
     sigma_dim = next((c for c in ds_iso.coords if c != "time" and "level" in c), None)
     if "isopycnal_height" not in ds_iso or sigma_dim is None:
@@ -108,8 +109,8 @@ def draw_isopycnal_ts_fig(
 
 
 def draw_isopycnal_coverage(
-    ds: "xr.Dataset", *, width_in: float = report_tokens.W_FULL
-) -> "Optional[plt.Figure]":
+    ds: xr.Dataset, *, width_in: float = report_tokens.W_FULL
+) -> plt.Figure | None:
     """Three-panel isopycnal diagnostic; return a Figure.
 
     **Panel 0 — Distribution**: horizontal histogram of all gridded σ₀ values
@@ -146,8 +147,10 @@ def draw_isopycnal_coverage(
 
     """
     import warnings as _warnings
+
     import matplotlib.pyplot as plt
     from matplotlib.lines import Line2D
+
     from ..analysis.hydrographic import isopycnal_pressure_series
 
     # Find the first sigma variable with pressure + time dims
@@ -338,8 +341,8 @@ def draw_isopycnal_coverage(
 
 
 def draw_overflow_temperature_fig(
-    ds: "xr.Dataset", *, width_in: float = report_tokens.W_FULL
-) -> "Optional[plt.Figure]":
+    ds: xr.Dataset, *, width_in: float = report_tokens.W_FULL
+) -> plt.Figure | None:
     """Temperature time series at ~100 m above the seabed; return a Figure.
 
     Selects the grid pressure level nearest to ``waterdepth - 100`` dbar and
@@ -362,8 +365,8 @@ def draw_overflow_temperature_fig(
         Figure, or ``None`` if required data are absent.
 
     """
-    import pandas as pd
     import matplotlib.pyplot as plt
+    import pandas as pd
 
     if "temperature" not in ds or "pressure" not in ds.coords:
         return None
