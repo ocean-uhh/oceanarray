@@ -160,9 +160,9 @@ class MooringStacker:
             if instr_type not in KNOWN_INSTRUMENT_TYPES:
                 print(
                     f"  WARNING: instrument '{instr_type}' (s/n {serial}) is not in "
-                    f"KNOWN_INSTRUMENT_TYPES {sorted(KNOWN_INSTRUMENT_TYPES)}. "
-                    "Aquadopp-specific plots and processing will be skipped. "
-                    "Allowed values: microcat, aquadopp."
+                    f"KNOWN_INSTRUMENT_TYPES {sorted(KNOWN_INSTRUMENT_TYPES)}; "
+                    "it will be stacked as a generic instrument (Aquadopp/ADCP-specific "
+                    "handling skipped)."
                 )
             hab = entry.get("hab")
             if hab is None:
