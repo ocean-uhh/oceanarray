@@ -88,7 +88,7 @@ class TestTimeGriddingIntegration:
         }
 
         config_file = proc_dir / "test_mooring.mooring.yaml"
-        with open(config_file, "w") as f:
+        with config_file.open("w") as f:
             yaml.dump(yaml_data, f)
 
         start_time = "2018-08-12T08:00:00"
@@ -157,7 +157,7 @@ class TestTimeGriddingIntegration:
             {"instrument": "adcp", "serial": 1234, "depth": 300}
         )
 
-        with open(setup["config_file"], "w") as f:
+        with setup["config_file"].open("w") as f:
             yaml.dump(yaml_data, f)
 
         processor = TimeGriddingProcessor(proc_dir=str(setup["proc_root"]))
@@ -212,7 +212,7 @@ class TestTimeGriddingIntegration:
         }
 
         config_file = proc_dir / "test_mooring.mooring.yaml"
-        with open(config_file, "w") as f:
+        with config_file.open("w") as f:
             yaml.dump(yaml_data, f)
 
         processor = TimeGriddingProcessor(proc_dir=str(proc_root))

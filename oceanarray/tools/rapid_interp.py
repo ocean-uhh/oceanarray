@@ -21,7 +21,7 @@ References
 
 import pathlib
 from datetime import datetime
-from typing import Any, Tuple, Union
+from typing import Any
 
 import gsw
 import matplotlib.pyplot as plt
@@ -70,13 +70,10 @@ def spacing(p_start: float, p_end: float, step: float) -> np.ndarray:
     """
     if p_start < p_end:
         return np.arange(p_start, p_end + step, step)
-    else:
-        return np.arange(p_start, p_end - step, -step)
+    return np.arange(p_start, p_end - step, -step)
 
 
-def save_climatology(
-    clim_ds: xr.Dataset, output_path: Union[str, pathlib.Path]
-) -> None:
+def save_climatology(clim_ds: xr.Dataset, output_path: str | pathlib.Path) -> None:
     """Save a climatology dataset containing vertical gradients to a NetCDF file.
 
     This function writes the input dataset—typically containing monthly fields
@@ -158,7 +155,7 @@ def smooth_climatology(clim_ds: xr.Dataset, window: int = 3) -> xr.Dataset:
         clim_ds["dSdp"].rolling(TEMP=window, center=True, min_periods=1).mean()
     )
 
-    clim_ds_smoothed = xr.Dataset(
+    return xr.Dataset(
         {
             "dTdp": dTdp_smoothed,
             "dSdp": dSdp_smoothed,
@@ -166,8 +163,6 @@ def smooth_climatology(clim_ds: xr.Dataset, window: int = 3) -> xr.Dataset:
         coords=clim_ds.coords,
         attrs=clim_ds.attrs,
     )
-
-    return clim_ds_smoothed
 
 
 def build_climatology(
@@ -293,7 +288,7 @@ def build_climatology(
                 dSdp_clim[month - 1, j] = np.nanmean(flat_dSdp[combined_mask])
 
     # Step 6: Build climatology xarray.Dataset
-    clim_ds = xr.Dataset(
+    return xr.Dataset(
         {
             "dTdp": (("month", "TEMP"), dTdp_clim),
             "dSdp": (("month", "TEMP"), dSdp_clim),
@@ -308,8 +303,6 @@ def build_climatology(
         },
     )
 
-    return clim_ds
-
 
 def extrapolate_boundary(
     T: float,
@@ -319,7 +312,7 @@ def extrapolate_boundary(
     dtdp_func,
     dsdp_func,
     int_step: float = 20.0,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Extrapolate temperature and salinity profiles from a boundary point using climatological gradients.
 
     This function integrates vertical gradients of temperature (dT/dP) and salinity (dS/dP)
@@ -366,7 +359,7 @@ def extrapolate_boundary(
 
     """
     # Handle degenerate case early
-    if P == p_bound:
+    if p_bound == P:
         return np.array([T]), np.array([S]), np.array([P])
 
     # Ensure consistent stepping direction
@@ -416,7 +409,7 @@ def interpolate_internal(
     dtdp_func,
     dsdp_func,
     int_step: float = 20.0,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Interpolate between observed data points using climatological vertical gradients.
 
     This function fills gaps between observed pressure levels by integrating temperature
@@ -725,7 +718,7 @@ def interpolate_profiles(
 
     sigma_con = gsw.sigma0(s_con, t_con)
 
-    out_ds = xr.Dataset(
+    return xr.Dataset(
         {
             temp_key: ((time_dim, pres_dim), t_con),
             salt_key: ((time_dim, pres_dim), s_con),
@@ -742,8 +735,6 @@ def interpolate_profiles(
         },
     )
 
-    return out_ds
-
 
 def plot_climatology(
     clim_ds: xr.Dataset,
@@ -751,7 +742,7 @@ def plot_climatology(
     clim_ds_smoothed: "xr.Dataset | None" = None,
     fig: Any = None,
     ax: Any = None,
-) -> Tuple[Any, Any]:
+) -> tuple[Any, Any]:
     """Plot the seasonal climatology of dT/dP or dS/dP, optionally with a smoothed overlay.
 
     Lives here because it visualises the climatological gradient field this module
@@ -778,7 +769,7 @@ def plot_climatology(
 
     """
     if var not in clim_ds:
-        raise ValueError(f"{var} not found in climatology dataset.")  # noqa: TRY003
+        raise ValueError(f"{var} not found in climatology dataset.")
 
     with plt.style.context(str(params.MPLSTYLE)):
         if fig is None or ax is None:

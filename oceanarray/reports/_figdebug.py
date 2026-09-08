@@ -17,10 +17,10 @@ module only wraps it to record metadata and is a no-op when debug is off.
 from __future__ import annotations
 
 import os
-from typing import Any, Optional
+from typing import Any
 
-from . import _encode
 from ..config import report_tokens
+from . import _encode
 
 #: Captured metadata, keyed by the figure's base64 PNG string.
 _COLLECTED: dict[str, dict[str, Any]] = {}
@@ -39,7 +39,7 @@ def enabled() -> bool:
     )
 
 
-def record(b64: Optional[str], func: str, fig: Any) -> None:
+def record(b64: str | None, func: str, fig: Any) -> None:
     """Record ``(func, figsize, png_px)`` for figure *b64* when debug is on.
 
     Parameters
@@ -86,14 +86,14 @@ def _draw_name(draw: Any) -> str:
     return name
 
 
-def lookup(b64: Optional[str]) -> Optional[dict[str, Any]]:
+def lookup(b64: str | None) -> dict[str, Any] | None:
     """Return the recorded metadata for figure *b64*, or ``None``."""
     if not b64:
         return None
     return _COLLECTED.get(b64)
 
 
-def figdbg(b64: Optional[str]) -> str:
+def figdbg(b64: str | None) -> str:
     """Return a one-line ``func · figsize · png`` string for figure *b64*.
 
     Registered as a Jinja global so a template's ``.debug`` section can print
@@ -114,7 +114,7 @@ def clear() -> None:
 
 
 def render_b64(draw: Any, /, *args: Any, optional: bool = False, **kwargs: Any) -> Any:
-    """Encoder ``render_b64`` wrapper that records per-figure debug metadata.
+    """Wrap the encoder ``render_b64`` to record per-figure debug metadata.
 
     Delegates to :func:`oceanarray.reports._encode.render_b64` unchanged; when
     debug is enabled it wraps *draw* to capture the figure's size and name and

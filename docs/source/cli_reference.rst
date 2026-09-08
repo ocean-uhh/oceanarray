@@ -106,6 +106,7 @@ The recommended sequence for a new mooring is:
                               [--stage {1,2,3,stack,grid} ...]
                               [--dt SECONDS] [--dp DBAR]
                               [--pmin DBAR] [--pmax DBAR]
+                              [--plot] [--report]
                               [--serial SN ...] [--force] [-n]
 
 **Flags**
@@ -147,6 +148,14 @@ The recommended sequence for a new mooring is:
      - number
      - 1000
      - Deepest pressure level for grid (dbar).
+   * - ``--plot``
+     - flag
+     - off
+     - Generate plots of processed microcat data after stage 2.
+   * - ``--report``
+     - flag
+     - off
+     - Print a summary of processed records per instrument and serial number.
    * - ``--serial SN``
      - string (repeat)
      - (all)
@@ -231,7 +240,7 @@ description of what each report page contains.
    oceanarray report MOORING [--raw-dir DIR] [--proc-dir DIR]
                              [-o DIR] [--report-dir DIR]
                              [--instruments] [--stack] [--grid] [--all]
-                             [--pdf] [--serial SN ...] [--array]
+                             [--pdf] [--pdf-dir DIR] [--serial SN ...] [--array]
                              [--cruise-table] [--sig-level SIG ...]
                              [-n] [--force] [--skip-existing]
 
@@ -247,8 +256,9 @@ description of what each report page contains.
      - Description
    * - ``--raw-dir DIR``
      - path
-     - (required)
-     - Cruise-level raw data directory.
+     - (optional)
+     - Cruise-level raw data directory (required only for stage 1; not needed
+       for report generation).
    * - ``--proc-dir DIR``
      - path
      - (required)
@@ -289,6 +299,13 @@ description of what each report page contains.
        summary → instruments → stack → grid.  Requires the optional ``pdf``
        extra (``pip install oceanarray[pdf]``, which installs WeasyPrint).
        Implied by ``--all``.
+   * - ``--pdf-dir DIR``
+     - path
+     - (beside HTML)
+     - Write the combined PDF to ``DIR/{mooring}_report.pdf`` instead of beside
+       the HTML pages, so every mooring's PDF collects in one shareable
+       directory (created if needed).  Only affects PDF placement; still needs
+       ``--pdf`` or ``--all`` to build the PDF at all.
    * - ``--serial SN``
      - string (repeat)
      - (all)
@@ -338,7 +355,7 @@ Summary and per-instrument pages:
 
    oceanarray report dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --instruments
 
-All report types (equivalent to ``--instruments --stack --grid``):
+All report types (equivalent to ``--stack --grid --instruments --pdf``):
 
 .. code-block:: bash
 
@@ -379,6 +396,7 @@ and a quick report inspection).
                           [--dt SECONDS] [--dp DBAR]
                           [--pmin DBAR] [--pmax DBAR]
                           [--serial SN ...] [--force]
+                          [-o DIR] [--report-dir DIR] [--sig-level SIG ...]
 
 **Flags**
 
@@ -422,6 +440,22 @@ and a quick report inspection).
      - flag
      - off
      - Overwrite existing output files at every stage.
+   * - ``-o DIR`` / ``--output-dir DIR``
+     - path
+     - ``{proc_dir}/{mooring}/report/``
+     - Directory for the HTML report.
+   * - ``--report-dir DIR``
+     - path
+     - (none)
+     - Central directory for all mooring reports.  Each mooring's pages are
+       written to ``DIR/{mooring}/`` instead of ``proc/{mooring}/report/``,
+       making the whole report tree portable.
+   * - ``--sig-level SIG``
+     - float (repeat)
+     - ``27.7``
+     - σ₀ target values (kg m⁻³, referenced to 0 dbar) for isopycnal
+       height-above-seabed tracking in the grid report.  Pass one or more
+       values; they are sorted before use: ``--sig-level 27.5 27.7 27.9``.
 
 **Output created**
 
@@ -451,7 +485,10 @@ Does not require a mooring name, ``--raw-dir``, or ``--proc-dir``.
 
 .. code-block:: text
 
-   oceanarray list
+   oceanarray list [{instruments,file-types}]
+
+The optional positional filter restricts the output: pass ``instruments`` or
+``file-types`` to show only that table (default: show both).
 
 **Example**
 
@@ -479,8 +516,8 @@ Show an interactive overview plot of processed data, or save it to a file.
 
    oceanarray plot MOORING [--proc-dir DIR] [--var_y VAR]
                            [--var_color VAR] [--colormap CM]
-                           [--downsample SEC] [--output FILE]
-                           [-o DIR] [--show]
+                           [--markersize PTS2] [--downsample SEC]
+                           [--output FILE] [-o DIR] [--show]
 
 **Flags**
 
@@ -502,28 +539,33 @@ Show an interactive overview plot of processed data, or save it to a file.
      - Variable to plot on the y-axis.
    * - ``--var_color VAR``
      - string
-     - (same as ``--var_y``)
-     - Variable to use for colouring data points.
+     - (none; line plot)
+     - Variable for scatter colour; omit for a line plot.
    * - ``--colormap CM``
      - string
-     - (auto)
+     - ``RdBu_r``
      - Matplotlib colormap name.
+   * - ``--markersize PTS2``
+     - number
+     - 4
+     - Scatter marker size in points².  Only used in scatter mode.
    * - ``--downsample SEC``
      - integer
-     - (none)
-     - Subsample data to this interval in seconds before plotting.
+     - 120
+     - Resample data to this interval in seconds before plotting.
    * - ``--output FILE``
      - path
      - (none)
-     - Save the plot to a file (e.g. ``.png``, ``.pdf``).
-   * - ``-o DIR``
+     - Base filename for the saved figure (e.g. ``overview.png``); combined
+       with ``--output-dir`` if given.
+   * - ``-o DIR`` / ``--output-dir DIR``
      - path
-     - (current dir)
+     - (mooring proc dir)
      - Directory in which to save the output file.
    * - ``--show``
      - flag
-     - on
-     - Display an interactive plot window.
+     - off
+     - Display the figure interactively (works alongside ``--output``).
 
 **Example**
 
@@ -547,6 +589,8 @@ be installed for GIF output.
 
    oceanarray animate MOORING [--proc-dir DIR] [--serial SN ...]
                               [-o FILE] [--u-var VAR] [--v-var VAR]
+                              [--lp-days DAYS] [--smooth-hours HOURS]
+                              [--frame-hours HOURS] [--fps FPS] [--dpi DPI]
 
 **Flags**
 
@@ -566,10 +610,11 @@ be installed for GIF output.
      - string (repeat)
      - (all)
      - Restrict to specific instrument serial number(s).
-   * - ``-o FILE``
+   * - ``-o FILE`` / ``--output FILE``
      - path
      - (auto)
-     - Output file path (e.g. ``hodograph.gif``).
+     - Output GIF path (only used when a single ``--serial`` is given; default:
+       ``{stem}_hodograph.gif`` next to the NC file).
    * - ``--u-var VAR``
      - string
      - ``east_velocity``
@@ -578,6 +623,27 @@ be installed for GIF output.
      - string
      - ``north_velocity``
      - Variable name for the northward velocity component.
+   * - ``--lp-days DAYS``
+     - number
+     - 4.0
+     - Low-pass window for eddy-component removal, in days.
+   * - ``--smooth-hours HOURS``
+     - number
+     - 3.0
+     - Tukey smoothing window in hours applied to both panels.
+   * - ``--frame-hours HOURS``
+     - number
+     - 6.0
+     - Time step between frames in hours (one frame per quarter-day of
+       deployment).
+   * - ``--fps FPS``
+     - integer
+     - 20
+     - Frames per second in the output GIF.
+   * - ``--dpi DPI``
+     - integer
+     - 100
+     - Resolution of each frame in dots per inch.
 
 **Example**
 

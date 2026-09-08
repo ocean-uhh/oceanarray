@@ -12,7 +12,7 @@ Naming conventions updated from the original module:
 - file suffix ``_raw`` → ``_stage2``
 """
 
-import os
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -53,13 +53,13 @@ def load_mooring_instruments(
     proc_dir = output_path + mooring_name
     moor_yaml = proc_dir + "/" + mooring_name + ".mooring.yaml"
 
-    with open(moor_yaml, "r") as f:
+    with Path(moor_yaml).open() as f:
         moor_yaml_data = yaml.safe_load(f)
 
     # Support both new key 'clamp' and legacy key 'instruments'
     instrument_list = moor_yaml_data.get("clamp", moor_yaml_data.get("instruments", []))
     if not instrument_list:
-        raise KeyError(  # noqa: TRY003
+        raise KeyError(
             f"Mooring YAML {moor_yaml} has neither 'clamp' nor 'instruments' key."
         )
 
@@ -68,7 +68,7 @@ def load_mooring_instruments(
         fname = mooring_name + "_" + str(i["serial"]) + file_suffix + ".nc"
         rawfile = proc_dir + "/" + i["instrument"] + "/" + fname
 
-        if os.path.exists(rawfile):
+        if Path(rawfile).exists():
             print(rawfile)
             ds1 = xr.open_dataset(rawfile)
 
@@ -123,9 +123,7 @@ def create_common_time_grid(datasets):
         latest_end = np.datetime64("NaT", "ns")
 
     dt_sec = int(np.nanmedian(intervals_min) * 60)
-    time_grid = np.arange(earliest_start, latest_end, np.timedelta64(dt_sec, "s"))
-
-    return time_grid
+    return np.arange(earliest_start, latest_end, np.timedelta64(dt_sec, "s"))
 
 
 def interpolate_datasets_to_grid(datasets, time_grid):
@@ -251,7 +249,7 @@ def combine_interpolated_datasets(datasets_interp):
             co = 0
         clock_offsets.append(int(np.rint(co)) if np.isfinite(co) else 0)
 
-    combined_ds = xr.Dataset(
+    return xr.Dataset(
         data_vars=combined_data,
         coords={
             "time": time_coord,
@@ -262,8 +260,6 @@ def combine_interpolated_datasets(datasets_interp):
             "instrument": ("N_LEVELS", np.asarray(instrtype)),
         },
     )
-
-    return combined_ds
 
 
 def analyze_deployment_timing(combined_ds):
@@ -319,7 +315,7 @@ def calculate_timing_offsets(combined_ds, bin_width_sec=60):
     # Find consensus group
     vals = start_off0[np.isfinite(start_off0)]
     if vals.size == 0:
-        raise RuntimeError("No finite start offsets to form consensus.")  # noqa: TRY003
+        raise RuntimeError("No finite start offsets to form consensus.")
 
     vmin, vmax = vals.min(), vals.max()
     bins = np.arange(vmin - bin_width_sec, vmax + 2 * bin_width_sec, bin_width_sec)

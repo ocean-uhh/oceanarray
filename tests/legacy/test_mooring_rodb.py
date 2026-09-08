@@ -17,7 +17,7 @@ from oceanarray.legacy.mooring_rodb import (  # Adjust import as needed
 def create_mock_os_dataset(depth, serial_number, source_file):
     time = pd.date_range("2020-01-01", periods=5, freq="D")
     data = np.random.rand(5)
-    ds = xr.Dataset(
+    return xr.Dataset(
         {
             "TEMP": ("TIME", data),
         },
@@ -38,7 +38,6 @@ def create_mock_os_dataset(depth, serial_number, source_file):
             "deployment_code": "9_201115",
         },
     )
-    return ds
 
 
 def test_combine_mooring():

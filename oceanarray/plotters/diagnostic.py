@@ -36,20 +36,22 @@ from __future__ import annotations
 
 import re as _re
 from pathlib import Path
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING
 
 import numpy as np
 
-from .helpers import distinct_line_styles, grid_despine
-from .primitives import date_offset_left, figure_title, plot_title, square_axes_grid
-from .. import parameters as params
 from oceanarray.config import report_tokens
 
+from .. import parameters as params
+from .helpers import distinct_line_styles, grid_despine
+from .primitives import date_offset_left, figure_title, plot_title, square_axes_grid
+
 if TYPE_CHECKING:
+    from datetime import datetime
+
     import matplotlib.figure
     import matplotlib.pyplot as plt
     import xarray as xr
-    from datetime import datetime
 
 
 # ---------------------------------------------------------------------------
@@ -59,7 +61,7 @@ if TYPE_CHECKING:
 # have no VARIABLES entry and are kept hardcoded.
 # ---------------------------------------------------------------------------
 
-_CANONICAL_PANELS: List[Tuple] = [
+_CANONICAL_PANELS: list[tuple] = [
     ("pressure", params.vlabel("pressure"), "tab:green", True),
     (
         "pressure_1",
@@ -94,27 +96,40 @@ _COMPACT_PANEL_HEIGHT: float = 1.5
 _PANEL_HEIGHT: float = 2.0
 
 # QC overlay marker styles (OceanSITES flag codes 3, 4, 8).
-_QC_COLORS: Dict[int, str] = {
+_QC_COLORS: dict[int, str] = {
     3: "#f39c12",
     4: "#e74c3c",
     8: "#3498db",
 }
-_QC_MARKER: Dict[int, dict] = {
-    3: dict(
-        marker="+", c=_QC_COLORS[3], s=15, linewidths=0.8, zorder=3, rasterized=True
-    ),
-    4: dict(
-        marker="+", c=_QC_COLORS[4], s=15, linewidths=0.8, zorder=4, rasterized=True
-    ),
-    8: dict(
-        marker=".", c=_QC_COLORS[8], s=8, linewidths=0.5, zorder=2, rasterized=True
-    ),
+_QC_MARKER: dict[int, dict] = {
+    3: {
+        "marker": "+",
+        "c": _QC_COLORS[3],
+        "s": 15,
+        "linewidths": 0.8,
+        "zorder": 3,
+        "rasterized": True,
+    },
+    4: {
+        "marker": "+",
+        "c": _QC_COLORS[4],
+        "s": 15,
+        "linewidths": 0.8,
+        "zorder": 4,
+        "rasterized": True,
+    },
+    8: {
+        "marker": ".",
+        "c": _QC_COLORS[8],
+        "s": 8,
+        "linewidths": 0.5,
+        "zorder": 2,
+        "rasterized": True,
+    },
 }
 
 
-def _instrument_panels(
-    ds: "xr.Dataset", combine_pitch_roll: bool = False
-) -> List[Tuple]:
+def _instrument_panels(ds: xr.Dataset, combine_pitch_roll: bool = False) -> list[tuple]:
     """Return panel list ``(varname, ylabel, line_color, invert_y)`` in canonical order.
 
     Parameters
@@ -180,7 +195,7 @@ def _kd_color(magnitude_dbar: float) -> str:
 
 
 def _collect_knockdown_records(
-    ds: "xr.Dataset",
+    ds: xr.Dataset,
     waterdepth: float,
 ) -> list:
     """Extract per-instrument knockdown arrays from a stack dataset.
@@ -230,8 +245,8 @@ def _collect_knockdown_records(
 
 
 def plot_knockdown_pressure(
-    ds: "xr.Dataset",
-) -> "Optional[matplotlib.figure.Figure]":
+    ds: xr.Dataset,
+) -> matplotlib.figure.Figure | None:
     """IQR of measured pressure vs. nominal design depth, equal aspect ratio.
 
     Each non-ADCP instrument is shown as a vertical box-and-whisker positioned
@@ -292,8 +307,13 @@ def plot_knockdown_pressure(
                 positions=[p_nom],
                 widths=box_width,
                 patch_artist=True,
-                flierprops=dict(marker=".", markersize=2, alpha=0.25, color="grey"),
-                medianprops=dict(color="black", linewidth=1.5),
+                flierprops={
+                    "marker": ".",
+                    "markersize": 2,
+                    "alpha": 0.25,
+                    "color": "grey",
+                },
+                medianprops={"color": "black", "linewidth": 1.5},
                 manage_ticks=False,
             )
             bp["boxes"][0].set_facecolor("steelblue")
@@ -330,10 +350,10 @@ def plot_knockdown_pressure(
 
 
 def plot_knockdown_hab(
-    ds: "xr.Dataset",
+    ds: xr.Dataset,
     *,
     width_in: float = report_tokens.W_HALF,
-) -> "Optional[matplotlib.figure.Figure]":
+) -> matplotlib.figure.Figure | None:
     """IQR of measured pressure vs. nominal HAB, equal aspect ratio.
 
     Companion to :func:`plot_knockdown_pressure`.  The y-axis is identical
@@ -405,8 +425,13 @@ def plot_knockdown_hab(
                 positions=[hab_nom],
                 widths=box_width,
                 patch_artist=True,
-                flierprops=dict(marker=".", markersize=2, alpha=0.25, color="grey"),
-                medianprops=dict(color="black", linewidth=1.5),
+                flierprops={
+                    "marker": ".",
+                    "markersize": 2,
+                    "alpha": 0.25,
+                    "color": "grey",
+                },
+                medianprops={"color": "black", "linewidth": 1.5},
                 manage_ticks=False,
             )
             bp["boxes"][0].set_facecolor("steelblue")
@@ -443,10 +468,10 @@ def plot_knockdown_hab(
 
 
 def plot_knockdown_anomaly(
-    ds: "xr.Dataset",
+    ds: xr.Dataset,
     *,
     width_in: float = report_tokens.W_HALF,
-) -> "Optional[matplotlib.figure.Figure]":
+) -> matplotlib.figure.Figure | None:
     """IQR of pressure anomaly (measured − nominal) per instrument.
 
     Each non-ADCP instrument is shown as a horizontal box-and-whisker at its
@@ -518,8 +543,13 @@ def plot_knockdown_anomaly(
                 positions=[p_nom],
                 widths=box_width,
                 patch_artist=True,
-                flierprops=dict(marker=".", markersize=2, alpha=0.25, color="grey"),
-                medianprops=dict(color="black", linewidth=1.5),
+                flierprops={
+                    "marker": ".",
+                    "markersize": 2,
+                    "alpha": 0.25,
+                    "color": "grey",
+                },
+                medianprops={"color": "black", "linewidth": 1.5},
                 manage_ticks=False,
             )
             bp["boxes"][0].set_facecolor(color)
@@ -544,10 +574,10 @@ def plot_knockdown_anomaly(
 
 
 def plot_knockdown_displacement(
-    ds: "xr.Dataset",
+    ds: xr.Dataset,
     *,
     width_in: float = report_tokens.W_FULL,
-) -> "Optional[matplotlib.figure.Figure]":
+) -> matplotlib.figure.Figure | None:
     """Scatter and heatmap of estimated horizontal displacement vs. measured pressure.
 
     For each non-ADCP instrument the horizontal displacement is estimated at
@@ -710,13 +740,13 @@ def plot_knockdown_displacement(
 
 
 def plot_clock_offset_check(
-    nc_paths: "Dict[str, Path]",
-    deploy_dt: "Optional[datetime]",
-    recover_dt: "Optional[datetime]",
+    nc_paths: dict[str, Path],
+    deploy_dt: datetime | None,
+    recover_dt: datetime | None,
     window_minutes: int = 30,
     *,
     width_in: float = report_tokens.W_FULL,
-) -> "Optional[matplotlib.figure.Figure]":
+) -> matplotlib.figure.Figure | None:
     """Overlaid, per-instrument normalised temperature around deploy and recover.
 
     Plots a ``±window_minutes`` window centred on deployment and on recovery for
@@ -819,10 +849,7 @@ def plot_clock_offset_check(
         # Colourblind-safe styles: colour alone (tab20 = 20 hues) collided once
         # a mooring had >20 instruments, and tab20 is not CVD-safe.  Vary colour
         # (Okabe-Ito) and linestyle so up to 32 lines are each distinct.
-        styles = {
-            s: st
-            for s, st in zip(series, distinct_line_styles(len(series)), strict=False)
-        }
+        styles = dict(zip(series, distinct_line_styles(len(series)), strict=False))
 
         plotted_serials: set = set()
         for ax, (t_lo, t_hi, title) in zip(axes, windows, strict=False):
@@ -895,7 +922,7 @@ def plot_clock_offset_check(
         fig.subplots_adjust(
             bottom=_bottom, top=0.92, left=0.08, right=0.97, wspace=0.22
         )
-        fig._manual_layout = True  # noqa: SLF001 — encoder layout opt-out
+        fig._manual_layout = True
         return fig
 
 
@@ -909,13 +936,13 @@ def draw_windows(
     instr_type: str,
     hours: int = 6,
     show_qc: bool = True,
-    vlines: Optional[list] = None,
-    stage1_nc: Optional[Path] = None,
-    panels: Optional[list] = None,
+    vlines: list | None = None,
+    stage1_nc: Path | None = None,
+    panels: list | None = None,
     *,
     width_in: float = report_tokens.W_FULL,
-) -> "Optional[plt.Figure]":
-    """Combined start + end window figure: (nrows × 2) — left = first N h, right = last N h.
+) -> plt.Figure | None:
+    """Draw the combined start + end window figure: (nrows × 2) — left = first N h, right = last N h.
 
     Parameters
     ----------
@@ -957,8 +984,8 @@ def draw_windows(
 
     """
     import matplotlib.pyplot as plt
-    from matplotlib.gridspec import GridSpec
     import xarray as xr
+    from matplotlib.gridspec import GridSpec
 
     from .primitives import date_axis
 
@@ -968,8 +995,8 @@ def draw_windows(
     # so the grey trace is selected by the same window as the coloured data.
     ds1 = None
     time1 = None
-    start_mask1: Optional["np.ndarray"] = None
-    end_mask1: Optional["np.ndarray"] = None
+    start_mask1: np.ndarray | None = None
+    end_mask1: np.ndarray | None = None
     if stage1_nc is not None:
         try:
             ds1 = xr.open_dataset(stage1_nc, decode_timedelta=False).load()
@@ -1006,13 +1033,13 @@ def draw_windows(
             hspace=0.18,
         )
 
-        def _plot_panel(  # noqa: ANN202
-            ax: "plt.Axes",
+        def _plot_panel(
+            ax: plt.Axes,
             vname: str,
             label: str,
             color: str,
             invert: bool,
-            mask: "np.ndarray",
+            mask: np.ndarray,
             col: str,
         ) -> None:
             _suspect_t = float(ds.attrs.get("tilt_suspect_threshold", 20.0))
@@ -1090,9 +1117,9 @@ def draw_windows(
                 pass
 
         def _draw_vlines(
-            ax: "plt.Axes",
-            t_lo: "np.datetime64",
-            t_hi: "np.datetime64",
+            ax: plt.Axes,
+            t_lo: np.datetime64,
+            t_hi: np.datetime64,
             first_row: bool,
         ) -> None:
             """Draw vertical marker lines that fall inside [t_lo, t_hi]."""
@@ -1130,10 +1157,10 @@ def draw_windows(
             start_mask1 = (time1 >= _t_start_lo) & (time1 <= _t_start_hi)
             end_mask1 = (time1 >= _t_end_lo) & (time1 <= _t_end_hi)
 
-        def _plot_grey(  # noqa: ANN202
-            ax: "plt.Axes",
+        def _plot_grey(
+            ax: plt.Axes,
             vname: str,
-            mask: "np.ndarray",
+            mask: np.ndarray,
         ) -> None:
             """Plot stage1 reference data as light-grey background trace.
 
@@ -1227,7 +1254,7 @@ def draw_data_histogram(
     nc_path: Path,
     *,
     width_in: float = report_tokens.W_FULL,
-) -> "Optional[plt.Figure]":
+) -> plt.Figure | None:
     """Histogram of data values for each main variable; return a Figure.
 
     Each panel shows grey bars (all finite data) and blue bars (kept, not bad/missing),
@@ -1248,8 +1275,10 @@ def draw_data_histogram(
 
     """
     import math
+
     import matplotlib.pyplot as plt
     import xarray as xr
+
     from .. import parameters as params
 
     with xr.open_dataset(nc_path, decode_timedelta=False) as ds:
@@ -1448,10 +1477,10 @@ def draw_data_histogram(
 
 
 def draw_velocity_iqr_profile(
-    ds: "xr.Dataset",
+    ds: xr.Dataset,
     *,
     width_in: float = report_tokens.W_FULL,
-) -> "Optional[plt.Figure]":
+) -> plt.Figure | None:
     """Percentile-profile figure for gridded ADCP velocity data; return a Figure.
 
     Three side-by-side panels, all with pressure (dbar) on the Y-axis (inverted,
@@ -1495,6 +1524,7 @@ def draw_velocity_iqr_profile(
 
     """
     import warnings
+
     import matplotlib.pyplot as plt
     import xarray as _xr
 

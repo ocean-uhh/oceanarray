@@ -118,9 +118,9 @@ def load_logging_config() -> dict:
     config_path = Path(__file__).parent / "config" / "logging.yaml"
 
     if not config_path.exists():
-        raise FileNotFoundError(f"Logging config not found: {config_path}")  # noqa: TRY003
+        raise FileNotFoundError(f"Logging config not found: {config_path}")
 
-    with open(config_path, "r") as f:
+    with config_path.open() as f:
         config = yaml.safe_load(f)
 
     return config.get("logging", {})

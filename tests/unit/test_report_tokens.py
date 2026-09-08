@@ -23,7 +23,6 @@ import pytest
 from oceanarray.config import report_tokens as tok
 from oceanarray.reports import _encode
 
-
 # ---------------------------------------------------------------------------
 # Slot contract (spec §10.1) and geometry (spec §11, §14)
 # ---------------------------------------------------------------------------
@@ -76,12 +75,12 @@ def test_png_width_table(slot, expected_px):
 
 def test_width_aliases_match_slots():
     """The ergonomic ``W_*`` aliases equal their slot widths."""
-    assert tok.W_TWOTHIRDS == tok.SLOTS["twothirds"][1]
-    assert tok.W_THREE_FIFTHS == tok.SLOTS["three-fifths"][1]
-    assert tok.W_HALF == tok.SLOTS["half"][1]
-    assert tok.W_TWO_FIFTHS == tok.SLOTS["two-fifths"][1]
-    assert tok.W_THIRD == tok.SLOTS["third"][1]
-    assert tok.W_QUARTER == tok.SLOTS["quarter"][1]
+    assert tok.SLOTS["twothirds"][1] == tok.W_TWOTHIRDS
+    assert tok.SLOTS["three-fifths"][1] == tok.W_THREE_FIFTHS
+    assert tok.SLOTS["half"][1] == tok.W_HALF
+    assert tok.SLOTS["two-fifths"][1] == tok.W_TWO_FIFTHS
+    assert tok.SLOTS["third"][1] == tok.W_THIRD
+    assert tok.SLOTS["quarter"][1] == tok.W_QUARTER
 
 
 def test_mplstyle_path_resolves():

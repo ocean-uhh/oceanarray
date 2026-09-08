@@ -1,29 +1,30 @@
 """MooringStacker: interpolate all instruments on a mooring onto a common time grid."""
 
 from pathlib import Path
-from typing import Dict, List
+
 import numpy as np
 import xarray as xr
 import yaml
+
 from oceanarray import parameters as params
+from oceanarray import paths
+from oceanarray.processors.helpers import (
+    STACK_VARS,
+    _best_nc,
+    _detect_interval_s,
+    _linear_interp,
+    _make_adcp_bin_ds,
+    _make_adcp_head_ds,
+    _nearest_subsample,
+    _safe_serial,
+    _worst_flag,
+)
 from oceanarray.utilities import (
     _status,
     cast_output_dtypes,
     drop_all_zero_vars,
     extract_inline_instruments,
     parse_latlon,
-)
-from oceanarray import paths
-from oceanarray.processors.helpers import (
-    STACK_VARS,
-    _safe_serial,
-    _worst_flag,
-    _best_nc,
-    _detect_interval_s,
-    _make_adcp_head_ds,
-    _make_adcp_bin_ds,
-    _nearest_subsample,
-    _linear_interp,
 )
 
 KNOWN_INSTRUMENT_TYPES: frozenset = params.KNOWN_INSTRUMENT_TYPES
@@ -132,7 +133,7 @@ class MooringStacker:
             print(f"ERROR: Config not found: {config_file}")
             return False
 
-        with open(config_file) as f:
+        with config_file.open() as f:
             mooring_config = yaml.safe_load(f)
 
         deploy_time = np.datetime64(mooring_config["deployment_time"], "ns")
@@ -194,8 +195,8 @@ class MooringStacker:
         # bin_pressure, velocity, and QC time series sliced from the 2-D
         # (time, N_BINS) arrays in the parent stage3 file.
         # The parent file is loaded once and cached; _make_adcp_bin_ds slices it.
-        _adcp_parent_datasets: Dict[str, xr.Dataset] = {}
-        expanded: List[Dict] = []
+        _adcp_parent_datasets: dict[str, xr.Dataset] = {}
+        expanded: list[dict] = []
         for info in instruments:
             if info["instrument"].lower() != "adcp":
                 expanded.append(info)
@@ -299,17 +300,17 @@ class MooringStacker:
             f"({mooring_name})"
         )
 
-        stacked: Dict[str, np.ndarray] = {
+        stacked: dict[str, np.ndarray] = {
             v: np.full((n_instr, n_time), np.nan) for v in STACK_VARS
         }
-        var_attrs: Dict[str, dict] = {v: {} for v in STACK_VARS}
-        serials: List[str] = []
-        habs: List[float] = []
-        instr_types: List[str] = []
-        stage_labels: List[str] = []
+        var_attrs: dict[str, dict] = {v: {} for v in STACK_VARS}
+        serials: list[str] = []
+        habs: list[float] = []
+        instr_types: list[str] = []
+        stage_labels: list[str] = []
         # Per-instrument scalar metadata: {varname: [value_for_instr0, value_for_instr1, ...]}
-        scalar_meta: Dict[str, list] = {}  # populated during loop
-        scalar_attrs: Dict[str, dict] = {}
+        scalar_meta: dict[str, list] = {}  # populated during loop
+        scalar_attrs: dict[str, dict] = {}
         # Stage-3 time-series variables not in STACK_VARS are dropped here; collect
         # them so the operator is told rather than losing data silently (D2).
         dropped_ts_vars: set = set()
@@ -410,7 +411,7 @@ class MooringStacker:
             _ds_adcp.close()
 
         # Build output dataset; skip physics variables that are entirely NaN
-        data_vars: Dict = {}
+        data_vars: dict = {}
         for vname in STACK_VARS:
             if not np.all(np.isnan(stacked[vname])):
                 data_vars[vname] = xr.Variable(

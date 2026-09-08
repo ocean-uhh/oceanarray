@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import numpy as np
 
-from .primitives import colorbar_norm, plot_title, square_axes_grid, unit_colorbar
-from .helpers import QC_MARKER as _QC_MARKER
-from ..utilities import nice_colorbar_ticks
-from .. import parameters as params
 from oceanarray.config import report_tokens
+
+from .. import parameters as params
+from ..utilities import nice_colorbar_ticks
+from .helpers import QC_MARKER as _QC_MARKER
+from .primitives import colorbar_norm, plot_title, square_axes_grid, unit_colorbar
 
 if TYPE_CHECKING:
     import matplotlib.pyplot as plt
@@ -19,7 +20,7 @@ if TYPE_CHECKING:
 
 
 def _add_sigma0_contours(
-    ax: "plt.Axes", S_data: "np.ndarray", T_data: "np.ndarray", n_grid: int = 200
+    ax: plt.Axes, S_data: np.ndarray, T_data: np.ndarray, n_grid: int = 200
 ) -> None:
     """Overlay sigma-0 contour lines on a T-S axes."""
     try:
@@ -51,16 +52,16 @@ def _add_sigma0_contours(
 
 
 def _ts_heatmap_panel(
-    ax: "plt.Axes",
-    fig: "plt.Figure",
+    ax: plt.Axes,
+    fig: plt.Figure,
     S: np.ndarray,
     T: np.ndarray,
     n_bins: int = 80,
     plo: float = 0.01,
     phi: float = 99.99,
-    s_lim: "Optional[tuple]" = None,
-    t_lim: "Optional[tuple]" = None,
-    cax: "Optional[plt.Axes]" = None,
+    s_lim: tuple | None = None,
+    t_lim: tuple | None = None,
+    cax: plt.Axes | None = None,
 ) -> None:
     """Render a T-S 2-D count heatmap on *ax*.
 
@@ -72,6 +73,7 @@ def _ts_heatmap_panel(
     squared with ``set_box_aspect``.
     """
     import matplotlib.pyplot as plt
+
     from ..utilities import nice_colorbar_ticks
     from .primitives import unit_colorbar
 
@@ -116,7 +118,7 @@ def _ts_heatmap_panel(
 
 def draw_ts_diagram(
     nc_path: Path, *, width_in: float = report_tokens.W_FULL
-) -> "Optional[plt.Figure]":
+) -> plt.Figure | None:
     """T-S diagram from a NetCDF path; return a Figure.
 
     Scatter by pressure, 2-D count heatmap, and (when present) scatter by O2 saturation.
@@ -285,7 +287,7 @@ def draw_ts_diagram(
 
 def _nice_axis_limits(
     x: np.ndarray, *, plow: float = 1.0, phigh: float = 99.0, pad_frac: float = 0.05
-) -> "tuple[float, float]":
+) -> tuple[float, float]:
     """Return padded, outward-rounded axis limits from robust percentiles.
 
     Takes the *plow*/*phigh* percentiles of *x* (default 1st/99th) so outliers do
@@ -322,8 +324,8 @@ def _nice_axis_limits(
 
 
 def draw_stack_ts_diagram(
-    ds: "xr.Dataset", *, width_in: float = report_tokens.W_FULL
-) -> "Optional[plt.Figure]":
+    ds: xr.Dataset, *, width_in: float = report_tokens.W_FULL
+) -> plt.Figure | None:
     """T-S diagram for a stacked dataset; return a Figure.
 
     Scatter-by-pressure, count heatmap, and (when present) scatter-by-AOU.
@@ -364,7 +366,7 @@ def draw_stack_ts_diagram(
     S_flat = S_all.ravel()
 
     # Pressure: keep flag 8 (interpolated) — only bad (4) and missing (9) excluded.
-    P_flat: Optional[np.ndarray] = None
+    P_flat: np.ndarray | None = None
     if "pressure" in ds.data_vars:
         P_arr = ds["pressure"].values.astype(float)
         if "pressure_qc" in ds.data_vars:
@@ -379,7 +381,7 @@ def draw_stack_ts_diagram(
         return None
 
     # O2 saturation: optional third panel.
-    SAT_flat: Optional[np.ndarray] = None
+    SAT_flat: np.ndarray | None = None
     if "oxygen_saturation_pct" in ds.data_vars:
         SAT_flat = ds["oxygen_saturation_pct"].values.astype(float).ravel()
 
@@ -487,8 +489,8 @@ def draw_stack_ts_diagram(
 
 
 def draw_grid_ts_diagram(
-    ds: "xr.Dataset", n_bins: int = 60, *, width_in: float = report_tokens.W_FULL
-) -> "Optional[tuple[plt.Figure, dict]]":
+    ds: xr.Dataset, n_bins: int = 60, *, width_in: float = report_tokens.W_FULL
+) -> tuple[plt.Figure, dict] | None:
     """T-S diagram for gridded mooring data; return a (Figure, bounds_dict) tuple.
 
     Left panel: 2-D count heatmap (log₁₀ samples per T-S bin).

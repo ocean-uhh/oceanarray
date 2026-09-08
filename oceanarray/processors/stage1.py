@@ -1,27 +1,27 @@
 """Refactored stage1 processing for mooring data with improved readability."""
 
 import calendar
+import logging
 import re
 import tempfile
 import warnings
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
-import logging
-
+import seasenselib
 import xarray as xr
 import yaml
-import seasenselib
 from seasenselib.writers import NetCdfWriter
+
+from oceanarray import parameters as params
+from oceanarray import paths
+from oceanarray.paths import safe_serial
 from oceanarray.utilities import (
     _status,
     cast_output_dtypes,
     extract_inline_instruments,
     should_skip_regeneration,
 )
-from oceanarray import parameters as params
-from oceanarray import paths
-from oceanarray.paths import safe_serial
 
 # Suppress noisy INFO/WARNING messages from seasenselib/pycnv.
 logging.getLogger("seasenselib").setLevel(logging.WARNING)
@@ -33,7 +33,7 @@ logging.getLogger("pycnv").setLevel(logging.WARNING)
 ADCP_BIN_DIM: str = params.ADCP_BIN_DIM
 
 
-def _dms_str_to_decimal(s: str) -> Optional[float]:
+def _dms_str_to_decimal(s: str) -> float | None:
     """Convert 'DD MM.mmm N/S/E/W' or a plain float string to decimal degrees."""
     s = str(s).strip()
     try:
@@ -68,7 +68,7 @@ def _parse_nortek_coord_system(hdr_path: Path) -> str:
     BEAM→ENU transform in stage3).
     """
     try:
-        with open(hdr_path, encoding="utf-8", errors="replace") as f:
+        with hdr_path.open(encoding="utf-8", errors="replace") as f:
             for line in f:
                 # Old text-format header block (ends at "Data file format")
                 if "Data file format" in line:
@@ -86,7 +86,7 @@ def _parse_nortek_coord_system(hdr_path: Path) -> str:
     return "ENU"
 
 
-def _parse_nortek_T_matrix_hdr(hdr_path: Path) -> Optional[Dict[str, float]]:
+def _parse_nortek_T_matrix_hdr(hdr_path: Path) -> dict[str, float] | None:
     """Parse the 3×3 Nortek transformation matrix from a .hdr file.
 
     Reads the "Transformation matrix" block (first line has 3 values, next two
@@ -96,7 +96,7 @@ def _parse_nortek_T_matrix_hdr(hdr_path: Path) -> Optional[Dict[str, float]]:
     try:
         floats: list = []
         in_matrix = False
-        with open(hdr_path, encoding="utf-8", errors="replace") as f:
+        with hdr_path.open(encoding="utf-8", errors="replace") as f:
             for line in f:
                 if "Data file format" in line:
                     break
@@ -127,7 +127,7 @@ def _parse_nortek_T_matrix_hdr(hdr_path: Path) -> Optional[Dict[str, float]]:
     return None
 
 
-def _parse_nortek_T_matrix_csv(csv_path: Path) -> Optional[Dict[str, float]]:
+def _parse_nortek_T_matrix_csv(csv_path: Path) -> dict[str, float] | None:
     """Parse the 3×3 Nortek transformation matrix from a String Data.csv file.
 
     Searches for a ``GETXFAVG`` or ``GETXFBURST`` command with
@@ -135,14 +135,14 @@ def _parse_nortek_T_matrix_csv(csv_path: Path) -> Optional[Dict[str, float]]:
     Returns a dict of M11..M33 floats, or None if not found.
     """
     try:
-        with open(csv_path, encoding="utf-8", errors="replace") as f:
+        with csv_path.open(encoding="utf-8", errors="replace") as f:
             content = f.read()
         for prefix in ("GETXFAVG", "GETXFBURST"):
             m = re.search(rf"{prefix},ROWS=3,COLS=3,([^|\n]+)", content, re.IGNORECASE)
             if not m:
                 continue
             params_str = m.group(1)
-            result: Dict[str, float] = {}
+            result: dict[str, float] = {}
             for i in range(1, 4):
                 for j in range(1, 4):
                     key = f"M{i}{j}"
@@ -170,7 +170,7 @@ def _parse_nortek_pressure_cal(hdr_path: Path) -> dict:
     cal: dict = {}
     in_section = False
     try:
-        with open(hdr_path, encoding="utf-8", errors="replace") as f:
+        with hdr_path.open(encoding="utf-8", errors="replace") as f:
             for line in f:
                 if "Data file format" in line:
                     break
@@ -255,7 +255,7 @@ class MooringProcessor:
         """Print to both console and log file."""
         print(*args, **kwargs)
         if self.log_file:
-            with open(self.log_file, "a") as f:
+            with self.log_file.open("a") as f:
                 print(*args, **kwargs, file=f)
 
     def _rel(self, path: Path) -> str:
@@ -268,9 +268,9 @@ class MooringProcessor:
                 continue
         return path.name
 
-    def _load_mooring_config(self, config_path: Path) -> Dict[str, Any]:
+    def _load_mooring_config(self, config_path: Path) -> dict[str, Any]:
         """Load mooring configuration from YAML file."""
-        with open(config_path, "r") as f:
+        with config_path.open() as f:
             return yaml.safe_load(f)
 
     def _normalize_sbe_ascii(self, file_path: Path) -> Path:
@@ -296,13 +296,13 @@ class MooringProcessor:
         normalized = re.sub(r"\b(\d{2})-(\d{2})-(\d{4})\b", _replace_date, content)
         normalized = re.sub(r",(?! )", ", ", normalized)
 
-        tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".asc", delete=False)
-        tmp.write(normalized)
-        tmp.close()
-        return Path(tmp.name)
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".asc", delete=False) as tmp:
+            tmp.write(normalized)
+            tmp_name = tmp.name
+        return Path(tmp_name)
 
     def _read_file(
-        self, file_type: str, file_path: str, header_path: Optional[str] = None
+        self, file_type: str, file_path: str, header_path: str | None = None
     ) -> xr.Dataset:
         """Read a raw instrument file and return a normalised xarray Dataset.
 
@@ -450,9 +450,7 @@ class MooringProcessor:
             if not _m:
                 continue
             _base = _m.group(1)
-            if _base in dataset.data_vars:
-                _to_drop.append(_vname)
-            elif (
+            if _base in dataset.data_vars or (
                 dataset[_vname].dtype.kind == "f"
                 and dataset[_vname].size > 0
                 and bool(np.all(np.isnan(dataset[_vname].values)))
@@ -608,7 +606,7 @@ class MooringProcessor:
         return dataset
 
     def _add_sbe_ascii_sensor_vars(
-        self, dataset: xr.Dataset, file_path: Path, instrument_config: Dict[str, Any]
+        self, dataset: xr.Dataset, file_path: Path, instrument_config: dict[str, Any]
     ) -> xr.Dataset:
         """Parse calibration coefficients from an SBE ASCII header and add SENSOR_* vars.
 
@@ -617,8 +615,8 @@ class MooringProcessor:
         reader would produce, and creates matching SENSOR_* scalar variables so the
         report calibration table is populated for ASCII-format instruments.
         """
-        import xarray as xr
         import numpy as np
+        import xarray as xr
 
         try:
             text = file_path.read_text(errors="ignore")
@@ -632,9 +630,9 @@ class MooringProcessor:
             r"^(temperature|conductivity|pressure|rtc|S>|\*END\*)", re.IGNORECASE
         )
 
-        def _extract_block(header: str, start_pat: str) -> Dict[str, str]:
+        def _extract_block(header: str, start_pat: str) -> dict[str, str]:
             """Return coefficient dict from a labelled block of ``*     KEY = VAL`` lines."""
-            coeffs: Dict[str, str] = {}
+            coeffs: dict[str, str] = {}
             in_block = False
             for line in header.splitlines():
                 stripped = line.lstrip("* ").strip()
@@ -664,10 +662,10 @@ class MooringProcessor:
                     return raw
             return "—"
 
-        def _coeff_str(d: Dict[str, str]) -> str:
+        def _coeff_str(d: dict[str, str]) -> str:
             return ", ".join(f"{k}={v}" for k, v in d.items())
 
-        def _make_sensor_var(name: str, attrs: Dict[str, Any]) -> xr.Variable:  # noqa: ARG001
+        def _make_sensor_var(name: str, attrs: dict[str, Any]) -> xr.Variable:  # noqa: ARG001
             return xr.Variable((), np.array(b"", dtype="|S1"), attrs=attrs)
 
         # Temperature
@@ -745,7 +743,7 @@ class MooringProcessor:
         return dataset
 
     def _add_sbe_hex_sensor_vars(
-        self, dataset: xr.Dataset, file_path: Path, instrument_config: Dict[str, Any]
+        self, dataset: xr.Dataset, file_path: Path, instrument_config: dict[str, Any]
     ) -> xr.Dataset:
         """Parse calibration coefficients from an SBE hex header and add SENSOR_* vars.
 
@@ -769,14 +767,14 @@ class MooringProcessor:
 
         instr_serial = safe_serial(instrument_config.get("serial", ""))
 
-        def _coeff_str(coeffs: Dict[str, Any]) -> str:
+        def _coeff_str(coeffs: dict[str, Any]) -> str:
             return ", ".join(
                 f"{k}={v}"
                 for k, v in coeffs.items()
                 if k not in ("serialnum", "caldate")
             )
 
-        def _make_sensor_var(attrs: Dict[str, Any]) -> "xr.Variable":
+        def _make_sensor_var(attrs: dict[str, Any]) -> "xr.Variable":
             return xr.Variable((), np.array(b"", dtype="|S1"), attrs=attrs)
 
         def _iso_date(raw: str) -> str:
@@ -887,7 +885,7 @@ class MooringProcessor:
 
     # Known SBE CNV variable names containing '/' and their CF-compatible replacements.
     # Keys that are already handled by _normalize_conductivity are excluded.
-    _CNV_SLASH_RENAMES: Dict[str, str] = {
+    _CNV_SLASH_RENAMES: dict[str, str] = {
         "sbeopoxMm/Kg": "dissolved_oxygen",  # SBE63 optode O2 in mmol/kg
         "sbeox0Mm/Kg": "dissolved_oxygen",  # SBE43 electrochemical O2 mmol/kg
         "sbeox0ML/L": "dissolved_oxygen",  # SBE43 electrochemical O2 mL/L
@@ -899,7 +897,7 @@ class MooringProcessor:
 
     def _sanitize_slash_vars(self, dataset: xr.Dataset) -> xr.Dataset:
         """Rename known SBE slash-named variables and warn about any remaining ones."""
-        rename_map: Dict[str, str] = {}
+        rename_map: dict[str, str] = {}
         for old, new in self._CNV_SLASH_RENAMES.items():
             if old in dataset.data_vars:
                 # Avoid clobbering a variable that already exists with the target name
@@ -925,7 +923,7 @@ class MooringProcessor:
         return dataset
 
     def _normalize_sensor_var_names(
-        self, dataset: xr.Dataset, instrument_config: Dict[str, Any]
+        self, dataset: xr.Dataset, instrument_config: dict[str, Any]
     ) -> xr.Dataset:
         """Rename SENSOR_PRES_{sensor_serial} to SENSOR_PRES_{instrument_serial}.
 
@@ -973,7 +971,7 @@ class MooringProcessor:
         return dataset
 
     def _add_global_attributes(
-        self, dataset: xr.Dataset, yaml_data: Dict[str, Any]
+        self, dataset: xr.Dataset, yaml_data: dict[str, Any]
     ) -> xr.Dataset:
         """Add global attributes from YAML configuration."""
         global_attrs = {
@@ -999,8 +997,8 @@ class MooringProcessor:
     def _add_instrument_metadata(
         self,
         dataset: xr.Dataset,
-        instrument_config: Dict[str, Any],
-        yaml_data: Dict[str, Any],
+        instrument_config: dict[str, Any],
+        yaml_data: dict[str, Any],
     ) -> xr.Dataset:
         """Add instrument-specific metadata to dataset."""
         dataset["serial_number"] = instrument_config.get("serial", 0)
@@ -1028,7 +1026,7 @@ class MooringProcessor:
     def _normalize_rdi_raw(
         self,
         dataset: xr.Dataset,
-        instrument_config: Dict[str, Any],
+        instrument_config: dict[str, Any],
     ) -> xr.Dataset:
         """Normalise the dataset produced by the ``rdi-raw`` seasenselib reader.
 
@@ -1069,7 +1067,8 @@ class MooringProcessor:
             dataset: Dataset as returned by ``seasenselib.read(..., file_type="rdi-raw")``.
             instrument_config: Per-instrument YAML configuration dict.
 
-        Returns:
+        Returns
+        -------
             Normalised dataset ready for metadata attachment and NetCDF writing.
 
         """
@@ -1107,7 +1106,7 @@ class MooringProcessor:
 
         # 3. Rename dolfyn quality variable names to oceanarray standard names,
         #    transpose to (time, N_BINS, beam), and set long_name.
-        _QUAL_RENAME: Dict[str, Tuple[str, str]] = {
+        _QUAL_RENAME: dict[str, tuple[str, str]] = {
             "amp": ("amplitude", "Acoustic signal amplitude"),
             "corr": ("correlation", "Acoustic signal correlation"),
             "prcnt_gd": ("percent_good", "Percent good"),
@@ -1188,19 +1187,22 @@ class MooringProcessor:
         if orientation_yaml:
             dataset.attrs["orientation_yaml"] = str(orientation_yaml)
         _orient_instrument = dataset.attrs.get("orientation_instrument", "")
-        if orientation_yaml and _orient_instrument:
-            if orientation_yaml.lower() != _orient_instrument.lower():
-                self._log_print(
-                    f"WARNING: ADCP orientation mismatch — raw file says "
-                    f"'{_orient_instrument}' but YAML says '{orientation_yaml}'. "
-                    f"Velocity signs and beam geometry may be incorrect. "
-                    f"A correction must be applied in stage3."
-                )
+        if (
+            orientation_yaml
+            and _orient_instrument
+            and orientation_yaml.lower() != _orient_instrument.lower()
+        ):
+            self._log_print(
+                f"WARNING: ADCP orientation mismatch — raw file says "
+                f"'{_orient_instrument}' but YAML says '{orientation_yaml}'. "
+                f"Velocity signs and beam geometry may be incorrect. "
+                f"A correction must be applied in stage3."
+            )
 
         return dataset
 
     def _find_file_tag(
-        self, filename: str, tags: Tuple[str, ...] = ("_000", "_001", "_002")
+        self, filename: str, tags: tuple[str, ...] = ("_000", "_001", "_002")
     ) -> str:
         """Find known tag in filename."""
         filename = str(filename)
@@ -1217,7 +1219,7 @@ class MooringProcessor:
         return safe_serial(serial)
 
     def _generate_output_filename(
-        self, mooring_name: str, instrument_config: Dict[str, Any], output_dir: Path
+        self, mooring_name: str, instrument_config: dict[str, Any], output_dir: Path
     ) -> Path:
         """Generate output filename for processed data."""
         file_type = instrument_config.get("file_type", "")
@@ -1233,7 +1235,7 @@ class MooringProcessor:
         )
         return output_dir / output_filename
 
-    def _get_netcdf_writer_params(self) -> Dict[str, Any]:
+    def _get_netcdf_writer_params(self) -> dict[str, Any]:
         """Get standard parameters for NetCDF writer."""
         return {
             "optimize": True,
@@ -1265,12 +1267,12 @@ class MooringProcessor:
 
     @staticmethod
     def _guess_instrument_filename(
-        instrument_config: Dict[str, Any],
+        instrument_config: dict[str, Any],
         mooring_name: str,
-        raw_mooring_dir: Optional[Path],
-        input_dir: Optional[Path],
-        log_fn: Optional[Any] = None,
-    ) -> Optional[tuple]:
+        raw_mooring_dir: Path | None,
+        input_dir: Path | None,
+        log_fn: Any | None = None,
+    ) -> tuple | None:
         """Try standard recovery-file naming conventions to locate a raw data file.
 
         Used when ``filename`` is absent or ``null`` in the mooring YAML.
@@ -1446,13 +1448,13 @@ class MooringProcessor:
 
     def _process_instrument(
         self,
-        instrument_config: Dict[str, Any],
-        yaml_data: Dict[str, Any],
-        input_dir: Optional[Path],
+        instrument_config: dict[str, Any],
+        yaml_data: dict[str, Any],
+        input_dir: Path | None,
         output_path: Path,
         mooring_name: str,
         force: bool = False,
-        raw_mooring_dir: Optional[Path] = None,
+        raw_mooring_dir: Path | None = None,
     ) -> bool:
         """Process one instrument entry from the mooring YAML.
 
@@ -1571,10 +1573,10 @@ class MooringProcessor:
         input_file: Path,
         output_file: Path,
         file_type: str,
-        instrument_config: Dict[str, Any],
-        yaml_data: Dict[str, Any],
-        input_dir: Optional[Path],
-        raw_mooring_dir: Optional[Path] = None,
+        instrument_config: dict[str, Any],
+        yaml_data: dict[str, Any],
+        input_dir: Path | None,
+        raw_mooring_dir: Path | None = None,
     ) -> bool:
         """Read one raw instrument file, enrich the dataset, and write Stage 1 NetCDF.
 
@@ -1812,8 +1814,8 @@ class MooringProcessor:
     def process_mooring(
         self,
         mooring_name: str,
-        output_path: Optional[str] = None,
-        serials: Optional[List[str]] = None,
+        output_path: str | None = None,
+        serials: list[str] | None = None,
         force: bool = False,
     ) -> bool:
         """Process a single mooring's data.
@@ -1824,7 +1826,8 @@ class MooringProcessor:
             serials: Optional list of serial numbers to process; if None, process all.
             force: Re-process even if output already exists.
 
-        Returns:
+        Returns
+        -------
             bool: True if processing completed successfully, False otherwise
 
         """

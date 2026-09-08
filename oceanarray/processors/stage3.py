@@ -51,7 +51,7 @@ from __future__ import annotations
 import datetime
 import hashlib
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import numpy as np
 import xarray as xr
@@ -59,12 +59,14 @@ import yaml
 
 from oceanarray import paths
 from oceanarray.paths import safe_serial
-from oceanarray.utilities import (
-    cast_output_dtypes,
-    drop_all_zero_vars,
-    extract_inline_instruments,
+from oceanarray.processors.caldip import CALDIP_STUB_APPLIED
+from oceanarray.processors.coordinate import (
+    apply_adcp_seabed_qc,
+    apply_adcp_surface_qc,
+    apply_adcp_velocity_qc,
+    apply_beam_to_enu,
+    apply_declination_to_enu,
 )
-
 from oceanarray.processors.pressure import (
     compute_adcp_bin_pressure,
     interpolate_pressure,
@@ -81,14 +83,11 @@ from oceanarray.processors.qc import (
     set_qc_attrs,
     unify_velocity_qc,
 )
-from oceanarray.processors.coordinate import (
-    apply_adcp_seabed_qc,
-    apply_adcp_surface_qc,
-    apply_adcp_velocity_qc,
-    apply_beam_to_enu,
-    apply_declination_to_enu,
+from oceanarray.utilities import (
+    cast_output_dtypes,
+    drop_all_zero_vars,
+    extract_inline_instruments,
 )
-from oceanarray.processors.caldip import CALDIP_STUB_APPLIED
 
 
 def _safe_serial(serial: Any) -> str:
@@ -132,7 +131,7 @@ class Stage3Processor:
         print(*args, **kwargs)
         if self.log_file:
             try:
-                with open(self.log_file, "a") as f:
+                with self.log_file.open("a") as f:
                     print(*args, **kwargs, file=f)
             except OSError:
                 pass
@@ -144,10 +143,10 @@ class Stage3Processor:
     def process_mooring(
         self,
         mooring_name: str,
-        serials: Optional[List[str]] = None,
+        serials: list[str] | None = None,
         force: bool = False,
         dry_run: bool = False,
-        caldip_dir: Optional[str] = None,
+        caldip_dir: str | None = None,
     ) -> bool:
         """Run Stage 3 QC and pressure interpolation for all instruments on a mooring.
 
@@ -179,7 +178,7 @@ class Stage3Processor:
             self._log(f"ERROR: Config not found: {config_file}")
             return False
 
-        with open(config_file) as f:
+        with config_file.open() as f:
             mooring_config = yaml.safe_load(f)
 
         instrument_list = list(
@@ -197,7 +196,7 @@ class Stage3Processor:
         _water_depth_m = float(mooring_config.get("waterdepth") or 0.0)
 
         # ── Build instrument table ──────────────────────────────────────
-        instruments: List[Dict[str, Any]] = []
+        instruments: list[dict[str, Any]] = []
         for entry in instrument_list:
             if not isinstance(entry, dict):
                 continue
@@ -228,7 +227,7 @@ class Stage3Processor:
             # Parse optional hab_segments: list of {from: ISO, hab: float}
             # Stored as sorted list of (np.datetime64, float) breakpoints.
             raw_segs = entry.get("hab_segments", [])
-            hab_segments: List[tuple] = []
+            hab_segments: list[tuple] = []
             for seg in raw_segs:
                 try:
                     bp = np.datetime64(seg["from"], "ns")
@@ -275,7 +274,7 @@ class Stage3Processor:
                 return True
 
         # ── Scan what pressure variables each instrument has ────────────
-        def _find_pressure_var(data_vars: set) -> Optional[str]:
+        def _find_pressure_var(data_vars: set) -> str | None:
             if "pressure" in data_vars:
                 return "pressure"
             for cand in sorted(
@@ -313,7 +312,7 @@ class Stage3Processor:
         # → select_offsets → apply_caldip. Until then `caldip_dir` is a null action: a warning
         # is logged above, and caldip_applied is stamped on each output at write time.
 
-        def pressure_bad(info: Dict[str, Any]) -> bool:
+        def pressure_bad(info: dict[str, Any]) -> bool:
             return info["qc_flags"].get("pressure", 0) >= 3
 
         sources = [i for i in instruments if i["has_pressure"] and not pressure_bad(i)]
@@ -395,11 +394,11 @@ class Stage3Processor:
     # ------------------------------------------------------------------
     def _process_instrument(
         self,
-        info: Dict[str, Any],
-        sources: List[Dict[str, Any]],
-        targets: List[Dict[str, Any]],
+        info: dict[str, Any],
+        sources: list[dict[str, Any]],
+        targets: list[dict[str, Any]],
         force: bool = False,
-        caldip_dir: Optional[str] = None,
+        caldip_dir: str | None = None,
     ) -> bool:
         """Apply Stage 3 processing to one instrument's Stage 2 NetCDF.
 
@@ -457,7 +456,7 @@ class Stage3Processor:
             _st2_mtime = datetime.datetime.utcfromtimestamp(
                 _st2_stat.st_mtime
             ).strftime("%Y-%m-%dT%H:%M:%SZ")
-            with open(nc_path, "rb") as _f:
+            with nc_path.open("rb") as _f:
                 _st2_sha = hashlib.sha256(_f.read()).hexdigest()[:8]
             ds.attrs["stage2_source_file"] = nc_path.name
             ds.attrs["stage2_source_mtime"] = _st2_mtime

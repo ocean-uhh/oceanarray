@@ -1,21 +1,20 @@
 """NetCDF and legacy-format readers for mooring instrument data."""
 
 from pathlib import Path
-from typing import Dict, List, Optional, Union
 
 import numpy as np
 import pandas as pd
 import xarray as xr
 
-from oceanarray.logger import log_info
 from oceanarray.legacy import rodb
+from oceanarray.logger import log_info
 
 DUMMY_VALUES = [1e32, -9.0, -9.9]
 
 
 def load_dataset(
-    source: Union[str, Path, List[Union[str, Path]]],
-) -> Union[xr.Dataset, List[xr.Dataset]]:
+    source: str | Path | list[str | Path],
+) -> xr.Dataset | list[xr.Dataset]:
     """Load one or more observational data files and return as xarray Datasets.
 
     Dispatches based on file extension or known formats.
@@ -49,7 +48,7 @@ def load_dataset(
         elif rodb.is_rodb_file(f):
             ds = rodb.rodbload(f)
         else:
-            raise ValueError(f"Unknown file type: {f}")  # noqa: TRY003
+            raise ValueError(f"Unknown file type: {f}")
         datasets.append(ds)
 
     return datasets if len(datasets) > 1 else datasets[0]
@@ -71,7 +70,7 @@ def rodbload_old(filepath: Path, variables: list[str]) -> xr.Dataset:
         Dataset containing requested variables
 
     """
-    with open(filepath, "r") as f:
+    with filepath.open() as f:
         lines = f.readlines()
 
     # Extract header lines (up to first data block)
@@ -88,12 +87,12 @@ def rodbload_old(filepath: Path, variables: list[str]) -> xr.Dataset:
             break
 
     if data_start_index is None:
-        raise ValueError("Could not locate data block in file")  # noqa: TRY003
+        raise ValueError("Could not locate data block in file")
 
     # Extract columns
     col_line = next((line for line in header_lines if "columns" in line.lower()), None)
     if col_line is None:
-        raise ValueError("No 'columns=' line found in header")  # noqa: TRY003
+        raise ValueError("No 'columns=' line found in header")
 
     columns = col_line.split("=")[-1].strip().split(":")
     print(columns)
@@ -102,7 +101,7 @@ def rodbload_old(filepath: Path, variables: list[str]) -> xr.Dataset:
     # Validate requested variables
     missing = [v for v in variables if v not in columns]
     if missing:
-        raise ValueError(f"Variables not found in file: {missing}")  # noqa: TRY003
+        raise ValueError(f"Variables not found in file: {missing}")
 
     col_indices = {v: i for i, v in enumerate(columns) if v in variables}
 
@@ -131,11 +130,10 @@ def _clean_nortek_var_name(col: str) -> str:
     name = col.lower().strip()
     name = re.sub(r"[^\w\s]", " ", name)  # special chars → spaces
     name = re.sub(r"\s+", "_", name.strip())
-    name = re.sub(r"_+", "_", name)
-    return name
+    return re.sub(r"_+", "_", name)
 
 
-def _parse_nortek_csv_columns(df: pd.DataFrame) -> Dict:
+def _parse_nortek_csv_columns(df: pd.DataFrame) -> dict:
     """Build a complete variable dict from all columns in a Nortek CSV DataFrame.
 
     Nortek AquaPro exports mix two column-naming styles:
@@ -155,14 +153,14 @@ def _parse_nortek_csv_columns(df: pd.DataFrame) -> Dict:
       dropped because the ``time`` coordinate already captures this information.
     """
     # Build case-insensitive lookup: lower_name -> first df column name
-    col_map: Dict[str, str] = {}
+    col_map: dict[str, str] = {}
     for col in df.columns:
         key = col.lower().strip()
         if key not in col_map:
             col_map[key] = col  # first occurrence wins
 
     # Canonical name mappings — covers both camelCase and Title Case spellings
-    canonical: Dict[str, str] = {}  # df_col_name -> var_name
+    canonical: dict[str, str] = {}  # df_col_name -> var_name
 
     scalar_mappings = [
         (["temperature"], "temperature"),
@@ -203,7 +201,7 @@ def _parse_nortek_csv_columns(df: pd.DataFrame) -> Dict:
     drop_cols = time_components | duplicate_pressure | {"datetime"}
 
     # Build data_vars: canonical names first, then everything else
-    data_vars: Dict = {}
+    data_vars: dict = {}
     assigned_df_cols: set = set(canonical.keys())
 
     for df_col, var_name in canonical.items():
@@ -258,8 +256,8 @@ def _add_nortek_csv_attributes(ds: xr.Dataset) -> xr.Dataset:
 
 
 def load_nortek_csv(
-    file_path: Union[str, Path],
-    header_file: Optional[str] = None,  # noqa: ARG001
+    file_path: str | Path,
+    header_file: str | None = None,  # noqa: ARG001
 ) -> xr.Dataset:
     """Load Nortek CSV data exported from AquaPro software.
 
@@ -279,7 +277,7 @@ def load_nortek_csv(
     """
     file_path = Path(file_path)
     if not file_path.exists():
-        raise FileNotFoundError(f"Nortek CSV file not found: {file_path}")  # noqa: TRY003
+        raise FileNotFoundError(f"Nortek CSV file not found: {file_path}")
 
     df = pd.read_csv(file_path, delimiter=";")
     df["datetime"] = pd.to_datetime(df["dateTime"])

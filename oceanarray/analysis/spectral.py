@@ -61,14 +61,14 @@ def gonella_rotary_spectrum(
     """
     from scipy.signal import csd as _scipy_csd
 
-    _kw: dict = dict(
-        fs=fs,
-        window="hann",
-        nperseg=nperseg,
-        noverlap=noverlap,
-        detrend="linear",
-        scaling="density",
-    )
+    _kw: dict = {
+        "fs": fs,
+        "window": "hann",
+        "nperseg": nperseg,
+        "noverlap": noverlap,
+        "detrend": "linear",
+        "scaling": "density",
+    }
     f_uu, p_uu = _scipy_welch(u_col, **_kw)
     _, p_vv = _scipy_welch(v_col, **_kw)
     _, c_uv = _scipy_csd(u_col, v_col, **_kw)
@@ -139,7 +139,7 @@ def compute_cwt(
     try:
         import pycwt
     except ImportError as exc:
-        raise ImportError(  # noqa: TRY003
+        raise ImportError(
             "pycwt is required for wavelet analysis: pip install pycwt"
         ) from exc
 

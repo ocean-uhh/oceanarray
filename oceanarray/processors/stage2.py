@@ -39,7 +39,7 @@ All clock values are the amounts **added** to instrument time to obtain correcte
 
 import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -56,7 +56,7 @@ from oceanarray.utilities import (
 )
 
 
-def _parse_clock_str(s: str) -> Optional[pd.Timestamp]:
+def _parse_clock_str(s: str) -> pd.Timestamp | None:
     """Parse a clock timestamp in multiple formats; return None if unparseable.
 
     Accepts:
@@ -90,7 +90,7 @@ def _append_history(dataset: xr.Dataset, note: str) -> None:
 
 def detect_deployment_window(
     ds: xr.Dataset,
-) -> tuple[Optional[np.datetime64], Optional[np.datetime64], str]:
+) -> tuple[np.datetime64 | None, np.datetime64 | None, str]:
     """Estimate the deployed in-water window from a stage1 pressure record.
 
     .. important:: **Returns ``(None, None, ...)`` when no pressure data are
@@ -242,7 +242,7 @@ def _find_nonnull_bounds(
     n = len(time)
 
     # Choose the representative variable using the priority hierarchy
-    var: Optional[str] = None
+    var: str | None = None
     if "pressure" in dataset.data_vars and dataset["pressure"].dims == ("time",):
         var = "pressure"
     elif "temperature" in dataset.data_vars and dataset["temperature"].dims == (
@@ -317,17 +317,17 @@ class Stage2Processor:
         """Print to both console and log file."""
         print(*args, **kwargs)
         if self.log_file:
-            with open(self.log_file, "a") as f:
+            with self.log_file.open("a") as f:
                 print(*args, **kwargs, file=f)
 
-    def _load_mooring_config(self, config_path: Path) -> Dict[str, Any]:
+    def _load_mooring_config(self, config_path: Path) -> dict[str, Any]:
         """Load mooring configuration from YAML file."""
-        with open(config_path, "r") as f:
+        with config_path.open() as f:
             return yaml.safe_load(f)
 
-    def _read_yaml_time(self, data: Dict[str, Any], key: str) -> np.datetime64:
+    def _read_yaml_time(self, data: dict[str, Any], key: str) -> np.datetime64:
         """Return datetime64[ns] from YAML dict or NaT if missing/invalid."""
-        val = data.get(key, None)
+        val = data.get(key)
         if val is None or (isinstance(val, str) and not val.strip()):
             return np.datetime64("NaT", "ns")
         try:
@@ -374,7 +374,7 @@ class Stage2Processor:
 
     def _resolve_clock_drift(
         self,
-        instrument_config: Dict[str, Any],
+        instrument_config: dict[str, Any],
     ) -> tuple:
         """Return (drift_seconds, history_note) from YAML config.
 
@@ -623,7 +623,7 @@ class Stage2Processor:
 
     def _extract_metadata_from_filepath(
         self, filepath: Path, mooring_name: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Extract metadata from filepath when not available in YAML or dataset.
 
         Expected pattern: {instrument_type}/{mooring_name}_{serial}_stage1.nc
@@ -659,7 +659,7 @@ class Stage2Processor:
 
     def _get_figure_naming_info(
         self, dataset: xr.Dataset, mooring_name: str
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """Get information needed for figure naming convention.
 
         Returns dict with mooring_name, instrument, serial for creating
@@ -677,7 +677,7 @@ class Stage2Processor:
     def _add_missing_metadata(
         self,
         dataset: xr.Dataset,
-        instrument_config: Dict[str, Any],
+        instrument_config: dict[str, Any],
         filepath: Path,
         mooring_name: str,
     ) -> xr.Dataset:
@@ -767,7 +767,7 @@ class Stage2Processor:
 
         return dataset
 
-    def _get_netcdf_writer_params(self) -> Dict[str, Any]:
+    def _get_netcdf_writer_params(self) -> dict[str, Any]:
         """Get standard parameters for NetCDF writer."""
         return {
             "optimize": True,
@@ -799,8 +799,8 @@ class Stage2Processor:
 
     def _process_instrument(
         self,
-        instrument_config: Dict[str, Any],
-        mooring_config: Dict[str, Any],  # noqa: ARG002  — reserved for future per-mooring overrides
+        instrument_config: dict[str, Any],
+        mooring_config: dict[str, Any],  # noqa: ARG002  — reserved for future per-mooring overrides
         proc_dir: Path,
         mooring_name: str,
         deploy_time: np.datetime64,
@@ -987,8 +987,8 @@ class Stage2Processor:
     def process_mooring(
         self,
         mooring_name: str,
-        output_path: Optional[str] = None,
-        serials: Optional[List[str]] = None,
+        output_path: str | None = None,
+        serials: list[str] | None = None,
         force: bool = False,
     ) -> bool:
         """Process Stage 2 for a single mooring.
@@ -999,7 +999,8 @@ class Stage2Processor:
             serials: Optional list of serial numbers to process; if None, process all.
             force: Re-process even if Stage 2 output already exists.
 
-        Returns:
+        Returns
+        -------
             bool: True if processing completed successfully
 
         """

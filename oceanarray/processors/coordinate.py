@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
 import numpy as np
 import xarray as xr
@@ -55,13 +55,13 @@ def xyz_to_enu(
 
 
 def apply_beam_to_enu(
-    ds: "xr.Dataset",
-    entry: Dict[str, Any],
+    ds: xr.Dataset,
+    entry: dict[str, Any],
     lat: float,
     lon: float,
     latlon_source: str = "unknown",
     log_fn: Any = None,
-) -> "xr.Dataset":
+) -> xr.Dataset:
     """Transform BEAM or XYZ Nortek velocities to ENU geographic coordinates.
 
     Adds east_velocity, north_velocity, up_velocity, current_speed,
@@ -108,8 +108,9 @@ def apply_beam_to_enu(
         )
     else:
         try:
-            import ppigrf
             import datetime as _dt
+
+            import ppigrf
 
             time_vals = ds["time"].values
             t_mid = time_vals[len(time_vals) // 2]
@@ -148,25 +149,25 @@ def apply_beam_to_enu(
         )
         return ds
 
-    else:  # XYZ — stage3 only needs to do XYZ→ENU
-        if "velocity_x" in ds.data_vars:
-            # stage1 applied the T matrix (BEAM→XYZ) and stored instrument-frame XYZ
-            T_source = "applied in stage1 (BEAM→XYZ)"
-            vx = ds["velocity_x"].values.astype(float)
-            vy = ds["velocity_y"].values.astype(float)
-            vz = ds["velocity_z"].values.astype(float)
-        elif "x_velocity" in ds.data_vars:
-            # Instrument natively reports XYZ; T matrix applied in firmware
-            T_source = "not applicable (instrument-native XYZ)"
-            vx = ds["x_velocity"].values.astype(float)
-            vy = ds["y_velocity"].values.astype(float)
-            vz = ds["z_velocity"].values.astype(float)
-        else:
-            # Legacy fallback: XYZ stored in beam variable slots
-            T_source = "not applicable (legacy XYZ fallback)"
-            vx = ds["velocity_beam1"].values.astype(float)
-            vy = ds["velocity_beam2"].values.astype(float)
-            vz = ds["velocity_beam3"].values.astype(float)
+    # XYZ — stage3 only needs to do XYZ→ENU
+    if "velocity_x" in ds.data_vars:
+        # stage1 applied the T matrix (BEAM→XYZ) and stored instrument-frame XYZ
+        T_source = "applied in stage1 (BEAM→XYZ)"
+        vx = ds["velocity_x"].values.astype(float)
+        vy = ds["velocity_y"].values.astype(float)
+        vz = ds["velocity_z"].values.astype(float)
+    elif "x_velocity" in ds.data_vars:
+        # Instrument natively reports XYZ; T matrix applied in firmware
+        T_source = "not applicable (instrument-native XYZ)"
+        vx = ds["x_velocity"].values.astype(float)
+        vy = ds["y_velocity"].values.astype(float)
+        vz = ds["z_velocity"].values.astype(float)
+    else:
+        # Legacy fallback: XYZ stored in beam variable slots
+        T_source = "not applicable (legacy XYZ fallback)"
+        vx = ds["velocity_beam1"].values.astype(float)
+        vy = ds["velocity_beam2"].values.astype(float)
+        vz = ds["velocity_beam3"].values.astype(float)
 
     # XYZ → ENU
     valid_all = (
@@ -256,12 +257,12 @@ def apply_beam_to_enu(
 
 
 def apply_declination_to_enu(
-    ds: "xr.Dataset",
+    ds: xr.Dataset,
     lat: float,
     lon: float,
     latlon_source: str = "unknown",
     log_fn: Any = None,
-) -> "xr.Dataset":
+) -> xr.Dataset:
     """Apply magnetic declination rotation to velocities already in ENU frame.
 
     When a Nortek instrument is configured to output ENU coordinates internally,
@@ -302,8 +303,9 @@ def apply_declination_to_enu(
         return ds
 
     try:
-        import ppigrf
         import datetime as _dt
+
+        import ppigrf
 
         time_vals = ds["time"].values
         t_mid = time_vals[len(time_vals) // 2]
@@ -404,6 +406,7 @@ def apply_adcp_seabed_qc(
         return ds
 
     import gsw
+
     from oceanarray import parameters as params
 
     p_seabed = float(gsw.p_from_z(-water_depth_m, lat))
@@ -494,6 +497,7 @@ def apply_adcp_surface_qc(
         return ds
 
     import gsw
+
     from oceanarray import parameters as params
 
     p_suspect = float(gsw.p_from_z(-suspect_margin_m, lat))
@@ -530,7 +534,7 @@ def apply_adcp_surface_qc(
 
 def apply_adcp_velocity_qc(
     ds: xr.Dataset,
-    gr_cfg: Dict[str, Any],
+    gr_cfg: dict[str, Any],
     prcnt_gd_bad: float,
     prcnt_gd_suspect: float,
     error_vel_threshold: float,
@@ -638,7 +642,7 @@ def apply_adcp_velocity_qc(
             ),
         ).astype(np.int8)
         qc_var = f"{varname}_qc"
-        threshold_attrs: Dict[str, Any] = {
+        threshold_attrs: dict[str, Any] = {
             "qc_gross_range_fail_min": float(fail_min),
             "qc_gross_range_fail_max": float(fail_max),
             "qc_gross_range_suspect_min": float(susp_min),

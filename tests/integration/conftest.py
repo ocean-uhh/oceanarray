@@ -1,7 +1,7 @@
 """Shared fixtures for integration tests."""
 
-from pathlib import Path
 import shutil
+from pathlib import Path
 
 import pytest
 

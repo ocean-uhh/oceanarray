@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import copy
-from typing import Any, Dict, Optional
+from typing import Any
 
 import numpy as np
 import xarray as xr
@@ -13,7 +13,7 @@ from oceanarray import parameters as params
 # Merge priority for combining QC flags (higher priority wins = worse quality).
 # Single source of truth: parameters.QC_MERGE_PRIORITY, shared with
 # mooring.helpers._worst_flag so the two merge paths cannot drift.
-_QC_PRIORITY: Dict[int, int] = params.QC_MERGE_PRIORITY
+_QC_PRIORITY: dict[int, int] = params.QC_MERGE_PRIORITY
 
 # Velocity variable names in both beam and ENU coordinate systems.
 _VELOCITY_VARS = (
@@ -63,7 +63,7 @@ def _ingest_qartod(result: Any) -> np.ndarray:
 
 
 def set_qc_attrs(
-    ds: xr.Dataset, var: str, extra: Optional[Dict[str, Any]] = None
+    ds: xr.Dataset, var: str, extra: dict[str, Any] | None = None
 ) -> xr.Dataset:
     """Attach the OceanSITES flag attributes to ``{var}_qc`` in place.
 
@@ -90,7 +90,7 @@ def set_qc_attrs(
         *ds*, modified in place.
 
     """
-    attrs: Dict[str, Any] = {
+    attrs: dict[str, Any] = {
         "flag_values": params.QC_FLAG_VALUES_I8,
         "flag_meanings": params.QC_FLAG_MEANINGS,
         "conventions": params.QC_CONVENTION,
@@ -108,7 +108,7 @@ def set_qc_attrs(
     return ds
 
 
-def _deep_merge(base: Dict, override: Dict) -> Dict:
+def _deep_merge(base: dict, override: dict) -> dict:
     """Merge two nested dicts; override values win at the variable level."""
     merged = copy.deepcopy(base)
     for k, v in override.items():
@@ -119,7 +119,7 @@ def _deep_merge(base: Dict, override: Dict) -> Dict:
     return merged
 
 
-def _tilt_from_span(qc_ranges: Dict[str, Any]) -> Dict[str, float]:
+def _tilt_from_span(qc_ranges: dict[str, Any]) -> dict[str, float]:
     """Extract tilt thresholds from a qc_ranges block if 'tilt' is present.
 
     Converts the symmetric span format (matching all other variables) into the
@@ -129,7 +129,7 @@ def _tilt_from_span(qc_ranges: Dict[str, Any]) -> Dict[str, float]:
         suspect_span: [-20, 20]  →  suspect_threshold: 20
         fail_span:    [-30, 30]  →  fail_threshold:    30
     """
-    out: Dict[str, float] = {}
+    out: dict[str, float] = {}
     tilt_cfg = qc_ranges.get("tilt", {})
     if "suspect_span" in tilt_cfg:
         out["suspect_threshold"] = float(tilt_cfg["suspect_span"][1])
@@ -139,9 +139,9 @@ def _tilt_from_span(qc_ranges: Dict[str, Any]) -> Dict[str, float]:
 
 
 def load_qc_config(
-    mooring_cfg: Dict[str, Any],
-    entry: Dict[str, Any],
-) -> tuple[Dict, Dict, Dict, Dict]:
+    mooring_cfg: dict[str, Any],
+    entry: dict[str, Any],
+) -> tuple[dict, dict, dict, dict]:
     """Return QC threshold dicts for one instrument.
 
     Returns a 4-tuple ``(gross_range, spike, tilt, flat_line)`` built from
@@ -201,7 +201,7 @@ def load_qc_config(
 
 def apply_tilt_qc(
     ds: xr.Dataset,
-    tilt_cfg: Dict[str, Any],
+    tilt_cfg: dict[str, Any],
 ) -> tuple[xr.Dataset, int, int]:
     """Flag velocity variables when pitch or roll exceeds QC thresholds.
 
@@ -430,9 +430,9 @@ def merge_salinity_parent_qc(
 
 def apply_qc_tests(
     ds: xr.Dataset,
-    gross_range: Dict[str, Any],
-    spike: Dict[str, Any],
-    flat_line: Optional[Dict[str, Any]] = None,
+    gross_range: dict[str, Any],
+    spike: dict[str, Any],
+    flat_line: dict[str, Any] | None = None,
 ) -> xr.Dataset:
     """Apply QARTOD gross-range, spike, and flat-line tests, writing ``*_qc`` variables.
 
@@ -551,7 +551,7 @@ def apply_qc_tests(
 
         # Store the actual thresholds applied so downstream tools (e.g. the
         # report histogram) can show exactly what was used without re-reading YAML.
-        threshold_attrs: Dict[str, Any] = {}
+        threshold_attrs: dict[str, Any] = {}
         if varname in gross_range:
             gcfg = gross_range[varname]
             if "fail_span" in gcfg:
@@ -595,7 +595,7 @@ def apply_qc_tests(
 
 def apply_enu_velocity_qc(
     ds: xr.Dataset,
-    gr_cfg: Dict[str, Any],
+    gr_cfg: dict[str, Any],
 ) -> xr.Dataset:
     """Apply QARTOD gross-range QC to ENU velocity vars and propagate w flags.
 
@@ -656,7 +656,7 @@ def unify_velocity_qc(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
-def derive_oxygen_saturation(ds: "xr.Dataset") -> "xr.Dataset":
+def derive_oxygen_saturation(ds: xr.Dataset) -> xr.Dataset:
     """Compute O2 % saturation and AOU from dissolved_oxygen, temperature, salinity, pressure.
 
     Requires dissolved_oxygen (µmol/L), temperature (°C), salinity (PSU), and pressure
@@ -734,7 +734,7 @@ def derive_oxygen_saturation(ds: "xr.Dataset") -> "xr.Dataset":
                 attrs=dict(ds["dissolved_oxygen_qc"].attrs),
             )
 
-    ds = ds.assign(
+    return ds.assign(
         oxygen_saturation_pct=xr.Variable(
             "time",
             pct_sat.astype(np.float32),
@@ -769,4 +769,3 @@ def derive_oxygen_saturation(ds: "xr.Dataset") -> "xr.Dataset":
             },
         ),
     )
-    return ds

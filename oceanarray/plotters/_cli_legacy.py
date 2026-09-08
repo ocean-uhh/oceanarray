@@ -194,7 +194,7 @@ def plot_mooring_timeseries(
     use_files = sorted(mooring_proc.rglob("*_stage2.nc"))
 
     if not use_files:
-        raise FileNotFoundError(f"No _stage2.nc files found under {mooring_proc}")  # noqa: TRY003
+        raise FileNotFoundError(f"No _stage2.nc files found under {mooring_proc}")
 
     scatter_mode = var_color is not None
 

@@ -17,10 +17,10 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader
 
-from . import _figdebug
-from ._report_css import SHARED_CSS
 from .. import __version__ as _oceanarray_version
 from .. import parameters as params
+from . import _figdebug
+from ._report_css import SHARED_CSS
 
 #: Directory holding the report page templates.
 TEMPLATES_DIR: Path = Path(__file__).with_name("templates")

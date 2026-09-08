@@ -56,10 +56,14 @@ def test_declination_guard_only_triggers_on_unknown_source():
 # ---------------------------------------------------------------------------
 
 from oceanarray.processors.qc import (  # noqa: E402 — grouped imports after fixtures
-    load_qc_config as _load_qc_config,
     _merge_flags,
-    merge_salinity_parent_qc as _merge_salinity_parent_qc,
     _tilt_from_span,
+)
+from oceanarray.processors.qc import (  # noqa: E402 — grouped imports after fixtures
+    load_qc_config as _load_qc_config,
+)
+from oceanarray.processors.qc import (  # noqa: E402 — grouped imports after fixtures
+    merge_salinity_parent_qc as _merge_salinity_parent_qc,
 )
 
 
@@ -120,8 +124,8 @@ def test_merge_priority_single_source():
     parameters.QC_MERGE_PRIORITY, so they must agree on every combination.
     """
     from oceanarray import parameters as params
-    from oceanarray.processors.qc import _QC_PRIORITY
     from oceanarray.processors.helpers import _worst_flag
+    from oceanarray.processors.qc import _QC_PRIORITY
 
     assert _QC_PRIORITY is params.QC_MERGE_PRIORITY
     a = np.array([1, 8, 0, 3], dtype=np.int8)

@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import numpy as np
 import xarray as xr
 
 from oceanarray.processors.qc import set_qc_attrs
-
 
 HAB_THRESHOLD = 2.0  # metres — use near-neighbour below this Δhab
 
@@ -62,10 +61,10 @@ def interp_pressure(
 
 def interp_pressure_for_hab(
     hab_t: float,
-    sorted_sources: List[Dict[str, Any]],
+    sorted_sources: list[dict[str, Any]],
     target_time: np.ndarray,
     serial: str,
-    log_fn: Optional[Any] = None,
+    log_fn: Any | None = None,
 ) -> tuple[np.ndarray, str]:
     """Interpolate pressure for a single nominal HAB; return (p_array, method_str).
 
@@ -167,11 +166,11 @@ def interp_pressure_for_hab(
 
 def interpolate_pressure(
     ds: xr.Dataset,
-    target_info: Dict[str, Any],
-    sources: List[Dict[str, Any]],
+    target_info: dict[str, Any],
+    sources: list[dict[str, Any]],
     target_time: np.ndarray,
     pressure_bad_flag: bool,
-    log_fn: Optional[Any] = None,
+    log_fn: Any | None = None,
 ) -> tuple[xr.Dataset, str]:
     """Interpolate pressure from sources onto target; return (ds, method_str).
 
@@ -236,7 +235,7 @@ def interpolate_pressure(
         # Segment k: breakpoint[k-1] → breakpoint[k] (or record end), using
         #            the HAB specified at breakpoint[k-1].
         T = target_time
-        seg_bounds: List[tuple] = []
+        seg_bounds: list[tuple] = []
         seg_hab = target_info["hab"]
         seg_start = T[0]
         for bp_ns, next_hab in hab_segments:
@@ -248,7 +247,7 @@ def interpolate_pressure(
         p_interp = np.full(len(T), np.nan)
         method_parts = []
         for seg_start_ns, seg_end_ns, hab_t in seg_bounds:
-            idx = np.where((T >= seg_start_ns) & (T < seg_end_ns))[0]
+            idx = np.where((seg_start_ns <= T) & (seg_end_ns > T))[0]
             if len(idx) == 0:
                 continue
             p_seg, meth = interp_pressure_for_hab(
@@ -357,6 +356,7 @@ def compute_adcp_bin_pressure(
 
     """
     import gsw
+
     from oceanarray import parameters as params
 
     if "pressure" not in ds.data_vars or "range" not in ds.coords:

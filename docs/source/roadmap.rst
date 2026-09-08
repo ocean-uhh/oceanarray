@@ -119,7 +119,7 @@ the constant correction.
 ``utilities``, and ``logger``.
 
 **Remaining gap**: ``test_report.py`` — end-to-end tests for the HTML report
-generation pipeline.  Test plan sketch is in ``.claude/plan_for_tests-20260716.md``.
+generation pipeline.
 
 ---
 

@@ -15,7 +15,6 @@ from __future__ import annotations
 import re
 from glob import escape as _glob_escape
 from pathlib import Path
-from typing import List, Optional
 
 # Print-only stylesheet applied to every source report at render time.
 # Kept here (not in the Jinja templates) so the HTML output is unchanged and the
@@ -143,7 +142,7 @@ p, li {
 """
 
 
-def _ordered_report_files(report_dir: Path, mooring_name: str) -> List[Path]:
+def _ordered_report_files(report_dir: Path, mooring_name: str) -> list[Path]:
     """Return the mooring's report HTML files in reading order.
 
     Order is summary → per-instrument → stack → grid, matching the pipeline
@@ -162,7 +161,7 @@ def _ordered_report_files(report_dir: Path, mooring_name: str) -> List[Path]:
         Existing report files, in reading order.
 
     """
-    files: List[Path] = []
+    files: list[Path] = []
     summary = report_dir / f"{mooring_name}_report.html"
     if summary.exists():
         files.append(summary)
@@ -183,7 +182,7 @@ def _ordered_report_files(report_dir: Path, mooring_name: str) -> List[Path]:
 
 
 # Regexes for the single-document combine.  These namespace anchor ids per page
-# so links resolve within the merged PDF (see .claude/report-crosslinks-plan.md).
+# so links resolve within the merged PDF.
 #
 # SAFETY CONDITION — no inline SVG.  Rewriting ``id="x"`` is safe only because
 # figures embed as base64 PNG (``_encode.py::_fig_to_base64``) and there is no
@@ -314,8 +313,8 @@ def _build_combined_html(pages: list[tuple[str, str, str]]) -> str:
 
     """
     target_anchors = {filename: f"#{slug}__top" for slug, filename, _ in pages}
-    all_styles: List[str] = []
-    sections: List[str] = []
+    all_styles: list[str] = []
+    sections: list[str] = []
     for slug, _filename, html in pages:
         styles, body = _namespace_page(slug, html)
         body = _rewrite_interpage_hrefs(body, target_anchors)
@@ -337,8 +336,8 @@ def _build_combined_html(pages: list[tuple[str, str, str]]) -> str:
 def combine_mooring_pdf(
     report_dir: Path,
     mooring_name: str,
-    output_path: Optional[Path] = None,
-    cover_html: Optional[Path] = None,
+    output_path: Path | None = None,
+    cover_html: Path | None = None,
 ) -> Path:
     """Merge a mooring's HTML reports into one A4 PDF.
 
@@ -391,7 +390,7 @@ def combine_mooring_pdf(
 
     css = CSS(string=_PRINT_CSS)
 
-    sources: List[Path] = []
+    sources: list[Path] = []
     if cover_html is not None:
         sources.append(Path(cover_html))
     sources.extend(files)

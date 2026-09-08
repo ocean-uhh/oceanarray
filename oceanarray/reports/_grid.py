@@ -5,10 +5,11 @@ from __future__ import annotations
 import warnings
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import numpy as np
 
+from .. import parameters as params
 from ..utilities import parse_latlon_with_source
 from ._env import (
     render_history,
@@ -26,27 +27,25 @@ from ._html_helpers import (
     _should_skip,
     _status,
 )
+from ._manifest import Panel, PanelGroup, Profile, Section, resolve
 from ._plots import (
-    _make_grid_hydro_b64,
     _make_grid_hodograph_b64,
+    _make_grid_hydro_b64,
+    _make_grid_n2_b64,
     _make_grid_rose_b64,
     _make_grid_rotary_spectrum_b64,
     _make_grid_sigma_b64,
     _make_grid_timeseries_b64,
     _make_grid_trajectory_b64,
     _make_grid_ts_diagram,
-    _make_grid_n2_b64,
     _make_grid_velocity_stacked_b64,
     _make_isopycnal_coverage_fig_b64,
     _make_isopycnal_ts_fig_b64,
     _make_overflow_temperature_fig_b64,
     _make_spectrum_fig_b64,
-    _make_wavelet_fig_b64,
     _make_velocity_iqr_profile_b64,
+    _make_wavelet_fig_b64,
 )
-from .. import parameters as params
-from ._manifest import Panel, PanelGroup, Profile, Section, resolve
-
 
 # ---------------------------------------------------------------------------
 # Section manifest — grid registry (rep/06, design §9.2–§9.3, §7)
@@ -204,7 +203,7 @@ class GridContext:
     lat: float
     lat_resolved: bool
     ts_bounds: dict
-    ts_b64: "str | None"
+    ts_b64: str | None
     dt_s: float
     history_entries: list
     nc_meta: dict
@@ -253,7 +252,7 @@ def build_grid_context(ds: Any, grid_path: Path) -> GridContext:
 
 
 def _has_temperature(ctx: GridContext) -> bool:
-    """True when the dataset carries a ``temperature`` variable.
+    """Return True when the dataset carries a ``temperature`` variable.
 
     Gates Hydrography and the temperature spectra.  Hydrography needs only
     temperature — ``draw_grid_hydro`` renders whichever of T / S / O₂ is present
@@ -274,7 +273,7 @@ def _sigma_vars(ctx: GridContext) -> list:
 
 
 def _has_velocity(ctx: GridContext) -> bool:
-    """True when eastward or northward velocity is present (velocity sections gate).
+    """Return True when eastward or northward velocity is present (velocity sections gate).
 
     "Could this exist for this deployment?" — a mooring with no horizontal
     velocity variables has no Velocity or Velocity-structure section, and it is
@@ -284,7 +283,7 @@ def _has_velocity(ctx: GridContext) -> bool:
 
 
 def _has_hydro(ctx: GridContext) -> bool:
-    """True when temperature and salinity (or conductivity) are present.
+    """Return True when temperature and salinity (or conductivity) are present.
 
     Salinity is derivable from conductivity + temperature (``gsw.SP_from_C``), so
     a deployment carrying conductivity but not stored salinity still *could* show
@@ -295,11 +294,11 @@ def _has_hydro(ctx: GridContext) -> bool:
 
 
 def _has_sigma(ctx: GridContext) -> bool:
-    """True when at least one pressure-dimensioned ``sigma*`` field is present."""
+    """Return True when at least one pressure-dimensioned ``sigma*`` field is present."""
     return bool(_sigma_vars(ctx))
 
 
-def _history_unavailable(ctx: GridContext) -> "str | None":
+def _history_unavailable(ctx: GridContext) -> str | None:
     """Reason the processing-history panel cannot render, or ``None`` to proceed.
 
     Processing history is a provenance section that *always* belongs on a
@@ -315,19 +314,19 @@ def _history_unavailable(ctx: GridContext) -> "str | None":
 
 
 def _has_scalar_vars(ctx: GridContext) -> bool:
-    """True when the NetCDF file exposes scalar-metadata variables."""
+    """Return True when the NetCDF file exposes scalar-metadata variables."""
     return bool(ctx.nc_meta.get("scalar_vars"))
 
 
 def _has_global_attrs(ctx: GridContext) -> bool:
-    """True when the NetCDF file exposes global attributes."""
+    """Return True when the NetCDF file exposes global attributes."""
     return bool(ctx.nc_meta.get("global_attrs"))
 
 
 def _isopycnal_ts_panel(sigma_var: str) -> Panel:
     """Build the per-isopycnal height-above-seabed panel for one ``sigma`` variable."""
 
-    def _render(ctx: GridContext, _sv: str = sigma_var) -> "str | None":
+    def _render(ctx: GridContext, _sv: str = sigma_var) -> str | None:
         try:
             from ..tools import isopycnal_dataset as _iso_ds
 
@@ -335,7 +334,7 @@ def _isopycnal_ts_panel(sigma_var: str) -> Panel:
                 ctx.ds, sigma_var=_sv, sigma_grid=getattr(params, "SIGMA_GRID", None)
             )
             return _make_isopycnal_ts_fig_b64(ds_iso)
-        except Exception:  # noqa: BLE001 — a single isopycnal failing must not drop the section
+        except Exception:
             return None
 
     caption = (
@@ -573,7 +572,7 @@ GRID_COMBINED_HYDRO = replace(
 def generate_grid_page(
     mooring_name: str,
     grid_path: Path,
-    ctx: Dict[str, Any],
+    ctx: dict[str, Any],
     out_dir: Path,
     force: bool,
     display_root: Path,

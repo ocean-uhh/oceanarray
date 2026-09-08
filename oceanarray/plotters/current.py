@@ -20,7 +20,7 @@ Public draw_* functions (migrated from report/_plots.py):
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
@@ -28,8 +28,15 @@ import numpy as np
 import xarray as xr
 from matplotlib.collections import LineCollection
 
-from oceanarray.analysis.vector import xyz_to_enu_2d, progressive_vector
-from oceanarray.plotters.helpers import grid_despine, tukey_smooth
+from oceanarray import parameters as params
+from oceanarray.analysis.vector import progressive_vector, xyz_to_enu_2d
+from oceanarray.config import report_tokens
+from oceanarray.plotters.helpers import (
+    _rose_ax,
+    _velocity_panel_style,
+    grid_despine,
+    tukey_smooth,
+)
 from oceanarray.plotters.primitives import (
     colorbar_norm,
     date_axis,
@@ -39,13 +46,10 @@ from oceanarray.plotters.primitives import (
     plot_trajectory,
     square_axes_grid,
     square_limits,
-    ytick_reserve_in,
     unit_colorbar,
+    ytick_reserve_in,
 )
-from oceanarray.plotters.helpers import _rose_ax, _velocity_panel_style
 from oceanarray.utilities import _nice_colorbar_bounds
-from oceanarray import parameters as params
-from oceanarray.config import report_tokens
 
 
 def plot_temperature_trajectory(
@@ -163,7 +167,7 @@ def plot_speed_boxplot(
         vert=True,
         patch_artist=True,
         widths=0.5,
-        flierprops=dict(marker=".", markersize=3, alpha=0.4),
+        flierprops={"marker": ".", "markersize": 3, "alpha": 0.4},
     )
     bp["boxes"][0].set_facecolor("steelblue")
     bp["boxes"][0].set_alpha(0.7)
@@ -187,7 +191,7 @@ def plot_multi_aquadopp_trajectories(
     title: str = "",
     *,
     width_in: float = report_tokens.W_HALF,
-) -> Optional[plt.Figure]:
+) -> plt.Figure | None:
     """Multi-instrument Lagrangian trajectories for all Aquadopps, coloured by temperature.
 
     Each trajectory starts at the origin and is built by integrating the
@@ -489,7 +493,7 @@ def plot_aquadopp_speed_profile(
     hab_var: str = "hab",
     *,
     width_in: float = report_tokens.W_HALF,
-) -> Optional[plt.Figure]:
+) -> plt.Figure | None:
     """Horizontal speed boxplots for all Aquadopps, one per instrument at its HAB.
 
     X-axis: current speed.  Y-axis: height above bottom (m).  All Aquadopps
@@ -562,8 +566,13 @@ def plot_aquadopp_speed_profile(
             positions=[hab],
             widths=box_width,
             patch_artist=True,
-            flierprops=dict(marker=".", markersize=2, alpha=0.3, color="steelblue"),
-            medianprops=dict(color="navy", linewidth=1.5),
+            flierprops={
+                "marker": ".",
+                "markersize": 2,
+                "alpha": 0.3,
+                "color": "steelblue",
+            },
+            medianprops={"color": "navy", "linewidth": 1.5},
             manage_ticks=False,
         )
         bp["boxes"][0].set_facecolor("steelblue")
@@ -601,7 +610,7 @@ def plot_adcp_trajectories(
     percent_good_qc_var: str = "percent_good_qc",
     *,
     width_in: float = report_tokens.W_HALF,
-) -> Optional[plt.Figure]:
+) -> plt.Figure | None:
     """Lagrangian per-bin trajectories for ADCP data, coloured by HAB.
 
     Each depth bin integrated by Euler-forward from the origin.  Bins that are
@@ -731,7 +740,7 @@ def draw_instrument_rose(
     nc_path: Path,
     *,
     width_in: float = report_tokens.W_FULL,
-) -> "Optional[plt.Figure]":
+) -> plt.Figure | None:
     """Rose diagram grid for a single Aquadopp instrument; return Figure or None.
 
     Loads the stage-3 NetCDF at *nc_path*, builds one polar panel per available
@@ -782,7 +791,7 @@ def draw_instrument_rose(
             else np.ones(len(e_all), dtype=int)
         )
 
-        def _masked(flag_mask: "np.ndarray") -> "tuple[np.ndarray, np.ndarray]":
+        def _masked(flag_mask: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
             e = e_all.copy()
             n = n_all.copy()
             e[~flag_mask] = np.nan
@@ -826,11 +835,11 @@ def draw_instrument_rose(
 
 
 def draw_rose_grid(
-    ds: "xr.Dataset",
+    ds: xr.Dataset,
     serial_list: list,
     *,
     width_in: float = report_tokens.W_FULL,
-) -> "Optional[tuple[plt.Figure, int]]":
+) -> tuple[plt.Figure, int] | None:
     """Grid of current roses (max 4 per row) for instruments with ENU velocity data.
 
     Parameters
@@ -850,6 +859,7 @@ def draw_rose_grid(
 
     """
     import math
+
     import matplotlib.pyplot as plt
 
     if "east_velocity" not in ds.data_vars or "north_velocity" not in ds.data_vars:
@@ -970,11 +980,11 @@ def draw_rose_grid(
 
 
 def draw_grid_rose(
-    ds: "xr.Dataset",
+    ds: xr.Dataset,
     max_roses: int = 4,
     *,
     width_in: float = report_tokens.W_FULL,
-) -> "Optional[plt.Figure]":
+) -> plt.Figure | None:
     """Grid of current roses, one per pressure level, for the grid report.
 
     Shows up to *max_roses* pressure levels (at most 1/5th of valid levels,
@@ -999,6 +1009,7 @@ def draw_grid_rose(
 
     """
     import math
+
     import matplotlib.pyplot as plt
 
     if "east_velocity" not in ds.data_vars or "north_velocity" not in ds.data_vars:
@@ -1051,10 +1062,10 @@ def draw_grid_rose(
 
 
 def draw_grid_trajectory(
-    ds: "xr.Dataset",
+    ds: xr.Dataset,
     *,
     width_in: float = report_tokens.W_HALF,
-) -> "Optional[plt.Figure]":
+) -> plt.Figure | None:
     """Pseudo-Lagrangian current-vector integral by pressure level for the grid report.
 
     For each pressure level, integrates east and north velocity over time using
@@ -1142,7 +1153,7 @@ def draw_adcp_velocity(
     nc_path: str,
     *,
     width_in: float = report_tokens.W_FULL,
-) -> "Optional[plt.Figure]":
+) -> plt.Figure | None:
     """Stacked colour panels for the ADCP per-instrument HTML report page; return a Figure.
 
     Reads the stage-3 NetCDF file at *nc_path* and produces a multi-panel
@@ -1359,8 +1370,8 @@ def draw_adcp_rose(
     nc_path: str,
     *,
     width_in: float = report_tokens.W_FULL,
-) -> "Optional[plt.Figure]":
-    """Current rose panels for an ADCP: depth-average plus percentile-selected bins.
+) -> plt.Figure | None:
+    """Draw current rose panels for an ADCP: depth-average plus percentile-selected bins.
 
     Selects the depth-average and up to four individual range bins at the 10th,
     37th, 63rd, and 90th percentile positions of the valid bin indices (bins with
@@ -1458,8 +1469,8 @@ def draw_adcp_rose(
 
         # Add shared colorbar below the rose panels
         if spd_edges is not None and colors is not None:
-            import matplotlib.colors as mcolors
             import matplotlib.cm as mcm
+            import matplotlib.colors as mcolors
 
             cmap_obj = mcolors.ListedColormap(colors)
             norm = mcolors.BoundaryNorm(spd_edges, len(colors))
@@ -1486,7 +1497,7 @@ def draw_adcp_hodograph(
     smooth_hours: float = 24.0,
     *,
     width_in: float = report_tokens.W_FULL,
-) -> "Optional[plt.Figure]":
+) -> plt.Figure | None:
     """Two-depth hodograph for an ADCP per-instrument report; return a Figure.
 
     Picks the bins nearest the 25th and 75th percentile of the valid range and
@@ -1620,11 +1631,11 @@ def draw_adcp_hodograph(
 
 
 def draw_grid_hodograph(
-    ds: "xr.Dataset",
+    ds: xr.Dataset,
     smooth_hours: float = 24.0,
     *,
     width_in: float = report_tokens.W_FULL,
-) -> "Optional[plt.Figure]":
+) -> plt.Figure | None:
     """Two-depth hodograph for the grid report; return a Figure.
 
     Takes an already-loaded xr.Dataset (not a path).  Picks the pressure levels

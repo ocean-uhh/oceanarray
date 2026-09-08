@@ -1,10 +1,11 @@
 """Shared utility helpers used across the oceanarray processing pipeline."""
 
 import math
+from collections.abc import Callable
 from datetime import datetime
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 import numpy as np
 import xarray as xr
@@ -58,8 +59,8 @@ def should_skip_regeneration(
 
 
 def extract_inline_instruments(
-    inline_list: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
+    inline_list: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     """Extract processable instrument entries from the mooring YAML ``inline`` list.
 
     Most ``inline`` entries describe passive hardware (ropes, shackles, floats).
@@ -87,11 +88,12 @@ def extract_inline_instruments(
     Args:
         inline_list: The raw list parsed from the ``inline`` YAML key.
 
-    Returns:
+    Returns
+    -------
         List of normalised instrument-config dicts ready for stage processing.
 
     """
-    result: List[Dict[str, Any]] = []
+    result: list[dict[str, Any]] = []
     for entry in inline_list:
         if not isinstance(entry, dict):
             continue
@@ -100,7 +102,7 @@ def extract_inline_instruments(
         if not entry.get("filename") and not entry.get("skip"):
             continue
 
-        normalized: Dict[str, Any] = dict(entry)
+        normalized: dict[str, Any] = dict(entry)
 
         if "hab" not in normalized and "hab_bottom" in normalized:
             normalized["hab"] = normalized["hab_bottom"]
@@ -117,9 +119,9 @@ def extract_inline_instruments(
 
 
 def concat_with_scalar_vars(
-    datasets: List[xr.Dataset],
+    datasets: list[xr.Dataset],
     dim: str,
-    scalar_vars: Optional[List[str]] = None,
+    scalar_vars: list[str] | None = None,
 ) -> xr.Dataset:
     """Concatenate datasets along a dimension, preserving scalar variables.
 
@@ -240,7 +242,7 @@ def get_time_key(ds: xr.Dataset) -> str:
             )
             return name
 
-    raise ValueError("No valid time coordinate found in dataset.")  # noqa: TRY003
+    raise ValueError("No valid time coordinate found in dataset.")
 
 
 def get_dims(
@@ -337,12 +339,11 @@ def iso8601_duration_from_seconds(seconds: float) -> str:
     seconds = int(round(seconds))
     if seconds >= 86400:
         return f"P{seconds // 86400}D"
-    elif seconds >= 3600:
+    if seconds >= 3600:
         return f"PT{seconds // 3600}H"
-    elif seconds >= 60:
+    if seconds >= 60:
         return f"PT{seconds // 60}M"
-    else:
-        return f"PT{seconds}S"
+    return f"PT{seconds}S"
 
 
 def is_iso8601_utc(timestr: str) -> bool:
@@ -369,7 +370,7 @@ def is_iso8601_utc(timestr: str) -> bool:
     return True
 
 
-def apply_defaults(default_source: str, default_files: List[str]) -> Callable:
+def apply_defaults(default_source: str, default_files: list[str]) -> Callable:
     """Decorate a function to apply default values for source and file_list parameters.
 
     Parameters
@@ -389,8 +390,8 @@ def apply_defaults(default_source: str, default_files: List[str]) -> Callable:
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(
-            source: Optional[str] = None,
-            file_list: Optional[List[str]] = None,
+            source: str | None = None,
+            file_list: list[str] | None = None,
             *args: Any,
             **kwargs: Any,
         ) -> Any:

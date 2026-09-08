@@ -90,7 +90,6 @@ oceanarray/
 │       ├── methods/               # Method documentation (one page per processing step)
 │       └── _static/               # Static files, code examples, CSS
 │
-├── CLAUDE.md                      # Claude Code guidance (local-only)
 ├── CITATION.cff                   # Citation metadata
 ├── CHANGELOG.md
 ├── pyproject.toml                 # Build system, deps, and project metadata
@@ -166,7 +165,7 @@ The full pipeline runs in one command: `oceanarray process MOORING --stage 1 2 3
 
 ## Plotters Package Architecture
 
-Three-tier architecture (see `.claude/plotters_update-20260718.md` for the rules):
+Three-tier architecture:
 
 - **Tier 1** (`plotters/primitives.py`): low-level axes primitives, no domain knowledge
 - **Tier 2** (`plotters/current.py`, `timeseries.py`, `hydrography.py`, etc.): domain

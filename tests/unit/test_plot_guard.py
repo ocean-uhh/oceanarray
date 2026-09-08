@@ -14,7 +14,6 @@ import pytest
 from oceanarray.config import report_tokens
 from oceanarray.reports import _plots
 
-
 # ---------------------------------------------------------------------------
 # render_b64 — the project-wide figure-failure envelope
 # ---------------------------------------------------------------------------

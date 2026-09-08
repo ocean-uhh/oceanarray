@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
+import contextlib
 import warnings
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 import numpy as np
 
+from oceanarray.config import report_tokens
+
+from .. import parameters as params
+from ..plotters.helpers import grid_despine, ordered_line_colors
+from ..plotters.primitives import date_offset_left, plot_title
 from . import _figdebug
 from ._env import (
     render_history,
@@ -17,8 +24,6 @@ from ._env import (
     render_nc_variables,
     render_template,
 )
-from ._manifest import Panel, Profile, Section, resolve
-from ._slots import render as render_slot
 from ._html_helpers import (
     _fig_to_base64,
     _find_array_report_href,
@@ -32,28 +37,25 @@ from ._html_helpers import (
     _should_skip,
     _status,
 )
+from ._manifest import Panel, Profile, Section, resolve
 from ._plots import (
-    _make_clock_check_b64,
-    _make_rose_grid_b64,
-    _make_stack_ts_diagram,
-    _make_multi_aquadopp_trajectories,
-    _make_aquadopp_speed_profile,
     _make_adcp_trajectories_b64,
     _make_analog_timeseries,
+    _make_aquadopp_speed_profile,
+    _make_clock_check_b64,
+    _make_multi_aquadopp_trajectories,
+    _make_rose_grid_b64,
+    _make_stack_ts_diagram,
     render_b64,
 )
-from .. import parameters as params
-from ..plotters.helpers import grid_despine, ordered_line_colors
-from ..plotters.primitives import date_offset_left, plot_title
-from oceanarray.config import report_tokens
-
+from ._slots import render as render_slot
 
 # ---------------------------------------------------------------------------
 # Aquadopp tilt helper (was @staticmethod on MooringReport)
 # ---------------------------------------------------------------------------
 
 
-def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
+def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> str | None:
     """One subplot per Aquadopp showing pitch, roll, and tilt_from_pressure.
 
     Within each row the time-series panel and its paired scatter panel share one
@@ -64,8 +66,8 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
     Returns None if no Aquadopp levels are found or none of the relevant
     variables exist.
     """
-    import matplotlib.pyplot as plt
     import matplotlib.dates as mdates
+    import matplotlib.pyplot as plt
 
     tilt_suspect = float(ds.attrs.get("tilt_suspect_threshold", 20.0))
     tilt_fail = float(ds.attrs.get("tilt_fail_threshold", 30.0))
@@ -104,7 +106,7 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
     time_ds = ds["time"].values[::step]
     n_panels = len(aq_indices)
 
-    def _draw() -> "plt.Figure":
+    def _draw() -> plt.Figure:
         fig = plt.figure(
             figsize=(report_tokens.W_FULL, 2.24 * n_panels), constrained_layout=True
         )
@@ -174,7 +176,7 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> Optional[str]:
                 ax_ts.tick_params(axis="x")
 
             if tp_data is not None and np.any(np.isfinite(tp_data)):
-                sc_kw = dict(s=3, alpha=0.25, rasterized=True, linewidths=0)
+                sc_kw = {"s": 3, "alpha": 0.25, "rasterized": True, "linewidths": 0}
                 if p_data is not None and np.any(np.isfinite(p_data)):
                     fin = np.isfinite(tp_data) & np.isfinite(p_data)
                     ax_sc.scatter(
@@ -379,12 +381,12 @@ class StackContext:
     instr_rows: list
     nc_meta: dict
     nc_file: str
-    rose_note: "str | None"
+    rose_note: str | None
     rose_warn: bool
     rose_missing_serials: list
 
 
-def _fig(panel_id: str) -> Callable[[StackContext], "str | None"]:
+def _fig(panel_id: str) -> Callable[[StackContext], str | None]:
     """Return a render callable that yields the pre-built figure for *panel_id*."""
     return lambda c: c.figs.get(panel_id)
 
@@ -395,16 +397,16 @@ def _has(var: str) -> Callable[[StackContext], bool]:
 
 
 def _has_stack_velocity(c: StackContext) -> bool:
-    """True when eastward or northward velocity is present."""
+    """Return True when eastward or northward velocity is present."""
     return "east_velocity" in c.present_vars or "north_velocity" in c.present_vars
 
 
 def _has_aquadopp(c: StackContext) -> bool:
-    """True when an Aquadopp instrument is present."""
+    """Return True when an Aquadopp instrument is present."""
     return "aquadopp" in c.instr_types
 
 
-def _stack_history_unavailable(c: StackContext) -> "str | None":
+def _stack_history_unavailable(c: StackContext) -> str | None:
     """Reason the history panel cannot render, or None (provenance always applies)."""
     if c.history_entries:
         return None
@@ -413,8 +415,8 @@ def _stack_history_unavailable(c: StackContext) -> "str | None":
 
 def _figure_panel(
     pid: str,
-    applies_to: Optional[Callable] = None,
-    slot: "str | None" = None,
+    applies_to: Callable | None = None,
+    slot: str | None = None,
 ) -> Panel:
     """Build a stack figure panel from the registry.
 
@@ -599,7 +601,7 @@ STACK_DEFAULT = Profile(
 def generate_stack_page(
     mooring_name: str,
     stack_path: Path,
-    ctx: Dict[str, Any],
+    ctx: dict[str, Any],
     out_dir: Path,
     force: bool,
     display_root: Path,
@@ -612,8 +614,8 @@ def generate_stack_page(
         return
 
     try:
-        import matplotlib.pyplot as plt
         import matplotlib.dates as mdates
+        import matplotlib.pyplot as plt
         import xarray as xr
 
         ds = xr.open_dataset(stack_path).load()
@@ -652,7 +654,7 @@ def generate_stack_page(
 
         _serial_list = list(serials)
 
-        def _var_line_styling(varname: str) -> "tuple[dict, dict]":
+        def _var_line_styling(varname: str) -> tuple[dict, dict]:
             """Per-serial (colour, linestyle) for one variable, deep-first ordered.
 
             Instruments are ordered deep-first and mapped onto the variable's
@@ -684,10 +686,10 @@ def generate_stack_page(
             varname: str,
             ylabel: str,
             invert: bool = False,
-            hlines: Optional[List[tuple]] = None,
-            exclude_types: Optional[set] = None,
+            hlines: list[tuple] | None = None,
+            exclude_types: set | None = None,
             dot_overlay: bool = False,
-        ) -> Optional[str]:
+        ) -> str | None:
             if varname not in ds.data_vars:
                 return None
             arr = ds[varname].values.copy()
@@ -744,12 +746,10 @@ def generate_stack_page(
                 ax.set_xlabel("Time")
                 grid_despine(ax)
                 if _t_cov_start and _t_cov_end:
-                    try:
+                    with contextlib.suppress(Exception):
                         ax.set_xlim(
                             np.datetime64(_t_cov_start), np.datetime64(_t_cov_end)
                         )
-                    except Exception:
-                        pass
                 n_plotted = sum(
                     1 for i in range(n_instr) if np.any(np.isfinite(arr[::step, i]))
                 )
@@ -769,7 +769,7 @@ def generate_stack_page(
                 plt.close(fig)
                 return b64
 
-        def _combined_ts_fig(_rows: "List[tuple]", _color_var: str) -> Optional[str]:
+        def _combined_ts_fig(_rows: list[tuple], _color_var: str) -> str | None:
             """Stacked multi-variable time series with one shared instrument legend.
 
             Each entry in *_rows* is ``(varname, ylabel, invert, exclude_types)``.
@@ -823,13 +823,11 @@ def generate_stack_page(
                     _ax.set_ylabel(_ylabel)
                     grid_despine(_ax)
                     if _t_cov_start and _t_cov_end:
-                        try:
+                        with contextlib.suppress(Exception):
                             _ax.set_xlim(
                                 np.datetime64(_t_cov_start),
                                 np.datetime64(_t_cov_end),
                             )
-                        except Exception:
-                            pass
                 # No instrument had finite data in any row: drop the figure so the
                 # panel stubs as "not available" rather than publishing empty axes
                 # (matches the old per-variable _ts_fig behaviour).
@@ -952,7 +950,7 @@ def generate_stack_page(
         rose_declination_warn = _decl_missing
         rose_declination_missing_serials = _decl_missing_serials
 
-        fig_spacing_b64: Optional[str] = None
+        fig_spacing_b64: str | None = None
         if "pressure" in ds.data_vars and n_instr > 1:
             try:
                 pres_arr = ds["pressure"].values  # (time, N_LEVELS)
@@ -971,7 +969,7 @@ def generate_stack_page(
 
                     def _draw_spacing(
                         *, width_in: float = report_tokens.W_THIRD
-                    ) -> "Any":
+                    ) -> Any:
                         with plt.style.context(str(params.MPLSTYLE)):
                             fig_sp, ax_sp = plt.subplots(figsize=(width_in, 3))
                             ax_sp.hist(
@@ -1003,7 +1001,7 @@ def generate_stack_page(
         # Clock alignment check: one temperature trace per instrument zoomed to
         # first/last 30 min.  Build {serial: path} preferring stage3 over stage2.
         proc_dir = stack_path.parent
-        _clock_nc_paths: Dict[str, Path] = {}
+        _clock_nc_paths: dict[str, Path] = {}
         for i in range(n_instr):
             _s = str(serials[i])
             _itype = str(instr_types[i])

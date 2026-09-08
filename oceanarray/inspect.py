@@ -12,15 +12,15 @@ Examples
 
 """
 
-from typing import Any, Union
+from typing import Any
 
 import xarray as xr
 from pandas import DataFrame
 
-_Data = Union[str, xr.Dataset]
+_Data = str | xr.Dataset
 
 
-def vars(data: _Data) -> Any:  # noqa: A001  (deliberate: inspect.vars() reads well)
+def vars(data: _Data) -> Any:
     """Return a styled table of the variables in *data*.
 
     Parameters
@@ -36,13 +36,13 @@ def vars(data: _Data) -> Any:  # noqa: A001  (deliberate: inspect.vars() reads w
 
     """
     if isinstance(data, str):
-        print("information is based on file: {}".format(data))
+        print(f"information is based on file: {data}")
         dataset = xr.open_dataset(data)
     elif isinstance(data, xr.Dataset):
         print("information is based on xarray Dataset")
         dataset = data
     else:
-        raise TypeError("Input data must be a file path (str) or an xarray Dataset")  # noqa: TRY003
+        raise TypeError("Input data must be a file path (str) or an xarray Dataset")
 
     try:
         info = {}
@@ -92,13 +92,13 @@ def attrs(data: _Data) -> Any:
 
     """
     if isinstance(data, str):
-        print("information is based on file: {}".format(data))
+        print(f"information is based on file: {data}")
         dataset = xr.open_dataset(data)
     elif isinstance(data, xr.Dataset):
         print("information is based on xarray Dataset")
         dataset = data
     else:
-        raise TypeError("Input data must be a file path (str) or an xarray Dataset")  # noqa: TRY003
+        raise TypeError("Input data must be a file path (str) or an xarray Dataset")
 
     try:
         info = {}

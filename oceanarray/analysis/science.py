@@ -57,8 +57,7 @@ def flag_salinity_outliers(ds: xr.Dataset, n_std: float = 4) -> xr.DataArray:
     lower = mean_sal - n_std * std_sal
     upper = mean_sal + n_std * std_sal
 
-    flag = (ds["PSAL"] < lower) | (ds["PSAL"] > upper)
-    return flag
+    return (ds["PSAL"] < lower) | (ds["PSAL"] > upper)
 
 
 def flag_temporal_spikes(
@@ -87,8 +86,7 @@ def flag_vertical_inconsistencies(
     vert_diff = np.abs(ds[var].diff("DEPTH"))
     # Pad to match original dimensions
     vert_diff = vert_diff.reindex(DEPTH=ds["DEPTH"], method="ffill")
-    flag = vert_diff > threshold
-    return flag
+    return vert_diff > threshold
 
 
 def run_qc(ds: xr.Dataset) -> xr.Dataset:
@@ -172,10 +170,10 @@ def process_dataset(
 
     # Apply region of interest mask
     mask = (
-        (LAT >= latlim[0])
-        & (LAT <= latlim[1])
-        & (LON >= lonlim[0])
-        & (LON <= lonlim[1])
+        (latlim[0] <= LAT)
+        & (latlim[1] >= LAT)
+        & (lonlim[0] <= LON)
+        & (lonlim[1] >= LON)
     )
     TEMP_profiles = TEMP_profiles[mask]
     PSAL_profiles = PSAL_profiles[mask]
@@ -194,7 +192,7 @@ def process_dataset(
     standard_pressures = pgrid.flatten()
 
     # Create ds_standard
-    ds_standard = xr.Dataset(
+    return xr.Dataset(
         {
             "CT": ((time_dim, pres_dim), CT_standard),
             "SA": ((time_dim, pres_dim), SA_standard),
@@ -209,18 +207,20 @@ def process_dataset(
         },
     )
 
-    return ds_standard
-
 
 # ---------------------------------------------------------------------------
 # Backward-compat re-exports — import directly from the new modules in new code
 # ---------------------------------------------------------------------------
-from .temporal import lag_correlation, split_value, downsample_to_sparse  # noqa: F401, E402
-from .spectral import compute_cwt, welch_psd, welch_psd_gapaware  # noqa: F401, E402
 from .hydrographic import (  # noqa: F401, E402
+    calc_ds_difference,
     calc_psal,
     find_cold_entry_exit,
-    calc_ds_difference,
-    isopycnal_pressure_series,
     isopycnal_dataset,
+    isopycnal_pressure_series,
+)
+from .spectral import compute_cwt, welch_psd, welch_psd_gapaware  # noqa: F401, E402
+from .temporal import (  # noqa: F401, E402
+    downsample_to_sparse,
+    lag_correlation,
+    split_value,
 )

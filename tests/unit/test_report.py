@@ -6,12 +6,13 @@ Three test classes:
   TestPageGenerators    — generate_instrument_pages / _stack / _grid with synthetic NC
 """
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
 import xarray as xr
 import yaml
-from pathlib import Path
 
 from oceanarray.reports._html_helpers import (
     _duration_str,
@@ -28,7 +29,6 @@ from oceanarray.reports._html_helpers import (
     _stage_files,
 )
 from oceanarray.reports._mooring import MooringReport
-
 
 # ---------------------------------------------------------------------------
 # NC helper factories (used by TestMooringReport and TestPageGenerators)

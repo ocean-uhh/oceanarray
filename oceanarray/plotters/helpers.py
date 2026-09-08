@@ -9,7 +9,7 @@ Tier-3 wrappers in reports/_plots.py; plotters/ never serialises to base64).
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict, Optional
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 #: colourblind-safe set (distinguishable under protan/deutan/tritan CVD).  Note
 #: the yellow (#F0E442) is pale on a white background; the linewidth tiers in
 #: :func:`distinct_line_styles` and the linestyle help keep it legible.
-OKABE_ITO: "list[str]" = [
+OKABE_ITO: list[str] = [
     "#000000",  # black
     "#E69F00",  # orange
     "#56B4E9",  # sky blue
@@ -33,7 +33,7 @@ OKABE_ITO: "list[str]" = [
 ]
 
 
-def distinct_line_styles(n: int) -> "list[tuple[str, str, float]]":
+def distinct_line_styles(n: int) -> list[tuple[str, str, float]]:
     """Return *n* colourblind-safe ``(color, linestyle, linewidth)`` line styles.
 
     Cycles the 8-colour :data:`OKABE_ITO` palette and advances the linestyle
@@ -58,14 +58,14 @@ def distinct_line_styles(n: int) -> "list[tuple[str, str, float]]":
     """
     linestyles = ["-", "--", "-.", ":"]
     linewidths = [0.8, 1.1, 1.5, 1.5]  # solid thinnest; dash-dot/dotted thicker
-    out: "list[tuple[str, str, float]]" = []
+    out: list[tuple[str, str, float]] = []
     for i in range(max(n, 0)):
         grp = min(i // len(OKABE_ITO), len(linestyles) - 1)
         out.append((OKABE_ITO[i % len(OKABE_ITO)], linestyles[grp], linewidths[grp]))
     return out
 
 
-def grid_despine(ax: "plt.Axes", *, axis: str = "both") -> None:
+def grid_despine(ax: plt.Axes, *, axis: str = "both") -> None:
     """Turn the grid on and hide the top and right spines (report convention).
 
     The report style keeps ``axes.grid`` off by default and figures opt in; when
@@ -89,9 +89,7 @@ def grid_despine(ax: "plt.Axes", *, axis: str = "both") -> None:
     ax.spines["right"].set_visible(False)
 
 
-def ordered_line_colors(
-    cmap_name: str, n: int, *, max_luminance: float = 0.72
-) -> "list":
+def ordered_line_colors(cmap_name: str, n: int, *, max_luminance: float = 0.72) -> list:
     """Return *n* colours from *cmap_name*, in colormap order, skipping pale ones.
 
     Samples the colormap on a fine grid, keeps only positions whose relative
@@ -148,7 +146,7 @@ def ordered_line_colors(
 # creating a plotters → report circular dependency.
 # ---------------------------------------------------------------------------
 
-QC_COLORS: Dict[int, str] = {
+QC_COLORS: dict[int, str] = {
     0: "#999999",
     1: "#27ae60",
     2: "#a8e6cf",
@@ -159,14 +157,31 @@ QC_COLORS: Dict[int, str] = {
     9: "#bdc3c7",
 }
 
-QC_MARKER: Dict[int, dict] = {
-    3: dict(
-        marker="+", c=QC_COLORS[3], s=15, linewidths=0.8, zorder=3, rasterized=True
-    ),
-    4: dict(
-        marker="+", c=QC_COLORS[4], s=15, linewidths=0.8, zorder=4, rasterized=True
-    ),
-    8: dict(marker=".", c=QC_COLORS[8], s=8, linewidths=0.5, zorder=2, rasterized=True),
+QC_MARKER: dict[int, dict] = {
+    3: {
+        "marker": "+",
+        "c": QC_COLORS[3],
+        "s": 15,
+        "linewidths": 0.8,
+        "zorder": 3,
+        "rasterized": True,
+    },
+    4: {
+        "marker": "+",
+        "c": QC_COLORS[4],
+        "s": 15,
+        "linewidths": 0.8,
+        "zorder": 4,
+        "rasterized": True,
+    },
+    8: {
+        "marker": ".",
+        "c": QC_COLORS[8],
+        "s": 8,
+        "linewidths": 0.5,
+        "zorder": 2,
+        "rasterized": True,
+    },
 }
 
 
@@ -203,8 +218,7 @@ def tukey_smooth(arr: np.ndarray, window_n: int) -> np.ndarray:
     smoothed = np.convolve(np.where(finite, arr, 0.0), win, mode="same")
     wsum = np.convolve(finite.astype(float), win, mode="same")
     with np.errstate(invalid="ignore"):
-        smoothed = np.where(wsum > 0.1, smoothed / wsum, np.nan)
-    return smoothed
+        return np.where(wsum > 0.1, smoothed / wsum, np.nan)
 
 
 def _velocity_panel_style(
@@ -282,14 +296,14 @@ def _velocity_panel_style(
 
 
 def _rose_ax(
-    ax: "plt.Axes",
+    ax: plt.Axes,
     east: np.ndarray,
     north: np.ndarray,
     title: str = "",
     n_dir: int = 16,
     cmap: str = "Blues",
-    max_speed: Optional[float] = None,
-) -> "Optional[tuple]":
+    max_speed: float | None = None,
+) -> tuple | None:
     """Draw a current rose on a polar Axes (compass convention, N up, CW).
 
     Returns ``(spd_edges, colors)`` so callers can add a shared colorbar, or

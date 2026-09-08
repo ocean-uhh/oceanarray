@@ -91,7 +91,7 @@ def test_rodb_read_write_roundtrip():
     if not infile.exists():
         pytest.skip("Legacy test data files not available")
 
-    with open(infile, "r") as f:
+    with infile.open() as f:
         lines = f.readlines()
     header, data = [], []
     for line in lines:
@@ -117,7 +117,7 @@ def test_rodb_read_write_roundtrip():
         outfile_path = Path(outfile.name)
 
     # Compare only non-blank, stripped lines
-    with open(outfile_path) as f1, open(tmpfile_path) as f2:
+    with outfile_path.open() as f1, tmpfile_path.open() as f2:
         lines_written = [l.strip() for l in f1 if l.strip()]
         lines_original = [l.strip() for l in f2 if l.strip()]
 

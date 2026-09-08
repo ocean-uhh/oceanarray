@@ -2,23 +2,28 @@
 
 from __future__ import annotations
 
+import contextlib
 import socket
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import numpy as np
 import yaml
 
 from oceanarray import paths
 
+from ..utilities import extract_inline_instruments
+from . import _figdebug
+from ._env import render_template
+from ._grid import generate_grid_page
 from ._html_helpers import (
     _check_readable,
     _duration_str,
     _find_array_report_href,
     _fmt_dt,
-    _load_pdf_b64,
     _instrument_report_exists,
+    _load_pdf_b64,
     _nav_buttons_html,
     _parse_dt,
     _read_instrument_info,
@@ -32,20 +37,15 @@ from ._html_helpers import (
     _stage_files,
     _status,
 )
-from . import _figdebug
-from ._env import render_template
-from ._grid import generate_grid_page
 from ._instrument import generate_instrument_pages
 from ._manifest import Panel, Profile, Section, resolve
 from ._plots import (
     _make_clock_check_b64,
+    _make_knockdown_anomaly_b64,
     _make_knockdown_displacement_b64,
     _make_knockdown_hab_b64,
-    _make_knockdown_anomaly_b64,
 )
 from ._stack import generate_stack_page
-from ..utilities import extract_inline_instruments
-
 
 # ---------------------------------------------------------------------------
 # Section manifest — mooring registry (rep/07)
@@ -89,7 +89,7 @@ MOORING_CAPTIONS: dict[str, str] = {
 }
 
 
-def _fig_panel(pid: str, fig_key: str, slot: "str | None" = None) -> Panel:
+def _fig_panel(pid: str, fig_key: str, slot: str | None = None) -> Panel:
     """Build a mooring figure panel that reads *fig_key* from ctx.
 
     *slot* must match the width the adapter renders at (``render_slot``): the
@@ -239,9 +239,9 @@ MOORING_DEFAULT = Profile(
 
 
 def _build_issues(
-    instruments: List[Dict[str, Any]],
+    instruments: list[dict[str, Any]],
     recover_dt: Any,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Build the issues dict for the 'Issues for cruise report' section.
 
     Parameters
@@ -278,7 +278,7 @@ def _build_issues(
         if instr.get("stopped_early"):
             nc = instr.get("nc") or {}
             t_end = nc.get("t_end", "?")
-            delta_h: Optional[str] = None
+            delta_h: str | None = None
             if recover_dt and nc.get("t_end_raw") is not None:
                 import numpy as np
 
@@ -343,7 +343,7 @@ def _serials_in_nc(nc_path: Path) -> frozenset:
             raw = frozenset(str(s) for s in ds["serial"].values)
             base = frozenset(re.sub(r"_(hd|b\d+)$", "", s) for s in raw)
             return raw | base
-    except Exception:  # noqa: BLE001
+    except Exception:
         pass
     return frozenset()
 
@@ -355,8 +355,8 @@ class MooringReport:
         self,
         *,
         proc_dir: str,
-        raw_dir: Optional[str] = None,
-        report_dir: Optional[str] = None,
+        raw_dir: str | None = None,
+        report_dir: str | None = None,
     ) -> None:
         """Initialize with the cruise-level proc directory and optional raw/report dirs.
 
@@ -379,7 +379,7 @@ class MooringReport:
         """
         self._proc_dir = Path(proc_dir) if proc_dir else None
         self._raw_dir = Path(raw_dir) if raw_dir else None
-        self._report_dir: Optional[Path] = Path(report_dir) if report_dir else None
+        self._report_dir: Path | None = Path(report_dir) if report_dir else None
 
     def _resolve_proc_dir(self, mooring_name: str) -> Path:
         """Return the mooring-level proc directory."""
@@ -399,12 +399,12 @@ class MooringReport:
         mooring_name: str,
         force: bool = False,
         skip_existing: bool = False,
-        outdir: Optional[str] = None,
-        serials: Optional[List[str]] = None,
+        outdir: str | None = None,
+        serials: list[str] | None = None,
         instruments: bool = False,
         grid: bool = False,
         stack: bool = False,
-    ) -> Optional[Path]:
+    ) -> Path | None:
         # Reset the per-figure debug capture at the start of each report so a
         # long-lived process (a batch of moorings) does not accumulate it
         # unbounded.  (The b64->slot side registry is gone: the slot now travels
@@ -431,7 +431,7 @@ class MooringReport:
             print(f"ERROR: Config not found: {yaml_path}")
             return None
 
-        with open(yaml_path) as f:
+        with yaml_path.open() as f:
             cfg = yaml.safe_load(f)
 
         # Display root for pretty-printing paths in the instrument/grid/stack pages.
@@ -503,11 +503,11 @@ class MooringReport:
     def _build_context(
         self,
         mooring_name: str,
-        cfg: Dict[str, Any],
+        cfg: dict[str, Any],
         proc_dir: Path,
         yaml_path: Path,
-        out_dir: Optional[Path] = None,
-    ) -> Dict[str, Any]:
+        out_dir: Path | None = None,
+    ) -> dict[str, Any]:
         deploy_dt = _parse_dt(cfg.get("deployment_time"))
         recover_dt = _parse_dt(cfg.get("recovery_time"))
         waterdepth = cfg.get("waterdepth")
@@ -571,7 +571,7 @@ class MooringReport:
                     from oceanarray.processors.stage1 import MooringProcessor as _S1
 
                     _raw_mooring = self._raw_dir / mooring_name
-                    _guessed = _S1._guess_instrument_filename(  # noqa: SLF001
+                    _guessed = _S1._guess_instrument_filename(
                         entry, mooring_name, _raw_mooring, None
                     )
                 if _guessed is not None:
@@ -666,8 +666,8 @@ class MooringReport:
         # Compute recommended --pmin / --pmax for `oceanarray process --stage grid`.
         # Collect finite min/max pressure values from instruments that have real
         # pressure data (exclude stuck-at-zero sensors: p_max must be > 20 dbar).
-        _all_pmin: List[float] = []
-        _all_pmax: List[float] = []
+        _all_pmin: list[float] = []
+        _all_pmax: list[float] = []
         for _instr in instruments:
             _nc = _instr.get("nc") or {}
             _pmin = _nc.get("p_min")
@@ -682,8 +682,8 @@ class MooringReport:
                 _all_pmin.append(_pmin)
                 _all_pmax.append(_pmax)
 
-        grid_p_start: Optional[int] = None
-        grid_p_end: Optional[int] = None
+        grid_p_start: int | None = None
+        grid_p_end: int | None = None
         if _all_pmin and _all_pmax:
             import math
 
@@ -698,8 +698,8 @@ class MooringReport:
         #      keeping only instruments whose end time is within 4 h of the latest).
         from datetime import timedelta as _td
 
-        _rec_starts: List[datetime] = []
-        _rec_ends: List[datetime] = []
+        _rec_starts: list[datetime] = []
+        _rec_ends: list[datetime] = []
         for _instr in instruments:
             _tm = _instr.get("timing") or {}
             # sugg_* attrs are only written when pressure detection succeeded, so
@@ -707,22 +707,16 @@ class MooringReport:
             _s = _tm.get("sugg_start_utc")
             _e = _tm.get("sugg_end_utc")
             if _s:
-                try:
+                with contextlib.suppress(Exception):
                     _rec_starts.append(datetime.fromisoformat(_s.replace("T", " ")))
-                except Exception:  # noqa: BLE001
-                    pass
             if _e:
-                try:
+                with contextlib.suppress(Exception):
                     _rec_ends.append(datetime.fromisoformat(_e.replace("T", " ")))
-                except Exception:  # noqa: BLE001
-                    pass
 
-        rec_deploy: Optional[str] = None  # minute precision — for YAML textarea
-        rec_recover: Optional[str] = None  # minute precision — for YAML textarea
-        rec_deploy_sec: Optional[str] = None  # second precision — for table summary row
-        rec_recover_sec: Optional[str] = (
-            None  # second precision — for table summary row
-        )
+        rec_deploy: str | None = None  # minute precision — for YAML textarea
+        rec_recover: str | None = None  # minute precision — for YAML textarea
+        rec_deploy_sec: str | None = None  # second precision — for table summary row
+        rec_recover_sec: str | None = None  # second precision — for table summary row
 
         if _rec_starts:
             _best_start = max(_rec_starts)
@@ -765,7 +759,7 @@ class MooringReport:
         # the raw instrument clock, so a very large offset could shift the
         # transient out of the ±window; offsets are normally seconds-to-minutes.)
         # Fall back to stage2/3 only if stage1 is absent.
-        _clock_nc_paths: Dict[str, Path] = {}
+        _clock_nc_paths: dict[str, Path] = {}
         for _instr in instruments:
             _s = _instr["serial"]
             _itype = _instr["instr_type"]
@@ -863,6 +857,6 @@ class MooringReport:
             "issues": _build_issues(instruments, recover_dt),
         }
 
-    def _render(self, ctx: Dict[str, Any]) -> str:
+    def _render(self, ctx: dict[str, Any]) -> str:
         ctx["report"] = resolve(MOORING_DEFAULT, ctx, MOORING_PANELS)
         return render_template("mooring.html", **ctx)
