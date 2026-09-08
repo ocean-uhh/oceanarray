@@ -17,9 +17,15 @@ Python tools for processing moored oceanographic array observations from raw ins
 pip install oceanarray
 ```
 
+Or, with [uv](https://docs.astral.sh/uv/):
+
+```bash
+uv pip install oceanarray
+```
+
 This pulls in `seasenselib` (used to read raw instrument files in stage 1) automatically.
 
-Python 3.10–3.12 is supported.
+Python 3.10–3.12 is supported. See the [installation guide](https://ocean-uhh.github.io/oceanarray/installation.html) for isolated-environment (conda / venv / uv) and from-source options.
 
 ## Quick start
 
