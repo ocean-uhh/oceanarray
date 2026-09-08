@@ -6,6 +6,8 @@ All notable changes to oceanarray are documented here.
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-09-08
+
 ### Added
 
 - **caldip calibration-dip stub** ([#92](https://github.com/ocean-uhh/oceanarray/pull/92)): `processors/caldip.py` carries the shared contract (constants, `normalize_serial`, `Offsets`) and a five-function interface for the planned front-of-Stage-3 correction. Stage 3 gains a `caldip_dir` argument that is a null action — it logs a warning and stamps a `caldip_applied` provenance attribute — until the correction lands.
