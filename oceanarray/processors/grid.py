@@ -271,8 +271,8 @@ class MooringGridder:
         )
 
         ds.close()
-        if output_path.exists():
-            output_path.unlink()
+        # write() replaces atomically (temp file then rename), so the previous
+        # output survives a failed write; do not unlink it first.
         write(ds_out, output_path)
         _status("file", self._rel(output_path))
         return True

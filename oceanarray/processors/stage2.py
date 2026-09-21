@@ -936,11 +936,8 @@ class Stage2Processor:
                     recover_time
                 ).isoformat()
 
-            # Remove existing output file before writing
-            if use_filepath.exists():
-                use_filepath.unlink()
-
-            # Write the processed dataset
+            # Write the processed dataset. write() replaces atomically (temp file
+            # then rename), so the previous output survives a failed write.
             dataset = drop_all_zero_vars(dataset, ["amplitude_beam", "analog_input_"])
             write(dataset, use_filepath)
 

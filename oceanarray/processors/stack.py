@@ -673,8 +673,6 @@ class MooringStacker:
             }
         )
 
-        if output_path.exists():
-            output_path.unlink()
         # Beam velocities are superseded by ENU components in the stacked file.
         beam_vel_vars = [v for v in ds_out.data_vars if v.startswith("velocity_beam")]
         if beam_vel_vars:
