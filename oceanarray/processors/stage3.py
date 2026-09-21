@@ -84,10 +84,10 @@ from oceanarray.processors.qc import (
     unify_velocity_qc,
 )
 from oceanarray.utilities import (
-    cast_output_dtypes,
     drop_all_zero_vars,
     extract_inline_instruments,
 )
+from oceanarray.writers import write
 
 
 def _safe_serial(serial: Any) -> str:
@@ -751,7 +751,7 @@ class Stage3Processor:
                 ds.attrs["caldip_applied"] = CALDIP_STUB_APPLIED
 
             ds = drop_all_zero_vars(ds, ["amplitude_beam", "analog_input_"])
-            cast_output_dtypes(ds).to_netcdf(l3_path)
+            write(ds, l3_path)
             ds.close()
             self._log(
                 f"  Creating output file: {l3_path.name}  ({'; '.join(qc_summary)})"

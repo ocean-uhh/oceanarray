@@ -21,11 +21,11 @@ from oceanarray.processors.helpers import (
 )
 from oceanarray.utilities import (
     _status,
-    cast_output_dtypes,
     drop_all_zero_vars,
     extract_inline_instruments,
     parse_latlon,
 )
+from oceanarray.writers import write
 
 KNOWN_INSTRUMENT_TYPES: frozenset = params.KNOWN_INSTRUMENT_TYPES
 
@@ -682,12 +682,6 @@ class MooringStacker:
         ds_out = drop_all_zero_vars(ds_out, ["amplitude_beam", "analog_input_"])
         # OceanSITES convention: time is the unlimited (first) dimension.
         ds_out = ds_out.transpose("time", "N_LEVELS")
-        ds_out = cast_output_dtypes(ds_out)
-        _enc = {
-            v: {"zlib": True, "complevel": 5}
-            for v in ds_out.data_vars
-            if ds_out[v].dtype.kind not in ("O", "U", "S")
-        }
-        ds_out.to_netcdf(output_path, encoding=_enc)
+        write(ds_out, output_path)
         _status("file", self._rel(output_path))
         return True
