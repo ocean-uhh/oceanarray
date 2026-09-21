@@ -86,7 +86,9 @@ def test_single_to_netcdf_path():
             continue
         if py in allowed:
             continue
-        if "to_netcdf(" in py.read_text():
+        # encoding pinned: some package files carry UTF-8 glyphs (e.g. S m⁻¹) that
+        # Path.read_text would fail to decode under Windows' cp1252 default.
+        if "to_netcdf(" in py.read_text(encoding="utf-8"):
             offenders.append(str(py.relative_to(pkg)))
     assert not offenders, f"unexpected to_netcdf outside the writer: {offenders}"
 

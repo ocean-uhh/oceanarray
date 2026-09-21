@@ -425,18 +425,16 @@ class Stage3Processor:
         serial = info["serial"]
         l3_path = nc_path.with_name(nc_path.name.replace("_stage2.nc", "_stage3.nc"))
 
-        if l3_path.exists():
-            # A caldip request invalidates an existing output the same way --force does, so
-            # the correction (here, the stub marker) is guaranteed to reach every output —
-            # otherwise a pre-existing _stage3.nc would be indistinguishable from a caldip run.
-            if not force and caldip_dir is None:
-                self._log(f"  SKIP (exists): {l3_path.name}  (--force to overwrite)")
-                return True
-            try:
-                l3_path.unlink()
-            except OSError as e:
-                self._log(f"  ERROR: cannot remove existing {l3_path.name}: {e}")
-                return False
+        # Skip only when the output exists and nothing forces a rewrite. A caldip
+        # request invalidates an existing output the same way --force does, so the
+        # correction (here, the stub marker) reaches every output — otherwise a
+        # pre-existing _stage3.nc would be indistinguishable from a caldip run.
+        if l3_path.exists() and not force and caldip_dir is None:
+            self._log(f"  SKIP (exists): {l3_path.name}  (--force to overwrite)")
+            return True
+        # Otherwise regenerate: do not unlink now. write() replaces the file
+        # atomically (temp then rename) at the end, so a failure mid-processing
+        # leaves the previous _stage3.nc intact rather than deleting it up front.
 
         is_target = info in targets
         pressure_bad_flag = info["qc_flags"].get("pressure", 0) >= 3
