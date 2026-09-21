@@ -357,3 +357,53 @@ def test_datetime_calendar_and_units_survive(tmp_path):
         assert raw["time"].attrs.get("calendar") == "proleptic_gregorian"
     finally:
         raw.close()
+
+
+# ---------------------------------------------------------------------------
+# Dtype casting — stale packing encoding does not survive a cast
+# ---------------------------------------------------------------------------
+
+
+def test_cast_drops_stale_packing_encoding(tmp_path):
+    """A packed int16 input, once cast to float32, is written unpacked as float32.
+
+    ``cast_output_dtypes`` rebuilds every cast variable with empty encoding, so the
+    ``dtype``/``scale_factor`` carried by a packed read cannot survive the writer's
+    encoding allowlist and silently re-quantize the data.  The writer relies on this
+    xarray behaviour rather than on oceanarray code, so it is pinned here.
+    """
+    # Build a genuinely packed int16 file: float values stored via scale_factor.
+    packed = tmp_path / "packed.nc"
+    ds = xr.Dataset(
+        {"temperature": ("x", np.array([4.0, 5.5, 6.25, 7.125]))},
+        coords={"x": np.arange(4)},
+    )
+    ds["temperature"].encoding = {
+        "dtype": "int16",
+        "scale_factor": 0.001,
+        "_FillValue": np.int16(-32767),
+    }
+    ds.to_netcdf(packed, engine="netcdf4")
+
+    # Read back decoded: float values, encoding carries the int16 packing.
+    src = xr.open_dataset(packed, engine="netcdf4")
+    try:
+        assert src["temperature"].encoding.get("dtype") == np.dtype("int16")
+        cast = cast_output_dtypes(src)
+        # The cast rebuilds the variable with no encoding, so nothing is left to
+        # repack it on write.
+        assert cast["temperature"].dtype == np.float32
+        assert cast["temperature"].encoding == {}
+
+        out = tmp_path / "out.nc"
+        write(src, out)
+    finally:
+        src.close()
+
+    # On disk the variable is float32, not repacked into int16.
+    raw = _open_raw(out)
+    try:
+        assert raw["temperature"].dtype == np.float32
+        assert "scale_factor" not in raw["temperature"].attrs
+    finally:
+        raw.close()
