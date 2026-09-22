@@ -16,7 +16,6 @@ files produced today.
 from __future__ import annotations
 
 import json
-import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -212,15 +211,15 @@ def write(ds: xr.Dataset, path: Path | str) -> None:
             enc.update(_COMPRESSION)
         safe[name].encoding = enc
 
-    tmp = None
+    # Atomic write: to_netcdf creates a sibling temp file, then rename over the
+    # target.  The temp path is deterministic and let netCDF4 create it fresh —
+    # pre-creating it (e.g. via NamedTemporaryFile) and clobbering it triggers an
+    # HDF5 file-lock error on Windows.
+    tmp = path.with_name(path.name + ".tmp")
     try:
-        with tempfile.NamedTemporaryFile(
-            delete=False, dir=path.parent, prefix=f".{path.name}.", suffix=".tmp.nc"
-        ) as handle:
-            tmp = Path(handle.name)
         safe.to_netcdf(tmp, engine="netcdf4", format="NETCDF4")
         tmp.replace(path)
-    except Exception:
-        if tmp is not None and tmp.exists():
+    except BaseException:
+        if tmp.exists():
             tmp.unlink()
         raise

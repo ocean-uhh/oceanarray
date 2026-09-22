@@ -249,7 +249,7 @@ def test_write_failure_leaves_no_output_or_temp(tmp_path):
         write(ds, out)
 
     assert not out.exists()
-    assert not list(tmp_path.glob(".fail.nc.*")), "temp file left behind"
+    assert not list(tmp_path.glob("*.tmp")), "temp file left behind"
 
 
 # ---------------------------------------------------------------------------
