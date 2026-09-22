@@ -316,7 +316,7 @@ class Stage2Processor:
         """Print to both console and log file."""
         print(*args, **kwargs)
         if self.log_file:
-            with self.log_file.open("a") as f:
+            with self.log_file.open("a", encoding="utf-8") as f:
                 print(*args, **kwargs, file=f)
 
     def _load_mooring_config(self, config_path: Path) -> dict[str, Any]:
