@@ -37,15 +37,6 @@ seasenselib-compatible attributes, atomic write.
    :members:
    :undoc-members:
 
-writers (legacy helpers)
-^^^^^^^^^^^^^^^^^^^^^^^^^
-NetCDF output helpers predating :func:`oceanarray.writers.write`; not used by the
-pipeline.
-
-.. automodule:: oceanarray.tools.writers
-   :members:
-   :undoc-members:
-
 rapid interpolation
 ^^^^^^^^^^^^^^^^^^^
 Physics-informed vertical interpolation (RAPID array scheme).

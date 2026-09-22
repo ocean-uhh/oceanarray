@@ -77,8 +77,6 @@ def test_single_to_netcdf_path():
     allowed = {
         # legacy physics code; rewrite deferred (per-file-ignores mark it so).
         pkg / "tools" / "rapid_interp.py",
-        # dead helpers, removed by the breaking follow-up branch.
-        pkg / "tools" / "writers.py",
     }
     offenders = []
     for py in pkg.rglob("*.py"):
