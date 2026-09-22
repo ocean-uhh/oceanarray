@@ -78,9 +78,11 @@ PROVENANCE_PASSTHROUGH_GLOBALS = (
 
 #: Value written to the ``caldip_applied`` global attribute of ``_stage3.nc`` when a caldip
 #: correction was requested but only the null-action stub ran. The first real correction
-#: replaces this string, so the stub → non-stub transition is visible in the output file.
+#: replaces this string, so the stub -> non-stub transition is visible in the output file.
+#: Plain ASCII (a hyphen, not an em-dash) — a portable marker, matched byte-for-byte by the
+#: contract test.
 CALDIP_STUB_APPLIED = (
-    "none — caldip stub (correction not implemented); Stage 3 science data unchanged"
+    "none - caldip stub (correction not implemented); Stage 3 science data unchanged"
 )
 
 

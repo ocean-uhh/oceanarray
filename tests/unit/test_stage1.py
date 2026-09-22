@@ -149,17 +149,6 @@ class TestMooringProcessor:
         expected = output_dir / "test_mooring_7518_stage1.nc"
         assert filename == expected
 
-    def test_get_netcdf_writer_params(self, processor):
-        """Test NetCDF writer parameters."""
-        params = processor._get_netcdf_writer_params()
-
-        assert isinstance(params, dict)
-        assert "optimize" in params
-        assert "uint8_vars" in params
-        assert "float32_vars" in params
-        assert params["chunk_time"] == 3600
-        assert params["complevel"] == 5
-
     def test_clean_dataset_variables_sbe_cnv(self, processor):
         """Test cleaning dataset variables for SBE CNV files."""
         ds = xr.Dataset(

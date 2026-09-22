@@ -45,15 +45,14 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import yaml
-from seasenselib.writers import NetCdfWriter
 
 from oceanarray import paths
 from oceanarray.utilities import (
     _status,
-    cast_output_dtypes,
     drop_all_zero_vars,
     extract_inline_instruments,
 )
+from oceanarray.writers import write
 
 
 def _parse_clock_str(s: str) -> pd.Timestamp | None:
@@ -317,7 +316,7 @@ class Stage2Processor:
         """Print to both console and log file."""
         print(*args, **kwargs)
         if self.log_file:
-            with self.log_file.open("a") as f:
+            with self.log_file.open("a", encoding="utf-8") as f:
                 print(*args, **kwargs, file=f)
 
     def _load_mooring_config(self, config_path: Path) -> dict[str, Any]:
@@ -767,36 +766,6 @@ class Stage2Processor:
 
         return dataset
 
-    def _get_netcdf_writer_params(self) -> dict[str, Any]:
-        """Get standard parameters for NetCDF writer."""
-        return {
-            "optimize": True,
-            "drop_derived": False,
-            "uint8_vars": [
-                "correlation_magnitude",
-                "echo_intensity",
-                "status",
-                "percent_good",
-                "bt_correlation",
-                "bt_amplitude",
-                "bt_percent_good",
-            ],
-            "float32_vars": [
-                "eastward_velocity",
-                "northward_velocity",
-                "upward_velocity",
-                "temperature",
-                "salinity",
-                "pressure",
-                "pressure_std",
-                "depth",
-                "bt_velocity",
-            ],
-            "chunk_time": 3600,
-            "complevel": 5,
-            "quantize": 3,
-        }
-
     def _process_instrument(
         self,
         instrument_config: dict[str, Any],
@@ -967,15 +936,10 @@ class Stage2Processor:
                     recover_time
                 ).isoformat()
 
-            # Remove existing output file before writing
-            if use_filepath.exists():
-                use_filepath.unlink()
-
-            # Write the processed dataset
+            # Write the processed dataset. write() replaces atomically (temp file
+            # then rename), so the previous output survives a failed write.
             dataset = drop_all_zero_vars(dataset, ["amplitude_beam", "analog_input_"])
-            writer = NetCdfWriter(cast_output_dtypes(dataset))
-            writer_params = self._get_netcdf_writer_params()
-            writer.write(str(use_filepath), **writer_params)
+            write(dataset, use_filepath)
 
             _status("file", self._rel(use_filepath))
 

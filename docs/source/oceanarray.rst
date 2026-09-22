@@ -28,9 +28,19 @@ Supplementary data readers (Nortek CSV, RODB legacy format).
    :members:
    :undoc-members:
 
-writers
-^^^^^^^
-NetCDF output helpers.
+netcdf writer
+^^^^^^^^^^^^^
+Single ``write()`` seam used by every processing stage: compressed CF-NetCDF,
+seasenselib-compatible attributes, atomic write.
+
+.. automodule:: oceanarray.writers.netcdf
+   :members:
+   :undoc-members:
+
+writers (legacy helpers)
+^^^^^^^^^^^^^^^^^^^^^^^^^
+NetCDF output helpers predating :func:`oceanarray.writers.write`; not used by the
+pipeline.
 
 .. automodule:: oceanarray.tools.writers
    :members:

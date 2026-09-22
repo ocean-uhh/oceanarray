@@ -11,17 +11,16 @@ from typing import Any
 import seasenselib
 import xarray as xr
 import yaml
-from seasenselib.writers import NetCdfWriter
 
 from oceanarray import parameters as params
 from oceanarray import paths
 from oceanarray.paths import safe_serial
 from oceanarray.utilities import (
     _status,
-    cast_output_dtypes,
     extract_inline_instruments,
     should_skip_regeneration,
 )
+from oceanarray.writers import write
 
 # Suppress noisy INFO/WARNING messages from seasenselib/pycnv.
 logging.getLogger("seasenselib").setLevel(logging.WARNING)
@@ -255,7 +254,7 @@ class MooringProcessor:
         """Print to both console and log file."""
         print(*args, **kwargs)
         if self.log_file:
-            with self.log_file.open("a") as f:
+            with self.log_file.open("a", encoding="utf-8") as f:
                 print(*args, **kwargs, file=f)
 
     def _rel(self, path: Path) -> str:
@@ -1235,36 +1234,6 @@ class MooringProcessor:
         )
         return output_dir / output_filename
 
-    def _get_netcdf_writer_params(self) -> dict[str, Any]:
-        """Get standard parameters for NetCDF writer."""
-        return {
-            "optimize": True,
-            "drop_derived": False,
-            "uint8_vars": [
-                "correlation_magnitude",
-                "echo_intensity",
-                "status",
-                "percent_good",
-                "bt_correlation",
-                "bt_amplitude",
-                "bt_percent_good",
-            ],
-            "float32_vars": [
-                "eastward_velocity",
-                "northward_velocity",
-                "upward_velocity",
-                "temperature",
-                "salinity",
-                "pressure",
-                "pressure_std",
-                "depth",
-                "bt_velocity",
-            ],
-            "chunk_time": 3600,
-            "complevel": 5,
-            "quantize": 3,
-        }
-
     @staticmethod
     def _guess_instrument_filename(
         instrument_config: dict[str, Any],
@@ -1596,7 +1565,7 @@ class MooringProcessor:
         7. Annotate ITS-90 temperature scale for ``sbe-ascii`` and ``sbe-hex``.
         8. Normalise SENSOR_PRES variable naming; clean dataset variables.
         9. Add global attributes and per-instrument metadata (depth, serial, etc.).
-        10. Write to NetCDF via ``NetCdfWriter``.
+        10. Write to NetCDF via :func:`oceanarray.writers.write`.
 
         Returns True on success, False if the file could not be read.
         """
@@ -1805,9 +1774,7 @@ class MooringProcessor:
 
         # Write to NetCDF
         _status("file", str(relative_output))
-        writer = NetCdfWriter(cast_output_dtypes(dataset))
-        writer_params = self._get_netcdf_writer_params()
-        writer.write(str(output_file), **writer_params)
+        write(dataset, output_file)
 
         return True
 
