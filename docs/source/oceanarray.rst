@@ -30,8 +30,11 @@ Supplementary data readers (Nortek CSV, RODB legacy format).
 
 netcdf writer
 ^^^^^^^^^^^^^
-Single ``write()`` seam used by every processing stage: compressed CF-NetCDF,
-seasenselib-compatible attributes, atomic write.
+``oceanarray.writers.write(ds, path)`` is the single write seam used by every
+processing stage: zlib-compressed CF-NetCDF, cleaned attributes (``None`` dropped
+with a warning), a pinned float64 time encoding, and an atomic write. A bare
+``ds.to_netcdf()`` skips all of this — no compression, no attribute cleaning, no
+pinned time — so use ``write`` for pipeline output.
 
 .. automodule:: oceanarray.writers.netcdf
    :members:
