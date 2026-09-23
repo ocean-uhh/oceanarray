@@ -16,9 +16,14 @@ except ImportError:  # pragma: no cover - source tree with no build artefact
     except _PNF:  # pragma: no cover
         __version__ = "0.0.0"
 
+from oceanarray import writers
 from oceanarray.config import parameters
 from oceanarray.processors import process
 
+# Note: not every name in ``__all__`` resolves after a bare ``import oceanarray``.
+# ``config``, ``processors``, ``parameters``, ``process`` and ``writers`` are imported
+# here (directly or as a side effect); ``analysis``, ``tools``, ``plotters`` and
+# ``utilities`` are listed for discoverability but load only on first explicit import.
 __all__ = [
     "__version__",
     # Subpackages (canonical locations)
@@ -26,6 +31,7 @@ __all__ = [
     "config",
     "processors",
     "tools",
+    "writers",
     # Top-level modules
     "parameters",
     "plotters",

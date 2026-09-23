@@ -1,9 +1,9 @@
 """Tests for the single netCDF writer, :func:`oceanarray.writers.write`.
 
-The load-bearing test is :func:`test_output_matches_old_writer`: it proves the new
-writer reproduces the pre-refactor per-path writer byte-for-byte apart from the
-added compression filter, which is what makes this a non-breaking change rather
-than an asserted one.
+The guarantees are oracle-free: one write path, compression present on every numeric
+variable, lossless round-trip, pinned time encoding, attribute cleaning (``None``
+dropped), and name sanitization. The migration check against the old per-path writer
+was removed with the writer cleanup — after that branch there is no old writer to match.
 """
 
 from __future__ import annotations
@@ -13,24 +13,24 @@ from pathlib import Path
 import numpy as np
 import pytest
 import xarray as xr
-from seasenselib.writers import NetCdfWriter
 
 from oceanarray.utilities import cast_output_dtypes
 from oceanarray.writers import write
-from oceanarray.writers.netcdf import _clean_attr_value, _clean_attrs, _sanitize_names
+from oceanarray.writers.netcdf import (
+    _DROP,
+    _clean_attr_value,
+    _prepare,
+    _sanitize_names,
+)
 
 #: Root of the committed real-data fixtures (trimmed dune2_1_2026 mooring).
 FIXTURE_PROC = (
     Path(__file__).resolve().parents[1] / "fixtures" / "proc" / "dune2_1_2026"
 )
 
-# Committed dune2_1_2026 outputs from the pre-refactor pipeline. These are the
-# frozen oracle for the non-breaking check: stage1/stage2 were written by
-# seasenselib, stage3 by a bare ``to_netcdf``, grid/stack by an explicit zlib-5
-# encoding. Comparing against the committed files, not a live seasenselib call,
-# pins "no output change" to a fixed record even as the installed seasenselib
-# version moves. grid and stack are the two paths whose bytes actually change
-# (zlib 5 -> the common level 4), so they must be covered here.
+# Committed dune2_1_2026 outputs, one per write path (per-instrument stage1/2/3 for
+# a scalar microcat and a velocity aquadopp, plus the mooring grid and stack). Used
+# as real-data inputs for the compression, round-trip, time-encoding and name tests.
 _FIXTURES = {
     "microcat_stage1": FIXTURE_PROC / "microcat" / "dune2_1_2026_2941_stage1.nc",
     "microcat_stage2": FIXTURE_PROC / "microcat" / "dune2_1_2026_2941_stage2.nc",
@@ -42,10 +42,6 @@ _FIXTURES = {
     "stack": FIXTURE_PROC / "dune2_1_2026_stack.nc",
 }
 
-# CF encoding attributes that must survive unchanged through the writer.  Under
-# ``decode_cf=False`` these read back as plain attributes, not encoding.
-_CF_ENCODING_ATTRS = ("units", "calendar", "_FillValue", "scale_factor", "add_offset")
-
 
 def _open_raw(path: Path) -> xr.Dataset:
     """Open *path* without CF decoding, so raw stored values are visible."""
@@ -53,13 +49,13 @@ def _open_raw(path: Path) -> xr.Dataset:
 
 
 def _write_uncompressed(ds: xr.Dataset, path: Path) -> None:
-    """Write *ds* through the writer's own cleaning but with no compression.
+    """Write *ds* through the writer's full pipeline but with no compression.
 
-    Baseline for the losslessness test: identical to :func:`write` except the
-    zlib filter, so any decoded difference is compression, not the pipeline.
+    Baseline for the losslessness test: `_prepare(ds, compress=False)` does everything
+    :func:`write` does (cast, clean, pin time) except the zlib filter, so any decoded
+    difference is compression, not the pipeline.
     """
-    safe = _clean_attrs(_sanitize_names(cast_output_dtypes(ds)))
-    safe.to_netcdf(path, engine="netcdf4", format="NETCDF4")
+    _prepare(ds, compress=False).to_netcdf(path, engine="netcdf4", format="NETCDF4")
 
 
 # ---------------------------------------------------------------------------
@@ -77,8 +73,6 @@ def test_single_to_netcdf_path():
     allowed = {
         # legacy physics code; rewrite deferred (per-file-ignores mark it so).
         pkg / "tools" / "rapid_interp.py",
-        # dead helpers, removed by the breaking follow-up branch.
-        pkg / "tools" / "writers.py",
     }
     offenders = []
     for py in pkg.rglob("*.py"):
@@ -225,16 +219,37 @@ def test_name_sanitization_collision_raises():
 
 
 def test_clean_attr_value_branches():
-    """dict -> JSON, None -> "", lists and tuples pass through, scalars unchanged."""
+    """dict -> JSON, None -> _DROP, lists and tuples pass through, scalars unchanged."""
     import json
 
     assert _clean_attr_value({"a": 1}) == json.dumps({"a": 1})
-    assert _clean_attr_value(None) == ""
+    assert _clean_attr_value(None) is _DROP
     assert _clean_attr_value(["a", "b"]) == ["a", "b"]
     assert _clean_attr_value((1, 2)) == (1, 2)
     assert _clean_attr_value([]) == []
     assert _clean_attr_value("s") == "s"
     assert _clean_attr_value(3.5) == 3.5
+
+
+def test_none_attributes_dropped_with_warning(tmp_path):
+    """A None global or variable attribute is dropped from the file, with a warning."""
+    ds = xr.Dataset(
+        {"temperature": ("x", np.arange(3.0))},
+        coords={"x": np.arange(3)},
+        attrs={"title": "keep", "comment": None},
+    )
+    ds["temperature"].attrs["note"] = None
+    out = tmp_path / "none.nc"
+    with pytest.warns(UserWarning, match="dropping attribute"):
+        write(ds, out)
+
+    reopened = xr.open_dataset(out, engine="netcdf4")
+    try:
+        assert reopened.attrs.get("title") == "keep"
+        assert "comment" not in reopened.attrs
+        assert "note" not in reopened["temperature"].attrs
+    finally:
+        reopened.close()
 
 
 def test_write_failure_leaves_no_output_or_temp(tmp_path):
@@ -253,112 +268,86 @@ def test_write_failure_leaves_no_output_or_temp(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Old vs new — raw values, the non-breaking backstop
+# Time encoding — pinned epoch
 # ---------------------------------------------------------------------------
 
 
-def _attr_equal(a: object, b: object) -> bool:
-    """Equality that treats two NaN fill values as equal (``nan != nan`` otherwise)."""
-    try:
-        if np.isnan(a) and np.isnan(b):
-            return True
-    except (TypeError, ValueError):
-        pass
-    return bool(a == b)
-
-
-def _assert_raw_identical_except_compression(old_path: Path, new_path: Path) -> None:
-    """Assert two files hold identical raw values and CF attrs, filter aside."""
-    old = _open_raw(old_path)
-    new = _open_raw(new_path)
-    try:
-        assert set(old.variables) == set(new.variables)
-        for name in old.variables:
-            o, n = old[name], new[name]
-            assert o.dtype == n.dtype, f"{name}: dtype changed {o.dtype}->{n.dtype}"
-            np.testing.assert_array_equal(
-                o.values, n.values, err_msg=f"{name}: raw values changed"
-            )
-            for attr in _CF_ENCODING_ATTRS:
-                assert _attr_equal(o.attrs.get(attr), n.attrs.get(attr)), (
-                    f"{name}: {attr} changed"
-                )
-    finally:
-        old.close()
-        new.close()
-
-
-# Keys whose committed fixture was written by seasenselib (stage1/stage2). The
-# rest used a bare ``to_netcdf`` (stage3) or an explicit zlib-5 encoding
-# (grid/stack); for a raw-value comparison a bare rewrite is an adequate baseline
-# since compression level does not change raw values.
-_SEASENSELIB_KEYS = frozenset(
-    {"microcat_stage1", "microcat_stage2", "aquadopp_stage1", "aquadopp_stage2"}
-)
-
-
 @pytest.mark.parametrize("key", list(_FIXTURES))
-def test_output_matches_old_writer(key, tmp_path):
-    """write() matches the pre-refactor per-path writer, compression filter aside.
+def test_time_encoding_pinned(key, tmp_path):
+    """Every datetime variable is written float64 ``seconds since 1970-01-01``.
 
-    Transitional migration check: it proves this branch changes no raw bytes versus
-    seasenselib's writer on the same input. Delete it once merged — after this PR
-    there is no old writer left to be identical to. The permanent guarantees are the
-    oracle-free tests above (compression present, lossless round-trip, units/calendar
-    survive, attribute cleaning).
-
-    The old writer is reconstructed in-test and run on the same reopened source, so
-    both sides use the installed xarray. This isolates the writer change from an
-    xarray time-format difference frozen into the committed fixtures (an older xarray
-    wrote ``... 17:00:00``; the current one writes ``...T17:00:00`` — both the old and
-    new writers do). Raw arrays, dtypes and CF attrs are identical, and decoded values
-    too. grid and stack are covered: they are the two paths whose stored bytes change
-    (zlib 5 -> the common level 4), and their raw values stay identical.
+    The pinned literal is ``...T00:00:00``; xarray normalises a midnight epoch to
+    ``seconds since 1970-01-01`` on disk, so that is what a reader sees. Decoded
+    instants stay the same to sub-microsecond — float64 seconds loses at most a few
+    hundred ns of the source's nanosecond timestamps, negligible for mooring data.
     """
-    # Load the fixture and release its handle before re-opening: HDF5 can segfault
-    # when the same file is open more than once at a time.
-    with xr.open_dataset(_FIXTURES[key], engine="netcdf4") as handle:
-        src = handle.load()
-    old = tmp_path / "old.nc"
-    new = tmp_path / "new.nc"
-    if key in _SEASENSELIB_KEYS:
-        NetCdfWriter(cast_output_dtypes(src)).write(str(old))
-    else:
-        cast_output_dtypes(src).to_netcdf(old, engine="netcdf4")
-    write(src, new)
+    src = xr.open_dataset(_FIXTURES[key], engine="netcdf4")
+    out = tmp_path / "out.nc"
+    write(src, out)
 
-    _assert_raw_identical_except_compression(old, new)
-    with (
-        xr.open_dataset(old, engine="netcdf4") as a,
-        xr.open_dataset(new, engine="netcdf4") as b,
-    ):
-        xr.testing.assert_identical(a, b)
+    raw = _open_raw(out)
+    dec = xr.open_dataset(out, engine="netcdf4")
+    try:
+        checked = 0
+        for name, var in src.variables.items():
+            if not np.issubdtype(var.dtype, np.datetime64):
+                continue
+            assert raw[name].attrs.get("units") == "seconds since 1970-01-01"
+            assert raw[name].attrs.get("calendar") == "proleptic_gregorian"
+            assert raw[name].dtype == np.float64
+            a = src[name].values.astype("datetime64[ns]").astype("int64")
+            b = dec[name].values.astype("datetime64[ns]").astype("int64")
+            assert np.nanmax(np.abs(a - b)) < 1000, f"{name}: > 1 us drift"
+            checked += 1
+        assert checked > 0
+    finally:
+        raw.close()
+        dec.close()
+        src.close()
 
 
-def test_datetime_calendar_and_units_survive(tmp_path):
-    """A datetime variable keeps both ``units`` and ``calendar`` through write().
+def test_nat_round_trips(tmp_path):
+    """A datetime variable containing NaT writes and decodes back to NaT.
 
-    Guards the implicit coupling between the datetime attrs-to-encoding move and
-    :data:`_PRESERVED_ENCODING`: both keys survive only because they are preserved.
-    Dropping ``calendar`` from the preserved set would silently corrupt the time
-    interpretation — this test fails if that happens.
+    The pinned float64 time encoding sets no ``_FillValue``; xarray writes ``nan``
+    itself, so NaT (e.g. stack's ``time_orig``) survives without explicit handling.
     """
-    time = xr.date_range("2026-01-01", periods=4, freq="h", use_cftime=False)
+    t = np.array(["2026-01-01", "NaT", "2026-01-03"], dtype="datetime64[ns]")
     ds = xr.Dataset(
-        {"temperature": ("time", np.linspace(4.0, 8.0, 4))},
-        coords={"time": time},
+        {"v": ("time", np.arange(3.0))},
+        coords={"time": t, "time_orig": ("time", t)},
     )
-    ds["time"].attrs["units"] = "seconds since 2000-01-01"
-    ds["time"].attrs["calendar"] = "proleptic_gregorian"
-    out = tmp_path / "cal.nc"
+    out = tmp_path / "nat.nc"
+    write(ds, out)
+
+    reopened = xr.open_dataset(out, engine="netcdf4")
+    try:
+        assert bool(np.isnat(reopened["time_orig"].values[1]))
+        assert not np.isnat(reopened["time_orig"].values[0])
+    finally:
+        reopened.close()
+
+
+def test_timedelta_not_pinned_and_round_trips(tmp_path):
+    """A timedelta64 variable is a duration, not an absolute time: it is not pinned.
+
+    It must not receive the 1970 datetime epoch. xarray re-derives a valid CF ``units``
+    for it (its encoding is stripped upstream by ``cast_output_dtypes``), so the raw
+    ``units`` is xarray's, but the decoded durations round-trip unchanged.
+    """
+    td = np.array([3600, 7200, 10800], dtype="timedelta64[s]")
+    ds = xr.Dataset({"gap": ("x", td)}, coords={"x": np.arange(3)})
+    out = tmp_path / "td.nc"
     write(ds, out)
 
     raw = xr.open_dataset(out, engine="netcdf4", decode_cf=False)
+    dec = xr.open_dataset(out, engine="netcdf4", decode_timedelta=True)
     try:
-        assert raw["time"].attrs.get("units") == "seconds since 2000-01-01"
-        assert raw["time"].attrs.get("calendar") == "proleptic_gregorian"
+        assert "1970" not in str(raw["gap"].attrs.get("units", ""))  # not pinned
+        np.testing.assert_array_equal(dec["gap"].values.astype("timedelta64[s]"), td)
     finally:
         raw.close()
+        dec.close()
 
 
 # ---------------------------------------------------------------------------

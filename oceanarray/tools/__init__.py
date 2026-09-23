@@ -3,7 +3,6 @@
 Submodules
 ----------
 readers      : Supplementary data readers (Nortek CSV, RODB legacy).
-writers      : NetCDF output helpers (save_dataset, save_OS_instrument).
 rapid_interp : Physics-informed vertical interpolation (RAPID array scheme).
 
 Science utilities from the legacy ``tools.py`` are re-exported here so that
