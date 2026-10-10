@@ -61,8 +61,8 @@ Summary report
    :align: center
 
    The Summary report header for mooring *dsG2_1_2026*.  Each instrument type
-   appears on its own row; a pill's colour is its role (instruments share the
-   dark *component* colour), and a greyed pill marks an instrument with no
+   appears on its own row; a pill's colour is its role (Summary dark, Stack blue,
+   Grid purple, instruments green), and a greyed pill marks an instrument with no
    generated report.
 
 **File**: ``{proc_dir}/{mooring}/report/{mooring}_report.html``

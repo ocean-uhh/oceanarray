@@ -116,3 +116,26 @@ def test_serial_colliding_with_reports_key_does_not_crash():
         1 for r in nav["rows"] for p in r["pills"] if p["state"] == "current"
     )
     assert n_current == 1
+
+
+def test_instrument_pill_missing_when_no_stage_files():
+    # Stages present but all False → no generated report → the pill is 'missing'.
+    instr = [{"serial": "A1", "instr_type": "microcat", "stages": {"stage1": False}}]
+    nav = mooring_nav("m", instr, current="summary")
+    ser = next(p for r in nav["rows"][1:] for p in r["pills"])
+    assert ser["state"] == "missing"
+
+
+def test_instrument_pill_present_when_stages_absent():
+    # No 'stages' key at all → treated as present (a link), not missing.
+    instr = [{"serial": "A1", "instr_type": "microcat"}]
+    nav = mooring_nav("m", instr, current="summary")
+    ser = next(p for r in nav["rows"][1:] for p in r["pills"])
+    assert ser["state"] == "link"
+
+
+def test_instrument_key_is_an_alias_for_instr_type():
+    # The documented 'instrument' key is accepted when 'instr_type' is absent.
+    instr = [{"serial": "A1", "instrument": "sbe37", "stages": {"stage1": True}}]
+    nav = mooring_nav("m", instr, current="summary")
+    assert nav["rows"][1]["label"] == "SBE37:"
