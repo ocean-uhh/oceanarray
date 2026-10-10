@@ -29,7 +29,6 @@ from ._html_helpers import (
     _find_array_report_href,
     _instrument_report_exists,
     _instrument_report_href,
-    _nav_buttons_html,
     _parse_dt,
     _parse_history,
     _read_nc_metadata,
@@ -38,6 +37,7 @@ from ._html_helpers import (
     _status,
 )
 from ._manifest import Panel, Profile, Section, resolve
+from ._navs import mooring_nav
 from ._plots import (
     _make_adcp_trajectories_b64,
     _make_analog_timeseries,
@@ -1067,13 +1067,13 @@ def generate_stack_page(
         html = render_template(
             "stack.html",
             mooring_name=mooring_name,
-            nav_buttons=_nav_buttons_html(
+            nav=mooring_nav(
                 mooring_name,
                 ctx.get("instruments", []),
                 stack_exists=True,
                 grid_exists=grid_exists,
-                current_report="stack",
-                array_report_href=_find_array_report_href(out_dir),
+                current="stack",
+                array_href=_find_array_report_href(out_dir),
             ),
             report=report,
             cruise=ctx.get("cruise", "—"),

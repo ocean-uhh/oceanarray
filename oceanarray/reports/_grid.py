@@ -20,7 +20,6 @@ from ._env import (
 )
 from ._html_helpers import (
     _find_array_report_href,
-    _nav_buttons_html,
     _parse_history,
     _read_nc_metadata,
     _safe_rel,
@@ -28,6 +27,7 @@ from ._html_helpers import (
     _status,
 )
 from ._manifest import Panel, PanelGroup, Profile, Section, resolve
+from ._navs import mooring_nav
 from ._plots import (
     _make_grid_hodograph_b64,
     _make_grid_hydro_b64,
@@ -617,13 +617,13 @@ def generate_grid_page(
         html = render_template(
             "grid.html",
             mooring_name=mooring_name,
-            nav_buttons=_nav_buttons_html(
+            nav=mooring_nav(
                 mooring_name,
                 ctx.get("instruments", []),
                 stack_exists=stack_exists,
                 grid_exists=True,
-                current_report="grid",
-                array_report_href=_find_array_report_href(out_dir),
+                current="grid",
+                array_href=_find_array_report_href(out_dir),
             ),
             report=report,
             cruise=ctx.get("cruise", "—"),

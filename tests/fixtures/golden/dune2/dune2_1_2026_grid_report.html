@@ -31,6 +31,7 @@
   --role-aggregate-a: #8e44ad;
   --role-aggregate-b: #27ae60;
   --role-map: #ee3377;
+  --role-up: #5d6d7e;
   --package-accent: var(--ocean);
   --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
@@ -39,9 +40,9 @@
   --fs-type: 1.35rem;
   --fs-h2: 1rem;
   --fs-meta: 0.84rem;
-  --fs-note: 0.82rem;
+  --fs-note: 0.92rem;
   --fs-nav: 0.8rem;
-  --fs-cap: 0.76rem;
+  --fs-cap: 0.92rem;
   --fs-xs: 0.75rem;
   --fs-top: 0.72rem;
   --fs-dt: 0.7rem;
@@ -67,7 +68,7 @@ body {
 p, li { max-width: 78ch; }
 .masthead {
   background: var(--ocean); color: #fff; position: relative;
-  padding: 1.6rem 2rem; border-radius: var(--radius-card); margin-bottom: 2rem;
+  padding: 1.6rem 2rem; border-radius: var(--radius-card); margin-bottom: 0.9rem;
 }
 .masthead h1 { margin: 0 0 0.3rem; font-size: var(--fs-h1); font-weight: 700; }
 .masthead .sub { font-size: var(--fs-meta); opacity: 0.85; margin: 0 0 0.15rem; max-width: none; }
@@ -136,6 +137,19 @@ h2 + .caption { margin-top: -0.5rem; max-width: none; }
 }
 .fig-col { display: flex; flex-direction: column; gap: 0.75rem; }
 .fig-row.center { justify-content: center; }
+/* A multi-table panel (processing provenance) is one full-width flex item so its
+   headings and tables stack instead of tiling across the row. */
+.prov-panel { flex: 1 1 100%; }
+/* Conformance status pips — a green ✓ (matches), a red ✗ (differs) and a neutral
+   ringed dash (no reference), matching the LADCP-present/absent badges. */
+.conf {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.4em; height: 1.4em; border-radius: 50%;
+  font-size: var(--fs-xs); font-weight: 700; line-height: 1;
+}
+.conf-match { background: var(--ok); color: #fff; }
+.conf-differ { background: var(--error); color: #fff; }
+.conf-none { background: #fff; color: #000; border: 1px solid #000; }
 figure { margin: 0; }
 figure img {
   border: 1px solid var(--rule); border-radius: var(--radius-btn);
@@ -183,6 +197,40 @@ td.mono { font-family: var(--font-mono); font-size: var(--fs-xs); }
   border-radius: var(--radius-pill); text-decoration: none; font-size: var(--fs-nav);
 }
 .btn-nav:hover { opacity: 0.85; }
+/* Masthead page-nav (vendored): the row of role pills under the masthead, and the
+   "Data inventory:" file strip.  A pill's colour is its role, never its page; the
+   current page's pill and an already-viewed file pill are muted the same way. */
+.page-nav { margin: 0.65rem 0 0.5rem; }
+.page-nav-label { font-size: var(--fs-top); opacity: 0.75; margin-right: 0.3rem; }
+.nav-pill {
+  display: inline-block; padding: 0.2em 0.65em; border-radius: var(--radius-btn);
+  font-size: var(--fs-nav); font-weight: 700; text-decoration: none; color: #fff;
+  margin: 0 0.2rem 0.25rem 0;
+}
+.nav-landing { background: var(--role-landing); }
+.nav-entity { background: var(--role-entity); }
+.nav-collection { background: var(--role-collection); }
+.nav-component { background: var(--role-component); }
+.nav-aggregate-a { background: var(--role-aggregate-a); }
+.nav-aggregate-b { background: var(--role-aggregate-b); }
+.nav-map { background: var(--role-map); }
+.nav-up { background: var(--role-up); }
+.nav-current { opacity: 0.5; pointer-events: none; }
+.nav-missing { background: var(--gray-3); opacity: 0.5; pointer-events: none; }
+.inventory-strip { margin: 0 0 1rem; }
+.inventory-strip .label { font-size: var(--fs-top); opacity: 0.75; margin-right: 0.3rem; }
+.file-pill {
+  display: inline-block; background: var(--role-component); color: #fff;
+  padding: 0.2rem 0.7rem; border-radius: var(--radius-pill);
+  font-family: var(--font-mono); font-size: 0.78rem;
+  text-decoration: none; margin: 0.1rem 0.05rem;
+}
+.file-pill:hover { opacity: 0.85; }
+.file-pill-active { opacity: 0.5; pointer-events: none; }
+/* Opt-in plain masthead (vendored) for landing / navigator pages: white panel,
+   ink text, rule border, wordmark hidden.  No ctdcast page uses it yet. */
+.masthead-plain { background: #fff; color: var(--text); border: 1px solid var(--rule); }
+.masthead-plain .wordmark { display: none; }
 footer {
   text-align: center; padding: 1rem;
   border-top: 1px solid var(--package-accent);
@@ -215,6 +263,11 @@ footer a { color: var(--muted); }
    explainer paragraphs sit above full-width tables, where that narrow measure reads
    as broken.  Restore full content-width — the pre-U0.1 oceanarray behaviour. */
 p, li { max-width: none; }
+/* oceanarray's masthead nav has multiple rows (Reports + one per instrument type); the
+   vendored single-row `.page-nav` margin stacks into too much vertical space, so tighten the
+   inter-row gap. (ctdcast/glidertest have a single row and do not need this.) */
+.masthead .page-nav { margin:0.12rem 0 0; }
+.masthead .page-nav:first-of-type { margin-top:0.5rem; }
 .masthead-plain { background:#fff; color:var(--text); border:1px solid var(--rule); }
 .masthead-plain .wordmark { display:none; }
 /* Wordmark is now an <a> to the repo; keep the pill look (no link underline). */
@@ -302,7 +355,29 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <div id="top" class="masthead ">
   <h1 class="masthead-title"><span>dune2_1_2026</span><span class="masthead-type">Gridded</span></h1>
   <p class="sub"><span></span><span>generated <GENERATED></span></p>
-  <div style="margin-top:0.65rem"><div style="margin-bottom:0.25rem"><span style="font-size:0.72rem;opacity:0.75;margin-right:0.3rem;white-space:nowrap;vertical-align:middle;">Reports:</span><a href="dune2_1_2026_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#1a3a5c">Summary</a><a href="dune2_1_2026_stack_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#2980b9">Stack</a><span style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;opacity:0.45;background:#8e44ad" title="current">Grid</span></div><div style="margin-bottom:0.1rem"><span style="font-size:0.72rem;opacity:0.75;margin-right:0.3rem;white-space:nowrap;vertical-align:middle;">Aquadopp:</span><a href="instrument/dune2_1_2026_9920_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#27ae60">9920</a></div><div style="margin-bottom:0.1rem"><span style="font-size:0.72rem;opacity:0.75;margin-right:0.3rem;white-space:nowrap;vertical-align:middle;">Microcat:</span><a href="instrument/dune2_1_2026_2941_report.html" style="display:inline-block;padding:0.2em 0.65em;border-radius:4px;font-size:0.78rem;font-weight:700;text-decoration:none;color:#fff;margin:0 0.2rem 0.25rem 0;white-space:nowrap;background:#27ae60">2941</a></div></div>
+  
+
+<nav class="page-nav">
+  <span class="page-nav-label">Reports:</span>
+  
+  <a class="nav-pill nav-entity" href="dune2_1_2026_report.html">Summary</a><a class="nav-pill nav-landing" href="dune2_1_2026_stack_report.html">Stack</a><span class="nav-pill nav-aggregate-a nav-current">Grid</span>
+</nav>
+
+<nav class="page-nav">
+  <span class="page-nav-label">Aquadopp:</span>
+  
+  <a class="nav-pill nav-aggregate-b" href="instrument/dune2_1_2026_9920_report.html">9920</a>
+</nav>
+
+<nav class="page-nav">
+  <span class="page-nav-label">MicroCAT:</span>
+  
+  <a class="nav-pill nav-aggregate-b" href="instrument/dune2_1_2026_2941_report.html">2941</a>
+</nav>
+
+
+
+
   <dl class="meta-grid">
     
     <div><dt>Cruise</dt><dd>OdB</dd></div>
