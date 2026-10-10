@@ -59,10 +59,13 @@ def test_roles_are_role_accent_keys_and_back_is_up():
     pills = [p for r in nav["rows"] for p in r["pills"]] + [nav["back"]]
     assert all(p["role"] in ROLE_ACCENT for p in pills)
     assert nav["back"]["role"] == "up"
-    # Colour is the role, not the page: Summary/Stack/instruments share the dark family.
+    # Roles chosen to render distinctly on oceanarray's navy masthead (not three-dark):
+    # Summary dark, Stack blue, Grid purple, instruments green.
     assert _pill(nav, "Summary")["role"] == "entity"
-    assert _pill(nav, "Stack")["role"] == "collection"
+    assert _pill(nav, "Stack")["role"] == "landing"
     assert _pill(nav, "Grid")["role"] == "aggregate-a"
+    ser = next(p for r in nav["rows"][1:] for p in r["pills"])
+    assert ser["role"] == "aggregate-b"
 
 
 def test_no_array_href_means_no_back_pill():

@@ -7,9 +7,13 @@ builds is the shared cross-package contract, so each sibling package carries its
 ``_navs.py`` building the same shape for its own pages.
 
 A pill's colour is its *role* (a :data:`~oceanarray.config.report_tokens.ROLE_ACCENT`
-key), never its page — Summary, Stack and the per-instrument pills share the dark
-``entity``/``collection``/``component`` family; the row labels and the muted current
-pill carry the distinction.
+key).  oceanarray's masthead is a solid ``--ocean`` navy, which is the same dark as the
+``entity``/``collection``/``component`` roles — so pills in those roles vanish against it.
+The pages therefore take roles that render *distinctly* on navy: Summary ``entity`` (dark,
+reads as the bold label), Stack ``landing`` (blue), Grid ``aggregate-a`` (purple),
+instruments ``aggregate-b`` (green), the Array up-link ``up`` (grey-blue).  This diverges
+from the family "three dark pills" scheme (ctdcast/glidertest render on per-page coloured
+mastheads, so dark pills show there); oceanarray's uniform navy masthead needs the contrast.
 """
 
 from __future__ import annotations
@@ -134,7 +138,7 @@ def mooring_nav(
         {
             "label": "Stack",
             "href": f"{pfx}{mooring_name}_stack_report.html",
-            "role": "collection",
+            "role": "landing",
             "state": _state(is_current=current == "stack", is_missing=not stack_exists),
         },
         {
@@ -163,7 +167,7 @@ def mooring_nav(
                 {
                     "label": ser,
                     "href": f"{ipfx}{mooring_name}_{ser}_report.html",
-                    "role": "component",
+                    "role": "aggregate-b",
                     "state": _state(
                         is_current=current == ser, is_missing=not has_report
                     ),

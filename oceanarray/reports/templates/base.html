@@ -22,6 +22,11 @@
    explainer paragraphs sit above full-width tables, where that narrow measure reads
    as broken.  Restore full content-width — the pre-U0.1 oceanarray behaviour. */
 p, li { max-width: none; }
+/* oceanarray's masthead nav has multiple rows (Reports + one per instrument type); the
+   vendored single-row `.page-nav` margin stacks into too much vertical space, so tighten the
+   inter-row gap. (ctdcast/glidertest have a single row and do not need this.) */
+.masthead .page-nav { margin:0.12rem 0 0; }
+.masthead .page-nav:first-of-type { margin-top:0.5rem; }
 .masthead-plain { background:#fff; color:var(--text); border:1px solid var(--rule); }
 .masthead-plain .wordmark { display:none; }
 /* Wordmark is now an <a> to the repo; keep the pill look (no link underline). */
@@ -91,7 +96,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <div id="top" class="masthead {% block masthead_class %}{% endblock %}">
   <h1 class="masthead-title"><span>{% block masthead_title %}{{ mooring_name }}{% endblock %}</span><span class="masthead-type">{% block masthead_type %}{% endblock %}</span></h1>
   <p class="sub"><span>{% block masthead_sub %}{% endblock %}</span><span>generated {{ generated }}</span></p>
-  {% block masthead_nav %}{{ nav_m.page_nav(nav) }}{{ nav_m.inventory_strip(nav) }}{% endblock %}
+  {% block masthead_nav %}{% set nav = nav | default({}) %}{{ nav_m.page_nav(nav) }}{{ nav_m.inventory_strip(nav) }}{% endblock %}
   <dl class="meta-grid">
     {% block masthead_meta %}{% endblock %}
   </dl>
