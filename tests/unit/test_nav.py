@@ -1,0 +1,115 @@
+"""Tests for the masthead nav builder and its rendering through the vendored macro."""
+
+from __future__ import annotations
+
+import pytest
+
+from oceanarray.config.report_tokens import ROLE_ACCENT
+from oceanarray.reports._env import _ENV
+from oceanarray.reports._navs import _type_label, mooring_nav
+
+_INSTR = [
+    {"serial": "2941", "instr_type": "microcat", "stages": {"stage1": True}},
+    {"serial": "9920", "instr_type": "aquadopp", "stages": {"stage1": True}},
+]
+
+
+def _render(nav):
+    tmpl = _ENV.from_string(
+        "{% import '_nav.html' as n %}{{ n.page_nav(nav) }}{{ n.inventory_strip(nav) }}"
+    )
+    return tmpl.render(nav=nav)
+
+
+def _pill(nav, label):
+    return next(p for r in nav["rows"] for p in r["pills"] if p["label"] == label)
+
+
+def test_missing_stack_and_grid_pills_are_missing():
+    nav = mooring_nav("m", _INSTR, stack_exists=False, grid_exists=False, current="summary")
+    assert _pill(nav, "Stack")["state"] == "missing"
+    assert _pill(nav, "Grid")["state"] == "missing"
+    assert _pill(nav, "Summary")["state"] == "current"
+
+
+def test_instrument_subdir_prefixes_reports_and_keeps_instrument_links_flat():
+    nav = mooring_nav("m", _INSTR, current="2941", in_instrument_subdir=True)
+    assert _pill(nav, "Summary")["href"] == "../m_report.html"
+    ser = next(p for r in nav["rows"][1:] for p in r["pills"])
+    assert ser["href"] == "m_2941_report.html"
+
+
+def test_toplevel_prefixes_instrument_links_with_subdir():
+    nav = mooring_nav("m", _INSTR, current="summary")
+    ser = next(p for r in nav["rows"][1:] for p in r["pills"])
+    assert ser["href"] == "instrument/m_2941_report.html"
+
+
+@pytest.mark.parametrize("current", ["summary", "stack", "grid", "2941", "9920"])
+def test_exactly_one_current_pill(current):
+    nav = mooring_nav("m", _INSTR, current=current)
+    n_current = sum(
+        1 for r in nav["rows"] for p in r["pills"] if p["state"] == "current"
+    )
+    assert n_current == 1
+
+
+def test_roles_are_role_accent_keys_and_back_is_up():
+    nav = mooring_nav("m", _INSTR, current="summary", array_href="../a.html")
+    pills = [p for r in nav["rows"] for p in r["pills"]] + [nav["back"]]
+    assert all(p["role"] in ROLE_ACCENT for p in pills)
+    assert nav["back"]["role"] == "up"
+    # Colour is the role, not the page: Summary/Stack/instruments share the dark family.
+    assert _pill(nav, "Summary")["role"] == "entity"
+    assert _pill(nav, "Stack")["role"] == "collection"
+    assert _pill(nav, "Grid")["role"] == "aggregate-a"
+
+
+def test_no_array_href_means_no_back_pill():
+    nav = mooring_nav("m", _INSTR, current="summary")
+    assert nav["back"] is None
+
+
+def test_type_labels_never_capitalize():
+    assert _type_label("adcp") == "ADCP"
+    assert _type_label("sbe37") == "SBE37"
+    assert _type_label("aquadopp") == "Aquadopp"
+    assert _type_label("unknownthing") == "UNKNOWNTHING"
+
+
+def test_rendered_nav_has_one_element_per_row_and_no_inline_style():
+    nav = mooring_nav("m", _INSTR, current="summary", array_href="../a.html")
+    html = _render(nav)
+    assert html.count('<nav class="page-nav">') == len(nav["rows"])
+    assert 'style="' not in html
+    assert "nav-up" in html  # back pill carries the role class
+
+
+def test_empty_inventory_renders_no_strip():
+    nav = mooring_nav("m", _INSTR, current="summary")
+    assert nav["inventory"] == []
+    assert "inventory-strip" not in _render(nav)
+
+
+def test_duplicate_serials_do_not_crash_and_keep_one_current():
+    # Two instruments sharing a serial must not produce two 'current' pills
+    # (which validate_nav would reject, aborting the report); the first wins.
+    instr = [
+        {"serial": "2941", "instr_type": "microcat", "stages": {"stage1": True}},
+        {"serial": "2941", "instr_type": "aquadopp", "stages": {"stage1": True}},
+    ]
+    nav = mooring_nav("m", instr, current="2941")
+    n_current = sum(
+        1 for r in nav["rows"] for p in r["pills"] if p["state"] == "current"
+    )
+    assert n_current == 1
+
+
+def test_serial_colliding_with_reports_key_does_not_crash():
+    # A serial equal to a Reports-row key ("stack") must not double the current.
+    instr = [{"serial": "stack", "instr_type": "microcat", "stages": {"stage1": True}}]
+    nav = mooring_nav("m", instr, current="stack")
+    n_current = sum(
+        1 for r in nav["rows"] for p in r["pills"] if p["state"] == "current"
+    )
+    assert n_current == 1

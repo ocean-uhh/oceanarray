@@ -24,7 +24,6 @@ from ._html_helpers import (
     _fmt_dt,
     _instrument_report_exists,
     _load_pdf_b64,
-    _nav_buttons_html,
     _parse_dt,
     _read_instrument_info,
     _read_qc_summary,
@@ -39,6 +38,7 @@ from ._html_helpers import (
 )
 from ._instrument import generate_instrument_pages
 from ._manifest import Panel, Profile, Section, resolve
+from ._navs import mooring_nav
 from ._plots import (
     _make_clock_check_b64,
     _make_knockdown_anomaly_b64,
@@ -842,13 +842,13 @@ class MooringReport:
             "fig_knockdown_hab_b64": fig_knockdown_hab_b64,
             "fig_knockdown_anomaly_b64": fig_knockdown_anomaly_b64,
             "fig_knockdown_displacement_b64": fig_knockdown_displacement_b64,
-            "nav_buttons": _nav_buttons_html(
+            "nav": mooring_nav(
                 mooring_name,
                 instruments,
                 stack_exists=stack_exists,
                 grid_exists=grid_exists,
-                current_report="summary",
-                array_report_href=_find_array_report_href(out_dir),
+                current="summary",
+                array_href=_find_array_report_href(out_dir),
             ),
             "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
             "proc_machine": socket.gethostname().split(".")[0],

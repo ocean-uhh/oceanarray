@@ -1,8 +1,8 @@
 """Guard the vendored report-design files against a local edit that skipped re-vendor.
 
-``VENDORED.txt`` records the sha256 of each file shared byte-identical with ctdcast
-(the source of truth) and glidertest.  These tests fail if a recorded file's bytes
-drift from its hash, or if the recorded set no longer matches the list in
+``VENDORED.txt`` records the sha256 of each file shared across ctdcast, oceanarray and
+glidertest; ctdcast main is the source of truth.  These tests fail if a recorded file's
+bytes drift from its hash, or if the recorded set no longer matches the list in
 ``scripts/check_vendored.py`` — either means an edit landed without running
 ``scripts/check_vendored.py --update``.  Cross-repo equality (is oceanarray in sync
 with ctdcast?) is ctdcast's script, run in review, not a test here.

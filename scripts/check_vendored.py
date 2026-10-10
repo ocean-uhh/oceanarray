@@ -1,9 +1,9 @@
 """Check the report-design files that are vendored byte-identical across packages.
 
-ctdcast ``main`` is the source of truth for the shared report-design files
-(the encoder, CSS generator, page-manifest model, design tokens, mplstyle, and
-the masthead-nav template).  oceanarray carries byte-identical copies and
-re-vendors from there; it never edits its copies in place.
+These files are shared across ctdcast, oceanarray and glidertest; ctdcast ``main``
+is the source of truth (the encoder, CSS generator, page-manifest model, design
+tokens, mplstyle, and the masthead-nav template).  oceanarray carries byte-identical
+copies and re-vendors from there, never editing them in place.
 
 Usage
 -----
@@ -72,9 +72,9 @@ def load_expected() -> dict[str, str]:
 def write_manifest() -> None:
     """Rewrite ``VENDORED.txt`` from the current local files."""
     lines = [
-        "# sha256 of the report-design files vendored byte-identical from ctdcast.",
-        f"# Source of truth: ctdcast main {SOURCE_COMMIT}.  Never hand-edit these files;",
-        "# re-vendor from ctdcast, then: python scripts/check_vendored.py --update",
+        "# sha256 of the report-design files shared across ctdcast, oceanarray and",
+        f"# glidertest; ctdcast main {SOURCE_COMMIT} is the source of truth.  Never",
+        "# hand-edit; re-vendor from ctdcast, then: python scripts/check_vendored.py --update",
     ]
     lines += [f"{sha256(REPO_ROOT / rel)}  {rel}" for rel in VENDORED]
     MANIFEST.write_text("\n".join(lines) + "\n", encoding="utf-8")

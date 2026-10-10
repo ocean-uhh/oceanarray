@@ -129,8 +129,9 @@ textarea {
 p, li {
     max-width: 78ch;
 }
-/* Nav buttons link between separate HTML files — dead in a merged PDF. */
-.nav-buttons, .nav, a.nav-button {
+/* Masthead nav and inventory strip link between separate HTML files — dead in a
+   merged PDF (cross-page document links are handled separately). */
+.page-nav, .inventory-strip {
     display: none !important;
 }
 /* Each source report is wrapped in a .pdf-page section when combined into one

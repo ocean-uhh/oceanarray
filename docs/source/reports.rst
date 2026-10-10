@@ -61,18 +61,21 @@ Summary report
    :align: center
 
    The Summary report header for mooring *dsG2_1_2026*.  Each instrument type
-   appears on its own row; green pills are instruments that reached Stage 3,
-   grey pills are pending or skipped.
+   appears on its own row; a pill's colour is its role (instruments share the
+   dark *component* colour), and a greyed pill marks an instrument with no
+   generated report.
 
 **File**: ``{proc_dir}/{mooring}/report/{mooring}_report.html``
 
 The Summary report is the first thing to open after processing.  It shows:
 
 - **Instrument inventory** — all instruments in the YAML grouped by type
-  (Microcat, Aquadopp, RBR Solo, ADCP, …).  Each serial number is a pill
-  button that links to the per-instrument page.  Colour indicates processing
-  status: green = reached Stage 3, grey = not yet processed or skipped.
-- **Navigation pills** — links to the Stack and Grid reports in the header.
+  (MicroCAT, Aquadopp, RBRsolo, ADCP, …).  Each serial number is a pill linking
+  to the per-instrument page; a greyed pill marks an instrument with no
+  generated report.
+- **Navigation pills** — the header row links to the Summary, Stack, and Grid
+  reports (and the array report when present).  A pill's colour is its role, not
+  its page, and the current page's pill is muted.
 - **Metadata cards** — cruise, ship, latitude, longitude, water depth,
   deployment and recovery times, duration, instrument count.
 - **Processing pipeline table** — one row per instrument with Raw / Stage 1 /

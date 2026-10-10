@@ -13,7 +13,6 @@ from ._html_helpers import (
     _duration_str,
     _file_info,
     _find_array_report_href,
-    _nav_buttons_html,
     _parse_dt,
     _parse_history,
     _read_nc_metadata,
@@ -24,6 +23,7 @@ from ._html_helpers import (
     _stage_file_details,
 )
 from ._manifest import Panel, PanelGroup, Profile, Section, resolve
+from ._navs import mooring_nav
 from ._plots import (
     _make_adcp_hodograph_b64,
     _make_adcp_rose_b64,
@@ -529,14 +529,14 @@ def generate_instrument_pages(
             "raw_file": raw_file,
             "stage_files": stage_files,
             "mooring_report_link": mooring_report_link,
-            "nav_buttons": _nav_buttons_html(
+            "nav": mooring_nav(
                 mooring_name,
                 instruments,
                 stack_exists=stack_exists,
                 grid_exists=grid_exists,
-                current_report=serial,
+                current=serial,
                 in_instrument_subdir=True,
-                array_report_href=_find_array_report_href(
+                array_href=_find_array_report_href(
                     out_dir, in_instrument_subdir=True
                 ),
             ),
