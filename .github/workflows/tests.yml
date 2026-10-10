@@ -13,7 +13,7 @@ concurrency:
 jobs:
   unit:
     runs-on: ${{ matrix.os }}
-    # Experimental legs (3.13) are allowed to fail without cancelling real jobs.
+    # Any leg marked experimental is allowed to fail without cancelling real jobs.
     continue-on-error: ${{ matrix.experimental == true }}
     strategy:
       fail-fast: false
@@ -21,13 +21,10 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.11"]     # full 3-OS coverage on the primary version
         include:
-          # Verify the supported range (requires-python >=3.10; docs say 3.10–3.12),
+          # Verify the supported range (requires-python >=3.11; docs say 3.11–3.13),
           # ubuntu-only to keep the job count down.
-          - { os: ubuntu-latest, python-version: "3.10" }
           - { os: ubuntu-latest, python-version: "3.12" }
-          # 3.13: experimental (allow-failure) — deps such as numba/llvmlite
-          # (via pylablib -> seasenselib) may not have 3.13 wheels yet.
-          - { os: ubuntu-latest, python-version: "3.13", experimental: true }
+          - { os: ubuntu-latest, python-version: "3.13" }
 
     steps:
       - uses: actions/checkout@v7

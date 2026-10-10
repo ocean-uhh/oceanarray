@@ -20,7 +20,7 @@ write Python code.
 Prerequisites
 -------------
 
-**Python 3.10 or later** is required.  Install ``oceanarray`` from PyPI, ideally
+**Python 3.11 or later** is required.  Install ``oceanarray`` from PyPI, ideally
 into an isolated environment.
 
 **Option A — conda**
