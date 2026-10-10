@@ -129,9 +129,10 @@ textarea {
 p, li {
     max-width: 78ch;
 }
-/* Masthead nav and inventory strip link between separate HTML files — dead in a
-   merged PDF (cross-page document links are handled separately). */
-.page-nav, .inventory-strip {
+/* Masthead nav, inventory strip, and the per-heading "↑ top" links jump within a
+   single HTML file — dead in a merged PDF (cross-page document links are handled
+   separately). */
+.page-nav, .inventory-strip, .top-link {
     display: none !important;
 }
 /* Each source report is wrapped in a .pdf-page section when combined into one
