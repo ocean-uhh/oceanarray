@@ -196,8 +196,12 @@ convention = "numpy"   # handles D203 / D213 itself — do not hand-ignore those
 "oceanarray/tools/rapid_interp.py" = ["ANN", "D", "F841", "BLE001"]  # legacy physics code; rewrite deferred (backlog)
 # Report generators wrap rendering in try/except → None on bad data (partial reports).
 "oceanarray/reports/_plots.py" = ["BLE001"]
-"oceanarray/reports/_encode.py" = ["D413"]  # vendored byte-identical from ../ctdcast
-"oceanarray/reports/_css.py" = ["D413"]  # vendored; docstring section-blank-line style
+# Vendored byte-identical from ctdcast (source of truth); re-vendored, never edited here.
+# RUF100 (noqa managed upstream) and the docstring/annotation rules are off so oceanarray's
+# linter cannot force an edit that diverges from ctdcast/glidertest. Mirrors ctdcast's config.
+"oceanarray/config/report_tokens.py" = ["RUF100", "D", "ANN"]
+"oceanarray/reports/_css.py" = ["RUF100", "D", "ANN"]
+"oceanarray/reports/_encode.py" = ["RUF100", "D", "ANN"]
 "oceanarray/reports/_html_helpers.py" = ["BLE001"]
 "oceanarray/reports/_grid.py" = ["BLE001"]
 "oceanarray/reports/_instrument.py" = ["BLE001", "ARG001"]
