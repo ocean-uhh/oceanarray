@@ -331,23 +331,76 @@ def test_nat_round_trips(tmp_path):
 def test_timedelta_not_pinned_and_round_trips(tmp_path):
     """A timedelta64 variable is a duration, not an absolute time: it is not pinned.
 
-    It must not receive the 1970 datetime epoch. xarray re-derives a valid CF ``units``
-    for it (its encoding is stripped upstream by ``cast_output_dtypes``), so the raw
-    ``units`` is xarray's, but the decoded durations round-trip unchanged.
+    It must not receive the 1970 datetime epoch (``_TIME_ENCODING``): the writer stores
+    it exactly as plain xarray would — a bare duration unit, no ``since`` reference — so
+    the durations survive. Read back with ``decode_timedelta=False``, the path oceanarray
+    uses for every file (``cli.py``). Forcing ``decode_timedelta=True`` instead trips an
+    xarray-internal conflict with the ``dtype`` attribute xarray itself writes for
+    non-nanosecond timedelta on some versions (seen on the Python 3.10 CI leg's older
+    xarray), which is xarray's round-trip quirk, not the writer's behaviour to verify.
     """
     td = np.array([3600, 7200, 10800], dtype="timedelta64[s]")
     ds = xr.Dataset({"gap": ("x", td)}, coords={"x": np.arange(3)})
     out = tmp_path / "td.nc"
+    ref = tmp_path / "td_ref.nc"
+    write(ds, out)
+    ds.to_netcdf(ref, engine="netcdf4")  # plain-xarray serialization, for comparison
+
+    got = xr.open_dataset(
+        out, engine="netcdf4", decode_cf=False, decode_timedelta=False
+    )
+    plain = xr.open_dataset(
+        ref, engine="netcdf4", decode_cf=False, decode_timedelta=False
+    )
+    try:
+        units = str(got["gap"].attrs.get("units", ""))
+        # Not pinned to the datetime epoch: a duration unit never carries "since".
+        assert "since" not in units
+        assert "1970" not in units
+        # Serialized identically to plain xarray — the writer adds no pinning.
+        assert units == str(plain["gap"].attrs.get("units", ""))
+        np.testing.assert_array_equal(got["gap"].values, plain["gap"].values)
+    finally:
+        got.close()
+        plain.close()
+
+
+def test_cftime_time_keeps_units_and_calendar(tmp_path):
+    """An object-dtype cftime time coordinate keeps its CF units and calendar.
+
+    A dataset decoded with ``use_cftime=True`` holds time as object dtype, not
+    ``datetime64``, so it is not pinned to ``_TIME_ENCODING``. The writer must still
+    preserve its ``units`` (epoch) and ``calendar`` rather than let xarray re-guess the
+    epoch from the data minimum — a non-default epoch (here 1990, with data in 2000)
+    makes the difference visible.
+    """
+    pytest.importorskip("cftime")
+    times = xr.date_range(
+        "2000-01-01", periods=3, freq="D", use_cftime=True, calendar="noleap"
+    )
+    ds = xr.Dataset({"v": ("time", [1.0, 2.0, 3.0])}, coords={"time": ("time", times)})
+    ds["time"].encoding = {"units": "days since 1990-01-01", "calendar": "noleap"}
+    out = tmp_path / "cf.nc"
     write(ds, out)
 
-    raw = xr.open_dataset(out, engine="netcdf4", decode_cf=False)
-    dec = xr.open_dataset(out, engine="netcdf4", decode_timedelta=True)
+    raw = _open_raw(out)
     try:
-        assert "1970" not in str(raw["gap"].attrs.get("units", ""))  # not pinned
-        np.testing.assert_array_equal(dec["gap"].values.astype("timedelta64[s]"), td)
+        assert raw["time"].attrs.get("units") == "days since 1990-01-01"
+        assert raw["time"].attrs.get("calendar") == "noleap"
     finally:
         raw.close()
-        dec.close()
+
+
+def test_package_level_writers_write_binding():
+    """``import oceanarray as oa; oa.writers.write`` resolves after a bare import.
+
+    The changelog and docs advertise package-level access to the write seam; a bare
+    ``import oceanarray`` must bind ``writers`` (and its ``write``) without an explicit
+    ``import oceanarray.writers``.
+    """
+    import oceanarray as oa
+
+    assert oa.writers.write is write
 
 
 # ---------------------------------------------------------------------------

@@ -45,10 +45,13 @@ _UNCOMPRESSIBLE_KINDS = ("O", "U", "S")
 # re-applied — re-applying quantization would re-round already-rounded data, and
 # a denylist would instead let unknown keys reach ``to_netcdf`` and raise.
 # Time ``units``/``calendar`` are not listed: datetime64 variables are pinned to
-# ``_TIME_ENCODING`` and never consult this list; a timedelta64 variable's encoding is
-# already stripped upstream by ``cast_output_dtypes`` (it rebuilds the variable), and
-# xarray then re-derives a valid CF ``units`` for it on write that decodes back to the
-# same durations — so no variable reaching this filter carries ``units`` in encoding.
+# ``_TIME_ENCODING`` and never consult this list; object-dtype cftime time variables
+# keep their ``units``/``calendar`` through a dedicated branch in ``_prepare`` (so a
+# non-standard calendar and epoch are preserved, not re-guessed) and likewise never
+# reach here; a timedelta64 variable's encoding is already stripped upstream by
+# ``cast_output_dtypes`` (it rebuilds the variable), and xarray then re-derives a valid
+# CF ``units`` for it on write — so no variable reaching this filter carries
+# ``units``/``calendar`` in encoding.
 _PRESERVED_ENCODING = (
     "dtype",
     "_FillValue",
@@ -254,6 +257,30 @@ def _is_datetime(var: xr.Variable | xr.DataArray) -> bool:
     return np.issubdtype(var.dtype, np.datetime64)
 
 
+def _has_cf_time_encoding(var: xr.Variable | xr.DataArray) -> bool:
+    """Return ``True`` for an object-dtype variable carrying CF time encoding.
+
+    A dataset decoded with ``use_cftime=True`` holds its time coordinate as ``object``
+    dtype (cftime objects) with ``units``/``calendar`` in encoding rather than numpy
+    ``datetime64``.  Such a variable must keep that encoding so its (possibly
+    non-standard) calendar and epoch are preserved on write rather than re-guessed by
+    xarray from the data, which can change the stored reference.
+
+    Parameters
+    ----------
+    var : xarray.Variable or xarray.DataArray
+        The variable to test.
+
+    Returns
+    -------
+    bool
+        Whether *var* is object dtype with ``units`` or ``calendar`` in encoding.
+    """
+    return var.dtype.kind == "O" and (
+        "units" in var.encoding or "calendar" in var.encoding
+    )
+
+
 def _prepare(ds: xr.Dataset, *, compress: bool = True) -> xr.Dataset:
     """Return a copy of *ds* ready to write: cast, cleaned, per-variable encoding set.
 
@@ -281,6 +308,11 @@ def _prepare(ds: xr.Dataset, *, compress: bool = True) -> xr.Dataset:
         if _is_datetime(var):
             # Pin datetime variables; do not inherit xarray's per-file guess.
             enc = dict(_TIME_ENCODING)
+        elif _has_cf_time_encoding(safe[name]):
+            # Object-dtype cftime time: keep its CF time encoding so a non-standard
+            # calendar and epoch survive rather than being re-guessed by xarray.
+            keep = (*_PRESERVED_ENCODING, "units", "calendar")
+            enc = {k: v for k, v in safe[name].encoding.items() if k in keep}
         else:
             enc = {
                 k: v for k, v in safe[name].encoding.items() if k in _PRESERVED_ENCODING
