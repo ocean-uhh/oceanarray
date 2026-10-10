@@ -152,9 +152,7 @@ def mooring_nav(
 
     by_type: dict[str, list[dict[str, Any]]] = {}
     for instr in instruments:
-        itype = str(
-            instr.get("instr_type", instr.get("instrument", "other"))
-        ).lower()
+        itype = str(instr.get("instr_type", instr.get("instrument", "other"))).lower()
         by_type.setdefault(itype, []).append(instr)
 
     for itype, group in by_type.items():

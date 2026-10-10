@@ -536,9 +536,7 @@ def generate_instrument_pages(
                 grid_exists=grid_exists,
                 current=serial,
                 in_instrument_subdir=True,
-                array_href=_find_array_report_href(
-                    out_dir, in_instrument_subdir=True
-                ),
+                array_href=_find_array_report_href(out_dir, in_instrument_subdir=True),
             ),
             "generated": generated,
             "proc_machine": proc_machine,

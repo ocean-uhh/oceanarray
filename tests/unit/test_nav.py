@@ -26,7 +26,9 @@ def _pill(nav, label):
 
 
 def test_missing_stack_and_grid_pills_are_missing():
-    nav = mooring_nav("m", _INSTR, stack_exists=False, grid_exists=False, current="summary")
+    nav = mooring_nav(
+        "m", _INSTR, stack_exists=False, grid_exists=False, current="summary"
+    )
     assert _pill(nav, "Stack")["state"] == "missing"
     assert _pill(nav, "Grid")["state"] == "missing"
     assert _pill(nav, "Summary")["state"] == "current"
