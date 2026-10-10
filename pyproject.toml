@@ -14,7 +14,7 @@ license = { file = "LICENSE" }
 maintainers = [
   { name = "Eleanor Frajka-Williams", email = "eleanorfrajka@gmail.com" },
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 keywords = [
   "oceanography",
   "mooring",
@@ -31,9 +31,9 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Oceanography",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
   "numpy>=1.23",

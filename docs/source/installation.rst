@@ -6,8 +6,7 @@ Installation
 Requirements
 ------------
 
-Python 3.10–3.12 is recommended.  Python 3.13+ has not been tested with all
-dependencies and is not recommended for production use.
+Python 3.11–3.13 is supported and tested in CI.
 
 Install oceanarray
 ------------------

@@ -25,7 +25,7 @@ uv pip install oceanarray
 
 This pulls in `seasenselib` (used to read raw instrument files in stage 1) automatically.
 
-Python 3.10–3.12 is supported. See the [installation guide](https://ocean-uhh.github.io/oceanarray/installation.html) for isolated-environment (conda / venv / uv) and from-source options.
+Python 3.11–3.13 is supported. See the [installation guide](https://ocean-uhh.github.io/oceanarray/installation.html) for isolated-environment (conda / venv / uv) and from-source options.
 
 ## Quick start
 
