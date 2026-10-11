@@ -161,7 +161,10 @@ def check_serials(entries: list[dict]) -> list[ValidationIssue]:
                     f"mooring's {{mooring}}_{safe}_report.html page. Rename it.",
                 )
             )
-        by_safe.setdefault(safe, []).append(
+        # Key on the lower-cased serial: output filenames collide on a
+        # case-insensitive filesystem (macOS, Windows), so `Alpha` and `alpha`
+        # are a collision there even though they are distinct strings.
+        by_safe.setdefault(safe.lower(), []).append(
             (label, str(entry.get("instrument") or "unknown").lower())
         )
     for safe, group in by_safe.items():

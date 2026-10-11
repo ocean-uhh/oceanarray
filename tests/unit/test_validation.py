@@ -365,3 +365,8 @@ def test_process_refuses_colliding_serials_before_writing(tmp_path):
         process(mooring, stage=2, proc_dir=tmp_path, force=True)
     # Guard fires before any stage output directory is created.
     assert list(mdir.glob("**/*.nc")) == []
+
+
+def test_case_only_serials_collide_on_case_insensitive_fs():
+    # 'Alpha' and 'alpha' are one file on macOS/Windows → a collision.
+    assert len(_errors(check_serials([_mk("Alpha"), _mk("alpha")]))) == 1
