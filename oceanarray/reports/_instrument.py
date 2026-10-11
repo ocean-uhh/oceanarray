@@ -9,7 +9,14 @@ from pathlib import Path
 from typing import Any
 
 from .. import parameters as params
-from ._env import render_history, render_template
+from ._env import (
+    render_history,
+    render_nc_coords,
+    render_nc_globals,
+    render_nc_scalars,
+    render_nc_variables,
+    render_template,
+)
 from ._html_helpers import (
     _duration_str,
     _file_info,
@@ -220,32 +227,26 @@ INSTRUMENT_PANELS: dict[str, Panel] = {
         kind="table",
         applies_to=lambda c: bool(c.get("qc_summary")),
     ),
-    "nc_dims": Panel(
-        "nc_dims",
-        render=lambda c: render_template("_stack_nc_dims.html", nc_meta=c["nc_meta"]),
+    "nc_coords": Panel(
+        "nc_coords",
+        render=lambda c: render_nc_coords(c["nc_meta"]),
         kind="table",
-        applies_to=lambda c: bool(c.get("nc_meta", {}).get("dims")),
+        applies_to=lambda c: bool(c.get("nc_meta", {}).get("coord_vars")),
     ),
     "nc_variables": Panel(
         "nc_variables",
-        render=lambda c: render_template(
-            "_instrument_nc_variables.html", nc_meta=c["nc_meta"]
-        ),
+        render=lambda c: render_nc_variables(c["nc_meta"], ""),
         kind="table",
     ),
     "nc_scalars": Panel(
         "nc_scalars",
-        render=lambda c: render_template(
-            "_instrument_nc_scalars.html", nc_meta=c["nc_meta"]
-        ),
+        render=lambda c: render_nc_scalars(c["nc_meta"]),
         kind="table",
         applies_to=lambda c: bool(c.get("nc_meta", {}).get("scalar_vars")),
     ),
     "nc_globals": Panel(
         "nc_globals",
-        render=lambda c: render_template(
-            "_instrument_nc_globals.html", nc_meta=c["nc_meta"]
-        ),
+        render=lambda c: render_nc_globals(c["nc_meta"]),
         kind="table",
         applies_to=lambda c: bool(c.get("nc_meta", {}).get("global_attrs")),
     ),
@@ -303,7 +304,7 @@ INSTRUMENT_SECTIONS: dict[str, Section] = {
     "netcdf_variables": Section(
         "netcdf_variables",
         "NetCDF variables",
-        ("nc_dims", "nc_variables", "nc_scalars"),
+        ("nc_coords", "nc_variables", "nc_scalars"),
         role="appendix",
     ),
     "netcdf_attributes": Section(

@@ -20,6 +20,7 @@ from jinja2 import Environment, FileSystemLoader
 from .. import __version__ as _oceanarray_version
 from .. import parameters as params
 from . import _figdebug
+from ._nc_tables import group_globals, group_vars_by_dims
 from ._report_css import SHARED_CSS
 
 #: Directory holding the report page templates.
@@ -87,15 +88,39 @@ def render_history(history_entries: Any) -> str:
 
 
 def render_nc_variables(nc_meta: Any, nc_file: str) -> str:
-    """Render the NetCDF time-variable table (``nc_variables`` panel payload)."""
-    return render_template("_grid_nc_variables.html", nc_meta=nc_meta, nc_file=nc_file)
+    """Render the NetCDF time-variable table (``nc_variables`` panel payload).
+
+    Variables are grouped by dimension set (one sub-table each) via
+    :func:`_nc_tables.group_vars_by_dims`; QC companions are folded into the
+    parent row's flag column.
+    """
+    var_groups = (
+        [] if nc_meta.get("error") else group_vars_by_dims(nc_meta.get("time_vars", []))
+    )
+    return render_template(
+        "_nc_variables.html", nc_meta=nc_meta, nc_file=nc_file, var_groups=var_groups
+    )
+
+
+def render_nc_coords(nc_meta: Any, nc_file: str = "") -> str:
+    """Render the NetCDF coordinates table (``nc_coords`` panel payload).
+
+    One row per coordinate variable, same columns as the variables table;
+    dimensions without a coordinate appear only as a variables-group heading.
+    """
+    return render_template("_nc_coords.html", nc_meta=nc_meta, nc_file=nc_file)
 
 
 def render_nc_scalars(nc_meta: Any) -> str:
     """Render the scalar-metadata table (``nc_scalars`` panel payload)."""
-    return render_template("_grid_nc_scalars.html", nc_meta=nc_meta)
+    return render_template("_nc_scalars.html", nc_meta=nc_meta)
 
 
 def render_nc_globals(nc_meta: Any) -> str:
-    """Render the global-attributes table (``nc_globals`` panel payload)."""
-    return render_template("_grid_nc_globals.html", nc_meta=nc_meta)
+    """Render the global-attributes table (``nc_globals`` panel payload).
+
+    Attributes are split into the canonical groups via
+    :func:`_nc_tables.group_globals`.
+    """
+    attr_groups = group_globals(nc_meta.get("global_attrs", {}))
+    return render_template("_nc_globals.html", nc_meta=nc_meta, attr_groups=attr_groups)

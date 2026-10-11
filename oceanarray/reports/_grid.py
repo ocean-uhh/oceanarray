@@ -13,6 +13,7 @@ from .. import parameters as params
 from ..utilities import parse_latlon_with_source
 from ._env import (
     render_history,
+    render_nc_coords,
     render_nc_globals,
     render_nc_scalars,
     render_nc_variables,
@@ -366,6 +367,12 @@ GRID_PANELS: dict[str, Panel] = {
         kind="html",
         unavailable_if=_history_unavailable,
     ),
+    "nc_coords": Panel(
+        "nc_coords",
+        render=lambda c: render_nc_coords(c.nc_meta),
+        kind="table",
+        applies_to=lambda c: bool(c.nc_meta.get("coord_vars")),
+    ),
     "nc_variables": Panel(
         "nc_variables",
         render=lambda c: render_nc_variables(c.nc_meta, c.nc_file),
@@ -520,7 +527,7 @@ GRID_SECTIONS: dict[str, Section] = {
     "netcdf_variables": Section(
         "netcdf_variables",
         "NetCDF variables",
-        ("nc_variables", "nc_scalars"),
+        ("nc_coords", "nc_variables", "nc_scalars"),
         role="appendix",
     ),
     "netcdf_attributes": Section(

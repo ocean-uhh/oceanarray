@@ -1,0 +1,15 @@
+{# Shared NetCDF coordinates table — the `nc_coords` panel payload (kind="table"),
+   used by the instrument, grid and stack reports.  One row per coordinate
+   variable (time, pressure, beam, serial, …), same columns as the variables
+   table.  Dimensions without a coordinate variable (e.g. N_LEVELS) appear only
+   as a "Variables on …" grouping heading, not here. #}
+{% from "_nc_var_macros.html" import var_thead, var_row %}
+{% if nc_meta.coord_vars %}
+<h3 class="subhead-sm">Coordinates{% if nc_file %} &mdash; {{ nc_file }}{% endif %}</h3>
+<table class="var-table">
+  {{ var_thead() }}
+  <tbody>
+    {% for v in nc_meta.coord_vars %}{{ var_row(v) }}{% endfor %}
+  </tbody>
+</table>
+{% endif %}

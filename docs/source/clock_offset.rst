@@ -19,7 +19,7 @@ Methods
 Deployment Period Detection
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This method leverages the characteristic temperature signature that occurs when instruments transition from surface conditions to deep-water conditions during deployment:
+This method uses the characteristic temperature signature that occurs when instruments transition from surface conditions to deep-water conditions during deployment:
 
 - **Temperature Threshold**: Identifies "cold" water temperatures using statistical analysis (typically mean ± 3 standard deviations of deep values)
 - **Start/End Times**: Determines when each instrument first and last recorded temperatures within the cold water range
@@ -64,7 +64,7 @@ Workflow Functions
 Usage
 -----
 
-The analysis is demonstrated in the ``demo_clock_offset.ipynb`` notebook, which provides a streamlined workflow:
+The analysis is demonstrated in the ``notebooks/legacy/demo_clock_offset.ipynb`` notebook, which covers the following steps:
 
 1. **Configuration**: Specify mooring name and data paths
 2. **Data Loading**: Load instrument datasets and YAML metadata

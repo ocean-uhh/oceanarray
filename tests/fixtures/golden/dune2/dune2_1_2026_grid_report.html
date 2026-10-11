@@ -317,6 +317,13 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 .fig-cell > .fig { width:100%; }
 .none-note { color:var(--muted); font-style:italic; }
 .var-qc { color:var(--good); font-size:var(--fs-xs); }
+/* Per-row NetCDF attribute disclosure in the inventory tables (the N attrs
+   expander). */
+.attr-disclosure summary { cursor:pointer; color:var(--muted); font-size:var(--fs-xs); white-space:nowrap; }
+.attr-disclosure table { margin:0.3rem 0 0.2rem; border:none; }
+.attr-disclosure td { border:none; padding:0.05rem 0.6rem 0.05rem 0; vertical-align:top;
+  font-size:var(--fs-xs); }
+.attr-disclosure td.mono { color:var(--muted); }
 /* Figure-debug line under a plot (OCEANARRAY_REPORT_DEBUG=1): slot the
    template chose vs the render-side figsize/png, for eyeballing mismatches. */
 .debug { font-family:var(--font-mono); font-size:var(--fs-top); color:var(--muted);
@@ -540,217 +547,366 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 
 
 
-<h3 class="subhead-sm">Variables &mdash; dune2_1_2026_grid.nc</h3>
+
+<h3 class="subhead-sm">Coordinates</h3>
 <table class="var-table">
+  
   <thead>
-    <tr><th>Variable</th><th>Type</th><th>Dims</th><th class="num">N</th><th class="num">Valid</th><th class="num">Min / Max</th><th>Units</th><th>Long name</th><th>Standard name</th><th>QC&nbsp;flag</th></tr>
+    <tr><th>Variable</th><th>Type</th><th>Units</th><th>Standard / long name</th><th class="num">Min / Max</th><th class="num">N (valid)</th><th>Attributes</th></tr>
   </thead>
+
   <tbody>
     
+    <tr>
+      <td class="mono">pressure</td>
+      <td class="mono cell-xs" style="font-weight:600">float64</td>
+      <td>dbar</td>
+      <td><strong class="mono">sea_water_pressure</strong><br><span class="cell-muted">sea water pressure</span></td>
+      <td class="num cell-minmax">100 / 800</td>
+      <td class="num">15</td>
+      <td><details class="attr-disclosure"><summary>2 attrs</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">axis</td><td>Z</td></tr>
+    
+      <tr><td class="mono">positive</td><td>down</td></tr>
+    
+    </tbody>
+  </table></details></td>
+    </tr>
+
+    <tr>
+      <td class="mono">time</td>
+      <td class="mono cell-xs" style="font-weight:600">datetime64[ns]</td>
+      <td></td>
+      <td><strong class="mono">time</strong><br><span class="cell-muted">time</span></td>
+      <td class="num cell-minmax">2026-07-11 20:30 / 2026-07-25 11:30</td>
+      <td class="num">328</td>
+      <td><details class="attr-disclosure"><summary>1 attr</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">axis</td><td>T</td></tr>
+    
+    </tbody>
+  </table></details></td>
+    </tr>
+
+  </tbody>
+</table>
+
+
+
+
+
+
+<h3 class="subhead-sm">Variables on time × pressure &mdash; dune2_1_2026_grid.nc</h3>
+<table class="var-table">
+  
+  <thead>
+    <tr><th>Variable</th><th>Type</th><th>Units</th><th>Standard / long name</th><th class="num">Min / Max</th><th class="num">N (valid)</th><th>Attributes</th></tr>
+  </thead>
+
+  <tbody>
     
     <tr>
       <td class="mono">conductivity</td>
       <td class="mono cell-xs">float32</td>
-      <td class="mono cell-xs">time, pressure</td>
-      <td class="num">4,920</td>
-      <td class="num cell-bad">3,879</td>
+      <td>mS cm-1</td>
+      <td><strong class="mono">sea_water_electrical_conductivity</strong><br><span class="cell-muted">Conductivity</span></td>
       <td class="num cell-minmax">29.22 / 36.3</td>
-      <td>mS/cm</td>
-      <td>Conductivity</td>
-      <td class="cell-muted">sea_water_electrical_conductivity</td>
-      <td class="cell-center">&ndash;</td>
+      <td class="num cell-bad">4,920 (3,879)</td>
+      <td><details class="attr-disclosure"><summary>7 attrs</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">cnv_original_name</td><td>cond0mS/cm</td></tr>
+    
+      <tr><td class="mono">cnv_original_label</td><td>Conductivity [mS/cm]</td></tr>
+    
+      <tr><td class="mono">cnv_original_unit</td><td>mS/cm</td></tr>
+    
+      <tr><td class="mono">original_name</td><td>cond0mS/cm</td></tr>
+    
+      <tr><td class="mono">coverage_content_type</td><td>physicalMeasurement</td></tr>
+    
+      <tr><td class="mono">measurement_type</td><td>Measured</td></tr>
+    
+      <tr><td class="mono">vertical_interpolation</td><td>linear in pressure; no extrapolation outside 100–800 dbar</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
-    
+
     <tr>
       <td class="mono">current_direction</td>
       <td class="mono cell-xs">float32</td>
-      <td class="mono cell-xs">time, pressure</td>
-      <td class="num">4,920</td>
-      <td class="num cell-bad">3,511</td>
-      <td class="num cell-minmax">1.051 / 359.3</td>
       <td>degrees</td>
-      <td>Current direction (0=N, clockwise)</td>
-      <td class="cell-muted">direction_of_sea_water_velocity</td>
-      <td class="cell-center">&ndash;</td>
+      <td><strong class="mono">direction_of_sea_water_velocity</strong><br><span class="cell-muted">Current direction (0=N, clockwise)</span></td>
+      <td class="num cell-minmax">1.051 / 359.3</td>
+      <td class="num cell-bad">4,920 (3,511)</td>
+      <td><details class="attr-disclosure"><summary>1 attr</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">vertical_interpolation</td><td>linear in pressure; no extrapolation outside 100–800 dbar</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
-    
+
     <tr>
       <td class="mono">current_speed</td>
       <td class="mono cell-xs">float32</td>
-      <td class="mono cell-xs">time, pressure</td>
-      <td class="num">4,920</td>
-      <td class="num cell-bad">3,511</td>
-      <td class="num cell-minmax">0.0162 / 0.9045</td>
       <td>m s-1</td>
-      <td>Horizontal current speed</td>
-      <td class="cell-muted">sea_water_speed</td>
-      <td class="cell-center">&ndash;</td>
+      <td><strong class="mono">sea_water_speed</strong><br><span class="cell-muted">Horizontal current speed</span></td>
+      <td class="num cell-minmax">0.0162 / 0.9045</td>
+      <td class="num cell-bad">4,920 (3,511)</td>
+      <td><details class="attr-disclosure"><summary>1 attr</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">vertical_interpolation</td><td>linear in pressure; no extrapolation outside 100–800 dbar</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
-    
+
     <tr>
       <td class="mono">east_velocity</td>
       <td class="mono cell-xs">float32</td>
-      <td class="mono cell-xs">time, pressure</td>
-      <td class="num">4,920</td>
-      <td class="num cell-bad">3,511</td>
-      <td class="num cell-minmax">-0.8029 / 0.7687</td>
       <td>m s-1</td>
-      <td>Eastward sea water velocity</td>
-      <td class="cell-muted">eastward_sea_water_velocity</td>
-      <td class="cell-center">&ndash;</td>
+      <td><strong class="mono">eastward_sea_water_velocity</strong><br><span class="cell-muted">Eastward sea water velocity</span></td>
+      <td class="num cell-minmax">-0.8029 / 0.7687</td>
+      <td class="num cell-bad">4,920 (3,511)</td>
+      <td><details class="attr-disclosure"><summary>1 attr</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">vertical_interpolation</td><td>linear in pressure; no extrapolation outside 100–800 dbar</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
-    
+
     <tr>
       <td class="mono">north_velocity</td>
       <td class="mono cell-xs">float32</td>
-      <td class="mono cell-xs">time, pressure</td>
-      <td class="num">4,920</td>
-      <td class="num cell-bad">3,511</td>
-      <td class="num cell-minmax">-0.7064 / 0.7343</td>
       <td>m s-1</td>
-      <td>Northward sea water velocity</td>
-      <td class="cell-muted">northward_sea_water_velocity</td>
-      <td class="cell-center">&ndash;</td>
+      <td><strong class="mono">northward_sea_water_velocity</strong><br><span class="cell-muted">Northward sea water velocity</span></td>
+      <td class="num cell-minmax">-0.7064 / 0.7343</td>
+      <td class="num cell-bad">4,920 (3,511)</td>
+      <td><details class="attr-disclosure"><summary>1 attr</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">vertical_interpolation</td><td>linear in pressure; no extrapolation outside 100–800 dbar</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
-    
+
     <tr>
       <td class="mono">salinity</td>
       <td class="mono cell-xs">float32</td>
-      <td class="mono cell-xs">time, pressure</td>
-      <td class="num">4,920</td>
-      <td class="num cell-bad">3,879</td>
-      <td class="num cell-minmax">34.57 / 35.54</td>
       <td>1</td>
-      <td>Practical Salinity</td>
-      <td class="cell-muted">sea_water_practical_salinity</td>
-      <td class="cell-center">&ndash;</td>
+      <td><strong class="mono">sea_water_practical_salinity</strong><br><span class="cell-muted">Practical Salinity</span></td>
+      <td class="num cell-minmax">34.57 / 35.54</td>
+      <td class="num cell-bad">4,920 (3,879)</td>
+      <td><details class="attr-disclosure"><summary>3 attrs</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">coverage_content_type</td><td>physicalMeasurement</td></tr>
+    
+      <tr><td class="mono">comment</td><td>Derived from conductivity, temperature, pressure via gsw.SP_from_C</td></tr>
+    
+      <tr><td class="mono">vertical_interpolation</td><td>linear in pressure; no extrapolation outside 100–800 dbar</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
-    
+
     <tr>
       <td class="mono">sigma0</td>
       <td class="mono cell-xs">float32</td>
-      <td class="mono cell-xs">time, pressure</td>
-      <td class="num">4,920</td>
-      <td class="num cell-bad">3,879</td>
-      <td class="num cell-minmax">27.43 / 28.05</td>
       <td>kg m-3</td>
-      <td>Potential density anomaly referenced to surface (sigma-0)</td>
-      <td class="cell-muted">sea_water_sigma_t</td>
-      <td class="cell-center">&ndash;</td>
+      <td><strong class="mono">sea_water_sigma_t</strong><br><span class="cell-muted">Potential density anomaly referenced to surface (sigma-0)</span></td>
+      <td class="num cell-minmax">27.43 / 28.05</td>
+      <td class="num cell-bad">4,920 (3,879)</td>
+      <td><details class="attr-disclosure"><summary>2 attrs</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">reference_pressure_dbar</td><td>0</td></tr>
+    
+      <tr><td class="mono">vertical_interpolation</td><td>linear in pressure; no extrapolation outside 100–800 dbar</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
-    
+
     <tr>
       <td class="mono">temperature</td>
       <td class="mono cell-xs">float32</td>
-      <td class="mono cell-xs">time, pressure</td>
-      <td class="num">4,920</td>
-      <td class="num cell-bad">4,201</td>
+      <td>degree_Celsius</td>
+      <td><strong class="mono">sea_water_temperature</strong><br><span class="cell-muted">Temperature</span></td>
       <td class="num cell-minmax">-0.06961 / 8.025</td>
-      <td>degC</td>
-      <td>Temperature</td>
-      <td class="cell-muted">sea_water_temperature</td>
-      <td class="cell-center">&ndash;</td>
+      <td class="num cell-bad">4,920 (4,201)</td>
+      <td><details class="attr-disclosure"><summary>14 attrs</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">rsk_channel_id</td><td>1</td></tr>
+    
+      <tr><td class="mono">rsk_long_name</td><td>temperature</td></tr>
+    
+      <tr><td class="mono">rsk_short_name</td><td>temp18</td></tr>
+    
+      <tr><td class="mono">rsk_label</td><td>temperature_00</td></tr>
+    
+      <tr><td class="mono">rsk_dbName</td><td>Temperature</td></tr>
+    
+      <tr><td class="mono">rsk_units</td><td>°C</td></tr>
+    
+      <tr><td class="mono">rsk_units_plain_text</td><td>Degrees_C</td></tr>
+    
+      <tr><td class="mono">rsk_fe_module_type</td><td>SOLO-tmpB</td></tr>
+    
+      <tr><td class="mono">rsk_fe_module_version</td><td>1.065</td></tr>
+    
+      <tr><td class="mono">rsk_is_measured</td><td>1</td></tr>
+    
+      <tr><td class="mono">rsk_is_derived</td><td>0</td></tr>
+    
+      <tr><td class="mono">coverage_content_type</td><td>physicalMeasurement</td></tr>
+    
+      <tr><td class="mono">measurement_type</td><td>Measured</td></tr>
+    
+      <tr><td class="mono">vertical_interpolation</td><td>linear in pressure; no extrapolation outside 100–800 dbar</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
-    
+
     <tr>
       <td class="mono">up_velocity</td>
       <td class="mono cell-xs">float32</td>
-      <td class="mono cell-xs">time, pressure</td>
-      <td class="num">4,920</td>
-      <td class="num cell-bad">3,511</td>
-      <td class="num cell-minmax">-0.2906 / 0.4569</td>
       <td>m s-1</td>
-      <td>Upward sea water velocity</td>
-      <td class="cell-muted">upward_sea_water_velocity</td>
-      <td class="cell-center">&ndash;</td>
+      <td><strong class="mono">upward_sea_water_velocity</strong><br><span class="cell-muted">Upward sea water velocity</span></td>
+      <td class="num cell-minmax">-0.2906 / 0.4569</td>
+      <td class="num cell-bad">4,920 (3,511)</td>
+      <td><details class="attr-disclosure"><summary>1 attr</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">vertical_interpolation</td><td>linear in pressure; no extrapolation outside 100–800 dbar</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
+
   </tbody>
 </table>
+
 
 
 <h2 id="netcdf_attributes">(B) NetCDF attributes</h2>
 
 
 <h3 class="subhead-md">Global attributes</h3>
+
+<h4 class="subhead-sm">Identity &amp; discovery</h4>
 <table class="var-table">
-  <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+  <thead><tr><th>Attribute</th><th>Type</th><th>Value</th></tr></thead>
   <tbody>
     
     <tr>
       <td class="mono">mooring_name</td>
+      <td class="mono cell-xs">str</td>
       <td class="cell-break-lg">dune2_1_2026</td>
     </tr>
     
+  </tbody>
+</table>
+
+<h4 class="subhead-sm">Spatiotemporal coverage</h4>
+<table class="var-table">
+  <thead><tr><th>Attribute</th><th>Type</th><th>Value</th></tr></thead>
+  <tbody>
+    
     <tr>
       <td class="mono">waterdepth</td>
+      <td class="mono cell-xs">str</td>
       <td class="cell-break-lg">745</td>
     </tr>
     
     <tr>
       <td class="mono">latitude</td>
+      <td class="mono cell-xs">str</td>
       <td class="cell-break-lg">65 43.913</td>
     </tr>
     
     <tr>
       <td class="mono">longitude</td>
+      <td class="mono cell-xs">str</td>
       <td class="cell-break-lg">-27 48.000</td>
     </tr>
     
     <tr>
       <td class="mono">deployment_time</td>
+      <td class="mono cell-xs">str</td>
       <td class="cell-break-lg">2026-07-11T20:30:00</td>
     </tr>
     
     <tr>
       <td class="mono">recovery_time</td>
+      <td class="mono cell-xs">str</td>
       <td class="cell-break-lg">2026-07-25T11:44:00</td>
     </tr>
     
+  </tbody>
+</table>
+
+<h4 class="subhead-sm">Provenance &amp; processing</h4>
+<table class="var-table">
+  <thead><tr><th>Attribute</th><th>Type</th><th>Value</th></tr></thead>
+  <tbody>
+    
     <tr>
       <td class="mono">dt_seconds</td>
+      <td class="mono cell-xs">int64</td>
       <td class="cell-break-lg">3600</td>
     </tr>
     
     <tr>
       <td class="mono">Conventions</td>
+      <td class="mono cell-xs">str</td>
       <td class="cell-break-lg">CF-1.13</td>
     </tr>
     
     <tr>
       <td class="mono">p_start_dbar</td>
+      <td class="mono cell-xs" style="font-weight:600">float64</td>
       <td class="cell-break-lg">100.0</td>
     </tr>
     
     <tr>
       <td class="mono">p_end_dbar</td>
+      <td class="mono cell-xs" style="font-weight:600">float64</td>
       <td class="cell-break-lg">800.0</td>
     </tr>
     
     <tr>
       <td class="mono">dp_dbar</td>
+      <td class="mono cell-xs" style="font-weight:600">float64</td>
       <td class="cell-break-lg">50.0</td>
     </tr>
     
   </tbody>
 </table>
+
 
 
 <div class="report-footer">

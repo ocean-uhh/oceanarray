@@ -317,6 +317,13 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 .fig-cell > .fig { width:100%; }
 .none-note { color:var(--muted); font-style:italic; }
 .var-qc { color:var(--good); font-size:var(--fs-xs); }
+/* Per-row NetCDF attribute disclosure in the inventory tables (the N attrs
+   expander). */
+.attr-disclosure summary { cursor:pointer; color:var(--muted); font-size:var(--fs-xs); white-space:nowrap; }
+.attr-disclosure table { margin:0.3rem 0 0.2rem; border:none; }
+.attr-disclosure td { border:none; padding:0.05rem 0.6rem 0.05rem 0; vertical-align:top;
+  font-size:var(--fs-xs); }
+.attr-disclosure td.mono { color:var(--muted); }
 /* Figure-debug line under a plot (OCEANARRAY_REPORT_DEBUG=1): slot the
    template chose vs the render-side figsize/png, for eyeballing mismatches. */
 .debug { font-family:var(--font-mono); font-size:var(--fs-top); color:var(--muted);

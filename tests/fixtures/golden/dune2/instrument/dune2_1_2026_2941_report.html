@@ -317,6 +317,13 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 .fig-cell > .fig { width:100%; }
 .none-note { color:var(--muted); font-style:italic; }
 .var-qc { color:var(--good); font-size:var(--fs-xs); }
+/* Per-row NetCDF attribute disclosure in the inventory tables (the N attrs
+   expander). */
+.attr-disclosure summary { cursor:pointer; color:var(--muted); font-size:var(--fs-xs); white-space:nowrap; }
+.attr-disclosure table { margin:0.3rem 0 0.2rem; border:none; }
+.attr-disclosure td { border:none; padding:0.05rem 0.6rem 0.05rem 0; vertical-align:top;
+  font-size:var(--fs-xs); }
+.attr-disclosure td.mono { color:var(--muted); }
 /* Figure-debug line under a plot (OCEANARRAY_REPORT_DEBUG=1): slot the
    template chose vs the render-side figsize/png, for eyeballing mismatches. */
 .debug { font-family:var(--font-mono); font-size:var(--fs-top); color:var(--muted);
@@ -763,166 +770,255 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 
 
 
-<table class="var-table" style="max-width:28rem">
-  <thead><tr><th>Dimension</th><th class="num">Size</th></tr></thead>
-  <tbody>
-    
-    <tr><td class="mono">time</td><td class="num">19,635</td></tr>
-    
-  </tbody>
-</table>
 
-
-
-
-<h3 style="font-size:0.88rem;color:var(--ocean);margin:1rem 0 0.4rem;">Time-series variables</h3>
-<table>
+<h3 class="subhead-sm">Coordinates</h3>
+<table class="var-table">
+  
   <thead>
-    <tr><th>Variable</th><th>Type</th><th>Dims</th><th class="num">N</th><th class="num">Valid</th><th class="num">Min / Max</th><th>Units</th><th>Long name</th><th>Standard name</th><th>QC&nbsp;flag</th></tr>
+    <tr><th>Variable</th><th>Type</th><th>Units</th><th>Standard / long name</th><th class="num">Min / Max</th><th class="num">N (valid)</th><th>Attributes</th></tr>
   </thead>
+
   <tbody>
     
-    
     <tr>
-      <td class="mono">conductivity</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="mono">time</td>
+      <td class="mono cell-xs" style="font-weight:600">datetime64[ns]</td>
+      <td></td>
+      <td><strong class="mono">time</strong><br><span class="cell-muted">Time</span></td>
+      <td class="num cell-minmax">2026-07-11 20:30 / 2026-07-25 11:44</td>
       <td class="num">19,635</td>
-      <td class="num" >19,635</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">30.78 / 36.05</td>
-      <td>mS/cm</td>
-      <td>Conductivity</td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">sea_water_electrical_conductivity</td>
-      <td style="text-align:center"><span class="var-qc">✓</span></td>
+      <td><details class="attr-disclosure"><summary>2 attrs</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">coverage_content_type</td><td>coordinate</td></tr>
+    
+      <tr><td class="mono">axis</td><td>T</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
-    
-    
-    
-    <tr>
-      <td class="mono">pressure</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
-      <td class="num">19,635</td>
-      <td class="num" >19,635</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">344.9 / 551.9</td>
-      <td>dbar</td>
-      <td>sea water pressure</td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">sea_water_pressure</td>
-      <td style="text-align:center"><span class="var-qc">✓</span></td>
-    </tr>
-    
-    
-    
-    
-    
-    <tr>
-      <td class="mono">salinity</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
-      <td class="num">19,635</td>
-      <td class="num" >19,635</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">34.55 / 35.25</td>
-      <td>1</td>
-      <td>Practical Salinity</td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">sea_water_practical_salinity</td>
-      <td style="text-align:center"><span class="var-qc">✓</span></td>
-    </tr>
-    
-    
-    
-    
-    
-    <tr>
-      <td class="mono">temperature</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
-      <td class="num">19,635</td>
-      <td class="num" >19,635</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">2.072 / 7.509</td>
-      <td>°C</td>
-      <td>Temperature</td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">sea_water_temperature</td>
-      <td style="text-align:center"><span class="var-qc">✓</span></td>
-    </tr>
-    
-    
-    
-    
+
   </tbody>
 </table>
 
 
 
-<h3 style="font-size:0.88rem;color:var(--ocean);margin:1.4rem 0 0.4rem;">Scalar metadata variables</h3>
-<table>
+
+
+
+<h3 class="subhead-sm">Variables on time</h3>
+<table class="var-table">
+  
   <thead>
-    <tr><th>Variable</th><th>Type</th><th>Value</th><th>Units</th><th>Long name</th></tr>
+    <tr><th>Variable</th><th>Type</th><th>Units</th><th>Standard / long name</th><th class="num">Min / Max</th><th class="num">N (valid)</th><th>Attributes</th></tr>
+  </thead>
+
+  <tbody>
+    
+    <tr>
+      <td class="mono">conductivity <span class="var-qc">(_QC)</span></td>
+      <td class="mono cell-xs">float32</td>
+      <td>mS cm-1</td>
+      <td><strong class="mono">sea_water_electrical_conductivity</strong><br><span class="cell-muted">Conductivity</span></td>
+      <td class="num cell-minmax">30.78 / 36.05</td>
+      <td class="num">19,635</td>
+      <td><details class="attr-disclosure"><summary>3 attrs</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">coverage_content_type</td><td>physicalMeasurement</td></tr>
+    
+      <tr><td class="mono">measurement_type</td><td>Measured</td></tr>
+    
+      <tr><td class="mono">short_name</td><td>COND</td></tr>
+    
+    </tbody>
+  </table></details></td>
+    </tr>
+
+    <tr>
+      <td class="mono">pressure <span class="var-qc">(_QC)</span></td>
+      <td class="mono cell-xs">float32</td>
+      <td>dbar</td>
+      <td><strong class="mono">sea_water_pressure</strong><br><span class="cell-muted">sea water pressure</span></td>
+      <td class="num cell-minmax">344.9 / 551.9</td>
+      <td class="num">19,635</td>
+      <td><details class="attr-disclosure"><summary>2 attrs</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">pressure_source</td><td>near-neighbour from aquadopp 400118 (Δhab=1.0m, static offset=+1.0 dbar)</td></tr>
+    
+      <tr><td class="mono">comment</td><td>interpolated from neighbouring instrument(s)</td></tr>
+    
+    </tbody>
+  </table></details></td>
+    </tr>
+
+    <tr>
+      <td class="mono">salinity <span class="var-qc">(_QC)</span></td>
+      <td class="mono cell-xs">float32</td>
+      <td>1</td>
+      <td><strong class="mono">sea_water_practical_salinity</strong><br><span class="cell-muted">Practical Salinity</span></td>
+      <td class="num cell-minmax">34.55 / 35.25</td>
+      <td class="num">19,635</td>
+      <td><details class="attr-disclosure"><summary>2 attrs</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">coverage_content_type</td><td>physicalMeasurement</td></tr>
+    
+      <tr><td class="mono">comment</td><td>Derived from conductivity, temperature, pressure via gsw.SP_from_C</td></tr>
+    
+    </tbody>
+  </table></details></td>
+    </tr>
+
+    <tr>
+      <td class="mono">temperature <span class="var-qc">(_QC)</span></td>
+      <td class="mono cell-xs">float32</td>
+      <td>degree_Celsius</td>
+      <td><strong class="mono">sea_water_temperature</strong><br><span class="cell-muted">Temperature</span></td>
+      <td class="num cell-minmax">2.072 / 7.509</td>
+      <td class="num">19,635</td>
+      <td><details class="attr-disclosure"><summary>4 attrs</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">coverage_content_type</td><td>physicalMeasurement</td></tr>
+    
+      <tr><td class="mono">measurement_type</td><td>Measured</td></tr>
+    
+      <tr><td class="mono">short_name</td><td>WT</td></tr>
+    
+      <tr><td class="mono">scale</td><td>ITS-90</td></tr>
+    
+    </tbody>
+  </table></details></td>
+    </tr>
+
+  </tbody>
+</table>
+
+
+
+
+
+<h3 class="subhead-md">Scalar metadata variables</h3>
+<table class="var-table">
+  <thead>
+    <tr><th>Variable</th><th>Type</th><th>Units</th><th>Standard / long name</th><th>Value</th><th>Attributes</th></tr>
   </thead>
   <tbody>
     
     <tr>
       <td class="mono">InstrDepth</td>
-      <td class="mono" style="font-size:0.75rem">int32</td>
-      <td class="mono" style="font-size:0.78rem;word-break:break-all">320</td>
+      <td class="mono cell-xs">int32</td>
       <td></td>
+      <td></td>
+      <td class="mono cell-break">320</td>
       <td></td>
     </tr>
     
     <tr>
       <td class="mono">SENSOR_CNDC_2941</td>
-      <td class="mono" style="font-size:0.75rem">|S1</td>
-      <td class="mono" style="font-size:0.78rem;word-break:break-all">b&#39;&#39;</td>
+      <td class="mono cell-xs">|S1</td>
       <td></td>
-      <td>Sea-Bird SBE conductivity sensor metadata</td>
+      <td><span class="cell-muted">Sea-Bird SBE conductivity sensor metadata</span></td>
+      <td class="mono cell-break">b&#39;&#39;</td>
+      <td><details class="attr-disclosure"><summary>7 attrs</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">sensor_type</td><td>CONDUCTIVITY</td></tr>
+    
+      <tr><td class="mono">sensor_serial_number</td><td>2941</td></tr>
+    
+      <tr><td class="mono">sensor_model</td><td>Sea-Bird SBE conductivity sensor</td></tr>
+    
+      <tr><td class="mono">sensor_calibration_date</td><td>2023-03-28</td></tr>
+    
+      <tr><td class="mono">CONDUCTIVITY_calibration_coefficients</td><td>G=-9.871170e-01, H=1.369976e-01, I=-3.485648e-04, J=4.990156e-05, CPCOR=-9.570000e-08, CTCOR=3.250000e-06, WBOTC=-9.105544e-06</td></tr>
+    
+      <tr><td class="mono">cf_role</td><td>sensor_id</td></tr>
+    
+      <tr><td class="mono">coverage_content_type</td><td>auxiliaryInformation</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
     
     <tr>
       <td class="mono">SENSOR_TEMP_2941</td>
-      <td class="mono" style="font-size:0.75rem">|S1</td>
-      <td class="mono" style="font-size:0.78rem;word-break:break-all">b&#39;&#39;</td>
+      <td class="mono cell-xs">|S1</td>
       <td></td>
-      <td>Sea-Bird SBE temperature sensor metadata</td>
+      <td><span class="cell-muted">Sea-Bird SBE temperature sensor metadata</span></td>
+      <td class="mono cell-break">b&#39;&#39;</td>
+      <td><details class="attr-disclosure"><summary>7 attrs</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">sensor_type</td><td>TEMPERATURE</td></tr>
+    
+      <tr><td class="mono">sensor_serial_number</td><td>2941</td></tr>
+    
+      <tr><td class="mono">sensor_model</td><td>Sea-Bird SBE temperature sensor</td></tr>
+    
+      <tr><td class="mono">sensor_calibration_date</td><td>2023-03-28</td></tr>
+    
+      <tr><td class="mono">TEMPERATURE_calibration_coefficients</td><td>TA0=6.981772e-06, TA1=2.746413e-04, TA2=-2.252296e-06, TA3=1.528407e-07</td></tr>
+    
+      <tr><td class="mono">cf_role</td><td>sensor_id</td></tr>
+    
+      <tr><td class="mono">coverage_content_type</td><td>auxiliaryInformation</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
     
     <tr>
       <td class="mono">clock_offset</td>
-      <td class="mono" style="font-size:0.75rem">int32</td>
-      <td class="mono" style="font-size:0.78rem;word-break:break-all">0</td>
+      <td class="mono cell-xs">int32</td>
       <td>s</td>
+      <td></td>
+      <td class="mono cell-break">0</td>
       <td></td>
     </tr>
     
     <tr>
       <td class="mono">end_time</td>
-      <td class="mono" style="font-size:0.75rem">&lt;U16</td>
-      <td class="mono" style="font-size:0.78rem;word-break:break-all">2026-07-25T11:44</td>
+      <td class="mono cell-xs">&lt;U16</td>
       <td></td>
+      <td></td>
+      <td class="mono cell-break">2026-07-25T11:44</td>
       <td></td>
     </tr>
     
     <tr>
       <td class="mono">instrument</td>
-      <td class="mono" style="font-size:0.75rem">&lt;U8</td>
-      <td class="mono" style="font-size:0.78rem;word-break:break-all">microcat</td>
+      <td class="mono cell-xs">&lt;U8</td>
       <td></td>
+      <td></td>
+      <td class="mono cell-break">microcat</td>
       <td></td>
     </tr>
     
     <tr>
       <td class="mono">serial_number</td>
-      <td class="mono" style="font-size:0.75rem">int32</td>
-      <td class="mono" style="font-size:0.78rem;word-break:break-all">2941</td>
+      <td class="mono cell-xs">int32</td>
       <td></td>
+      <td></td>
+      <td class="mono cell-break">2941</td>
       <td></td>
     </tr>
     
     <tr>
       <td class="mono">start_time</td>
-      <td class="mono" style="font-size:0.75rem">&lt;U16</td>
-      <td class="mono" style="font-size:0.78rem;word-break:break-all">2026-07-11T20:30</td>
+      <td class="mono cell-xs">&lt;U16</td>
       <td></td>
+      <td></td>
+      <td class="mono cell-break">2026-07-11T20:30</td>
       <td></td>
     </tr>
     
@@ -932,223 +1028,292 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <h2 id="netcdf_attributes">(B) NetCDF attributes</h2>
 
 
-<h3 style="font-size:0.88rem;color:var(--ocean);margin:1.4rem 0 0.4rem;">Global attributes</h3>
-<table>
-  <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+<h3 class="subhead-md">Global attributes</h3>
+
+<h4 class="subhead-sm">Identity &amp; discovery</h4>
+<table class="var-table">
+  <thead><tr><th>Attribute</th><th>Type</th><th>Value</th></tr></thead>
   <tbody>
     
     <tr>
-      <td class="mono">source</td>
-      <td style="font-size:0.8rem;word-break:break-all">Sea-Bird SBE37</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">raw_format</td>
-      <td style="font-size:0.8rem;word-break:break-all">sbe-ascii</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">raw_filename</td>
-      <td style="font-size:0.8rem;word-break:break-all">2941_recovery.asc</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">raw_filesize_bytes</td>
-      <td style="font-size:0.8rem;word-break:break-all">837120</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">raw_mtime_utc</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T13:42:51Z</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">raw_sha256</td>
-      <td style="font-size:0.8rem;word-break:break-all">df5a255892101ac1d99a77ab7589328a55d544e559b19dd4f706f86892e1d4d3</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">raw_metadata_schema</td>
-      <td style="font-size:0.8rem;word-break:break-all">seasenselib/raw-opaque-1.0</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">raw_metadata</td>
-      <td style="font-size:0.8rem;word-break:break-all">{&#34;schema&#34;: &#34;seasenselib/raw-opaque-1.0&#34;, &#34;raw_format&#34;: &#34;sbe-ascii&#34;, &#34;raw_filename&#34;: &#34;2941_recovery.asc&#34;, &#34;blocks&#34;: {&#34;attributes&#34;: null, &#34;calibration&#34;: null, &#34;configuration&#34;: null, &#34;other&#34;: {&#34;global_attributes&#34;: {&#34;FileName&#34;: &#34;C:\\Users\\u241353\\Desktop\\Odondebuen\\dunes2_1_2026\\2941_recovery.asc&#34;, &#34;Temperature SN&#34;: &#34;2941&#34;, &#34;Conductivity SN&#34;: &#34;2941&#34;, &#34;System UpLoad Time&#34;: &#34;Jul 25 2026 13:25:28&#34;, &#34;sample interval&#34;: &#34;60 seconds&#34;, &#34;samplenumber&#34;: &#34;19898, free = 213118&#34;, &#34;number of samples to average&#34;: &#34;1&#34;, &#34;reference pressure&#34;: &#34;0.0 db&#34;, &#34;wait time after serial sync sampling&#34;: &#34;30 seconds&#34;, &#34;temperature&#34;: &#34;14.92 deg C&#34;, &#34;    TA0&#34;: &#34;6.981772e-06&#34;, &#34;    TA1&#34;: &#34;2.746413e-04&#34;, &#34;    TA2&#34;: &#34;-2.252296e-06&#34;, &#34;    TA3&#34;: &#34;1.528407e-07&#34;, &#34;    G&#34;: &#34;-9.871170e-01&#34;, &#34;    H&#34;: &#34;1.369976e-01&#34;, &#34;    I&#34;: &#34;-3.485648e-04&#34;, &#34;    J&#34;: &#34;4.990156e-05&#34;, &#34;    CPCOR&#34;: &#34;-9.570000e-08&#34;, &#34;    CTCOR&#34;: &#34;3.250000e-06&#34;, &#34;    WBOTC&#34;: &#34;-9.105544e-06&#34;, &#34;    RTCA0&#34;: &#34;9.999872e-01&#34;, &#34;    RTCA1&#34;: &#34;1.686222e-06&#34;, &#34;    RTCA2&#34;: &#34;-3.276627e-08&#34;, &#34;information&#34;: &#34;sample interval 60 seconds&#34;}}}, &#34;variables&#34;: {}}</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_name</td>
-      <td style="font-size:0.8rem;word-break:break-all">SeaSenseLib</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_version</td>
-      <td style="font-size:0.8rem;word-break:break-all">0.6.0</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processing_level</td>
-      <td style="font-size:0.8rem;word-break:break-all">L1</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_module</td>
-      <td style="font-size:0.8rem;word-break:break-all">seasenselib.readers.sbe_ascii_reader</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_module_name</td>
-      <td style="font-size:0.8rem;word-break:break-all">SeaBird ASCII</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_module_key</td>
-      <td style="font-size:0.8rem;word-break:break-all">sbe-ascii</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_runtime</td>
-      <td style="font-size:0.8rem;word-break:break-all">CPython</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_runtime_version</td>
-      <td style="font-size:0.8rem;word-break:break-all">3.11.7</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_execution_time_utc</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-26T18:41:56.7Z</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_machine</td>
-      <td style="font-size:0.8rem;word-break:break-all">EFWmac14-2.local</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_os</td>
-      <td style="font-size:0.8rem;word-break:break-all">Darwin 25.5.0</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">date_created</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-26T18:41:56.7Z</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">date_modified</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-26T18:41:56.7Z</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">Conventions</td>
-      <td style="font-size:0.8rem;word-break:break-all">CF-1.13</td>
-    </tr>
-    
-    <tr>
       <td class="mono">mooring_name</td>
-      <td style="font-size:0.8rem;word-break:break-all">dune2</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">waterdepth</td>
-      <td style="font-size:0.8rem;word-break:break-all">745</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">longitude</td>
-      <td style="font-size:0.8rem;word-break:break-all">-28 01.234</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">latitude</td>
-      <td style="font-size:0.8rem;word-break:break-all">65 48.405</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">deployment_latitude</td>
-      <td style="font-size:0.8rem;word-break:break-all">00 00.000 N</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">deployment_longitude</td>
-      <td style="font-size:0.8rem;word-break:break-all">000 00.000 W</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">deployment_time</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-11T20:30</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">seabed_latitude</td>
-      <td style="font-size:0.8rem;word-break:break-all">00 00.000 N</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">seabed_longitude</td>
-      <td style="font-size:0.8rem;word-break:break-all">000 00.000 W</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">recovery_time</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T11:44</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">qc_convention</td>
-      <td style="font-size:0.8rem;word-break:break-all">OceanSITES reference table 2</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">stage1_first_nonnull</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-11T17:00:01</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">stage1_last_nonnull</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T12:37:00</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">stage1_time_start</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-11T17:00:01</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">stage1_time_end</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T12:37:00</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">yaml_deployment_time</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-11T20:30:00</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">yaml_recovery_time</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T11:44:00</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">stage2_source_file</td>
-      <td style="font-size:0.8rem;word-break:break-all">dune2_1_2026_2941_stage2.nc</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">stage2_source_mtime</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-29T12:10:34Z</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">stage2_source_sha256</td>
-      <td style="font-size:0.8rem;word-break:break-all">e5c1037c</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">dune2</td>
     </tr>
     
   </tbody>
 </table>
+
+<h4 class="subhead-sm">Spatiotemporal coverage</h4>
+<table class="var-table">
+  <thead><tr><th>Attribute</th><th>Type</th><th>Value</th></tr></thead>
+  <tbody>
+    
+    <tr>
+      <td class="mono">waterdepth</td>
+      <td class="mono cell-xs">int64</td>
+      <td class="cell-break-lg">745</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">longitude</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">-28 01.234</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">latitude</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">65 48.405</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">deployment_time</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-11T20:30</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">recovery_time</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-25T11:44</td>
+    </tr>
+    
+  </tbody>
+</table>
+
+<h4 class="subhead-sm">Provenance &amp; processing</h4>
+<table class="var-table">
+  <thead><tr><th>Attribute</th><th>Type</th><th>Value</th></tr></thead>
+  <tbody>
+    
+    <tr>
+      <td class="mono">source</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">Sea-Bird SBE37</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processing_level</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">L1</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">date_created</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-26T18:41:56.7Z</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">date_modified</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-26T18:41:56.7Z</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">Conventions</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">CF-1.13</td>
+    </tr>
+    
+  </tbody>
+</table>
+
+<h4 class="subhead-sm">Other</h4>
+<table class="var-table">
+  <thead><tr><th>Attribute</th><th>Type</th><th>Value</th></tr></thead>
+  <tbody>
+    
+    <tr>
+      <td class="mono">raw_format</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">sbe-ascii</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">raw_filename</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2941_recovery.asc</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">raw_filesize_bytes</td>
+      <td class="mono cell-xs">int64</td>
+      <td class="cell-break-lg">837120</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">raw_mtime_utc</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-25T13:42:51Z</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">raw_sha256</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">df5a255892101ac1d99a77ab7589328a55d544e559b19dd4f706f86892e1d4d3</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">raw_metadata_schema</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">seasenselib/raw-opaque-1.0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">raw_metadata</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">{&#34;schema&#34;: &#34;seasenselib/raw-opaque-1.0&#34;, &#34;raw_format&#34;: &#34;sbe-ascii&#34;, &#34;raw_filename&#34;: &#34;2941_recovery.asc&#34;, &#34;blocks&#34;: {&#34;attributes&#34;: null, &#34;calibration&#34;: null, &#34;configuration&#34;: null, &#34;other&#34;: {&#34;global_attributes&#34;: {&#34;FileName&#34;: &#34;C:\\Users\\u241353\\Desktop\\Odondebuen\\dunes2_1_2026\\2941_recovery.asc&#34;, &#34;Temperature SN&#34;: &#34;2941&#34;, &#34;Conductivity SN&#34;: &#34;2941&#34;, &#34;System UpLoad Time&#34;: &#34;Jul 25 2026 13:25:28&#34;, &#34;sample interval&#34;: &#34;60 seconds&#34;, &#34;samplenumber&#34;: &#34;19898, free = 213118&#34;, &#34;number of samples to average&#34;: &#34;1&#34;, &#34;reference pressure&#34;: &#34;0.0 db&#34;, &#34;wait time after serial sync sampling&#34;: &#34;30 seconds&#34;, &#34;temperature&#34;: &#34;14.92 deg C&#34;, &#34;    TA0&#34;: &#34;6.981772e-06&#34;, &#34;    TA1&#34;: &#34;2.746413e-04&#34;, &#34;    TA2&#34;: &#34;-2.252296e-06&#34;, &#34;    TA3&#34;: &#34;1.528407e-07&#34;, &#34;    G&#34;: &#34;-9.871170e-01&#34;, &#34;    H&#34;: &#34;1.369976e-01&#34;, &#34;    I&#34;: &#34;-3.485648e-04&#34;, &#34;    J&#34;: &#34;4.990156e-05&#34;, &#34;    CPCOR&#34;: &#34;-9.570000e-08&#34;, &#34;    CTCOR&#34;: &#34;3.250000e-06&#34;, &#34;    WBOTC&#34;: &#34;-9.105544e-06&#34;, &#34;    RTCA0&#34;: &#34;9.999872e-01&#34;, &#34;    RTCA1&#34;: &#34;1.686222e-06&#34;, &#34;    RTCA2&#34;: &#34;-3.276627e-08&#34;, &#34;information&#34;: &#34;sample interval 60 seconds&#34;}}}, &#34;variables&#34;: {}}</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_name</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">SeaSenseLib</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_version</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">0.6.0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_module</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">seasenselib.readers.sbe_ascii_reader</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_module_name</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">SeaBird ASCII</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_module_key</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">sbe-ascii</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_runtime</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">CPython</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_runtime_version</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">3.11.7</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_execution_time_utc</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-26T18:41:56.7Z</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_machine</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">EFWmac14-2.local</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_os</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">Darwin 25.5.0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">deployment_latitude</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">00 00.000 N</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">deployment_longitude</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">000 00.000 W</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">seabed_latitude</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">00 00.000 N</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">seabed_longitude</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">000 00.000 W</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">qc_convention</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">OceanSITES reference table 2</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage1_first_nonnull</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-11T17:00:01</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage1_last_nonnull</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-25T12:37:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage1_time_start</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-11T17:00:01</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage1_time_end</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-25T12:37:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">yaml_deployment_time</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-11T20:30:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">yaml_recovery_time</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-25T11:44:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage2_source_file</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">dune2_1_2026_2941_stage2.nc</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage2_source_mtime</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-29T12:10:34Z</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage2_source_sha256</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">e5c1037c</td>
+    </tr>
+    
+  </tbody>
+</table>
+
 
 
 <p class="none-note">Not applicable to this instrument: Velocity, Current roses, Current rose diagrams, Particle trajectory, Hodograph, Current speed distribution, Analog channels.</p>
