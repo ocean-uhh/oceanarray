@@ -91,7 +91,9 @@ class MooringGridder:
         n_p = len(p_grid)
 
         try:
-            ds = xr.open_dataset(merge_path).load()
+            ds = xr.open_dataset(
+                merge_path, engine="netcdf4", decode_timedelta=False
+            ).load()
         except (TimeoutError, OSError) as exc:
             print("ERROR: Cannot read stack file — is the data drive connected?")
             print(f"       ({type(exc).__name__}: {exc})")
@@ -351,7 +353,9 @@ class TimeGriddingProcessor:
                 self._log_print(
                     f"Loading {instrument_type} serial {serial}: {filename}"
                 )
-                ds = xr.open_dataset(filepath)
+                ds = xr.open_dataset(
+                    filepath, engine="netcdf4", decode_timedelta=False
+                )
 
                 # Ensure required metadata is present
                 ds = self._ensure_instrument_metadata(ds, instrument_config)
