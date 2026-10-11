@@ -194,3 +194,30 @@ def test_one_units_error_instrument_does_not_abort_the_mooring(tmp_path, monkeyp
     assert not (
         proc_root / MOORING / "microcat" / f"{MOORING}_2941_stage1.nc"
     ).exists(), "the bad instrument must be skipped, not written"
+
+
+def test_registry_inconsistency_aborts_the_whole_mooring(tmp_path, monkeypatch):
+    """A RuntimeError (registry bug) must abort the run, not be swallowed per-instrument.
+
+    canonicalise_units raises RuntimeError (not UnitsError) for a registry
+    inconsistency; the stage-1 per-instrument handler re-raises RuntimeError so a
+    package bug surfaces instead of silently skipping every instrument.
+    """
+    import pytest
+
+    proc_root = tmp_path / "proc"
+    (proc_root / MOORING).mkdir(parents=True)
+    shutil.copy(FIXTURE_PROC / f"{MOORING}.mooring.yaml", proc_root / MOORING)
+
+    def _raise_runtime(_ds, **_kwargs):
+        raise RuntimeError("synthetic registry inconsistency")
+
+    monkeypatch.setattr(
+        "oceanarray.processors.stage1.canonicalise_units", _raise_runtime
+    )
+
+    processor = MooringProcessor(
+        raw_dir=str(FIXTURE_RAW.parent), proc_dir=str(proc_root)
+    )
+    with pytest.raises(RuntimeError, match="registry inconsistency"):
+        processor.process_mooring(MOORING, force=True)

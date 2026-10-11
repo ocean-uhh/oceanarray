@@ -64,7 +64,9 @@ def _canonical_by_standard_name() -> dict[str, str]:
     return mapping
 
 
-def _canonical_units_for(var: str, ds: xr.Dataset) -> str | None:
+def _canonical_units_for(
+    var: str, ds: xr.Dataset, sn_map: dict[str, str] | None = None
+) -> str | None:
     """Return the canonical units for *var* in *ds*, or ``None`` if unregistered.
 
     Matches on the variable name first, then on its ``standard_name`` attribute.
@@ -75,6 +77,10 @@ def _canonical_units_for(var: str, ds: xr.Dataset) -> str | None:
         Variable or coordinate name in *ds*.
     ds : xarray.Dataset
         Dataset holding *var* (its ``standard_name`` attribute is consulted).
+    sn_map : dict of str to str, optional
+        The ``standard_name`` → canonical-units map from
+        :func:`_canonical_by_standard_name`.  Pass the pre-built map when calling in
+        a loop to avoid rebuilding it per variable; built here when omitted.
 
     Returns
     -------
@@ -85,8 +91,10 @@ def _canonical_units_for(var: str, ds: xr.Dataset) -> str | None:
     """
     if var in params.VARIABLES:
         return params.VARIABLES[var].get("units")
+    if sn_map is None:
+        sn_map = _canonical_by_standard_name()
     sn = ds[var].attrs.get("standard_name")
-    return _canonical_by_standard_name().get(sn)
+    return sn_map.get(sn)
 
 
 def canonicalise_units(
@@ -135,11 +143,11 @@ def canonicalise_units(
         guesses or silently passes an unknown unit through.
 
     """
+    sn_map = _canonical_by_standard_name()  # built once per call, not per variable
     for var in list(ds.variables):
-        canonical = _canonical_units_for(var, ds)
+        canonical = _canonical_units_for(var, ds, sn_map)
         if canonical is None:
             continue
-        aliases = {canonical: 1.0, **params.UNIT_ALIASES.get(canonical, {})}
         current = str(ds[var].attrs.get("units", "")).strip()
         if current != canonical:
             if not current:
@@ -149,6 +157,15 @@ def canonicalise_units(
                     f"add the spelling to parameters.UNIT_ALIASES — no silent "
                     f"substitution."
                 )
+            # The canonical is an implicit x1 member; generic spellings come from
+            # UNIT_ALIASES, and spellings that are only meaningful for one variable
+            # (e.g. PSU for salinity, NTU for turbidity, both canonical `1`) from the
+            # variable-scoped table so one quantity cannot borrow another's label.
+            aliases = {
+                canonical: 1.0,
+                **params.UNIT_ALIASES.get(canonical, {}),
+                **params.VARIABLE_UNIT_ALIASES.get(var, {}),
+            }
             if current not in aliases:
                 where = f" (stage {stage})" if stage else ""
                 raise UnitsError(
@@ -159,9 +176,14 @@ def canonicalise_units(
             factor = aliases[current]
             attrs = dict(ds[var].attrs)
             if factor != 1.0:
-                ds[var] = ds[var].copy(
+                converted = ds[var].copy(
                     data=np.asarray(ds[var].values, dtype=float) * factor
                 )
+                # The value scale changed, so any integer packing carried from the
+                # reader is no longer valid; drop it and let the writer re-encode.
+                for key in ("dtype", "scale_factor", "add_offset"):
+                    converted.encoding.pop(key, None)
+                ds[var] = converted
                 attrs["units_converted_from"] = current
                 attrs["units_conversion_factor"] = factor
             attrs["units"] = canonical

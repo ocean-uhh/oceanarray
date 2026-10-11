@@ -214,6 +214,21 @@ class TestMooringProcessor:
         np.testing.assert_allclose(out["conductivity"].values, [36.1])
         assert out["conductivity"].attrs["units"] == "mS/cm"
 
+    def test_sanitize_slash_vars_ml_l_oxygen_to_ml_l_variable(self, processor):
+        """A mL/L oxygen column maps to the per-volume ``dissolved_oxygen_ml_l``.
+
+        The per-mass ``dissolved_oxygen`` (canonical ``umol kg-1``) would reject a
+        mL/L value, so the ``*ML/L`` columns must land on the ``_ml_l`` family.
+        """
+        ds = xr.Dataset(
+            {"sbeox0ML/L": (["time"], np.array([5.1, 5.2]))},
+            coords={"time": (["time"], np.arange(2))},
+        )
+        out = processor._sanitize_slash_vars(ds)
+        assert "sbeox0ML/L" not in out
+        assert "dissolved_oxygen_ml_l" in out
+        assert "dissolved_oxygen" not in out  # not the per-mass variable
+
     def test_clean_dataset_variables_unknown_type(self, processor):
         """Test cleaning dataset variables for unknown file type."""
         ds = xr.Dataset(

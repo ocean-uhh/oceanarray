@@ -9,6 +9,7 @@ import numpy as np
 import xarray as xr
 
 from oceanarray import parameters as params
+from oceanarray.processors.units import UnitsError
 
 # Merge priority for combining QC flags (higher priority wins = worse quality).
 # Single source of truth: parameters.QC_MERGE_PRIORITY, shared with
@@ -330,9 +331,10 @@ def compute_salinity_data(
     if not required.issubset(ds.data_vars):
         return ds
     cond_units = str(ds["conductivity"].attrs.get("units", "")).strip()
-    if cond_units != "mS cm-1":
-        raise ValueError(
-            f"conductivity units are {cond_units!r}, not the canonical 'mS cm-1'; "
+    canonical = params.VARIABLES["conductivity"]["units"]
+    if cond_units != canonical:
+        raise UnitsError(
+            f"conductivity units are {cond_units!r}, not the canonical {canonical!r}; "
             f"run canonicalise_units before computing salinity (salinity from S/m "
             f"would be 10x too small)."
         )
@@ -642,14 +644,21 @@ def unify_velocity_qc(ds: xr.Dataset) -> xr.Dataset:
 def derive_oxygen_saturation(ds: xr.Dataset) -> xr.Dataset:
     """Compute O2 % saturation and AOU from dissolved_oxygen, temperature, salinity, pressure.
 
-    Requires dissolved_oxygen (µmol/L), temperature (°C), salinity (PSU), and pressure
-    (dbar) all present in *ds*.  Returns *ds* unchanged when any variable is missing or
-    when gsw is unavailable.
+    Requires dissolved_oxygen, temperature (°C), salinity (PSU), and pressure (dbar)
+    all present in *ds*.  Returns *ds* unchanged when any variable is missing or when
+    gsw is unavailable.
 
-    Unit conversion uses in-situ **seawater** density from ``gsw.rho(SA, CT, p)``
-    (kg m⁻³) — NOT freshwater density (~1000 kg m⁻³).  Seawater density at typical
-    mooring conditions is ~1025–1028 kg m⁻³, giving a ~2.5 % correction relative to
-    freshwater.  This correction is oceanographically significant and must not be skipped.
+    The saturation reference ``gsw.O2sol_SP_pt`` is per mass (µmol kg⁻¹), so the
+    measured oxygen is compared in µmol kg⁻¹.  The measured value is taken by its
+    ``units`` attribute:
+
+    - ``umol kg-1`` (the canonical, per mass): used directly.
+    - ``umol L-1`` (a per-volume variable, if ever read): divided by in-situ
+      **seawater** density ``gsw.rho(SA, CT, p)/1000`` (kg L⁻¹) to convert to per mass.
+      Seawater density (~1025–1028 kg m⁻³) gives a ~2.5 % correction relative to
+      freshwater — oceanographically significant, not skippable.
+    - anything else: :class:`~oceanarray.processors.units.UnitsError` — the basis must
+      be known, never guessed.
 
     lon/lat for ``gsw.SA_from_SP`` are taken from global attrs (default 0.0 if absent;
     the SA error from a wrong position is typically < 0.05 g kg⁻¹ at open-ocean sites).
@@ -670,7 +679,8 @@ def derive_oxygen_saturation(ds: xr.Dataset) -> xr.Dataset:
     except ImportError:
         return ds
 
-    O2_L = ds["dissolved_oxygen"].values.astype(float)
+    O2 = ds["dissolved_oxygen"].values.astype(float)
+    o2_units = str(ds["dissolved_oxygen"].attrs.get("units", "")).strip()
     t = ds["temperature"].values.astype(float)
     SP = ds["salinity"].values.astype(float)
     p = ds["pressure"].values.astype(float)
@@ -687,16 +697,26 @@ def derive_oxygen_saturation(ds: xr.Dataset) -> xr.Dataset:
     # rather than spurious negative percentages that would then back-propagate.
     if "dissolved_oxygen_qc" in ds.data_vars:
         _do_qc = ds["dissolved_oxygen_qc"].values.astype(np.int8)
-        O2_L = O2_L.copy()
-        O2_L[np.isin(_do_qc, [4, 9])] = np.nan
+        O2 = O2.copy()
+        O2[np.isin(_do_qc, [4, 9])] = np.nan
 
     SA = gsw.SA_from_SP(SP, p, lon, lat)
     CT = gsw.CT_from_t(SA, t, p)
     pt = gsw.pt0_from_t(SA, t, p)
 
     O2sol = gsw.O2sol_SP_pt(SP, pt)  # µmol/kg at equilibrium
-    rho_sw = gsw.rho(SA, CT, p)  # kg/m³ in-situ seawater density
-    O2_kg = O2_L / (rho_sw / 1000.0)  # µmol/kg measured (divides by kg/L)
+
+    # Bring the measured oxygen to per mass (µmol/kg) to match O2sol, by its units.
+    if o2_units == "umol kg-1":
+        O2_kg = O2  # already per mass
+    elif o2_units == "umol L-1":
+        rho_sw = gsw.rho(SA, CT, p)  # kg/m³ in-situ seawater density
+        O2_kg = O2 / (rho_sw / 1000.0)  # per volume -> per mass (divide by kg/L)
+    else:
+        raise UnitsError(
+            f"dissolved_oxygen units {o2_units!r} is neither 'umol kg-1' nor "
+            f"'umol L-1'; cannot derive saturation without a known mass/volume basis."
+        )
 
     pct_sat = 100.0 * O2_kg / O2sol
     aou = O2sol - O2_kg

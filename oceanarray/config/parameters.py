@@ -172,7 +172,7 @@ QC_GROSS_RANGE: dict = {
     "dissolved_oxygen": {
         "fail_span": (0.0, 500.0),
         "suspect_span": (0.0, 450.0),
-    },  # umol/L
+    },  # umol kg-1  (per-mass numbers differ from per-volume by ~2.5%, noise for a gross-range span)
     # O2 % saturation: >200 % would indicate severe bubble entrainment or sensor fault.
     "oxygen_saturation_pct": {"fail_span": (0.0, 200.0), "suspect_span": (0.0, 150.0)},
 }
@@ -727,9 +727,18 @@ UNIT_ALIASES: dict[str, dict[str, float]] = {
     "umol kg-1": {"umol/kg": 1.0, "µmol/kg": 1.0},
     "kg m-3": {"kg/m³": 1.0},
     "g kg-1": {"g/kg": 1.0},
-    "mL L-1": {"mL/L": 1.0},
+    "mL L-1": {"mL/L": 1.0, "ml l-1": 1.0},
     "s-2": {"s⁻²": 1.0},
-    # PSU/NTU are the dimensionless (``1``) salinity/turbidity display labels;
-    # format_units picks the right one from the standard name.
-    "1": {"PSU": 1.0, "NTU": 1.0},
+}
+
+#: Spellings accepted only for a specific variable, merged on top of
+#: :data:`UNIT_ALIASES` by ``processors.units.canonicalise_units``.  ``PSU`` and
+#: ``NTU`` are both display labels for the dimensionless canonical ``1`` but belong
+#: to different quantities, so they are scoped here (keyed by variable name) rather
+#: than put in the shared ``UNIT_ALIASES["1"]`` group — a salinity file saying ``NTU``
+#: (or turbidity saying ``PSU``) must raise, not be silently accepted.  Both are
+#: evidenced on the drive (salinity ``PSU`` 1 file; turbidity ``NTU`` 6 files).
+VARIABLE_UNIT_ALIASES: dict[str, dict[str, float]] = {
+    "salinity": {"PSU": 1.0},
+    "turbidity": {"NTU": 1.0},
 }

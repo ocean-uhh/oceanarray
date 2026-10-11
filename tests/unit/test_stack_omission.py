@@ -42,6 +42,32 @@ def test_stack_omits_bad_units_instrument_but_builds_and_records(tmp_path):
 
     ds = xr.open_dataset(stack_path, engine="netcdf4", decode_timedelta=False)
     omitted = ds.attrs.get("instruments_omitted", "")
+    # The omitted instrument must leave NO phantom level: N_LEVELS and the recorded
+    # omission agree (one of two instruments dropped -> exactly one level, 9920).
+    assert ds.sizes["N_LEVELS"] == 1, f"phantom level: N_LEVELS={ds.sizes['N_LEVELS']}"
+    assert "2941" not in [str(s) for s in ds["serial"].values], (
+        "the omitted serial must not appear as a stack level"
+    )
     ds.close()
     assert "2941" in omitted, f"omitted instrument not recorded: {omitted!r}"
     assert "units error" in omitted.lower()
+
+
+def test_stack_all_instruments_omitted_writes_no_file(tmp_path):
+    shutil.copytree(_FIXTURE, tmp_path / "dune2_1_2026")
+    proc = tmp_path / "dune2_1_2026"
+    (proc / "dune2_1_2026_stack.nc").unlink()  # drop the committed fixture stack
+    # Corrupt BOTH instruments so every one is omitted.
+    _corrupt_units(
+        proc / "microcat" / "dune2_1_2026_2941_stage3.nc", "temperature", "Kelvin"
+    )
+    _corrupt_units(
+        proc / "aquadopp" / "dune2_1_2026_9920_stage3.nc", "temperature", "Kelvin"
+    )
+
+    ok = MooringStacker(proc_dir=str(tmp_path)).stack("dune2_1_2026", force=True)
+
+    assert ok is False
+    assert not (proc / "dune2_1_2026_stack.nc").exists(), (
+        "an all-omitted mooring must not write a stack file"
+    )

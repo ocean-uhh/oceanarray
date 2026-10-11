@@ -146,6 +146,41 @@ def test_turbidity_dimensionless_one_is_canonical():
     assert out["turbidity"].attrs["units"] == "1"
 
 
+def test_variable_scoped_ntu_and_psu():
+    # NTU is accepted for turbidity, PSU for salinity (both canonical '1')...
+    assert (
+        pu.canonicalise_units(_ds(turbidity=([5.0], "NTU", "sea_water_turbidity")))[
+            "turbidity"
+        ].attrs["units"]
+        == "1"
+    )
+    assert (
+        pu.canonicalise_units(
+            _ds(salinity=([35.0], "PSU", "sea_water_practical_salinity"))
+        )["salinity"].attrs["units"]
+        == "1"
+    )
+
+
+def test_cross_variable_dimensionless_label_is_refused():
+    # ...but a salinity file saying NTU (or turbidity saying PSU) must raise, not be
+    # silently relabelled — the scoping keeps one quantity from borrowing another's.
+    with pytest.raises(pu.UnitsError):
+        pu.canonicalise_units(
+            _ds(salinity=([35.0], "NTU", "sea_water_practical_salinity"))
+        )
+    with pytest.raises(pu.UnitsError):
+        pu.canonicalise_units(_ds(turbidity=([5.0], "PSU", "sea_water_turbidity")))
+
+
+def test_oxygen_ml_l_lowercase_spelling_accepted():
+    # The hex reader writes 'ml l-1' (lowercase); it must canonicalise to 'mL L-1'.
+    # dissolved_oxygen_ml_l matches by name (a registry key).
+    ds = _ds(dissolved_oxygen_ml_l=([5.0], "ml l-1"))
+    out = pu.canonicalise_units(ds)
+    assert out["dissolved_oxygen_ml_l"].attrs["units"] == "mL L-1"
+
+
 def test_coordinate_is_canonicalised():
     # depth is a coordinate in stack/grid files; the pass must walk ds.variables,
     # not ds.data_vars, or 'meters' on a depth coordinate survives.
@@ -163,11 +198,31 @@ def test_units_metadata_stamped_on_temperature():
     assert out["temperature"].attrs["units_metadata"] == "temperature: on_scale"
 
 
-def test_conversion_preserves_encoding():
+def test_conversion_drops_stale_integer_packing():
+    # A ×10 conversion changes the value scale, so a packed integer encoding carried
+    # from the reader is no longer valid and must be dropped (the writer re-encodes).
     ds = _ds(conductivity=([4.0], "S/m"))
-    ds["conductivity"].encoding["_FillValue"] = -999.0
+    ds["conductivity"].encoding.update(
+        {"dtype": "int16", "scale_factor": 0.001, "add_offset": 0.0}
+    )
     out = pu.canonicalise_units(ds)
-    assert out["conductivity"].encoding.get("_FillValue") == -999.0
+    for key in ("dtype", "scale_factor", "add_offset"):
+        assert key not in out["conductivity"].encoding
+    assert out["conductivity"].values[0] == 40.0  # 4 S/m -> 40 mS cm-1
+
+
+def test_conversion_round_trips_after_integer_encoding_dropped(tmp_path):
+    # The physical values must survive write/read once the stale int packing is gone.
+    from oceanarray.writers import write
+
+    ds = _ds(conductivity=([4.0, 5.0], "S/m"))
+    ds["conductivity"].encoding["dtype"] = "int16"
+    out = pu.canonicalise_units(ds)
+    path = tmp_path / "cond.nc"
+    write(out, path)
+    back = xr.open_dataset(path, engine="netcdf4", decode_timedelta=False)
+    np.testing.assert_allclose(back["conductivity"].values, [40.0, 50.0])
+    back.close()
 
 
 def test_standard_name_map_builds_and_has_no_conflicts():
@@ -257,7 +312,11 @@ def test_every_label_units_is_an_alias_of_its_canonical():
     for var, entry in params.VARIABLES.items():
         canonical = entry["units"]
         label = entry["label_units"]
-        aliases = {canonical: 1.0, **params.UNIT_ALIASES.get(canonical, {})}
+        aliases = {
+            canonical: 1.0,
+            **params.UNIT_ALIASES.get(canonical, {}),
+            **params.VARIABLE_UNIT_ALIASES.get(var, {}),
+        }
         assert label == canonical or label in aliases, (
             f"{var}: label_units {label!r} is not an alias of canonical {canonical!r}"
         )

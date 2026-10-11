@@ -320,6 +320,7 @@ class MooringStacker:
         # omission is recorded loudly: in the summary, in an `instruments_omitted`
         # global attribute the grid inherits, and in the exit code.
         omitted: list[str] = []
+        omitted_idx: list[int] = []  # enumerate positions of omitted instruments
 
         for i, info in enumerate(instruments):
             serials.append(info["serial"])
@@ -352,6 +353,7 @@ class MooringStacker:
                     f"  ERROR: omitting {info['instrument']} s/n {info['serial']} — {reason}"
                 )
                 omitted.append(f"{info['instrument']} s/n {info['serial']} ({reason})")
+                omitted_idx.append(i)
                 # Ensure scalar_meta lists stay length-consistent
                 for lst in scalar_meta.values():
                     lst.append(None)
@@ -428,6 +430,30 @@ class MooringStacker:
         # Release cached ADCP parent datasets
         for _ds_adcp in _adcp_parent_datasets.values():
             _ds_adcp.close()
+
+        # Drop omitted instruments from every per-level array/list so the written
+        # stack has no phantom all-NaN level — N_LEVELS and `instruments_omitted`
+        # must agree.  The loop indexes `stacked`/`scalar_meta` by enumerate position,
+        # so slice all of them to the kept positions here rather than restructuring it.
+        _omitted_set = set(omitted_idx)
+        kept = [i for i in range(n_instr) if i not in _omitted_set]
+        if not kept:
+            print(
+                f"ERROR: every instrument was omitted — no stack written ({mooring_name}):"
+            )
+            for line in omitted:
+                print(f"    - {line}")
+            return False
+        if len(kept) < n_instr:
+            serials = [serials[i] for i in kept]
+            habs = [habs[i] for i in kept]
+            instr_types = [instr_types[i] for i in kept]
+            stage_labels = [stage_labels[i] for i in kept]
+            for _v in stacked:
+                stacked[_v] = stacked[_v][kept, :]
+            for _k in scalar_meta:
+                scalar_meta[_k] = [scalar_meta[_k][i] for i in kept]
+            n_instr = len(kept)
 
         # Build output dataset; skip physics variables that are entirely NaN
         data_vars: dict = {}

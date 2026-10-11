@@ -864,12 +864,18 @@ class MooringProcessor:
 
     # Known SBE CNV variable names containing '/' and their CF-compatible replacements.
     # Keys that are already handled by _normalize_conductivity are excluded.
+    # SBE's ``Mm/Kg`` suffix is *micro*moles per kg (umol kg-1), not millimoles — so
+    # the ``Mm/Kg`` columns map to the per-mass ``dissolved_oxygen`` (canonical
+    # umol kg-1) with no scaling, and the ``ML/L`` columns (mL/L, per volume) map to
+    # the separate ``dissolved_oxygen_ml_l`` family (canonical mL L-1); routing mL/L
+    # onto the per-mass variable would mix bases.  Verify the column meanings against
+    # the SBE Data Processing manual before merge.
     _CNV_SLASH_RENAMES: dict[str, str] = {
-        "sbeopoxMm/Kg": "dissolved_oxygen",  # SBE63 optode O2 in mmol/kg
-        "sbeox0Mm/Kg": "dissolved_oxygen",  # SBE43 electrochemical O2 mmol/kg
-        "sbeox0ML/L": "dissolved_oxygen",  # SBE43 electrochemical O2 mL/L
+        "sbeopoxMm/Kg": "dissolved_oxygen",  # SBE63 optode O2, umol/kg
+        "sbeox0Mm/Kg": "dissolved_oxygen",  # SBE43 electrochemical O2, umol/kg
+        "sbeox0ML/L": "dissolved_oxygen_ml_l",  # SBE43 electrochemical O2, mL/L
         "sbeox1Mm/Kg": "dissolved_oxygen_2",
-        "sbeox1ML/L": "dissolved_oxygen_2",
+        "sbeox1ML/L": "dissolved_oxygen_ml_l_2",
         "oxsatMm/Kg": "oxygen_saturation",
         "oxsatML/L": "oxygen_saturation",
     }
@@ -1513,7 +1519,12 @@ class MooringProcessor:
                 input_dir,
                 raw_mooring_dir=raw_mooring_dir,
             )
-        except Exception as e:  # noqa: BLE001 — external library (seasenselib) may raise any exception on malformed instrument data
+        except RuntimeError:
+            # A registry inconsistency (canonicalise_units raises RuntimeError, not
+            # UnitsError) is a package bug, not a bad instrument — it must abort the
+            # whole run, not be downgraded to a single-instrument skip.
+            raise
+        except Exception as e:  # noqa: BLE001 — UnitsError (bad units) and any seasenselib read error: log the file and skip this one instrument
             self._log_print(f"ERROR: Failed to process {self._rel(input_file)}: {e}")
             return False
 

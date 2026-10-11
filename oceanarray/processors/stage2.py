@@ -945,8 +945,9 @@ class Stage2Processor:
 
             # Write the processed dataset. write() replaces atomically (temp file
             # then rename), so the previous output survives a failed write.
+            # Units were canonicalised on load; stage 2 only trims time and writes
+            # attrs, creating no unit-bearing variable, so no second pass is needed.
             dataset = drop_all_zero_vars(dataset, ["amplitude_beam", "analog_input_"])
-            dataset = canonicalise_units(dataset, log_fn=self._log_print, stage=2)
             write(dataset, use_filepath)
 
             _status("file", self._rel(use_filepath))
