@@ -49,6 +49,7 @@ from oceanarray.plotters.primitives import (
     unit_colorbar,
     ytick_reserve_in,
 )
+from oceanarray.processors.units import format_units
 from oceanarray.utilities import _nice_colorbar_bounds
 
 
@@ -426,7 +427,9 @@ def plot_hodograph(
     east_raw = ds[u_var].values.astype(float).ravel()
     north_raw = ds[v_var].values.astype(float).ravel()
     t = ds["time"].values
-    units = params.vunit("east_velocity") or ds[u_var].attrs.get("units", "m s⁻¹")
+    units = params.vunit("east_velocity") or ds[u_var].attrs.get(
+        "units", format_units("m s-1")
+    )
 
     dt_s = (
         float(np.median(np.diff(t) / np.timedelta64(1, "s"))) if len(t) > 1 else 3600.0
@@ -1208,11 +1211,11 @@ def draw_adcp_velocity(
 
     # (varname, label, panel_type)  — panel_type: "div" | "seq" | "cyc"
     _COMPONENTS = [
-        ("east_velocity", "East velocity (m s⁻¹)", "div"),
-        ("north_velocity", "North velocity (m s⁻¹)", "div"),
-        ("up_velocity", "Up velocity (m s⁻¹)", "div"),
-        ("error_velocity", "Error velocity (m s⁻¹)", "div"),
-        ("current_speed", "Current speed (m s⁻¹)", "seq"),
+        ("east_velocity", f"East velocity ({format_units('m s-1')})", "div"),
+        ("north_velocity", f"North velocity ({format_units('m s-1')})", "div"),
+        ("up_velocity", f"Up velocity ({format_units('m s-1')})", "div"),
+        ("error_velocity", f"Error velocity ({format_units('m s-1')})", "div"),
+        ("current_speed", f"Current speed ({format_units('m s-1')})", "seq"),
         ("current_direction", "Current direction (°T)", "cyc"),
         ("bin_pressure", "Bin pressure (dbar)", "seq"),
     ]
@@ -1565,7 +1568,9 @@ def draw_adcp_hodograph(
             if range_coord is not None
             else np.arange(n_bins, dtype=float)
         )
-        units = params.vunit("east_velocity") or ds[u_var].attrs.get("units", "m s⁻¹")
+        units = params.vunit("east_velocity") or ds[u_var].attrs.get(
+            "units", format_units("m s-1")
+        )
 
         if "time" in ds.coords and ds["time"].size >= 2:
             t_ns = ds["time"].values.astype("datetime64[ns]").astype(float)
@@ -1685,7 +1690,7 @@ def draw_grid_hodograph(
         pressure = np.arange(n_levels, dtype=float)
 
     units = params.vunit("east_velocity") or ds["east_velocity"].attrs.get(
-        "units", "m s⁻¹"
+        "units", format_units("m s-1")
     )
 
     if "time" in ds.coords and ds["time"].size >= 2:

@@ -43,6 +43,7 @@ import numpy as np
 from oceanarray.config import report_tokens
 
 from .. import parameters as params
+from ..processors.units import format_units
 from .helpers import distinct_line_styles, grid_despine
 from .primitives import date_offset_left, figure_title, plot_title, square_axes_grid
 
@@ -75,14 +76,19 @@ _CANONICAL_PANELS: list[tuple] = [
     ("east_velocity", params.vlabel("east_velocity"), "tab:blue", False),
     ("north_velocity", params.vlabel("north_velocity"), "tab:orange", False),
     ("up_velocity", params.vlabel("up_velocity"), "tab:cyan", False),
-    ("velocity_beam1", "Beam 1 velocity (m s⁻¹)", "tab:blue", False),
-    ("velocity_beam2", "Beam 2 velocity (m s⁻¹)", "tab:orange", False),
-    ("velocity_beam3", "Beam 3 velocity (m s⁻¹)", "tab:cyan", False),
+    ("velocity_beam1", f"Beam 1 velocity ({format_units('m s-1')})", "tab:blue", False),
+    (
+        "velocity_beam2",
+        f"Beam 2 velocity ({format_units('m s-1')})",
+        "tab:orange",
+        False,
+    ),
+    ("velocity_beam3", f"Beam 3 velocity ({format_units('m s-1')})", "tab:cyan", False),
     ("tilt", "Tilt (°)", "tab:red", False),
     ("pitch", "Pitch (°)", "tab:purple", False),
     ("roll", "Roll (°)", "#8B4513", False),
     ("heading", "Heading (°)", "tab:gray", False),
-    ("speed_of_sound", "Sound speed (m s⁻¹)", "tab:olive", False),
+    ("speed_of_sound", f"Sound speed ({format_units('m s-1')})", "tab:olive", False),
     ("turbidity", params.vlabel("turbidity"), "tab:brown", False),
     ("dissolved_oxygen", params.vlabel("dissolved_oxygen"), "steelblue", False),
     ("battery_voltage", "Battery (V)", "tab:pink", False),
@@ -1293,10 +1299,10 @@ def draw_data_histogram(
         ]
         # ADCP: append multi-dim velocity and percent_good panels (flattened).
         _ADCP_FLAT = [
-            ("east_velocity", "East vel. (all bins, m s⁻¹)"),
-            ("north_velocity", "North vel. (all bins, m s⁻¹)"),
-            ("up_velocity", "Up vel. (all bins, m s⁻¹)"),
-            ("error_velocity", "Error vel. (all bins, m s⁻¹)"),
+            ("east_velocity", f"East vel. (all bins, {format_units('m s-1')})"),
+            ("north_velocity", f"North vel. (all bins, {format_units('m s-1')})"),
+            ("up_velocity", f"Up vel. (all bins, {format_units('m s-1')})"),
+            ("error_velocity", f"Error vel. (all bins, {format_units('m s-1')})"),
             ("percent_good", "Pct good (all bins/beams, %)"),
         ]
         for vn, lbl in _ADCP_FLAT:
@@ -1629,7 +1635,7 @@ def draw_velocity_iqr_profile(
                 linestyle=":",
             )
             ax.set_xlim(left=0)
-        ax.set_xlabel("Current speed (m s⁻¹)")
+        ax.set_xlabel(f"Current speed ({format_units('m s-1')})")
         grid_despine(ax)
         ax.legend(loc="best")
 
@@ -1668,7 +1674,7 @@ def draw_velocity_iqr_profile(
         ax.axvline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
         if absmax > 0:
             ax.set_xlim(-absmax * 1.15, absmax * 1.15)
-        ax.set_xlabel("Velocity (m s⁻¹)")
+        ax.set_xlabel(f"Velocity ({format_units('m s-1')})")
         grid_despine(ax)
         ax.legend(loc="best")
 

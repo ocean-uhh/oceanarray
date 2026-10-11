@@ -13,6 +13,8 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from oceanarray.processors.units import format_units
+
 if TYPE_CHECKING:
     import matplotlib.pyplot as plt
 
@@ -268,11 +270,11 @@ def _velocity_panel_style(
 
     if var in ("east_velocity", "north_velocity", "up_velocity", "error_velocity"):
         bounds, norm = colorbar_norm(vmin=-div_abs_max, vmax=div_abs_max)
-        return bounds, norm, "Spectral_r", "m s⁻¹"
+        return bounds, norm, "Spectral_r", format_units("m s-1")
     if var == "current_speed":
         spd_max = float(np.percentile(finite_vals, 98)) if len(finite_vals) else 1.0
         bounds, norm = colorbar_norm(vmin=0.0, vmax=max(spd_max, 1e-4))
-        return bounds, norm, "plasma", "m s⁻¹"
+        return bounds, norm, "plasma", format_units("m s-1")
     if var == "current_direction":
         import matplotlib.pyplot as plt
 
@@ -292,7 +294,7 @@ def _velocity_panel_style(
         return bounds, norm, "PuRd", "dbar"
     # Unknown variable — fall back to diverging
     bounds, norm = colorbar_norm(vmin=-div_abs_max, vmax=div_abs_max)
-    return bounds, norm, "Spectral_r", "m s⁻¹"
+    return bounds, norm, "Spectral_r", format_units("m s-1")
 
 
 def _rose_ax(

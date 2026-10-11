@@ -98,7 +98,7 @@ GRID_CAPTIONS: dict[str, str] = {
         "Current roses. One rose per pressure level (up to 12, evenly "
         "subsampled). Suspect/bad QC excluded. Each petal shows the fraction of "
         "time current flowed in that direction; petal length encodes speed "
-        "(m s⁻¹)."
+        f"({params.vunit('east_velocity')})."
     ),
     "hodograph": (
         "Hodograph. Current hodographs at two pressure levels (25th and 75th "
@@ -114,12 +114,14 @@ GRID_CAPTIONS: dict[str, str] = {
     ),
     "sigma0": "Potential density. 20 discrete colour levels.",
     "n2": (
-        "Buoyancy frequency squared (N²). log₁₀(N²) in s⁻². Purple = strongly "
-        "stratified; yellow = weakly stratified. Computed from T and S via GSW."
+        f"Buoyancy frequency squared (N²). log₁₀(N²) in {params.vunit('n2')}. "
+        "Purple = strongly stratified; yellow = weakly stratified. Computed from "
+        "T and S via GSW."
     ),
     "isopycnal_coverage": (
         "Isopycnal coverage diagnostic. Percentage of time steps during which "
-        "each σ₀ surface (0.1 kg m⁻³ spacing) lies within the measured column "
+        f"each σ₀ surface (0.1 {params.vunit('potential_density')} spacing) lies "
+        "within the measured column "
         "range. Green ≥ 80 %; amber 50–80 %; red < 50 %. Orange diamond = "
         "current --sig-level target. Dashed line = 80 % threshold. NaN gaps in "
         "the tracking figure above correspond to times when the isopycnal is "

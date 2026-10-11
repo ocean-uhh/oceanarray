@@ -713,7 +713,13 @@ def vunit(var: str) -> str:
 #: transform that applies this table lives in ``processors.units``; this module holds
 #: the units *data* only.
 UNIT_ALIASES: dict[str, dict[str, float]] = {
-    "degree_Celsius": {"degC": 1.0, "degrees_C": 1.0, "Degrees C": 1.0, "°C": 1.0},
+    "degree_Celsius": {
+        "degC": 1.0,
+        "degrees_C": 1.0,
+        "Degrees C": 1.0,
+        "°C": 1.0,
+        "ITS-90, deg C": 1.0,  # SBE scale annotation leaked into units; value is °C
+    },
     "mS cm-1": {"mS/cm": 1.0, "S/m": 10.0},
     "m": {"meters": 1.0},
     "dbar": {"db": 1.0},
