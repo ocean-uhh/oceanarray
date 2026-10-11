@@ -11,6 +11,7 @@ Milestone B of ``.claude/notes/2026-08-19-stage-coverage-plan.md``.
 from __future__ import annotations
 
 import numpy as np
+import pytest
 import xarray as xr
 
 from oceanarray import parameters as params
@@ -170,30 +171,6 @@ def test_load_qc_config_instrument_override_beats_mooring():
 
 
 # ---------------------------------------------------------------------------
-# ensure_conductivity_units
-# ---------------------------------------------------------------------------
-
-
-def test_ensure_conductivity_units_converts_s_per_m_to_ms_per_cm():
-    ds = xr.Dataset(
-        {"conductivity": ("time", np.array([3.5, 4.0]), {"units": "S/m"})},
-        coords={"time": _dt([0, 1])},
-    )
-    out = Q.ensure_conductivity_units(ds)
-    np.testing.assert_allclose(out["conductivity"].values, [35.0, 40.0])  # ×10
-    assert out["conductivity"].attrs["units"] == "mS/cm"
-
-
-def test_ensure_conductivity_units_noop_when_already_ms_per_cm():
-    ds = xr.Dataset(
-        {"conductivity": ("time", np.array([35.0]), {"units": "mS/cm"})},
-        coords={"time": _dt([0])},
-    )
-    out = Q.ensure_conductivity_units(ds)
-    np.testing.assert_allclose(out["conductivity"].values, [35.0])  # unchanged
-
-
-# ---------------------------------------------------------------------------
 # apply_tilt_qc — fallback path (compute from raw pitch/roll)
 # ---------------------------------------------------------------------------
 
@@ -318,43 +295,67 @@ def test_derive_oxygen_saturation_noop_when_inputs_missing():
     assert "oxygen_saturation_pct" not in out.data_vars
 
 
-def test_derive_oxygen_saturation_matches_independent_gsw_computation():
-    """O2 % saturation / AOU are cross-checked against an independent gsw path.
-
-    A finiteness-only assertion would pass any wrong-but-finite formula; instead
-    we recompute the documented relation
-    (100 x O2_kg / O2sol, O2_kg from in-situ seawater density) via gsw here and
-    assert the module matches — catching a unit (µmol/L vs µmol/kg), density
-    (seawater vs freshwater), or sign regression.
-    """
-    import gsw
-
-    do_L, t, sp, p = 250.0, 8.0, 35.0, 500.0  # µmol/L, °C, PSU, dbar
-    ds = xr.Dataset(
+def _o2_ds(value: float, units: str, t=8.0, sp=35.0, p=500.0):
+    """A 2-point oxygen dataset carrying *units* on dissolved_oxygen."""
+    return xr.Dataset(
         {
-            "dissolved_oxygen": ("time", np.full(2, do_L)),
+            "dissolved_oxygen": ("time", np.full(2, value), {"units": units}),
             "temperature": ("time", np.full(2, t)),
             "salinity": ("time", np.full(2, sp)),
             "pressure": ("time", np.full(2, p)),
         },
         coords={"time": _dt([0, 1])},
     )
-    out = Q.derive_oxygen_saturation(ds)
-    assert "oxygen_saturation_pct" in out.data_vars
-    assert "apparent_oxygen_utilization" in out.data_vars
 
-    # Independent expectation (lon/lat default to 0.0 in the module).
+
+def test_derive_oxygen_saturation_per_mass_uses_value_directly():
+    """A per-mass (umol kg-1) input is compared to O2sol directly — no ÷density.
+
+    Cross-checked against an independent gsw path.  Catches a regression that
+    double-divides a per-mass value by seawater density (the pre-fix bug).
+    """
+    import gsw
+
+    do, t, sp, p = 250.0, 8.0, 35.0, 500.0  # µmol/kg
+    out = Q.derive_oxygen_saturation(_o2_ds(do, "umol kg-1", t, sp, p))
+    assert "oxygen_saturation_pct" in out.data_vars
+
     sa = gsw.SA_from_SP(sp, p, 0.0, 0.0)
     pt = gsw.pt0_from_t(sa, t, p)
-    ct = gsw.CT_from_t(sa, t, p)
     o2sol = gsw.O2sol_SP_pt(sp, pt)  # µmol/kg
-    o2_kg = do_L / (gsw.rho(sa, ct, p) / 1000.0)  # µmol/kg
-    exp_pct = 100.0 * o2_kg / o2sol
-    exp_aou = o2sol - o2_kg
-
+    exp_pct = 100.0 * do / o2sol  # value used as-is, not divided by rho
+    exp_aou = o2sol - do
     np.testing.assert_allclose(out["oxygen_saturation_pct"].values, exp_pct, rtol=1e-3)
     np.testing.assert_allclose(
         out["apparent_oxygen_utilization"].values, exp_aou, rtol=1e-3
     )
-    # Sanity: undersaturated water (< 100 %) must give positive AOU.
-    assert (exp_pct < 100.0) == (exp_aou > 0.0)
+
+
+def test_derive_oxygen_saturation_per_volume_divides_by_density():
+    """A per-volume (umol L-1) input is converted to per mass by ÷(rho/1000)."""
+    import gsw
+
+    do, t, sp, p = 250.0, 8.0, 35.0, 500.0  # µmol/L
+    out = Q.derive_oxygen_saturation(_o2_ds(do, "umol L-1", t, sp, p))
+
+    sa = gsw.SA_from_SP(sp, p, 0.0, 0.0)
+    pt = gsw.pt0_from_t(sa, t, p)
+    ct = gsw.CT_from_t(sa, t, p)
+    o2sol = gsw.O2sol_SP_pt(sp, pt)
+    o2_kg = do / (gsw.rho(sa, ct, p) / 1000.0)
+    exp_pct = 100.0 * o2_kg / o2sol
+    np.testing.assert_allclose(out["oxygen_saturation_pct"].values, exp_pct, rtol=1e-3)
+    # The two bases must differ by the density factor (~2.5%), proving the branch.
+    per_mass = Q.derive_oxygen_saturation(_o2_ds(do, "umol kg-1", t, sp, p))
+    ratio = (
+        per_mass["oxygen_saturation_pct"].values[0]
+        / out["oxygen_saturation_pct"].values[0]
+    )
+    assert 1.02 < ratio < 1.04
+
+
+def test_derive_oxygen_saturation_unknown_units_raises():
+    from oceanarray.processors.units import UnitsError
+
+    with pytest.raises(UnitsError, match="dissolved_oxygen units"):
+        Q.derive_oxygen_saturation(_o2_ds(250.0, "mL/L"))

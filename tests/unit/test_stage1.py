@@ -184,39 +184,50 @@ class TestMooringProcessor:
 
         assert "time" in cleaned_ds.coords
 
-    def test_normalize_conductivity_sm_to_mscm(self, processor):
-        """A 'conductivity' variable reported in S/m is converted to mS/cm (x10).
+    def test_normalize_conductivity_renames_cond0sm_column(self, processor):
+        """Raw ``cond0S/m`` → ``conductivity`` with units ``S/m``, value unchanged.
 
-        Guards the read path against inputs (e.g. an older seasenselib release)
-        that serve conductivity in S/m when the project's canonical unit is mS/cm.
+        The NetCDF-illegal column name is fixed here; the S/m → mS cm-1 ×10
+        conversion is left to ``processors.units.canonicalise_units``.
         """
         ds = xr.Dataset(
-            {"conductivity": (["time"], np.array([0.0, 0.361, 3.61], dtype="float32"))},
+            {"cond0S/m": (["time"], np.array([0.0, 0.361, 3.61], dtype="float32"))},
             coords={"time": (["time"], np.arange(3))},
         )
-        ds["conductivity"].attrs["units"] = "S/m"
 
         out = processor._normalize_conductivity(ds)
 
-        np.testing.assert_allclose(
-            out["conductivity"].values, [0.0, 3.61, 36.1], rtol=1e-5
-        )
-        assert out["conductivity"].attrs["units"] == "mS cm-1"
-        assert "S/m" in out["conductivity"].attrs["conductivity_normalised_from"]
+        assert "cond0S/m" not in out
+        np.testing.assert_allclose(out["conductivity"].values, [0.0, 0.361, 3.61])
+        assert out["conductivity"].attrs["units"] == "S/m"
 
-    def test_normalize_conductivity_mscm_untouched(self, processor):
-        """A 'conductivity' variable already in mS/cm is left unchanged."""
+    def test_normalize_conductivity_renames_cond0mscm_column(self, processor):
+        """Raw ``cond0mS/cm`` → ``conductivity`` with units ``mS/cm``."""
         ds = xr.Dataset(
-            {"conductivity": (["time"], np.array([36.1], dtype="float32"))},
+            {"cond0mS/cm": (["time"], np.array([36.1], dtype="float32"))},
             coords={"time": (["time"], np.arange(1))},
         )
-        ds["conductivity"].attrs["units"] = "mS cm-1"
 
         out = processor._normalize_conductivity(ds)
 
+        assert "cond0mS/cm" not in out
         np.testing.assert_allclose(out["conductivity"].values, [36.1])
-        assert out["conductivity"].attrs["units"] == "mS cm-1"
-        assert "conductivity_normalised_from" not in out["conductivity"].attrs
+        assert out["conductivity"].attrs["units"] == "mS/cm"
+
+    def test_sanitize_slash_vars_ml_l_oxygen_to_ml_l_variable(self, processor):
+        """A mL/L oxygen column maps to the per-volume ``dissolved_oxygen_ml_l``.
+
+        The per-mass ``dissolved_oxygen`` (canonical ``umol kg-1``) would reject a
+        mL/L value, so the ``*ML/L`` columns must land on the ``_ml_l`` family.
+        """
+        ds = xr.Dataset(
+            {"sbeox0ML/L": (["time"], np.array([5.1, 5.2]))},
+            coords={"time": (["time"], np.arange(2))},
+        )
+        out = processor._sanitize_slash_vars(ds)
+        assert "sbeox0ML/L" not in out
+        assert "dissolved_oxygen_ml_l" in out
+        assert "dissolved_oxygen" not in out  # not the per-mass variable
 
     def test_clean_dataset_variables_unknown_type(self, processor):
         """Test cleaning dataset variables for unknown file type."""

@@ -58,6 +58,12 @@ def create_mock_instrument_dataset(
 
     ds = xr.Dataset(data, coords={"time": time_range})
 
+    # Canonical units — stage boundaries now canonicalise and raise on a registered
+    # variable with no units, so the mock must carry them like a real stage file.
+    ds["temperature"].attrs["units"] = "degree_Celsius"
+    ds["salinity"].attrs["units"] = "1"
+    ds["pressure"].attrs["units"] = "dbar"
+
     ds.attrs["mooring_name"] = "test_mooring"
     ds["serial_number"] = serial
     ds["instrument"] = instrument_type

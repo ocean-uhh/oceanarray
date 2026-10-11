@@ -115,7 +115,7 @@ class TestVlabel:
         )
 
     def test_absolute_salinity_label(self):
-        assert params.vlabel("absolute_salinity") == "Absolute salinity (g kg⁻¹)"
+        assert params.vlabel("absolute_salinity") == "Absolute salinity (g/kg)"
 
     def test_return_type_is_str(self):
         assert isinstance(params.vlabel("temperature"), str)

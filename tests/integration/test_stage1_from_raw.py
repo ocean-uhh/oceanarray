@@ -156,3 +156,68 @@ class TestAquadoppStage1FromRaw:
         assert self._gen.attrs.get("coordinate_system") in ("BEAM", "XYZ"), (
             f"Unexpected coordinate_system: {self._gen.attrs.get('coordinate_system')}"
         )
+
+
+def test_one_units_error_instrument_does_not_abort_the_mooring(tmp_path, monkeypatch):
+    """A UnitsError on one instrument is logged and skipped; the rest still write.
+
+    Guards the per-instrument error path: canonicalise_units is forced to raise on
+    the microcat (the instrument with a ``conductivity`` variable), and the run must
+    still write the aquadopp stage1 file and report partial success.
+    """
+    from oceanarray.processors import units as pu
+
+    proc_root = tmp_path / "proc"
+    (proc_root / MOORING).mkdir(parents=True)
+    shutil.copy(FIXTURE_PROC / f"{MOORING}.mooring.yaml", proc_root / MOORING)
+
+    real = pu.canonicalise_units
+
+    def _raise_on_microcat(ds, log_fn=None, stage=None):
+        if "conductivity" in ds.data_vars:  # the microcat, not the aquadopp
+            raise pu.UnitsError("synthetic bad units for test")
+        return real(ds, log_fn=log_fn, stage=stage)
+
+    monkeypatch.setattr(
+        "oceanarray.processors.stage1.canonicalise_units", _raise_on_microcat
+    )
+
+    processor = MooringProcessor(
+        raw_dir=str(FIXTURE_RAW.parent), proc_dir=str(proc_root)
+    )
+    ok = processor.process_mooring(MOORING, force=True)
+
+    assert ok, "a single units-error instrument must not fail the whole mooring"
+    assert (proc_root / MOORING / "aquadopp" / f"{MOORING}_9920_stage1.nc").exists(), (
+        "the good instrument's stage1 file must still be written"
+    )
+    assert not (
+        proc_root / MOORING / "microcat" / f"{MOORING}_2941_stage1.nc"
+    ).exists(), "the bad instrument must be skipped, not written"
+
+
+def test_registry_inconsistency_aborts_the_whole_mooring(tmp_path, monkeypatch):
+    """A RuntimeError (registry bug) must abort the run, not be swallowed per-instrument.
+
+    canonicalise_units raises RuntimeError (not UnitsError) for a registry
+    inconsistency; the stage-1 per-instrument handler re-raises RuntimeError so a
+    package bug surfaces instead of silently skipping every instrument.
+    """
+    import pytest
+
+    proc_root = tmp_path / "proc"
+    (proc_root / MOORING).mkdir(parents=True)
+    shutil.copy(FIXTURE_PROC / f"{MOORING}.mooring.yaml", proc_root / MOORING)
+
+    def _raise_runtime(_ds, **_kwargs):
+        raise RuntimeError("synthetic registry inconsistency")
+
+    monkeypatch.setattr(
+        "oceanarray.processors.stage1.canonicalise_units", _raise_runtime
+    )
+
+    processor = MooringProcessor(
+        raw_dir=str(FIXTURE_RAW.parent), proc_dir=str(proc_root)
+    )
+    with pytest.raises(RuntimeError, match="registry inconsistency"):
+        processor.process_mooring(MOORING, force=True)

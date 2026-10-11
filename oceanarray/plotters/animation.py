@@ -21,6 +21,7 @@ import numpy as np
 import xarray as xr
 
 from oceanarray.plotters.helpers import tukey_smooth
+from oceanarray.processors.units import format_units
 from oceanarray.utilities import _nice_colorbar_bounds
 
 
@@ -96,7 +97,7 @@ def animate_hodograph(
     east_raw = ds[u_var].values.astype(float).ravel()
     north_raw = ds[v_var].values.astype(float).ravel()
     t = ds["time"].values
-    units = ds[u_var].attrs.get("units", "m s⁻¹")
+    units = format_units(ds[u_var].attrs.get("units", "m s-1"))
 
     # Sample interval (seconds)
     dt_s = (

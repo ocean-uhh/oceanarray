@@ -154,9 +154,10 @@ def _print_report(proc_dir: Path) -> None:
 def cmd_process(args: argparse.Namespace) -> int:
     """Convert raw instrument files to processed NetCDF for one mooring.
 
-    By default runs stage 1 (raw → CF-NetCDF) and stage 2 (trim to deployment
-    window + clock-drift correction).  Pass ``--stage 1 2 3`` to also run
-    stage 3 (QC flags, pressure interpolation, beam → ENU velocity rotation).
+    By default runs stages 1 (raw → CF-NetCDF), 2 (trim to deployment window +
+    clock-drift correction) and 3 (QC flags, pressure interpolation, beam → ENU
+    velocity rotation).  Pass ``--stage 1 2`` for the old stage-1-and-2-only
+    behaviour.
 
     Optional side effects:
     - ``--report``: after processing, print a per-instrument record summary to
@@ -171,7 +172,7 @@ def cmd_process(args: argparse.Namespace) -> int:
     # If --stage was not explicitly set and --report is the only action, skip processing
     stages = args.stage if (args.stage is not None or not args.report) else []
     if stages is None:
-        stages = [1, 2]
+        stages = [1, 2, 3]
 
     serials = args.serial or None
     overall_success = True
@@ -1121,7 +1122,7 @@ def build_parser() -> argparse.ArgumentParser:
             "  Stage 1: read raw files → CF-NetCDF (_stage1.nc)\n"
             "  Stage 2: trim to deployment window + apply clock-drift correction (_stage2.nc)\n"
             "  Stage 3: QC flags, BEAM→ENU rotation, magnetic declination, derived vars (_stage3.nc)\n"
-            "Default when --stage is omitted: stages 1 and 2 only."
+            "Default when --stage is omitted: stages 1, 2 and 3."
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -1134,7 +1135,7 @@ def build_parser() -> argparse.ArgumentParser:
         choices=[s.number if s.number is not None else s.name for s in STAGES],
         default=None,
         metavar="{1,2,3,stack,grid}",
-        help="Stage(s) to run (default: 1 2). "
+        help="Stage(s) to run (default: 1 2 3). "
         "Use 'stack' and 'grid' for mooring-level steps.",
     )
     _add_stack_grid_args(p_process)

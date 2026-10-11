@@ -279,8 +279,8 @@ STACK_CAPTIONS: dict[str, str] = {
     ),
     "dissolved_oxygen": (
         "One line per instrument with dissolved oxygen data (SBE ODO sensor); "
-        "QC flags ≥ 3 masked. Units: µmol L⁻¹. % saturation available in "
-        "per-instrument reports."
+        f"QC flags ≥ 3 masked. Units: {params.vunit('dissolved_oxygen')}. "
+        "% saturation available in per-instrument reports."
     ),
     "vel_uvw": (
         "Eastward (U), northward (V) and upward (W) velocity in the ENU frame — "

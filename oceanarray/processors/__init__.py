@@ -349,12 +349,23 @@ def process(
     else:
         stages_to_run = (resolve_stage(stage),)
 
+    from oceanarray import paths
+
+    stack_file = paths.mooring_proc_dir(proc_dir, mooring) / f"{mooring}_stack.nc"
+
     overall = True
     skip_grid = False
     for s in stages_to_run:
         if s.name == "grid" and skip_grid:
             overall = False
             continue
+        # Note the stack file's mtime before running the stack stage so a failure can
+        # be told from a stale file left by a previous run.
+        stack_mtime_before = (
+            stack_file.stat().st_mtime
+            if s.name == "stack" and stack_file.exists()
+            else None
+        )
         ok = s.run(
             mooring,
             proc_dir,
@@ -364,6 +375,16 @@ def process(
         )
         if not ok:
             overall = False
+            # A stack returns False either because it wrote nothing (true failure →
+            # skip grid) or because it wrote a *partial* stack with some instruments
+            # omitted (file exists → grid still runs and inherits `instruments_omitted`).
+            # Gate on whether THIS run wrote the stack — a stale stack from a previous
+            # run (mtime unchanged) must not be gridded.
             if s.name == "stack":
-                skip_grid = True
+                wrote_this_run = stack_file.exists() and (
+                    stack_mtime_before is None
+                    or stack_file.stat().st_mtime > stack_mtime_before
+                )
+                if not wrote_this_run:
+                    skip_grid = True
     return overall

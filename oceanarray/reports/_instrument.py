@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .. import parameters as params
 from ._env import render_history, render_template
 from ._html_helpers import (
     _duration_str,
@@ -86,8 +87,8 @@ INSTRUMENT_CAPTIONS: dict[str, str] = {
         "by temperature. Origin (0, 0) = deployment position; axes in metres."
     ),
     "hodograph": (
-        "East vs north velocity (m s⁻¹). Left: full record. Right: eddy component "
-        "— raw minus 4-day low-pass (rolling mean)."
+        f"East vs north velocity ({params.vunit('east_velocity')}). Left: full "
+        "record. Right: eddy component — raw minus 4-day low-pass (rolling mean)."
     ),
     "dist": (
         "Orange dashed = suspect threshold | Red dotted = fail threshold "

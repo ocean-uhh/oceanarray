@@ -15,6 +15,7 @@ import yaml
 from oceanarray import parameters as params
 from oceanarray import paths
 from oceanarray.paths import safe_serial
+from oceanarray.processors.units import canonicalise_units
 from oceanarray.utilities import (
     _status,
     extract_inline_instruments,
@@ -842,54 +843,39 @@ class MooringProcessor:
 
         return dataset
 
-    #: Unit strings (lower-cased) that denote conductivity in S/m.  A conductivity
-    #: variable carrying any of these is converted to the project's canonical
-    #: mS/cm (1 S/m = 10 mS/cm).
-    _SM_CONDUCTIVITY_UNITS = frozenset(
-        {"s/m", "s m-1", "sm-1", "s.m-1", "siemens/meter", "siemens per metre"}
-    )
-
     def _normalize_conductivity(self, dataset: xr.Dataset) -> xr.Dataset:
-        """Normalise conductivity to the canonical mS/cm and rename it if needed.
+        """Rename the raw SBE CNV conductivity column to ``conductivity``.
 
-        Handles the raw SBE CNV column names ``cond0S/m`` / ``cond0mS/cm`` and,
-        for inputs that already provide a ``conductivity`` variable, converts it
-        from S/m to mS/cm when its ``units`` attribute says so (1 S/m = 10 mS/cm).
-        The source unit is recorded in ``conductivity_normalised_from`` so the
-        treatment can be reconstructed from the output file alone.
+        The raw column name encodes the unit (``cond0S/m`` or ``cond0mS/cm``);
+        both are NetCDF-illegal.  This fixes only the name and records the unit
+        in ``units`` (``S/m`` or ``mS/cm``) — the S/m → mS cm-1 ×10 conversion and
+        the canonical spelling are applied later by
+        :func:`oceanarray.processors.units.canonicalise_units`, the one place units
+        are normalised.
         """
-        if "cond0S/m" in dataset:
-            # S/m → mS/cm: multiply by 10
-            data = dataset["cond0S/m"] * 10.0
-            data.attrs = dataset["cond0S/m"].attrs
-            data.attrs["units"] = "mS/cm"
-            dataset = dataset.drop_vars("cond0S/m")
-            dataset["conductivity"] = data
-        elif "cond0mS/cm" in dataset:
-            dataset = dataset.rename({"cond0mS/cm": "conductivity"})
-
-        # An input already named 'conductivity' but reported in S/m (e.g. an
-        # older seasenselib release) → convert to the canonical mS/cm.
-        if "conductivity" in dataset:
-            src_units = str(dataset["conductivity"].attrs.get("units", "")).strip()
-            if src_units.lower() in self._SM_CONDUCTIVITY_UNITS:
-                data = dataset["conductivity"] * 10.0
-                data.attrs = dict(dataset["conductivity"].attrs)
-                data.attrs["units"] = "mS cm-1"
-                data.attrs["conductivity_normalised_from"] = (
-                    f"{src_units} (x10 to mS cm-1)"
-                )
+        for raw_name, raw_units in (("cond0S/m", "S/m"), ("cond0mS/cm", "mS/cm")):
+            if raw_name in dataset:
+                data = dataset[raw_name]
+                data.attrs["units"] = raw_units
+                dataset = dataset.drop_vars(raw_name)
                 dataset["conductivity"] = data
+                break
         return dataset
 
     # Known SBE CNV variable names containing '/' and their CF-compatible replacements.
     # Keys that are already handled by _normalize_conductivity are excluded.
+    # SBE's ``Mm/Kg`` suffix is *micro*moles per kg (umol kg-1), not millimoles — so
+    # the ``Mm/Kg`` columns map to the per-mass ``dissolved_oxygen`` (canonical
+    # umol kg-1) with no scaling, and the ``ML/L`` columns (mL/L, per volume) map to
+    # the separate ``dissolved_oxygen_ml_l`` family (canonical mL L-1); routing mL/L
+    # onto the per-mass variable would mix bases.  Verify the column meanings against
+    # the SBE Data Processing manual before merge.
     _CNV_SLASH_RENAMES: dict[str, str] = {
-        "sbeopoxMm/Kg": "dissolved_oxygen",  # SBE63 optode O2 in mmol/kg
-        "sbeox0Mm/Kg": "dissolved_oxygen",  # SBE43 electrochemical O2 mmol/kg
-        "sbeox0ML/L": "dissolved_oxygen",  # SBE43 electrochemical O2 mL/L
+        "sbeopoxMm/Kg": "dissolved_oxygen",  # SBE63 optode O2, umol/kg
+        "sbeox0Mm/Kg": "dissolved_oxygen",  # SBE43 electrochemical O2, umol/kg
+        "sbeox0ML/L": "dissolved_oxygen_ml_l",  # SBE43 electrochemical O2, mL/L
         "sbeox1Mm/Kg": "dissolved_oxygen_2",
-        "sbeox1ML/L": "dissolved_oxygen_2",
+        "sbeox1ML/L": "dissolved_oxygen_ml_l_2",
         "oxsatMm/Kg": "oxygen_saturation",
         "oxsatML/L": "oxygen_saturation",
     }
@@ -1533,7 +1519,12 @@ class MooringProcessor:
                 input_dir,
                 raw_mooring_dir=raw_mooring_dir,
             )
-        except Exception as e:  # noqa: BLE001 — external library (seasenselib) may raise any exception on malformed instrument data
+        except RuntimeError:
+            # A registry inconsistency (canonicalise_units raises RuntimeError, not
+            # UnitsError) is a package bug, not a bad instrument — it must abort the
+            # whole run, not be downgraded to a single-instrument skip.
+            raise
+        except Exception as e:  # noqa: BLE001 — UnitsError (bad units) and any seasenselib read error: log the file and skip this one instrument
             self._log_print(f"ERROR: Failed to process {self._rel(input_file)}: {e}")
             return False
 
@@ -1701,13 +1692,6 @@ class MooringProcessor:
         if "oxygen_ml_l" in dataset.data_vars:
             dataset = dataset.rename({"oxygen_ml_l": "dissolved_oxygen_ml_l"})
 
-        # SeaBird CNV files use "db" (decibars) instead of the CF-standard "dbar".
-        for pvar in [
-            v for v in dataset.data_vars if v == "pressure" or v.startswith("pressure")
-        ]:
-            if dataset[pvar].attrs.get("units") == "db":
-                dataset[pvar].attrs["units"] = "dbar"
-
         # sbe-ascii outputs ITS-90 temperature; seasenselib CNV files preserve
         # this in cnv_original_unit, but the ASCII reader doesn't — add it here.
         if file_type in ("sbe-ascii", "sbe-hex") and "temperature" in dataset.data_vars:
@@ -1771,6 +1755,12 @@ class MooringProcessor:
         # Remove redundant seasenselib attrs that duplicate our own provenance fields
         for _redundant_attr in ("processor_level", "source_format_name"):
             dataset.attrs.pop(_redundant_attr, None)
+
+        # Canonicalise every registered variable's units to one spelling per quantity
+        # (mS cm-1, degree_Celsius, m, dbar, m s-1, …).  Raises UnitsError on an
+        # unknown or missing unit for a registered variable; the caller logs it with
+        # the file path and skips this instrument.
+        dataset = canonicalise_units(dataset, log_fn=self._log_print, stage=1)
 
         # Write to NetCDF
         _status("file", str(relative_output))

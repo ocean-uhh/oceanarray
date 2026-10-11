@@ -77,12 +77,12 @@ from oceanarray.processors.qc import (
     apply_tilt_qc,
     compute_salinity_data,
     derive_oxygen_saturation,
-    ensure_conductivity_units,
     load_qc_config,
     merge_salinity_parent_qc,
     set_qc_attrs,
     unify_velocity_qc,
 )
+from oceanarray.processors.units import canonicalise_units
 from oceanarray.utilities import (
     drop_all_zero_vars,
     extract_inline_instruments,
@@ -447,7 +447,14 @@ class Stage3Processor:
         try:
             from oceanarray import parameters as params
 
-            ds = xr.open_dataset(nc_path, decode_timedelta=False).load()
+            ds = xr.open_dataset(
+                nc_path, engine="netcdf4", decode_timedelta=False
+            ).load()
+            # Canonicalise units on the way in: a pre-0.5.0 stage-2 file carries the
+            # reader's spellings (degC, S/m, …); this rewrites them to the canonical
+            # (and converts S/m conductivity ×10) so QC thresholds and salinity see
+            # one unit.  Logs a note for any value written by a pre-0.5.0 stage 1.
+            ds = canonicalise_units(ds, log_fn=self._log, stage=3)
 
             # Record stage2 source-file provenance as named global attrs
             _st2_stat = nc_path.stat()
@@ -483,9 +490,6 @@ class Stage3Processor:
                 history_notes.append(
                     f"stage3 pressure interpolated (pressure_qc=8) — {method}"
                 )
-
-            # ── Ensure conductivity is in mS/cm before QC ─────────────
-            ds = ensure_conductivity_units(ds, log_fn=self._log)
 
             # ── Compute salinity data before QC so it gets range-tested ─
             ds = compute_salinity_data(ds, log_fn=self._log)
@@ -749,6 +753,9 @@ class Stage3Processor:
                 ds.attrs["caldip_applied"] = CALDIP_STUB_APPLIED
 
             ds = drop_all_zero_vars(ds, ["amplitude_beam", "analog_input_"])
+            # Guarantee canonical units on everything stage 3 derived (salinity,
+            # ENU velocities, oxygen saturation) before writing.
+            ds = canonicalise_units(ds, log_fn=self._log, stage=3)
             write(ds, l3_path)
             ds.close()
             self._log(

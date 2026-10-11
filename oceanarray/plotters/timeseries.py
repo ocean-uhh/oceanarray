@@ -38,6 +38,7 @@ if TYPE_CHECKING:
 from oceanarray.config import report_tokens
 
 from .. import parameters as params
+from ..processors.units import format_units
 from ..utilities import nice_colorbar_ticks
 from .helpers import OKABE_ITO, grid_despine
 from .primitives import (
@@ -408,7 +409,9 @@ def draw_grid_sigma(
     for ax, sv in zip(axes[:, 0], sigma_vars, strict=False):
         da = ds[sv]
         data = da.transpose("pressure", "time").values
-        units = params.vunit("potential_density") or da.attrs.get("units", "kg m⁻³")
+        units = params.vunit("potential_density") or da.attrs.get(
+            "units", format_units("kg m-3")
+        )
         label = da.attrs.get("long_name", sv)
         pcolormesh_panel(
             fig,
@@ -491,7 +494,7 @@ def draw_grid_n2(
         pad=0.02,
         ticks=nice_colorbar_ticks(float(bounds[0]), float(bounds[-1])),
     )
-    cb.ax.set_title("log(s⁻²)", fontsize=report_tokens.ANNOT_FS)
+    cb.ax.set_title(f"log({format_units('s-2')})", fontsize=report_tokens.ANNOT_FS)
     pressure_axis(ax)
     date_axis(ax)
     ax.set_xlabel("Time")
@@ -585,7 +588,7 @@ def draw_grid_timeseries(
     axs[1].plot(time_vals, east_ts, color=_C_EAST, linewidth=0.8, label="East")
     axs[1].plot(time_vals, north_ts, color=_C_NORTH, linewidth=0.8, label="North")
     axs[1].axhline(0, color="k", linewidth=0.4, linestyle="--", alpha=0.4, zorder=0)
-    axs[1].set_ylabel("Velocity (m s⁻¹)")
+    axs[1].set_ylabel(f"Velocity ({format_units('m s-1')})")
     axs[1].legend(loc="upper right", framealpha=0.8)
 
     for ax in axs:
