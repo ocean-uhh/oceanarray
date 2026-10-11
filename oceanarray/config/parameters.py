@@ -389,9 +389,18 @@ VARIABLES: dict[str, dict] = {
         "valid_min": -5.0,  # same physical range as temperature
         "valid_max": 42.0,
     },
+    "potential_temperature": {
+        "label": "Potential temperature",
+        "label_units": "°C",
+        "units": "degree_Celsius",
+        "standard_name": "sea_water_potential_temperature",
+        "cmap": "RdBu_r",
+        "valid_min": -5.0,  # same physical range as temperature
+        "valid_max": 42.0,
+    },
     "conductivity": {
         "label": "Conductivity",
-        "label_units": "mS cm⁻¹",
+        "label_units": "mS/cm",
         "units": "mS cm-1",
         "standard_name": "sea_water_electrical_conductivity",
         "cmap": None,
@@ -407,7 +416,7 @@ VARIABLES: dict[str, dict] = {
     },
     "absolute_salinity": {
         "label": "Absolute salinity",
-        "label_units": "g kg⁻¹",
+        "label_units": "g/kg",
         "units": "g kg-1",
         "standard_name": "sea_water_absolute_salinity",
         "cmap": "YlGnBu_r",
@@ -432,7 +441,7 @@ VARIABLES: dict[str, dict] = {
     },
     "potential_density": {
         "label": "σ₀",
-        "label_units": "kg m⁻³",
+        "label_units": "kg/m³",
         "units": "kg m-3",
         # sea_water_sigma_theta = potential density anomaly referenced to 0 dbar
         # (i.e. rho(T_potential, S, p=0) − 1000 kg m-3)
@@ -441,63 +450,67 @@ VARIABLES: dict[str, dict] = {
     },
     "u": {
         "label": "Eastward velocity",
-        "label_units": "m s⁻¹",
+        "label_units": "m/s",
         "units": "m s-1",
         "standard_name": "eastward_sea_water_velocity",
         "cmap": "RdBu_r",
     },
     "v": {
         "label": "Northward velocity",
-        "label_units": "m s⁻¹",
+        "label_units": "m/s",
         "units": "m s-1",
         "standard_name": "northward_sea_water_velocity",
         "cmap": "RdBu_r",
     },
     "w": {
         "label": "Vertical velocity",
-        "label_units": "m s⁻¹",
+        "label_units": "m/s",
         "units": "m s-1",
         "standard_name": "upward_sea_water_velocity",
         "cmap": "RdBu_r",
     },
     "east_velocity": {
         "label": "Eastward velocity",
-        "label_units": "m s⁻¹",
+        "label_units": "m/s",
         "units": "m s-1",
         "standard_name": "eastward_sea_water_velocity",
         "cmap": "RdBu_r",
     },
     "north_velocity": {
         "label": "Northward velocity",
-        "label_units": "m s⁻¹",
+        "label_units": "m/s",
         "units": "m s-1",
         "standard_name": "northward_sea_water_velocity",
         "cmap": "RdBu_r",
     },
     "up_velocity": {
         "label": "Upward velocity",
-        "label_units": "m s⁻¹",
+        "label_units": "m/s",
         "units": "m s-1",
         "standard_name": "upward_sea_water_velocity",
         "cmap": "RdBu_r",
     },
     "speed": {
         "label": "Speed",
-        "label_units": "m s⁻¹",
+        "label_units": "m/s",
         "units": "m s-1",
         "standard_name": "sea_water_speed",
         "cmap": "plasma",
     },
     "dissolved_oxygen": {
         "label": "Dissolved oxygen",
-        "label_units": "µmol L⁻¹",
-        "units": "umol L-1",
-        "standard_name": "mole_concentration_of_dissolved_molecular_oxygen_in_sea_water",
+        "label_units": "µmol/kg",
+        "units": "umol kg-1",
+        # SBE 63/43 report dissolved oxygen per unit mass (…Mm/Kg columns); the
+        # standard name's canonical units are mol kg-1 (molality).  A per-volume
+        # oxygen, if ever read, is a different variable keeping the
+        # mole_concentration_… name — mass↔volume is never a scalar unit alias.
+        "standard_name": "moles_of_oxygen_per_unit_mass_in_sea_water",
         "cmap": "RdYlGn",
     },
     "dissolved_oxygen_ml_l": {
         "label": "Dissolved oxygen",
-        "label_units": "mL L⁻¹",
+        "label_units": "mL/L",
         "units": "mL L-1",
         # mL/L is a volume ratio, not a molar concentration; no exact CF standard_name.
         # mole_concentration_* has canonical units mol m-3 and is dimensionally
@@ -516,15 +529,15 @@ VARIABLES: dict[str, dict] = {
     },
     "apparent_oxygen_utilization": {
         "label": "Apparent oxygen utilization",
-        "label_units": "µmol kg⁻¹",
+        "label_units": "µmol/kg",
         "units": "umol kg-1",
         "standard_name": "apparent_oxygen_utilization",
         "cmap": None,
     },
     "turbidity": {
         "label": "Turbidity",
-        "label_units": "NTU",
-        "units": "NTU",  # NTU is not a udunits-2 unit; no udunits-2 equivalent exists
+        "label_units": "NTU",  # NTU is a sensor-scale label (FLNTU), not a udunits unit
+        "units": "1",  # CF-canonical dimensionless, as the FLNTU reader writes
         "standard_name": "sea_water_turbidity",
         "cmap": "YlOrBr",
     },
@@ -675,3 +688,32 @@ def vunit(var: str) -> str:
 
     """
     return VARIABLES.get(var, {}).get("label_units", "")
+
+
+# ---------------------------------------------------------------------------
+# Units canonicalisation
+# ---------------------------------------------------------------------------
+
+#: Non-trivial units spellings per canonical, each mapped to the scalar factor that
+#: converts a value in that spelling to the canonical.  The canonical is always an
+#: implicit ``×1`` member of its own group, so this table lists only the spellings
+#: that *differ* from the canonical — a canonical with no listed variant (e.g.
+#: ``kg m-3``, ``g kg-1``, ``%``) needs no entry; every registered variable is still
+#: checked by ``processors.units.canonicalise_units``.
+#:
+#: Every factor is dimensionally exact.  Spelling variants are ``×1``; ``S/m`` →
+#: ``mS cm-1`` is ``×10`` (1 S/m = 10 mS/cm).  A per-mass / per-volume difference
+#: (``umol kg-1`` vs ``umol L-1``) is **never** expressed here — those differ by
+#: in-situ density, not a scalar, and a file/registry mismatch of that kind is an
+#: error, not a conversion.  Spellings are those the instrument readers actually
+#: emit plus the ``S/m`` the stage-1 ``cond0S/m`` path already handles; nothing is
+#: added speculatively.  The transform that applies this table lives in
+#: ``processors.units``; this module holds the units *data* only.
+UNIT_ALIASES: dict[str, dict[str, float]] = {
+    "degree_Celsius": {"degC": 1.0, "degrees_C": 1.0, "Degrees C": 1.0, "°C": 1.0},
+    "mS cm-1": {"mS/cm": 1.0, "S/m": 10.0},
+    "m": {"meters": 1.0},
+    "dbar": {"db": 1.0},
+    "m s-1": {"m/s": 1.0},
+    "umol kg-1": {"umol/kg": 1.0},
+}
