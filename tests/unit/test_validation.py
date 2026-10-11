@@ -26,7 +26,13 @@ _VALID_MINIMAL = {
 
 
 def _write_yaml(tmp_path, data):
-    p = tmp_path / "test.mooring.yaml"
+    # Mirror the real layout <proc>/<name>/<name>.mooring.yaml so the name/directory
+    # consistency check sees a matching directory and stays quiet unless a test means
+    # to trigger it.
+    name = str(data.get("name", "mooring"))
+    d = tmp_path / name
+    d.mkdir(parents=True, exist_ok=True)
+    p = d / f"{name}.mooring.yaml"
     p.write_text(yaml.dump(data))
     return str(p)
 
@@ -88,6 +94,36 @@ def test_validate_missing_multiple_required_keys(tmp_path):
         e.message for e in _errors(issues) if "Missing required key" in e.message
     }
     assert len(missing) == 3
+
+
+def test_validate_name_matches_directory(tmp_path):
+    """name: equal to its directory (case included) → no name/directory warning."""
+    path = _write_yaml(tmp_path, _VALID_MINIMAL)  # helper nests under <name>/
+    issues = validate_mooring_yaml(path)
+    assert not [
+        w for w in _warnings(issues) if "does not match its directory" in w.message
+    ]
+
+
+def test_validate_name_differs_from_directory_case_only(tmp_path):
+    """name: differing from its directory by case only → WARNING, not ERROR.
+
+    The regression that motivated the check: ``name: Dune2_1_2026`` in a
+    ``dune2_1_2026`` directory loads zero files on a case-sensitive filesystem but
+    is invisible on macOS.
+    """
+    data = dict(_VALID_MINIMAL, name="dsTest_1_2026")
+    d = tmp_path / "dstest_1_2026"  # directory differs by case
+    d.mkdir()
+    p = d / "dsTest_1_2026.mooring.yaml"
+    p.write_text(yaml.dump(data))
+    issues = validate_mooring_yaml(str(p))
+    warns = [
+        w for w in _warnings(issues) if "does not match its directory" in w.message
+    ]
+    assert len(warns) == 1
+    assert "dsTest_1_2026" in warns[0].message and "dstest_1_2026" in warns[0].message
+    assert _errors(issues) == []  # warning only — the fixture must stay processable
 
 
 # ---------------------------------------------------------------------------

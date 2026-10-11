@@ -262,6 +262,25 @@ def validate_mooring_yaml(yaml_path: str) -> list[ValidationIssue]:
         if key not in data:
             issues.append(ValidationIssue("ERROR", f"Missing required key: '{key}'"))
 
+    # The mooring's name must equal its directory name, case included.  stage1/2/3,
+    # stacking and gridding build every output filename from the directory (the CLI
+    # `MOORING` argument), never from this `name:` field, so a mismatch — most often
+    # case only — is invisible on a case-insensitive filesystem (macOS) and loads zero
+    # files on Linux/CI.  WARNING, not ERROR, so a deliberately mismatched regression
+    # fixture can still be processed.
+    yaml_name = data.get("name")
+    dir_name = path.parent.name
+    if isinstance(yaml_name, str) and yaml_name != dir_name:
+        issues.append(
+            ValidationIssue(
+                "WARNING",
+                f"mooring 'name: {yaml_name}' does not match its directory '{dir_name}' "
+                f"(compared case-sensitively) — output filenames use the directory name, "
+                f"so a mismatch loads zero files on a case-sensitive filesystem. Make them "
+                f"identical.",
+            )
+        )
+
     # Validate instrument list (supports both 'clamp' and legacy 'instruments').
     # Also validate inline hardware entries that carry instrument data.
     instrument_list = data.get("clamp", data.get("instruments", []))
