@@ -321,7 +321,13 @@ class TimeGriddingProcessor:
         """Load all instrument datasets for a mooring."""
         datasets = []
         mooring_name = mooring_config["name"]
-        expected_instruments = mooring_config.get("instruments", [])
+        # Read the modern `clamp:` key with the legacy `instruments:` fallback, as
+        # every other stage does (stage1/2/3, stack).  Without the fallback grid
+        # silently loaded zero instruments for clamp-format moorings and produced an
+        # empty grid.
+        expected_instruments = mooring_config.get(
+            "clamp", mooring_config.get("instruments", [])
+        )
         found_instruments = []
         missing_instruments = []
 
