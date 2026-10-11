@@ -329,8 +329,11 @@ class TimeGriddingProcessor:
             instrument_type = instrument_config.get("instrument", "unknown")
             serial = instrument_config.get("serial", 0)
 
-            # Construct file path
-            filename = f"{mooring_name}_{serial}{file_suffix}.nc"
+            # Construct file path.  Stage files are named with the filename-safe
+            # serial (paths.safe_serial), so a serial carrying a `*` marker (e.g.
+            # `9920*`) must be sanitised here too — otherwise the file is "not
+            # found" and the instrument is silently dropped from the grid.
+            filename = f"{mooring_name}_{paths.safe_serial(serial)}{file_suffix}.nc"
             filepath = proc_dir / instrument_type / filename
 
             if not filepath.exists():

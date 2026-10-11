@@ -325,6 +325,22 @@ def process(
     proc_dir = Path(proc_dir)
     raw_dir_path = Path(raw_dir) if raw_dir is not None else None
 
+    # Data-integrity guard: refuse a mooring whose serials would make two
+    # instruments' stage/report files silently overwrite each other.  Runs before
+    # any stage writes, and `force` does not bypass it (force re-runs stale outputs,
+    # it does not license data loss).
+    from oceanarray.config.validation import serial_collision_errors
+
+    _collisions = serial_collision_errors(
+        proc_dir / mooring / f"{mooring}.mooring.yaml"
+    )
+    if _collisions:
+        raise ValueError(
+            f"Refusing to process '{mooring}': serial collisions would silently "
+            f"overwrite output files. Fix the mooring YAML:\n  - "
+            + "\n  - ".join(_collisions)
+        )
+
     if stage is None:
         stages_to_run: tuple[Stage, ...] = STAGES
     elif isinstance(stage, (list, tuple)):
