@@ -359,10 +359,13 @@ def _variable_row(v: Any, vname: str, qc_vars: set[str]) -> dict[str, Any]:
     arr = v.values
     kind = arr.dtype.kind
     if kind == "M":
-        info["n_valid"] = int(arr.size)
-        if arr.size:
-            info["v_min"] = str(np.datetime64(arr.min(), "m")).replace("T", " ")
-            info["v_max"] = str(np.datetime64(arr.max(), "m")).replace("T", " ")
+        valid = arr[~np.isnat(arr)]
+        info["n_valid"] = int(valid.size)
+        if valid.size:
+            # One rounding policy for every timestamp in the report: the same
+            # _round_ts_for_display used for the global-attribute times.
+            info["v_min"] = _round_ts_for_display(str(valid.min())).replace("T", " ")
+            info["v_max"] = _round_ts_for_display(str(valid.max())).replace("T", " ")
     elif kind in ("f", "c"):
         finite = arr[np.isfinite(arr)]
         info["n_valid"] = int(finite.size)
@@ -370,10 +373,12 @@ def _variable_row(v: Any, vname: str, qc_vars: set[str]) -> dict[str, Any]:
             info["v_min"] = _fmt_minmax(float(np.min(finite)))
             info["v_max"] = _fmt_minmax(float(np.max(finite)))
     elif kind in ("i", "u"):
+        # Integers are identifiers/counts: format exactly, not via _fmt_minmax
+        # (whose %.4g rounds values >= 10000 into lossy scientific notation).
         info["n_valid"] = int(arr.size)
         if arr.size:
-            info["v_min"] = _fmt_minmax(float(arr.min()))
-            info["v_max"] = _fmt_minmax(float(arr.max()))
+            info["v_min"] = str(int(arr.min()))
+            info["v_max"] = str(int(arr.max()))
     else:  # string / object coordinates: no numeric range
         info["n_valid"] = int(arr.size)
     return info
@@ -412,16 +417,17 @@ def _read_nc_metadata(nc_path: Path) -> dict[str, Any]:
             else:
                 info = _variable_row(v, vname, qc_vars)
                 time_vars.append(info)
-                if "analog" in vname.lower() and info["v_min"] is not None:
+                if "analog" in vname.lower() and v.dtype.kind in ("f", "c"):
                     finite = v.values[np.isfinite(v.values)]
-                    if not np.all(finite == 0.0):
+                    if finite.size and not np.all(finite == 0.0):
                         analog_vars.append(vname)
 
-        coord_vars = [
-            _variable_row(ds[c], str(c), qc_vars)
-            for c in sorted(ds.coords)
-            if ds[c].ndim >= 1
-        ]
+        coord_vars = []
+        for c in sorted(ds.coords):
+            if ds[c].ndim >= 1:
+                row = _variable_row(ds[c], str(c), qc_vars)
+                if not row["is_qc"]:
+                    coord_vars.append(row)
 
         global_attrs = {
             k: {"value": _round_ts_for_display(str(val)), "type": _attr_type_name(val)}

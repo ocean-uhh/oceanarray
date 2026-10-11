@@ -41,7 +41,6 @@ jobs:
         shell: bash -l {0}
         run: |
           set -e
-          micromamba run -n oceanarray jupyter nbconvert --to notebook --execute notebooks/demo_instrument.ipynb --output=demo_instrument-output.ipynb --ExecutePreprocessor.allow_errors=True
           micromamba run -n oceanarray jupyter nbconvert --to notebook --execute notebooks/demo_mooring.ipynb --output=demo_mooring-output.ipynb --ExecutePreprocessor.allow_errors=True
           mv notebooks/*output.ipynb docs/source/
           pushd docs
