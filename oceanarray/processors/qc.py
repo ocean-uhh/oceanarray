@@ -311,31 +311,6 @@ def apply_tilt_qc(
     return ds, n_suspect, n_bad
 
 
-def ensure_conductivity_units(
-    ds: xr.Dataset,
-    log_fn: Any = None,
-) -> xr.Dataset:
-    """Convert conductivity from S/m → mS/cm if needed.
-
-    QC thresholds in parameters.QC_GROSS_RANGE are in mS/cm.  Some readers
-    (notably sbe-ascii) write S/m; this normalises before QC is applied so
-    thresholds are always compared against values in the same unit.
-    """
-    if "conductivity" not in ds.data_vars:
-        return ds
-    units = ds["conductivity"].attrs.get("units", "")
-    if units.lower() == "s/m":
-        if log_fn:
-            log_fn("  WARNING: conductivity is in S/m — converting to mS/cm before QC")
-        new_data = ds["conductivity"].values * 10.0
-        new_attrs = dict(ds["conductivity"].attrs)
-        new_attrs["units"] = "mS/cm"
-        ds["conductivity"] = xr.Variable(
-            ds["conductivity"].dims, new_data, attrs=new_attrs
-        )
-    return ds
-
-
 def compute_salinity_data(
     ds: xr.Dataset,
     log_fn: Any = None,
@@ -345,14 +320,22 @@ def compute_salinity_data(
     Call this BEFORE ``apply_qc_tests`` so that salinity participates in the
     gross-range QC pass and gets its threshold attrs written to ``salinity_qc``.
     Call ``merge_salinity_parent_qc`` afterward to fold in T/C/P parent flags.
+
+    Conductivity must already be canonical ``mS cm-1`` — stage 3 runs
+    :func:`oceanarray.processors.units.canonicalise_units` first, which converts any
+    S/m input.  A non-canonical unit here means that pass was skipped and the ×10 is
+    missing, so this raises rather than compute salinity 10× too small from S/m.
     """
     required = {"temperature", "conductivity", "pressure"}
     if not required.issubset(ds.data_vars):
         return ds
-    if ds["conductivity"].attrs.get("units", "").lower() == "s/m":
-        if log_fn:
-            log_fn("  WARNING: salinity skipped — conductivity still in S/m")
-        return ds
+    cond_units = str(ds["conductivity"].attrs.get("units", "")).strip()
+    if cond_units != "mS cm-1":
+        raise ValueError(
+            f"conductivity units are {cond_units!r}, not the canonical 'mS cm-1'; "
+            f"run canonicalise_units before computing salinity (salinity from S/m "
+            f"would be 10x too small)."
+        )
     try:
         import gsw
     except ImportError:

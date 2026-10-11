@@ -19,6 +19,7 @@ from oceanarray.processors.helpers import (
     _safe_serial,
     _worst_flag,
 )
+from oceanarray.processors.units import canonicalise_units
 from oceanarray.utilities import (
     _status,
     drop_all_zero_vars,
@@ -329,8 +330,13 @@ class MooringStacker:
                     ds_parent = _adcp_parent_datasets[info["_adcp_nc_key"]]
                     ds = _make_adcp_head_ds(ds_parent)
                 else:
-                    ds = xr.open_dataset(info["nc_path"], decode_timedelta=False).load()
+                    ds = xr.open_dataset(
+                        info["nc_path"], engine="netcdf4", decode_timedelta=False
+                    ).load()
                     ds.close()
+                # Canonicalise each instrument's units before stacking, so a
+                # pre-0.5.0 input (degC, S/m, …) joins the stack already canonical.
+                ds = canonicalise_units(ds, log_fn=print, stage=3)
             except Exception as e:  # noqa: BLE001  — one bad instrument must not abort the stack
                 print(f"  WARNING: Could not load {info['nc_path'].name}: {e}")
                 # Ensure scalar_meta lists stay length-consistent
@@ -680,6 +686,7 @@ class MooringStacker:
         ds_out = drop_all_zero_vars(ds_out, ["amplitude_beam", "analog_input_"])
         # OceanSITES convention: time is the unlimited (first) dimension.
         ds_out = ds_out.transpose("time", "N_LEVELS")
+        ds_out = canonicalise_units(ds_out, log_fn=print, stage=3)
         write(ds_out, output_path)
         _status("file", self._rel(output_path))
         return True

@@ -170,30 +170,6 @@ def test_load_qc_config_instrument_override_beats_mooring():
 
 
 # ---------------------------------------------------------------------------
-# ensure_conductivity_units
-# ---------------------------------------------------------------------------
-
-
-def test_ensure_conductivity_units_converts_s_per_m_to_ms_per_cm():
-    ds = xr.Dataset(
-        {"conductivity": ("time", np.array([3.5, 4.0]), {"units": "S/m"})},
-        coords={"time": _dt([0, 1])},
-    )
-    out = Q.ensure_conductivity_units(ds)
-    np.testing.assert_allclose(out["conductivity"].values, [35.0, 40.0])  # ×10
-    assert out["conductivity"].attrs["units"] == "mS/cm"
-
-
-def test_ensure_conductivity_units_noop_when_already_ms_per_cm():
-    ds = xr.Dataset(
-        {"conductivity": ("time", np.array([35.0]), {"units": "mS/cm"})},
-        coords={"time": _dt([0])},
-    )
-    out = Q.ensure_conductivity_units(ds)
-    np.testing.assert_allclose(out["conductivity"].values, [35.0])  # unchanged
-
-
-# ---------------------------------------------------------------------------
 # apply_tilt_qc — fallback path (compute from raw pitch/roll)
 # ---------------------------------------------------------------------------
 

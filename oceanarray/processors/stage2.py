@@ -47,6 +47,7 @@ import xarray as xr
 import yaml
 
 from oceanarray import paths
+from oceanarray.processors.units import canonicalise_units
 from oceanarray.utilities import (
     _status,
     drop_all_zero_vars,
@@ -819,9 +820,15 @@ class Stage2Processor:
 
         try:
             # Load the raw dataset
-            with xr.open_dataset(raw_filepath, decode_timedelta=False) as ds:
+            with xr.open_dataset(
+                raw_filepath, engine="netcdf4", decode_timedelta=False
+            ) as ds:
                 # Create a copy to modify
                 dataset = ds.load()
+
+            # Canonicalise units on the way in (rewrites a pre-0.5.0 stage-1 file's
+            # reader spellings to the canonical; idempotent on a 0.5.0 stage-1 file).
+            dataset = canonicalise_units(dataset, log_fn=self._log_print, stage=2)
 
             # Capture the raw stage1 time bounds before any corrections are applied.
             # Used later for the "differs by ≥ Δt" highlighting comparison in reports.
@@ -939,6 +946,7 @@ class Stage2Processor:
             # Write the processed dataset. write() replaces atomically (temp file
             # then rename), so the previous output survives a failed write.
             dataset = drop_all_zero_vars(dataset, ["amplitude_beam", "analog_input_"])
+            dataset = canonicalise_units(dataset, log_fn=self._log_print, stage=2)
             write(dataset, use_filepath)
 
             _status("file", self._rel(use_filepath))
