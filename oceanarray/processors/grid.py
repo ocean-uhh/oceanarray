@@ -322,7 +322,13 @@ class TimeGriddingProcessor:
     ) -> list[xr.Dataset]:
         """Load all instrument datasets for a mooring."""
         datasets = []
-        mooring_name = mooring_config["name"]
+        # Stage files are named from the mooring directory (the CLI/argument name,
+        # e.g. `dune2_1_2026`), which is what stage1/2/3 use to build their output
+        # filenames — not the YAML `name:` field (e.g. `Dune2_1_2026`).  Deriving
+        # the prefix from `mooring_config["name"]` found the files only on a
+        # case-insensitive filesystem (macOS) and silently loaded zero instruments
+        # on Linux.  Use the directory name so the prefix matches on every platform.
+        mooring_name = proc_dir.name
         # Read the modern `clamp:` key with the legacy `instruments:` fallback, as
         # every other stage does (stage1/2/3, stack).  Without the fallback grid
         # silently loaded zero instruments for clamp-format moorings and produced an
@@ -353,9 +359,7 @@ class TimeGriddingProcessor:
                 self._log_print(
                     f"Loading {instrument_type} serial {serial}: {filename}"
                 )
-                ds = xr.open_dataset(
-                    filepath, engine="netcdf4", decode_timedelta=False
-                )
+                ds = xr.open_dataset(filepath, engine="netcdf4", decode_timedelta=False)
 
                 # Ensure required metadata is present
                 ds = self._ensure_instrument_metadata(ds, instrument_config)
