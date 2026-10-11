@@ -697,23 +697,33 @@ def vunit(var: str) -> str:
 #: Non-trivial units spellings per canonical, each mapped to the scalar factor that
 #: converts a value in that spelling to the canonical.  The canonical is always an
 #: implicit ``×1`` member of its own group, so this table lists only the spellings
-#: that *differ* from the canonical — a canonical with no listed variant (e.g.
-#: ``kg m-3``, ``g kg-1``, ``%``) needs no entry; every registered variable is still
-#: checked by ``processors.units.canonicalise_units``.
+#: that *differ* from the canonical — a canonical with no differing variant (e.g.
+#: ``%``, ``dbar``) needs no entry; every registered variable is still checked by
+#: ``processors.units.canonicalise_units``.
 #:
 #: Every factor is dimensionally exact.  Spelling variants are ``×1``; ``S/m`` →
 #: ``mS cm-1`` is ``×10`` (1 S/m = 10 mS/cm).  A per-mass / per-volume difference
 #: (``umol kg-1`` vs ``umol L-1``) is **never** expressed here — those differ by
 #: in-situ density, not a scalar, and a file/registry mismatch of that kind is an
-#: error, not a conversion.  Spellings are those the instrument readers actually
-#: emit plus the ``S/m`` the stage-1 ``cond0S/m`` path already handles; nothing is
-#: added speculatively.  The transform that applies this table lives in
-#: ``processors.units``; this module holds the units *data* only.
+#: error, not a conversion.  Spellings are those the instrument readers emit plus the
+#: ``S/m`` the stage-1 ``cond0S/m`` path already handles, plus each quantity's display
+#: (``label_units``) spelling as a ×1 alias — so a display string that leaks into a
+#: file's ``units`` attr (the ``°C`` a pre-0.5.0 stage wrote) is recovered, not
+#: rejected; a test asserts every ``label_units`` is an alias of its canonical.  The
+#: transform that applies this table lives in ``processors.units``; this module holds
+#: the units *data* only.
 UNIT_ALIASES: dict[str, dict[str, float]] = {
     "degree_Celsius": {"degC": 1.0, "degrees_C": 1.0, "Degrees C": 1.0, "°C": 1.0},
     "mS cm-1": {"mS/cm": 1.0, "S/m": 10.0},
     "m": {"meters": 1.0},
     "dbar": {"db": 1.0},
     "m s-1": {"m/s": 1.0},
-    "umol kg-1": {"umol/kg": 1.0},
+    "umol kg-1": {"umol/kg": 1.0, "µmol/kg": 1.0},
+    "kg m-3": {"kg/m³": 1.0},
+    "g kg-1": {"g/kg": 1.0},
+    "mL L-1": {"mL/L": 1.0},
+    "s-2": {"s⁻²": 1.0},
+    # PSU/NTU are the dimensionless (``1``) salinity/turbidity display labels;
+    # format_units picks the right one from the standard name.
+    "1": {"PSU": 1.0, "NTU": 1.0},
 }

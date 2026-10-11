@@ -92,7 +92,7 @@ def _canonical_units_for(var: str, ds: xr.Dataset) -> str | None:
 def canonicalise_units(
     ds: xr.Dataset,
     log_fn: Callable[[str], None] | None = None,
-    stage: int | None = None,
+    stage: int | str | None = None,
 ) -> xr.Dataset:
     """Rewrite each registered variable's units to its canonical spelling.
 
@@ -117,9 +117,10 @@ def canonicalise_units(
         Dataset to canonicalise in place (also returned).
     log_fn : callable, optional
         Called with one message per variable whose units string changed.  A change at
-        ``stage > 1`` is annotated as written by a pre-0.5.0 stage 1.
-    stage : int, optional
-        Processing stage number, used only to annotate the log message.
+        any stage other than 1 is annotated as written by a pre-0.5.0 stage 1.
+    stage : int or str, optional
+        Processing stage, used only to annotate the log and error messages — an int
+        (1, 2, 3) or a label (``"stack"``, ``"grid"``).
 
     Returns
     -------
@@ -167,7 +168,7 @@ def canonicalise_units(
             ds[var].attrs = attrs
             if log_fn:
                 msg = f"  {var}: {current} -> {canonical} (x{factor:g})"
-                if stage and stage > 1:
+                if stage is not None and stage != 1:
                     msg += " - written by a pre-0.5.0 stage 1; regenerate to silence"
                 log_fn(msg)
         # CF 1.11: mark the temperature scale so a reader can tell a scale value from

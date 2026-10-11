@@ -19,7 +19,7 @@ from oceanarray.processors.helpers import (
     _safe_serial,
     _worst_flag,
 )
-from oceanarray.processors.units import canonicalise_units
+from oceanarray.processors.units import UnitsError, canonicalise_units
 from oceanarray.utilities import (
     _status,
     drop_all_zero_vars,
@@ -315,6 +315,11 @@ class MooringStacker:
         # Stage-3 time-series variables not in STACK_VARS are dropped here; collect
         # them so the operator is told rather than losing data silently (D2).
         dropped_ts_vars: set = set()
+        # Instruments dropped from the stack (bad units or unreadable file).  The
+        # stack still builds (partial stacks are useful operationally), but each
+        # omission is recorded loudly: in the summary, in an `instruments_omitted`
+        # global attribute the grid inherits, and in the exit code.
+        omitted: list[str] = []
 
         for i, info in enumerate(instruments):
             serials.append(info["serial"])
@@ -336,9 +341,17 @@ class MooringStacker:
                     ds.close()
                 # Canonicalise each instrument's units before stacking, so a
                 # pre-0.5.0 input (degC, S/m, …) joins the stack already canonical.
-                ds = canonicalise_units(ds, log_fn=print, stage=3)
+                ds = canonicalise_units(ds, log_fn=print, stage="stack")
             except Exception as e:  # noqa: BLE001  — one bad instrument must not abort the stack
-                print(f"  WARNING: Could not load {info['nc_path'].name}: {e}")
+                reason = (
+                    f"units error: {e}"
+                    if isinstance(e, UnitsError)
+                    else f"could not load {info['nc_path'].name}: {e}"
+                )
+                print(
+                    f"  ERROR: omitting {info['instrument']} s/n {info['serial']} — {reason}"
+                )
+                omitted.append(f"{info['instrument']} s/n {info['serial']} ({reason})")
                 # Ensure scalar_meta lists stay length-consistent
                 for lst in scalar_meta.values():
                     lst.append(None)
@@ -686,7 +699,20 @@ class MooringStacker:
         ds_out = drop_all_zero_vars(ds_out, ["amplitude_beam", "analog_input_"])
         # OceanSITES convention: time is the unlimited (first) dimension.
         ds_out = ds_out.transpose("time", "N_LEVELS")
-        ds_out = canonicalise_units(ds_out, log_fn=print, stage=3)
+        ds_out = canonicalise_units(ds_out, log_fn=print, stage="stack")
+        if omitted:
+            # Record the omission in the file so the stack report and the grid
+            # (which reads this file) inherit it, and summarise it loudly.
+            ds_out.attrs["instruments_omitted"] = "; ".join(omitted)
+            print(
+                f"  WARNING: {len(omitted)} instrument(s) omitted from the stack "
+                f"(recorded in instruments_omitted):"
+            )
+            for line in omitted:
+                print(f"    - {line}")
         write(ds_out, output_path)
         _status("file", self._rel(output_path))
-        return True
+        # Return False when anything was omitted so the CLI exits 1 ("something
+        # failed") even though the partial stack file was written; process() only
+        # skips the grid stage when no stack file exists, so the grid still runs.
+        return not omitted

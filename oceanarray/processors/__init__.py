@@ -364,6 +364,16 @@ def process(
         )
         if not ok:
             overall = False
+            # A stack can return False either because it produced no file (true
+            # failure → skip grid, there is nothing to grid) or because it wrote a
+            # partial stack with some instruments omitted (file exists → grid still
+            # runs and inherits `instruments_omitted`).  Distinguish by the file.
             if s.name == "stack":
-                skip_grid = True
+                from oceanarray import paths
+
+                stack_file = (
+                    paths.mooring_proc_dir(proc_dir, mooring) / f"{mooring}_stack.nc"
+                )
+                if not stack_file.exists():
+                    skip_grid = True
     return overall

@@ -247,6 +247,22 @@ def test_no_alias_group_mixes_mass_and_volume_basis():
 # ---------------------------------------------------------------------------
 
 
+def test_every_label_units_is_an_alias_of_its_canonical():
+    """A display string that leaks into a file's units attr must be recoverable.
+
+    Guards the ``°C`` drift class: every registry ``label_units`` is a ×1 alias of its
+    canonical (or the canonical itself), so canonicalise rewrites it instead of
+    raising, whichever stage wrote it.
+    """
+    for var, entry in params.VARIABLES.items():
+        canonical = entry["units"]
+        label = entry["label_units"]
+        aliases = {canonical: 1.0, **params.UNIT_ALIASES.get(canonical, {})}
+        assert label == canonical or label in aliases, (
+            f"{var}: label_units {label!r} is not an alias of canonical {canonical!r}"
+        )
+
+
 def test_format_units_reproduces_every_registry_label():
     for var, entry in params.VARIABLES.items():
         derived = pu.format_units(entry["units"], entry.get("standard_name"))

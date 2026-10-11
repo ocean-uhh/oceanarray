@@ -101,7 +101,7 @@ class MooringGridder:
             return False
         # Canonicalise the stack's units (idempotent on a 0.5.0 stack; rewrites a
         # pre-0.5.0 one) so the grid inherits one spelling per quantity.
-        ds = canonicalise_units(ds, log_fn=print, stage=3)
+        ds = canonicalise_units(ds, log_fn=print, stage="grid")
         n_time = ds.sizes["time"]
         n_instr = ds.sizes["N_LEVELS"]
 
@@ -277,7 +277,7 @@ class MooringGridder:
         )
 
         ds.close()
-        ds_out = canonicalise_units(ds_out, log_fn=print, stage=3)
+        ds_out = canonicalise_units(ds_out, log_fn=print, stage="grid")
         # write() replaces atomically (temp file then rename), so the previous
         # output survives a failed write; do not unlink it first.
         write(ds_out, output_path)
@@ -365,7 +365,7 @@ class TimeGriddingProcessor:
                     f"Loading {instrument_type} serial {serial}: {filename}"
                 )
                 ds = xr.open_dataset(filepath, engine="netcdf4", decode_timedelta=False)
-                ds = canonicalise_units(ds, log_fn=self._log_print, stage=3)
+                ds = canonicalise_units(ds, log_fn=self._log_print, stage="grid")
 
                 # Ensure required metadata is present
                 ds = self._ensure_instrument_metadata(ds, instrument_config)
@@ -1087,7 +1087,9 @@ class TimeGriddingProcessor:
             output_filename = f"{mooring_name}_mooring{file_suffix}{filter_suffix}.nc"
             output_filepath = proc_dir / output_filename
 
-            ds_to_save = canonicalise_units(ds_to_save, log_fn=self._log_print, stage=3)
+            ds_to_save = canonicalise_units(
+                ds_to_save, log_fn=self._log_print, stage="grid"
+            )
             write(ds_to_save, output_filepath)
 
             self._log_print(
