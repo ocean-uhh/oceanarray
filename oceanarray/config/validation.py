@@ -77,6 +77,7 @@ from typing import NamedTuple
 import yaml
 
 from oceanarray import parameters as params
+from oceanarray import paths
 
 # Instrument-type validity is single-sourced from ``parameters.KNOWN_INSTRUMENT_TYPES``
 # (derived from ``INSTRUMENT_FILE_TYPES``).  This keeps ``oceanarray list`` and
@@ -96,12 +97,136 @@ UNSUPPORTED_FILE_TYPES: dict[str, str] = {}
 
 REQUIRED_MOORING_KEYS = ["name", "waterdepth", "deployment_time", "recovery_time"]
 
+# Safe serials reserved because a per-instrument report named for them would
+# overwrite a mooring page: ``{mooring}_stack_report.html`` / ``_grid_report.html``.
+# ``summary`` is NOT reserved — the summary page is ``{mooring}_report.html``, so a
+# ``summary`` serial writes a distinct ``{mooring}_summary_report.html`` and collides
+# with nothing (the nav current-key clash is already handled in ``reports/_navs.py``).
+_RESERVED_SERIALS = frozenset({"stack", "grid"})
+
 
 class ValidationIssue(NamedTuple):
     """A single validation finding with a severity level and human-readable message."""
 
     level: str  # "ERROR" or "WARNING"
     message: str
+
+
+def check_serials(entries: list[dict]) -> list[ValidationIssue]:
+    """Return ERRORs for serials whose output files would silently overwrite.
+
+    Serials are compared on :func:`oceanarray.paths.safe_serial` — the exact token
+    the pipeline uses to build filenames — so ``9920``, ``9920*`` and ``9920, R01``
+    are the same instrument as far as files go (the trailing ``*`` diagram marker
+    never makes two serials distinct).  Flags a missing or empty-after-stripping
+    serial, a serial reserved for a report page (:data:`_RESERVED_SERIALS`), and two
+    entries sharing a safe serial (their per-instrument report pages always collide;
+    their stage NetCDF files also collide when the instrument types match).
+
+    Parameters
+    ----------
+    entries : list of dict
+        The mooring's instrument entries (``clamp`` + ``instruments`` + inline).
+
+    Returns
+    -------
+    list of ValidationIssue
+        One ERROR per problem; empty when every serial is unique and filename-safe.
+    """
+    issues: list[ValidationIssue] = []
+    by_safe: dict[str, list[tuple[str, str]]] = {}
+    for i, entry in enumerate(entries):
+        if not isinstance(entry, dict):
+            continue
+        raw = entry.get("serial")
+        label = f"[serial {raw}]" if raw is not None else f"[instrument index {i}]"
+        safe = paths.safe_serial(raw) if raw is not None else ""
+        if not safe:
+            why = (
+                "missing" if raw is None else f"{raw!r}, which is empty after stripping"
+            )
+            issues.append(
+                ValidationIssue(
+                    "ERROR",
+                    f"{label} serial is {why} — every instrument needs a unique, "
+                    f"filename-safe serial.",
+                )
+            )
+            continue
+        if safe.lower() in _RESERVED_SERIALS:
+            issues.append(
+                ValidationIssue(
+                    "ERROR",
+                    f"{label} serial {safe!r} is reserved — it would overwrite the "
+                    f"mooring's {{mooring}}_{safe}_report.html page. Rename it.",
+                )
+            )
+        # Key on the lower-cased serial: output filenames collide on a
+        # case-insensitive filesystem (macOS, Windows), so `Alpha` and `alpha`
+        # are a collision there even though they are distinct strings.
+        by_safe.setdefault(safe.lower(), []).append(
+            (label, str(entry.get("instrument") or "unknown").lower())
+        )
+    for safe, group in by_safe.items():
+        if len(group) > 1:
+            labels = ", ".join(lbl for lbl, _ in group)
+            types = [t for _, t in group]
+            stage_too = len(set(types)) < len(types)
+            what = (
+                "stage NetCDF files AND report pages"
+                if stage_too
+                else "per-instrument report pages"
+            )
+            issues.append(
+                ValidationIssue(
+                    "ERROR",
+                    f"Serial {safe!r} is used by {len(group)} instruments ({labels}) — "
+                    f"their {what} would collide and silently overwrite. Serials must be "
+                    f"unique within a mooring (the `*` marker is ignored for this check).",
+                )
+            )
+    return issues
+
+
+def serial_collision_errors(yaml_path: str | Path) -> list[str]:
+    """Return the serial-collision ERROR messages for a mooring YAML, or ``[]``.
+
+    The thin wrapper the processing path calls before any stage writes: it loads
+    *yaml_path*, builds the combined instrument list (``clamp`` + ``instruments`` +
+    inline, same rule as :func:`validate_mooring_yaml`), and returns only the
+    :func:`check_serials` ERROR messages.  A missing or unparseable file returns
+    ``[]`` (those are reported by the normal validator, not this guard).
+
+    Parameters
+    ----------
+    yaml_path : str or pathlib.Path
+        Path to the mooring YAML.
+
+    Returns
+    -------
+    list of str
+        One message per serial collision; empty when the serials are safe.
+    """
+    path = Path(yaml_path)
+    if not path.exists():
+        return []
+    try:
+        with path.open() as f:
+            data = yaml.safe_load(f)
+    except yaml.YAMLError:
+        return []
+    if not isinstance(data, dict):
+        return []
+    instrument_list = data.get("clamp", data.get("instruments", []))
+    inline = [
+        e
+        for e in data.get("inline", [])
+        if isinstance(e, dict)
+        and "instrument" in e
+        and (e.get("filename") or e.get("skip"))
+    ]
+    combined = list(instrument_list) + inline
+    return [i.message for i in check_serials(combined) if i.level == "ERROR"]
 
 
 def validate_mooring_yaml(yaml_path: str) -> list[ValidationIssue]:
@@ -137,6 +262,25 @@ def validate_mooring_yaml(yaml_path: str) -> list[ValidationIssue]:
         if key not in data:
             issues.append(ValidationIssue("ERROR", f"Missing required key: '{key}'"))
 
+    # The mooring's name must equal its directory name, case included.  stage1/2/3,
+    # stacking and gridding build every output filename from the directory (the CLI
+    # `MOORING` argument), never from this `name:` field, so a mismatch — most often
+    # case only — is invisible on a case-insensitive filesystem (macOS) and loads zero
+    # files on Linux/CI.  WARNING, not ERROR, so a deliberately mismatched regression
+    # fixture can still be processed.
+    yaml_name = data.get("name")
+    dir_name = path.parent.name
+    if isinstance(yaml_name, str) and yaml_name != dir_name:
+        issues.append(
+            ValidationIssue(
+                "WARNING",
+                f"mooring 'name: {yaml_name}' does not match its directory '{dir_name}' "
+                f"(compared case-sensitively) — output filenames use the directory name, "
+                f"so a mismatch loads zero files on a case-sensitive filesystem. Make them "
+                f"identical.",
+            )
+        )
+
     # Validate instrument list (supports both 'clamp' and legacy 'instruments').
     # Also validate inline hardware entries that carry instrument data.
     instrument_list = data.get("clamp", data.get("instruments", []))
@@ -171,7 +315,16 @@ def validate_mooring_yaml(yaml_path: str) -> list[ValidationIssue]:
         filename = entry.get("filename")
 
         serial_str = str(serial)
-        if re.search(r"[^\w\-]", serial_str):
+        illegal = set(re.findall(r"[^\w\-]", serial_str))
+        if illegal == {"*"}:
+            issues.append(
+                ValidationIssue(
+                    "WARNING",
+                    f"{prefix} serial='{serial_str}' carries a `*` marker — it is kept in the "
+                    f"mooring diagram and stripped from filenames and nav labels (as today).",
+                )
+            )
+        elif illegal:
             issues.append(
                 ValidationIssue(
                     "WARNING",
@@ -322,6 +475,7 @@ def validate_mooring_yaml(yaml_path: str) -> list[ValidationIssue]:
                 except Exception:  # noqa: BLE001  — parse errors already reported above; skip silently
                     pass
 
+    issues.extend(check_serials(combined_list))
     return issues
 
 

@@ -789,9 +789,9 @@ class Stage2Processor:
         Returns True on success or skip, False if the Stage 1 file is missing
         or an error occurs.
         """
-        import re
-
-        serial = re.sub(r"[^\w\-]", "", str(instrument_config.get("serial", "unknown")))
+        # Match how stage1/stage3 named the file (comma split + illegal chars stripped);
+        # a bare re.sub without the comma split would miss a comma serial's stage1 file.
+        serial = paths.safe_serial(instrument_config.get("serial", "unknown"))
         instrument_type = instrument_config.get("instrument", "unknown")
 
         if instrument_config.get("skip"):
@@ -1009,13 +1009,13 @@ class Stage2Processor:
 
         # Filter by serial if requested
         if serials:
-            import re
-
-            safe_serials = {re.sub(r"[^\w\-]", "", str(s)) for s in serials}
+            # Match on the filename-safe serial (first comma token, illegal chars
+            # stripped) so `9920`, `9920*` and `9920, R01` all filter the same way.
+            safe_serials = {paths.safe_serial(s) for s in serials}
             instrument_list = [
                 ic
                 for ic in instrument_list
-                if re.sub(r"[^\w\-]", "", str(ic.get("serial", ""))) in safe_serials
+                if paths.safe_serial(ic.get("serial", "")) in safe_serials
             ]
             self._log_print(
                 f"Filtered to {len(instrument_list)} instrument(s) matching serial(s): {', '.join(serials)}"

@@ -91,7 +91,9 @@ class MooringGridder:
         n_p = len(p_grid)
 
         try:
-            ds = xr.open_dataset(merge_path).load()
+            ds = xr.open_dataset(
+                merge_path, engine="netcdf4", decode_timedelta=False
+            ).load()
         except (TimeoutError, OSError) as exc:
             print("ERROR: Cannot read stack file — is the data drive connected?")
             print(f"       ({type(exc).__name__}: {exc})")
@@ -320,8 +322,20 @@ class TimeGriddingProcessor:
     ) -> list[xr.Dataset]:
         """Load all instrument datasets for a mooring."""
         datasets = []
-        mooring_name = mooring_config["name"]
-        expected_instruments = mooring_config.get("instruments", [])
+        # Stage files are named from the mooring directory (the CLI/argument name,
+        # e.g. `dune2_1_2026`), which is what stage1/2/3 use to build their output
+        # filenames — not the YAML `name:` field (e.g. `Dune2_1_2026`).  Deriving
+        # the prefix from `mooring_config["name"]` found the files only on a
+        # case-insensitive filesystem (macOS) and silently loaded zero instruments
+        # on Linux.  Use the directory name so the prefix matches on every platform.
+        mooring_name = proc_dir.name
+        # Read the modern `clamp:` key with the legacy `instruments:` fallback, as
+        # every other stage does (stage1/2/3, stack).  Without the fallback grid
+        # silently loaded zero instruments for clamp-format moorings and produced an
+        # empty grid.
+        expected_instruments = mooring_config.get(
+            "clamp", mooring_config.get("instruments", [])
+        )
         found_instruments = []
         missing_instruments = []
 
@@ -329,8 +343,11 @@ class TimeGriddingProcessor:
             instrument_type = instrument_config.get("instrument", "unknown")
             serial = instrument_config.get("serial", 0)
 
-            # Construct file path
-            filename = f"{mooring_name}_{serial}{file_suffix}.nc"
+            # Construct file path.  Stage files are named with the filename-safe
+            # serial (paths.safe_serial), so a serial carrying a `*` marker (e.g.
+            # `9920*`) must be sanitised here too — otherwise the file is "not
+            # found" and the instrument is silently dropped from the grid.
+            filename = f"{mooring_name}_{paths.safe_serial(serial)}{file_suffix}.nc"
             filepath = proc_dir / instrument_type / filename
 
             if not filepath.exists():
@@ -342,7 +359,7 @@ class TimeGriddingProcessor:
                 self._log_print(
                     f"Loading {instrument_type} serial {serial}: {filename}"
                 )
-                ds = xr.open_dataset(filepath)
+                ds = xr.open_dataset(filepath, engine="netcdf4", decode_timedelta=False)
 
                 # Ensure required metadata is present
                 ds = self._ensure_instrument_metadata(ds, instrument_config)
