@@ -148,7 +148,7 @@ omit = [
 
 [tool.ruff]
 line-length = 88
-target-version = "py310"
+target-version = "py311"
 exclude = [
   "oceanarray/legacy",   # legacy modules — not maintained to current standards
   "notebooks",           # notebooks are exploratory; not held to production lint standards

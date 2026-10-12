@@ -879,7 +879,7 @@ def _file_info(path: Path) -> dict[str, str]:
     import datetime as _dt
 
     st = path.stat()
-    mtime = _dt.datetime.fromtimestamp(st.st_mtime, tz=_dt.timezone.utc)
+    mtime = _dt.datetime.fromtimestamp(st.st_mtime, tz=_dt.UTC)
     return {
         "exists": True,
         "name": path.name,

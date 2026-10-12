@@ -518,6 +518,16 @@ VARIABLES: dict[str, dict] = {
         "standard_name": None,
         "cmap": "RdYlGn",
     },
+    "dissolved_oxygen_ml_l_2": {
+        # Second oxygen sensor's mL/L reading (SBE ``sbeox1ML/L``); same units as
+        # dissolved_oxygen_ml_l, registered so the units pass canonicalises it
+        # instead of leaving it untouched.
+        "label": "Dissolved oxygen (sensor 2)",
+        "label_units": "mL/L",
+        "units": "mL L-1",
+        "standard_name": None,
+        "cmap": "RdYlGn",
+    },
     "oxygen_saturation_pct": {
         "label": "O₂ percent saturation",
         "label_units": "%",
@@ -604,6 +614,7 @@ VAR_COLORS: dict[str, str] = {
     # Biogeochemistry — Paul Tol
     "dissolved_oxygen": "#332288",  # indigo
     "dissolved_oxygen_ml_l": "#332288",
+    "dissolved_oxygen_ml_l_2": "#332288",
     "oxygen_saturation_pct": "#332288",
     "turbidity": "#661100",  # dark red
 }

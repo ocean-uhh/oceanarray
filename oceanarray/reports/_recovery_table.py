@@ -12,6 +12,7 @@ Entry point: :func:`generate_recovery_table`.
 
 from __future__ import annotations
 
+from datetime import UTC
 from pathlib import Path
 from typing import Any
 
@@ -292,7 +293,7 @@ def generate_recovery_table(
         Path to the written HTML file, or ``None`` on failure.
 
     """
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from ..utilities import format_latlon, parse_latlon_with_source
     from ._html_helpers import _duration_str
@@ -343,7 +344,7 @@ def generate_recovery_table(
         "duration": _duration_str(deploy_dt, recover_dt),
         "rows": rows,
         "comments": comments,
-        "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+        "generated": datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
     }
 
     html = render_template("recovery_table.html", **ctx)
