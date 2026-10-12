@@ -155,7 +155,7 @@ The standardised output is a **raw-equivalent** `xarray.Dataset` with:
 - **Dimensions**: `time` (primary coordinate)
 - **Variables**: Standardised names (e.g., `temperature`, `salinity`, `pressure`)
 - **Coordinates**: `time`, plus instrument metadata variables
-- **Attributes**: Comprehensive metadata including instrument, mooring, and deployment information
+- **Attributes**: Metadata including instrument, mooring, and deployment information
 
 Example output structure:
 
@@ -186,7 +186,7 @@ Example output structure:
 5. Quality Control and Error Handling
 --------------------------------------
 
-The standardisation process includes robust error handling:
+The standardisation process includes error handling:
 
 - **Missing Files**: Graceful handling with detailed logging
 - **Format Errors**: Reader-specific error catching and reporting
@@ -217,7 +217,7 @@ This standardisation step evolved from the RAPID programme's RDB format, which p
     2021   01   05   21.00056   3.9389   33.2389  1725.4
     2021   01   05   22.00056   3.9389   33.2405  1725.3
 
-The modern NetCDF-based approach provides several advantages over the historical RDB format:
+The NetCDF-based approach provides several advantages over the historical RDB format:
 
 - **Self-describing metadata**: CF-compliant attributes and coordinate information
 - **Efficient storage**: Compression and chunking for large datasets
@@ -239,9 +239,9 @@ This script performed similar functions to the current Python implementation:
    :linenos:
    :caption: Excerpt from `microcat2rodb_3.m`
 
-The modern Python implementation in :mod:`oceanarray.processors.stage1` provides equivalent functionality with improved:
+The Python implementation in :mod:`oceanarray.processors.stage1` provides equivalent functionality with improved:
 
-- **Error handling**: Comprehensive logging and graceful failure modes
+- **Error handling**: Logging and graceful failure modes
 - **Format support**: Multiple instrument types through pluggable readers
 - **Metadata management**: YAML-based configuration with validation
 - **Output formats**: NetCDF with CF conventions for interoperability

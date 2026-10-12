@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import socket
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -392,7 +392,7 @@ def generate_instrument_pages(
 
     """
     mooring_report_link = f"../{mooring_name}_report.html"
-    generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    generated = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
     proc_machine = socket.gethostname().split(".")[0]
     stack_exists = (proc_dir / f"{mooring_name}_stack.nc").exists()
     grid_exists = (proc_dir / f"{mooring_name}_grid.nc").exists()

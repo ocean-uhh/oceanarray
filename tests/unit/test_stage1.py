@@ -229,6 +229,36 @@ class TestMooringProcessor:
         assert "dissolved_oxygen_ml_l" in out
         assert "dissolved_oxygen" not in out  # not the per-mass variable
 
+    def test_sanitize_slash_vars_second_oxygen_sensors_registered(self, processor):
+        """Both second-sensor oxygen columns map to registered canonical variables.
+
+        ``sbeox1ML/L`` → ``dissolved_oxygen_ml_l_2`` (``mL L-1``) and ``sbeox1Mm/Kg``
+        → ``dissolved_oxygen_2`` (``umol kg-1``).  Both must be registered so the
+        units pass canonicalises them rather than leaving the second sensor
+        untouched; the per-mass ``dissolved_oxygen`` would reject a mL/L value.
+        """
+        from oceanarray.config import parameters as params
+
+        out = processor._sanitize_slash_vars(
+            xr.Dataset(
+                {"sbeox1ML/L": (["time"], np.array([5.3, 5.4]))},
+                coords={"time": (["time"], np.arange(2))},
+            )
+        )
+        assert "sbeox1ML/L" not in out
+        assert "dissolved_oxygen_ml_l_2" in out
+        assert params.VARIABLES["dissolved_oxygen_ml_l_2"]["units"] == "mL L-1"
+
+        out = processor._sanitize_slash_vars(
+            xr.Dataset(
+                {"sbeox1Mm/Kg": (["time"], np.array([250.0, 260.0]))},
+                coords={"time": (["time"], np.arange(2))},
+            )
+        )
+        assert "sbeox1Mm/Kg" not in out
+        assert "dissolved_oxygen_2" in out
+        assert params.VARIABLES["dissolved_oxygen_2"]["units"] == "umol kg-1"
+
     def test_clean_dataset_variables_unknown_type(self, processor):
         """Test cleaning dataset variables for unknown file type."""
         ds = xr.Dataset(

@@ -10,6 +10,7 @@ Entry point: :func:`generate_array_report`.
 from __future__ import annotations
 
 import warnings
+from datetime import UTC
 from pathlib import Path
 from typing import Any
 
@@ -342,7 +343,7 @@ def generate_array_report(
         Path to the written HTML file, or None on failure.
 
     """
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     array_yaml_path = Path(array_yaml_path)
     proc_dir = Path(proc_dir)
@@ -472,7 +473,7 @@ def generate_array_report(
         "fig_map_b64": fig_map_b64,
         "type_summary": _build_type_summary(all_instruments),
         "mooring_completeness": mooring_completeness,
-        "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+        "generated": datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
     }
 
     html = render_template("array.html", **ctx)

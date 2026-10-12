@@ -38,8 +38,8 @@ def _parse_dirs(
         raise SystemExit(
             "ERROR: --basedir has been removed. Use --raw-dir + --proc-dir "
             "(the mooring directory is now <proc-dir>/<mooring>, not "
-            "<basedir>/moor/proc/<mooring>). See MIGRATION-BASEDIR.md at the "
-            "repository root."
+            "<basedir>/moor/proc/<mooring>). See the migration guide: "
+            f"docs/source/migration.rst or {paths.DOCS_URL}migration.html"
         )
 
     if not proc_dir:

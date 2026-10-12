@@ -4,6 +4,32 @@
 Migrating from the ``--basedir`` Layout
 =========================================
 
+Upgrading from 0.4 to 0.5
+-------------------------
+
+0.5.0 is a breaking release.  If you are upgrading an existing install:
+
+- **Reprocess from stage 1 for files you distribute.**  Old stage files still
+  load — the canonical-units pass rewrites the reader spellings (``degC`` →
+  ``degree_Celsius``, ``mS/cm`` → ``mS cm-1``, …) on the way in and logs one line
+  per variable — but files you *share* should be regenerated so they carry the
+  canonical strings
+  (`#102 <https://github.com/ocean-uhh/oceanarray/pull/102>`__).
+- **``save_dataset`` / ``save_OS_instrument`` are gone.**  Call
+  ``oceanarray.writers.write`` instead
+  (`#99 <https://github.com/ocean-uhh/oceanarray/pull/99>`__).
+- **Time encoding is pinned** to ``seconds since 1970-01-01`` (float64).
+  Re-encoding introduces at most 0.13 µs of rounding in the decoded instants
+  (≤ 119 ns at the 2026 epoch), but the on-disk representation changes, so a
+  reader using ``decode_times=False`` / ``decode_cf=False`` sees different raw
+  units and numbers
+  (`#99 <https://github.com/ocean-uhh/oceanarray/pull/99>`__).
+- **``oceanarray process`` runs stages 1–3 by default.**  Pass ``--stage 1 2``
+  for the old raw→trim-only behaviour
+  (`#102 <https://github.com/ocean-uhh/oceanarray/pull/102>`__).
+
+----
+
 This page describes how to move from the older instrument-first raw
 directory layout (used with the ``--basedir`` flag) to the current
 mooring-first layout (used with ``--raw-dir`` and ``--proc-dir``).
