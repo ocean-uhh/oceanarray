@@ -316,72 +316,138 @@ def _fmt_minmax(v: float) -> str:
     return f"{v:.4g}"
 
 
+def _attr_type_name(val: Any) -> str:
+    """Return a short type label for a NetCDF attribute value.
+
+    numpy scalars and arrays report their dtype (e.g. ``float64``,
+    ``float64[3]``); Python objects report their class name (e.g. ``str``).
+    """
+    if isinstance(val, np.ndarray):
+        return f"{val.dtype}[{val.size}]"
+    if isinstance(val, np.generic):
+        return str(val.dtype)
+    return type(val).__name__
+
+
+#: Attributes shown in their own inventory-table column, so excluded from the
+#: per-row "N attrs" disclosure to avoid repeating them.
+_COLUMN_ATTRS = frozenset({"units", "long_name", "standard_name"})
+
+
+def _variable_row(v: Any, vname: str, qc_vars: set[str]) -> dict[str, Any]:
+    """Build an inventory-table row for a dimensioned variable or coordinate.
+
+    Shared by the time-varying variables and the coordinates tables: records the
+    name, dtype, units, standard/long names, min/max, valid count, the QC
+    companion flag, and the full attribute dict for the per-row disclosure.
+    String coordinates carry no numeric range.
+    """
+    info: dict[str, Any] = {
+        "name": vname,
+        "units": v.attrs.get("units", ""),
+        "long_name": v.attrs.get("long_name", ""),
+        "standard_name": v.attrs.get("standard_name", ""),
+        "dims": ", ".join(str(d) for d in v.dims),
+        "dtype": str(v.dtype),
+        "n": int(np.prod(v.shape)) if v.shape else 0,
+        "v_min": None,
+        "v_max": None,
+        "attrs": {k: str(val) for k, val in v.attrs.items() if k not in _COLUMN_ATTRS},
+        "has_qc": f"{vname}_qc" in qc_vars,
+        "is_qc": vname in qc_vars,
+    }
+    arr = v.values
+    kind = arr.dtype.kind
+    if kind == "M":
+        valid = arr[~np.isnat(arr)]
+        info["n_valid"] = int(valid.size)
+        if valid.size:
+            # One rounding policy for every timestamp in the report: the same
+            # _round_ts_for_display used for the global-attribute times.
+            info["v_min"] = _round_ts_for_display(str(valid.min())).replace("T", " ")
+            info["v_max"] = _round_ts_for_display(str(valid.max())).replace("T", " ")
+    elif kind in ("f", "c"):
+        finite = arr[np.isfinite(arr)]
+        info["n_valid"] = int(finite.size)
+        if finite.size:
+            info["v_min"] = _fmt_minmax(float(np.min(finite)))
+            info["v_max"] = _fmt_minmax(float(np.max(finite)))
+    elif kind in ("i", "u"):
+        # Integers are identifiers/counts: format exactly, not via _fmt_minmax
+        # (whose %.4g rounds values >= 10000 into lossy scientific notation).
+        info["n_valid"] = int(arr.size)
+        if arr.size:
+            info["v_min"] = str(int(arr.min()))
+            info["v_max"] = str(int(arr.max()))
+    else:  # string / object coordinates: no numeric range
+        info["n_valid"] = int(arr.size)
+    return info
+
+
 def _read_nc_metadata(nc_path: Path) -> dict[str, Any]:
     """Return variable lists, scalar metadata, and global attrs from a NC file."""
     try:
         import xarray as xr
 
-        ds = xr.open_dataset(nc_path, decode_timedelta=False)
+        ds = xr.open_dataset(nc_path, engine="netcdf4", decode_timedelta=False)
         qc_vars = {v for v in ds.data_vars if v.endswith("_qc")}
         time_vars, scalar_vars = [], []
         analog_vars: list[str] = []
 
         for vname in sorted(ds.data_vars):
             v = ds[vname]
-            info: dict[str, Any] = {
-                "name": vname,
-                "units": v.attrs.get("units", ""),
-                "long_name": v.attrs.get("long_name", ""),
-                "standard_name": v.attrs.get("standard_name", ""),
-                "v_min": None,
-                "v_max": None,
-            }
             if v.dims == ():
-                info["dtype"] = str(v.dtype)
+                info: dict[str, Any] = {
+                    "name": vname,
+                    "units": v.attrs.get("units", ""),
+                    "long_name": v.attrs.get("long_name", ""),
+                    "standard_name": v.attrs.get("standard_name", ""),
+                    "dtype": str(v.dtype),
+                    "attrs": {
+                        k: str(val)
+                        for k, val in v.attrs.items()
+                        if k not in _COLUMN_ATTRS
+                    },
+                }
                 try:
-                    raw = v.values.item()
-                    info["value"] = str(raw)[:120]
+                    info["value"] = str(v.values.item())[:120]
                 except Exception:
                     info["value"] = "?"
                 scalar_vars.append(info)
             else:
-                info["dims"] = ", ".join(str(d) for d in v.dims)
-                info["dtype"] = str(v.dtype)
-                info["n"] = int(np.prod(v.shape)) if v.shape else 0
-                arr = v.values
-                if arr.dtype.kind in ("f", "c"):
-                    finite = arr[np.isfinite(arr)]
-                    info["n_valid"] = int(finite.size)
-                    if finite.size > 0:
-                        info["v_min"] = _fmt_minmax(float(np.min(finite)))
-                        info["v_max"] = _fmt_minmax(float(np.max(finite)))
-                        if "analog" in vname.lower() and not np.all(finite == 0.0):
-                            analog_vars.append(vname)
-                else:
-                    info["n_valid"] = int(arr.size)
-                info["has_qc"] = f"{vname}_qc" in qc_vars
-                info["is_qc"] = vname in qc_vars
+                info = _variable_row(v, vname, qc_vars)
                 time_vars.append(info)
+                if "analog" in vname.lower() and v.dtype.kind in ("f", "c"):
+                    finite = v.values[np.isfinite(v.values)]
+                    if finite.size and not np.all(finite == 0.0):
+                        analog_vars.append(vname)
+
+        coord_vars = []
+        for c in sorted(ds.coords):
+            if ds[c].ndim >= 1:
+                row = _variable_row(ds[c], str(c), qc_vars)
+                if not row["is_qc"]:
+                    coord_vars.append(row)
 
         global_attrs = {
-            k: _round_ts_for_display(str(val))
+            k: {"value": _round_ts_for_display(str(val)), "type": _attr_type_name(val)}
             for k, val in ds.attrs.items()
             if k != "history"
         }
-        dims = {str(d): int(s) for d, s in ds.sizes.items()}
         ds.close()
         return {
             "time_vars": time_vars,
             "scalar_vars": scalar_vars,
+            "coord_vars": coord_vars,
             "global_attrs": global_attrs,
             "analog_vars": analog_vars,
-            "dims": dims,
         }
     except Exception as exc:
         return {
             "error": str(exc)[:120],
             "time_vars": [],
             "scalar_vars": [],
+            "coord_vars": [],
             "global_attrs": {},
             "analog_vars": [],
         }

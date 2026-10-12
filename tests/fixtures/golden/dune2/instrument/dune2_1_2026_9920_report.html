@@ -317,6 +317,13 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 .fig-cell > .fig { width:100%; }
 .none-note { color:var(--muted); font-style:italic; }
 .var-qc { color:var(--good); font-size:var(--fs-xs); }
+/* Per-row NetCDF attribute disclosure in the inventory tables (the N attrs
+   expander). */
+.attr-disclosure summary { cursor:pointer; color:var(--muted); font-size:var(--fs-xs); white-space:nowrap; }
+.attr-disclosure table { margin:0.3rem 0 0.2rem; border:none; }
+.attr-disclosure td { border:none; padding:0.05rem 0.6rem 0.05rem 0; vertical-align:top;
+  font-size:var(--fs-xs); }
+.attr-disclosure td.mono { color:var(--muted); }
 /* Figure-debug line under a plot (OCEANARRAY_REPORT_DEBUG=1): slot the
    template chose vs the render-side figsize/png, for eyeballing mismatches. */
 .debug { font-family:var(--font-mono); font-size:var(--fs-top); color:var(--muted);
@@ -894,573 +901,637 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 
 
 
-<table class="var-table" style="max-width:28rem">
-  <thead><tr><th>Dimension</th><th class="num">Size</th></tr></thead>
+
+<h3 class="subhead-sm">Coordinates</h3>
+<table class="var-table">
+  
+  <thead>
+    <tr><th>Variable</th><th>Type</th><th>Units</th><th>Standard / long name</th><th class="num">Min / Max</th><th class="num">N (valid)</th><th>Attributes</th></tr>
+  </thead>
+
   <tbody>
     
-    <tr><td class="mono">time</td><td class="num">9,818</td></tr>
-    
-    <tr><td class="mono">beam</td><td class="num">3</td></tr>
-    
+    <tr>
+      <td class="mono">beam</td>
+      <td class="mono cell-xs">int8</td>
+      <td></td>
+      <td></td>
+      <td class="num cell-minmax">1 / 3</td>
+      <td class="num">3</td>
+      <td></td>
+    </tr>
+
+    <tr>
+      <td class="mono">time</td>
+      <td class="mono cell-xs" style="font-weight:600">datetime64[ns]</td>
+      <td></td>
+      <td></td>
+      <td class="num cell-minmax">2026-07-11 20:30:00 / 2026-07-25 11:43:05</td>
+      <td class="num">9,818</td>
+      <td></td>
+    </tr>
+
+    <tr>
+      <td class="mono">time_orig</td>
+      <td class="mono cell-xs" style="font-weight:600">datetime64[ns]</td>
+      <td></td>
+      <td><strong class="mono">time</strong><br><span class="cell-muted">original instrument time before clock correction</span></td>
+      <td class="num cell-minmax">2026-07-11 20:30:00 / 2026-07-25 11:44:00</td>
+      <td class="num">9,818</td>
+      <td></td>
+    </tr>
+
   </tbody>
 </table>
 
 
 
 
-<h3 style="font-size:0.88rem;color:var(--ocean);margin:1rem 0 0.4rem;">Time-series variables</h3>
-<table>
+
+
+<h3 class="subhead-sm">Variables on time × beam</h3>
+<table class="var-table">
+  
   <thead>
-    <tr><th>Variable</th><th>Type</th><th>Dims</th><th class="num">N</th><th class="num">Valid</th><th class="num">Min / Max</th><th>Units</th><th>Long name</th><th>Standard name</th><th>QC&nbsp;flag</th></tr>
+    <tr><th>Variable</th><th>Type</th><th>Units</th><th>Standard / long name</th><th class="num">Min / Max</th><th class="num">N (valid)</th><th>Attributes</th></tr>
   </thead>
+
   <tbody>
-    
     
     <tr>
       <td class="mono">amplitude</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time, beam</td>
-      <td class="num">29,454</td>
-      <td class="num" >29,454</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">63 / 130</td>
+      <td class="mono cell-xs">float32</td>
       <td>counts</td>
-      <td>Acoustic signal amplitude</td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
-      <td style="text-align:center">&ndash;</td>
+      <td><span class="cell-muted">Acoustic signal amplitude</span></td>
+      <td class="num cell-minmax">63 / 130</td>
+      <td class="num">29,454</td>
+      <td></td>
     </tr>
-    
-    
+
+  </tbody>
+</table>
+
+<h3 class="subhead-sm">Variables on time</h3>
+<table class="var-table">
+  
+  <thead>
+    <tr><th>Variable</th><th>Type</th><th>Units</th><th>Standard / long name</th><th class="num">Min / Max</th><th class="num">N (valid)</th><th>Attributes</th></tr>
+  </thead>
+
+  <tbody>
     
     <tr>
       <td class="mono">battery_voltage</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
-      <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">12.1 / 12.4</td>
+      <td class="mono cell-xs">float32</td>
       <td>volts</td>
-      <td>Battery voltage</td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">battery_voltage</td>
-      <td style="text-align:center">&ndash;</td>
+      <td><strong class="mono">battery_voltage</strong><br><span class="cell-muted">Battery voltage</span></td>
+      <td class="num cell-minmax">12.1 / 12.4</td>
+      <td class="num">9,818</td>
+      <td><details class="attr-disclosure"><summary>1 attr</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">original_name</td><td>Battery voltage</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
-    
+
     <tr>
       <td class="mono">current_direction</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
-      <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">0.06001 / 359.9</td>
+      <td class="mono cell-xs">float32</td>
       <td>degrees</td>
-      <td>Current direction (0=N, clockwise)</td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">direction_of_sea_water_velocity</td>
-      <td style="text-align:center">&ndash;</td>
+      <td><strong class="mono">direction_of_sea_water_velocity</strong><br><span class="cell-muted">Current direction (0=N, clockwise)</span></td>
+      <td class="num cell-minmax">0.06001 / 359.9</td>
+      <td class="num">9,818</td>
+      <td></td>
     </tr>
-    
-    
-    
+
     <tr>
       <td class="mono">current_speed</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
-      <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">0.005791 / 0.9213</td>
+      <td class="mono cell-xs">float32</td>
       <td>m s-1</td>
-      <td>Horizontal current speed</td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">sea_water_speed</td>
-      <td style="text-align:center">&ndash;</td>
+      <td><strong class="mono">sea_water_speed</strong><br><span class="cell-muted">Horizontal current speed</span></td>
+      <td class="num cell-minmax">0.005791 / 0.9213</td>
+      <td class="num">9,818</td>
+      <td></td>
     </tr>
-    
-    
-    
+
     <tr>
       <td class="mono">day</td>
-      <td class="mono" style="font-size:0.75rem">int32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
-      <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td class="mono cell-xs">int32</td>
       <td>1-31</td>
       <td></td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
-      <td style="text-align:center">&ndash;</td>
+      <td class="num cell-minmax">11 / 25</td>
+      <td class="num">9,818</td>
+      <td><details class="attr-disclosure"><summary>1 attr</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">original_name</td><td>Day</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
-    
+
     <tr>
       <td class="mono">depth</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="mono cell-xs">float32</td>
+      <td>m</td>
+      <td><strong class="mono">depth</strong><br><span class="cell-muted">Depth</span></td>
+      <td class="num cell-minmax">557.3 / 688.1</td>
       <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">557.3 / 688.1</td>
-      <td>meters</td>
-      <td>Depth</td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">depth</td>
-      <td style="text-align:center">&ndash;</td>
+      <td><details class="attr-disclosure"><summary>4 attrs</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">original_name</td><td>Pressure</td></tr>
+    
+      <tr><td class="mono">coverage_content_type</td><td>coordinate</td></tr>
+    
+      <tr><td class="mono">positive</td><td>up</td></tr>
+    
+      <tr><td class="mono">short_name</td><td>D</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
-    
+
     <tr>
       <td class="mono">direction</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
-      <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">0 / 0</td>
+      <td class="mono cell-xs">float32</td>
       <td>degrees</td>
-      <td>Current direction</td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">direction</td>
-      <td style="text-align:center">&ndash;</td>
-    </tr>
-    
-    
-    
-    <tr>
-      <td class="mono">east_velocity</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
+      <td><strong class="mono">direction</strong><br><span class="cell-muted">Current direction</span></td>
+      <td class="num cell-minmax">0 / 0</td>
       <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.8975 / 0.7406</td>
-      <td>m s-1</td>
-      <td>Eastward sea water velocity</td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">eastward_sea_water_velocity</td>
-      <td style="text-align:center"><span class="var-qc">✓</span></td>
+      <td><details class="attr-disclosure"><summary>1 attr</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">original_name</td><td>Direction</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
-    
-    
-    
+
+    <tr>
+      <td class="mono">east_velocity <span class="var-qc">(_QC)</span></td>
+      <td class="mono cell-xs">float32</td>
+      <td>m s-1</td>
+      <td><strong class="mono">eastward_sea_water_velocity</strong><br><span class="cell-muted">Eastward sea water velocity</span></td>
+      <td class="num cell-minmax">-0.8975 / 0.7406</td>
+      <td class="num">9,818</td>
+      <td></td>
+    </tr>
+
     <tr>
       <td class="mono">error_code</td>
-      <td class="mono" style="font-size:0.75rem">int32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="mono cell-xs">int32</td>
+      <td></td>
+      <td></td>
+      <td class="num cell-minmax">0 / 0</td>
       <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
-      <td></td>
-      <td></td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
-      <td style="text-align:center">&ndash;</td>
+      <td><details class="attr-disclosure"><summary>1 attr</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">original_name</td><td>Error code</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
-    
+
     <tr>
       <td class="mono">heading</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
-      <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">0 / 359.7</td>
+      <td class="mono cell-xs">float32</td>
       <td>degrees</td>
-      <td>Heading angle</td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">platform_heading_angle</td>
-      <td style="text-align:center">&ndash;</td>
+      <td><strong class="mono">platform_heading_angle</strong><br><span class="cell-muted">Heading angle</span></td>
+      <td class="num cell-minmax">0 / 359.7</td>
+      <td class="num">9,818</td>
+      <td><details class="attr-disclosure"><summary>1 attr</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">original_name</td><td>Heading</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
-    
+
     <tr>
       <td class="mono">hour</td>
-      <td class="mono" style="font-size:0.75rem">int32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
-      <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td class="mono cell-xs">int32</td>
       <td>0-23</td>
       <td></td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
-      <td style="text-align:center">&ndash;</td>
+      <td class="num cell-minmax">0 / 23</td>
+      <td class="num">9,818</td>
+      <td><details class="attr-disclosure"><summary>1 attr</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">original_name</td><td>Hour</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
-    
+
     <tr>
       <td class="mono">magnitude</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
-      <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">0 / 0</td>
+      <td class="mono cell-xs">float32</td>
       <td>m s-1</td>
-      <td>Current magnitude</td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">magnitude</td>
-      <td style="text-align:center">&ndash;</td>
+      <td><strong class="mono">magnitude</strong><br><span class="cell-muted">Current magnitude</span></td>
+      <td class="num cell-minmax">0 / 0</td>
+      <td class="num">9,818</td>
+      <td><details class="attr-disclosure"><summary>1 attr</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">original_name</td><td>Speed</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
-    
+
     <tr>
       <td class="mono">minute</td>
-      <td class="mono" style="font-size:0.75rem">int32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
-      <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td class="mono cell-xs">int32</td>
       <td>0-59</td>
       <td></td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
-      <td style="text-align:center">&ndash;</td>
+      <td class="num cell-minmax">0 / 58</td>
+      <td class="num">9,818</td>
+      <td><details class="attr-disclosure"><summary>1 attr</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">original_name</td><td>Minute</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
-    
+
     <tr>
       <td class="mono">month</td>
-      <td class="mono" style="font-size:0.75rem">int32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
-      <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td class="mono cell-xs">int32</td>
       <td>1-12</td>
       <td></td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
-      <td style="text-align:center">&ndash;</td>
-    </tr>
-    
-    
-    
-    <tr>
-      <td class="mono">north_velocity</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num cell-minmax">7 / 7</td>
       <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.6844 / 0.7064</td>
-      <td>m s-1</td>
-      <td>Northward sea water velocity</td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">northward_sea_water_velocity</td>
-      <td style="text-align:center"><span class="var-qc">✓</span></td>
+      <td><details class="attr-disclosure"><summary>1 attr</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">original_name</td><td>Month</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
-    
-    
-    
+
+    <tr>
+      <td class="mono">north_velocity <span class="var-qc">(_QC)</span></td>
+      <td class="mono cell-xs">float32</td>
+      <td>m s-1</td>
+      <td><strong class="mono">northward_sea_water_velocity</strong><br><span class="cell-muted">Northward sea water velocity</span></td>
+      <td class="num cell-minmax">-0.6844 / 0.7064</td>
+      <td class="num">9,818</td>
+      <td></td>
+    </tr>
+
     <tr>
       <td class="mono">pitch</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
-      <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">-36.6 / 1.5</td>
+      <td class="mono cell-xs">float32</td>
       <td>degrees</td>
-      <td>Pitch angle</td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">platform_pitch_angle</td>
-      <td style="text-align:center">&ndash;</td>
-    </tr>
-    
-    
-    
-    <tr>
-      <td class="mono">pressure</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
+      <td><strong class="mono">platform_pitch_angle</strong><br><span class="cell-muted">Pitch angle</span></td>
+      <td class="num cell-minmax">-36.6 / 1.5</td>
       <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">561.2 / 693</td>
-      <td>dbar</td>
-      <td>Pressure</td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">sea_water_pressure</td>
-      <td style="text-align:center"><span class="var-qc">✓</span></td>
+      <td><details class="attr-disclosure"><summary>1 attr</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">original_name</td><td>Pitch</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
+
+    <tr>
+      <td class="mono">pressure <span class="var-qc">(_QC)</span></td>
+      <td class="mono cell-xs">float32</td>
+      <td>dbar</td>
+      <td><strong class="mono">sea_water_pressure</strong><br><span class="cell-muted">Pressure</span></td>
+      <td class="num cell-minmax">561.2 / 693</td>
+      <td class="num">9,818</td>
+      <td><details class="attr-disclosure"><summary>4 attrs</summary>
+  <table>
+    <tbody>
     
+      <tr><td class="mono">original_name</td><td>Pressure</td></tr>
     
+      <tr><td class="mono">coverage_content_type</td><td>physicalMeasurement</td></tr>
     
+      <tr><td class="mono">measurement_type</td><td>Measured</td></tr>
     
+      <tr><td class="mono">short_name</td><td>WP</td></tr>
     
+    </tbody>
+  </table></details></td>
+    </tr>
+
     <tr>
       <td class="mono">roll</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
-      <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">-18.1 / 15.7</td>
+      <td class="mono cell-xs">float32</td>
       <td>degrees</td>
-      <td>Roll angle</td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">platform_roll_angle</td>
-      <td style="text-align:center">&ndash;</td>
+      <td><strong class="mono">platform_roll_angle</strong><br><span class="cell-muted">Roll angle</span></td>
+      <td class="num cell-minmax">-18.1 / 15.7</td>
+      <td class="num">9,818</td>
+      <td><details class="attr-disclosure"><summary>1 attr</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">original_name</td><td>Roll</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
-    
+
     <tr>
       <td class="mono">second</td>
-      <td class="mono" style="font-size:0.75rem">int32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
-      <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td class="mono cell-xs">int32</td>
       <td>0-59</td>
       <td></td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
-      <td style="text-align:center">&ndash;</td>
+      <td class="num cell-minmax">0 / 0</td>
+      <td class="num">9,818</td>
+      <td><details class="attr-disclosure"><summary>1 attr</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">original_name</td><td>Second</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
-    
+
     <tr>
       <td class="mono">speed_of_sound</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
-      <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">1449 / 1479</td>
+      <td class="mono cell-xs">float32</td>
       <td>m s-1</td>
-      <td>Speed of sound in sea water</td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">speed_of_sound_in_sea_water</td>
-      <td style="text-align:center">&ndash;</td>
+      <td><strong class="mono">speed_of_sound_in_sea_water</strong><br><span class="cell-muted">Speed of sound in sea water</span></td>
+      <td class="num cell-minmax">1449 / 1479</td>
+      <td class="num">9,818</td>
+      <td><details class="attr-disclosure"><summary>1 attr</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">original_name</td><td>Soundspeed</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
-    
+
     <tr>
       <td class="mono">speed_of_sound_used</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
-      <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">1459 / 1488</td>
+      <td class="mono cell-xs">float32</td>
       <td>m s-1</td>
       <td></td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
-      <td style="text-align:center">&ndash;</td>
+      <td class="num cell-minmax">1459 / 1488</td>
+      <td class="num">9,818</td>
+      <td><details class="attr-disclosure"><summary>1 attr</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">original_name</td><td>Soundspeed used</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
-    
+
     <tr>
       <td class="mono">status_code</td>
-      <td class="mono" style="font-size:0.75rem">int32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
-      <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
+      <td class="mono cell-xs">int32</td>
       <td></td>
       <td></td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
-      <td style="text-align:center">&ndash;</td>
-    </tr>
-    
-    
-    
-    <tr>
-      <td class="mono">temperature</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num cell-minmax">110000 / 110100</td>
       <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.05 / 7.02</td>
-      <td>degC</td>
-      <td>Temperature</td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">sea_water_temperature</td>
-      <td style="text-align:center"><span class="var-qc">✓</span></td>
+      <td><details class="attr-disclosure"><summary>1 attr</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">original_name</td><td>Status code</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
-    
-    
-    
+
     <tr>
-      <td class="mono">up_velocity</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="mono">temperature <span class="var-qc">(_QC)</span></td>
+      <td class="mono cell-xs">float32</td>
+      <td>degree_Celsius</td>
+      <td><strong class="mono">sea_water_temperature</strong><br><span class="cell-muted">Temperature</span></td>
+      <td class="num cell-minmax">-0.05 / 7.02</td>
       <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.4767 / 0.5587</td>
+      <td><details class="attr-disclosure"><summary>4 attrs</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">original_name</td><td>Temperature</td></tr>
+    
+      <tr><td class="mono">coverage_content_type</td><td>physicalMeasurement</td></tr>
+    
+      <tr><td class="mono">measurement_type</td><td>Measured</td></tr>
+    
+      <tr><td class="mono">short_name</td><td>WT</td></tr>
+    
+    </tbody>
+  </table></details></td>
+    </tr>
+
+    <tr>
+      <td class="mono">up_velocity <span class="var-qc">(_QC)</span></td>
+      <td class="mono cell-xs">float32</td>
       <td>m s-1</td>
-      <td>Upward sea water velocity</td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all">upward_sea_water_velocity</td>
-      <td style="text-align:center"><span class="var-qc">✓</span></td>
-    </tr>
-    
-    
-    
-    
-    
-    <tr>
-      <td class="mono">velocity_beam1</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
+      <td><strong class="mono">upward_sea_water_velocity</strong><br><span class="cell-muted">Upward sea water velocity</span></td>
+      <td class="num cell-minmax">-0.4767 / 0.5587</td>
       <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.845 / 0.855</td>
+      <td></td>
+    </tr>
+
+    <tr>
+      <td class="mono">velocity_beam1 <span class="var-qc">(_QC)</span></td>
+      <td class="mono cell-xs">float32</td>
       <td>m s-1</td>
       <td></td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
-      <td style="text-align:center"><span class="var-qc">✓</span></td>
-    </tr>
-    
-    
-    
-    
-    
-    <tr>
-      <td class="mono">velocity_beam2</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num cell-minmax">-0.845 / 0.855</td>
       <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.319 / 0.424</td>
+      <td><details class="attr-disclosure"><summary>2 attrs</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">original_name</td><td>Velocity (Beam1|X|East)</td></tr>
+    
+      <tr><td class="mono">coordinate_system</td><td>BEAM</td></tr>
+    
+    </tbody>
+  </table></details></td>
+    </tr>
+
+    <tr>
+      <td class="mono">velocity_beam2 <span class="var-qc">(_QC)</span></td>
+      <td class="mono cell-xs">float32</td>
       <td>m s-1</td>
       <td></td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
-      <td style="text-align:center"><span class="var-qc">✓</span></td>
-    </tr>
-    
-    
-    
-    
-    
-    <tr>
-      <td class="mono">velocity_beam3</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="num cell-minmax">-0.319 / 0.424</td>
       <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.653 / 0.268</td>
+      <td><details class="attr-disclosure"><summary>2 attrs</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">original_name</td><td>Velocity (Beam2|Y|North)</td></tr>
+    
+      <tr><td class="mono">coordinate_system</td><td>BEAM</td></tr>
+    
+    </tbody>
+  </table></details></td>
+    </tr>
+
+    <tr>
+      <td class="mono">velocity_beam3 <span class="var-qc">(_QC)</span></td>
+      <td class="mono cell-xs">float32</td>
       <td>m s-1</td>
       <td></td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
-      <td style="text-align:center"><span class="var-qc">✓</span></td>
+      <td class="num cell-minmax">-0.653 / 0.268</td>
+      <td class="num">9,818</td>
+      <td><details class="attr-disclosure"><summary>2 attrs</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">original_name</td><td>Velocity (Beam3|Z|Up)</td></tr>
+    
+      <tr><td class="mono">coordinate_system</td><td>BEAM</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
-    
-    
-    
+
     <tr>
       <td class="mono">velocity_x</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
-      <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.6451 / 0.7804</td>
+      <td class="mono cell-xs">float32</td>
       <td>m s-1</td>
-      <td>X velocity (instrument XYZ frame)</td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
-      <td style="text-align:center">&ndash;</td>
+      <td><span class="cell-muted">X velocity (instrument XYZ frame)</span></td>
+      <td class="num cell-minmax">-0.6451 / 0.7804</td>
+      <td class="num">9,818</td>
+      <td></td>
     </tr>
-    
-    
-    
+
     <tr>
       <td class="mono">velocity_y</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
-      <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.6415 / 0.2879</td>
+      <td class="mono cell-xs">float32</td>
       <td>m s-1</td>
-      <td>Y velocity (instrument XYZ frame)</td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
-      <td style="text-align:center">&ndash;</td>
+      <td><span class="cell-muted">Y velocity (instrument XYZ frame)</span></td>
+      <td class="num cell-minmax">-0.6415 / 0.2879</td>
+      <td class="num">9,818</td>
+      <td></td>
     </tr>
-    
-    
-    
+
     <tr>
       <td class="mono">velocity_z</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
-      <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">-0.7935 / 0.8196</td>
+      <td class="mono cell-xs">float32</td>
       <td>m s-1</td>
-      <td>Z velocity (instrument XYZ frame)</td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
-      <td style="text-align:center">&ndash;</td>
+      <td><span class="cell-muted">Z velocity (instrument XYZ frame)</span></td>
+      <td class="num cell-minmax">-0.7935 / 0.8196</td>
+      <td class="num">9,818</td>
+      <td></td>
     </tr>
-    
-    
-    
+
     <tr>
       <td class="mono">year</td>
-      <td class="mono" style="font-size:0.75rem">int32</td>
-      <td class="mono" style="font-size:0.75rem">time</td>
+      <td class="mono cell-xs">int32</td>
+      <td></td>
+      <td></td>
+      <td class="num cell-minmax">2026 / 2026</td>
       <td class="num">9,818</td>
-      <td class="num" >9,818</td>
-      <td class="num" style="font-size:0.76rem;white-space:nowrap">&mdash;</td>
-      <td></td>
-      <td></td>
-      <td style="font-size:0.78rem;color:var(--muted);max-width:18rem;word-break:break-all"></td>
-      <td style="text-align:center">&ndash;</td>
+      <td><details class="attr-disclosure"><summary>1 attr</summary>
+  <table>
+    <tbody>
+    
+      <tr><td class="mono">original_name</td><td>Year</td></tr>
+    
+    </tbody>
+  </table></details></td>
     </tr>
-    
-    
+
   </tbody>
 </table>
 
 
 
-<h3 style="font-size:0.88rem;color:var(--ocean);margin:1.4rem 0 0.4rem;">Scalar metadata variables</h3>
-<table>
+
+
+<h3 class="subhead-md">Scalar metadata variables</h3>
+<table class="var-table">
   <thead>
-    <tr><th>Variable</th><th>Type</th><th>Value</th><th>Units</th><th>Long name</th></tr>
+    <tr><th>Variable</th><th>Type</th><th>Units</th><th>Standard / long name</th><th>Value</th><th>Attributes</th></tr>
   </thead>
   <tbody>
     
     <tr>
       <td class="mono">InstrDepth</td>
-      <td class="mono" style="font-size:0.75rem">int32</td>
-      <td class="mono" style="font-size:0.78rem;word-break:break-all">519</td>
+      <td class="mono cell-xs">int32</td>
       <td></td>
+      <td></td>
+      <td class="mono cell-break">519</td>
       <td></td>
     </tr>
     
     <tr>
       <td class="mono">clock_drift_seconds</td>
-      <td class="mono" style="font-size:0.75rem">float32</td>
-      <td class="mono" style="font-size:0.78rem;word-break:break-all">-55.0</td>
+      <td class="mono cell-xs">float32</td>
       <td>s</td>
-      <td>total linear clock drift applied</td>
+      <td><span class="cell-muted">total linear clock drift applied</span></td>
+      <td class="mono cell-break">-55.0</td>
+      <td></td>
     </tr>
     
     <tr>
       <td class="mono">clock_offset</td>
-      <td class="mono" style="font-size:0.75rem">int32</td>
-      <td class="mono" style="font-size:0.78rem;word-break:break-all">0</td>
+      <td class="mono cell-xs">int32</td>
       <td>s</td>
+      <td></td>
+      <td class="mono cell-break">0</td>
       <td></td>
     </tr>
     
     <tr>
       <td class="mono">end_time</td>
-      <td class="mono" style="font-size:0.75rem">&lt;U16</td>
-      <td class="mono" style="font-size:0.78rem;word-break:break-all">2026-07-25T11:44</td>
+      <td class="mono cell-xs">&lt;U16</td>
       <td></td>
+      <td></td>
+      <td class="mono cell-break">2026-07-25T11:44</td>
       <td></td>
     </tr>
     
     <tr>
       <td class="mono">instrument</td>
-      <td class="mono" style="font-size:0.75rem">&lt;U8</td>
-      <td class="mono" style="font-size:0.78rem;word-break:break-all">aquadopp</td>
+      <td class="mono cell-xs">&lt;U8</td>
       <td></td>
+      <td></td>
+      <td class="mono cell-break">aquadopp</td>
       <td></td>
     </tr>
     
     <tr>
       <td class="mono">serial_number</td>
-      <td class="mono" style="font-size:0.75rem">&lt;U5</td>
-      <td class="mono" style="font-size:0.78rem;word-break:break-all">9920*</td>
+      <td class="mono cell-xs">&lt;U5</td>
       <td></td>
+      <td></td>
+      <td class="mono cell-break">9920*</td>
       <td></td>
     </tr>
     
     <tr>
       <td class="mono">start_time</td>
-      <td class="mono" style="font-size:0.75rem">&lt;U16</td>
-      <td class="mono" style="font-size:0.78rem;word-break:break-all">2026-07-11T20:30</td>
+      <td class="mono cell-xs">&lt;U16</td>
       <td></td>
+      <td></td>
+      <td class="mono cell-break">2026-07-11T20:30</td>
       <td></td>
     </tr>
     
@@ -1470,428 +1541,538 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <h2 id="netcdf_attributes">(B) NetCDF attributes</h2>
 
 
-<h3 style="font-size:0.88rem;color:var(--ocean);margin:1.4rem 0 0.4rem;">Global attributes</h3>
-<table>
-  <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+<h3 class="subhead-md">Global attributes</h3>
+
+<h4 class="subhead-sm">Identity &amp; discovery</h4>
+<table class="var-table">
+  <thead><tr><th>Attribute</th><th>Type</th><th>Value</th></tr></thead>
   <tbody>
     
     <tr>
-      <td class="mono">raw_format</td>
-      <td style="font-size:0.8rem;word-break:break-all">nortek-ascii</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">raw_filename</td>
-      <td style="font-size:0.8rem;word-break:break-all">9920_recovery.dat</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">raw_filesize_bytes</td>
-      <td style="font-size:0.8rem;word-break:break-all">1743000</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">raw_mtime_utc</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T13:15:40Z</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">raw_sha256</td>
-      <td style="font-size:0.8rem;word-break:break-all">d9b9cf72d79b2910f614b43ee4839f644f5e46d0c0e5e80f802aecf3d96013e7</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">raw_metadata_schema</td>
-      <td style="font-size:0.8rem;word-break:break-all">seasenselib/raw-opaque-1.0</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">raw_metadata</td>
-      <td style="font-size:0.8rem;word-break:break-all">{&#34;schema&#34;: &#34;seasenselib/raw-opaque-1.0&#34;, &#34;raw_format&#34;: &#34;nortek-ascii&#34;, &#34;raw_filename&#34;: &#34;9920_recovery.dat&#34;, &#34;blocks&#34;: {&#34;attributes&#34;: {&#34;number_of_measurements&#34;: &#34;9960&#34;, &#34;number_of_checksum_errors&#34;: &#34;0&#34;, &#34;time_of_first_measurement&#34;: &#34;11/07/2026 17:00:00&#34;, &#34;time_of_last_measurement&#34;: &#34;25/07/2026 12:58:00&#34;, &#34;measurement_interval&#34;: &#34;120 sec&#34;, &#34;sampling_rate&#34;: &#34;NORMAL&#34;, &#34;average_interval&#34;: &#34;3 sec&#34;, &#34;measurement_load&#34;: &#34;74 %&#34;, &#34;transmit_pulse_length&#34;: &#34;0.75 m&#34;, &#34;blanking_distance&#34;: &#34;0.50 m&#34;, &#34;compass_update_rate&#34;: &#34;5 sec&#34;, &#34;diagnostics_measurements&#34;: &#34;ENABLED&#34;, &#34;diagnostics_-_interval&#34;: &#34;43200 sec&#34;, &#34;diagnostics_-_number_of_samples&#34;: &#34;20&#34;, &#34;diagnostics_-_cell_number&#34;: &#34;1&#34;, &#34;diagnostics_-_number_of_pings&#34;: &#34;20&#34;, &#34;analog_input_1&#34;: &#34;NONE&#34;, &#34;raw_magnetometer_output&#34;: &#34;OFF&#34;, &#34;external_input_2&#34;: &#34;NONE&#34;, &#34;external_input_3&#34;: &#34;NONE&#34;, &#34;power_output&#34;: &#34;12V&#34;, &#34;powerlevel&#34;: &#34;HIGH&#34;, &#34;coordinate_system&#34;: &#34;BEAM&#34;, &#34;sound_speed&#34;: &#34;MEASURED&#34;, &#34;salinity&#34;: &#34;35.0 ppt&#34;, &#34;distance_between_pings&#34;: &#34;10.00 m&#34;, &#34;number_of_beams&#34;: &#34;3&#34;, &#34;number_of_pings_per_burst&#34;: &#34;17&#34;, &#34;software_version&#34;: &#34;1.40.16&#34;, &#34;deployment_name&#34;: &#34;9920&#34;, &#34;wrap_mode&#34;: &#34;OFF&#34;, &#34;deployment_time&#34;: &#34;11/07/2026 17:00:00&#34;, &#34;system1&#34;: &#34;125&#34;, &#34;system2&#34;: &#34;55&#34;, &#34;system3&#34;: &#34;32&#34;, &#34;system4&#34;: &#34;437&#34;, &#34;system5&#34;: &#34;65 65 65 0&#34;, &#34;system9&#34;: &#34;0 0 -1&#34;, &#34;system10&#34;: &#34;0 -1 1 0&#34;, &#34;system11&#34;: &#34;0 -1 -1 0&#34;, &#34;system12&#34;: &#34;0&#34;, &#34;system13&#34;: &#34;1481 259 7128 10862&#34;, &#34;system14&#34;: &#34;-16627 934 10828 -128&#34;, &#34;system16&#34;: &#34;0 0 0 0&#34;, &#34;system17&#34;: &#34;5461&#34;, &#34;system22&#34;: &#34;43200&#34;, &#34;system28&#34;: &#34;20&#34;, &#34;system29&#34;: &#34;1&#34;, &#34;system30&#34;: &#34;20&#34;, &#34;system31&#34;: &#34;15618 15646 15673 15699&#34;, &#34;system42&#34;: &#34;0&#34;, &#34;system43&#34;: &#34;0&#34;, &#34;system44&#34;: &#34;0&#34;, &#34;system45&#34;: &#34;6&#34;, &#34;start_command&#34;: &#34;Recorder deployment&#34;, &#34;crc_download&#34;: &#34;ON&#34;, &#34;serial_number&#34;: &#34;A6L 5229&#34;, &#34;hardware_revision&#34;: &#34;4 (E)&#34;, &#34;recorder_size&#34;: &#34;9 MByte&#34;, &#34;firmware_version&#34;: &#34;3.42&#34;, &#34;velocity_range&#34;: &#34;NORMAL&#34;, &#34;sync_signal_data_out_delay&#34;: &#34;0 sec&#34;, &#34;sync_signal_power_down_delay&#34;: &#34;0 sec&#34;, &#34;pressure_sensor&#34;: &#34;YES&#34;, &#34;compass&#34;: &#34;YES&#34;, &#34;tilt_sensor&#34;: &#34;YES&#34;, &#34;system_1&#34;: &#34;1&#34;, &#34;head_frequency&#34;: &#34;2000 kHz&#34;, &#34;pressure_sensor_calibration&#34;: &#34;0 12 64848 6424&#34;, &#34;system7&#34;: &#34;-19553 440 11845 -102&#34;, &#34;system8&#34;: &#34;0 0 -1&#34;, &#34;system15&#34;: &#34;32471 722 -750 722&#34;, &#34;system18&#34;: &#34;3600&#34;, &#34;system19&#34;: &#34;3600&#34;, &#34;system20&#34;: &#34;10000&#34;}, &#34;calibration&#34;: {&#34;transformation_matrix&#34;: [[0.7356, -0.3677, -0.3677], [0.0, -0.637, 0.637], [0.7888, 0.7888, 0.7888]], &#34;magnetometer_calibration_matrix&#34;: [[0.991, 0.022, -0.0229], [0.022, 1.0, -0.0062], [-0.018, 0.0304, 0.9507]], &#34;compass_hard_iron_calibration&#34;: [5, -90, 10]}, &#34;configuration&#34;: null, &#34;other&#34;: {&#34;global_attributes&#34;: {&#34;coordinate_system&#34;: &#34;BEAM&#34;}}}, &#34;variables&#34;: {&#34;month&#34;: {&#34;column_number&#34;: &#34;1&#34;, &#34;original_name&#34;: &#34;Month&#34;, &#34;units&#34;: &#34;1-12&#34;}, &#34;day&#34;: {&#34;column_number&#34;: &#34;2&#34;, &#34;original_name&#34;: &#34;Day&#34;, &#34;units&#34;: &#34;1-31&#34;}, &#34;year&#34;: {&#34;column_number&#34;: &#34;3&#34;, &#34;original_name&#34;: &#34;Year&#34;}, &#34;hour&#34;: {&#34;column_number&#34;: &#34;4&#34;, &#34;original_name&#34;: &#34;Hour&#34;, &#34;units&#34;: &#34;0-23&#34;}, &#34;minute&#34;: {&#34;column_number&#34;: &#34;5&#34;, &#34;original_name&#34;: &#34;Minute&#34;, &#34;units&#34;: &#34;0-59&#34;}, &#34;second&#34;: {&#34;column_number&#34;: &#34;6&#34;, &#34;original_name&#34;: &#34;Second&#34;, &#34;units&#34;: &#34;0-59&#34;}, &#34;error_code&#34;: {&#34;column_number&#34;: &#34;7&#34;, &#34;original_name&#34;: &#34;Error code&#34;}, &#34;status_code&#34;: {&#34;column_number&#34;: &#34;8&#34;, &#34;original_name&#34;: &#34;Status code&#34;}, &#34;velocity_beam1&#34;: {&#34;column_number&#34;: &#34;9&#34;, &#34;original_name&#34;: &#34;Velocity (Beam1|X|East)&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;velocity_beam2&#34;: {&#34;column_number&#34;: &#34;10&#34;, &#34;original_name&#34;: &#34;Velocity (Beam2|Y|North)&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;velocity_beam3&#34;: {&#34;column_number&#34;: &#34;11&#34;, &#34;original_name&#34;: &#34;Velocity (Beam3|Z|Up)&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;amplitude_beam1&#34;: {&#34;column_number&#34;: &#34;12&#34;, &#34;original_name&#34;: &#34;Amplitude (Beam1)&#34;, &#34;units&#34;: &#34;counts&#34;}, &#34;amplitude_beam2&#34;: {&#34;column_number&#34;: &#34;13&#34;, &#34;original_name&#34;: &#34;Amplitude (Beam2)&#34;, &#34;units&#34;: &#34;counts&#34;}, &#34;amplitude_beam3&#34;: {&#34;column_number&#34;: &#34;14&#34;, &#34;original_name&#34;: &#34;Amplitude (Beam3)&#34;, &#34;units&#34;: &#34;counts&#34;}, &#34;battery_voltage&#34;: {&#34;column_number&#34;: &#34;15&#34;, &#34;original_name&#34;: &#34;Battery voltage&#34;, &#34;units&#34;: &#34;V&#34;}, &#34;speed_of_sound&#34;: {&#34;column_number&#34;: &#34;16&#34;, &#34;original_name&#34;: &#34;Soundspeed&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;speed_of_sound_used&#34;: {&#34;column_number&#34;: &#34;17&#34;, &#34;original_name&#34;: &#34;Soundspeed used&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;heading&#34;: {&#34;column_number&#34;: &#34;18&#34;, &#34;original_name&#34;: &#34;Heading&#34;, &#34;units&#34;: &#34;degrees&#34;}, &#34;pitch&#34;: {&#34;column_number&#34;: &#34;19&#34;, &#34;original_name&#34;: &#34;Pitch&#34;, &#34;units&#34;: &#34;degrees&#34;}, &#34;roll&#34;: {&#34;column_number&#34;: &#34;20&#34;, &#34;original_name&#34;: &#34;Roll&#34;, &#34;units&#34;: &#34;degrees&#34;}, &#34;pressure&#34;: {&#34;column_number&#34;: &#34;21&#34;, &#34;original_name&#34;: &#34;Pressure&#34;, &#34;units&#34;: &#34;dbar&#34;}, &#34;depth&#34;: {&#34;column_number&#34;: &#34;22&#34;, &#34;original_name&#34;: &#34;Pressure&#34;, &#34;units&#34;: &#34;m&#34;}, &#34;temperature&#34;: {&#34;column_number&#34;: &#34;23&#34;, &#34;original_name&#34;: &#34;Temperature&#34;, &#34;units&#34;: &#34;degrees C&#34;}, &#34;analog_input_1&#34;: {&#34;column_number&#34;: &#34;24&#34;, &#34;original_name&#34;: &#34;Analog input 1&#34;}, &#34;analog_input_2&#34;: {&#34;column_number&#34;: &#34;25&#34;, &#34;original_name&#34;: &#34;Analog input 2&#34;}, &#34;magnitude&#34;: {&#34;column_number&#34;: &#34;26&#34;, &#34;original_name&#34;: &#34;Speed&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;direction&#34;: {&#34;column_number&#34;: &#34;27&#34;, &#34;original_name&#34;: &#34;Direction&#34;, &#34;units&#34;: &#34;degrees&#34;}}}</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_name</td>
-      <td style="font-size:0.8rem;word-break:break-all">SeaSenseLib</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_version</td>
-      <td style="font-size:0.8rem;word-break:break-all">0.6.0</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processing_level</td>
-      <td style="font-size:0.8rem;word-break:break-all">L1</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_module</td>
-      <td style="font-size:0.8rem;word-break:break-all">seasenselib.readers.nortek_ascii_reader</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_module_name</td>
-      <td style="font-size:0.8rem;word-break:break-all">Nortek ASCII</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_module_key</td>
-      <td style="font-size:0.8rem;word-break:break-all">nortek-ascii</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_runtime</td>
-      <td style="font-size:0.8rem;word-break:break-all">CPython</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_runtime_version</td>
-      <td style="font-size:0.8rem;word-break:break-all">3.11.7</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_execution_time_utc</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-26T18:41:57.5Z</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_machine</td>
-      <td style="font-size:0.8rem;word-break:break-all">EFWmac14-2.local</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_os</td>
-      <td style="font-size:0.8rem;word-break:break-all">Darwin 25.5.0</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">date_created</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-26T18:41:57.5Z</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">date_modified</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-26T18:41:57.5Z</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">Conventions</td>
-      <td style="font-size:0.8rem;word-break:break-all">CF-1.13</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">coordinate_system</td>
-      <td style="font-size:0.8rem;word-break:break-all">ENU</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_number_of_beams</td>
-      <td style="font-size:0.8rem;word-break:break-all">3</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system5</td>
-      <td style="font-size:0.8rem;word-break:break-all">65 65 65 0</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system7</td>
-      <td style="font-size:0.8rem;word-break:break-all">-19553 440 11845 -102</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_</td>
-      <td style="font-size:0.8rem;word-break:break-all">0 0 0 0</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system8</td>
-      <td style="font-size:0.8rem;word-break:break-all">0 0 -1</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system9</td>
-      <td style="font-size:0.8rem;word-break:break-all">0 0 -1</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system10</td>
-      <td style="font-size:0.8rem;word-break:break-all">0 -1 1 0</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system11</td>
-      <td style="font-size:0.8rem;word-break:break-all">0 -1 -1 0</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system13</td>
-      <td style="font-size:0.8rem;word-break:break-all">1481 259 7128 10862</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system14</td>
-      <td style="font-size:0.8rem;word-break:break-all">-16627 934 10828 -128</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system15</td>
-      <td style="font-size:0.8rem;word-break:break-all">32471 722 -750 722</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system16</td>
-      <td style="font-size:0.8rem;word-break:break-all">0 0 0 0</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system17</td>
-      <td style="font-size:0.8rem;word-break:break-all">5461</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system18</td>
-      <td style="font-size:0.8rem;word-break:break-all">3600</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system19</td>
-      <td style="font-size:0.8rem;word-break:break-all">3600</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system20</td>
-      <td style="font-size:0.8rem;word-break:break-all">10000</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_T_M11</td>
-      <td style="font-size:0.8rem;word-break:break-all">0.7356</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_T_M12</td>
-      <td style="font-size:0.8rem;word-break:break-all">-0.3677</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_T_M13</td>
-      <td style="font-size:0.8rem;word-break:break-all">-0.3677</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_T_M21</td>
-      <td style="font-size:0.8rem;word-break:break-all">0.0</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_T_M22</td>
-      <td style="font-size:0.8rem;word-break:break-all">-0.637</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_T_M23</td>
-      <td style="font-size:0.8rem;word-break:break-all">0.637</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_T_M31</td>
-      <td style="font-size:0.8rem;word-break:break-all">0.7888</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_T_M32</td>
-      <td style="font-size:0.8rem;word-break:break-all">0.7888</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_T_M33</td>
-      <td style="font-size:0.8rem;word-break:break-all">0.7888</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pointing_down</td>
-      <td style="font-size:0.8rem;word-break:break-all">False</td>
-    </tr>
-    
-    <tr>
       <td class="mono">mooring_name</td>
-      <td style="font-size:0.8rem;word-break:break-all">dune2</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">waterdepth</td>
-      <td style="font-size:0.8rem;word-break:break-all">745</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">longitude</td>
-      <td style="font-size:0.8rem;word-break:break-all">-28 01.234</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">latitude</td>
-      <td style="font-size:0.8rem;word-break:break-all">65 48.405</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">deployment_latitude</td>
-      <td style="font-size:0.8rem;word-break:break-all">00 00.000 N</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">deployment_longitude</td>
-      <td style="font-size:0.8rem;word-break:break-all">000 00.000 W</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">deployment_time</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-11T20:30</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">seabed_latitude</td>
-      <td style="font-size:0.8rem;word-break:break-all">00 00.000 N</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">seabed_longitude</td>
-      <td style="font-size:0.8rem;word-break:break-all">000 00.000 W</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">recovery_time</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T11:44</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">qc_convention</td>
-      <td style="font-size:0.8rem;word-break:break-all">OceanSITES reference table 2</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">suggested_deployment_time</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-11T20:30:00</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">suggested_recovery_time</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T11:44:00</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">suggested_window_source</td>
-      <td style="font-size:0.8rem;word-break:break-all">pressure_pmin10dbar</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">suggested_window_clock</td>
-      <td style="font-size:0.8rem;word-break:break-all">raw_instrument_clock</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">suggested_deployment_time_utc</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-11T20:30:00</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">suggested_recovery_time_utc</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T11:43:05</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">stage1_first_nonnull</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-11T17:00:00</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">stage1_last_nonnull</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T12:58:00</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">stage1_time_start</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-11T17:00:00</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">stage1_time_end</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T12:58:00</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">yaml_deployment_time</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-11T20:30:00</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">yaml_recovery_time</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-25T11:44:00</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">stage2_source_file</td>
-      <td style="font-size:0.8rem;word-break:break-all">dune2_1_2026_9920_stage2.nc</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">stage2_source_mtime</td>
-      <td style="font-size:0.8rem;word-break:break-all">2026-07-29T12:10:34Z</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">stage2_source_sha256</td>
-      <td style="font-size:0.8rem;word-break:break-all">a45e2284</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">magnetic_declination</td>
-      <td style="font-size:0.8rem;word-break:break-all">-13.965613674756257</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">magnetic_declination_units</td>
-      <td style="font-size:0.8rem;word-break:break-all">degrees_east</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">magnetic_declination_method</td>
-      <td style="font-size:0.8rem;word-break:break-all">ppigrf IGRF at deployment midpoint</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">magnetic_declination_lat</td>
-      <td style="font-size:0.8rem;word-break:break-all">65.73188333333333</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">magnetic_declination_lon</td>
-      <td style="font-size:0.8rem;word-break:break-all">-26.2</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">magnetic_declination_latlon_source</td>
-      <td style="font-size:0.8rem;word-break:break-all">mooring YAML (latitude/longitude)</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">coordinate_system_source</td>
-      <td style="font-size:0.8rem;word-break:break-all">rotated from XYZ by oceanarray stage3</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">tilt_suspect_threshold</td>
-      <td style="font-size:0.8rem;word-break:break-all">30.0</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">tilt_fail_threshold</td>
-      <td style="font-size:0.8rem;word-break:break-all">50.0</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">dune2</td>
     </tr>
     
   </tbody>
 </table>
+
+<h4 class="subhead-sm">Spatiotemporal coverage</h4>
+<table class="var-table">
+  <thead><tr><th>Attribute</th><th>Type</th><th>Value</th></tr></thead>
+  <tbody>
+    
+    <tr>
+      <td class="mono">waterdepth</td>
+      <td class="mono cell-xs">int64</td>
+      <td class="cell-break-lg">745</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">longitude</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">-28 01.234</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">latitude</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">65 48.405</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">deployment_time</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-11T20:30</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">recovery_time</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-25T11:44</td>
+    </tr>
+    
+  </tbody>
+</table>
+
+<h4 class="subhead-sm">Provenance &amp; processing</h4>
+<table class="var-table">
+  <thead><tr><th>Attribute</th><th>Type</th><th>Value</th></tr></thead>
+  <tbody>
+    
+    <tr>
+      <td class="mono">processing_level</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">L1</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">date_created</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-26T18:41:57.5Z</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">date_modified</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-26T18:41:57.5Z</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">Conventions</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">CF-1.13</td>
+    </tr>
+    
+  </tbody>
+</table>
+
+<h4 class="subhead-sm">Other</h4>
+<table class="var-table">
+  <thead><tr><th>Attribute</th><th>Type</th><th>Value</th></tr></thead>
+  <tbody>
+    
+    <tr>
+      <td class="mono">raw_format</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">nortek-ascii</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">raw_filename</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">9920_recovery.dat</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">raw_filesize_bytes</td>
+      <td class="mono cell-xs">int64</td>
+      <td class="cell-break-lg">1743000</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">raw_mtime_utc</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-25T13:15:40Z</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">raw_sha256</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">d9b9cf72d79b2910f614b43ee4839f644f5e46d0c0e5e80f802aecf3d96013e7</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">raw_metadata_schema</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">seasenselib/raw-opaque-1.0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">raw_metadata</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">{&#34;schema&#34;: &#34;seasenselib/raw-opaque-1.0&#34;, &#34;raw_format&#34;: &#34;nortek-ascii&#34;, &#34;raw_filename&#34;: &#34;9920_recovery.dat&#34;, &#34;blocks&#34;: {&#34;attributes&#34;: {&#34;number_of_measurements&#34;: &#34;9960&#34;, &#34;number_of_checksum_errors&#34;: &#34;0&#34;, &#34;time_of_first_measurement&#34;: &#34;11/07/2026 17:00:00&#34;, &#34;time_of_last_measurement&#34;: &#34;25/07/2026 12:58:00&#34;, &#34;measurement_interval&#34;: &#34;120 sec&#34;, &#34;sampling_rate&#34;: &#34;NORMAL&#34;, &#34;average_interval&#34;: &#34;3 sec&#34;, &#34;measurement_load&#34;: &#34;74 %&#34;, &#34;transmit_pulse_length&#34;: &#34;0.75 m&#34;, &#34;blanking_distance&#34;: &#34;0.50 m&#34;, &#34;compass_update_rate&#34;: &#34;5 sec&#34;, &#34;diagnostics_measurements&#34;: &#34;ENABLED&#34;, &#34;diagnostics_-_interval&#34;: &#34;43200 sec&#34;, &#34;diagnostics_-_number_of_samples&#34;: &#34;20&#34;, &#34;diagnostics_-_cell_number&#34;: &#34;1&#34;, &#34;diagnostics_-_number_of_pings&#34;: &#34;20&#34;, &#34;analog_input_1&#34;: &#34;NONE&#34;, &#34;raw_magnetometer_output&#34;: &#34;OFF&#34;, &#34;external_input_2&#34;: &#34;NONE&#34;, &#34;external_input_3&#34;: &#34;NONE&#34;, &#34;power_output&#34;: &#34;12V&#34;, &#34;powerlevel&#34;: &#34;HIGH&#34;, &#34;coordinate_system&#34;: &#34;BEAM&#34;, &#34;sound_speed&#34;: &#34;MEASURED&#34;, &#34;salinity&#34;: &#34;35.0 ppt&#34;, &#34;distance_between_pings&#34;: &#34;10.00 m&#34;, &#34;number_of_beams&#34;: &#34;3&#34;, &#34;number_of_pings_per_burst&#34;: &#34;17&#34;, &#34;software_version&#34;: &#34;1.40.16&#34;, &#34;deployment_name&#34;: &#34;9920&#34;, &#34;wrap_mode&#34;: &#34;OFF&#34;, &#34;deployment_time&#34;: &#34;11/07/2026 17:00:00&#34;, &#34;system1&#34;: &#34;125&#34;, &#34;system2&#34;: &#34;55&#34;, &#34;system3&#34;: &#34;32&#34;, &#34;system4&#34;: &#34;437&#34;, &#34;system5&#34;: &#34;65 65 65 0&#34;, &#34;system9&#34;: &#34;0 0 -1&#34;, &#34;system10&#34;: &#34;0 -1 1 0&#34;, &#34;system11&#34;: &#34;0 -1 -1 0&#34;, &#34;system12&#34;: &#34;0&#34;, &#34;system13&#34;: &#34;1481 259 7128 10862&#34;, &#34;system14&#34;: &#34;-16627 934 10828 -128&#34;, &#34;system16&#34;: &#34;0 0 0 0&#34;, &#34;system17&#34;: &#34;5461&#34;, &#34;system22&#34;: &#34;43200&#34;, &#34;system28&#34;: &#34;20&#34;, &#34;system29&#34;: &#34;1&#34;, &#34;system30&#34;: &#34;20&#34;, &#34;system31&#34;: &#34;15618 15646 15673 15699&#34;, &#34;system42&#34;: &#34;0&#34;, &#34;system43&#34;: &#34;0&#34;, &#34;system44&#34;: &#34;0&#34;, &#34;system45&#34;: &#34;6&#34;, &#34;start_command&#34;: &#34;Recorder deployment&#34;, &#34;crc_download&#34;: &#34;ON&#34;, &#34;serial_number&#34;: &#34;A6L 5229&#34;, &#34;hardware_revision&#34;: &#34;4 (E)&#34;, &#34;recorder_size&#34;: &#34;9 MByte&#34;, &#34;firmware_version&#34;: &#34;3.42&#34;, &#34;velocity_range&#34;: &#34;NORMAL&#34;, &#34;sync_signal_data_out_delay&#34;: &#34;0 sec&#34;, &#34;sync_signal_power_down_delay&#34;: &#34;0 sec&#34;, &#34;pressure_sensor&#34;: &#34;YES&#34;, &#34;compass&#34;: &#34;YES&#34;, &#34;tilt_sensor&#34;: &#34;YES&#34;, &#34;system_1&#34;: &#34;1&#34;, &#34;head_frequency&#34;: &#34;2000 kHz&#34;, &#34;pressure_sensor_calibration&#34;: &#34;0 12 64848 6424&#34;, &#34;system7&#34;: &#34;-19553 440 11845 -102&#34;, &#34;system8&#34;: &#34;0 0 -1&#34;, &#34;system15&#34;: &#34;32471 722 -750 722&#34;, &#34;system18&#34;: &#34;3600&#34;, &#34;system19&#34;: &#34;3600&#34;, &#34;system20&#34;: &#34;10000&#34;}, &#34;calibration&#34;: {&#34;transformation_matrix&#34;: [[0.7356, -0.3677, -0.3677], [0.0, -0.637, 0.637], [0.7888, 0.7888, 0.7888]], &#34;magnetometer_calibration_matrix&#34;: [[0.991, 0.022, -0.0229], [0.022, 1.0, -0.0062], [-0.018, 0.0304, 0.9507]], &#34;compass_hard_iron_calibration&#34;: [5, -90, 10]}, &#34;configuration&#34;: null, &#34;other&#34;: {&#34;global_attributes&#34;: {&#34;coordinate_system&#34;: &#34;BEAM&#34;}}}, &#34;variables&#34;: {&#34;month&#34;: {&#34;column_number&#34;: &#34;1&#34;, &#34;original_name&#34;: &#34;Month&#34;, &#34;units&#34;: &#34;1-12&#34;}, &#34;day&#34;: {&#34;column_number&#34;: &#34;2&#34;, &#34;original_name&#34;: &#34;Day&#34;, &#34;units&#34;: &#34;1-31&#34;}, &#34;year&#34;: {&#34;column_number&#34;: &#34;3&#34;, &#34;original_name&#34;: &#34;Year&#34;}, &#34;hour&#34;: {&#34;column_number&#34;: &#34;4&#34;, &#34;original_name&#34;: &#34;Hour&#34;, &#34;units&#34;: &#34;0-23&#34;}, &#34;minute&#34;: {&#34;column_number&#34;: &#34;5&#34;, &#34;original_name&#34;: &#34;Minute&#34;, &#34;units&#34;: &#34;0-59&#34;}, &#34;second&#34;: {&#34;column_number&#34;: &#34;6&#34;, &#34;original_name&#34;: &#34;Second&#34;, &#34;units&#34;: &#34;0-59&#34;}, &#34;error_code&#34;: {&#34;column_number&#34;: &#34;7&#34;, &#34;original_name&#34;: &#34;Error code&#34;}, &#34;status_code&#34;: {&#34;column_number&#34;: &#34;8&#34;, &#34;original_name&#34;: &#34;Status code&#34;}, &#34;velocity_beam1&#34;: {&#34;column_number&#34;: &#34;9&#34;, &#34;original_name&#34;: &#34;Velocity (Beam1|X|East)&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;velocity_beam2&#34;: {&#34;column_number&#34;: &#34;10&#34;, &#34;original_name&#34;: &#34;Velocity (Beam2|Y|North)&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;velocity_beam3&#34;: {&#34;column_number&#34;: &#34;11&#34;, &#34;original_name&#34;: &#34;Velocity (Beam3|Z|Up)&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;amplitude_beam1&#34;: {&#34;column_number&#34;: &#34;12&#34;, &#34;original_name&#34;: &#34;Amplitude (Beam1)&#34;, &#34;units&#34;: &#34;counts&#34;}, &#34;amplitude_beam2&#34;: {&#34;column_number&#34;: &#34;13&#34;, &#34;original_name&#34;: &#34;Amplitude (Beam2)&#34;, &#34;units&#34;: &#34;counts&#34;}, &#34;amplitude_beam3&#34;: {&#34;column_number&#34;: &#34;14&#34;, &#34;original_name&#34;: &#34;Amplitude (Beam3)&#34;, &#34;units&#34;: &#34;counts&#34;}, &#34;battery_voltage&#34;: {&#34;column_number&#34;: &#34;15&#34;, &#34;original_name&#34;: &#34;Battery voltage&#34;, &#34;units&#34;: &#34;V&#34;}, &#34;speed_of_sound&#34;: {&#34;column_number&#34;: &#34;16&#34;, &#34;original_name&#34;: &#34;Soundspeed&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;speed_of_sound_used&#34;: {&#34;column_number&#34;: &#34;17&#34;, &#34;original_name&#34;: &#34;Soundspeed used&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;heading&#34;: {&#34;column_number&#34;: &#34;18&#34;, &#34;original_name&#34;: &#34;Heading&#34;, &#34;units&#34;: &#34;degrees&#34;}, &#34;pitch&#34;: {&#34;column_number&#34;: &#34;19&#34;, &#34;original_name&#34;: &#34;Pitch&#34;, &#34;units&#34;: &#34;degrees&#34;}, &#34;roll&#34;: {&#34;column_number&#34;: &#34;20&#34;, &#34;original_name&#34;: &#34;Roll&#34;, &#34;units&#34;: &#34;degrees&#34;}, &#34;pressure&#34;: {&#34;column_number&#34;: &#34;21&#34;, &#34;original_name&#34;: &#34;Pressure&#34;, &#34;units&#34;: &#34;dbar&#34;}, &#34;depth&#34;: {&#34;column_number&#34;: &#34;22&#34;, &#34;original_name&#34;: &#34;Pressure&#34;, &#34;units&#34;: &#34;m&#34;}, &#34;temperature&#34;: {&#34;column_number&#34;: &#34;23&#34;, &#34;original_name&#34;: &#34;Temperature&#34;, &#34;units&#34;: &#34;degrees C&#34;}, &#34;analog_input_1&#34;: {&#34;column_number&#34;: &#34;24&#34;, &#34;original_name&#34;: &#34;Analog input 1&#34;}, &#34;analog_input_2&#34;: {&#34;column_number&#34;: &#34;25&#34;, &#34;original_name&#34;: &#34;Analog input 2&#34;}, &#34;magnitude&#34;: {&#34;column_number&#34;: &#34;26&#34;, &#34;original_name&#34;: &#34;Speed&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;direction&#34;: {&#34;column_number&#34;: &#34;27&#34;, &#34;original_name&#34;: &#34;Direction&#34;, &#34;units&#34;: &#34;degrees&#34;}}}</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_name</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">SeaSenseLib</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_version</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">0.6.0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_module</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">seasenselib.readers.nortek_ascii_reader</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_module_name</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">Nortek ASCII</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_module_key</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">nortek-ascii</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_runtime</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">CPython</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_runtime_version</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">3.11.7</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_execution_time_utc</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-26T18:41:57.5Z</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_machine</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">EFWmac14-2.local</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">processor_os</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">Darwin 25.5.0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">coordinate_system</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">ENU</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_number_of_beams</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">3</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system5</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">65 65 65 0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system7</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">-19553 440 11845 -102</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">0 0 0 0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system8</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">0 0 -1</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system9</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">0 0 -1</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system10</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">0 -1 1 0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system11</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">0 -1 -1 0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system13</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">1481 259 7128 10862</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system14</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">-16627 934 10828 -128</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system15</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">32471 722 -750 722</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system16</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">0 0 0 0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system17</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">5461</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system18</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">3600</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system19</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">3600</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pressure_cal_system20</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">10000</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_T_M11</td>
+      <td class="mono cell-xs" style="font-weight:600">float64</td>
+      <td class="cell-break-lg">0.7356</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_T_M12</td>
+      <td class="mono cell-xs" style="font-weight:600">float64</td>
+      <td class="cell-break-lg">-0.3677</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_T_M13</td>
+      <td class="mono cell-xs" style="font-weight:600">float64</td>
+      <td class="cell-break-lg">-0.3677</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_T_M21</td>
+      <td class="mono cell-xs" style="font-weight:600">float64</td>
+      <td class="cell-break-lg">0.0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_T_M22</td>
+      <td class="mono cell-xs" style="font-weight:600">float64</td>
+      <td class="cell-break-lg">-0.637</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_T_M23</td>
+      <td class="mono cell-xs" style="font-weight:600">float64</td>
+      <td class="cell-break-lg">0.637</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_T_M31</td>
+      <td class="mono cell-xs" style="font-weight:600">float64</td>
+      <td class="cell-break-lg">0.7888</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_T_M32</td>
+      <td class="mono cell-xs" style="font-weight:600">float64</td>
+      <td class="cell-break-lg">0.7888</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_T_M33</td>
+      <td class="mono cell-xs" style="font-weight:600">float64</td>
+      <td class="cell-break-lg">0.7888</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">nortek_pointing_down</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">False</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">deployment_latitude</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">00 00.000 N</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">deployment_longitude</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">000 00.000 W</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">seabed_latitude</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">00 00.000 N</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">seabed_longitude</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">000 00.000 W</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">qc_convention</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">OceanSITES reference table 2</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">suggested_deployment_time</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-11T20:30:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">suggested_recovery_time</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-25T11:44:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">suggested_window_source</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">pressure_pmin10dbar</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">suggested_window_clock</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">raw_instrument_clock</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">suggested_deployment_time_utc</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-11T20:30:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">suggested_recovery_time_utc</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-25T11:43:05</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage1_first_nonnull</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-11T17:00:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage1_last_nonnull</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-25T12:58:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage1_time_start</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-11T17:00:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage1_time_end</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-25T12:58:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">yaml_deployment_time</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-11T20:30:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">yaml_recovery_time</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-25T11:44:00</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage2_source_file</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">dune2_1_2026_9920_stage2.nc</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage2_source_mtime</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">2026-07-29T12:10:34Z</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">stage2_source_sha256</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">a45e2284</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">magnetic_declination</td>
+      <td class="mono cell-xs" style="font-weight:600">float64</td>
+      <td class="cell-break-lg">-13.965613674756257</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">magnetic_declination_units</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">degrees_east</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">magnetic_declination_method</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">ppigrf IGRF at deployment midpoint</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">magnetic_declination_lat</td>
+      <td class="mono cell-xs" style="font-weight:600">float64</td>
+      <td class="cell-break-lg">65.73188333333333</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">magnetic_declination_lon</td>
+      <td class="mono cell-xs" style="font-weight:600">float64</td>
+      <td class="cell-break-lg">-26.2</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">magnetic_declination_latlon_source</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">mooring YAML (latitude/longitude)</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">coordinate_system_source</td>
+      <td class="mono cell-xs">str</td>
+      <td class="cell-break-lg">rotated from XYZ by oceanarray stage3</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">tilt_suspect_threshold</td>
+      <td class="mono cell-xs" style="font-weight:600">float64</td>
+      <td class="cell-break-lg">30.0</td>
+    </tr>
+    
+    <tr>
+      <td class="mono">tilt_fail_threshold</td>
+      <td class="mono cell-xs" style="font-weight:600">float64</td>
+      <td class="cell-break-lg">50.0</td>
+    </tr>
+    
+  </tbody>
+</table>
+
 
 
 <p class="none-note">Not applicable to this instrument: Velocity, T-S diagram, Current roses, Analog channels.</p>

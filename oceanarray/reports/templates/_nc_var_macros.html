@@ -1,0 +1,32 @@
+{# Shared markup for the NetCDF inventory tables (variables and coordinates):
+   a common header row, a common data row, and the per-row attribute disclosure.
+   Used by _nc_variables.html and _nc_coords.html so both tables stay identical. #}
+
+{% macro var_thead() %}
+  <thead>
+    <tr><th>Variable</th><th>Type</th><th>Units</th><th>Standard / long name</th><th class="num">Min / Max</th><th class="num">N (valid)</th><th>Attributes</th></tr>
+  </thead>
+{% endmacro %}
+
+{% macro attr_disclosure(attrs) %}
+{%- if attrs %}<details class="attr-disclosure"><summary>{{ attrs|length }} attr{{ 's' if attrs|length != 1 else '' }}</summary>
+  <table>
+    <tbody>
+    {% for k, val in attrs.items() %}
+      <tr><td class="mono">{{ k }}</td><td>{{ val }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></details>{% endif -%}
+{% endmacro %}
+
+{% macro var_row(v) %}
+    <tr>
+      <td class="mono">{{ v.name }}{% if v.has_qc %} <span class="var-qc">(_QC)</span>{% endif %}</td>
+      <td class="mono cell-xs"{% if "float64" in v.dtype or "datetime64" in v.dtype %} style="font-weight:600"{% endif %}>{{ v.dtype }}</td>
+      <td>{{ v.units }}</td>
+      <td>{% if v.standard_name %}<strong class="mono">{{ v.standard_name }}</strong>{% endif %}{% if v.long_name %}{% if v.standard_name %}<br>{% endif %}<span class="cell-muted">{{ v.long_name }}</span>{% endif %}</td>
+      <td class="num cell-minmax">{% if v.v_min is not none %}{{ v.v_min }} / {{ v.v_max }}{% else %}&mdash;{% endif %}</td>
+      <td class="num{% if v.n_valid is defined and v.n_valid < v.n %} cell-bad{% endif %}">{{ "{:,}".format(v.n) }}{% if v.n_valid is defined and v.n_valid < v.n %} ({{ "{:,}".format(v.n_valid) }}){% endif %}</td>
+      <td>{{ attr_disclosure(v.attrs) }}</td>
+    </tr>
+{% endmacro %}

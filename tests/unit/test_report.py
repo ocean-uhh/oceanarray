@@ -263,7 +263,12 @@ class TestHtmlHelpers:
         nc = tmp_path / "test.nc"
         _write_minimal_instrument_nc(nc)
         meta = _read_nc_metadata(nc)
-        assert meta["global_attrs"].get("processing_level") == "L1"
+        # Each global attribute is stored as a {value, type} pair so the report
+        # can show the attribute's type alongside its value.
+        assert meta["global_attrs"].get("processing_level") == {
+            "value": "L1",
+            "type": "str",
+        }
 
     def test_read_nc_metadata_missing_file(self, tmp_path):
         meta = _read_nc_metadata(tmp_path / "nonexistent.nc")

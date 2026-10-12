@@ -1,0 +1,21 @@
+{# Shared NetCDF global-attributes table — the `nc_globals` panel payload
+   (kind="table"), used by the instrument, grid and stack reports.  Split into the
+   canonical attribute groups (attr_groups, built by _nc_tables.group_globals);
+   each value is a {value, type} pair so the attribute's type is shown; empty
+   groups are omitted. #}
+<h3 class="subhead-md">Global attributes</h3>
+{% for title, attrs in attr_groups %}
+<h4 class="subhead-sm">{{ title }}</h4>
+<table class="var-table">
+  <thead><tr><th>Attribute</th><th>Type</th><th>Value</th></tr></thead>
+  <tbody>
+    {% for k, v in attrs.items() %}
+    <tr>
+      <td class="mono">{{ k }}</td>
+      <td class="mono cell-xs"{% if "float64" in v.type or "datetime64" in v.type %} style="font-weight:600"{% endif %}>{{ v.type }}</td>
+      <td class="cell-break-lg">{{ v.value }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endfor %}
