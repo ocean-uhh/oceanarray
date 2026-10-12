@@ -13,6 +13,9 @@ from typing import Any
 
 _PathLike = str | Path
 
+#: Base URL of the hosted documentation, used in user-facing upgrade messages.
+DOCS_URL = "https://ocean-uhh.github.io/oceanarray/"
+
 
 class LegacyLayoutError(RuntimeError):
     """Raised when a directory uses the removed ``moor/proc`` (``basedir``) layout."""
@@ -215,7 +218,8 @@ def require_current_layout(proc_root: _PathLike, mooring: str) -> None:
             raise LegacyLayoutError(
                 f"--proc-dir points at an old-layout directory (found "
                 f"'{legacy_root / mooring}'). Use --proc-dir {legacy_root} "
-                f"instead (see MIGRATION-BASEDIR.md)."
+                "instead (see the migration guide: docs/source/migration.rst "
+                f"or {DOCS_URL}migration.html)."
             )
 
 

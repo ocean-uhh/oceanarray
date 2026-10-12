@@ -10,7 +10,7 @@ All notable changes to oceanarray are documented here.
 
 ### Added
 
-- **Serial-uniqueness validation** ([#101](https://github.com/ocean-uhh/oceanarray/pull/101)): `validate` refuses duplicate serials within a mooring, a blank serial, and the reserved names `summary`/`stack`/`grid` (which would collide the per-instrument report filenames `{mooring}_{serial}_report.html`). A trailing `*` is stripped before every check — `1234` and `1234*` on one mooring are a duplicate, a serial that is only `*` is blank — and stays a diagram-only "pay attention to this sensor" annotation, never carried into filenames or nav labels.
+- **Serial-uniqueness validation** ([#101](https://github.com/ocean-uhh/oceanarray/pull/101)): `validate` refuses duplicate serials within a mooring, a blank serial, and the reserved names `stack`/`grid` (which would collide the per-instrument report filenames `{mooring}_{serial}_report.html`). A trailing `*` is stripped before every check — `1234` and `1234*` on one mooring are a duplicate, a serial that is only `*` is blank — and stays a diagram-only "pay attention to this sensor" annotation, never carried into filenames or nav labels.
 
 ### Changed
 

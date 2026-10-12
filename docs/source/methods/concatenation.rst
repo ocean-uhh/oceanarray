@@ -6,7 +6,7 @@ into a single continuous time series on a regular time-pressure grid.
 
 Purpose
 -------
-- Interpolate individual deployment periods onto a unified pressure grid (e.g., every 20 dbar from 0–4820 dbar).
+- Interpolate individual deployment periods onto a common pressure grid (e.g., every 20 dbar from 0–4820 dbar).
 - Construct a consistent time axis (e.g., half-daily `jg` from April 1, 2004 to October 11, 2015).
 - Interpolate all segments onto this unified time grid, filling short gaps between deployments.
 - Output gridded `.mat` files for later use in AMOC transport code.

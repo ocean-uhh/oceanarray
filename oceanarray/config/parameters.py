@@ -173,6 +173,10 @@ QC_GROSS_RANGE: dict = {
         "fail_span": (0.0, 500.0),
         "suspect_span": (0.0, 450.0),
     },  # umol kg-1  (per-mass numbers differ from per-volume by ~2.5%, noise for a gross-range span)
+    "dissolved_oxygen_2": {  # second per-mass oxygen sensor — same span as dissolved_oxygen
+        "fail_span": (0.0, 500.0),
+        "suspect_span": (0.0, 450.0),
+    },  # umol kg-1
     # O2 % saturation: >200 % would indicate severe bubble entrainment or sensor fault.
     "oxygen_saturation_pct": {"fail_span": (0.0, 200.0), "suspect_span": (0.0, 150.0)},
 }
@@ -508,6 +512,15 @@ VARIABLES: dict[str, dict] = {
         "standard_name": "moles_of_oxygen_per_unit_mass_in_sea_water",
         "cmap": "RdYlGn",
     },
+    "dissolved_oxygen_2": {
+        # Second per-mass oxygen sensor (SBE ``sbeox1Mm/Kg``); same as
+        # dissolved_oxygen, registered so the units pass canonicalises it.
+        "label": "Dissolved oxygen (sensor 2)",
+        "label_units": "µmol/kg",
+        "units": "umol kg-1",
+        "standard_name": "moles_of_oxygen_per_unit_mass_in_sea_water",
+        "cmap": "RdYlGn",
+    },
     "dissolved_oxygen_ml_l": {
         "label": "Dissolved oxygen",
         "label_units": "mL/L",
@@ -613,6 +626,7 @@ VAR_COLORS: dict[str, str] = {
     "speed": "#D55E00",
     # Biogeochemistry — Paul Tol
     "dissolved_oxygen": "#332288",  # indigo
+    "dissolved_oxygen_2": "#332288",
     "dissolved_oxygen_ml_l": "#332288",
     "dissolved_oxygen_ml_l_2": "#332288",
     "oxygen_saturation_pct": "#332288",

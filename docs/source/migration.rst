@@ -18,9 +18,11 @@ Upgrading from 0.4 to 0.5
 - **``save_dataset`` / ``save_OS_instrument`` are gone.**  Call
   ``oceanarray.writers.write`` instead
   (`#99 <https://github.com/ocean-uhh/oceanarray/pull/99>`__).
-- **Time encoding is pinned** to ``seconds since 1970-01-01``.  Raw stored time
-  values move by ≤ 128 ns on rewrite; values you read back are unchanged at the
-  precision you use
+- **Time encoding is pinned** to ``seconds since 1970-01-01`` (float64).
+  Re-encoding introduces at most 0.13 µs of rounding in the decoded instants
+  (≤ 119 ns at the 2026 epoch), but the on-disk representation changes, so a
+  reader using ``decode_times=False`` / ``decode_cf=False`` sees different raw
+  units and numbers
   (`#99 <https://github.com/ocean-uhh/oceanarray/pull/99>`__).
 - **``oceanarray process`` runs stages 1–3 by default.**  Pass ``--stage 1 2``
   for the old raw→trim-only behaviour
