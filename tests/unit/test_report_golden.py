@@ -2,8 +2,8 @@
 
 Renders every report page for the ``dune2`` fixture and asserts the HTML matches
 committed golden files, after removing the parts that are not deterministic
-across machines: the ``generated`` timestamp becomes ``<GENERATED>``, the
-processing hostname is pinned to a constant during rendering, and each base64
+across machines: the ``generated`` timestamp becomes ``<GENERATED>``, the file
+"last modified" mtimes and the package version are masked, and each base64
 PNG payload becomes a fixed ``<PNG>`` placeholder (matplotlib output is not
 byte-identical across operating systems, so figure pixels cannot be compared
 cross-machine).
@@ -17,7 +17,6 @@ change re-baselines it (``REBASELINE_GOLDEN=1 pytest``) so the intended change
 import os
 import pathlib
 import re
-from unittest import mock
 
 import pytest
 
@@ -78,21 +77,16 @@ def test_safe_rel(tmp_path: pathlib.Path) -> None:
 
 @pytest.fixture(scope="module")
 def rendered_dir(tmp_path_factory) -> pathlib.Path:
-    """Render every dune2 report page once into a temp dir for the module.
-
-    ``socket.gethostname`` is pinned to a constant so the ``proc_machine`` field
-    in the footer does not vary by machine.
-    """
+    """Render every dune2 report page once into a temp dir for the module."""
     out = tmp_path_factory.mktemp("golden_render")
-    with mock.patch("socket.gethostname", return_value="TESTHOST"):
-        MooringReport(proc_dir=str(_PROC)).generate(
-            _MOORING,
-            force=True,
-            outdir=str(out),
-            instruments=True,
-            grid=True,
-            stack=True,
-        )
+    MooringReport(proc_dir=str(_PROC)).generate(
+        _MOORING,
+        force=True,
+        outdir=str(out),
+        instruments=True,
+        grid=True,
+        stack=True,
+    )
     return out
 
 

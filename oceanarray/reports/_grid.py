@@ -337,7 +337,12 @@ def _isopycnal_ts_panel(sigma_var: str) -> Panel:
                 ctx.ds, sigma_var=_sv, sigma_grid=getattr(params, "SIGMA_GRID", None)
             )
             return _make_isopycnal_ts_fig_b64(ds_iso)
-        except Exception:
+        except Exception as exc:
+            # Report stays partial, but say why instead of swallowing silently.
+            warnings.warn(
+                f"isopycnal T/S panel for {_sv} unavailable: {exc!r}",
+                stacklevel=2,
+            )
             return None
 
     caption = (
@@ -651,7 +656,6 @@ def generate_grid_page(
             grid_dt_s=grid_dt_s,
             grid_dp=grid_dp,
             generated=ctx["generated"],
-            proc_machine=ctx.get("proc_machine", ""),
         )
         out_path.write_text(html, encoding="utf-8")
         _status("file", _safe_rel(out_path, display_root))

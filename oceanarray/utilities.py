@@ -531,7 +531,7 @@ def find_best_dtype(var_name: str, da: xr.DataArray) -> type:
     -----
     Rules applied in order:
 
-    - String / datetime / object variables: unchanged.
+    - String / datetime / timedelta / object variables: unchanged.
     - ``time`` in name: unchanged (preserve datetime64 / float encoding).
     - ``*_qc`` suffix or ``flag`` in name: ``int8``.
     - ``serial_number`` or ``serial``: ``int32``.
@@ -542,7 +542,7 @@ def find_best_dtype(var_name: str, da: xr.DataArray) -> type:
 
     """
     input_dtype = da.dtype.type
-    if da.dtype.kind in ("U", "S", "O", "M"):
+    if da.dtype.kind in ("U", "S", "O", "M", "m"):
         return input_dtype
     if "time" in var_name.lower():
         return input_dtype

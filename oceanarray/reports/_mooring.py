@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import contextlib
-import socket
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -851,7 +850,6 @@ class MooringReport:
                 array_href=_find_array_report_href(out_dir),
             ),
             "generated": datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
-            "proc_machine": socket.gethostname().split(".")[0],
             "yaml_path": self._rel(yaml_path),
             "diagram_b64": _load_pdf_b64(_resolve_diagram_pdf(proc_dir, mooring_name)),
             "issues": _build_issues(instruments, recover_dt),

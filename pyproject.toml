@@ -72,6 +72,7 @@ test = [
 docs = [
   "sphinx>=7.2",
   "sphinx-rtd-theme>=2.0",
+  "sphinx-argparse>=0.4",   # CLI reference generated from cli.build_parser()
   "myst-nb>=1.0",
   "nbsphinx>=0.9",
   "pypandoc>=1.11",

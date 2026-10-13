@@ -21,7 +21,7 @@
    render in parentheses, "(1) Files"; the "Jump to: " label comes from the
    .jump-nav::before CSS, so it is NOT written here (writing it duplicated the
    label).  `na_scope` is the noun for the not-applicable line ("deployment" /
-   "instrument"); `generated`/`proc_machine` are passed in because macros do not
+   "instrument"); `generated` is passed in because macros do not
    see the calling template's context. #}
 {% macro report_body(report, na_scope, generated, cruise, yaml_path="") %}
 <nav class="jump-nav">

@@ -9,6 +9,8 @@
 
 Python tools for processing moored oceanographic array observations from raw instrument files to quality-controlled, CF-compliant NetCDF.
 
+It covers a single mooring's instruments — stages 1–3, stacking, and pressure gridding, each documented in an HTML report. Deriving calibration-dip offsets is handled by `caldip`, and shipboard CTD processing by `ctdcast`.
+
 **Documentation**: https://ocean-uhh.github.io/oceanarray/
 
 ## Installation

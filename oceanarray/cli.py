@@ -1223,8 +1223,9 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         default=False,
         help="Combine the generated HTML report pages into a single A4 PDF "
-        "({mooring}_report.pdf).  Requires the 'pdf' extra: pip install "
-        "oceanarray[pdf].  Implied by --all.",
+        "({mooring}_report.pdf), in reading order summary → instruments → stack "
+        "→ grid.  Requires the 'pdf' extra: pip install oceanarray[pdf].  "
+        "Implied by --all.",
     )
     p_report.add_argument(
         "--pdf-dir",
@@ -1240,9 +1241,9 @@ def build_parser() -> argparse.ArgumentParser:
         "--array",
         action="store_true",
         default=False,
-        help="Treat the positional argument as a *.array.yaml path and generate an "
-        "array-level HTML index linking all mooring reports.  --report-dir is the "
-        "output root for the index.",
+        help="Treat the positional argument as an array YAML path (name ending "
+        ".array.yaml) and generate an array-level HTML index linking all mooring "
+        "reports.  --report-dir is the output root for the index.",
     )
     p_report.add_argument(
         "--cruise-table",
