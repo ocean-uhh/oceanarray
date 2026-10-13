@@ -1091,7 +1091,6 @@ def generate_stack_page(
             longitude=ctx.get("longitude", "—"),
             nc_file=stack_path.name,
             generated=ctx["generated"],
-            proc_machine=ctx.get("proc_machine", ""),
         )
         out_path.write_text(html, encoding="utf-8")
         _status("file", _safe_rel(out_path, display_root))

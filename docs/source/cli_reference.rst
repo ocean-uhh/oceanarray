@@ -16,6 +16,9 @@ argument.  The mooring name is used to locate the YAML file at
 Without ``--force``, every subcommand skips any output file that already
 exists.  Add ``--force`` to overwrite.
 
+The flag lists below are generated from the argument parser
+(:func:`oceanarray.cli.build_parser`), so they cannot drift from the code.
+
 ----
 
 ``oceanarray validate``
@@ -26,11 +29,12 @@ unrecognised values, and structural errors.  Does not require ``--raw-dir``
 or ``--proc-dir``.  Run this before any processing to catch typos in
 ``file_type``, missing ``hab``, or malformed serial numbers.
 
-**Synopsis**
-
-.. code-block:: text
-
-   oceanarray validate YAML [YAML ...]
+.. argparse::
+   :module: oceanarray.cli
+   :func: build_parser
+   :prog: oceanarray
+   :path: validate
+   :nodescription:
 
 **Example**
 
@@ -51,27 +55,12 @@ mandatory metadata and one example entry per instrument type.  Edit the file
 to fill in real values and delete unused instrument blocks.  Typically run
 once, before ``oceanarray validate``.
 
-**Synopsis**
-
-.. code-block:: text
-
-   oceanarray init MOORING --proc-dir DIR
-
-**Flags**
-
-.. list-table::
-   :header-rows: 1
-   :widths: 25 10 15 50
-
-   * - Flag
-     - Type
-     - Default
-     - Description
-   * - ``--proc-dir DIR``
-     - path
-     - (required)
-     - Cruise-level processed data directory.  The stub is written to
-       ``{proc_dir}/{mooring}/{mooring}.mooring.yaml``.
+.. argparse::
+   :module: oceanarray.cli
+   :func: build_parser
+   :prog: oceanarray
+   :path: init
+   :nodescription:
 
 **Example**
 
@@ -98,77 +87,12 @@ The recommended sequence for a new mooring is:
 3. ``--stage 3``: apply QC and velocity rotation once stages 1 and 2 are
    confirmed.
 
-**Synopsis**
-
-.. code-block:: text
-
-   oceanarray process MOORING [--raw-dir DIR] [--proc-dir DIR]
-                              [--stage {1,2,3,stack,grid} ...]
-                              [--dt SECONDS] [--dp DBAR]
-                              [--pmin DBAR] [--pmax DBAR]
-                              [--plot] [--report]
-                              [--serial SN ...] [--force] [-n]
-
-**Flags**
-
-.. list-table::
-   :header-rows: 1
-   :widths: 25 10 15 50
-
-   * - Flag
-     - Type
-     - Default
-     - Description
-   * - ``--raw-dir DIR``
-     - path
-     - (required for stage 1)
-     - Cruise-level raw data directory.
-   * - ``--proc-dir DIR``
-     - path
-     - (required)
-     - Cruise-level processed data directory.
-   * - ``--stage``
-     - (repeat)
-     - ``1 2``
-     - Which stage(s) to run.  Accepts ``1``, ``2``, ``3``, ``stack``, and
-       ``grid`` in any combination: ``--stage 1 2 3 stack grid``.
-   * - ``--dt SECONDS``
-     - integer
-     - 60
-     - Stack time-grid interval in seconds (used when ``stack`` is in ``--stage``).
-   * - ``--dp DBAR``
-     - number
-     - 20
-     - Pressure grid spacing in dbar (used when ``grid`` is in ``--stage``).
-   * - ``--pmin DBAR``
-     - number
-     - 200
-     - Shallowest pressure level for grid (dbar).
-   * - ``--pmax DBAR``
-     - number
-     - 1000
-     - Deepest pressure level for grid (dbar).
-   * - ``--plot``
-     - flag
-     - off
-     - Generate plots of processed microcat data after stage 2.
-   * - ``--report``
-     - flag
-     - off
-     - Print a summary of processed records per instrument and serial number.
-   * - ``--serial SN``
-     - string (repeat)
-     - (all)
-     - Restrict to specific serial number(s).  Useful for iterating on one
-       instrument without reprocessing the whole mooring.
-   * - ``--force``
-     - flag
-     - off
-     - Overwrite existing output files.
-   * - ``-n``
-     - flag
-     - off
-     - Dry run: show what would be done without writing any files.
+.. argparse::
+   :module: oceanarray.cli
+   :func: build_parser
+   :prog: oceanarray
+   :path: process
+   :nodescription:
 
 **Stage descriptions**
 
@@ -233,113 +157,12 @@ Generate HTML reports for a mooring.  Without any report-type flags,
 generates only the mooring summary page.  See :doc:`reports` for a
 description of what each report page contains.
 
-**Synopsis**
-
-.. code-block:: text
-
-   oceanarray report MOORING [--raw-dir DIR] [--proc-dir DIR]
-                             [-o DIR] [--report-dir DIR]
-                             [--instruments] [--stack] [--grid] [--all]
-                             [--pdf] [--pdf-dir DIR] [--serial SN ...] [--array]
-                             [--cruise-table] [--sig-level SIG ...]
-                             [-n] [--force] [--skip-existing]
-
-**Flags**
-
-.. list-table::
-   :header-rows: 1
-   :widths: 25 10 10 55
-
-   * - Flag
-     - Type
-     - Default
-     - Description
-   * - ``--raw-dir DIR``
-     - path
-     - (optional)
-     - Cruise-level raw data directory (required only for stage 1; not needed
-       for report generation).
-   * - ``--proc-dir DIR``
-     - path
-     - (required)
-     - Cruise-level processed data directory.
-   * - ``-o DIR``
-     - path
-     - ``{proc_dir}/{mooring}/report/``
-     - Override the output directory for HTML files.
-   * - ``--report-dir DIR``
-     - path
-     - (none)
-     - Central directory for all mooring reports.  Each mooring's pages are
-       written to ``DIR/{mooring}/`` instead of ``proc/{mooring}/report/``,
-       making the whole report tree portable.  Also used as the output root
-       for ``--array``.
-   * - ``--instruments``
-     - flag
-     - off
-     - Generate per-instrument report pages (one per instrument in the YAML).
-   * - ``--stack``
-     - flag
-     - off
-     - Generate the stack report (requires ``_stack.nc``).
-   * - ``--grid``
-     - flag
-     - off
-     - Generate the grid report (requires ``_grid.nc``).
-   * - ``--all`` / ``-A``
-     - flag
-     - off
-     - Generate all report pages and the combined PDF.  Equivalent to
-       ``--stack --grid --instruments --pdf``.
-   * - ``--pdf``
-     - flag
-     - off
-     - Combine the generated HTML report pages into a single A4 PDF
-       (``{mooring}_report.pdf``), in reading order
-       summary → instruments → stack → grid.  Requires the optional ``pdf``
-       extra (``pip install oceanarray[pdf]``, which installs WeasyPrint).
-       Implied by ``--all``.
-   * - ``--pdf-dir DIR``
-     - path
-     - (beside HTML)
-     - Write the combined PDF to ``DIR/{mooring}_report.pdf`` instead of beside
-       the HTML pages, so every mooring's PDF collects in one shareable
-       directory (created if needed).  Only affects PDF placement; still needs
-       ``--pdf`` or ``--all`` to build the PDF at all.
-   * - ``--serial SN``
-     - string (repeat)
-     - (all)
-     - Restrict per-instrument pages to specific serial numbers (implies
-       ``--instruments`` for those serials).
-   * - ``--array``
-     - flag
-     - off
-     - Treat the positional argument as a ``*.array.yaml`` path and generate
-       an array-level HTML index linking all mooring reports.
-   * - ``--cruise-table``
-     - flag
-     - off
-     - Generate a standalone, print-optimised HTML recovery table for use in
-       cruise reports (``{mooring}_recovery_table.html``).
-   * - ``--sig-level SIG``
-     - float (repeat)
-     - ``27.7``
-     - σ₀ target values (kg m⁻³, referenced to 0 dbar) for isopycnal
-       height-above-seabed tracking in the grid report.  Pass one or more
-       values: ``--sig-level 27.5 27.7 27.9``.
-   * - ``-n`` / ``--dry-run``
-     - flag
-     - off
-     - Show which report files would be generated without writing any.
-   * - ``--force``
-     - flag
-     - off
-     - Regenerate reports even if HTML files already exist.
-   * - ``--skip-existing``
-     - flag
-     - off
-     - Skip any output file that already exists, regardless of source mtime
-       (legacy behaviour; ``--force`` is the opposite and always regenerates).
+.. argparse::
+   :module: oceanarray.cli
+   :func: build_parser
+   :prog: oceanarray
+   :path: report
+   :nodescription:
 
 **Output created**
 
@@ -388,74 +211,12 @@ files and that the ``deployment_time`` / ``recovery_time`` values in the
 YAML produce the correct trim (verified with ``oceanarray process --stage 2``
 and a quick report inspection).
 
-**Synopsis**
-
-.. code-block:: text
-
-   oceanarray run MOORING [--raw-dir DIR] [--proc-dir DIR]
-                          [--dt SECONDS] [--dp DBAR]
-                          [--pmin DBAR] [--pmax DBAR]
-                          [--serial SN ...] [--force]
-                          [-o DIR] [--report-dir DIR] [--sig-level SIG ...]
-
-**Flags**
-
-.. list-table::
-   :header-rows: 1
-   :widths: 25 10 15 50
-
-   * - Flag
-     - Type
-     - Default
-     - Description
-   * - ``--raw-dir DIR``
-     - path
-     - (required)
-     - Cruise-level raw data directory.
-   * - ``--proc-dir DIR``
-     - path
-     - (required)
-     - Cruise-level processed data directory.
-   * - ``--dt SECONDS``
-     - integer
-     - 60
-     - Time step for the stack output (seconds).
-   * - ``--dp DBAR``
-     - number
-     - 20
-     - Pressure step for the grid output (dbar).
-   * - ``--pmin DBAR``
-     - number
-     - 200
-     - Shallowest pressure level in the grid (dbar).
-   * - ``--pmax DBAR``
-     - number
-     - 1000
-     - Deepest pressure level in the grid (dbar).
-   * - ``--serial SN``
-     - string (repeat)
-     - (all)
-     - Restrict processing and per-instrument reports to these serial numbers.
-   * - ``--force``
-     - flag
-     - off
-     - Overwrite existing output files at every stage.
-   * - ``-o DIR`` / ``--output-dir DIR``
-     - path
-     - ``{proc_dir}/{mooring}/report/``
-     - Directory for the HTML report.
-   * - ``--report-dir DIR``
-     - path
-     - (none)
-     - Central directory for all mooring reports.  Each mooring's pages are
-       written to ``DIR/{mooring}/`` instead of ``proc/{mooring}/report/``,
-       making the whole report tree portable.
-   * - ``--sig-level SIG``
-     - float (repeat)
-     - ``27.7``
-     - σ₀ target values (kg m⁻³, referenced to 0 dbar) for isopycnal
-       height-above-seabed tracking in the grid report.  Pass one or more
-       values; they are sorted before use: ``--sig-level 27.5 27.7 27.9``.
+.. argparse::
+   :module: oceanarray.cli
+   :func: build_parser
+   :prog: oceanarray
+   :path: run
+   :nodescription:
 
 **Output created**
 
@@ -481,14 +242,12 @@ recognised.
 
 Does not require a mooring name, ``--raw-dir``, or ``--proc-dir``.
 
-**Synopsis**
-
-.. code-block:: text
-
-   oceanarray list [{instruments,file-types}]
-
-The optional positional filter restricts the output: pass ``instruments`` or
-``file-types`` to show only that table (default: show both).
+.. argparse::
+   :module: oceanarray.cli
+   :func: build_parser
+   :prog: oceanarray
+   :path: list
+   :nodescription:
 
 **Example**
 
@@ -510,62 +269,12 @@ style, variable names, and flag set may change in a future release.
 
 Show an interactive overview plot of processed data, or save it to a file.
 
-**Synopsis**
-
-.. code-block:: text
-
-   oceanarray plot MOORING [--proc-dir DIR] [--var_y VAR]
-                           [--var_color VAR] [--colormap CM]
-                           [--markersize PTS2] [--downsample SEC]
-                           [--output FILE] [-o DIR] [--show]
-
-**Flags**
-
-.. list-table::
-   :header-rows: 1
-   :widths: 25 10 15 50
-
-   * - Flag
-     - Type
-     - Default
-     - Description
-   * - ``--proc-dir DIR``
-     - path
-     - (required)
-     - Cruise-level processed data directory.
-   * - ``--var_y VAR``
-     - string
-     - ``temperature``
-     - Variable to plot on the y-axis.
-   * - ``--var_color VAR``
-     - string
-     - (none; line plot)
-     - Variable for scatter colour; omit for a line plot.
-   * - ``--colormap CM``
-     - string
-     - ``RdBu_r``
-     - Matplotlib colormap name.
-   * - ``--markersize PTS2``
-     - number
-     - 4
-     - Scatter marker size in points².  Only used in scatter mode.
-   * - ``--downsample SEC``
-     - integer
-     - 120
-     - Resample data to this interval in seconds before plotting.
-   * - ``--output FILE``
-     - path
-     - (none)
-     - Base filename for the saved figure (e.g. ``overview.png``); combined
-       with ``--output-dir`` if given.
-   * - ``-o DIR`` / ``--output-dir DIR``
-     - path
-     - (mooring proc dir)
-     - Directory in which to save the output file.
-   * - ``--show``
-     - flag
-     - off
-     - Display the figure interactively (works alongside ``--output``).
+.. argparse::
+   :module: oceanarray.cli
+   :func: build_parser
+   :prog: oceanarray
+   :path: plot
+   :nodescription:
 
 **Example**
 
@@ -583,67 +292,12 @@ over time) for Aquadopp or ADCP instruments.  Requires ``east_velocity``
 and ``north_velocity`` in the stage 3 output.  The ``Pillow`` library must
 be installed for GIF output.
 
-**Synopsis**
-
-.. code-block:: text
-
-   oceanarray animate MOORING [--proc-dir DIR] [--serial SN ...]
-                              [-o FILE] [--u-var VAR] [--v-var VAR]
-                              [--lp-days DAYS] [--smooth-hours HOURS]
-                              [--frame-hours HOURS] [--fps FPS] [--dpi DPI]
-
-**Flags**
-
-.. list-table::
-   :header-rows: 1
-   :widths: 25 10 15 50
-
-   * - Flag
-     - Type
-     - Default
-     - Description
-   * - ``--proc-dir DIR``
-     - path
-     - (required)
-     - Cruise-level processed data directory.
-   * - ``--serial SN``
-     - string (repeat)
-     - (all)
-     - Restrict to specific instrument serial number(s).
-   * - ``-o FILE`` / ``--output FILE``
-     - path
-     - (auto)
-     - Output GIF path (only used when a single ``--serial`` is given; default:
-       ``{stem}_hodograph.gif`` next to the NC file).
-   * - ``--u-var VAR``
-     - string
-     - ``east_velocity``
-     - Variable name for the eastward velocity component.
-   * - ``--v-var VAR``
-     - string
-     - ``north_velocity``
-     - Variable name for the northward velocity component.
-   * - ``--lp-days DAYS``
-     - number
-     - 4.0
-     - Low-pass window for eddy-component removal, in days.
-   * - ``--smooth-hours HOURS``
-     - number
-     - 3.0
-     - Tukey smoothing window in hours applied to both panels.
-   * - ``--frame-hours HOURS``
-     - number
-     - 6.0
-     - Time step between frames in hours (one frame per quarter-day of
-       deployment).
-   * - ``--fps FPS``
-     - integer
-     - 20
-     - Frames per second in the output GIF.
-   * - ``--dpi DPI``
-     - integer
-     - 100
-     - Resolution of each frame in dots per inch.
+.. argparse::
+   :module: oceanarray.cli
+   :func: build_parser
+   :prog: oceanarray
+   :path: animate
+   :nodescription:
 
 **Example**
 

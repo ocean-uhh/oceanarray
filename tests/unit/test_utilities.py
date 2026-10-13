@@ -389,6 +389,18 @@ def test_format_latlon_hemisphere_from_sign():
     assert lon_s == "42.0° E"
 
 
+def test_find_best_dtype_timedelta_passthrough_beats_name_rules():
+    """A timedelta64 variable is preserved even when its name would force a cast.
+
+    The dtype-kind passthrough (kind ``"m"``) must take precedence over the
+    name-based rules: ``serial`` would otherwise cast to ``int32`` and ``*_qc``
+    to ``int8``, silently corrupting a duration variable.
+    """
+    td = xr.DataArray(np.array([1, 2, 3], dtype="timedelta64[ns]"), dims="time")
+    assert utilities.find_best_dtype("serial", td) is np.timedelta64
+    assert utilities.find_best_dtype("gap_qc", td) is np.timedelta64
+
+
 def test_parse_latlon_with_source_unknown_when_absent():
     """An empty config yields (0, 0) tagged as an unknown source."""
     lat, lon, source = utilities.parse_latlon_with_source({})

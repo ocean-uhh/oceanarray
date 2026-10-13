@@ -79,7 +79,21 @@ For all other bugs:
 - Why it would be useful to other users (not just your specific cruise).
 - Whether you are willing to implement it yourself.
 
-Keep in mind that oceanarray is designed for reproducible processing of moored array data. Features that require cruise-specific raw data, add heavy new dependencies, or break the CF-NetCDF output contract are unlikely to be merged.
+### Scope
+
+oceanarray **processes moored-array observations**: raw instrument files from a mooring (MicroCATs, RBRs, Nortek and RDI current meters and ADCPs, SBE 16/56, Seapoint, …) → CF-NetCDF at each stage — stage 1 (raw → NetCDF), stage 2 (deployment window, clock), stage 3 (QC, velocity rotation, calibration-dip offsets applied) — then a stack on a common time axis and a grid on pressure levels, each step documented in an HTML report. The OceanSITES export of the stacked and gridded products is the next in-scope step.
+
+**Fixed — not open to variation:** the output contract. Variable names, CF standard names and the canonical unit spellings come from one registry (`config/parameters.py`) and are the same in every file the package writes; QC flags follow the QARTOD/OceanSITES vocabulary; every processing parameter is recorded in the output's attributes so a file can be reprocessed from itself. Contributions that change these change every user's files, and are discussed first, as an issue.
+
+**Open — alternative methods welcome, as selectable options with the default unchanged:**
+
+- **Gridding.** The grid step is where the method choices are made — today linear interpolation in pressure onto a fixed `dp` grid, with σ₀ targets for isopycnal products. Alternatives: a **PCHIP spline**; the **RAPID climatological-gradient interpolation** (`tools/rapid_interp.py`, written but **not yet integrated** into `grid.py`); and bounds handling above the shallowest instrument — **extrapolate to the surface**, clip, or mask. All welcome as named methods the user picks in the config, each recording its name and parameters in the output.
+- **Corrections to individual instruments.** How calibration-dip offsets and other per-instrument corrections (drift, pressure-sensor offset) are applied in stage 3 — constant, linear in time, pre/post weighted — is a method choice; the *derivation* of caldip offsets stays in `caldip`, oceanarray applies its output.
+- **QC tests.** New QARTOD-style tests or thresholds, as long as the flags land in the existing `_qc` companions with their thresholds recorded.
+- **Diagnostic figures and report panels.** New figures are welcome, and the report is meant to let a user choose their own selection of panels per page (a config-driven profile); contributions that make that selection easier are in scope.
+- **Readers.** Instrument readers live in `seasenselib`; oceanarray's stage 1 dispatches on the file type (`config/parameters.INSTRUMENT_FILE_TYPES`) and keeps only a small set of its own legacy readers (`tools/readers.py`: RODB and the old Nortek CSV). A reader for an instrument `seasenselib` does not cover is welcome — but write it in `seasenselib` first and add the file type here; a reader that only oceanarray would ever use can live in `tools/readers.py`. (Where exactly that line is drawn is not written down yet — ask.)
+
+**Out of scope, because a sibling owns it:** shipboard CTD processing (`ctdcast`); deriving calibration-dip offsets (`caldip`); glider data (`glidertest`, `seagliderOG1`); transport and AMOC estimates from the gridded products (`AMOCatlas`); general-purpose plotting. Also out: features that need cruise-specific raw data in the repository, heavy new dependencies, or that break the CF-NetCDF contract. If you are unsure whether an idea fits, open an issue describing it rather than deciding alone.
 
 ---
 
@@ -89,10 +103,10 @@ Keep in mind that oceanarray is designed for reproducible processing of moored a
 
 | Layer | Modules | Role |
 |-------|---------|------|
-| Tier 1 | `tools/`, `utilities.py` | Pure functions, no side effects |
+| Tier 1 | `tools/`, `writers/`, `utilities.py`, `inspect.py` | Low-level I/O and pure functions — raw-file readers, the single netCDF writer, dataset inspection |
 | Tier 2 | `processors/stage1.py` … `processors/grid.py` | Processing orchestrators — read, transform, write CF-NetCDF |
 | Tier 3 | `cli.py` | Entry point — argument parsing, subcommand dispatch |
-| — | `plotters/`, `report/` | Visualisation and HTML report generation |
+| — | `plotters/`, `reports/` | Visualisation and HTML report generation |
 | — | `analysis/` | Science utilities (filtering, isopycnals, QC) |
 | — | `config/` | Parameters, variable registry, YAML validation |
 
@@ -117,7 +131,7 @@ PDF report output (WeasyPrint, which needs native pango/cairo libraries), use
 
 1. Fork the repository and create a feature branch from `main`.
 2. Make your changes, following the conventions below.
-3. Run `ruff check . --fix` and then `pytest` — all tests must pass.
+3. Run `ruff check . --fix` and `ruff format .`, then `pytest` — all tests must pass. (`ruff format` owns line wrapping, which is why `E501` is ignored in `pyproject.toml`.)
 4. Open a pull request against `main`. Prefix the title with a bracket tag: `[FEAT]`, `[FIX]`, `[REFACTOR]`, `[DOC]`, `[TEST]`, `[CI]`, or `[CLEANUP]`. (PR titles use bracket tags; individual **commit messages** use conventional-commit prefixes — see below.)
 
 Keep each pull request to one logical change. A rename PR that also fixes a bug is a PR nobody can review — split them. (This matters most once more than one person is working on the code.)
@@ -135,8 +149,8 @@ Co-authored-by: Name <email@example.com>
 - **Docstrings**: NumPy style on every public function and class. Include `Parameters`, `Returns`, and `Raises` sections. Period at the end.
 - **Type annotations**: all public function arguments and return values.
 - **Lint**: `ruff check .` must be clean. No bare `except:`. No suppressed warnings without a comment explaining why.
-- **Units**: never strip or assume units. Use `gsw` for all seawater property calculations.
-- **Plot style**: discrete colorbars (`BoundaryNorm`, ≤ 20 levels); call `plt.style.use(str(P.MPLSTYLE))` at the start of every plot function.
+- **Units**: every registered variable carries the registry's canonical spelling (`config/parameters.VARIABLES[var]["units"]`), and that spelling is identical in every file the package writes. The pipeline rewrites known spellings through `UNIT_ALIASES` and refuses unknown ones. A new spelling is added to the registry **with evidence** — a reader that emits it — never from memory, and a mass↔volume conversion is never a scalar alias. Use `gsw` for all seawater property calculations.
+- **Plot style**: discrete colorbars (`BoundaryNorm`, ≤ 20 levels). Report figures are styled at one choke point — `reports/_encode.render_b64` applies the vendored `report.mplstyle` and `reports/_slots.render` draws each figure at its slot width — so a report plotter does not call `plt.style.use` itself.
 - **Data provenance**: store all processing parameters (thresholds, coefficients) in NC output attributes so any file can be reprocessed exactly from itself.
 - **No silent defaults**: never substitute a default, guess, or approximation when the correct value cannot be determined. Raise, or warn loudly and record what was assumed in the output's metadata. A plausible wrong number is worse than an error, because nothing downstream can detect it.
 
@@ -150,7 +164,9 @@ pytest tests/unit -m "not slow and not needs_seasenselib"  # without seasenselib
 pytest --cov=oceanarray --cov-report=term-missing -q  # with coverage
 ```
 
-New or changed code must have a test. For anything numerical, assert a **value** you can justify independently of the code — `pytest.approx` or `numpy.testing.assert_allclose` against an analytic case, an invariant that must hold for any input, or a cross-check against `gsw` or another implementation — rather than a value produced by running the code (which proves only that the code has not changed). Do not add tests that pass when nothing happened: `assert result is not None` on a function that returns `None` on failure is the shape to avoid. Integration tests use committed NetCDF fixtures in `tests/fixtures/`.
+New or changed code must have a test. For anything numerical, assert a **value** you can justify independently of the code — `pytest.approx` or `numpy.testing.assert_allclose` against an analytic case, an invariant that must hold for any input, or a cross-check against `gsw` or another implementation — rather than a value produced by running the code (which proves only that the code has not changed). Do not add tests that pass when nothing happened: `assert result is not None` on a function that returns `None` on failure is the shape to avoid.
+
+Fixtures are **real instrument data** — the committed `dune2` raw/proc set in `tests/fixtures/`, trimmed down — not synthetic mocks; a new reader path gets a small real file. Report HTML is **golden-tested** (`tests/fixtures/golden/`, rendered and compared by `tests/unit/test_report_golden.py`): a change to the rendered output is re-baselined (`REBASELINE_GOLDEN=1 pytest`) only after a before/after look, never silently, so the intended change *is* the reviewable diff.
 
 ---
 

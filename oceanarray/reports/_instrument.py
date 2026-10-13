@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import socket
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
@@ -393,7 +392,6 @@ def generate_instrument_pages(
     """
     mooring_report_link = f"../{mooring_name}_report.html"
     generated = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
-    proc_machine = socket.gethostname().split(".")[0]
     stack_exists = (proc_dir / f"{mooring_name}_stack.nc").exists()
     grid_exists = (proc_dir / f"{mooring_name}_grid.nc").exists()
     _d = cfg.get("deployment_cruise") or cfg.get("cruise", "—")
@@ -541,7 +539,6 @@ def generate_instrument_pages(
                 array_href=_find_array_report_href(out_dir, in_instrument_subdir=True),
             ),
             "generated": generated,
-            "proc_machine": proc_machine,
             "history_entries": history_entries,
             "fig_ts_b64": (
                 _make_instrument_fig(best_nc, instr_type) if best_nc else None
