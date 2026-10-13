@@ -103,7 +103,7 @@ oceanarray **processes moored-array observations**: raw instrument files from a 
 
 | Layer | Modules | Role |
 |-------|---------|------|
-| Tier 1 | `tools/`, `writers/`, `utilities.py`, `inspect.py` | Low-level I/O and pure functions, no side effects — raw-file readers, the single netCDF writer, dataset inspection |
+| Tier 1 | `tools/`, `writers/`, `utilities.py`, `inspect.py` | Low-level I/O and pure functions — raw-file readers, the single netCDF writer, dataset inspection |
 | Tier 2 | `processors/stage1.py` … `processors/grid.py` | Processing orchestrators — read, transform, write CF-NetCDF |
 | Tier 3 | `cli.py` | Entry point — argument parsing, subcommand dispatch |
 | — | `plotters/`, `reports/` | Visualisation and HTML report generation |

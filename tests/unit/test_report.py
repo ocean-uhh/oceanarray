@@ -666,3 +666,20 @@ class TestPageGenerators:
             encoding="utf-8"
         )
         assert "TEST_M1" in html
+
+
+def test_isopycnal_panel_warns_and_stubs_on_failure(monkeypatch):
+    """A failure inside the isopycnal renderer warns, naming the sigma variable,
+    and returns None (the stub path) instead of swallowing the exception.
+    """
+    import oceanarray.tools as tools
+    from oceanarray.reports import _grid
+
+    def _boom(*_args, **_kwargs):
+        raise ValueError("sigma computation failed")
+
+    monkeypatch.setattr(tools, "isopycnal_dataset", _boom)
+    panel = _grid._isopycnal_ts_panel("sigma0")
+    ctx = type("Ctx", (), {"ds": None})()
+    with pytest.warns(UserWarning, match="sigma0"):
+        assert panel.render(ctx) is None
