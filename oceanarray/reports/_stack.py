@@ -11,8 +11,6 @@ from typing import Any
 
 import numpy as np
 
-from oceanarray.config import report_tokens
-
 from .. import parameters as params
 from ..plotters.helpers import grid_despine, ordered_line_colors
 from ..plotters.primitives import date_offset_left, plot_title
@@ -37,7 +35,6 @@ from ._html_helpers import (
     _should_skip,
     _status,
 )
-from ._manifest import Panel, Profile, Section, resolve
 from ._navs import mooring_nav
 from ._plots import (
     _make_adcp_trajectories_b64,
@@ -50,6 +47,8 @@ from ._plots import (
     render_b64,
 )
 from ._slots import render as render_slot
+from ._vendored import design_tokens as report_tokens
+from ._vendored.page_model import Panel, Profile, Section, resolve
 
 # ---------------------------------------------------------------------------
 # Aquadopp tilt helper (was @staticmethod on MooringReport)

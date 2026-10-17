@@ -17,7 +17,6 @@ from typing import Any
 import numpy as np
 import yaml
 
-from ..config import report_tokens
 from ..plotters.helpers import grid_despine
 from ._env import render_template
 from ._html_helpers import (
@@ -29,6 +28,7 @@ from ._html_helpers import (
     _status,
 )
 from ._plots import render_b64
+from ._vendored import design_tokens as report_tokens
 
 # ---------------------------------------------------------------------------
 # Lat/lon parsing

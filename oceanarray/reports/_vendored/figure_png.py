@@ -2,7 +2,7 @@
 
 This module is written to be **vendored** across the packages that share the
 report design system.  It is package-neutral — it references shared values only
-through ``..config.report_tokens`` (textually identical in each package) and
+through the sibling ``design_tokens`` module (textually identical in each package) and
 names no package — so the copies can be frozen and checked later; for now this
 document and convention are the shared reference (no cross-repo hash test yet).
 
@@ -22,8 +22,8 @@ from typing import Any
 import matplotlib.pyplot as plt
 from PIL import Image
 
-from ..config import report_tokens as _tok
-from ..config.report_tokens import FIG_DPI, MPLSTYLE_PATH, PNG_PALETTE_COLORS
+from . import design_tokens as _dt
+from .design_tokens import FIG_DPI, MPLSTYLE_PATH, PNG_PALETTE_COLORS
 
 
 def _manages_own_layout(fig: Any) -> bool:
@@ -80,12 +80,56 @@ def _fig_to_base64(fig: Any, *, bbox_inches: str | None = None) -> str:
     return base64.b64encode(out.getvalue()).decode("ascii")
 
 
+#: Base64 PNG -> source caption (``"<module-path>.py:<name>"`` of the draw function).
+#: Populated by :func:`render_b64`, read by a report template via :func:`source_of`.
+_SOURCE: dict[str, str] = {}
+
+
+def source_for(draw: Callable[..., Any]) -> str:
+    """Return ``"<module-path>.py:<name>"`` for a draw callable, closures collapsed.
+
+    ``__module__`` becomes a slash path (``pkg.plotters.plots`` ->
+    ``pkg/plotters/plots.py``); the name is ``__qualname__`` with any ``.<locals>.``
+    closure prefix dropped, so an inner wrapper reports its enclosing
+    ``_make_*`` / ``draw_*`` name rather than the closure's.
+    """
+    module = getattr(draw, "__module__", "") or ""
+    name = getattr(draw, "__qualname__", None) or getattr(draw, "__name__", "draw")
+    if ".<locals>." in name:
+        name = name.split(".<locals>.")[0]
+    name = name.rsplit(".", 1)[-1]
+    path = f"{module.replace('.', '/')}.py" if module else "?"
+    return f"{path}:{name}"
+
+
+def source_of(b64: str | None) -> str | None:
+    """Return the recorded source caption for a rendered PNG, or ``None``."""
+    return _SOURCE.get(b64) if b64 else None
+
+
+def record_source(b64: str | None, source: str) -> None:
+    """Record *source* as the caption for a PNG built outside :func:`render_b64`.
+
+    For a maker with a custom encode path (one that calls the figure-to-base64
+    step itself, bypassing :func:`render_b64`) so its figure still carries a
+    ``source:`` line.  Derive *source* with :func:`source_for`.
+    """
+    if b64:
+        _SOURCE[b64] = source
+
+
+def clear_sources() -> None:
+    """Reset the base64 -> source registry — call at the start of each report build."""
+    _SOURCE.clear()
+
+
 def render_b64(
     draw: Callable[..., Any],
     /,
     *args: Any,
     optional: bool = False,
     on_error: Callable[[BaseException], None] | None = None,
+    source: str | None = None,
     **kwargs: Any,
 ) -> str | None:
     """Run *draw* under the report mplstyle and return a base64 PNG, or None.
@@ -100,11 +144,11 @@ def render_b64(
     optional : bool
         ``True`` when this panel is legitimately absent for some inputs (no
         secondary sensor fitted, a biogeochemical variable not measured).  When
-        ``False`` (default) and :data:`report_tokens.RAISE_ON_PLOT_ERROR` is set,
+        ``False`` (default) and :data:`design_tokens.RAISE_ON_PLOT_ERROR` is set,
         a ``None`` return raises so tests catch silently dropped required panels.
     on_error : callable or None
         Called with the caught exception when *draw* raises and
-        :data:`report_tokens.RAISE_ON_PLOT_ERROR` is unset — before the warning —
+        :data:`design_tokens.RAISE_ON_PLOT_ERROR` is unset — before the warning —
         so a caller can capture the cause (e.g. to turn a bare stub into one that
         says why).  Not called when ``RAISE_ON_PLOT_ERROR`` re-raises.  ``None``
         (default) keeps every existing call site valid.
@@ -120,7 +164,7 @@ def render_b64(
         with plt.style.context(str(MPLSTYLE_PATH)):
             fig = draw(*args, **kwargs)
             if fig is None:
-                if _tok.RAISE_ON_PLOT_ERROR and not optional:
+                if _dt.RAISE_ON_PLOT_ERROR and not optional:
                     raise RuntimeError(
                         f"{draw.__name__} returned None for a required panel; "
                         "check that all required variables are present in the dataset."
@@ -128,9 +172,11 @@ def render_b64(
                 return None
             if not _manages_own_layout(fig):
                 fig.tight_layout()
-            return _fig_to_base64(fig)
+            b64 = _fig_to_base64(fig)
+            _SOURCE[b64] = source if source is not None else source_for(draw)
+            return b64
     except Exception as exc:  # noqa: BLE001
-        if _tok.RAISE_ON_PLOT_ERROR:
+        if _dt.RAISE_ON_PLOT_ERROR:
             raise
         if on_error is not None:
             on_error(exc)

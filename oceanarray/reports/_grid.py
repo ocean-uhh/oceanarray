@@ -27,7 +27,6 @@ from ._html_helpers import (
     _should_skip,
     _status,
 )
-from ._manifest import Panel, PanelGroup, Profile, Section, resolve
 from ._navs import mooring_nav
 from ._plots import (
     _make_grid_hodograph_b64,
@@ -47,6 +46,7 @@ from ._plots import (
     _make_velocity_iqr_profile_b64,
     _make_wavelet_fig_b64,
 )
+from ._vendored.page_model import Panel, PanelGroup, Profile, Section, resolve
 
 # ---------------------------------------------------------------------------
 # Section manifest — grid registry (rep/06, design §9.2–§9.3, §7)

@@ -1,12 +1,12 @@
 """Builder for the masthead page-nav mapping — oceanarray's mooring report pages.
 
 The nav is a plain mapping rendered by the vendored ``templates/_nav.html`` macros
-and validated by :func:`oceanarray.reports._manifest.validate_nav`.  This module is
+and validated by :func:`oceanarray.reports._vendored.page_model.validate_nav`.  This module is
 the one place that knows oceanarray's report pages and their roles; the *shape* it
 builds is the shared cross-package contract, so each sibling package carries its own
 ``_navs.py`` building the same shape for its own pages.
 
-A pill's colour is its *role* (a :data:`~oceanarray.config.report_tokens.ROLE_ACCENT`
+A pill's colour is its *role* (a :data:`~oceanarray.reports._vendored.design_tokens.ROLE_ACCENT`
 key).  oceanarray's masthead is a solid ``--ocean`` navy, which is the same dark as the
 ``entity``/``collection``/``component`` roles — so pills in those roles vanish against it.
 The pages therefore take roles that render *distinctly* on navy: Summary ``entity`` (dark,
@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ._manifest import validate_nav
+from ._vendored.page_model import validate_nav
 
 #: Display labels for the known instrument types (keyed by the lower-cased
 #: ``instr_type``).  Acronyms and model numbers are upper-cased, product names

@@ -40,7 +40,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from oceanarray.config import report_tokens
+from oceanarray.reports._vendored import design_tokens as report_tokens
 
 from .. import parameters as params
 from ..processors.units import format_units

@@ -15,19 +15,28 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import ChoiceLoader, Environment, FileSystemLoader
 
 from .. import __version__ as _oceanarray_version
 from .. import parameters as params
 from . import _figdebug
 from ._nc_tables import group_globals, group_vars_by_dims
-from ._report_css import SHARED_CSS
+from ._vendored.figure_png import source_of
+from .design import _JS_SORT_TABLES, FIGURE_SOURCE, SHARED_CSS
 
 #: Directory holding the report page templates.
 TEMPLATES_DIR: Path = Path(__file__).with_name("templates")
+#: Directory holding the vendored shared templates (nav, nc-table macros); searched
+#: after the package's own, so a local template of the same name still wins.
+VENDORED_TEMPLATES_DIR: Path = Path(__file__).parent / "_vendored" / "templates"
 
 _ENV = Environment(
-    loader=FileSystemLoader(str(TEMPLATES_DIR)),
+    loader=ChoiceLoader(
+        [
+            FileSystemLoader(str(TEMPLATES_DIR)),
+            FileSystemLoader(str(VENDORED_TEMPLATES_DIR)),
+        ]
+    ),
     autoescape=True,
     auto_reload=False,
 )
@@ -50,6 +59,12 @@ _ENV.globals["figdbg"] = _figdebug.figdbg
 #: references these token variables (U0.1).  The accent is applied in the local
 #: ``_report_css`` wiring; the vendored ``_css.py`` names no package.
 _ENV.globals["css"] = SHARED_CSS
+#: Click-to-sort table script, injected once at the end of ``<body>`` by base.html.
+_ENV.globals["js_sort_tables"] = _JS_SORT_TABLES
+#: Per-figure ``source:`` caption toggle (which draw function produced each panel)
+#: and the base64 -> source lookup it reads.  Off for oceanarray (design.FIGURE_SOURCE).
+_ENV.globals["show_source"] = FIGURE_SOURCE
+_ENV.globals["source_of"] = source_of
 
 
 def render_template(name: str, /, **context: Any) -> str:

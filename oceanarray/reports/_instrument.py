@@ -29,7 +29,6 @@ from ._html_helpers import (
     _should_skip,
     _stage_file_details,
 )
-from ._manifest import Panel, PanelGroup, Profile, Section, resolve
 from ._navs import mooring_nav
 from ._plots import (
     _make_adcp_hodograph_b64,
@@ -45,6 +44,7 @@ from ._plots import (
     _make_ts_diagram,
     _make_windows_fig,
 )
+from ._vendored.page_model import Panel, PanelGroup, Profile, Section, resolve
 
 # ---------------------------------------------------------------------------
 # Per-instrument HTML template

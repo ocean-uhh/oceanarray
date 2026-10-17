@@ -19,8 +19,8 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from ..config import report_tokens
-from . import _encode
+from ._vendored import design_tokens as report_tokens
+from ._vendored import figure_png as _encode
 
 #: Captured metadata, keyed by the figure's base64 PNG string.
 _COLLECTED: dict[str, dict[str, Any]] = {}

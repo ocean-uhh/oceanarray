@@ -18,8 +18,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from ..config import report_tokens
 from . import _figdebug
+from ._vendored import design_tokens as report_tokens
 
 
 def render(

@@ -11,8 +11,8 @@ microcat (serial 2941), velocity functions on the aquadopp (serial 9920).
 import matplotlib.pyplot as plt
 import pytest
 
-from oceanarray.config import report_tokens
 from oceanarray.reports import _plots
+from oceanarray.reports._vendored import design_tokens as report_tokens
 
 # ---------------------------------------------------------------------------
 # render_b64 — the project-wide figure-failure envelope

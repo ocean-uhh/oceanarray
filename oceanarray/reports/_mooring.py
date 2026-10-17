@@ -36,7 +36,6 @@ from ._html_helpers import (
     _status,
 )
 from ._instrument import generate_instrument_pages
-from ._manifest import Panel, Profile, Section, resolve
 from ._navs import mooring_nav
 from ._plots import (
     _make_clock_check_b64,
@@ -45,6 +44,7 @@ from ._plots import (
     _make_knockdown_hab_b64,
 )
 from ._stack import generate_stack_page
+from ._vendored.page_model import Panel, Profile, Section, resolve
 
 # ---------------------------------------------------------------------------
 # Section manifest — mooring registry (rep/07)
