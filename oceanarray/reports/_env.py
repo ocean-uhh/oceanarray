@@ -135,7 +135,11 @@ def render_nc_variables(nc_meta: Any) -> str:
     if "var_groups" not in nc_meta:  # no NetCDF for this instrument -> empty nc_meta
         return ""
     return str(
-        _NC.variables_tables(nc_meta["var_groups"], source=nc_meta.get("var_src"))
+        _NC.variables_tables(
+            nc_meta["var_groups"],
+            optional=("units", "minmax", "attrs"),
+            source=nc_meta.get("var_src"),
+        )
     )
 
 
@@ -149,7 +153,11 @@ def render_nc_coords(nc_meta: Any) -> str:
     if nc_meta.get("error") or "coords_rows" not in nc_meta:
         return ""
     return "<h3>Coordinates</h3>" + str(
-        _NC.coords_table(nc_meta["coords_rows"], source=nc_meta.get("coords_src"))
+        _NC.coords_table(
+            nc_meta["coords_rows"],
+            optional=("units", "minmax", "attrs"),
+            source=nc_meta.get("coords_src"),
+        )
     )
 
 
@@ -163,7 +171,11 @@ def render_nc_scalars(nc_meta: Any) -> str:
     if nc_meta.get("error") or "scalar_rows" not in nc_meta:
         return ""
     return "<h3>Scalar variables</h3>" + str(
-        _NC.scalars_table(nc_meta["scalar_rows"], source=nc_meta.get("scalar_src"))
+        _NC.scalars_table(
+            nc_meta["scalar_rows"],
+            optional=("units", "minmax", "attrs"),
+            source=nc_meta.get("scalar_src"),
+        )
     )
 
 
