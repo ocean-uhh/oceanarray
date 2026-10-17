@@ -31,6 +31,7 @@ from ._html_helpers import (
 from ._plots import render_b64
 from ._vendored import design_tokens as report_tokens
 from ._vendored.leaflet import coastline_geojson, load_leaflet, safe_json
+from .design import ARRAY_MAP_LEAFLET
 
 # ---------------------------------------------------------------------------
 # Lat/lon parsing
@@ -350,9 +351,17 @@ def _array_map_payload(rows: list[dict[str, Any]]) -> tuple[str, str, str]:
         return safe_json([]), "null", "null"
     lats = [r["lat"] for r in marks]
     lons = [r["lon"] for r in marks]
-    bounds_json = safe_json([[min(lats), min(lons)], [max(lats), max(lons)]])
+    lat_min, lat_max = min(lats), max(lats)
+    lon_min, lon_max = min(lons), max(lons)
+    # Pad the fit-bounds so a single marker (or a tight cluster) frames with context
+    # instead of fit-to-bounds collapsing onto a zero-size box and over-zooming.
+    lat_pad = max((lat_max - lat_min) * 0.15, 0.5)
+    lon_pad = max((lon_max - lon_min) * 0.15, 0.5)
+    bounds_json = safe_json(
+        [[lat_min - lat_pad, lon_min - lon_pad], [lat_max + lat_pad, lon_max + lon_pad]]
+    )
     coastline_json = coastline_geojson(
-        (min(lons), min(lats), max(lons), max(lats)), pad_deg=1.0
+        (lon_min, lat_min, lon_max, lat_max), pad_deg=1.0
     )
     return safe_json(payload), coastline_json, bounds_json
 
@@ -514,9 +523,16 @@ def generate_array_report(
         )
 
     fig_map_b64 = _make_array_map_b64(rows, array_name)
-    # Leaflet array map; the matplotlib PNG above stays as the print / no-JS fallback.
-    payload_json, coastline_json, bounds_json = _array_map_payload(rows)
-    leaflet_js, leaflet_css = load_leaflet()
+    # Array map: the vendored Leaflet track_map when design.ARRAY_MAP_LEAFLET is on;
+    # while off (the macro can't yet draw a single-point mooring — see F8), an empty
+    # payload makes track_map show the matplotlib PNG fallback, so the map is never blank.
+    _, leaflet_css = load_leaflet()
+    if ARRAY_MAP_LEAFLET:
+        payload_json, coastline_json, bounds_json = _array_map_payload(rows)
+        leaflet_js, _ = load_leaflet()
+    else:
+        payload_json, coastline_json, bounds_json = "[]", "null", "null"
+        leaflet_js = ""
 
     deploy_dt_arr = _parse_dt(array_cfg.get("deployment_time"))
     recover_dt_arr = _parse_dt(array_cfg.get("recovery_time"))
