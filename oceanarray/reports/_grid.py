@@ -19,6 +19,7 @@ from ._env import (
     render_nc_variables,
     render_template,
 )
+from ._figdebug import as_panel
 from ._html_helpers import (
     _find_array_report_href,
     _parse_history,
@@ -398,7 +399,9 @@ GRID_PANELS: dict[str, Panel] = {
     # hydrography
     "hydro": Panel(
         "hydro",
-        render=lambda c: _make_grid_hydro_b64(c.ds, var_bounds=c.ts_bounds),
+        render=lambda c: as_panel(
+            lambda: _make_grid_hydro_b64(c.ds, var_bounds=c.ts_bounds)
+        ),
         caption=GRID_CAPTIONS["hydro"],
         applies_to=_has_temperature,
     ),
@@ -412,38 +415,38 @@ GRID_PANELS: dict[str, Panel] = {
     # velocity
     "vel_stacked": Panel(
         "vel_stacked",
-        render=lambda c: _make_grid_velocity_stacked_b64(c.ds),
+        render=lambda c: as_panel(lambda: _make_grid_velocity_stacked_b64(c.ds)),
         caption=GRID_CAPTIONS["vel_stacked"],
         applies_to=_has_velocity,
     ),
     "vel_iqr": Panel(
         "vel_iqr",
-        render=lambda c: _make_velocity_iqr_profile_b64(c.ds),
+        render=lambda c: as_panel(lambda: _make_velocity_iqr_profile_b64(c.ds)),
         caption=GRID_CAPTIONS["vel_iqr"],
         applies_to=_has_velocity,
     ),
     "vel_timeseries": Panel(
         "vel_timeseries",
-        render=lambda c: _make_grid_timeseries_b64(c.ds),
+        render=lambda c: as_panel(lambda: _make_grid_timeseries_b64(c.ds)),
         caption=GRID_CAPTIONS["vel_timeseries"],
         applies_to=_has_velocity,
     ),
     # velocity structure
     "roses": Panel(
         "roses",
-        render=lambda c: _make_grid_rose_b64(c.ds),
+        render=lambda c: as_panel(lambda: _make_grid_rose_b64(c.ds)),
         caption=GRID_CAPTIONS["roses"],
         applies_to=_has_velocity,
     ),
     "hodograph": Panel(
         "hodograph",
-        render=lambda c: _make_grid_hodograph_b64(c.ds),
+        render=lambda c: as_panel(lambda: _make_grid_hodograph_b64(c.ds)),
         caption=GRID_CAPTIONS["hodograph"],
         applies_to=_has_velocity,
     ),
     "trajectory": Panel(
         "trajectory",
-        render=lambda c: _make_grid_trajectory_b64(c.ds),
+        render=lambda c: as_panel(lambda: _make_grid_trajectory_b64(c.ds)),
         slot="half",
         caption=GRID_CAPTIONS["trajectory"],
         applies_to=_has_velocity,
@@ -451,13 +454,13 @@ GRID_PANELS: dict[str, Panel] = {
     # stratification
     "sigma0": Panel(
         "sigma0",
-        render=lambda c: _make_grid_sigma_b64(c.ds),
+        render=lambda c: as_panel(lambda: _make_grid_sigma_b64(c.ds)),
         caption=GRID_CAPTIONS["sigma0"],
         applies_to=_has_sigma,
     ),
     "n2": Panel(
         "n2",
-        render=lambda c: _make_grid_n2_b64(c.ds, lat=c.lat),
+        render=lambda c: as_panel(lambda: _make_grid_n2_b64(c.ds, lat=c.lat)),
         caption=GRID_CAPTIONS["n2"],
         applies_to=_has_sigma,
         unavailable_if=lambda c: (
@@ -470,32 +473,38 @@ GRID_PANELS: dict[str, Panel] = {
     # overflow
     "isopycnal_coverage": Panel(
         "isopycnal_coverage",
-        render=lambda c: _make_isopycnal_coverage_fig_b64(c.ds),
+        render=lambda c: as_panel(lambda: _make_isopycnal_coverage_fig_b64(c.ds)),
         caption=GRID_CAPTIONS["isopycnal_coverage"],
         applies_to=_has_sigma,
     ),
     "overflow_temp": Panel(
         "overflow_temp",
-        render=lambda c: _make_overflow_temperature_fig_b64(c.ds),
+        render=lambda c: as_panel(lambda: _make_overflow_temperature_fig_b64(c.ds)),
         caption=GRID_CAPTIONS["overflow_temp"],
         applies_to=_has_sigma,
     ),
     # frequency analysis
     "temp_spectrum": Panel(
         "temp_spectrum",
-        render=lambda c: _make_spectrum_fig_b64(c.ds["temperature"], c.dt_s, lat=c.lat),
+        render=lambda c: as_panel(
+            lambda: _make_spectrum_fig_b64(c.ds["temperature"], c.dt_s, lat=c.lat)
+        ),
         caption=GRID_CAPTIONS["temp_spectrum"],
         applies_to=_has_temperature,
     ),
     "wavelet": Panel(
         "wavelet",
-        render=lambda c: _make_wavelet_fig_b64(c.ds["temperature"], c.dt_s),
+        render=lambda c: as_panel(
+            lambda: _make_wavelet_fig_b64(c.ds["temperature"], c.dt_s)
+        ),
         caption=GRID_CAPTIONS["wavelet"],
         applies_to=_has_temperature,
     ),
     "rotary_spectrum": Panel(
         "rotary_spectrum",
-        render=lambda c: _make_grid_rotary_spectrum_b64(c.ds, lat=c.lat),
+        render=lambda c: as_panel(
+            lambda: _make_grid_rotary_spectrum_b64(c.ds, lat=c.lat)
+        ),
         caption=GRID_CAPTIONS["rotary_spectrum"],
         applies_to=_has_velocity,
     ),

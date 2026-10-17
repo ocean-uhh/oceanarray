@@ -274,6 +274,55 @@ def _parse_history(history_str: str) -> list[dict[str, str]]:
     return entries
 
 
+#: A dated history entry's timestamp starts with an ISO date (``2026-07-29T12:10Z``);
+#: a header item instead carries a key (``Reader``, ``Stages``) or the processed-by line.
+_HISTORY_TS_RE = re.compile(r"^\d{4}-\d\d-\d\d")
+_HISTORY_HEADER_KEYS = ("Reader", "Format", "Source file", "Stages")
+
+
+def _history_tables(
+    entries: list[dict[str, str]],
+) -> tuple[list[tuple[str, str, str]], list[tuple[str, str]]]:
+    """Split parsed history entries into a header key/value list and dated events.
+
+    Returns ``(header_rows, event_rows)``.  *header_rows* are ``(label, value, kind)``
+    triples for the vendored ``properties_table`` (the processed-by line, Reader, Format,
+    Source file, Stages).  *event_rows* are ``(time, event)`` pairs for a two-column
+    Time/Event table: a ``|``-joined dated entry becomes several rows with the same time,
+    and a ``name_qc=[...]`` summary that the ``;`` split left without a time carries the
+    time of the dated entry it follows, rather than an orphan row with no time.
+
+    Parameters
+    ----------
+    entries : list of dict
+        The ``{"timestamp", "text"}`` entries from :func:`_parse_history`.
+
+    Returns
+    -------
+    tuple of (list, list)
+        ``(header_rows, event_rows)``.
+    """
+    header_rows: list[tuple[str, str, str]] = []
+    event_rows: list[tuple[str, str]] = []
+    current_time = ""
+    for e in entries:
+        ts = e.get("timestamp", "")
+        text = e.get("text", "")
+        if _HISTORY_TS_RE.match(ts):  # a dated entry
+            current_time = ts
+            for ev in text.split(" | "):
+                event_rows.append((current_time, ev.strip()))
+        elif ts in _HISTORY_HEADER_KEYS:
+            header_rows.append((ts, text, "code" if ts == "Source file" else "text"))
+        elif not ts and "Processed by" in text:
+            header_rows.append(("Processed", text, "text"))
+        elif not ts:  # an orphan continuation (a qc summary) -> carry the current time
+            event_rows.append((current_time, text.strip()))
+        else:  # any other "key: value" header item
+            header_rows.append((ts, text, "text"))
+    return header_rows, event_rows
+
+
 def _read_nc_metadata(nc_path: Path) -> dict[str, Any]:
     """Return the vendored-builder inventory rows/groups for a NetCDF file.
 
@@ -303,6 +352,14 @@ def _read_nc_metadata(nc_path: Path) -> dict[str, Any]:
             global_groups, global_src = nc_tables.globals_rows(
                 ds, extras=design.ATTR_GROUP_EXTRAS
             )
+            # `history` has its own dedicated processing-history panel, so drop it from the
+            # global-attributes table (as the pre-vendoring reader did) rather than show the
+            # long provenance string twice.
+            global_groups = [
+                (title, [row for row in rows if row[0] != "history"])
+                for title, rows in global_groups
+            ]
+            global_groups = [(title, rows) for title, rows in global_groups if rows]
             summary = nc_tables.summary_counts(
                 ds, is_qc=design.is_qc, is_sensor=design.is_sensor
             )

@@ -23,6 +23,7 @@ from ._env import (
     render_nc_variables,
     render_template,
 )
+from ._figdebug import as_panel
 from ._html_helpers import (
     _fig_to_base64,
     _find_array_report_href,
@@ -993,11 +994,15 @@ def generate_stack_page(
                     f"pressure spacing figure failed: {_exc_sp}", stacklevel=2
                 )
 
-        fig_ts_stack_b64 = _make_stack_ts_diagram(ds)
-        fig_aquadopp_tilt_b64 = _make_aquadopp_tilt_panels(ds, step=step)
-        fig_trajectories_b64 = _make_multi_aquadopp_trajectories(ds)
-        fig_adcp_trajectories_b64 = _make_adcp_trajectories_b64(ds)
-        fig_speed_profile_b64 = _make_aquadopp_speed_profile(ds)
+        # as_panel: a figure whose draw raises becomes a Stub naming the cause
+        # (shown as a "warn" note) instead of silently vanishing.
+        fig_ts_stack_b64 = as_panel(lambda: _make_stack_ts_diagram(ds))
+        fig_aquadopp_tilt_b64 = as_panel(
+            lambda: _make_aquadopp_tilt_panels(ds, step=step)
+        )
+        fig_trajectories_b64 = as_panel(lambda: _make_multi_aquadopp_trajectories(ds))
+        fig_adcp_trajectories_b64 = as_panel(lambda: _make_adcp_trajectories_b64(ds))
+        fig_speed_profile_b64 = as_panel(lambda: _make_aquadopp_speed_profile(ds))
         # Clock alignment check: one temperature trace per instrument zoomed to
         # first/last 30 min.  Build {serial: path} preferring stage3 over stage2.
         proc_dir = stack_path.parent
@@ -1014,8 +1019,8 @@ def generate_stack_page(
                 _clock_nc_paths[_s] = _s2
         _deploy_dt = _parse_dt(ctx.get("deploy_time"))
         _recover_dt = _parse_dt(ctx.get("recover_time"))
-        fig_clock_check_b64 = _make_clock_check_b64(
-            _clock_nc_paths, _deploy_dt, _recover_dt
+        fig_clock_check_b64 = as_panel(
+            lambda: _make_clock_check_b64(_clock_nc_paths, _deploy_dt, _recover_dt)
         )
 
         # Capture the applies_to inputs before closing the dataset.
@@ -1027,7 +1032,9 @@ def generate_stack_page(
         nc_meta = _read_nc_metadata(stack_path)
         analog_vars = nc_meta.get("analog_vars", [])
         fig_analog_b64 = (
-            _make_analog_timeseries(stack_path, analog_vars) if analog_vars else None
+            as_panel(lambda: _make_analog_timeseries(stack_path, analog_vars))
+            if analog_vars
+            else None
         )
         grid_exists = (stack_path.parent / f"{mooring_name}_grid.nc").exists()
 

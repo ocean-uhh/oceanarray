@@ -39,6 +39,7 @@
   --fs-h1: 1.75rem;
   --fs-type: 1.35rem;
   --fs-h2: 1rem;
+  --fs-h3: 0.88rem;
   --fs-meta: 0.84rem;
   --fs-note: 0.92rem;
   --fs-nav: 0.8rem;
@@ -57,6 +58,15 @@
   --radius-card: 8px;
   --radius-btn: 4px;
   --radius-pill: 999px;
+  --qc-0: #999999;
+  --qc-1: #009E73;
+  --qc-2: #56B4E9;
+  --qc-3: #E69F00;
+  --qc-4: #D55E00;
+  --qc-7: #CC79A7;
+  --qc-8: #0072B2;
+  --qc-9: #bdbdbd;
+  --qc-3-text: #9A6B00;
 }
 * { box-sizing: border-box; }
 body {
@@ -108,6 +118,13 @@ h2 {
    figure block, so it spans the content width rather than the 78ch prose measure a
    paragraph would otherwise inherit — which left it stranded under full-width figures. */
 h2 + .caption { margin-top: -0.5rem; max-width: none; }
+/* Subsection headings inside a panel's own HTML — un-numbered, outside the jump
+   nav (the page model numbers Sections, not these).  Same navy as h2, smaller. */
+h3 {
+  color: var(--ocean); font-size: var(--fs-h3); margin: 1.2rem 0 0.4rem;
+}
+h3 + .caption { margin-top: -0.2rem; }
+figure h3, .fig-row > h3 { margin-top: 0.6rem; }  /* first heading inside a panel sits closer */
 .explainer {
   font-size: var(--fs-note); color: var(--text);
   background: var(--bg-sunken); border-left: 3px solid var(--muted);
@@ -155,7 +172,14 @@ figure img {
   border: 1px solid var(--rule); border-radius: var(--radius-btn);
   display: block; width: 100%; height: auto;
 }
-figcaption { font-size: var(--fs-cap); color: var(--gray-5); margin-top: 0.25rem; }
+figcaption { font-size: var(--fs-cap); color: var(--gray-5); margin-bottom: 0.25rem; }
+/* Optional provenance line under a figure: which draw function produced it.
+   Off by default (vendored SHOW_FIGURE_SOURCE); a package turns it on in its
+   owned design module. */
+.fig-source {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--fs-xs); color: var(--muted); margin-top: 0.15rem;
+}
 /* A stub panel's warning fills the figure slot it stands in for, rather than the
    78ch prose reading measure it would otherwise inherit as a paragraph. */
 figure .warn { max-width: none; }
@@ -175,6 +199,34 @@ td {
 tr:nth-child(even) td { background: var(--bg-sunken); }
 td.num, .num { text-align: right; font-variant-numeric: tabular-nums; }
 td.mono { font-family: var(--font-mono); font-size: var(--fs-xs); }
+/* netCDF inventory tables (vendored nc_tables): variable / coord / scalar / sensor /
+   global tables.  Package-neutral — the markup is emitted by templates/_nc_tables.html. */
+.var-table code { font-family: var(--font-mono); font-size: var(--fs-xs); }
+.muted { color: var(--muted); }
+.var-qc { color: var(--muted); font-size: var(--fs-xs); }
+.cell-bad { color: var(--warn); font-variant-numeric: tabular-nums; }
+tr.units th {
+  background: transparent; color: var(--muted); font-weight: 400;
+  font-size: var(--fs-xs); padding-top: 0;
+}
+.attr-disclosure summary { cursor: pointer; color: var(--muted); font-size: var(--fs-xs); }
+.attr-disclosure table { margin: 0.3rem 0; width: auto; }
+.attr-disclosure th { background: transparent; color: var(--text); font-weight: 600; }
+/* QC flag-count distribution bar and legend (qc_counts_table). Flag colours are inline on each
+   segment (from the vendored QC_FLAG_COLORS), so these rules carry only the layout. */
+.qc-bar { display: flex; width: 200px; height: 13px; border-radius: 3px; overflow: hidden; gap: 1px; background: #ecf0f1; }
+.qc-bar div { height: 100%; }
+.qc-legend { display: flex; flex-wrap: wrap; gap: 0.3rem 0.9rem; font-size: 0.75rem; margin: 0.2rem 0 0.6rem; }
+.qc-legend span { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: middle; margin-right: 3px; }
+/* The source: caption hugs the table it belongs to, not the next one: a table has 1.2rem
+   bottom margin, so pull the caption up under it and keep the gap below before the next table. */
+table + .fig-source { margin-top: -0.9rem; margin-bottom: 1.2rem; }
+/* Click-to-sort affordance: _JS_SORT_TABLES gives every sortable heading a tabindex, so
+   keying on th[tabindex] styles exactly the headings it wired (a data-nosort table or th
+   gets none).  The heading is a pointer; the active one shows the direction. */
+th[tabindex] { cursor: pointer; user-select: none; }
+th.sorted-asc::after { content: " \25B2"; font-size: 0.8em; }
+th.sorted-desc::after { content: " \25BC"; font-size: 0.8em; }
 .slot-full         { width: 100%; }
 .slot-twothirds     { width: calc(66.67% - 0.33rem); }
 .slot-three-fifths  { width: calc(60% - 0.40rem); }
@@ -201,11 +253,17 @@ td.mono { font-family: var(--font-mono); font-size: var(--fs-xs); }
    "Data inventory:" file strip.  A pill's colour is its role, never its page; the
    current page's pill and an already-viewed file pill are muted the same way. */
 .page-nav { margin: 0.65rem 0 0.5rem; }
+/* Consecutive nav rows (a multi-row masthead) stack tighter than the first row's
+   top margin, which is sized for a single row. */
+.page-nav + .page-nav { margin-top: 0.15rem; }
 .page-nav-label { font-size: var(--fs-top); opacity: 0.75; margin-right: 0.3rem; }
 .nav-pill {
   display: inline-block; padding: 0.2em 0.65em; border-radius: var(--radius-btn);
   font-size: var(--fs-nav); font-weight: 700; text-decoration: none; color: #fff;
   margin: 0 0.2rem 0.25rem 0;
+  /* A contrasting inner edge keeps a pill visible when its role colour matches the
+     masthead background, so colour-is-role holds on any masthead. */
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55);
 }
 .nav-landing { background: var(--role-landing); }
 .nav-entity { background: var(--role-entity); }
@@ -215,6 +273,14 @@ td.mono { font-family: var(--font-mono); font-size: var(--fs-xs); }
 .nav-aggregate-b { background: var(--role-aggregate-b); }
 .nav-map { background: var(--role-map); }
 .nav-up { background: var(--role-up); }
+.masthead.role-landing { background: var(--role-landing); }
+.masthead.role-entity { background: var(--role-entity); }
+.masthead.role-collection { background: var(--role-collection); }
+.masthead.role-component { background: var(--role-component); }
+.masthead.role-aggregate-a { background: var(--role-aggregate-a); }
+.masthead.role-aggregate-b { background: var(--role-aggregate-b); }
+.masthead.role-map { background: var(--role-map); }
+.masthead.role-up { background: var(--role-up); }
 .nav-current { opacity: 0.5; pointer-events: none; }
 .nav-missing { background: var(--gray-3); opacity: 0.5; pointer-events: none; }
 .inventory-strip { margin: 0 0 1rem; }
@@ -243,6 +309,7 @@ footer a { color: var(--muted); }
   .masthead-header h1, .masthead h1 { font-size: 1.35rem; }
   .meta-grid { grid-template-columns: repeat(4, 1fr); gap: 0.3rem 1rem; font-size: var(--fs-xs); }
   h2 { page-break-after: avoid; }
+  h3 { page-break-after: avoid; }
   .fig-row, figure, table { break-inside: avoid; }
   .jump-nav { display: none; }
 }
@@ -268,8 +335,6 @@ p, li { max-width: none; }
    inter-row gap. (ctdcast/glidertest have a single row and do not need this.) */
 .masthead .page-nav { margin:0.12rem 0 0; }
 .masthead .page-nav:first-of-type { margin-top:0.5rem; }
-.masthead-plain { background:#fff; color:var(--text); border:1px solid var(--rule); }
-.masthead-plain .wordmark { display:none; }
 /* Wordmark is now an <a> to the repo; keep the pill look (no link underline). */
 .wordmark, .wordmark:hover { text-decoration:none; }
 .masthead-title { display:flex; justify-content:space-between; align-items:baseline; gap:1rem; }
@@ -278,26 +343,14 @@ p, li { max-width: none; }
 .masthead .sub a { color:var(--accent-link); font-weight:600; text-decoration:none; }
 .masthead .sub a:hover { text-decoration:underline; }
 .meta-miss dd { color:var(--warn); opacity:1; }
-h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--seafoam);
-     padding-bottom:0.3rem; margin:2.5rem 0 1rem;
-     display:flex; justify-content:space-between; align-items:baseline; }
 .top-link { font-size:var(--fs-top); font-weight:400; color:var(--muted);
             text-decoration:none; margin-left:auto; white-space:nowrap; }
-.top-link:hover { color:var(--ocean); text-decoration:underline; }
 .report-footer { margin-top:3rem; font-size:var(--fs-cap); color:var(--muted);
                  border-top:1px solid var(--rule); padding-top:0.8rem;
                  text-align:center; }
-.jump-nav { background:var(--seafoam); padding:0.55rem 1rem; border-radius:6px;
-            margin-bottom:1.5rem; font-size:var(--fs-nav); line-height:2.2; }
 .jump-nav a { color:var(--ocean); text-decoration:none; font-weight:600;
               margin:0 0.5rem 0 0; white-space:nowrap; }
-.jump-nav a::before { content:"▸ "; font-size:var(--fs-dt); }
 .jump-nav a:hover { text-decoration:underline; }
-.history-list { list-style:none; padding:0; margin:0; }
-.history-list li { display:flex; gap:1rem; padding:0.3rem 0; border-bottom:1px solid var(--rule); font-size:var(--fs-note); }
-.history-list li:last-child { border-bottom:none; }
-.history-ts { color:var(--muted); white-space:nowrap; font-size:var(--fs-cap); min-width:11rem; }
-.history-text { flex:1; }
 /* Figure collapse toggle (shared report chrome — used by the panel() macro on
    every manifest-ported page). */
 details summary.collapse-toggle { color:var(--muted); font-size:0.76rem; cursor:pointer;
@@ -371,7 +424,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <nav class="page-nav">
   <span class="page-nav-label">Aquadopp:</span>
   
-  <span class="nav-pill nav-aggregate-b nav-current">9920</span>
+  <span class="nav-pill nav-aggregate-b nav-current" title="current page">9920</span>
 </nav>
 
 <nav class="page-nav">
@@ -379,6 +432,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
   
   <a class="nav-pill nav-aggregate-b" href="dune2_1_2026_2941_report.html">2941</a>
 </nav>
+
 
 
 
@@ -420,10 +474,11 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 
 
 <table class="file-table">
-  <thead><tr><th>Stage</th><th>Filename</th><th>Size</th><th>Last modified</th></tr></thead>
+  <thead><tr><th>#</th><th>Stage</th><th>Filename</th><th>Size</th><th>Last modified</th></tr></thead>
   <tbody>
   
   <tr>
+    <td class="num">1</td>
     <td>Raw</td>
     <td class="mono">9920_recovery.dat</td>
     <td colspan="2">&mdash; not checked (no --raw-dir)</td>
@@ -431,6 +486,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
   
   
   <tr>
+    <td class="num">2</td>
     <td>Stage1</td>
     
     <td class="mono">dune2_1_2026_9920_stage1.nc</td>
@@ -440,6 +496,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
   </tr>
   
   <tr>
+    <td class="num">3</td>
     <td>Stage2</td>
     
     <td class="mono">dune2_1_2026_9920_stage2.nc</td>
@@ -449,6 +506,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
   </tr>
   
   <tr>
+    <td class="num">4</td>
     <td>Stage3</td>
     
     <td class="mono">dune2_1_2026_9920_stage3.nc</td>
@@ -463,90 +521,49 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <h2 id="processing_history">(2) Processing history</h2>
 
 
-<ul class="history-list">
-  
-  <li>
-    <span class="history-ts"></span>
-    <span class="history-text">2026-07-26T18:41:57.504269Z - Processed by SeaSenseLib v0.6.0</span>
-  </li>
-  
-  <li>
-    <span class="history-ts">Reader</span>
-    <span class="history-text">NortekAsciiReader</span>
-  </li>
-  
-  <li>
-    <span class="history-ts">Format</span>
-    <span class="history-text">Nortek ASCII</span>
-  </li>
-  
-  <li>
-    <span class="history-ts">Source file</span>
-    <span class="history-text">9920_recovery.dat</span>
-  </li>
-  
-  <li>
-    <span class="history-ts">Stages</span>
-    <span class="history-text">finalization, mapping, metadata_enrichment, metadata_extraction, unit_handling, validation</span>
-  </li>
-  
-  <li>
-    <span class="history-ts">2026-07-29T12:10Z</span>
-    <span class="history-text">clock_drift=-55.0s over deployment (computer=20260725T13:13:20, instrument=20260725T13:14:15)</span>
-  </li>
-  
-  <li>
-    <span class="history-ts">2026-07-29T12:10Z</span>
-    <span class="history-text">tilt QC (tilt≥30.0°→suspect, tilt≥50.0°→bad): suspect=1039, bad=0 | BEAM→ENU rotation applied: beam_angle=?° (from YAML), declination=-13.97° (ppigrf IGRF) | QARTOD gross-range+spike: east_velocity_qc=[good=8731, suspect=1087]</span>
-  </li>
-  
-  <li>
-    <span class="history-ts"></span>
-    <span class="history-text">north_velocity_qc=[good=8731, suspect=1087]</span>
-  </li>
-  
-  <li>
-    <span class="history-ts"></span>
-    <span class="history-text">pressure_qc=[good=9816]</span>
-  </li>
-  
-  <li>
-    <span class="history-ts"></span>
-    <span class="history-text">temperature_qc=[good=9816]</span>
-  </li>
-  
-  <li>
-    <span class="history-ts"></span>
-    <span class="history-text">up_velocity_qc=[good=8731, suspect=1087]</span>
-  </li>
-  
-  <li>
-    <span class="history-ts"></span>
-    <span class="history-text">velocity_beam1_qc=[good=8779, suspect=1039]</span>
-  </li>
-  
-  <li>
-    <span class="history-ts"></span>
-    <span class="history-text">velocity_beam2_qc=[good=8779, suspect=1039]</span>
-  </li>
-  
-  <li>
-    <span class="history-ts"></span>
-    <span class="history-text">velocity_beam3_qc=[good=8779, suspect=1039]</span>
-  </li>
-  
-</ul>
+
+
+
+<table class="nc properties" data-nosort>
+
+<thead><tr><th>Property</th><th>Value</th></tr></thead>
+<tbody>
+<tr><td>Processed</td><td>2026-07-26T18:41:57.504269Z - Processed by SeaSenseLib v0.6.0</td></tr>
+<tr><td>Reader</td><td>NortekAsciiReader</td></tr>
+<tr><td>Format</td><td>Nortek ASCII</td></tr>
+<tr><td>Source file</td><td class="mono">9920_recovery.dat</td></tr>
+<tr><td>Stages</td><td>finalization, mapping, metadata_enrichment, metadata_extraction, unit_handling, validation</td></tr>
+</tbody></table>
+<table class="sortable">
+
+<thead>
+  <tr><th tabindex="0">Time</th><th tabindex="0">Event</th></tr>
+</thead>
+<tbody>
+  <tr><td>2026-07-29T12:10Z</td><td>clock_drift=-55.0s over deployment (computer=20260725T13:13:20, instrument=20260725T13:14:15)</td></tr>
+  <tr><td>2026-07-29T12:10Z</td><td>tilt QC (tilt≥30.0°→suspect, tilt≥50.0°→bad): suspect=1039, bad=0</td></tr>
+  <tr><td>2026-07-29T12:10Z</td><td>BEAM→ENU rotation applied: beam_angle=?° (from YAML), declination=-13.97° (ppigrf IGRF)</td></tr>
+  <tr><td>2026-07-29T12:10Z</td><td>QARTOD gross-range+spike: east_velocity_qc=[good=8731, suspect=1087]</td></tr>
+  <tr><td>2026-07-29T12:10Z</td><td>north_velocity_qc=[good=8731, suspect=1087]</td></tr>
+  <tr><td>2026-07-29T12:10Z</td><td>pressure_qc=[good=9816]</td></tr>
+  <tr><td>2026-07-29T12:10Z</td><td>temperature_qc=[good=9816]</td></tr>
+  <tr><td>2026-07-29T12:10Z</td><td>up_velocity_qc=[good=8731, suspect=1087]</td></tr>
+  <tr><td>2026-07-29T12:10Z</td><td>velocity_beam1_qc=[good=8779, suspect=1039]</td></tr>
+  <tr><td>2026-07-29T12:10Z</td><td>velocity_beam2_qc=[good=8779, suspect=1039]</td></tr>
+  <tr><td>2026-07-29T12:10Z</td><td>velocity_beam3_qc=[good=8779, suspect=1039]</td></tr>
+</tbody>
+</table><div class="fig-source">source: oceanarray/reports/_html_helpers.py:_history_tables</div>
 
 <h2 id="timeseries">(3) Time series (full deployment)</h2>
 <p class="caption">line = data; × = suspect; × = bad; + = interpolated.</p>
 
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="timeseries_0">
-</details>
+</details><div class="fig-source">source: oceanarray/reports/_plots.py:_make_instrument_fig</div>
 
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="timeseries_1">
-</details>
+</details><div class="fig-source">source: oceanarray/reports/_plots.py:_make_instrument_fig</div>
 
 <h2 id="start">(4) Start &amp; end windows — first / last 6 h</h2>
 
@@ -588,45 +605,45 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="windows_0">
-</details>
+</details><div class="fig-source">source: oceanarray/plotters/diagnostic.py:draw_windows</div>
 
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="windows_1">
-</details>
+</details><div class="fig-source">source: oceanarray/plotters/diagnostic.py:draw_windows</div>
 
 <h2 id="rose">(5) Current rose diagrams</h2>
 
 <p class="caption">ENU panels split by QARTOD flag: good (flag ≤ 2, Blues), suspect (flag 3, Oranges), fail (flag 4, Reds). Direction toward which the current flows; 0° = N, clockwise.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="rose">
-</details>
+</details><div class="fig-source">source: oceanarray/plotters/current.py:draw_instrument_rose</div>
 
 <h2 id="trajectory">(6) Particle trajectory</h2>
 
 <p class="caption">Pseudo-Lagrangian displacement obtained by integrating east/north velocity over time (Euler forward; NaN velocities set to zero). Coloured by temperature. Origin (0, 0) = deployment position; axes in metres.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig slot-half" src="data:image/png;base64,<PNG>" alt="trajectory">
-</details>
+</details><div class="fig-source">source: oceanarray/reports/_plots.py:_make_temperature_trajectory</div>
 
 <h2 id="hodograph">(7) Hodograph</h2>
 
 <p class="caption">East vs north velocity (m/s). Left: full record. Right: eddy component — raw minus 4-day low-pass (rolling mean).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="hodograph">
-</details>
+</details><div class="fig-source">source: oceanarray/reports/_plots.py:_make_hodograph_b64</div>
 
 <h2 id="speed">(8) Current speed distribution</h2>
 
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig slot-quarter" src="data:image/png;base64,<PNG>" alt="speed">
-</details>
+</details><div class="fig-source">source: oceanarray/reports/_plots.py:_make_speed_boxplot</div>
 
 <h2 id="distributions">(9) Data value distributions</h2>
 
 <p class="caption">Orange dashed = suspect threshold | Red dotted = fail threshold (gross-range QC). Histogram shows non-bad data only; bad-flagged count noted in red.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="dist">
-</details>
+</details><div class="fig-source">source: oceanarray/plotters/diagnostic.py:draw_data_histogram</div>
 
 <h2 id="qc">(10) QC flag breakdown</h2>
 
@@ -899,1180 +916,393 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 
 <h2 id="netcdf_variables">(A) NetCDF variables</h2>
 
+<h3>Coordinates</h3>
+<table class="sortable var-table">
 
 
-
-<h3 class="subhead-sm">Coordinates</h3>
-<table class="var-table">
-  
-  <thead>
-    <tr><th>Variable</th><th>Type</th><th>Units</th><th>Standard / long name</th><th class="num">Min / Max</th><th class="num">N (valid)</th><th>Attributes</th></tr>
-  </thead>
-
-  <tbody>
-    
-    <tr>
-      <td class="mono">beam</td>
-      <td class="mono cell-xs">int8</td>
-      <td></td>
-      <td></td>
-      <td class="num cell-minmax">1 / 3</td>
-      <td class="num">3</td>
-      <td></td>
-    </tr>
-
-    <tr>
-      <td class="mono">time</td>
-      <td class="mono cell-xs" style="font-weight:600">datetime64[ns]</td>
-      <td></td>
-      <td></td>
-      <td class="num cell-minmax">2026-07-11 20:30:00 / 2026-07-25 11:43:05</td>
-      <td class="num">9,818</td>
-      <td></td>
-    </tr>
-
-    <tr>
-      <td class="mono">time_orig</td>
-      <td class="mono cell-xs" style="font-weight:600">datetime64[ns]</td>
-      <td></td>
-      <td><strong class="mono">time</strong><br><span class="cell-muted">original instrument time before clock correction</span></td>
-      <td class="num cell-minmax">2026-07-11 20:30:00 / 2026-07-25 11:44:00</td>
-      <td class="num">9,818</td>
-      <td></td>
-    </tr>
-
-  </tbody>
-</table>
+<thead>
+  <tr><th tabindex="0">Variable</th><th tabindex="0">Dims</th><th tabindex="0">Type</th><th tabindex="0">Length</th><th tabindex="0">Units</th><th tabindex="0">Standard / long name</th><th tabindex="0">Min / Max</th><th data-nosort>Attributes</th></tr>
+</thead>
+<tbody>
+<tr>
+<td data-sort="beam">beam</td><td>beam</td><td><code>int8</code></td><td data-sort="3">3</td>
+<td>—</td><td>—</td><td data-sort="1.0">1 / 3</td><td data-nosort>—</td></tr>
+<tr>
+<td data-sort="time">time</td><td>time</td><td><code>datetime</code></td><td data-sort="9818">9,818</td>
+<td>—</td><td>—</td><td>2026-07-11 20:30:00 / 2026-07-25 11:43:05</td><td data-nosort>—</td></tr>
+<tr>
+<td data-sort="time_orig">time_orig</td><td>time</td><td><code>datetime</code></td><td data-sort="9818">9,818</td>
+<td>—</td><td><strong><code>time</code></strong><br>original instrument time before clock correction</td><td>2026-07-11 20:30:00 / 2026-07-25 11:44:00</td><td data-nosort>—</td></tr>
+</tbody></table><div class="fig-source">source: oceanarray/reports/_vendored/nc_tables.py:coords_rows</div>
 
 
+<h3>Variables on time × beam (9,818 × 3 = 29,454 samples)</h3>
+<table class="sortable var-table">
 
 
+<thead>
+  <tr><th tabindex="0">Variable</th><th tabindex="0">Type</th><th tabindex="0">Units</th><th tabindex="0">Standard / long name</th><th tabindex="0">Min / Max</th><th tabindex="0">Valid</th><th tabindex="0">Valid %</th><th data-nosort>Attributes</th></tr>
+</thead>
+<tbody>
+<tr>
+<td data-sort="amplitude">amplitude</td>
+<td><code>float32</code></td><td>counts</td><td>Acoustic signal amplitude</td><td data-sort="63.0">63 / 130</td>
+<td data-sort="29454">29,454</td>
+<td data-sort="100.0">100.0</td><td data-nosort>—</td></tr>
+</tbody></table>
+<h3>Variables on time (9,818 samples)</h3>
+<table class="sortable var-table">
 
 
-<h3 class="subhead-sm">Variables on time × beam</h3>
-<table class="var-table">
-  
-  <thead>
-    <tr><th>Variable</th><th>Type</th><th>Units</th><th>Standard / long name</th><th class="num">Min / Max</th><th class="num">N (valid)</th><th>Attributes</th></tr>
-  </thead>
+<thead>
+  <tr><th tabindex="0">Variable</th><th tabindex="0">Type</th><th tabindex="0">Units</th><th tabindex="0">Standard / long name</th><th tabindex="0">Min / Max</th><th tabindex="0">Valid</th><th tabindex="0">Valid %</th><th data-nosort>Attributes</th></tr>
+</thead>
+<tbody>
+<tr>
+<td data-sort="battery_voltage">battery_voltage</td>
+<td><code>float32</code></td><td>volts</td><td><strong><code>battery_voltage</code></strong><br>Battery voltage</td><td data-sort="12.100000381469727">12.1 / 12.4</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Battery voltage</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="current_direction">current_direction</td>
+<td><code>float32</code></td><td>degrees</td><td><strong><code>direction_of_sea_water_velocity</code></strong><br>Current direction (0=N, clockwise)</td><td data-sort="0.06001155078411102">0.06001 / 359.9</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort>—</td></tr>
+<tr>
+<td data-sort="current_speed">current_speed</td>
+<td><code>float32</code></td><td>m s-1</td><td><strong><code>sea_water_speed</code></strong><br>Horizontal current speed</td><td data-sort="0.005791159346699715">0.005791 / 0.9213</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort>—</td></tr>
+<tr>
+<td data-sort="day">day</td>
+<td><code>int32</code></td><td>1-31</td><td>—</td><td data-sort="11.0">11 / 25</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Day</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="depth">depth</td>
+<td><code>float32</code></td><td>m</td><td><strong><code>depth</code></strong><br>Depth</td><td data-sort="557.3489990234375">557.3 / 688.1</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>4 attrs</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Pressure</td></tr><tr><th>coverage_content_type</th><td>coordinate</td></tr><tr><th>positive</th><td>up</td></tr><tr><th>short_name</th><td>D</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="direction">direction</td>
+<td><code>float32</code></td><td>degrees</td><td><strong><code>direction</code></strong><br>Current direction</td><td data-sort="0.0">0 / 0</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Direction</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="east_velocity">east_velocity <span class="var-qc">(_QC)</span></td>
+<td><code>float32</code></td><td>m s-1</td><td><strong><code>eastward_sea_water_velocity</code></strong><br>Eastward sea water velocity</td><td data-sort="-0.8975104093551636">-0.8975 / 0.7406</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort>—</td></tr>
+<tr>
+<td data-sort="error_code">error_code</td>
+<td><code>int32</code></td><td>—</td><td>—</td><td data-sort="0.0">0 / 0</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Error code</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="heading">heading</td>
+<td><code>float32</code></td><td>degrees</td><td><strong><code>platform_heading_angle</code></strong><br>Heading angle</td><td data-sort="0.0">0 / 359.7</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Heading</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="hour">hour</td>
+<td><code>int32</code></td><td>0-23</td><td>—</td><td data-sort="0.0">0 / 23</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Hour</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="magnitude">magnitude</td>
+<td><code>float32</code></td><td>m s-1</td><td><strong><code>magnitude</code></strong><br>Current magnitude</td><td data-sort="0.0">0 / 0</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Speed</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="minute">minute</td>
+<td><code>int32</code></td><td>0-59</td><td>—</td><td data-sort="0.0">0 / 58</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Minute</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="month">month</td>
+<td><code>int32</code></td><td>1-12</td><td>—</td><td data-sort="7.0">7 / 7</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Month</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="north_velocity">north_velocity <span class="var-qc">(_QC)</span></td>
+<td><code>float32</code></td><td>m s-1</td><td><strong><code>northward_sea_water_velocity</code></strong><br>Northward sea water velocity</td><td data-sort="-0.6844239830970764">-0.6844 / 0.7064</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort>—</td></tr>
+<tr>
+<td data-sort="pitch">pitch</td>
+<td><code>float32</code></td><td>degrees</td><td><strong><code>platform_pitch_angle</code></strong><br>Pitch angle</td><td data-sort="-36.599998474121094">-36.6 / 1.5</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Pitch</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="pressure">pressure <span class="var-qc">(_QC)</span></td>
+<td><code>float32</code></td><td>dbar</td><td><strong><code>sea_water_pressure</code></strong><br>Pressure</td><td data-sort="561.18798828125">561.2 / 693</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>4 attrs</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Pressure</td></tr><tr><th>coverage_content_type</th><td>physicalMeasurement</td></tr><tr><th>measurement_type</th><td>Measured</td></tr><tr><th>short_name</th><td>WP</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="roll">roll</td>
+<td><code>float32</code></td><td>degrees</td><td><strong><code>platform_roll_angle</code></strong><br>Roll angle</td><td data-sort="-18.100000381469727">-18.1 / 15.7</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Roll</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="second">second</td>
+<td><code>int32</code></td><td>0-59</td><td>—</td><td data-sort="0.0">0 / 0</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Second</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="speed_of_sound">speed_of_sound</td>
+<td><code>float32</code></td><td>m s-1</td><td><strong><code>speed_of_sound_in_sea_water</code></strong><br>Speed of sound in sea water</td><td data-sort="1448.800048828125">1449 / 1479</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Soundspeed</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="speed_of_sound_used">speed_of_sound_used</td>
+<td><code>float32</code></td><td>m s-1</td><td>—</td><td data-sort="1458.699951171875">1459 / 1488</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Soundspeed used</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="status_code">status_code</td>
+<td><code>int32</code></td><td>—</td><td>—</td><td data-sort="110000.0">1.1e+05 / 1.1e+05</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Status code</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="temperature">temperature <span class="var-qc">(_QC)</span></td>
+<td><code>float32</code></td><td>degree_Celsius</td><td><strong><code>sea_water_temperature</code></strong><br>Temperature</td><td data-sort="-0.05000000074505806">-0.05 / 7.02</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>4 attrs</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Temperature</td></tr><tr><th>coverage_content_type</th><td>physicalMeasurement</td></tr><tr><th>measurement_type</th><td>Measured</td></tr><tr><th>short_name</th><td>WT</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="up_velocity">up_velocity <span class="var-qc">(_QC)</span></td>
+<td><code>float32</code></td><td>m s-1</td><td><strong><code>upward_sea_water_velocity</code></strong><br>Upward sea water velocity</td><td data-sort="-0.4767283797264099">-0.4767 / 0.5587</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort>—</td></tr>
+<tr>
+<td data-sort="velocity_beam1">velocity_beam1 <span class="var-qc">(_QC)</span></td>
+<td><code>float32</code></td><td>m s-1</td><td>—</td><td data-sort="-0.8450000286102295">-0.845 / 0.855</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>2 attrs</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Velocity (Beam1|X|East)</td></tr><tr><th>coordinate_system</th><td>BEAM</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="velocity_beam2">velocity_beam2 <span class="var-qc">(_QC)</span></td>
+<td><code>float32</code></td><td>m s-1</td><td>—</td><td data-sort="-0.3190000057220459">-0.319 / 0.424</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>2 attrs</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Velocity (Beam2|Y|North)</td></tr><tr><th>coordinate_system</th><td>BEAM</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="velocity_beam3">velocity_beam3 <span class="var-qc">(_QC)</span></td>
+<td><code>float32</code></td><td>m s-1</td><td>—</td><td data-sort="-0.652999997138977">-0.653 / 0.268</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>2 attrs</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Velocity (Beam3|Z|Up)</td></tr><tr><th>coordinate_system</th><td>BEAM</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="velocity_x">velocity_x</td>
+<td><code>float32</code></td><td>m s-1</td><td>X velocity (instrument XYZ frame)</td><td data-sort="-0.6451113820075989">-0.6451 / 0.7804</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort>—</td></tr>
+<tr>
+<td data-sort="velocity_y">velocity_y</td>
+<td><code>float32</code></td><td>m s-1</td><td>Y velocity (instrument XYZ frame)</td><td data-sort="-0.6414589881896973">-0.6415 / 0.2879</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort>—</td></tr>
+<tr>
+<td data-sort="velocity_z">velocity_z</td>
+<td><code>float32</code></td><td>m s-1</td><td>Z velocity (instrument XYZ frame)</td><td data-sort="-0.7935327887535095">-0.7935 / 0.8196</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort>—</td></tr>
+<tr>
+<td data-sort="year">year</td>
+<td><code>int32</code></td><td>—</td><td>—</td><td data-sort="2026.0">2026 / 2026</td>
+<td data-sort="9818">9,818</td>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Year</td></tr>
+</tbody></table></details></td></tr>
+</tbody></table><div class="fig-source">source: oceanarray/reports/_vendored/nc_tables.py:variables_rows</div>
 
-  <tbody>
-    
-    <tr>
-      <td class="mono">amplitude</td>
-      <td class="mono cell-xs">float32</td>
-      <td>counts</td>
-      <td><span class="cell-muted">Acoustic signal amplitude</span></td>
-      <td class="num cell-minmax">63 / 130</td>
-      <td class="num">29,454</td>
-      <td></td>
-    </tr>
-
-  </tbody>
-</table>
-
-<h3 class="subhead-sm">Variables on time</h3>
-<table class="var-table">
-  
-  <thead>
-    <tr><th>Variable</th><th>Type</th><th>Units</th><th>Standard / long name</th><th class="num">Min / Max</th><th class="num">N (valid)</th><th>Attributes</th></tr>
-  </thead>
-
-  <tbody>
-    
-    <tr>
-      <td class="mono">battery_voltage</td>
-      <td class="mono cell-xs">float32</td>
-      <td>volts</td>
-      <td><strong class="mono">battery_voltage</strong><br><span class="cell-muted">Battery voltage</span></td>
-      <td class="num cell-minmax">12.1 / 12.4</td>
-      <td class="num">9,818</td>
-      <td><details class="attr-disclosure"><summary>1 attr</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">original_name</td><td>Battery voltage</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">current_direction</td>
-      <td class="mono cell-xs">float32</td>
-      <td>degrees</td>
-      <td><strong class="mono">direction_of_sea_water_velocity</strong><br><span class="cell-muted">Current direction (0=N, clockwise)</span></td>
-      <td class="num cell-minmax">0.06001 / 359.9</td>
-      <td class="num">9,818</td>
-      <td></td>
-    </tr>
-
-    <tr>
-      <td class="mono">current_speed</td>
-      <td class="mono cell-xs">float32</td>
-      <td>m s-1</td>
-      <td><strong class="mono">sea_water_speed</strong><br><span class="cell-muted">Horizontal current speed</span></td>
-      <td class="num cell-minmax">0.005791 / 0.9213</td>
-      <td class="num">9,818</td>
-      <td></td>
-    </tr>
-
-    <tr>
-      <td class="mono">day</td>
-      <td class="mono cell-xs">int32</td>
-      <td>1-31</td>
-      <td></td>
-      <td class="num cell-minmax">11 / 25</td>
-      <td class="num">9,818</td>
-      <td><details class="attr-disclosure"><summary>1 attr</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">original_name</td><td>Day</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">depth</td>
-      <td class="mono cell-xs">float32</td>
-      <td>m</td>
-      <td><strong class="mono">depth</strong><br><span class="cell-muted">Depth</span></td>
-      <td class="num cell-minmax">557.3 / 688.1</td>
-      <td class="num">9,818</td>
-      <td><details class="attr-disclosure"><summary>4 attrs</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">original_name</td><td>Pressure</td></tr>
-    
-      <tr><td class="mono">coverage_content_type</td><td>coordinate</td></tr>
-    
-      <tr><td class="mono">positive</td><td>up</td></tr>
-    
-      <tr><td class="mono">short_name</td><td>D</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">direction</td>
-      <td class="mono cell-xs">float32</td>
-      <td>degrees</td>
-      <td><strong class="mono">direction</strong><br><span class="cell-muted">Current direction</span></td>
-      <td class="num cell-minmax">0 / 0</td>
-      <td class="num">9,818</td>
-      <td><details class="attr-disclosure"><summary>1 attr</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">original_name</td><td>Direction</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">east_velocity <span class="var-qc">(_QC)</span></td>
-      <td class="mono cell-xs">float32</td>
-      <td>m s-1</td>
-      <td><strong class="mono">eastward_sea_water_velocity</strong><br><span class="cell-muted">Eastward sea water velocity</span></td>
-      <td class="num cell-minmax">-0.8975 / 0.7406</td>
-      <td class="num">9,818</td>
-      <td></td>
-    </tr>
-
-    <tr>
-      <td class="mono">error_code</td>
-      <td class="mono cell-xs">int32</td>
-      <td></td>
-      <td></td>
-      <td class="num cell-minmax">0 / 0</td>
-      <td class="num">9,818</td>
-      <td><details class="attr-disclosure"><summary>1 attr</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">original_name</td><td>Error code</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">heading</td>
-      <td class="mono cell-xs">float32</td>
-      <td>degrees</td>
-      <td><strong class="mono">platform_heading_angle</strong><br><span class="cell-muted">Heading angle</span></td>
-      <td class="num cell-minmax">0 / 359.7</td>
-      <td class="num">9,818</td>
-      <td><details class="attr-disclosure"><summary>1 attr</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">original_name</td><td>Heading</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">hour</td>
-      <td class="mono cell-xs">int32</td>
-      <td>0-23</td>
-      <td></td>
-      <td class="num cell-minmax">0 / 23</td>
-      <td class="num">9,818</td>
-      <td><details class="attr-disclosure"><summary>1 attr</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">original_name</td><td>Hour</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">magnitude</td>
-      <td class="mono cell-xs">float32</td>
-      <td>m s-1</td>
-      <td><strong class="mono">magnitude</strong><br><span class="cell-muted">Current magnitude</span></td>
-      <td class="num cell-minmax">0 / 0</td>
-      <td class="num">9,818</td>
-      <td><details class="attr-disclosure"><summary>1 attr</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">original_name</td><td>Speed</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">minute</td>
-      <td class="mono cell-xs">int32</td>
-      <td>0-59</td>
-      <td></td>
-      <td class="num cell-minmax">0 / 58</td>
-      <td class="num">9,818</td>
-      <td><details class="attr-disclosure"><summary>1 attr</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">original_name</td><td>Minute</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">month</td>
-      <td class="mono cell-xs">int32</td>
-      <td>1-12</td>
-      <td></td>
-      <td class="num cell-minmax">7 / 7</td>
-      <td class="num">9,818</td>
-      <td><details class="attr-disclosure"><summary>1 attr</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">original_name</td><td>Month</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">north_velocity <span class="var-qc">(_QC)</span></td>
-      <td class="mono cell-xs">float32</td>
-      <td>m s-1</td>
-      <td><strong class="mono">northward_sea_water_velocity</strong><br><span class="cell-muted">Northward sea water velocity</span></td>
-      <td class="num cell-minmax">-0.6844 / 0.7064</td>
-      <td class="num">9,818</td>
-      <td></td>
-    </tr>
-
-    <tr>
-      <td class="mono">pitch</td>
-      <td class="mono cell-xs">float32</td>
-      <td>degrees</td>
-      <td><strong class="mono">platform_pitch_angle</strong><br><span class="cell-muted">Pitch angle</span></td>
-      <td class="num cell-minmax">-36.6 / 1.5</td>
-      <td class="num">9,818</td>
-      <td><details class="attr-disclosure"><summary>1 attr</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">original_name</td><td>Pitch</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">pressure <span class="var-qc">(_QC)</span></td>
-      <td class="mono cell-xs">float32</td>
-      <td>dbar</td>
-      <td><strong class="mono">sea_water_pressure</strong><br><span class="cell-muted">Pressure</span></td>
-      <td class="num cell-minmax">561.2 / 693</td>
-      <td class="num">9,818</td>
-      <td><details class="attr-disclosure"><summary>4 attrs</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">original_name</td><td>Pressure</td></tr>
-    
-      <tr><td class="mono">coverage_content_type</td><td>physicalMeasurement</td></tr>
-    
-      <tr><td class="mono">measurement_type</td><td>Measured</td></tr>
-    
-      <tr><td class="mono">short_name</td><td>WP</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">roll</td>
-      <td class="mono cell-xs">float32</td>
-      <td>degrees</td>
-      <td><strong class="mono">platform_roll_angle</strong><br><span class="cell-muted">Roll angle</span></td>
-      <td class="num cell-minmax">-18.1 / 15.7</td>
-      <td class="num">9,818</td>
-      <td><details class="attr-disclosure"><summary>1 attr</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">original_name</td><td>Roll</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">second</td>
-      <td class="mono cell-xs">int32</td>
-      <td>0-59</td>
-      <td></td>
-      <td class="num cell-minmax">0 / 0</td>
-      <td class="num">9,818</td>
-      <td><details class="attr-disclosure"><summary>1 attr</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">original_name</td><td>Second</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">speed_of_sound</td>
-      <td class="mono cell-xs">float32</td>
-      <td>m s-1</td>
-      <td><strong class="mono">speed_of_sound_in_sea_water</strong><br><span class="cell-muted">Speed of sound in sea water</span></td>
-      <td class="num cell-minmax">1449 / 1479</td>
-      <td class="num">9,818</td>
-      <td><details class="attr-disclosure"><summary>1 attr</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">original_name</td><td>Soundspeed</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">speed_of_sound_used</td>
-      <td class="mono cell-xs">float32</td>
-      <td>m s-1</td>
-      <td></td>
-      <td class="num cell-minmax">1459 / 1488</td>
-      <td class="num">9,818</td>
-      <td><details class="attr-disclosure"><summary>1 attr</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">original_name</td><td>Soundspeed used</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">status_code</td>
-      <td class="mono cell-xs">int32</td>
-      <td></td>
-      <td></td>
-      <td class="num cell-minmax">110000 / 110100</td>
-      <td class="num">9,818</td>
-      <td><details class="attr-disclosure"><summary>1 attr</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">original_name</td><td>Status code</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">temperature <span class="var-qc">(_QC)</span></td>
-      <td class="mono cell-xs">float32</td>
-      <td>degree_Celsius</td>
-      <td><strong class="mono">sea_water_temperature</strong><br><span class="cell-muted">Temperature</span></td>
-      <td class="num cell-minmax">-0.05 / 7.02</td>
-      <td class="num">9,818</td>
-      <td><details class="attr-disclosure"><summary>4 attrs</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">original_name</td><td>Temperature</td></tr>
-    
-      <tr><td class="mono">coverage_content_type</td><td>physicalMeasurement</td></tr>
-    
-      <tr><td class="mono">measurement_type</td><td>Measured</td></tr>
-    
-      <tr><td class="mono">short_name</td><td>WT</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">up_velocity <span class="var-qc">(_QC)</span></td>
-      <td class="mono cell-xs">float32</td>
-      <td>m s-1</td>
-      <td><strong class="mono">upward_sea_water_velocity</strong><br><span class="cell-muted">Upward sea water velocity</span></td>
-      <td class="num cell-minmax">-0.4767 / 0.5587</td>
-      <td class="num">9,818</td>
-      <td></td>
-    </tr>
-
-    <tr>
-      <td class="mono">velocity_beam1 <span class="var-qc">(_QC)</span></td>
-      <td class="mono cell-xs">float32</td>
-      <td>m s-1</td>
-      <td></td>
-      <td class="num cell-minmax">-0.845 / 0.855</td>
-      <td class="num">9,818</td>
-      <td><details class="attr-disclosure"><summary>2 attrs</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">original_name</td><td>Velocity (Beam1|X|East)</td></tr>
-    
-      <tr><td class="mono">coordinate_system</td><td>BEAM</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">velocity_beam2 <span class="var-qc">(_QC)</span></td>
-      <td class="mono cell-xs">float32</td>
-      <td>m s-1</td>
-      <td></td>
-      <td class="num cell-minmax">-0.319 / 0.424</td>
-      <td class="num">9,818</td>
-      <td><details class="attr-disclosure"><summary>2 attrs</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">original_name</td><td>Velocity (Beam2|Y|North)</td></tr>
-    
-      <tr><td class="mono">coordinate_system</td><td>BEAM</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">velocity_beam3 <span class="var-qc">(_QC)</span></td>
-      <td class="mono cell-xs">float32</td>
-      <td>m s-1</td>
-      <td></td>
-      <td class="num cell-minmax">-0.653 / 0.268</td>
-      <td class="num">9,818</td>
-      <td><details class="attr-disclosure"><summary>2 attrs</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">original_name</td><td>Velocity (Beam3|Z|Up)</td></tr>
-    
-      <tr><td class="mono">coordinate_system</td><td>BEAM</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">velocity_x</td>
-      <td class="mono cell-xs">float32</td>
-      <td>m s-1</td>
-      <td><span class="cell-muted">X velocity (instrument XYZ frame)</span></td>
-      <td class="num cell-minmax">-0.6451 / 0.7804</td>
-      <td class="num">9,818</td>
-      <td></td>
-    </tr>
-
-    <tr>
-      <td class="mono">velocity_y</td>
-      <td class="mono cell-xs">float32</td>
-      <td>m s-1</td>
-      <td><span class="cell-muted">Y velocity (instrument XYZ frame)</span></td>
-      <td class="num cell-minmax">-0.6415 / 0.2879</td>
-      <td class="num">9,818</td>
-      <td></td>
-    </tr>
-
-    <tr>
-      <td class="mono">velocity_z</td>
-      <td class="mono cell-xs">float32</td>
-      <td>m s-1</td>
-      <td><span class="cell-muted">Z velocity (instrument XYZ frame)</span></td>
-      <td class="num cell-minmax">-0.7935 / 0.8196</td>
-      <td class="num">9,818</td>
-      <td></td>
-    </tr>
-
-    <tr>
-      <td class="mono">year</td>
-      <td class="mono cell-xs">int32</td>
-      <td></td>
-      <td></td>
-      <td class="num cell-minmax">2026 / 2026</td>
-      <td class="num">9,818</td>
-      <td><details class="attr-disclosure"><summary>1 attr</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">original_name</td><td>Year</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-  </tbody>
-</table>
+<h3>Scalar variables</h3>
+<table class="sortable var-table">
 
 
-
-
-
-<h3 class="subhead-md">Scalar metadata variables</h3>
-<table class="var-table">
-  <thead>
-    <tr><th>Variable</th><th>Type</th><th>Units</th><th>Standard / long name</th><th>Value</th><th>Attributes</th></tr>
-  </thead>
-  <tbody>
-    
-    <tr>
-      <td class="mono">InstrDepth</td>
-      <td class="mono cell-xs">int32</td>
-      <td></td>
-      <td></td>
-      <td class="mono cell-break">519</td>
-      <td></td>
-    </tr>
-    
-    <tr>
-      <td class="mono">clock_drift_seconds</td>
-      <td class="mono cell-xs">float32</td>
-      <td>s</td>
-      <td><span class="cell-muted">total linear clock drift applied</span></td>
-      <td class="mono cell-break">-55.0</td>
-      <td></td>
-    </tr>
-    
-    <tr>
-      <td class="mono">clock_offset</td>
-      <td class="mono cell-xs">int32</td>
-      <td>s</td>
-      <td></td>
-      <td class="mono cell-break">0</td>
-      <td></td>
-    </tr>
-    
-    <tr>
-      <td class="mono">end_time</td>
-      <td class="mono cell-xs">&lt;U16</td>
-      <td></td>
-      <td></td>
-      <td class="mono cell-break">2026-07-25T11:44</td>
-      <td></td>
-    </tr>
-    
-    <tr>
-      <td class="mono">instrument</td>
-      <td class="mono cell-xs">&lt;U8</td>
-      <td></td>
-      <td></td>
-      <td class="mono cell-break">aquadopp</td>
-      <td></td>
-    </tr>
-    
-    <tr>
-      <td class="mono">serial_number</td>
-      <td class="mono cell-xs">&lt;U5</td>
-      <td></td>
-      <td></td>
-      <td class="mono cell-break">9920*</td>
-      <td></td>
-    </tr>
-    
-    <tr>
-      <td class="mono">start_time</td>
-      <td class="mono cell-xs">&lt;U16</td>
-      <td></td>
-      <td></td>
-      <td class="mono cell-break">2026-07-11T20:30</td>
-      <td></td>
-    </tr>
-    
-  </tbody>
-</table>
+<thead>
+  <tr><th tabindex="0">Variable</th><th tabindex="0">Type</th><th tabindex="0">Units</th><th tabindex="0">Standard / long name</th><th tabindex="0">Value</th><th data-nosort>Attributes</th></tr>
+</thead>
+<tbody>
+<tr>
+<td data-sort="InstrDepth">InstrDepth</td><td><code>int32</code></td><td>—</td>
+<td>—</td><td>519</td><td data-nosort>—</td></tr>
+<tr>
+<td data-sort="clock_drift_seconds">clock_drift_seconds</td><td><code>float32</code></td><td>s</td>
+<td>total linear clock drift applied</td><td>-55</td><td data-nosort>—</td></tr>
+<tr>
+<td data-sort="clock_offset">clock_offset</td><td><code>int32</code></td><td>s</td>
+<td>—</td><td>0</td><td data-nosort>—</td></tr>
+<tr>
+<td data-sort="end_time">end_time</td><td><code>string</code></td><td>—</td>
+<td>—</td><td>2026-07-25T11:44</td><td data-nosort>—</td></tr>
+<tr>
+<td data-sort="instrument">instrument</td><td><code>string</code></td><td>—</td>
+<td>—</td><td>aquadopp</td><td data-nosort>—</td></tr>
+<tr>
+<td data-sort="serial_number">serial_number</td><td><code>string</code></td><td>—</td>
+<td>—</td><td>9920*</td><td data-nosort>—</td></tr>
+<tr>
+<td data-sort="start_time">start_time</td><td><code>string</code></td><td>—</td>
+<td>—</td><td>2026-07-11T20:30</td><td data-nosort>—</td></tr>
+</tbody></table><div class="fig-source">source: oceanarray/reports/_vendored/nc_tables.py:scalars_rows</div>
 
 <h2 id="netcdf_attributes">(B) NetCDF attributes</h2>
 
 
-<h3 class="subhead-md">Global attributes</h3>
+<h3>Identity &amp; discovery</h3>
+<table class="sortable">
 
-<h4 class="subhead-sm">Identity &amp; discovery</h4>
-<table class="var-table">
-  <thead><tr><th>Attribute</th><th>Type</th><th>Value</th></tr></thead>
-  <tbody>
-    
-    <tr>
-      <td class="mono">mooring_name</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">dune2</td>
-    </tr>
-    
-  </tbody>
-</table>
+<thead>
+  <tr><th tabindex="0">Attribute</th><th tabindex="0">Type</th><th tabindex="0">Value</th></tr>
+</thead>
+<tbody>
+<tr><td class="mono">mooring_name</td><td><code>string</code></td><td>dune2</td></tr>
+</tbody></table>
+<h3>Spatiotemporal coverage</h3>
+<table class="sortable">
 
-<h4 class="subhead-sm">Spatiotemporal coverage</h4>
-<table class="var-table">
-  <thead><tr><th>Attribute</th><th>Type</th><th>Value</th></tr></thead>
-  <tbody>
-    
-    <tr>
-      <td class="mono">waterdepth</td>
-      <td class="mono cell-xs">int64</td>
-      <td class="cell-break-lg">745</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">longitude</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">-28 01.234</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">latitude</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">65 48.405</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">deployment_time</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">2026-07-11T20:30</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">recovery_time</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">2026-07-25T11:44</td>
-    </tr>
-    
-  </tbody>
-</table>
+<thead>
+  <tr><th tabindex="0">Attribute</th><th tabindex="0">Type</th><th tabindex="0">Value</th></tr>
+</thead>
+<tbody>
+<tr><td class="mono">waterdepth</td><td><code>int64</code></td><td>745</td></tr>
+<tr><td class="mono">longitude</td><td><code>string</code></td><td>-28 01.234</td></tr>
+<tr><td class="mono">latitude</td><td><code>string</code></td><td>65 48.405</td></tr>
+<tr><td class="mono">deployment_time</td><td><code>string</code></td><td>2026-07-11T20:30</td></tr>
+<tr><td class="mono">recovery_time</td><td><code>string</code></td><td>2026-07-25T11:44</td></tr>
+</tbody></table>
+<h3>Provenance &amp; processing</h3>
+<table class="sortable">
 
-<h4 class="subhead-sm">Provenance &amp; processing</h4>
-<table class="var-table">
-  <thead><tr><th>Attribute</th><th>Type</th><th>Value</th></tr></thead>
-  <tbody>
-    
-    <tr>
-      <td class="mono">processing_level</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">L1</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">date_created</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">2026-07-26T18:41:57.5Z</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">date_modified</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">2026-07-26T18:41:57.5Z</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">Conventions</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">CF-1.13</td>
-    </tr>
-    
-  </tbody>
-</table>
+<thead>
+  <tr><th tabindex="0">Attribute</th><th tabindex="0">Type</th><th tabindex="0">Value</th></tr>
+</thead>
+<tbody>
+<tr><td class="mono">processing_level</td><td><code>string</code></td><td>L1</td></tr>
+<tr><td class="mono">date_created</td><td><code>string</code></td><td>2026-07-26T18:41:57.504269Z</td></tr>
+<tr><td class="mono">date_modified</td><td><code>string</code></td><td>2026-07-26T18:41:57.504269Z</td></tr>
+<tr><td class="mono">Conventions</td><td><code>string</code></td><td>CF-1.13</td></tr>
+</tbody></table>
+<h3>Other</h3>
+<table class="sortable">
 
-<h4 class="subhead-sm">Other</h4>
-<table class="var-table">
-  <thead><tr><th>Attribute</th><th>Type</th><th>Value</th></tr></thead>
-  <tbody>
-    
-    <tr>
-      <td class="mono">raw_format</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">nortek-ascii</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">raw_filename</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">9920_recovery.dat</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">raw_filesize_bytes</td>
-      <td class="mono cell-xs">int64</td>
-      <td class="cell-break-lg">1743000</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">raw_mtime_utc</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">2026-07-25T13:15:40Z</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">raw_sha256</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">d9b9cf72d79b2910f614b43ee4839f644f5e46d0c0e5e80f802aecf3d96013e7</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">raw_metadata_schema</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">seasenselib/raw-opaque-1.0</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">raw_metadata</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">{&#34;schema&#34;: &#34;seasenselib/raw-opaque-1.0&#34;, &#34;raw_format&#34;: &#34;nortek-ascii&#34;, &#34;raw_filename&#34;: &#34;9920_recovery.dat&#34;, &#34;blocks&#34;: {&#34;attributes&#34;: {&#34;number_of_measurements&#34;: &#34;9960&#34;, &#34;number_of_checksum_errors&#34;: &#34;0&#34;, &#34;time_of_first_measurement&#34;: &#34;11/07/2026 17:00:00&#34;, &#34;time_of_last_measurement&#34;: &#34;25/07/2026 12:58:00&#34;, &#34;measurement_interval&#34;: &#34;120 sec&#34;, &#34;sampling_rate&#34;: &#34;NORMAL&#34;, &#34;average_interval&#34;: &#34;3 sec&#34;, &#34;measurement_load&#34;: &#34;74 %&#34;, &#34;transmit_pulse_length&#34;: &#34;0.75 m&#34;, &#34;blanking_distance&#34;: &#34;0.50 m&#34;, &#34;compass_update_rate&#34;: &#34;5 sec&#34;, &#34;diagnostics_measurements&#34;: &#34;ENABLED&#34;, &#34;diagnostics_-_interval&#34;: &#34;43200 sec&#34;, &#34;diagnostics_-_number_of_samples&#34;: &#34;20&#34;, &#34;diagnostics_-_cell_number&#34;: &#34;1&#34;, &#34;diagnostics_-_number_of_pings&#34;: &#34;20&#34;, &#34;analog_input_1&#34;: &#34;NONE&#34;, &#34;raw_magnetometer_output&#34;: &#34;OFF&#34;, &#34;external_input_2&#34;: &#34;NONE&#34;, &#34;external_input_3&#34;: &#34;NONE&#34;, &#34;power_output&#34;: &#34;12V&#34;, &#34;powerlevel&#34;: &#34;HIGH&#34;, &#34;coordinate_system&#34;: &#34;BEAM&#34;, &#34;sound_speed&#34;: &#34;MEASURED&#34;, &#34;salinity&#34;: &#34;35.0 ppt&#34;, &#34;distance_between_pings&#34;: &#34;10.00 m&#34;, &#34;number_of_beams&#34;: &#34;3&#34;, &#34;number_of_pings_per_burst&#34;: &#34;17&#34;, &#34;software_version&#34;: &#34;1.40.16&#34;, &#34;deployment_name&#34;: &#34;9920&#34;, &#34;wrap_mode&#34;: &#34;OFF&#34;, &#34;deployment_time&#34;: &#34;11/07/2026 17:00:00&#34;, &#34;system1&#34;: &#34;125&#34;, &#34;system2&#34;: &#34;55&#34;, &#34;system3&#34;: &#34;32&#34;, &#34;system4&#34;: &#34;437&#34;, &#34;system5&#34;: &#34;65 65 65 0&#34;, &#34;system9&#34;: &#34;0 0 -1&#34;, &#34;system10&#34;: &#34;0 -1 1 0&#34;, &#34;system11&#34;: &#34;0 -1 -1 0&#34;, &#34;system12&#34;: &#34;0&#34;, &#34;system13&#34;: &#34;1481 259 7128 10862&#34;, &#34;system14&#34;: &#34;-16627 934 10828 -128&#34;, &#34;system16&#34;: &#34;0 0 0 0&#34;, &#34;system17&#34;: &#34;5461&#34;, &#34;system22&#34;: &#34;43200&#34;, &#34;system28&#34;: &#34;20&#34;, &#34;system29&#34;: &#34;1&#34;, &#34;system30&#34;: &#34;20&#34;, &#34;system31&#34;: &#34;15618 15646 15673 15699&#34;, &#34;system42&#34;: &#34;0&#34;, &#34;system43&#34;: &#34;0&#34;, &#34;system44&#34;: &#34;0&#34;, &#34;system45&#34;: &#34;6&#34;, &#34;start_command&#34;: &#34;Recorder deployment&#34;, &#34;crc_download&#34;: &#34;ON&#34;, &#34;serial_number&#34;: &#34;A6L 5229&#34;, &#34;hardware_revision&#34;: &#34;4 (E)&#34;, &#34;recorder_size&#34;: &#34;9 MByte&#34;, &#34;firmware_version&#34;: &#34;3.42&#34;, &#34;velocity_range&#34;: &#34;NORMAL&#34;, &#34;sync_signal_data_out_delay&#34;: &#34;0 sec&#34;, &#34;sync_signal_power_down_delay&#34;: &#34;0 sec&#34;, &#34;pressure_sensor&#34;: &#34;YES&#34;, &#34;compass&#34;: &#34;YES&#34;, &#34;tilt_sensor&#34;: &#34;YES&#34;, &#34;system_1&#34;: &#34;1&#34;, &#34;head_frequency&#34;: &#34;2000 kHz&#34;, &#34;pressure_sensor_calibration&#34;: &#34;0 12 64848 6424&#34;, &#34;system7&#34;: &#34;-19553 440 11845 -102&#34;, &#34;system8&#34;: &#34;0 0 -1&#34;, &#34;system15&#34;: &#34;32471 722 -750 722&#34;, &#34;system18&#34;: &#34;3600&#34;, &#34;system19&#34;: &#34;3600&#34;, &#34;system20&#34;: &#34;10000&#34;}, &#34;calibration&#34;: {&#34;transformation_matrix&#34;: [[0.7356, -0.3677, -0.3677], [0.0, -0.637, 0.637], [0.7888, 0.7888, 0.7888]], &#34;magnetometer_calibration_matrix&#34;: [[0.991, 0.022, -0.0229], [0.022, 1.0, -0.0062], [-0.018, 0.0304, 0.9507]], &#34;compass_hard_iron_calibration&#34;: [5, -90, 10]}, &#34;configuration&#34;: null, &#34;other&#34;: {&#34;global_attributes&#34;: {&#34;coordinate_system&#34;: &#34;BEAM&#34;}}}, &#34;variables&#34;: {&#34;month&#34;: {&#34;column_number&#34;: &#34;1&#34;, &#34;original_name&#34;: &#34;Month&#34;, &#34;units&#34;: &#34;1-12&#34;}, &#34;day&#34;: {&#34;column_number&#34;: &#34;2&#34;, &#34;original_name&#34;: &#34;Day&#34;, &#34;units&#34;: &#34;1-31&#34;}, &#34;year&#34;: {&#34;column_number&#34;: &#34;3&#34;, &#34;original_name&#34;: &#34;Year&#34;}, &#34;hour&#34;: {&#34;column_number&#34;: &#34;4&#34;, &#34;original_name&#34;: &#34;Hour&#34;, &#34;units&#34;: &#34;0-23&#34;}, &#34;minute&#34;: {&#34;column_number&#34;: &#34;5&#34;, &#34;original_name&#34;: &#34;Minute&#34;, &#34;units&#34;: &#34;0-59&#34;}, &#34;second&#34;: {&#34;column_number&#34;: &#34;6&#34;, &#34;original_name&#34;: &#34;Second&#34;, &#34;units&#34;: &#34;0-59&#34;}, &#34;error_code&#34;: {&#34;column_number&#34;: &#34;7&#34;, &#34;original_name&#34;: &#34;Error code&#34;}, &#34;status_code&#34;: {&#34;column_number&#34;: &#34;8&#34;, &#34;original_name&#34;: &#34;Status code&#34;}, &#34;velocity_beam1&#34;: {&#34;column_number&#34;: &#34;9&#34;, &#34;original_name&#34;: &#34;Velocity (Beam1|X|East)&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;velocity_beam2&#34;: {&#34;column_number&#34;: &#34;10&#34;, &#34;original_name&#34;: &#34;Velocity (Beam2|Y|North)&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;velocity_beam3&#34;: {&#34;column_number&#34;: &#34;11&#34;, &#34;original_name&#34;: &#34;Velocity (Beam3|Z|Up)&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;amplitude_beam1&#34;: {&#34;column_number&#34;: &#34;12&#34;, &#34;original_name&#34;: &#34;Amplitude (Beam1)&#34;, &#34;units&#34;: &#34;counts&#34;}, &#34;amplitude_beam2&#34;: {&#34;column_number&#34;: &#34;13&#34;, &#34;original_name&#34;: &#34;Amplitude (Beam2)&#34;, &#34;units&#34;: &#34;counts&#34;}, &#34;amplitude_beam3&#34;: {&#34;column_number&#34;: &#34;14&#34;, &#34;original_name&#34;: &#34;Amplitude (Beam3)&#34;, &#34;units&#34;: &#34;counts&#34;}, &#34;battery_voltage&#34;: {&#34;column_number&#34;: &#34;15&#34;, &#34;original_name&#34;: &#34;Battery voltage&#34;, &#34;units&#34;: &#34;V&#34;}, &#34;speed_of_sound&#34;: {&#34;column_number&#34;: &#34;16&#34;, &#34;original_name&#34;: &#34;Soundspeed&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;speed_of_sound_used&#34;: {&#34;column_number&#34;: &#34;17&#34;, &#34;original_name&#34;: &#34;Soundspeed used&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;heading&#34;: {&#34;column_number&#34;: &#34;18&#34;, &#34;original_name&#34;: &#34;Heading&#34;, &#34;units&#34;: &#34;degrees&#34;}, &#34;pitch&#34;: {&#34;column_number&#34;: &#34;19&#34;, &#34;original_name&#34;: &#34;Pitch&#34;, &#34;units&#34;: &#34;degrees&#34;}, &#34;roll&#34;: {&#34;column_number&#34;: &#34;20&#34;, &#34;original_name&#34;: &#34;Roll&#34;, &#34;units&#34;: &#34;degrees&#34;}, &#34;pressure&#34;: {&#34;column_number&#34;: &#34;21&#34;, &#34;original_name&#34;: &#34;Pressure&#34;, &#34;units&#34;: &#34;dbar&#34;}, &#34;depth&#34;: {&#34;column_number&#34;: &#34;22&#34;, &#34;original_name&#34;: &#34;Pressure&#34;, &#34;units&#34;: &#34;m&#34;}, &#34;temperature&#34;: {&#34;column_number&#34;: &#34;23&#34;, &#34;original_name&#34;: &#34;Temperature&#34;, &#34;units&#34;: &#34;degrees C&#34;}, &#34;analog_input_1&#34;: {&#34;column_number&#34;: &#34;24&#34;, &#34;original_name&#34;: &#34;Analog input 1&#34;}, &#34;analog_input_2&#34;: {&#34;column_number&#34;: &#34;25&#34;, &#34;original_name&#34;: &#34;Analog input 2&#34;}, &#34;magnitude&#34;: {&#34;column_number&#34;: &#34;26&#34;, &#34;original_name&#34;: &#34;Speed&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;direction&#34;: {&#34;column_number&#34;: &#34;27&#34;, &#34;original_name&#34;: &#34;Direction&#34;, &#34;units&#34;: &#34;degrees&#34;}}}</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_name</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">SeaSenseLib</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_version</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">0.6.0</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_module</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">seasenselib.readers.nortek_ascii_reader</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_module_name</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">Nortek ASCII</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_module_key</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">nortek-ascii</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_runtime</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">CPython</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_runtime_version</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">3.11.7</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_execution_time_utc</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">2026-07-26T18:41:57.5Z</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_machine</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">EFWmac14-2.local</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">processor_os</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">Darwin 25.5.0</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">coordinate_system</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">ENU</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_number_of_beams</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">3</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system5</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">65 65 65 0</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system7</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">-19553 440 11845 -102</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">0 0 0 0</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system8</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">0 0 -1</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system9</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">0 0 -1</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system10</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">0 -1 1 0</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system11</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">0 -1 -1 0</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system13</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">1481 259 7128 10862</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system14</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">-16627 934 10828 -128</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system15</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">32471 722 -750 722</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system16</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">0 0 0 0</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system17</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">5461</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system18</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">3600</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system19</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">3600</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pressure_cal_system20</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">10000</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_T_M11</td>
-      <td class="mono cell-xs" style="font-weight:600">float64</td>
-      <td class="cell-break-lg">0.7356</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_T_M12</td>
-      <td class="mono cell-xs" style="font-weight:600">float64</td>
-      <td class="cell-break-lg">-0.3677</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_T_M13</td>
-      <td class="mono cell-xs" style="font-weight:600">float64</td>
-      <td class="cell-break-lg">-0.3677</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_T_M21</td>
-      <td class="mono cell-xs" style="font-weight:600">float64</td>
-      <td class="cell-break-lg">0.0</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_T_M22</td>
-      <td class="mono cell-xs" style="font-weight:600">float64</td>
-      <td class="cell-break-lg">-0.637</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_T_M23</td>
-      <td class="mono cell-xs" style="font-weight:600">float64</td>
-      <td class="cell-break-lg">0.637</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_T_M31</td>
-      <td class="mono cell-xs" style="font-weight:600">float64</td>
-      <td class="cell-break-lg">0.7888</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_T_M32</td>
-      <td class="mono cell-xs" style="font-weight:600">float64</td>
-      <td class="cell-break-lg">0.7888</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_T_M33</td>
-      <td class="mono cell-xs" style="font-weight:600">float64</td>
-      <td class="cell-break-lg">0.7888</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">nortek_pointing_down</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">False</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">deployment_latitude</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">00 00.000 N</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">deployment_longitude</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">000 00.000 W</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">seabed_latitude</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">00 00.000 N</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">seabed_longitude</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">000 00.000 W</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">qc_convention</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">OceanSITES reference table 2</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">suggested_deployment_time</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">2026-07-11T20:30:00</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">suggested_recovery_time</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">2026-07-25T11:44:00</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">suggested_window_source</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">pressure_pmin10dbar</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">suggested_window_clock</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">raw_instrument_clock</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">suggested_deployment_time_utc</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">2026-07-11T20:30:00</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">suggested_recovery_time_utc</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">2026-07-25T11:43:05</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">stage1_first_nonnull</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">2026-07-11T17:00:00</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">stage1_last_nonnull</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">2026-07-25T12:58:00</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">stage1_time_start</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">2026-07-11T17:00:00</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">stage1_time_end</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">2026-07-25T12:58:00</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">yaml_deployment_time</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">2026-07-11T20:30:00</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">yaml_recovery_time</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">2026-07-25T11:44:00</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">stage2_source_file</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">dune2_1_2026_9920_stage2.nc</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">stage2_source_mtime</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">2026-07-29T12:10:34Z</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">stage2_source_sha256</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">a45e2284</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">magnetic_declination</td>
-      <td class="mono cell-xs" style="font-weight:600">float64</td>
-      <td class="cell-break-lg">-13.965613674756257</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">magnetic_declination_units</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">degrees_east</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">magnetic_declination_method</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">ppigrf IGRF at deployment midpoint</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">magnetic_declination_lat</td>
-      <td class="mono cell-xs" style="font-weight:600">float64</td>
-      <td class="cell-break-lg">65.73188333333333</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">magnetic_declination_lon</td>
-      <td class="mono cell-xs" style="font-weight:600">float64</td>
-      <td class="cell-break-lg">-26.2</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">magnetic_declination_latlon_source</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">mooring YAML (latitude/longitude)</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">coordinate_system_source</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">rotated from XYZ by oceanarray stage3</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">tilt_suspect_threshold</td>
-      <td class="mono cell-xs" style="font-weight:600">float64</td>
-      <td class="cell-break-lg">30.0</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">tilt_fail_threshold</td>
-      <td class="mono cell-xs" style="font-weight:600">float64</td>
-      <td class="cell-break-lg">50.0</td>
-    </tr>
-    
-  </tbody>
-</table>
-
+<thead>
+  <tr><th tabindex="0">Attribute</th><th tabindex="0">Type</th><th tabindex="0">Value</th></tr>
+</thead>
+<tbody>
+<tr><td class="mono">raw_format</td><td><code>string</code></td><td>nortek-ascii</td></tr>
+<tr><td class="mono">raw_filename</td><td><code>string</code></td><td>9920_recovery.dat</td></tr>
+<tr><td class="mono">raw_filesize_bytes</td><td><code>int64</code></td><td>1743000</td></tr>
+<tr><td class="mono">raw_mtime_utc</td><td><code>string</code></td><td>2026-07-25T13:15:40Z</td></tr>
+<tr><td class="mono">raw_sha256</td><td><code>string</code></td><td>d9b9cf72d79b2910f614b43ee4839f644f5e46d0c0e5e80f802aecf3d96013e7</td></tr>
+<tr><td class="mono">raw_metadata_schema</td><td><code>string</code></td><td>seasenselib/raw-opaque-1.0</td></tr>
+<tr><td class="mono">raw_metadata</td><td><code>string</code></td><td>{&#34;schema&#34;: &#34;seasenselib/raw-opaque-1.0&#34;, &#34;raw_format&#34;: &#34;nortek-ascii&#34;, &#34;raw_filename&#34;: &#34;9920_recovery.dat&#34;, &#34;blocks&#34;: {&#34;attributes&#34;: {&#34;number_of_measurements&#34;: &#34;9960&#34;, &#34;number_of_checksum_errors&#34;: &#34;0&#34;, &#34;time_of_first_measurement&#34;: &#34;11/07/2026 17:00:00&#34;, &#34;time_of_last_measurement&#34;: &#34;25/07/2026 12:58:00&#34;, &#34;measurement_interval&#34;: &#34;120 sec&#34;, &#34;sampling_rate&#34;: &#34;NORMAL&#34;, &#34;average_interval&#34;: &#34;3 sec&#34;, &#34;measurement_load&#34;: &#34;74 %&#34;, &#34;transmit_pulse_length&#34;: &#34;0.75 m&#34;, &#34;blanking_distance&#34;: &#34;0.50 m&#34;, &#34;compass_update_rate&#34;: &#34;5 sec&#34;, &#34;diagnostics_measurements&#34;: &#34;ENABLED&#34;, &#34;diagnostics_-_interval&#34;: &#34;43200 sec&#34;, &#34;diagnostics_-_number_of_samples&#34;: &#34;20&#34;, &#34;diagnostics_-_cell_number&#34;: &#34;1&#34;, &#34;diagnostics_-_number_of_pings&#34;: &#34;20&#34;, &#34;analog_input_1&#34;: &#34;NONE&#34;, &#34;raw_magnetometer_output&#34;: &#34;OFF&#34;, &#34;external_input_2&#34;: &#34;NONE&#34;, &#34;external_input_3&#34;: &#34;NONE&#34;, &#34;power_output&#34;: &#34;12V&#34;, &#34;powerlevel&#34;: &#34;HIGH&#34;, &#34;coordinate_system&#34;: &#34;BEAM&#34;, &#34;sound_speed&#34;: &#34;MEASURED&#34;, &#34;salinity&#34;: &#34;35.0 ppt&#34;, &#34;distance_between_pings&#34;: &#34;10.00 m&#34;, &#34;number_of_beams&#34;: &#34;3&#34;, &#34;number_of_pings_per_burst&#34;: &#34;17&#34;, &#34;software_version&#34;: &#34;1.40.16&#34;, &#34;deployment_name&#34;: &#34;9920&#34;, &#34;wrap_mode&#34;: &#34;OFF&#34;, &#34;deployment_time&#34;: &#34;11/07/2026 17:00:00&#34;, &#34;system1&#34;: &#34;125&#34;, &#34;system2&#34;: &#34;55&#34;, &#34;system3&#34;: &#34;32&#34;, &#34;system4&#34;: &#34;437&#34;, &#34;system5&#34;: &#34;65 65 65 0&#34;, &#34;system9&#34;: &#34;0 0 -1&#34;, &#34;system10&#34;: &#34;0 -1 1 0&#34;, &#34;system11&#34;: &#34;0 -1 -1 0&#34;, &#34;system12&#34;: &#34;0&#34;, &#34;system13&#34;: &#34;1481 259 7128 10862&#34;, &#34;system14&#34;: &#34;-16627 934 10828 -128&#34;, &#34;system16&#34;: &#34;0 0 0 0&#34;, &#34;system17&#34;: &#34;5461&#34;, &#34;system22&#34;: &#34;43200&#34;, &#34;system28&#34;: &#34;20&#34;, &#34;system29&#34;: &#34;1&#34;, &#34;system30&#34;: &#34;20&#34;, &#34;system31&#34;: &#34;15618 15646 15673 15699&#34;, &#34;system42&#34;: &#34;0&#34;, &#34;system43&#34;: &#34;0&#34;, &#34;system44&#34;: &#34;0&#34;, &#34;system45&#34;: &#34;6&#34;, &#34;start_command&#34;: &#34;Recorder deployment&#34;, &#34;crc_download&#34;: &#34;ON&#34;, &#34;serial_number&#34;: &#34;A6L 5229&#34;, &#34;hardware_revision&#34;: &#34;4 (E)&#34;, &#34;recorder_size&#34;: &#34;9 MByte&#34;, &#34;firmware_version&#34;: &#34;3.42&#34;, &#34;velocity_range&#34;: &#34;NORMAL&#34;, &#34;sync_signal_data_out_delay&#34;: &#34;0 sec&#34;, &#34;sync_signal_power_down_delay&#34;: &#34;0 sec&#34;, &#34;pressure_sensor&#34;: &#34;YES&#34;, &#34;compass&#34;: &#34;YES&#34;, &#34;tilt_sensor&#34;: &#34;YES&#34;, &#34;system_1&#34;: &#34;1&#34;, &#34;head_frequency&#34;: &#34;2000 kHz&#34;, &#34;pressure_sensor_calibration&#34;: &#34;0 12 64848 6424&#34;, &#34;system7&#34;: &#34;-19553 440 11845 -102&#34;, &#34;system8&#34;: &#34;0 0 -1&#34;, &#34;system15&#34;: &#34;32471 722 -750 722&#34;, &#34;system18&#34;: &#34;3600&#34;, &#34;system19&#34;: &#34;3600&#34;, &#34;system20&#34;: &#34;10000&#34;}, &#34;calibration&#34;: {&#34;transformation_matrix&#34;: [[0.7356, -0.3677, -0.3677], [0.0, -0.637, 0.637], [0.7888, 0.7888, 0.7888]], &#34;magnetometer_calibration_matrix&#34;: [[0.991, 0.022, -0.0229], [0.022, 1.0, -0.0062], [-0.018, 0.0304, 0.9507]], &#34;compass_hard_iron_calibration&#34;: [5, -90, 10]}, &#34;configuration&#34;: null, &#34;other&#34;: {&#34;global_attributes&#34;: {&#34;coordinate_system&#34;: &#34;BEAM&#34;}}}, &#34;variables&#34;: {&#34;month&#34;: {&#34;column_number&#34;: &#34;1&#34;, &#34;original_name&#34;: &#34;Month&#34;, &#34;units&#34;: &#34;1-12&#34;}, &#34;day&#34;: {&#34;column_number&#34;: &#34;2&#34;, &#34;original_name&#34;: &#34;Day&#34;, &#34;units&#34;: &#34;1-31&#34;}, &#34;year&#34;: {&#34;column_number&#34;: &#34;3&#34;, &#34;original_name&#34;: &#34;Year&#34;}, &#34;hour&#34;: {&#34;column_number&#34;: &#34;4&#34;, &#34;original_name&#34;: &#34;Hour&#34;, &#34;units&#34;: &#34;0-23&#34;}, &#34;minute&#34;: {&#34;column_number&#34;: &#34;5&#34;, &#34;original_name&#34;: &#34;Minute&#34;, &#34;units&#34;: &#34;0-59&#34;}, &#34;second&#34;: {&#34;column_number&#34;: &#34;6&#34;, &#34;original_name&#34;: &#34;Second&#34;, &#34;units&#34;: &#34;0-59&#34;}, &#34;error_code&#34;: {&#34;column_number&#34;: &#34;7&#34;, &#34;original_name&#34;: &#34;Error code&#34;}, &#34;status_code&#34;: {&#34;column_number&#34;: &#34;8&#34;, &#34;original_name&#34;: &#34;Status code&#34;}, &#34;velocity_beam1&#34;: {&#34;column_number&#34;: &#34;9&#34;, &#34;original_name&#34;: &#34;Velocity (Beam1|X|East)&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;velocity_beam2&#34;: {&#34;column_number&#34;: &#34;10&#34;, &#34;original_name&#34;: &#34;Velocity (Beam2|Y|North)&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;velocity_beam3&#34;: {&#34;column_number&#34;: &#34;11&#34;, &#34;original_name&#34;: &#34;Velocity (Beam3|Z|Up)&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;amplitude_beam1&#34;: {&#34;column_number&#34;: &#34;12&#34;, &#34;original_name&#34;: &#34;Amplitude (Beam1)&#34;, &#34;units&#34;: &#34;counts&#34;}, &#34;amplitude_beam2&#34;: {&#34;column_number&#34;: &#34;13&#34;, &#34;original_name&#34;: &#34;Amplitude (Beam2)&#34;, &#34;units&#34;: &#34;counts&#34;}, &#34;amplitude_beam3&#34;: {&#34;column_number&#34;: &#34;14&#34;, &#34;original_name&#34;: &#34;Amplitude (Beam3)&#34;, &#34;units&#34;: &#34;counts&#34;}, &#34;battery_voltage&#34;: {&#34;column_number&#34;: &#34;15&#34;, &#34;original_name&#34;: &#34;Battery voltage&#34;, &#34;units&#34;: &#34;V&#34;}, &#34;speed_of_sound&#34;: {&#34;column_number&#34;: &#34;16&#34;, &#34;original_name&#34;: &#34;Soundspeed&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;speed_of_sound_used&#34;: {&#34;column_number&#34;: &#34;17&#34;, &#34;original_name&#34;: &#34;Soundspeed used&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;heading&#34;: {&#34;column_number&#34;: &#34;18&#34;, &#34;original_name&#34;: &#34;Heading&#34;, &#34;units&#34;: &#34;degrees&#34;}, &#34;pitch&#34;: {&#34;column_number&#34;: &#34;19&#34;, &#34;original_name&#34;: &#34;Pitch&#34;, &#34;units&#34;: &#34;degrees&#34;}, &#34;roll&#34;: {&#34;column_number&#34;: &#34;20&#34;, &#34;original_name&#34;: &#34;Roll&#34;, &#34;units&#34;: &#34;degrees&#34;}, &#34;pressure&#34;: {&#34;column_number&#34;: &#34;21&#34;, &#34;original_name&#34;: &#34;Pressure&#34;, &#34;units&#34;: &#34;dbar&#34;}, &#34;depth&#34;: {&#34;column_number&#34;: &#34;22&#34;, &#34;original_name&#34;: &#34;Pressure&#34;, &#34;units&#34;: &#34;m&#34;}, &#34;temperature&#34;: {&#34;column_number&#34;: &#34;23&#34;, &#34;original_name&#34;: &#34;Temperature&#34;, &#34;units&#34;: &#34;degrees C&#34;}, &#34;analog_input_1&#34;: {&#34;column_number&#34;: &#34;24&#34;, &#34;original_name&#34;: &#34;Analog input 1&#34;}, &#34;analog_input_2&#34;: {&#34;column_number&#34;: &#34;25&#34;, &#34;original_name&#34;: &#34;Analog input 2&#34;}, &#34;magnitude&#34;: {&#34;column_number&#34;: &#34;26&#34;, &#34;original_name&#34;: &#34;Speed&#34;, &#34;units&#34;: &#34;m/s&#34;}, &#34;direction&#34;: {&#34;column_number&#34;: &#34;27&#34;, &#34;original_name&#34;: &#34;Direction&#34;, &#34;units&#34;: &#34;degrees&#34;}}}</td></tr>
+<tr><td class="mono">processor_name</td><td><code>string</code></td><td>SeaSenseLib</td></tr>
+<tr><td class="mono">processor_version</td><td><code>string</code></td><td>0.6.0</td></tr>
+<tr><td class="mono">processor_module</td><td><code>string</code></td><td>seasenselib.readers.nortek_ascii_reader</td></tr>
+<tr><td class="mono">processor_module_name</td><td><code>string</code></td><td>Nortek ASCII</td></tr>
+<tr><td class="mono">processor_module_key</td><td><code>string</code></td><td>nortek-ascii</td></tr>
+<tr><td class="mono">processor_runtime</td><td><code>string</code></td><td>CPython</td></tr>
+<tr><td class="mono">processor_runtime_version</td><td><code>string</code></td><td>3.11.7</td></tr>
+<tr><td class="mono">processor_execution_time_utc</td><td><code>string</code></td><td>2026-07-26T18:41:57.504259Z</td></tr>
+<tr><td class="mono">processor_machine</td><td><code>string</code></td><td>EFWmac14-2.local</td></tr>
+<tr><td class="mono">processor_os</td><td><code>string</code></td><td>Darwin 25.5.0</td></tr>
+<tr><td class="mono">coordinate_system</td><td><code>string</code></td><td>ENU</td></tr>
+<tr><td class="mono">nortek_pressure_cal_number_of_beams</td><td><code>string</code></td><td>3</td></tr>
+<tr><td class="mono">nortek_pressure_cal_system5</td><td><code>string</code></td><td>65 65 65 0</td></tr>
+<tr><td class="mono">nortek_pressure_cal_system7</td><td><code>string</code></td><td>-19553 440 11845 -102</td></tr>
+<tr><td class="mono">nortek_pressure_cal_</td><td><code>string</code></td><td>0 0 0 0</td></tr>
+<tr><td class="mono">nortek_pressure_cal_system8</td><td><code>string</code></td><td>0 0 -1</td></tr>
+<tr><td class="mono">nortek_pressure_cal_system9</td><td><code>string</code></td><td>0 0 -1</td></tr>
+<tr><td class="mono">nortek_pressure_cal_system10</td><td><code>string</code></td><td>0 -1 1 0</td></tr>
+<tr><td class="mono">nortek_pressure_cal_system11</td><td><code>string</code></td><td>0 -1 -1 0</td></tr>
+<tr><td class="mono">nortek_pressure_cal_system13</td><td><code>string</code></td><td>1481 259 7128 10862</td></tr>
+<tr><td class="mono">nortek_pressure_cal_system14</td><td><code>string</code></td><td>-16627 934 10828 -128</td></tr>
+<tr><td class="mono">nortek_pressure_cal_system15</td><td><code>string</code></td><td>32471 722 -750 722</td></tr>
+<tr><td class="mono">nortek_pressure_cal_system16</td><td><code>string</code></td><td>0 0 0 0</td></tr>
+<tr><td class="mono">nortek_pressure_cal_system17</td><td><code>string</code></td><td>5461</td></tr>
+<tr><td class="mono">nortek_pressure_cal_system18</td><td><code>string</code></td><td>3600</td></tr>
+<tr><td class="mono">nortek_pressure_cal_system19</td><td><code>string</code></td><td>3600</td></tr>
+<tr><td class="mono">nortek_pressure_cal_system20</td><td><code>string</code></td><td>10000</td></tr>
+<tr><td class="mono">nortek_T_M11</td><td><strong><code>float64</code></strong></td><td>0.7356</td></tr>
+<tr><td class="mono">nortek_T_M12</td><td><strong><code>float64</code></strong></td><td>-0.3677</td></tr>
+<tr><td class="mono">nortek_T_M13</td><td><strong><code>float64</code></strong></td><td>-0.3677</td></tr>
+<tr><td class="mono">nortek_T_M21</td><td><strong><code>float64</code></strong></td><td>0.0</td></tr>
+<tr><td class="mono">nortek_T_M22</td><td><strong><code>float64</code></strong></td><td>-0.637</td></tr>
+<tr><td class="mono">nortek_T_M23</td><td><strong><code>float64</code></strong></td><td>0.637</td></tr>
+<tr><td class="mono">nortek_T_M31</td><td><strong><code>float64</code></strong></td><td>0.7888</td></tr>
+<tr><td class="mono">nortek_T_M32</td><td><strong><code>float64</code></strong></td><td>0.7888</td></tr>
+<tr><td class="mono">nortek_T_M33</td><td><strong><code>float64</code></strong></td><td>0.7888</td></tr>
+<tr><td class="mono">nortek_pointing_down</td><td><code>string</code></td><td>False</td></tr>
+<tr><td class="mono">deployment_latitude</td><td><code>string</code></td><td>00 00.000 N</td></tr>
+<tr><td class="mono">deployment_longitude</td><td><code>string</code></td><td>000 00.000 W</td></tr>
+<tr><td class="mono">seabed_latitude</td><td><code>string</code></td><td>00 00.000 N</td></tr>
+<tr><td class="mono">seabed_longitude</td><td><code>string</code></td><td>000 00.000 W</td></tr>
+<tr><td class="mono">qc_convention</td><td><code>string</code></td><td>OceanSITES reference table 2</td></tr>
+<tr><td class="mono">suggested_deployment_time</td><td><code>string</code></td><td>2026-07-11T20:30:00</td></tr>
+<tr><td class="mono">suggested_recovery_time</td><td><code>string</code></td><td>2026-07-25T11:44:00</td></tr>
+<tr><td class="mono">suggested_window_source</td><td><code>string</code></td><td>pressure_pmin10dbar</td></tr>
+<tr><td class="mono">suggested_window_clock</td><td><code>string</code></td><td>raw_instrument_clock</td></tr>
+<tr><td class="mono">suggested_deployment_time_utc</td><td><code>string</code></td><td>2026-07-11T20:30:00</td></tr>
+<tr><td class="mono">suggested_recovery_time_utc</td><td><code>string</code></td><td>2026-07-25T11:43:05</td></tr>
+<tr><td class="mono">stage1_first_nonnull</td><td><code>string</code></td><td>2026-07-11T17:00:00</td></tr>
+<tr><td class="mono">stage1_last_nonnull</td><td><code>string</code></td><td>2026-07-25T12:58:00</td></tr>
+<tr><td class="mono">stage1_time_start</td><td><code>string</code></td><td>2026-07-11T17:00:00</td></tr>
+<tr><td class="mono">stage1_time_end</td><td><code>string</code></td><td>2026-07-25T12:58:00</td></tr>
+<tr><td class="mono">yaml_deployment_time</td><td><code>string</code></td><td>2026-07-11T20:30:00</td></tr>
+<tr><td class="mono">yaml_recovery_time</td><td><code>string</code></td><td>2026-07-25T11:44:00</td></tr>
+<tr><td class="mono">stage2_source_file</td><td><code>string</code></td><td>dune2_1_2026_9920_stage2.nc</td></tr>
+<tr><td class="mono">stage2_source_mtime</td><td><code>string</code></td><td>2026-07-29T12:10:34Z</td></tr>
+<tr><td class="mono">stage2_source_sha256</td><td><code>string</code></td><td>a45e2284</td></tr>
+<tr><td class="mono">magnetic_declination</td><td><strong><code>float64</code></strong></td><td>-13.965613674756257</td></tr>
+<tr><td class="mono">magnetic_declination_units</td><td><code>string</code></td><td>degrees_east</td></tr>
+<tr><td class="mono">magnetic_declination_method</td><td><code>string</code></td><td>ppigrf IGRF at deployment midpoint</td></tr>
+<tr><td class="mono">magnetic_declination_lat</td><td><strong><code>float64</code></strong></td><td>65.73188333333333</td></tr>
+<tr><td class="mono">magnetic_declination_lon</td><td><strong><code>float64</code></strong></td><td>-26.2</td></tr>
+<tr><td class="mono">magnetic_declination_latlon_source</td><td><code>string</code></td><td>mooring YAML (latitude/longitude)</td></tr>
+<tr><td class="mono">coordinate_system_source</td><td><code>string</code></td><td>rotated from XYZ by oceanarray stage3</td></tr>
+<tr><td class="mono">tilt_suspect_threshold</td><td><strong><code>float64</code></strong></td><td>30.0</td></tr>
+<tr><td class="mono">tilt_fail_threshold</td><td><strong><code>float64</code></strong></td><td>50.0</td></tr>
+</tbody></table><div class="fig-source">source: oceanarray/reports/_vendored/nc_tables.py:globals_rows</div>
 
 
 <p class="none-note">Not applicable to this instrument: Velocity, T-S diagram, Current roses, Analog channels.</p>
@@ -2086,6 +1316,57 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
   });
 </script>
 
+
+<script>
+document.querySelectorAll('table').forEach(function (table) {
+  if (table.hasAttribute('data-nosort')) { return; }
+  var head = table.tHead && table.tHead.rows[0];
+  var body = table.tBodies[0];
+  if (!head || !body) { return; }
+  function cellKey(row, idx) {
+    var cell = row.cells[idx];
+    if (!cell) { return ''; }
+    var ds = cell.getAttribute('data-sort');
+    return ds !== null ? ds : cell.textContent.trim();
+  }
+  function numeric(idx) {
+    var rows = body.rows, seen = false;
+    for (var i = 0; i < rows.length; i++) {
+      var k = cellKey(rows[i], idx);
+      if (k === '') { continue; }
+      if (!/^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$/.test(k)) { return false; }
+      seen = true;
+    }
+    return seen;
+  }
+  Array.prototype.forEach.call(head.cells, function (th, idx) {
+    if (th.hasAttribute('data-nosort')) { return; }
+    th.tabIndex = 0;
+    function sort() {
+      var asc = !(th.classList.contains('sorted-asc'));
+      var isNum = numeric(idx);
+      var rows = Array.prototype.slice.call(body.rows);
+      rows.sort(function (a, b) {
+        var ka = cellKey(a, idx), kb = cellKey(b, idx);
+        if (isNum) { ka = parseFloat(ka) || 0; kb = parseFloat(kb) || 0; }
+        else { ka = ka.toLowerCase(); kb = kb.toLowerCase(); }
+        if (ka < kb) { return asc ? -1 : 1; }
+        if (ka > kb) { return asc ? 1 : -1; }
+        return 0;
+      });
+      rows.forEach(function (r) { body.appendChild(r); });
+      Array.prototype.forEach.call(head.cells, function (o) {
+        o.classList.remove('sorted-asc', 'sorted-desc');
+      });
+      th.classList.add(asc ? 'sorted-asc' : 'sorted-desc');
+    }
+    th.addEventListener('click', sort);
+    th.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sort(); }
+    });
+  });
+});
+</script>
 
 </body>
 </html>

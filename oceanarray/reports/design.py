@@ -31,13 +31,12 @@ SHARED_CSS: str = emit_css(PACKAGE_ACCENT)
 #: template global.
 FIGURE_SOURCE: bool = True
 
-#: Use the vendored Leaflet ``track_map`` for the array-page mooring map.  OFF until
-#: the shared macro can render a single-point track as a marker — today it draws every
-#: entry as an ``L.polyline``, and a one-point mooring polyline is invisible (the map is
-#: blank).  While off, the array page passes an empty payload so ``track_map`` shows the
-#: matplotlib PNG fallback (with bathymetry) instead of an empty map.  Flip to ``True``
-#: once a re-vendor brings a ``circleMarker`` path to ``_map.html`` (sync-4 finding F8).
-ARRAY_MAP_LEAFLET: bool = False
+#: Use the vendored Leaflet ``track_map`` for the array-page mooring map.  ON since the
+#: sync-4 re-vendor brought a ``circleMarker`` path to ``_map.html`` (F8/F7): a single-point
+#: mooring now draws as a marker.  When off, the array page passes an empty payload so
+#: ``track_map`` falls back to the matplotlib PNG; the PNG stays below the Leaflet map as a
+#: captioned static figure regardless (bathymetry, until the vendored layer carries it).
+ARRAY_MAP_LEAFLET: bool = True
 
 #: Global-attribute names shown as a variable's ``original → name`` provenance.  The
 #: writer sets ``original_name``; the column itself arrives with a later vendored

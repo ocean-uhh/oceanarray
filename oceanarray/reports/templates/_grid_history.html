@@ -1,10 +1,18 @@
-{# Processing-history list — rendered to a string and emitted as the `history`
-   panel's payload (kind="html"). #}
-<ul class="history-list">
-  {% for e in history_entries %}
-  <li>
-    <span class="history-ts">{{ e.timestamp }}</span>
-    <span class="history-text">{{ e.text }}</span>
-  </li>
-  {% endfor %}
-</ul>
+{# Processing-history tables — the `history` panel's payload (kind="html").  The undated
+   header items (processed-by, Reader, Format, Source file, Stages) render as a key/value
+   properties table; the dated entries as a sortable Time/Event table, one row per event
+   (a `|`-joined entry and the `name_qc=[…]` summaries each become their own same-time row).
+   Tables come from the vendored macros; rows are shaped by _html_helpers._history_tables. #}
+{% import "_nc_tables.html" as nc %}
+{{ nc.properties_table(header_rows) }}
+{%- if event_rows %}
+<table class="sortable">
+{{ nc.thead(["Time", "Event"]) }}
+<tbody>
+{%- for t, ev in event_rows %}
+  <tr><td>{{ t }}</td><td>{{ ev }}</td></tr>
+{%- endfor %}
+</tbody>
+</table>
+{%- if show_source and history_source %}<div class="fig-source">source: {{ history_source }}</div>{% endif %}
+{%- endif %}

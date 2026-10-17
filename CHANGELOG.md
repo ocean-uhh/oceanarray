@@ -6,6 +6,21 @@ All notable changes to oceanarray are documented here.
 
 ## [Unreleased]
 
+### Changed
+
+- **Vendored report-design layer adopted**: the report presentation layer moves to `oceanarray/reports/_vendored/`, a directory copied byte-identical from ctdcast that carries its own `MANIFEST.txt` and self-check (`check.py`). The six scattered vendored files (`config/report_tokens.py`, `config/report.mplstyle`, `reports/_encode.py`, `_css.py`, `_manifest.py`, `templates/_nav.html`), the root `VENDORED.txt`, and `scripts/check_vendored.py` are removed; a new owned `reports/design.py` holds the oceanarray-specific configuration (package accent, QC/sensor predicates, `ATTR_GROUP_EXTRAS`, the per-figure source toggle). `reports/__init__.py` resolves its public names lazily so importing the vendored layer does not pull the page pipeline. No change to the NetCDF outputs or the public API.
+- **NetCDF-inventory tables rendered by the vendored builders**: the coordinates/variables/scalars/globals tables now come from the shared `nc_tables` builders and `_nc_tables.html` macros. Type labels read `string` rather than `str`, each table carries a `source:` caption, the coordinates table gains a Dims column, and the `history` global attribute is shown once (in its dedicated processing-history panel, not duplicated in the globals table). The local inventory templates and row builders are removed.
+- **Processing-history panel is now tables**: the instrument/grid/stack reports render the processing history as a key/value `properties_table` for the header items plus a sortable Time·Event table for the dated entries (a `|`-joined entry splits into same-time rows), replacing the `dl`-style list that wrapped long entries into orphan rows.
+- **Array page map**: the mooring-position map is the vendored Leaflet `track_map` (a marker per mooring, hover-linked to the mooring list via `data-track-id`, offline bundled assets) behind the `design.ARRAY_MAP_LEAFLET` flag — the interactive map on screen, its matplotlib PNG fallback when printing (never both). The static PNG gains a `source:` caption, a Mercator-square framed extent (a line of moorings no longer renders as a sliver), and family marker colours; the mooring name links to its report and the jump-nav uses the family markup.
+- **Array masthead metadata**: the array summary masthead gains deployment/recovery and duration, position and mooring extent, water-depth range, an instrument by-type breakdown, deployment status, and processed-to counts — all read or derived from the array/mooring YAMLs at render (a missing value is an em-dash).
+- **base.html de-duplicated against the shared stylesheet**: report chrome rules that `emit_css()` already provides are removed from the per-page `<style>` block (only the oceanarray-specific additions remain), guarded by `test_no_base_rule_duplicates_vendored_css`.
+- **Absent figure panels say why**: a figure whose draw raises now renders a short stub with the reason instead of vanishing (`as_panel`, ported from ctdcast).
+- **Coverage floor raised** from 38% to 58%: `main` and this branch both measure 59% unit coverage, so the CI `--cov-fail-under` gate is ratcheted to one point below.
+
+### Breaking changes
+
+- None. The NetCDF outputs and the public API (`oceanarray` CLI, `from oceanarray.reports import MooringReport`) are unchanged. The report HTML changes (masthead nav, inventory-table layout and type labels, `source:` captions); the committed report goldens are rebaselined to match.
+
 ## [0.5.0] — 2026-10-12
 
 ### Added

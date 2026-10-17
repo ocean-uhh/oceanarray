@@ -672,3 +672,23 @@ def test_isopycnal_panel_warns_and_stubs_on_failure(monkeypatch):
     ctx = type("Ctx", (), {"ds": None})()
     with pytest.warns(UserWarning, match="sigma0"):
         assert panel.render(ctx) is None
+
+
+def test_render_nc_tables_tolerate_empty_meta():
+    """An instrument with no processed NetCDF yields ``nc_meta={}``; the inventory
+    renderers must return ``""`` rather than raise ``KeyError`` (which the page
+    pipeline swallows to a blank page)."""
+    from oceanarray.reports._env import (
+        render_nc_coords,
+        render_nc_globals,
+        render_nc_scalars,
+        render_nc_variables,
+    )
+
+    for render in (
+        render_nc_variables,
+        render_nc_coords,
+        render_nc_scalars,
+        render_nc_globals,
+    ):
+        assert render({}) == ""

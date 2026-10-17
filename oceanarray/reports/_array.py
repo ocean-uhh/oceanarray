@@ -9,8 +9,9 @@ Entry point: :func:`generate_array_report`.
 
 from __future__ import annotations
 
+import logging
 import warnings
-from datetime import UTC
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +33,8 @@ from ._plots import render_b64
 from ._vendored import design_tokens as report_tokens
 from ._vendored.leaflet import coastline_geojson, load_leaflet, safe_json
 from .design import ARRAY_MAP_LEAFLET
+
+_log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Lat/lon parsing
@@ -108,30 +111,161 @@ def _count_instruments(cfg: dict[str, Any]) -> int:
 # ---------------------------------------------------------------------------
 
 
-def _make_array_map_b64(
+def _square_map_limits(
+    yl0: float, yl1: float, xl0: float, xl1: float, cos_lat: float
+) -> tuple[float, float, float, float]:
+    """Widen longitude so the extent is roughly square in Mercator proportion.
+
+    Mercator-square widening, as ctdcast's cruise maps: the Mercator-equivalent
+    width is ``lon_span * cos(lat)``; when the extent would plot taller than wide,
+    longitude is expanded symmetrically about the centre so moorings strung out
+    along a line do not render as a sliver.
+    """
+    lon_span = xl1 - xl0
+    lat_span = yl1 - yl0
+    x_width = lon_span * cos_lat
+    if lat_span > x_width:
+        lon_span_sq = lat_span / cos_lat
+        extra = (lon_span_sq - lon_span) / 2
+        xl0, xl1 = xl0 - extra, xl1 + extra
+    return yl0, yl1, xl0, xl1
+
+
+def _fmt_dm(dd: float | None, *, is_lat: bool) -> str:
+    """Format decimal degrees as degrees + decimal minutes with a hemisphere letter."""
+    if dd is None:
+        return "—"
+    hemi = ("N" if dd >= 0 else "S") if is_lat else ("E" if dd >= 0 else "W")
+    a = abs(dd)
+    deg = int(a)
+    return f"{deg:0{2 if is_lat else 3}d}° {(a - deg) * 60:05.2f}′ {hemi}"
+
+
+def _array_masthead(
+    array_cfg: dict[str, Any],
     rows: list[dict[str, Any]],
-    array_name: str,
-) -> str | None:
-    """Return a base64-encoded PNG of mooring positions, or None on failure."""
-    import matplotlib.colors as _mcolors
+    type_summary: list[dict[str, Any]],
+    deploy_dt_arr: datetime | None,
+    recover_dt_arr: datetime | None,
+    array_yaml_path: Path,
+) -> dict[str, str]:
+    """Return the array masthead metadata, derived from the YAMLs (missing → em-dash).
+
+    Everything here is already in the ``*.array.yaml`` / ``*.mooring.yaml`` or computed
+    from the per-mooring rows; nothing is invented and a missing value renders as an
+    em-dash.  Derived values (extent, duration, totals) are computed at render.
+    """
+    lats = [r["lat"] for r in rows if r["lat"] is not None]
+    lons = [r["lon"] for r in rows if r["lon"] is not None]
+    wds = [float(r["waterdepth"]) for r in rows if r["waterdepth"] is not None]
+    deps = [r["_deploy_dt"] for r in rows if r["_deploy_dt"] is not None]
+    recs = [r["_recover_dt"] for r in rows if r["_recover_dt"] is not None]
+    dep_dt = deploy_dt_arr or (min(deps) if deps else None)
+    rec_dt = recover_dt_arr or (max(recs) if recs else None)
+
+    vocab = {
+        str(v.get("instrument_in", "")).lower(): v.get("instrument_out")
+        for v in array_cfg.get("vocab", [])
+        if isinstance(v, dict)
+    }
+    by_type: list[str] = []
+    skipped = 0
+    for t in type_summary:
+        skipped += t.get("skipped", 0)
+        active = t["deployed"] - t.get("skipped", 0)
+        if active > 0:
+            by_type.append(f"{vocab.get(t['itype'].lower(), t['itype'])} {active}")
+    total = sum(r["n_instruments"] for r in rows)
+    recovered = sum(1 for r in rows if r["_recover_dt"] is not None)
+    deployed_only = len(rows) - recovered
+
+    lat_dd = _parse_decdeg(array_cfg.get("latitude"))
+    lon_dd = _parse_decdeg(array_cfg.get("longitude"))
+    wd_min, wd_max = array_cfg.get("waterdepth_min"), array_cfg.get("waterdepth_max")
+
+    instruments = str(total)
+    if by_type:
+        instruments += " (" + " · ".join(by_type) + ")"
+    if skipped:
+        instruments += f" · {skipped} skipped"
+
+    return {
+        "deployed": dep_dt.strftime("%Y-%m-%d") if dep_dt else "—",
+        "recovered": rec_dt.strftime("%Y-%m-%d") if rec_dt else "—",
+        "duration": _duration_str(dep_dt, rec_dt),
+        "position": (
+            f"{_fmt_dm(lat_dd, is_lat=True)} / {_fmt_dm(lon_dd, is_lat=False)}"
+            if lat_dd is not None and lon_dd is not None
+            else "—"
+        ),
+        "extent": (
+            f"{min(lats):.2f}–{max(lats):.2f} °N / {min(lons):.2f}–{max(lons):.2f} °E"
+            if lats and lons
+            else "—"
+        ),
+        "waterdepth": (
+            f"{wd_min}–{wd_max} m"
+            if wd_min is not None and wd_max is not None
+            else (f"{min(wds):.0f}–{max(wds):.0f} m" if wds else "—")
+        ),
+        "instruments": instruments if total else "—",
+        "status": (
+            f"{recovered} recovered"
+            + (f" · {deployed_only} deployed" if deployed_only else "")
+        ),
+        "processed": "stage 3: {} · stack: {} · grid: {}".format(
+            sum(1 for r in rows if r["report_exists"]),
+            sum(1 for r in rows if r["stack_exists"]),
+            sum(1 for r in rows if r["grid_exists"]),
+        ),
+        "source": array_yaml_path.name,
+    }
+
+
+def _make_array_map_b64(rows: list[dict[str, Any]]) -> str | None:
+    """Return a base64-encoded PNG of mooring positions, or None on failure.
+
+    Drawn at half width with a Mercator-square framed extent; marker colours come
+    from the family ``TRACK_COLORS`` so they match the Leaflet markers, and there is
+    no in-figure title (the section heading names the map).
+    """
+    import math
+
     import matplotlib.pyplot as plt
 
-    lats = [r["lat"] for r in rows if r["lat"] is not None]
-    if len(lats) < 1:
+    pts = [
+        (r["lat"], r["lon"])
+        for r in rows
+        if r["lat"] is not None and r["lon"] is not None
+    ]
+    if not pts:
         return None
 
-    mean_lat_rad = float(__import__("math").radians(sum(lats) / len(lats)))
-    aspect = 1.0 / __import__("math").cos(mean_lat_rad)
+    lats = [p[0] for p in pts]
+    lons = [p[1] for p in pts]
+    cos_lat = math.cos(math.radians(sum(lats) / len(lats)))
+    # Framed extent: data bounds + a margin, widened to a Mercator-square aspect so a
+    # line of moorings frames sensibly rather than as a sliver.
+    lat_margin = max(0.05, (max(lats) - min(lats)) * 0.1)
+    lon_margin = max(0.05, (max(lons) - min(lons)) * 0.1)
+    yl0, yl1 = min(lats) - lat_margin, max(lats) + lat_margin
+    xl0, xl1 = min(lons) - lon_margin, max(lons) + lon_margin
+    yl0, yl1, xl0, xl1 = _square_map_limits(yl0, yl1, xl0, xl1, cos_lat)
+    # Size the figure from the framed extent so the map is undistorted.
+    width_in = report_tokens.W_HALF
+    lon_span, lat_span = (xl1 - xl0), (yl1 - yl0)
+    height_in = width_in * lat_span / (lon_span * cos_lat) if lon_span > 0 else 5.0
+    height_in = min(8.0, max(2.5, height_in))
+    colors = report_tokens.TRACK_COLORS
 
     def _draw() -> plt.Figure:
-        _tab20 = plt.get_cmap("tab20")
-        fig, ax = plt.subplots(figsize=(6, 5))
-        ax.set_aspect(aspect)
+        fig, ax = plt.subplots(figsize=(width_in, height_in))
+        ax.set_aspect(1.0 / cos_lat)
         for idx, r in enumerate(rows):
             if r["lat"] is None or r["lon"] is None:
                 continue
-            color = _tab20(idx % 20)
-            r["color_hex"] = _mcolors.to_hex(color)
+            color = colors[idx % len(colors)]
+            r["color_hex"] = color
             ax.scatter(r["lon"], r["lat"], s=60, color=color, zorder=3)
             if r.get("_recover_dt") is not None:
                 ax.annotate(
@@ -142,14 +276,17 @@ def _make_array_map_b64(
                     fontsize=report_tokens.ANNOT_FS,
                     color=color,
                 )
+        ax.set_xlim(xl0, xl1)
+        ax.set_ylim(yl0, yl1)
         ax.set_xlabel("Longitude (°)")
         ax.set_ylabel("Latitude (°)")
-        ax.set_title(array_name)
         grid_despine(ax)
         plt.tight_layout()
         return fig
 
-    return render_b64(_draw, optional=True)
+    return render_b64(
+        _draw, source="oceanarray/reports/_array.py:_make_array_map_b64", optional=True
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -363,6 +500,11 @@ def _array_map_payload(rows: list[dict[str, Any]]) -> tuple[str, str, str]:
     coastline_json = coastline_geojson(
         (lon_min, lat_min, lon_max, lat_max), pad_deg=1.0
     )
+    if coastline_json == "null":
+        _log.warning(
+            "array map: coastline unavailable (cartopy/shapely missing, or no land "
+            "in the clip extent); map shows markers only"
+        )
     return safe_json(payload), coastline_json, bounds_json
 
 
@@ -409,8 +551,6 @@ def generate_array_report(
         Path to the written HTML file, or None on failure.
 
     """
-    from datetime import datetime
-
     array_yaml_path = Path(array_yaml_path)
     proc_dir = Path(proc_dir)
 
@@ -522,7 +662,7 @@ def generate_array_report(
             }
         )
 
-    fig_map_b64 = _make_array_map_b64(rows, array_name)
+    fig_map_b64 = _make_array_map_b64(rows)
     # Array map: the vendored Leaflet track_map when design.ARRAY_MAP_LEAFLET is on;
     # while off (the macro can't yet draw a single-point mooring — see F8), an empty
     # payload makes track_map show the matplotlib PNG fallback, so the map is never blank.
@@ -536,6 +676,10 @@ def generate_array_report(
 
     deploy_dt_arr = _parse_dt(array_cfg.get("deployment_time"))
     recover_dt_arr = _parse_dt(array_cfg.get("recovery_time"))
+    type_summary = _build_type_summary(all_instruments)
+    masthead = _array_masthead(
+        array_cfg, rows, type_summary, deploy_dt_arr, recover_dt_arr, array_yaml_path
+    )
 
     ctx = {
         "array_name": array_name,
@@ -553,7 +697,8 @@ def generate_array_report(
         "leaflet_js": leaflet_js,
         "leaflet_css": leaflet_css,
         "map_height": 460,
-        "type_summary": _build_type_summary(all_instruments),
+        "type_summary": type_summary,
+        "masthead": masthead,
         "mooring_completeness": mooring_completeness,
         "generated": datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
     }

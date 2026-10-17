@@ -21,6 +21,7 @@ from markupsafe import escape
 from .. import __version__ as _oceanarray_version
 from .. import parameters as params
 from . import _figdebug
+from ._html_helpers import _history_tables
 from ._vendored.figure_png import source_of
 from .design import _JS_SORT_TABLES, FIGURE_SOURCE, SHARED_CSS
 
@@ -103,8 +104,20 @@ def render_template(name: str, /, **context: Any) -> str:
 
 
 def render_history(history_entries: Any) -> str:
-    """Render the processing-history list to markup (``history`` panel payload)."""
-    return render_template("_grid_history.html", history_entries=history_entries)
+    """Render the processing history as a header table + a dated Time/Event table.
+
+    The undated header items (processed-by, Reader, Format, Source file, Stages) render
+    through the vendored ``properties_table``; the dated entries through a sortable
+    Time/Event table, split from the parsed entries by
+    :func:`~oceanarray.reports._html_helpers._history_tables`.
+    """
+    header_rows, event_rows = _history_tables(history_entries)
+    return render_template(
+        "_grid_history.html",
+        header_rows=header_rows,
+        event_rows=event_rows,
+        history_source="oceanarray/reports/_html_helpers.py:_history_tables",
+    )
 
 
 def render_nc_variables(nc_meta: Any) -> str:
@@ -119,7 +132,11 @@ def render_nc_variables(nc_meta: Any) -> str:
         return (
             f'<p class="none-note">Could not read file: {escape(nc_meta["error"])}</p>'
         )
-    return str(_NC.variables_tables(nc_meta["var_groups"], source=nc_meta["var_src"]))
+    if "var_groups" not in nc_meta:  # no NetCDF for this instrument -> empty nc_meta
+        return ""
+    return str(
+        _NC.variables_tables(nc_meta["var_groups"], source=nc_meta.get("var_src"))
+    )
 
 
 def render_nc_coords(nc_meta: Any) -> str:
@@ -129,10 +146,10 @@ def render_nc_coords(nc_meta: Any) -> str:
     (:func:`~oceanarray.reports._vendored.nc_tables.coords_rows`), drawn by the
     vendored ``coords_table`` macro.
     """
-    if nc_meta.get("error"):
+    if nc_meta.get("error") or "coords_rows" not in nc_meta:
         return ""
     return "<h3>Coordinates</h3>" + str(
-        _NC.coords_table(nc_meta["coords_rows"], source=nc_meta["coords_src"])
+        _NC.coords_table(nc_meta["coords_rows"], source=nc_meta.get("coords_src"))
     )
 
 
@@ -143,10 +160,10 @@ def render_nc_scalars(nc_meta: Any) -> str:
     drawn by the vendored ``scalars_table`` macro; ``SENSOR_*`` variables are
     included here.
     """
-    if nc_meta.get("error"):
+    if nc_meta.get("error") or "scalar_rows" not in nc_meta:
         return ""
     return "<h3>Scalar variables</h3>" + str(
-        _NC.scalars_table(nc_meta["scalar_rows"], source=nc_meta["scalar_src"])
+        _NC.scalars_table(nc_meta["scalar_rows"], source=nc_meta.get("scalar_src"))
     )
 
 
@@ -158,8 +175,8 @@ def render_nc_globals(nc_meta: Any) -> str:
     :data:`~oceanarray.reports.design.ATTR_GROUP_EXTRAS`), drawn by the vendored
     ``globals_tables`` macro.
     """
-    if nc_meta.get("error"):
+    if nc_meta.get("error") or "global_groups" not in nc_meta:
         return ""
     return str(
-        _NC.globals_tables(nc_meta["global_groups"], source=nc_meta["global_src"])
+        _NC.globals_tables(nc_meta["global_groups"], source=nc_meta.get("global_src"))
     )

@@ -772,8 +772,8 @@ class MooringReport:
                 _clock_nc_paths[_s] = _s2
             elif _s3.exists():
                 _clock_nc_paths[_s] = _s3
-        fig_clock_check_b64 = _make_clock_check_b64(
-            _clock_nc_paths, deploy_dt, recover_dt
+        fig_clock_check_b64 = _figdebug.as_panel(
+            lambda: _make_clock_check_b64(_clock_nc_paths, deploy_dt, recover_dt)
         )
 
         fig_knockdown_hab_b64 = None
@@ -784,10 +784,14 @@ class MooringReport:
                 import xarray as _xr
 
                 with _xr.open_dataset(stack_nc) as _ds_kd:
-                    fig_knockdown_hab_b64 = _make_knockdown_hab_b64(_ds_kd)
-                    fig_knockdown_anomaly_b64 = _make_knockdown_anomaly_b64(_ds_kd)
-                    fig_knockdown_displacement_b64 = _make_knockdown_displacement_b64(
-                        _ds_kd
+                    fig_knockdown_hab_b64 = _figdebug.as_panel(
+                        lambda: _make_knockdown_hab_b64(_ds_kd)
+                    )
+                    fig_knockdown_anomaly_b64 = _figdebug.as_panel(
+                        lambda: _make_knockdown_anomaly_b64(_ds_kd)
+                    )
+                    fig_knockdown_displacement_b64 = _figdebug.as_panel(
+                        lambda: _make_knockdown_displacement_b64(_ds_kd)
                     )
             except Exception:
                 pass

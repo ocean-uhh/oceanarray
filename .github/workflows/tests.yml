@@ -45,7 +45,7 @@ jobs:
         # version legs run --no-cov so they only verify install + test pass.
         run: >
           pytest tests/unit -m "not slow and not local and not needs_seasenselib" -q
-          ${{ (matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11') && '--cov=oceanarray --cov-report=term-missing --cov-fail-under=38' || '--no-cov' }}
+          ${{ (matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11') && '--cov=oceanarray --cov-report=term-missing --cov-fail-under=58' || '--no-cov' }}
 
   integration:
     runs-on: ubuntu-latest

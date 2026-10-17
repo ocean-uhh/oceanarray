@@ -16,6 +16,7 @@ from ._env import (
     render_nc_variables,
     render_template,
 )
+from ._figdebug import as_panel
 from ._html_helpers import (
     _duration_str,
     _file_info,
@@ -540,6 +541,9 @@ def generate_instrument_pages(
             ),
             "generated": generated,
             "history_entries": history_entries,
+            # _make_instrument_fig / _make_windows_fig return list[str] (paginated,
+            # multiple render_b64 calls) — not as_panel's str|None single-figure
+            # contract — so they are not wrapped (a Stub cannot stand in for a list).
             "fig_ts_b64": (
                 _make_instrument_fig(best_nc, instr_type) if best_nc else None
             ),
@@ -548,47 +552,53 @@ def generate_instrument_pages(
                     best_nc,
                     instr_type,
                     vlines=_window_vlines,
-                    stage1_nc=_stage1_nc if _stage1_nc.exists() else None,
+                    stage1_nc=(_stage1_nc if _stage1_nc.exists() else None),
                 )
                 if best_nc
                 else None
             ),
-            "fig_tsd_b64": _make_ts_diagram(best_nc) if best_nc else None,
+            "fig_tsd_b64": (
+                as_panel(lambda bn=best_nc: _make_ts_diagram(bn)) if best_nc else None
+            ),
             "fig_rose_b64": (
-                _make_instrument_rose_b64(best_nc)
+                as_panel(lambda bn=best_nc: _make_instrument_rose_b64(bn))
                 if best_nc and instr_type.lower() != "adcp"
                 else None
             ),
             "fig_adcp_velocity_b64": (
-                _make_adcp_velocity_b64(best_nc)
+                as_panel(lambda bn=best_nc: _make_adcp_velocity_b64(bn))
                 if best_nc and instr_type.lower() == "adcp"
                 else None
             ),
             "fig_adcp_rose_b64": (
-                _make_adcp_rose_b64(best_nc)
+                as_panel(lambda bn=best_nc: _make_adcp_rose_b64(bn))
                 if best_nc and instr_type.lower() in ("adcp", "rdi")
                 else None
             ),
             "fig_trajectory_b64": (
-                _make_temperature_trajectory(best_nc)
+                as_panel(lambda bn=best_nc: _make_temperature_trajectory(bn))
                 if best_nc and instr_type.lower() == "aquadopp"
                 else None
             ),
             "fig_speed_boxplot_b64": (
-                _make_speed_boxplot(best_nc)
+                as_panel(lambda bn=best_nc: _make_speed_boxplot(bn))
                 if best_nc and instr_type.lower() == "aquadopp"
                 else None
             ),
             "fig_hodograph_b64": (
-                _make_hodograph_b64(best_nc)
+                as_panel(lambda bn=best_nc: _make_hodograph_b64(bn))
                 if best_nc and instr_type.lower() == "aquadopp"
                 else (
-                    _make_adcp_hodograph_b64(best_nc)
+                    as_panel(lambda bn=best_nc: _make_adcp_hodograph_b64(bn))
                     if best_nc and instr_type.lower() in ("adcp", "rdi")
                     else None
                 )
             ),
-            "fig_dt_b64": _make_data_histogram(best_nc) if best_nc else None,
+            "fig_dt_b64": (
+                as_panel(lambda bn=best_nc: _make_data_histogram(bn))
+                if best_nc
+                else None
+            ),
             "qc_summary": _read_qc_summary(stage3_nc) if stage3_nc else [],
             "qc_thresholds": _read_qc_thresholds(stage3_nc) if stage3_nc else [],
             "nc_meta": _read_nc_metadata(best_nc) if best_nc else {},
@@ -596,7 +606,7 @@ def generate_instrument_pages(
         }
         analog_vars = ctx["nc_meta"].get("analog_vars", [])
         ctx["fig_analog_b64"] = (
-            _make_analog_timeseries(best_nc, analog_vars)
+            as_panel(lambda bn=best_nc, av=analog_vars: _make_analog_timeseries(bn, av))
             if best_nc and analog_vars
             else None
         )
