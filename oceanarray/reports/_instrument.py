@@ -230,24 +230,24 @@ INSTRUMENT_PANELS: dict[str, Panel] = {
         "nc_coords",
         render=lambda c: render_nc_coords(c["nc_meta"]),
         kind="table",
-        applies_to=lambda c: bool(c.get("nc_meta", {}).get("coord_vars")),
+        applies_to=lambda c: bool(c.get("nc_meta", {}).get("coords_rows")),
     ),
     "nc_variables": Panel(
         "nc_variables",
-        render=lambda c: render_nc_variables(c["nc_meta"], ""),
+        render=lambda c: render_nc_variables(c["nc_meta"]),
         kind="table",
     ),
     "nc_scalars": Panel(
         "nc_scalars",
         render=lambda c: render_nc_scalars(c["nc_meta"]),
         kind="table",
-        applies_to=lambda c: bool(c.get("nc_meta", {}).get("scalar_vars")),
+        applies_to=lambda c: bool(c.get("nc_meta", {}).get("scalar_rows")),
     ),
     "nc_globals": Panel(
         "nc_globals",
         render=lambda c: render_nc_globals(c["nc_meta"]),
         kind="table",
-        applies_to=lambda c: bool(c.get("nc_meta", {}).get("global_attrs")),
+        applies_to=lambda c: bool(c.get("nc_meta", {}).get("global_groups")),
     ),
 }
 
@@ -635,12 +635,21 @@ def generate_instrument_pages(
             )
         ctx["analog_yaml_info"] = analog_yaml_info
         # Warn if magnetic declination was not applied (lat/lon missing from YAML)
+        _global_names = {
+            attr
+            for _title, rows in ctx["nc_meta"].get("global_groups", [])
+            for attr, _type, _val in rows
+        }
         ctx["declination_warn"] = (
             instr_type.lower() == "aquadopp"
-            and "magnetic_declination" not in ctx["nc_meta"].get("global_attrs", {})
+            and "magnetic_declination" not in _global_names
         )
         # True when the NC contains instrument-frame XYZ velocities (rose has XYZ panel)
-        _tvar_names = {v["name"] for v in ctx["nc_meta"].get("time_vars", [])}
+        _tvar_names = {
+            r["name"]
+            for _title, rows in ctx["nc_meta"].get("var_groups", [])
+            for r in rows
+        }
         ctx["rose_has_xyz"] = "velocity_x" in _tvar_names
 
         try:

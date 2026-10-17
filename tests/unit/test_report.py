@@ -17,7 +17,6 @@ import yaml
 from oceanarray.reports._html_helpers import (
     _duration_str,
     _fmt_dt,
-    _fmt_minmax,
     _fmt_size,
     _parse_dt,
     _parse_history,
@@ -237,25 +236,13 @@ class TestHtmlHelpers:
         result = _fmt_size(5 * 1024 * 1024)
         assert "MB" in result
 
-    # _fmt_minmax
-    def test_fmt_minmax_zero(self):
-        assert _fmt_minmax(0.0) == "0"
-
-    def test_fmt_minmax_large(self):
-        result = _fmt_minmax(123456.0)
-        assert "e" in result or "1.235e" in result  # scientific notation
-
-    def test_fmt_minmax_normal(self):
-        result = _fmt_minmax(12.345)
-        assert "12.35" in result or "12.34" in result
-
     # _read_nc_metadata
     def test_read_nc_metadata_basic(self, tmp_path):
         nc = tmp_path / "test.nc"
         _write_minimal_instrument_nc(nc)
         meta = _read_nc_metadata(nc)
         assert "error" not in meta
-        names = [v["name"] for v in meta["time_vars"]]
+        names = [r["name"] for _title, rows in meta["var_groups"] for r in rows]
         assert "temperature" in names
         assert "pressure" in names
 
@@ -263,12 +250,14 @@ class TestHtmlHelpers:
         nc = tmp_path / "test.nc"
         _write_minimal_instrument_nc(nc)
         meta = _read_nc_metadata(nc)
-        # Each global attribute is stored as a {value, type} pair so the report
-        # can show the attribute's type alongside its value.
-        assert meta["global_attrs"].get("processing_level") == {
-            "value": "L1",
-            "type": "str",
+        # The vendored builder returns each global attribute as an
+        # (attribute, type, value) triple; a Python string reads as "string".
+        triples = {
+            attr: (typ, val)
+            for _title, rows in meta["global_groups"]
+            for attr, typ, val in rows
         }
+        assert triples["processing_level"] == ("string", "L1")
 
     def test_read_nc_metadata_missing_file(self, tmp_path):
         meta = _read_nc_metadata(tmp_path / "nonexistent.nc")

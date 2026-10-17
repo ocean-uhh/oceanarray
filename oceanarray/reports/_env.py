@@ -16,11 +16,11 @@ from pathlib import Path
 from typing import Any
 
 from jinja2 import ChoiceLoader, Environment, FileSystemLoader
+from markupsafe import escape
 
 from .. import __version__ as _oceanarray_version
 from .. import parameters as params
 from . import _figdebug
-from ._nc_tables import group_globals, group_vars_by_dims
 from ._vendored.figure_png import source_of
 from .design import _JS_SORT_TABLES, FIGURE_SOURCE, SHARED_CSS
 
@@ -66,6 +66,11 @@ _ENV.globals["js_sort_tables"] = _JS_SORT_TABLES
 _ENV.globals["show_source"] = FIGURE_SOURCE
 _ENV.globals["source_of"] = source_of
 
+#: The vendored netCDF-inventory table macros, accessed as callables so the render
+#: functions below invoke them directly from the builder output; ``show_source``
+#: resolves from the env globals above.
+_NC = _ENV.get_template("_nc_tables.html").module
+
 
 def render_template(name: str, /, **context: Any) -> str:
     """Render report template *name* with *context* and return the HTML string.
@@ -102,40 +107,57 @@ def render_history(history_entries: Any) -> str:
     return render_template("_grid_history.html", history_entries=history_entries)
 
 
-def render_nc_variables(nc_meta: Any, nc_file: str) -> str:
-    """Render the NetCDF time-variable table (``nc_variables`` panel payload).
+def render_nc_variables(nc_meta: Any) -> str:
+    """Render the netCDF variables table (``nc_variables`` panel payload).
 
-    Variables are grouped by dimension set (one sub-table each) via
-    :func:`_nc_tables.group_vars_by_dims`; QC companions are folded into the
-    parent row's flag column.
+    Dimensioned variables grouped by dimension set
+    (:func:`~oceanarray.reports._vendored.nc_tables.variables_rows`), drawn by the
+    vendored ``variables_tables`` macro; QC companions fold into the parent row's
+    ``(_QC)`` marker.
     """
-    var_groups = (
-        [] if nc_meta.get("error") else group_vars_by_dims(nc_meta.get("time_vars", []))
-    )
-    return render_template(
-        "_nc_variables.html", nc_meta=nc_meta, nc_file=nc_file, var_groups=var_groups
-    )
+    if nc_meta.get("error"):
+        return f'<p class="none-note">Could not read file: {escape(nc_meta["error"])}</p>'
+    return str(_NC.variables_tables(nc_meta["var_groups"], source=nc_meta["var_src"]))
 
 
-def render_nc_coords(nc_meta: Any, nc_file: str = "") -> str:
-    """Render the NetCDF coordinates table (``nc_coords`` panel payload).
+def render_nc_coords(nc_meta: Any) -> str:
+    """Render the netCDF coordinates table (``nc_coords`` panel payload).
 
-    One row per coordinate variable, same columns as the variables table;
-    dimensions without a coordinate appear only as a variables-group heading.
+    One row per coordinate variable
+    (:func:`~oceanarray.reports._vendored.nc_tables.coords_rows`), drawn by the
+    vendored ``coords_table`` macro.
     """
-    return render_template("_nc_coords.html", nc_meta=nc_meta, nc_file=nc_file)
+    if nc_meta.get("error"):
+        return ""
+    return "<h3>Coordinates</h3>" + str(
+        _NC.coords_table(nc_meta["coords_rows"], source=nc_meta["coords_src"])
+    )
 
 
 def render_nc_scalars(nc_meta: Any) -> str:
-    """Render the scalar-metadata table (``nc_scalars`` panel payload)."""
-    return render_template("_nc_scalars.html", nc_meta=nc_meta)
+    """Render the scalar-metadata table (``nc_scalars`` panel payload).
+
+    0-d variables (:func:`~oceanarray.reports._vendored.nc_tables.scalars_rows`),
+    drawn by the vendored ``scalars_table`` macro; ``SENSOR_*`` variables are
+    included here.
+    """
+    if nc_meta.get("error"):
+        return ""
+    return "<h3>Scalar variables</h3>" + str(
+        _NC.scalars_table(nc_meta["scalar_rows"], source=nc_meta["scalar_src"])
+    )
 
 
 def render_nc_globals(nc_meta: Any) -> str:
     """Render the global-attributes table (``nc_globals`` panel payload).
 
-    Attributes are split into the canonical groups via
-    :func:`_nc_tables.group_globals`.
+    Attributes split into the canonical display groups
+    (:func:`~oceanarray.reports._vendored.nc_tables.globals_rows` with oceanarray's
+    :data:`~oceanarray.reports.design.ATTR_GROUP_EXTRAS`), drawn by the vendored
+    ``globals_tables`` macro.
     """
-    attr_groups = group_globals(nc_meta.get("global_attrs", {}))
-    return render_template("_nc_globals.html", nc_meta=nc_meta, attr_groups=attr_groups)
+    if nc_meta.get("error"):
+        return ""
+    return str(
+        _NC.globals_tables(nc_meta["global_groups"], source=nc_meta["global_src"])
+    )

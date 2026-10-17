@@ -318,12 +318,12 @@ def _history_unavailable(ctx: GridContext) -> str | None:
 
 def _has_scalar_vars(ctx: GridContext) -> bool:
     """Return True when the NetCDF file exposes scalar-metadata variables."""
-    return bool(ctx.nc_meta.get("scalar_vars"))
+    return bool(ctx.nc_meta.get("scalar_rows"))
 
 
 def _has_global_attrs(ctx: GridContext) -> bool:
     """Return True when the NetCDF file exposes global attributes."""
-    return bool(ctx.nc_meta.get("global_attrs"))
+    return bool(ctx.nc_meta.get("global_groups"))
 
 
 def _isopycnal_ts_panel(sigma_var: str) -> Panel:
@@ -376,11 +376,11 @@ GRID_PANELS: dict[str, Panel] = {
         "nc_coords",
         render=lambda c: render_nc_coords(c.nc_meta),
         kind="table",
-        applies_to=lambda c: bool(c.nc_meta.get("coord_vars")),
+        applies_to=lambda c: bool(c.nc_meta.get("coords_rows")),
     ),
     "nc_variables": Panel(
         "nc_variables",
-        render=lambda c: render_nc_variables(c.nc_meta, c.nc_file),
+        render=lambda c: render_nc_variables(c.nc_meta),
         kind="table",
     ),
     "nc_scalars": Panel(
