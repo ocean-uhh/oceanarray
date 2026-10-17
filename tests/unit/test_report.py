@@ -692,3 +692,57 @@ def test_render_nc_tables_tolerate_empty_meta():
         render_nc_globals,
     ):
         assert render({}) == ""
+
+
+def test_seam_history_excluded_and_stdname_column_drops(tmp_path):
+    """Pin the owned re-vendor call-site adoptions against a future vendored re-sync.
+
+    Opens a real dune2 stage-3 file and removes two things: ``standard_name`` and
+    ``long_name`` from every variable, and every ``Provenance & processing`` global
+    except ``history`` (so ``history`` is that group's only surviving member).  The
+    owned renderers must then show the two paths the dune2 goldens never exercise
+    (the goldens keep standard names and keep other provenance attributes):
+
+    * ``_read_nc_metadata`` passes ``exclude=("history",)`` to ``globals_rows``, so
+      ``history`` is gone from the globals table **and** the group it alone filled
+      renders no heading.
+    * ``render_nc_scalars`` passes ``"stdname"`` in ``optional``, so an all-empty
+      Standard / long name column drops entirely.
+    """
+    from oceanarray.reports._env import render_nc_globals, render_nc_scalars
+    from oceanarray.reports._vendored.nc_tables import ATTR_GROUPS
+    from oceanarray.reports.design import ATTR_GROUP_EXTRAS
+
+    src = (
+        Path(__file__).resolve().parents[1]
+        / "fixtures/proc/dune2_1_2026/microcat/dune2_1_2026_2941_stage3.nc"
+    )
+    prov_title = "Provenance & processing"
+    prov_attrs = set(dict(ATTR_GROUPS)[prov_title]) | set(ATTR_GROUP_EXTRAS[prov_title])
+    marker = "SEAM-TEST-HISTORY-PROVENANCE-ONLY"
+
+    stripped = tmp_path / "stripped_stage3.nc"
+    with xr.open_dataset(src, engine="netcdf4") as ds:
+        ds = ds.load()
+        for name in ds.variables:
+            ds[name].attrs.pop("standard_name", None)
+            ds[name].attrs.pop("long_name", None)
+        for key in [k for k in ds.attrs if k in prov_attrs]:
+            del ds.attrs[key]
+        ds.attrs["history"] = marker
+        ds.to_netcdf(stripped, engine="netcdf4")
+
+    meta = _read_nc_metadata(stripped)
+    globals_html = render_nc_globals(meta)
+    scalars_html = render_nc_scalars(meta)
+
+    # exclude=("history",): the history value never reaches the globals table, and the
+    # group it alone filled renders no heading (the "&" is HTML-escaped in the output).
+    assert marker not in globals_html
+    assert "Provenance &amp; processing" not in globals_html
+    # A group still populated by other attributes renders, so it is specifically the
+    # emptied group that vanished, not the whole table.
+    assert "Identity &amp; discovery" in globals_html
+    # optional includes "stdname": with no standard_name/long_name on any scalar, the
+    # Standard / long name column drops rather than rendering empty.
+    assert "Standard / long name" not in scalars_html
