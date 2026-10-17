@@ -137,7 +137,7 @@ def render_nc_variables(nc_meta: Any) -> str:
     return str(
         _NC.variables_tables(
             nc_meta["var_groups"],
-            optional=("units", "minmax", "attrs"),
+            optional=("units", "minmax", "stdname", "attrs"),
             source=nc_meta.get("var_src"),
         )
     )
@@ -155,7 +155,7 @@ def render_nc_coords(nc_meta: Any) -> str:
     return "<h3>Coordinates</h3>" + str(
         _NC.coords_table(
             nc_meta["coords_rows"],
-            optional=("units", "minmax", "attrs"),
+            optional=("units", "minmax", "stdname", "attrs"),
             source=nc_meta.get("coords_src"),
         )
     )
@@ -173,7 +173,7 @@ def render_nc_scalars(nc_meta: Any) -> str:
     return "<h3>Scalar variables</h3>" + str(
         _NC.scalars_table(
             nc_meta["scalar_rows"],
-            optional=("units", "minmax", "attrs"),
+            optional=("units", "minmax", "stdname", "attrs"),
             source=nc_meta.get("scalar_src"),
         )
     )

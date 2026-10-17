@@ -32,6 +32,7 @@
   --role-aggregate-b: #27ae60;
   --role-map: #ee3377;
   --role-up: #5d6d7e;
+  --qc-mark: var(--ok);
   --package-accent: var(--ocean);
   --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
@@ -203,7 +204,13 @@ td.mono { font-family: var(--font-mono); font-size: var(--fs-xs); }
    global tables.  Package-neutral — the markup is emitted by templates/_nc_tables.html. */
 .var-table code { font-family: var(--font-mono); font-size: var(--fs-xs); }
 .muted { color: var(--muted); }
-.var-qc { color: var(--muted); font-size: var(--fs-xs); }
+.var-qc { color: var(--qc-mark); font-size: var(--fs-xs); }
+/* The original source name on its own muted line above the canonical name (name_cell), so the
+   Variable column does not widen to fit both on one line. */
+.var-orig { color: var(--muted); font-size: var(--fs-xs); }
+/* A long unbroken token (a tracking_id, a path, a dotted standard_name) in a scalar value or a
+   standard/long-name cell would widen the whole table; cap the width and break inside the word. */
+.cell-wrap { overflow-wrap: anywhere; max-width: 28rem; }
 .cell-bad { color: var(--warn); font-variant-numeric: tabular-nums; }
 tr.units th {
   background: transparent; color: var(--muted); font-weight: 400;
@@ -369,7 +376,6 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 .fig-cell { min-width:0; }
 .fig-cell > .fig { width:100%; }
 .none-note { color:var(--muted); font-style:italic; }
-.var-qc { color:var(--good); font-size:var(--fs-xs); }
 /* Per-row NetCDF attribute disclosure in the inventory tables (the N attrs
    expander). */
 .attr-disclosure summary { cursor:pointer; color:var(--muted); font-size:var(--fs-xs); white-space:nowrap; }
@@ -606,12 +612,12 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <tbody>
 <tr>
 <td data-sort="pressure">pressure</td><td>pressure</td><td><strong><code>float64</code></strong></td><td data-sort="15">15</td>
-<td>dbar</td><td><strong><code>sea_water_pressure</code></strong><br>sea water pressure</td><td data-sort="100.0">100 / 800</td><td data-nosort><details class="attr-disclosure"><summary>2 attrs</summary>
+<td>dbar</td><td class="cell-wrap"><strong><code>sea_water_pressure</code></strong><br>sea water pressure</td><td data-sort="100.0">100 / 800</td><td data-nosort><details class="attr-disclosure"><summary>2 attrs</summary>
 <table data-nosort><tbody><tr><th>axis</th><td>Z</td></tr><tr><th>positive</th><td>down</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="time">time</td><td>time</td><td><code>datetime</code></td><td data-sort="328">328</td>
-<td>—</td><td><strong><code>time</code></strong><br>time</td><td>2026-07-11 20:30:00 / 2026-07-25 11:30:00</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
+<td>—</td><td class="cell-wrap"><strong><code>time</code></strong><br>time</td><td>2026-07-11 20:30:00 / 2026-07-25 11:30:00</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>axis</th><td>T</td></tr>
 </tbody></table></details></td></tr>
 </tbody></table><div class="fig-source">source: oceanarray/reports/_vendored/nc_tables.py:coords_rows</div>
@@ -627,63 +633,63 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <tbody>
 <tr>
 <td data-sort="conductivity">conductivity</td>
-<td><code>float32</code></td><td>mS cm-1</td><td><strong><code>sea_water_electrical_conductivity</code></strong><br>Conductivity</td><td data-sort="29.2221622467041">29.22 / 36.3</td>
+<td><code>float32</code></td><td>mS cm-1</td><td class="cell-wrap"><strong><code>sea_water_electrical_conductivity</code></strong><br>Conductivity</td><td data-sort="29.2221622467041">29.22 / 36.3</td>
 <td data-sort="3879">3,879</td>
 <td data-sort="78.8" class="cell-bad">78.8</td><td data-nosort><details class="attr-disclosure"><summary>7 attrs</summary>
 <table data-nosort><tbody><tr><th>cnv_original_name</th><td>cond0mS/cm</td></tr><tr><th>cnv_original_label</th><td>Conductivity [mS/cm]</td></tr><tr><th>cnv_original_unit</th><td>mS/cm</td></tr><tr><th>original_name</th><td>cond0mS/cm</td></tr><tr><th>coverage_content_type</th><td>physicalMeasurement</td></tr><tr><th>measurement_type</th><td>Measured</td></tr><tr><th>vertical_interpolation</th><td>linear in pressure; no extrapolation outside 100–800 dbar</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="current_direction">current_direction</td>
-<td><code>float32</code></td><td>degrees</td><td><strong><code>direction_of_sea_water_velocity</code></strong><br>Current direction (0=N, clockwise)</td><td data-sort="1.0514541864395142">1.051 / 359.3</td>
+<td><code>float32</code></td><td>degrees</td><td class="cell-wrap"><strong><code>direction_of_sea_water_velocity</code></strong><br>Current direction (0=N, clockwise)</td><td data-sort="1.0514541864395142">1.051 / 359.3</td>
 <td data-sort="3511">3,511</td>
 <td data-sort="71.4" class="cell-bad">71.4</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>vertical_interpolation</th><td>linear in pressure; no extrapolation outside 100–800 dbar</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="current_speed">current_speed</td>
-<td><code>float32</code></td><td>m s-1</td><td><strong><code>sea_water_speed</code></strong><br>Horizontal current speed</td><td data-sort="0.016199525445699692">0.0162 / 0.9045</td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap"><strong><code>sea_water_speed</code></strong><br>Horizontal current speed</td><td data-sort="0.016199525445699692">0.0162 / 0.9045</td>
 <td data-sort="3511">3,511</td>
 <td data-sort="71.4" class="cell-bad">71.4</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>vertical_interpolation</th><td>linear in pressure; no extrapolation outside 100–800 dbar</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="east_velocity">east_velocity</td>
-<td><code>float32</code></td><td>m s-1</td><td><strong><code>eastward_sea_water_velocity</code></strong><br>Eastward sea water velocity</td><td data-sort="-0.8029085993766785">-0.8029 / 0.7687</td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap"><strong><code>eastward_sea_water_velocity</code></strong><br>Eastward sea water velocity</td><td data-sort="-0.8029085993766785">-0.8029 / 0.7687</td>
 <td data-sort="3511">3,511</td>
 <td data-sort="71.4" class="cell-bad">71.4</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>vertical_interpolation</th><td>linear in pressure; no extrapolation outside 100–800 dbar</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="north_velocity">north_velocity</td>
-<td><code>float32</code></td><td>m s-1</td><td><strong><code>northward_sea_water_velocity</code></strong><br>Northward sea water velocity</td><td data-sort="-0.7064064145088196">-0.7064 / 0.7343</td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap"><strong><code>northward_sea_water_velocity</code></strong><br>Northward sea water velocity</td><td data-sort="-0.7064064145088196">-0.7064 / 0.7343</td>
 <td data-sort="3511">3,511</td>
 <td data-sort="71.4" class="cell-bad">71.4</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>vertical_interpolation</th><td>linear in pressure; no extrapolation outside 100–800 dbar</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="salinity">salinity</td>
-<td><code>float32</code></td><td>1</td><td><strong><code>sea_water_practical_salinity</code></strong><br>Practical Salinity</td><td data-sort="34.573448181152344">34.57 / 35.54</td>
+<td><code>float32</code></td><td>1</td><td class="cell-wrap"><strong><code>sea_water_practical_salinity</code></strong><br>Practical Salinity</td><td data-sort="34.573448181152344">34.57 / 35.54</td>
 <td data-sort="3879">3,879</td>
 <td data-sort="78.8" class="cell-bad">78.8</td><td data-nosort><details class="attr-disclosure"><summary>3 attrs</summary>
 <table data-nosort><tbody><tr><th>coverage_content_type</th><td>physicalMeasurement</td></tr><tr><th>comment</th><td>Derived from conductivity, temperature, pressure via gsw.SP_from_C</td></tr><tr><th>vertical_interpolation</th><td>linear in pressure; no extrapolation outside 100–800 dbar</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="sigma0">sigma0</td>
-<td><code>float32</code></td><td>kg m-3</td><td><strong><code>sea_water_sigma_t</code></strong><br>Potential density anomaly referenced to surface (sigma-0)</td><td data-sort="27.42779541015625">27.43 / 28.05</td>
+<td><code>float32</code></td><td>kg m-3</td><td class="cell-wrap"><strong><code>sea_water_sigma_t</code></strong><br>Potential density anomaly referenced to surface (sigma-0)</td><td data-sort="27.42779541015625">27.43 / 28.05</td>
 <td data-sort="3879">3,879</td>
 <td data-sort="78.8" class="cell-bad">78.8</td><td data-nosort><details class="attr-disclosure"><summary>2 attrs</summary>
 <table data-nosort><tbody><tr><th>reference_pressure_dbar</th><td>0</td></tr><tr><th>vertical_interpolation</th><td>linear in pressure; no extrapolation outside 100–800 dbar</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="temperature">temperature</td>
-<td><code>float32</code></td><td>degree_Celsius</td><td><strong><code>sea_water_temperature</code></strong><br>Temperature</td><td data-sort="-0.069608673453331">-0.06961 / 8.025</td>
+<td><code>float32</code></td><td>degree_Celsius</td><td class="cell-wrap"><strong><code>sea_water_temperature</code></strong><br>Temperature</td><td data-sort="-0.069608673453331">-0.06961 / 8.025</td>
 <td data-sort="4201">4,201</td>
 <td data-sort="85.4" class="cell-bad">85.4</td><td data-nosort><details class="attr-disclosure"><summary>14 attrs</summary>
 <table data-nosort><tbody><tr><th>rsk_channel_id</th><td>1</td></tr><tr><th>rsk_long_name</th><td>temperature</td></tr><tr><th>rsk_short_name</th><td>temp18</td></tr><tr><th>rsk_label</th><td>temperature_00</td></tr><tr><th>rsk_dbName</th><td>Temperature</td></tr><tr><th>rsk_units</th><td>°C</td></tr><tr><th>rsk_units_plain_text</th><td>Degrees_C</td></tr><tr><th>rsk_fe_module_type</th><td>SOLO-tmpB</td></tr><tr><th>rsk_fe_module_version</th><td>1.065</td></tr><tr><th>rsk_is_measured</th><td>1</td></tr><tr><th>rsk_is_derived</th><td>0</td></tr><tr><th>coverage_content_type</th><td>physicalMeasurement</td></tr><tr><th>measurement_type</th><td>Measured</td></tr><tr><th>vertical_interpolation</th><td>linear in pressure; no extrapolation outside 100–800 dbar</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="up_velocity">up_velocity</td>
-<td><code>float32</code></td><td>m s-1</td><td><strong><code>upward_sea_water_velocity</code></strong><br>Upward sea water velocity</td><td data-sort="-0.2906396985054016">-0.2906 / 0.4569</td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap"><strong><code>upward_sea_water_velocity</code></strong><br>Upward sea water velocity</td><td data-sort="-0.2906396985054016">-0.2906 / 0.4569</td>
 <td data-sort="3511">3,511</td>
 <td data-sort="71.4" class="cell-bad">71.4</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>vertical_interpolation</th><td>linear in pressure; no extrapolation outside 100–800 dbar</td></tr>

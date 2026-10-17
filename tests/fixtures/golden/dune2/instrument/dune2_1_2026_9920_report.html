@@ -32,6 +32,7 @@
   --role-aggregate-b: #27ae60;
   --role-map: #ee3377;
   --role-up: #5d6d7e;
+  --qc-mark: var(--ok);
   --package-accent: var(--ocean);
   --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
@@ -203,7 +204,13 @@ td.mono { font-family: var(--font-mono); font-size: var(--fs-xs); }
    global tables.  Package-neutral — the markup is emitted by templates/_nc_tables.html. */
 .var-table code { font-family: var(--font-mono); font-size: var(--fs-xs); }
 .muted { color: var(--muted); }
-.var-qc { color: var(--muted); font-size: var(--fs-xs); }
+.var-qc { color: var(--qc-mark); font-size: var(--fs-xs); }
+/* The original source name on its own muted line above the canonical name (name_cell), so the
+   Variable column does not widen to fit both on one line. */
+.var-orig { color: var(--muted); font-size: var(--fs-xs); }
+/* A long unbroken token (a tracking_id, a path, a dotted standard_name) in a scalar value or a
+   standard/long-name cell would widen the whole table; cap the width and break inside the word. */
+.cell-wrap { overflow-wrap: anywhere; max-width: 28rem; }
 .cell-bad { color: var(--warn); font-variant-numeric: tabular-nums; }
 tr.units th {
   background: transparent; color: var(--muted); font-weight: 400;
@@ -369,7 +376,6 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 .fig-cell { min-width:0; }
 .fig-cell > .fig { width:100%; }
 .none-note { color:var(--muted); font-style:italic; }
-.var-qc { color:var(--good); font-size:var(--fs-xs); }
 /* Per-row NetCDF attribute disclosure in the inventory tables (the N attrs
    expander). */
 .attr-disclosure summary { cursor:pointer; color:var(--muted); font-size:var(--fs-xs); white-space:nowrap; }
@@ -926,13 +932,13 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <tbody>
 <tr>
 <td data-sort="beam">beam</td><td>beam</td><td><code>int8</code></td><td data-sort="3">3</td>
-<td>—</td><td data-sort="1.0">1 / 3</td></tr>
+<td class="cell-wrap">—</td><td data-sort="1.0">1 / 3</td></tr>
 <tr>
 <td data-sort="time">time</td><td>time</td><td><code>datetime</code></td><td data-sort="9818">9,818</td>
-<td>—</td><td>2026-07-11 20:30:00 / 2026-07-25 11:43:05</td></tr>
+<td class="cell-wrap">—</td><td>2026-07-11 20:30:00 / 2026-07-25 11:43:05</td></tr>
 <tr>
 <td data-sort="time_orig">time_orig</td><td>time</td><td><code>datetime</code></td><td data-sort="9818">9,818</td>
-<td><strong><code>time</code></strong><br>original instrument time before clock correction</td><td>2026-07-11 20:30:00 / 2026-07-25 11:44:00</td></tr>
+<td class="cell-wrap"><strong><code>time</code></strong><br>original instrument time before clock correction</td><td>2026-07-11 20:30:00 / 2026-07-25 11:44:00</td></tr>
 </tbody></table><div class="fig-source">source: oceanarray/reports/_vendored/nc_tables.py:coords_rows</div>
 
 
@@ -946,7 +952,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <tbody>
 <tr>
 <td data-sort="amplitude">amplitude</td>
-<td><code>float32</code></td><td>counts</td><td>Acoustic signal amplitude</td><td data-sort="63.0">63 / 130</td>
+<td><code>float32</code></td><td>counts</td><td class="cell-wrap">Acoustic signal amplitude</td><td data-sort="63.0">63 / 130</td>
 <td data-sort="29454">29,454</td>
 <td data-sort="100.0">100.0</td></tr>
 </tbody></table>
@@ -960,194 +966,194 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <tbody>
 <tr>
 <td data-sort="battery_voltage">battery_voltage</td>
-<td><code>float32</code></td><td>volts</td><td><strong><code>battery_voltage</code></strong><br>Battery voltage</td><td data-sort="12.100000381469727">12.1 / 12.4</td>
+<td><code>float32</code></td><td>volts</td><td class="cell-wrap"><strong><code>battery_voltage</code></strong><br>Battery voltage</td><td data-sort="12.100000381469727">12.1 / 12.4</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Battery voltage</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="current_direction">current_direction</td>
-<td><code>float32</code></td><td>degrees</td><td><strong><code>direction_of_sea_water_velocity</code></strong><br>Current direction (0=N, clockwise)</td><td data-sort="0.06001155078411102">0.06001 / 359.9</td>
+<td><code>float32</code></td><td>degrees</td><td class="cell-wrap"><strong><code>direction_of_sea_water_velocity</code></strong><br>Current direction (0=N, clockwise)</td><td data-sort="0.06001155078411102">0.06001 / 359.9</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort>—</td></tr>
 <tr>
 <td data-sort="current_speed">current_speed</td>
-<td><code>float32</code></td><td>m s-1</td><td><strong><code>sea_water_speed</code></strong><br>Horizontal current speed</td><td data-sort="0.005791159346699715">0.005791 / 0.9213</td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap"><strong><code>sea_water_speed</code></strong><br>Horizontal current speed</td><td data-sort="0.005791159346699715">0.005791 / 0.9213</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort>—</td></tr>
 <tr>
 <td data-sort="day">day</td>
-<td><code>int32</code></td><td>1-31</td><td>—</td><td data-sort="11.0">11 / 25</td>
+<td><code>int32</code></td><td>1-31</td><td class="cell-wrap">—</td><td data-sort="11.0">11 / 25</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Day</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="depth">depth</td>
-<td><code>float32</code></td><td>m</td><td><strong><code>depth</code></strong><br>Depth</td><td data-sort="557.3489990234375">557.3 / 688.1</td>
+<td><code>float32</code></td><td>m</td><td class="cell-wrap"><strong><code>depth</code></strong><br>Depth</td><td data-sort="557.3489990234375">557.3 / 688.1</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>4 attrs</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Pressure</td></tr><tr><th>coverage_content_type</th><td>coordinate</td></tr><tr><th>positive</th><td>up</td></tr><tr><th>short_name</th><td>D</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="direction">direction</td>
-<td><code>float32</code></td><td>degrees</td><td><strong><code>direction</code></strong><br>Current direction</td><td data-sort="0.0">0 / 0</td>
+<td><code>float32</code></td><td>degrees</td><td class="cell-wrap"><strong><code>direction</code></strong><br>Current direction</td><td data-sort="0.0">0 / 0</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Direction</td></tr>
 </tbody></table></details></td></tr>
 <tr>
-<td data-sort="east_velocity">east_velocity <span class="var-qc">(_QC)</span></td>
-<td><code>float32</code></td><td>m s-1</td><td><strong><code>eastward_sea_water_velocity</code></strong><br>Eastward sea water velocity</td><td data-sort="-0.8975104093551636">-0.8975 / 0.7406</td>
+<td data-sort="east_velocity">east_velocity <span class="var-qc">(_qc)</span></td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap"><strong><code>eastward_sea_water_velocity</code></strong><br>Eastward sea water velocity</td><td data-sort="-0.8975104093551636">-0.8975 / 0.7406</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort>—</td></tr>
 <tr>
 <td data-sort="error_code">error_code</td>
-<td><code>int32</code></td><td>—</td><td>—</td><td data-sort="0.0">0 / 0</td>
+<td><code>int32</code></td><td>—</td><td class="cell-wrap">—</td><td data-sort="0.0">0 / 0</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Error code</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="heading">heading</td>
-<td><code>float32</code></td><td>degrees</td><td><strong><code>platform_heading_angle</code></strong><br>Heading angle</td><td data-sort="0.0">0 / 359.7</td>
+<td><code>float32</code></td><td>degrees</td><td class="cell-wrap"><strong><code>platform_heading_angle</code></strong><br>Heading angle</td><td data-sort="0.0">0 / 359.7</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Heading</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="hour">hour</td>
-<td><code>int32</code></td><td>0-23</td><td>—</td><td data-sort="0.0">0 / 23</td>
+<td><code>int32</code></td><td>0-23</td><td class="cell-wrap">—</td><td data-sort="0.0">0 / 23</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Hour</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="magnitude">magnitude</td>
-<td><code>float32</code></td><td>m s-1</td><td><strong><code>magnitude</code></strong><br>Current magnitude</td><td data-sort="0.0">0 / 0</td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap"><strong><code>magnitude</code></strong><br>Current magnitude</td><td data-sort="0.0">0 / 0</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Speed</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="minute">minute</td>
-<td><code>int32</code></td><td>0-59</td><td>—</td><td data-sort="0.0">0 / 58</td>
+<td><code>int32</code></td><td>0-59</td><td class="cell-wrap">—</td><td data-sort="0.0">0 / 58</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Minute</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="month">month</td>
-<td><code>int32</code></td><td>1-12</td><td>—</td><td data-sort="7.0">7 / 7</td>
+<td><code>int32</code></td><td>1-12</td><td class="cell-wrap">—</td><td data-sort="7.0">7 / 7</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Month</td></tr>
 </tbody></table></details></td></tr>
 <tr>
-<td data-sort="north_velocity">north_velocity <span class="var-qc">(_QC)</span></td>
-<td><code>float32</code></td><td>m s-1</td><td><strong><code>northward_sea_water_velocity</code></strong><br>Northward sea water velocity</td><td data-sort="-0.6844239830970764">-0.6844 / 0.7064</td>
+<td data-sort="north_velocity">north_velocity <span class="var-qc">(_qc)</span></td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap"><strong><code>northward_sea_water_velocity</code></strong><br>Northward sea water velocity</td><td data-sort="-0.6844239830970764">-0.6844 / 0.7064</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort>—</td></tr>
 <tr>
 <td data-sort="pitch">pitch</td>
-<td><code>float32</code></td><td>degrees</td><td><strong><code>platform_pitch_angle</code></strong><br>Pitch angle</td><td data-sort="-36.599998474121094">-36.6 / 1.5</td>
+<td><code>float32</code></td><td>degrees</td><td class="cell-wrap"><strong><code>platform_pitch_angle</code></strong><br>Pitch angle</td><td data-sort="-36.599998474121094">-36.6 / 1.5</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Pitch</td></tr>
 </tbody></table></details></td></tr>
 <tr>
-<td data-sort="pressure">pressure <span class="var-qc">(_QC)</span></td>
-<td><code>float32</code></td><td>dbar</td><td><strong><code>sea_water_pressure</code></strong><br>Pressure</td><td data-sort="561.18798828125">561.2 / 693</td>
+<td data-sort="pressure">pressure <span class="var-qc">(_qc)</span></td>
+<td><code>float32</code></td><td>dbar</td><td class="cell-wrap"><strong><code>sea_water_pressure</code></strong><br>Pressure</td><td data-sort="561.18798828125">561.2 / 693</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>4 attrs</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Pressure</td></tr><tr><th>coverage_content_type</th><td>physicalMeasurement</td></tr><tr><th>measurement_type</th><td>Measured</td></tr><tr><th>short_name</th><td>WP</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="roll">roll</td>
-<td><code>float32</code></td><td>degrees</td><td><strong><code>platform_roll_angle</code></strong><br>Roll angle</td><td data-sort="-18.100000381469727">-18.1 / 15.7</td>
+<td><code>float32</code></td><td>degrees</td><td class="cell-wrap"><strong><code>platform_roll_angle</code></strong><br>Roll angle</td><td data-sort="-18.100000381469727">-18.1 / 15.7</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Roll</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="second">second</td>
-<td><code>int32</code></td><td>0-59</td><td>—</td><td data-sort="0.0">0 / 0</td>
+<td><code>int32</code></td><td>0-59</td><td class="cell-wrap">—</td><td data-sort="0.0">0 / 0</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Second</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="speed_of_sound">speed_of_sound</td>
-<td><code>float32</code></td><td>m s-1</td><td><strong><code>speed_of_sound_in_sea_water</code></strong><br>Speed of sound in sea water</td><td data-sort="1448.800048828125">1449 / 1479</td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap"><strong><code>speed_of_sound_in_sea_water</code></strong><br>Speed of sound in sea water</td><td data-sort="1448.800048828125">1449 / 1479</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Soundspeed</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="speed_of_sound_used">speed_of_sound_used</td>
-<td><code>float32</code></td><td>m s-1</td><td>—</td><td data-sort="1458.699951171875">1459 / 1488</td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap">—</td><td data-sort="1458.699951171875">1459 / 1488</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Soundspeed used</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="status_code">status_code</td>
-<td><code>int32</code></td><td>—</td><td>—</td><td data-sort="110000.0">1.1e+05 / 1.1e+05</td>
+<td><code>int32</code></td><td>—</td><td class="cell-wrap">—</td><td data-sort="110000.0">1.1e+05 / 1.1e+05</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Status code</td></tr>
 </tbody></table></details></td></tr>
 <tr>
-<td data-sort="temperature">temperature <span class="var-qc">(_QC)</span></td>
-<td><code>float32</code></td><td>degree_Celsius</td><td><strong><code>sea_water_temperature</code></strong><br>Temperature</td><td data-sort="-0.05000000074505806">-0.05 / 7.02</td>
+<td data-sort="temperature">temperature <span class="var-qc">(_qc)</span></td>
+<td><code>float32</code></td><td>degree_Celsius</td><td class="cell-wrap"><strong><code>sea_water_temperature</code></strong><br>Temperature</td><td data-sort="-0.05000000074505806">-0.05 / 7.02</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>4 attrs</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Temperature</td></tr><tr><th>coverage_content_type</th><td>physicalMeasurement</td></tr><tr><th>measurement_type</th><td>Measured</td></tr><tr><th>short_name</th><td>WT</td></tr>
 </tbody></table></details></td></tr>
 <tr>
-<td data-sort="up_velocity">up_velocity <span class="var-qc">(_QC)</span></td>
-<td><code>float32</code></td><td>m s-1</td><td><strong><code>upward_sea_water_velocity</code></strong><br>Upward sea water velocity</td><td data-sort="-0.4767283797264099">-0.4767 / 0.5587</td>
+<td data-sort="up_velocity">up_velocity <span class="var-qc">(_qc)</span></td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap"><strong><code>upward_sea_water_velocity</code></strong><br>Upward sea water velocity</td><td data-sort="-0.4767283797264099">-0.4767 / 0.5587</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort>—</td></tr>
 <tr>
-<td data-sort="velocity_beam1">velocity_beam1 <span class="var-qc">(_QC)</span></td>
-<td><code>float32</code></td><td>m s-1</td><td>—</td><td data-sort="-0.8450000286102295">-0.845 / 0.855</td>
+<td data-sort="velocity_beam1">velocity_beam1 <span class="var-qc">(_qc)</span></td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap">—</td><td data-sort="-0.8450000286102295">-0.845 / 0.855</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>2 attrs</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Velocity (Beam1|X|East)</td></tr><tr><th>coordinate_system</th><td>BEAM</td></tr>
 </tbody></table></details></td></tr>
 <tr>
-<td data-sort="velocity_beam2">velocity_beam2 <span class="var-qc">(_QC)</span></td>
-<td><code>float32</code></td><td>m s-1</td><td>—</td><td data-sort="-0.3190000057220459">-0.319 / 0.424</td>
+<td data-sort="velocity_beam2">velocity_beam2 <span class="var-qc">(_qc)</span></td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap">—</td><td data-sort="-0.3190000057220459">-0.319 / 0.424</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>2 attrs</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Velocity (Beam2|Y|North)</td></tr><tr><th>coordinate_system</th><td>BEAM</td></tr>
 </tbody></table></details></td></tr>
 <tr>
-<td data-sort="velocity_beam3">velocity_beam3 <span class="var-qc">(_QC)</span></td>
-<td><code>float32</code></td><td>m s-1</td><td>—</td><td data-sort="-0.652999997138977">-0.653 / 0.268</td>
+<td data-sort="velocity_beam3">velocity_beam3 <span class="var-qc">(_qc)</span></td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap">—</td><td data-sort="-0.652999997138977">-0.653 / 0.268</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>2 attrs</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Velocity (Beam3|Z|Up)</td></tr><tr><th>coordinate_system</th><td>BEAM</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="velocity_x">velocity_x</td>
-<td><code>float32</code></td><td>m s-1</td><td>X velocity (instrument XYZ frame)</td><td data-sort="-0.6451113820075989">-0.6451 / 0.7804</td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap">X velocity (instrument XYZ frame)</td><td data-sort="-0.6451113820075989">-0.6451 / 0.7804</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort>—</td></tr>
 <tr>
 <td data-sort="velocity_y">velocity_y</td>
-<td><code>float32</code></td><td>m s-1</td><td>Y velocity (instrument XYZ frame)</td><td data-sort="-0.6414589881896973">-0.6415 / 0.2879</td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap">Y velocity (instrument XYZ frame)</td><td data-sort="-0.6414589881896973">-0.6415 / 0.2879</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort>—</td></tr>
 <tr>
 <td data-sort="velocity_z">velocity_z</td>
-<td><code>float32</code></td><td>m s-1</td><td>Z velocity (instrument XYZ frame)</td><td data-sort="-0.7935327887535095">-0.7935 / 0.8196</td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap">Z velocity (instrument XYZ frame)</td><td data-sort="-0.7935327887535095">-0.7935 / 0.8196</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort>—</td></tr>
 <tr>
 <td data-sort="year">year</td>
-<td><code>int32</code></td><td>—</td><td>—</td><td data-sort="2026.0">2026 / 2026</td>
+<td><code>int32</code></td><td>—</td><td class="cell-wrap">—</td><td data-sort="2026.0">2026 / 2026</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Year</td></tr>
@@ -1164,25 +1170,25 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <tbody>
 <tr>
 <td data-sort="InstrDepth">InstrDepth</td><td><code>int32</code></td><td>—</td>
-<td>—</td><td>519</td></tr>
+<td class="cell-wrap">—</td><td class="cell-wrap">519</td></tr>
 <tr>
 <td data-sort="clock_drift_seconds">clock_drift_seconds</td><td><code>float32</code></td><td>s</td>
-<td>total linear clock drift applied</td><td>-55</td></tr>
+<td class="cell-wrap">total linear clock drift applied</td><td class="cell-wrap">-55</td></tr>
 <tr>
 <td data-sort="clock_offset">clock_offset</td><td><code>int32</code></td><td>s</td>
-<td>—</td><td>0</td></tr>
+<td class="cell-wrap">—</td><td class="cell-wrap">0</td></tr>
 <tr>
 <td data-sort="end_time">end_time</td><td><code>string</code></td><td>—</td>
-<td>—</td><td>2026-07-25T11:44</td></tr>
+<td class="cell-wrap">—</td><td class="cell-wrap">2026-07-25T11:44</td></tr>
 <tr>
 <td data-sort="instrument">instrument</td><td><code>string</code></td><td>—</td>
-<td>—</td><td>aquadopp</td></tr>
+<td class="cell-wrap">—</td><td class="cell-wrap">aquadopp</td></tr>
 <tr>
 <td data-sort="serial_number">serial_number</td><td><code>string</code></td><td>—</td>
-<td>—</td><td>9920*</td></tr>
+<td class="cell-wrap">—</td><td class="cell-wrap">9920*</td></tr>
 <tr>
 <td data-sort="start_time">start_time</td><td><code>string</code></td><td>—</td>
-<td>—</td><td>2026-07-11T20:30</td></tr>
+<td class="cell-wrap">—</td><td class="cell-wrap">2026-07-11T20:30</td></tr>
 </tbody></table><div class="fig-source">source: oceanarray/reports/_vendored/nc_tables.py:scalars_rows</div>
 
 <h2 id="netcdf_attributes">(B) NetCDF attributes</h2>

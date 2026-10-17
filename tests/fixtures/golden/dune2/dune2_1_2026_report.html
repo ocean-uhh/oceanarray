@@ -32,6 +32,7 @@
   --role-aggregate-b: #27ae60;
   --role-map: #ee3377;
   --role-up: #5d6d7e;
+  --qc-mark: var(--ok);
   --package-accent: var(--ocean);
   --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
@@ -203,7 +204,13 @@ td.mono { font-family: var(--font-mono); font-size: var(--fs-xs); }
    global tables.  Package-neutral — the markup is emitted by templates/_nc_tables.html. */
 .var-table code { font-family: var(--font-mono); font-size: var(--fs-xs); }
 .muted { color: var(--muted); }
-.var-qc { color: var(--muted); font-size: var(--fs-xs); }
+.var-qc { color: var(--qc-mark); font-size: var(--fs-xs); }
+/* The original source name on its own muted line above the canonical name (name_cell), so the
+   Variable column does not widen to fit both on one line. */
+.var-orig { color: var(--muted); font-size: var(--fs-xs); }
+/* A long unbroken token (a tracking_id, a path, a dotted standard_name) in a scalar value or a
+   standard/long-name cell would widen the whole table; cap the width and break inside the word. */
+.cell-wrap { overflow-wrap: anywhere; max-width: 28rem; }
 .cell-bad { color: var(--warn); font-variant-numeric: tabular-nums; }
 tr.units th {
   background: transparent; color: var(--muted); font-weight: 400;
@@ -369,7 +376,6 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 .fig-cell { min-width:0; }
 .fig-cell > .fig { width:100%; }
 .none-note { color:var(--muted); font-style:italic; }
-.var-qc { color:var(--good); font-size:var(--fs-xs); }
 /* Per-row NetCDF attribute disclosure in the inventory tables (the N attrs
    expander). */
 .attr-disclosure summary { cursor:pointer; color:var(--muted); font-size:var(--fs-xs); white-space:nowrap; }

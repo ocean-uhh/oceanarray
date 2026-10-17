@@ -32,6 +32,7 @@
   --role-aggregate-b: #27ae60;
   --role-map: #ee3377;
   --role-up: #5d6d7e;
+  --qc-mark: var(--ok);
   --package-accent: var(--ocean);
   --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
@@ -203,7 +204,13 @@ td.mono { font-family: var(--font-mono); font-size: var(--fs-xs); }
    global tables.  Package-neutral — the markup is emitted by templates/_nc_tables.html. */
 .var-table code { font-family: var(--font-mono); font-size: var(--fs-xs); }
 .muted { color: var(--muted); }
-.var-qc { color: var(--muted); font-size: var(--fs-xs); }
+.var-qc { color: var(--qc-mark); font-size: var(--fs-xs); }
+/* The original source name on its own muted line above the canonical name (name_cell), so the
+   Variable column does not widen to fit both on one line. */
+.var-orig { color: var(--muted); font-size: var(--fs-xs); }
+/* A long unbroken token (a tracking_id, a path, a dotted standard_name) in a scalar value or a
+   standard/long-name cell would widen the whole table; cap the width and break inside the word. */
+.cell-wrap { overflow-wrap: anywhere; max-width: 28rem; }
 .cell-bad { color: var(--warn); font-variant-numeric: tabular-nums; }
 tr.units th {
   background: transparent; color: var(--muted); font-weight: 400;
@@ -369,7 +376,6 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 .fig-cell { min-width:0; }
 .fig-cell > .fig { width:100%; }
 .none-note { color:var(--muted); font-style:italic; }
-.var-qc { color:var(--good); font-size:var(--fs-xs); }
 /* Per-row NetCDF attribute disclosure in the inventory tables (the N attrs
    expander). */
 .attr-disclosure summary { cursor:pointer; color:var(--muted); font-size:var(--fs-xs); white-space:nowrap; }
@@ -814,7 +820,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <tbody>
 <tr>
 <td data-sort="time">time</td><td>time</td><td><code>datetime</code></td><td data-sort="19635">19,635</td>
-<td><strong><code>time</code></strong><br>Time</td><td>2026-07-11 20:30:01 / 2026-07-25 11:44:00</td><td data-nosort><details class="attr-disclosure"><summary>2 attrs</summary>
+<td class="cell-wrap"><strong><code>time</code></strong><br>Time</td><td>2026-07-11 20:30:01 / 2026-07-25 11:44:00</td><td data-nosort><details class="attr-disclosure"><summary>2 attrs</summary>
 <table data-nosort><tbody><tr><th>coverage_content_type</th><td>coordinate</td></tr><tr><th>axis</th><td>T</td></tr>
 </tbody></table></details></td></tr>
 </tbody></table><div class="fig-source">source: oceanarray/reports/_vendored/nc_tables.py:coords_rows</div>
@@ -829,29 +835,29 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 </thead>
 <tbody>
 <tr>
-<td data-sort="conductivity">conductivity <span class="var-qc">(_QC)</span></td>
-<td><code>float32</code></td><td>mS cm-1</td><td><strong><code>sea_water_electrical_conductivity</code></strong><br>Conductivity</td><td data-sort="30.77539825439453">30.78 / 36.05</td>
+<td data-sort="conductivity">conductivity <span class="var-qc">(_qc)</span></td>
+<td><code>float32</code></td><td>mS cm-1</td><td class="cell-wrap"><strong><code>sea_water_electrical_conductivity</code></strong><br>Conductivity</td><td data-sort="30.77539825439453">30.78 / 36.05</td>
 <td data-sort="19635">19,635</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>3 attrs</summary>
 <table data-nosort><tbody><tr><th>coverage_content_type</th><td>physicalMeasurement</td></tr><tr><th>measurement_type</th><td>Measured</td></tr><tr><th>short_name</th><td>COND</td></tr>
 </tbody></table></details></td></tr>
 <tr>
-<td data-sort="pressure">pressure <span class="var-qc">(_QC)</span></td>
-<td><code>float32</code></td><td>dbar</td><td><strong><code>sea_water_pressure</code></strong><br>sea water pressure</td><td data-sort="344.9400939941406">344.9 / 551.9</td>
+<td data-sort="pressure">pressure <span class="var-qc">(_qc)</span></td>
+<td><code>float32</code></td><td>dbar</td><td class="cell-wrap"><strong><code>sea_water_pressure</code></strong><br>sea water pressure</td><td data-sort="344.9400939941406">344.9 / 551.9</td>
 <td data-sort="19635">19,635</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>2 attrs</summary>
 <table data-nosort><tbody><tr><th>pressure_source</th><td>near-neighbour from aquadopp 400118 (Δhab=1.0m, static offset=+1.0 dbar)</td></tr><tr><th>comment</th><td>interpolated from neighbouring instrument(s)</td></tr>
 </tbody></table></details></td></tr>
 <tr>
-<td data-sort="salinity">salinity <span class="var-qc">(_QC)</span></td>
-<td><code>float32</code></td><td>1</td><td><strong><code>sea_water_practical_salinity</code></strong><br>Practical Salinity</td><td data-sort="34.550472259521484">34.55 / 35.25</td>
+<td data-sort="salinity">salinity <span class="var-qc">(_qc)</span></td>
+<td><code>float32</code></td><td>1</td><td class="cell-wrap"><strong><code>sea_water_practical_salinity</code></strong><br>Practical Salinity</td><td data-sort="34.550472259521484">34.55 / 35.25</td>
 <td data-sort="19635">19,635</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>2 attrs</summary>
 <table data-nosort><tbody><tr><th>coverage_content_type</th><td>physicalMeasurement</td></tr><tr><th>comment</th><td>Derived from conductivity, temperature, pressure via gsw.SP_from_C</td></tr>
 </tbody></table></details></td></tr>
 <tr>
-<td data-sort="temperature">temperature <span class="var-qc">(_QC)</span></td>
-<td><code>float32</code></td><td>degree_Celsius</td><td><strong><code>sea_water_temperature</code></strong><br>Temperature</td><td data-sort="2.0720999240875244">2.072 / 7.509</td>
+<td data-sort="temperature">temperature <span class="var-qc">(_qc)</span></td>
+<td><code>float32</code></td><td>degree_Celsius</td><td class="cell-wrap"><strong><code>sea_water_temperature</code></strong><br>Temperature</td><td data-sort="2.0720999240875244">2.072 / 7.509</td>
 <td data-sort="19635">19,635</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>4 attrs</summary>
 <table data-nosort><tbody><tr><th>coverage_content_type</th><td>physicalMeasurement</td></tr><tr><th>measurement_type</th><td>Measured</td></tr><tr><th>short_name</th><td>WT</td></tr><tr><th>scale</th><td>ITS-90</td></tr>
@@ -868,32 +874,32 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <tbody>
 <tr>
 <td data-sort="InstrDepth">InstrDepth</td><td><code>int32</code></td><td>—</td>
-<td>—</td><td>320</td><td data-nosort>—</td></tr>
+<td class="cell-wrap">—</td><td class="cell-wrap">320</td><td data-nosort>—</td></tr>
 <tr>
 <td data-sort="SENSOR_CNDC_2941">SENSOR_CNDC_2941</td><td><code>string</code></td><td>—</td>
-<td>Sea-Bird SBE conductivity sensor metadata</td><td>—</td><td data-nosort><details class="attr-disclosure"><summary>7 attrs</summary>
+<td class="cell-wrap">Sea-Bird SBE conductivity sensor metadata</td><td class="cell-wrap">—</td><td data-nosort><details class="attr-disclosure"><summary>7 attrs</summary>
 <table data-nosort><tbody><tr><th>sensor_type</th><td>CONDUCTIVITY</td></tr><tr><th>sensor_serial_number</th><td>2941</td></tr><tr><th>sensor_model</th><td>Sea-Bird SBE conductivity sensor</td></tr><tr><th>sensor_calibration_date</th><td>2023-03-28</td></tr><tr><th>CONDUCTIVITY_calibration_coefficients</th><td>G=-9.871170e-01, H=1.369976e-01, I=-3.485648e-04, J=4.990156e-05, CPCOR=-9.570000e-08, CTCOR=3.250000e-06, WBOTC=-9.1055</td></tr><tr><th>cf_role</th><td>sensor_id</td></tr><tr><th>coverage_content_type</th><td>auxiliaryInformation</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="SENSOR_TEMP_2941">SENSOR_TEMP_2941</td><td><code>string</code></td><td>—</td>
-<td>Sea-Bird SBE temperature sensor metadata</td><td>—</td><td data-nosort><details class="attr-disclosure"><summary>7 attrs</summary>
+<td class="cell-wrap">Sea-Bird SBE temperature sensor metadata</td><td class="cell-wrap">—</td><td data-nosort><details class="attr-disclosure"><summary>7 attrs</summary>
 <table data-nosort><tbody><tr><th>sensor_type</th><td>TEMPERATURE</td></tr><tr><th>sensor_serial_number</th><td>2941</td></tr><tr><th>sensor_model</th><td>Sea-Bird SBE temperature sensor</td></tr><tr><th>sensor_calibration_date</th><td>2023-03-28</td></tr><tr><th>TEMPERATURE_calibration_coefficients</th><td>TA0=6.981772e-06, TA1=2.746413e-04, TA2=-2.252296e-06, TA3=1.528407e-07</td></tr><tr><th>cf_role</th><td>sensor_id</td></tr><tr><th>coverage_content_type</th><td>auxiliaryInformation</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="clock_offset">clock_offset</td><td><code>int32</code></td><td>s</td>
-<td>—</td><td>0</td><td data-nosort>—</td></tr>
+<td class="cell-wrap">—</td><td class="cell-wrap">0</td><td data-nosort>—</td></tr>
 <tr>
 <td data-sort="end_time">end_time</td><td><code>string</code></td><td>—</td>
-<td>—</td><td>2026-07-25T11:44</td><td data-nosort>—</td></tr>
+<td class="cell-wrap">—</td><td class="cell-wrap">2026-07-25T11:44</td><td data-nosort>—</td></tr>
 <tr>
 <td data-sort="instrument">instrument</td><td><code>string</code></td><td>—</td>
-<td>—</td><td>microcat</td><td data-nosort>—</td></tr>
+<td class="cell-wrap">—</td><td class="cell-wrap">microcat</td><td data-nosort>—</td></tr>
 <tr>
 <td data-sort="serial_number">serial_number</td><td><code>int32</code></td><td>—</td>
-<td>—</td><td>2941</td><td data-nosort>—</td></tr>
+<td class="cell-wrap">—</td><td class="cell-wrap">2941</td><td data-nosort>—</td></tr>
 <tr>
 <td data-sort="start_time">start_time</td><td><code>string</code></td><td>—</td>
-<td>—</td><td>2026-07-11T20:30</td><td data-nosort>—</td></tr>
+<td class="cell-wrap">—</td><td class="cell-wrap">2026-07-11T20:30</td><td data-nosort>—</td></tr>
 </tbody></table><div class="fig-source">source: oceanarray/reports/_vendored/nc_tables.py:scalars_rows</div>
 
 <h2 id="netcdf_attributes">(B) NetCDF attributes</h2>

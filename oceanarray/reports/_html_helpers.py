@@ -352,17 +352,12 @@ def _read_nc_metadata(nc_path: Path) -> dict[str, Any]:
                 ds, is_qc=design.is_qc, is_sensor=design.is_sensor
             )
             scalar_rows, scalar_src = nc_tables.scalars_rows(ds)
+            # `history` has its own dedicated processing-history panel, so exclude it from
+            # the global-attributes table (the builder's `exclude=` drops the attr and any
+            # group it empties) rather than show the long provenance string twice.
             global_groups, global_src = nc_tables.globals_rows(
-                ds, extras=design.ATTR_GROUP_EXTRAS
+                ds, extras=design.ATTR_GROUP_EXTRAS, exclude=("history",)
             )
-            # `history` has its own dedicated processing-history panel, so drop it from the
-            # global-attributes table (as the pre-vendoring reader did) rather than show the
-            # long provenance string twice.
-            global_groups = [
-                (title, [row for row in rows if row[0] != "history"])
-                for title, rows in global_groups
-            ]
-            global_groups = [(title, rows) for title, rows in global_groups if rows]
             summary = nc_tables.summary_counts(
                 ds, is_qc=design.is_qc, is_sensor=design.is_sensor
             )

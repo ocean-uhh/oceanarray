@@ -32,6 +32,7 @@
   --role-aggregate-b: #27ae60;
   --role-map: #ee3377;
   --role-up: #5d6d7e;
+  --qc-mark: var(--ok);
   --package-accent: var(--ocean);
   --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
@@ -203,7 +204,13 @@ td.mono { font-family: var(--font-mono); font-size: var(--fs-xs); }
    global tables.  Package-neutral — the markup is emitted by templates/_nc_tables.html. */
 .var-table code { font-family: var(--font-mono); font-size: var(--fs-xs); }
 .muted { color: var(--muted); }
-.var-qc { color: var(--muted); font-size: var(--fs-xs); }
+.var-qc { color: var(--qc-mark); font-size: var(--fs-xs); }
+/* The original source name on its own muted line above the canonical name (name_cell), so the
+   Variable column does not widen to fit both on one line. */
+.var-orig { color: var(--muted); font-size: var(--fs-xs); }
+/* A long unbroken token (a tracking_id, a path, a dotted standard_name) in a scalar value or a
+   standard/long-name cell would widen the whole table; cap the width and break inside the word. */
+.cell-wrap { overflow-wrap: anywhere; max-width: 28rem; }
 .cell-bad { color: var(--warn); font-variant-numeric: tabular-nums; }
 tr.units th {
   background: transparent; color: var(--muted); font-weight: 400;
@@ -369,7 +376,6 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 .fig-cell { min-width:0; }
 .fig-cell > .fig { width:100%; }
 .none-note { color:var(--muted); font-style:italic; }
-.var-qc { color:var(--good); font-size:var(--fs-xs); }
 /* Per-row NetCDF attribute disclosure in the inventory tables (the N attrs
    expander). */
 .attr-disclosure summary { cursor:pointer; color:var(--muted); font-size:var(--fs-xs); white-space:nowrap; }
@@ -757,16 +763,16 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <tbody>
 <tr>
 <td data-sort="hab">hab</td><td>N_LEVELS</td><td><strong><code>float64</code></strong></td><td data-sort="22">22</td>
-<td>m</td><td>height above bottom</td><td data-sort="8.0">8 / 675</td><td data-nosort>—</td></tr>
+<td>m</td><td class="cell-wrap">height above bottom</td><td data-sort="8.0">8 / 675</td><td data-nosort>—</td></tr>
 <tr>
 <td data-sort="instrument_type">instrument_type</td><td>N_LEVELS</td><td><code>string</code></td><td data-sort="22">22</td>
-<td>—</td><td>instrument type</td><td data-sort="-1e308">—</td><td data-nosort>—</td></tr>
+<td>—</td><td class="cell-wrap">instrument type</td><td data-sort="-1e308">—</td><td data-nosort>—</td></tr>
 <tr>
 <td data-sort="serial">serial</td><td>N_LEVELS</td><td><code>string</code></td><td data-sort="22">22</td>
-<td>—</td><td>instrument serial number</td><td data-sort="-1e308">—</td><td data-nosort>—</td></tr>
+<td>—</td><td class="cell-wrap">instrument serial number</td><td data-sort="-1e308">—</td><td data-nosort>—</td></tr>
 <tr>
 <td data-sort="time">time</td><td>time</td><td><code>datetime</code></td><td data-sort="328">328</td>
-<td>—</td><td><strong><code>time</code></strong><br>time</td><td>2026-07-11 20:30:00 / 2026-07-25 11:30:00</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
+<td>—</td><td class="cell-wrap"><strong><code>time</code></strong><br>time</td><td>2026-07-11 20:30:00 / 2026-07-25 11:30:00</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>axis</th><td>T</td></tr>
 </tbody></table></details></td></tr>
 </tbody></table><div class="fig-source">source: oceanarray/reports/_vendored/nc_tables.py:coords_rows</div>
@@ -782,32 +788,32 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <tbody>
 <tr>
 <td data-sort="InstrDepth">InstrDepth</td>
-<td><code>float32</code></td><td class="cell-bad">—</td><td>—</td><td data-sort="70.0">70 / 737</td>
+<td><code>float32</code></td><td class="cell-bad">—</td><td class="cell-wrap">—</td><td data-sort="70.0">70 / 737</td>
 <td data-sort="22">22</td>
 <td data-sort="100.0">100.0</td></tr>
 <tr>
 <td data-sort="clock_drift_seconds">clock_drift_seconds</td>
-<td><code>float32</code></td><td>s</td><td>total linear clock drift applied</td><td data-sort="-57.0">-57 / 601</td>
+<td><code>float32</code></td><td>s</td><td class="cell-wrap">total linear clock drift applied</td><td data-sort="-57.0">-57 / 601</td>
 <td data-sort="19">19</td>
 <td data-sort="86.4" class="cell-bad">86.4</td></tr>
 <tr>
 <td data-sort="magnetic_declination">magnetic_declination</td>
-<td><code>float32</code></td><td>degrees_east</td><td>Magnetic declination (IGRF)</td><td data-sort="-13.96561336517334">-13.97 / -13.97</td>
+<td><code>float32</code></td><td>degrees_east</td><td class="cell-wrap">Magnetic declination (IGRF)</td><td data-sort="-13.96561336517334">-13.97 / -13.97</td>
 <td data-sort="7">7</td>
 <td data-sort="31.8" class="cell-bad">31.8</td></tr>
 <tr>
 <td data-sort="serial_number">serial_number</td>
-<td><code>string</code></td><td>—</td><td>—</td><td data-sort="-1e308">—</td>
+<td><code>string</code></td><td>—</td><td class="cell-wrap">—</td><td data-sort="-1e308">—</td>
 <td data-sort="22">22</td>
 <td data-sort="100.0">100.0</td></tr>
 <tr>
 <td data-sort="tilt_pressure_ref_hab">tilt_pressure_ref_hab</td>
-<td><code>float32</code></td><td>m</td><td>Height above bottom of the pressure reference instrument used for tilt</td><td data-sort="25.0">25 / 675</td>
+<td><code>float32</code></td><td>m</td><td class="cell-wrap">Height above bottom of the pressure reference instrument used for tilt</td><td data-sort="25.0">25 / 675</td>
 <td data-sort="21">21</td>
 <td data-sort="95.5" class="cell-bad">95.5</td></tr>
 <tr>
 <td data-sort="tilt_pressure_ref_serial">tilt_pressure_ref_serial</td>
-<td><code>string</code></td><td>—</td><td>Serial number of the pressure reference instrument used for tilt</td><td data-sort="-1e308">—</td>
+<td><code>string</code></td><td>—</td><td class="cell-wrap">Serial number of the pressure reference instrument used for tilt</td><td data-sort="-1e308">—</td>
 <td data-sort="22">22</td>
 <td data-sort="100.0">100.0</td></tr>
 </tbody></table>
@@ -821,95 +827,95 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <tbody>
 <tr>
 <td data-sort="conductivity">conductivity</td>
-<td><code>float32</code></td><td>mS cm-1</td><td><strong><code>sea_water_electrical_conductivity</code></strong><br>Conductivity</td><td data-sort="29.218799591064453">29.22 / 36.32</td>
+<td><code>float32</code></td><td>mS cm-1</td><td class="cell-wrap"><strong><code>sea_water_electrical_conductivity</code></strong><br>Conductivity</td><td data-sort="29.218799591064453">29.22 / 36.32</td>
 <td data-sort="2296">2,296</td>
 <td data-sort="31.8" class="cell-bad">31.8</td><td data-nosort><details class="attr-disclosure"><summary>6 attrs</summary>
 <table data-nosort><tbody><tr><th>cnv_original_name</th><td>cond0mS/cm</td></tr><tr><th>cnv_original_label</th><td>Conductivity [mS/cm]</td></tr><tr><th>cnv_original_unit</th><td>mS/cm</td></tr><tr><th>original_name</th><td>cond0mS/cm</td></tr><tr><th>coverage_content_type</th><td>physicalMeasurement</td></tr><tr><th>measurement_type</th><td>Measured</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="current_direction">current_direction</td>
-<td><code>float32</code></td><td>degrees</td><td><strong><code>direction_of_sea_water_velocity</code></strong><br>Current direction (0=N, clockwise)</td><td data-sort="0.013480518944561481">0.01348 / 359.9</td>
+<td><code>float32</code></td><td>degrees</td><td class="cell-wrap"><strong><code>direction_of_sea_water_velocity</code></strong><br>Current direction (0=N, clockwise)</td><td data-sort="0.013480518944561481">0.01348 / 359.9</td>
 <td data-sort="2296">2,296</td>
 <td data-sort="31.8" class="cell-bad">31.8</td><td data-nosort>—</td></tr>
 <tr>
 <td data-sort="current_speed">current_speed</td>
-<td><code>float32</code></td><td>m s-1</td><td><strong><code>sea_water_speed</code></strong><br>Horizontal current speed</td><td data-sort="0.011032858863472939">0.01103 / 1.331</td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap"><strong><code>sea_water_speed</code></strong><br>Horizontal current speed</td><td data-sort="0.011032858863472939">0.01103 / 1.331</td>
 <td data-sort="2296">2,296</td>
 <td data-sort="31.8" class="cell-bad">31.8</td><td data-nosort>—</td></tr>
 <tr>
-<td data-sort="east_velocity">east_velocity <span class="var-qc">(_QC)</span></td>
-<td><code>float32</code></td><td>m s-1</td><td><strong><code>eastward_sea_water_velocity</code></strong><br>Eastward sea water velocity</td><td data-sort="-1.329809308052063">-1.33 / 0.9936</td>
+<td data-sort="east_velocity">east_velocity <span class="var-qc">(_qc)</span></td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap"><strong><code>eastward_sea_water_velocity</code></strong><br>Eastward sea water velocity</td><td data-sort="-1.329809308052063">-1.33 / 0.9936</td>
 <td data-sort="2296">2,296</td>
 <td data-sort="31.8" class="cell-bad">31.8</td><td data-nosort>—</td></tr>
 <tr>
 <td data-sort="heading">heading</td>
-<td><code>float32</code></td><td>degrees</td><td><strong><code>platform_heading_angle</code></strong><br>Heading angle</td><td data-sort="0.20000000298023224">0.2 / 359.6</td>
+<td><code>float32</code></td><td>degrees</td><td class="cell-wrap"><strong><code>platform_heading_angle</code></strong><br>Heading angle</td><td data-sort="0.20000000298023224">0.2 / 359.6</td>
 <td data-sort="2296">2,296</td>
 <td data-sort="31.8" class="cell-bad">31.8</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Heading</td></tr>
 </tbody></table></details></td></tr>
 <tr>
-<td data-sort="north_velocity">north_velocity <span class="var-qc">(_QC)</span></td>
-<td><code>float32</code></td><td>m s-1</td><td><strong><code>northward_sea_water_velocity</code></strong><br>Northward sea water velocity</td><td data-sort="-1.0391464233398438">-1.039 / 0.8338</td>
+<td data-sort="north_velocity">north_velocity <span class="var-qc">(_qc)</span></td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap"><strong><code>northward_sea_water_velocity</code></strong><br>Northward sea water velocity</td><td data-sort="-1.0391464233398438">-1.039 / 0.8338</td>
 <td data-sort="2296">2,296</td>
 <td data-sort="31.8" class="cell-bad">31.8</td><td data-nosort>—</td></tr>
 <tr>
 <td data-sort="pitch">pitch</td>
-<td><code>float32</code></td><td>degrees</td><td><strong><code>platform_pitch_angle</code></strong><br>Pitch angle</td><td data-sort="-166.10000610351562">-166.1 / 18.6</td>
+<td><code>float32</code></td><td>degrees</td><td class="cell-wrap"><strong><code>platform_pitch_angle</code></strong><br>Pitch angle</td><td data-sort="-166.10000610351562">-166.1 / 18.6</td>
 <td data-sort="2296">2,296</td>
 <td data-sort="31.8" class="cell-bad">31.8</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Pitch</td></tr>
 </tbody></table></details></td></tr>
 <tr>
-<td data-sort="pressure">pressure <span class="var-qc">(_QC)</span></td>
-<td><code>float32</code></td><td>dbar</td><td><strong><code>sea_water_pressure</code></strong><br>sea water pressure</td><td data-sort="82.4679946899414">82.47 / 807.9</td>
+<td data-sort="pressure">pressure <span class="var-qc">(_qc)</span></td>
+<td><code>float32</code></td><td>dbar</td><td class="cell-wrap"><strong><code>sea_water_pressure</code></strong><br>sea water pressure</td><td data-sort="82.4679946899414">82.47 / 807.9</td>
 <td data-sort="6671">6,671</td>
 <td data-sort="92.4" class="cell-bad">92.4</td><td data-nosort><details class="attr-disclosure"><summary>2 attrs</summary>
 <table data-nosort><tbody><tr><th>pressure_source</th><td>extrapolated from microcat 26269 (hab=25.0m, static offset=+17.0 dbar) — WARNING: out of range</td></tr><tr><th>comment</th><td>interpolated from neighbouring instrument(s)</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="roll">roll</td>
-<td><code>float32</code></td><td>degrees</td><td><strong><code>platform_roll_angle</code></strong><br>Roll angle</td><td data-sort="-27.899999618530273">-27.9 / 165.9</td>
+<td><code>float32</code></td><td>degrees</td><td class="cell-wrap"><strong><code>platform_roll_angle</code></strong><br>Roll angle</td><td data-sort="-27.899999618530273">-27.9 / 165.9</td>
 <td data-sort="2296">2,296</td>
 <td data-sort="31.8" class="cell-bad">31.8</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Roll</td></tr>
 </tbody></table></details></td></tr>
 <tr>
-<td data-sort="salinity">salinity <span class="var-qc">(_QC)</span></td>
-<td><code>float32</code></td><td>1</td><td><strong><code>sea_water_practical_salinity</code></strong><br>Practical Salinity</td><td data-sort="34.55827713012695">34.56 / 35.57</td>
+<td data-sort="salinity">salinity <span class="var-qc">(_qc)</span></td>
+<td><code>float32</code></td><td>1</td><td class="cell-wrap"><strong><code>sea_water_practical_salinity</code></strong><br>Practical Salinity</td><td data-sort="34.55827713012695">34.56 / 35.57</td>
 <td data-sort="2214">2,214</td>
 <td data-sort="30.7" class="cell-bad">30.7</td><td data-nosort><details class="attr-disclosure"><summary>2 attrs</summary>
 <table data-nosort><tbody><tr><th>coverage_content_type</th><td>physicalMeasurement</td></tr><tr><th>comment</th><td>Derived from conductivity, temperature, pressure via gsw.SP_from_C</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="sigma0">sigma0</td>
-<td><code>float32</code></td><td>kg m-3</td><td><strong><code>sea_water_sigma_t</code></strong><br>Potential density anomaly referenced to surface (sigma-0)</td><td data-sort="27.422523498535156">27.42 / 28.06</td>
+<td><code>float32</code></td><td>kg m-3</td><td class="cell-wrap"><strong><code>sea_water_sigma_t</code></strong><br>Potential density anomaly referenced to surface (sigma-0)</td><td data-sort="27.422523498535156">27.42 / 28.06</td>
 <td data-sort="2214">2,214</td>
 <td data-sort="30.7" class="cell-bad">30.7</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>reference_pressure_dbar</th><td>0</td></tr>
 </tbody></table></details></td></tr>
 <tr>
-<td data-sort="temperature">temperature <span class="var-qc">(_QC)</span></td>
-<td><code>float32</code></td><td>degree_Celsius</td><td><strong><code>sea_water_temperature</code></strong><br>Temperature</td><td data-sort="-0.07039999961853027">-0.0704 / 8.17</td>
+<td data-sort="temperature">temperature <span class="var-qc">(_qc)</span></td>
+<td><code>float32</code></td><td>degree_Celsius</td><td class="cell-wrap"><strong><code>sea_water_temperature</code></strong><br>Temperature</td><td data-sort="-0.07039999961853027">-0.0704 / 8.17</td>
 <td data-sort="7216">7,216</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>13 attrs</summary>
 <table data-nosort><tbody><tr><th>rsk_channel_id</th><td>1</td></tr><tr><th>rsk_long_name</th><td>temperature</td></tr><tr><th>rsk_short_name</th><td>temp18</td></tr><tr><th>rsk_label</th><td>temperature_00</td></tr><tr><th>rsk_dbName</th><td>Temperature</td></tr><tr><th>rsk_units</th><td>°C</td></tr><tr><th>rsk_units_plain_text</th><td>Degrees_C</td></tr><tr><th>rsk_fe_module_type</th><td>SOLO-tmpB</td></tr><tr><th>rsk_fe_module_version</th><td>1.065</td></tr><tr><th>rsk_is_measured</th><td>1</td></tr><tr><th>rsk_is_derived</th><td>0</td></tr><tr><th>coverage_content_type</th><td>physicalMeasurement</td></tr><tr><th>measurement_type</th><td>Measured</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="tilt_from_pressure">tilt_from_pressure</td>
-<td><code>float32</code></td><td>degrees</td><td>Tilt estimated from pressure difference</td><td data-sort="0.0">0 / 75.32</td>
+<td><code>float32</code></td><td>degrees</td><td class="cell-wrap">Tilt estimated from pressure difference</td><td data-sort="0.0">0 / 75.32</td>
 <td data-sort="5725">5,725</td>
 <td data-sort="79.3" class="cell-bad">79.3</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>comment</th><td>arccos(ΔP / rope_length) where ΔP = pressure[i] - pressure[ref] and rope_length = hab[ref] - hab[i] from mooring YAML; r</td></tr>
 </tbody></table></details></td></tr>
 <tr>
-<td data-sort="up_velocity">up_velocity <span class="var-qc">(_QC)</span></td>
-<td><code>float32</code></td><td>m s-1</td><td><strong><code>upward_sea_water_velocity</code></strong><br>Upward sea water velocity</td><td data-sort="-1.3665828704833984">-1.367 / 0.8008</td>
+<td data-sort="up_velocity">up_velocity <span class="var-qc">(_qc)</span></td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap"><strong><code>upward_sea_water_velocity</code></strong><br>Upward sea water velocity</td><td data-sort="-1.3665828704833984">-1.367 / 0.8008</td>
 <td data-sort="2296">2,296</td>
 <td data-sort="31.8" class="cell-bad">31.8</td><td data-nosort>—</td></tr>
 <tr>
 <td data-sort="velocity_flag">velocity_flag</td>
-<td><code>int8</code></td><td>—</td><td>Combined velocity QC flag (worst of east/north/up)</td><td data-sort="1.0">1 / 9</td>
+<td><code>int8</code></td><td>—</td><td class="cell-wrap">Combined velocity QC flag (worst of east/north/up)</td><td data-sort="1.0">1 / 9</td>
 <td data-sort="7216">7,216</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>4 attrs</summary>
 <table data-nosort><tbody><tr><th>comment</th><td>Worst OceanSITES flag across east/north/up_velocity; apply to the velocity components before use.</td></tr><tr><th>flag_values</th><td>[0 1 2 3 4 7 8 9]</td></tr><tr><th>flag_meanings</th><td>unknown good_data probably_good_data potentially_correctable_bad_data bad_data nominal_value interpolated_value missing_</td></tr><tr><th>conventions</th><td>OceanSITES reference table 2</td></tr>
@@ -921,18 +927,18 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 
 
 <thead>
-  <tr><th tabindex="0">Variable</th><th tabindex="0">Type</th><th tabindex="0">Units</th><th tabindex="0">Standard / long name</th><th tabindex="0">Value</th></tr>
+  <tr><th tabindex="0">Variable</th><th tabindex="0">Type</th><th tabindex="0">Units</th><th tabindex="0">Value</th></tr>
 </thead>
 <tbody>
 <tr>
 <td data-sort="clock_offset">clock_offset</td><td><code>float32</code></td><td>s</td>
-<td>—</td><td>0</td></tr>
+<td class="cell-wrap">0</td></tr>
 <tr>
 <td data-sort="end_time">end_time</td><td><code>string</code></td><td>—</td>
-<td>—</td><td>2026-07-25T11:44</td></tr>
+<td class="cell-wrap">2026-07-25T11:44</td></tr>
 <tr>
 <td data-sort="start_time">start_time</td><td><code>string</code></td><td>—</td>
-<td>—</td><td>2026-07-11T20:30</td></tr>
+<td class="cell-wrap">2026-07-11T20:30</td></tr>
 </tbody></table><div class="fig-source">source: oceanarray/reports/_vendored/nc_tables.py:scalars_rows</div>
 
 <h2 id="netcdf_attributes">(B) NetCDF attributes</h2>
