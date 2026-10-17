@@ -171,7 +171,7 @@ def test_png_geometry_on_rendered_page(rendered_dir: pathlib.Path) -> None:
 
     from PIL import Image
 
-    from oceanarray.config import report_tokens as tok
+    from oceanarray.reports._vendored import design_tokens as tok
 
     checked = 0
     for page in _PAGES:

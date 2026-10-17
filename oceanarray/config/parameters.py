@@ -1,10 +1,10 @@
 """Package-level defaults for oceanarray.
 
 Matplotlib appearance (font sizes, figure size, DPI, grid style) belongs in
-``config/report.mplstyle`` — that is the right place for anything that maps to a
-matplotlib rcParam.  There is a single style file: it is applied both by the
-report encoder and by plotters that set their own style context (via
-:data:`MPLSTYLE` below), so the two can never diverge.
+the vendored ``reports/_vendored/report.mplstyle`` — that is the right place for
+anything that maps to a matplotlib rcParam.  There is a single style file: it is
+applied both by the report encoder and by plotters that set their own style
+context (via :data:`MPLSTYLE` below), so the two can never diverge.
 
 This file holds the things the mplstyle *cannot* express: instrument
 abbreviations, colorbar percentile clipping, downsample interval, and
@@ -37,9 +37,10 @@ GRID_PANEL_ROW_IN: float = 2.5
 
 # ---------------------------------------------------------------------------
 # Matplotlib style path (used by plotters via plt.style.use).  The single source
-# of truth — the same file the report encoder applies (report_tokens.MPLSTYLE_PATH).
+# of truth — the same vendored file the report encoder applies
+# (design_tokens.MPLSTYLE_PATH).
 # ---------------------------------------------------------------------------
-MPLSTYLE = Path(__file__).with_name("report.mplstyle")
+MPLSTYLE = Path(__file__).parent.parent / "reports" / "_vendored" / "report.mplstyle"
 
 # ---------------------------------------------------------------------------
 # Figure sizes for plot types that differ from the mplstyle default (8×4)

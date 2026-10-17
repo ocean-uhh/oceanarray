@@ -14,7 +14,7 @@ from oceanarray.reports._grid import (
     GRID_SECTIONS,
     GridContext,
 )
-from oceanarray.reports._manifest import PanelGroup, Profile, Section
+from oceanarray.reports._vendored.page_model import PanelGroup, Profile, Section
 
 
 def _static_panel_ids(profile: Profile) -> list[str]:
@@ -121,9 +121,9 @@ import pathlib  # noqa: E402
 
 import pytest  # noqa: E402
 
-from oceanarray.config import report_tokens  # noqa: E402
 from oceanarray.reports._grid import build_grid_context  # noqa: E402
-from oceanarray.reports._manifest import resolve  # noqa: E402
+from oceanarray.reports._vendored import design_tokens as report_tokens  # noqa: E402
+from oceanarray.reports._vendored.page_model import resolve  # noqa: E402
 
 _GRID_NC = (
     pathlib.Path(__file__).resolve().parents[1]

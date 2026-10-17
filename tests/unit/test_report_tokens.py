@@ -20,8 +20,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pytest
 
-from oceanarray.config import report_tokens as tok
-from oceanarray.reports import _encode
+from oceanarray.reports._vendored import design_tokens as tok
+from oceanarray.reports._vendored import figure_png as _encode
 
 # ---------------------------------------------------------------------------
 # Slot contract (spec §10.1) and geometry (spec §11, §14)

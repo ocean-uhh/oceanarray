@@ -13,7 +13,6 @@ if TYPE_CHECKING:
 
 import numpy as np
 
-from ..config import report_tokens
 from ..plotters.current import (
     draw_adcp_hodograph,
     draw_adcp_rose,
@@ -70,6 +69,7 @@ from ..plotters.ts import (
 from ._figdebug import render_b64
 from ._html_helpers import _QC_LABELS
 from ._slots import render as render_slot
+from ._vendored import design_tokens as report_tokens
 
 log = logging.getLogger(__name__)
 

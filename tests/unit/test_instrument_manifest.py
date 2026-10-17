@@ -11,7 +11,7 @@ from oceanarray.reports._instrument import (
     INSTRUMENT_PANELS,
     INSTRUMENT_SECTIONS,
 )
-from oceanarray.reports._manifest import PanelGroup, Section
+from oceanarray.reports._vendored.page_model import PanelGroup, Section
 
 
 def _static_panel_ids(profile) -> list[str]:

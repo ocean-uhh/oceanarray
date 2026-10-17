@@ -30,7 +30,6 @@ from matplotlib.collections import LineCollection
 
 from oceanarray import parameters as params
 from oceanarray.analysis.vector import progressive_vector, xyz_to_enu_2d
-from oceanarray.config import report_tokens
 from oceanarray.plotters.helpers import (
     _rose_ax,
     _velocity_panel_style,
@@ -50,6 +49,7 @@ from oceanarray.plotters.primitives import (
     ytick_reserve_in,
 )
 from oceanarray.processors.units import format_units
+from oceanarray.reports._vendored import design_tokens as report_tokens
 from oceanarray.utilities import _nice_colorbar_bounds
 
 

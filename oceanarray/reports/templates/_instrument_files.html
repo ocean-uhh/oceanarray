@@ -1,9 +1,12 @@
-{# Raw + stage file listing — the `files` panel payload (kind="table"). #}
+{# Raw + stage file listing — the `files` panel payload (kind="table").  The leading
+   # column fixes the processing order (Raw, then each stage) so a click-sort can be
+   restored to it. #}
 <table class="file-table">
-  <thead><tr><th>Stage</th><th>Filename</th><th>Size</th><th>Last modified</th></tr></thead>
+  <thead><tr><th>#</th><th>Stage</th><th>Filename</th><th>Size</th><th>Last modified</th></tr></thead>
   <tbody>
   {% if raw_file.exists %}
   <tr>
+    <td class="num">1</td>
     <td>Raw</td>
     <td class="mono">{{ raw_file.name }}</td>
     <td class="num">{{ raw_file.size }}</td>
@@ -11,12 +14,14 @@
   </tr>
   {% elif raw_file.unknown %}
   <tr>
+    <td class="num">1</td>
     <td>Raw</td>
     <td class="mono">{{ raw_file.name }}</td>
     <td colspan="2">&mdash; not checked (no --raw-dir)</td>
   </tr>
   {% else %}
   <tr>
+    <td class="num">1</td>
     <td>Raw</td>
     <td class="mono miss">{{ raw_file.name }}</td>
     <td colspan="2" class="miss">&mdash; not found</td>
@@ -24,6 +29,7 @@
   {% endif %}
   {% for f in stage_files %}
   <tr>
+    <td class="num">{{ loop.index + 1 }}</td>
     <td>{{ f.label }}</td>
     {% if f.exists %}
     <td class="mono">{{ f.name }}</td>

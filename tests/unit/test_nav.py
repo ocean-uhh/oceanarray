@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from oceanarray.config.report_tokens import ROLE_ACCENT
 from oceanarray.reports._env import _ENV
 from oceanarray.reports._navs import _type_label, mooring_nav
+from oceanarray.reports._vendored.design_tokens import ROLE_ACCENT
 
 _INSTR = [
     {"serial": "2941", "instr_type": "microcat", "stages": {"stage1": True}},

@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     import matplotlib.pyplot as plt
     import xarray as xr
 
-from oceanarray.config import report_tokens
+from oceanarray.reports._vendored import design_tokens as report_tokens
 
 from .. import parameters as params
 from ..processors.units import format_units

@@ -29,38 +29,6 @@ from ..utilities import (  # noqa: F401  (re-exported)
 # helpers
 # ---------------------------------------------------------------------------
 
-#: Full ISO timestamp with fractional seconds and an optional timezone suffix,
-#: e.g. ``2026-07-11T20:30:00.000000000`` or ``2026-07-11T20:30:00.5+00:00``.  The
-#: date part is anchored (``^\d{4}-...``) so a non-timestamp string that merely
-#: ends in ``T HH:MM:SS.digits`` is NOT matched and is left untouched.
-_ISO_FRAC_TS_RE = re.compile(
-    r"^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)\.(\d+)(Z|[+-]\d\d:?\d\d)?$"
-)
-
-
-def _round_ts_for_display(value: str) -> str:
-    """Round a fractional-second ISO timestamp string to 0.1 s for the report.
-
-    Deployment/recovery times are stored at nanosecond precision (from
-    ``datetime64[ns]``), which is spurious detail in the report's global-attribute
-    table.  Only strings that are a full ISO timestamp (optionally timezone-suffixed)
-    are touched; everything else — and timestamps with no fractional seconds — is
-    returned unchanged.  Fractions that round up past ``.95`` carry into the next
-    second (via ``numpy.datetime64``) rather than clamping.  This affects the report
-    display only, not the saved file.
-    """
-    m = _ISO_FRAC_TS_RE.match(value)
-    if not m:
-        return value
-    head, frac, tz = m.group(1), m.group(2), m.group(3) or ""
-    tenths = int(round(int(frac) / 10 ** len(frac) * 10))  # 0..10
-    if tenths >= 10:  # carry into the next second
-        try:
-            return f"{np.datetime64(head, 's') + np.timedelta64(1, 's')}{tz}"
-        except ValueError:
-            return value
-    return f"{head}{tz}" if tenths == 0 else f"{head}.{tenths}{tz}"
-
 
 def _safe_serial(serial: Any) -> str:
     """Return a filename-safe serial token (see :func:`oceanarray.paths.safe_serial`)."""
@@ -306,150 +274,125 @@ def _parse_history(history_str: str) -> list[dict[str, str]]:
     return entries
 
 
-def _fmt_minmax(v: float) -> str:
-    """Format a min/max value for display in the variables table."""
-    if v == 0.0:
-        return "0"
-    av = abs(v)
-    if av < 0.001 or av >= 100000:
-        return f"{v:.3g}"
-    return f"{v:.4g}"
+#: A dated history entry's timestamp starts with an ISO date (``2026-07-29T12:10Z``);
+#: a header item instead carries a key (``Reader``, ``Stages``) or the processed-by line.
+_HISTORY_TS_RE = re.compile(r"^\d{4}-\d\d-\d\d")
+_HISTORY_HEADER_KEYS = ("Reader", "Format", "Source file", "Stages")
 
 
-def _attr_type_name(val: Any) -> str:
-    """Return a short type label for a NetCDF attribute value.
+def _history_tables(
+    entries: list[dict[str, str]],
+) -> tuple[list[tuple[str, str, str]], list[tuple[int, str, str]]]:
+    """Split parsed history entries into a header key/value list and dated events.
 
-    numpy scalars and arrays report their dtype (e.g. ``float64``,
-    ``float64[3]``); Python objects report their class name (e.g. ``str``).
+    Returns ``(header_rows, event_rows)``.  *header_rows* are ``(label, value, kind)``
+    triples for the vendored ``properties_table`` (the processed-by line, Reader, Format,
+    Source file, Stages).  *event_rows* are ``(n, time, event)`` triples for a three-column
+    #/Time/Event table: ``n`` is the row's 1-based position in the ``history`` attribute, so
+    the original sequence survives a sort by any column (events sharing one timestamp would
+    otherwise be unorderable).  A ``|``-joined dated entry becomes several rows with the same
+    time, and a ``name_qc=[...]`` summary that the ``;`` split left without a time carries the
+    time of the dated entry it follows, rather than an orphan row with no time.
+
+    Parameters
+    ----------
+    entries : list of dict
+        The ``{"timestamp", "text"}`` entries from :func:`_parse_history`.
+
+    Returns
+    -------
+    tuple of (list, list)
+        ``(header_rows, event_rows)``.
     """
-    if isinstance(val, np.ndarray):
-        return f"{val.dtype}[{val.size}]"
-    if isinstance(val, np.generic):
-        return str(val.dtype)
-    return type(val).__name__
-
-
-#: Attributes shown in their own inventory-table column, so excluded from the
-#: per-row "N attrs" disclosure to avoid repeating them.
-_COLUMN_ATTRS = frozenset({"units", "long_name", "standard_name"})
-
-
-def _variable_row(v: Any, vname: str, qc_vars: set[str]) -> dict[str, Any]:
-    """Build an inventory-table row for a dimensioned variable or coordinate.
-
-    Shared by the time-varying variables and the coordinates tables: records the
-    name, dtype, units, standard/long names, min/max, valid count, the QC
-    companion flag, and the full attribute dict for the per-row disclosure.
-    String coordinates carry no numeric range.
-    """
-    info: dict[str, Any] = {
-        "name": vname,
-        "units": v.attrs.get("units", ""),
-        "long_name": v.attrs.get("long_name", ""),
-        "standard_name": v.attrs.get("standard_name", ""),
-        "dims": ", ".join(str(d) for d in v.dims),
-        "dtype": str(v.dtype),
-        "n": int(np.prod(v.shape)) if v.shape else 0,
-        "v_min": None,
-        "v_max": None,
-        "attrs": {k: str(val) for k, val in v.attrs.items() if k not in _COLUMN_ATTRS},
-        "has_qc": f"{vname}_qc" in qc_vars,
-        "is_qc": vname in qc_vars,
-    }
-    arr = v.values
-    kind = arr.dtype.kind
-    if kind == "M":
-        valid = arr[~np.isnat(arr)]
-        info["n_valid"] = int(valid.size)
-        if valid.size:
-            # One rounding policy for every timestamp in the report: the same
-            # _round_ts_for_display used for the global-attribute times.
-            info["v_min"] = _round_ts_for_display(str(valid.min())).replace("T", " ")
-            info["v_max"] = _round_ts_for_display(str(valid.max())).replace("T", " ")
-    elif kind in ("f", "c"):
-        finite = arr[np.isfinite(arr)]
-        info["n_valid"] = int(finite.size)
-        if finite.size:
-            info["v_min"] = _fmt_minmax(float(np.min(finite)))
-            info["v_max"] = _fmt_minmax(float(np.max(finite)))
-    elif kind in ("i", "u"):
-        # Integers are identifiers/counts: format exactly, not via _fmt_minmax
-        # (whose %.4g rounds values >= 10000 into lossy scientific notation).
-        info["n_valid"] = int(arr.size)
-        if arr.size:
-            info["v_min"] = str(int(arr.min()))
-            info["v_max"] = str(int(arr.max()))
-    else:  # string / object coordinates: no numeric range
-        info["n_valid"] = int(arr.size)
-    return info
+    header_rows: list[tuple[str, str, str]] = []
+    events: list[tuple[str, str]] = []
+    current_time = ""
+    for e in entries:
+        ts = e.get("timestamp", "")
+        text = e.get("text", "")
+        if _HISTORY_TS_RE.match(ts):  # a dated entry
+            current_time = ts
+            for ev in text.split(" | "):
+                events.append((current_time, ev.strip()))
+        elif ts in _HISTORY_HEADER_KEYS:
+            header_rows.append((ts, text, "code" if ts == "Source file" else "text"))
+        elif not ts and "Processed by" in text:
+            header_rows.append(("Processed", text, "text"))
+        elif not ts:  # an orphan continuation (a qc summary) -> carry the current time
+            events.append((current_time, text.strip()))
+        else:  # any other "key: value" header item
+            header_rows.append((ts, text, "text"))
+    event_rows = [(n, t, ev) for n, (t, ev) in enumerate(events, start=1)]
+    return header_rows, event_rows
 
 
 def _read_nc_metadata(nc_path: Path) -> dict[str, Any]:
-    """Return variable lists, scalar metadata, and global attrs from a NC file."""
+    """Return the vendored-builder inventory rows/groups for a NetCDF file.
+
+    Opens the dataset and runs the vendored :mod:`oceanarray.reports._vendored.nc_tables`
+    builders — coordinates, dimensioned variables grouped by dimension set, 0-d
+    scalars, grouped global attributes, and the summary counts — plus oceanarray's
+    own ``analog_vars`` list (analog channels carrying non-zero data).  Each builder
+    returns ``(rows_or_groups, source)``; the source is the caption shown under the
+    table when ``show_source`` is on.  QC companions and sensor variables are
+    classified by :func:`oceanarray.reports.design.is_qc` / ``is_sensor``, and
+    oceanarray's own global-attribute names are merged into the canonical groups via
+    :data:`~oceanarray.reports.design.ATTR_GROUP_EXTRAS`.  ``SENSOR_*`` variables stay
+    in the scalar table.  A malformed file returns the same keys empty plus ``error``.
+    """
+    import xarray as xr
+
+    from . import design
+    from ._vendored import nc_tables
+
     try:
-        import xarray as xr
-
-        ds = xr.open_dataset(nc_path, engine="netcdf4", decode_timedelta=False)
-        qc_vars = {v for v in ds.data_vars if v.endswith("_qc")}
-        time_vars, scalar_vars = [], []
-        analog_vars: list[str] = []
-
-        for vname in sorted(ds.data_vars):
-            v = ds[vname]
-            if v.dims == ():
-                info: dict[str, Any] = {
-                    "name": vname,
-                    "units": v.attrs.get("units", ""),
-                    "long_name": v.attrs.get("long_name", ""),
-                    "standard_name": v.attrs.get("standard_name", ""),
-                    "dtype": str(v.dtype),
-                    "attrs": {
-                        k: str(val)
-                        for k, val in v.attrs.items()
-                        if k not in _COLUMN_ATTRS
-                    },
-                }
-                try:
-                    info["value"] = str(v.values.item())[:120]
-                except Exception:
-                    info["value"] = "?"
-                scalar_vars.append(info)
-            else:
-                info = _variable_row(v, vname, qc_vars)
-                time_vars.append(info)
-                if "analog" in vname.lower() and v.dtype.kind in ("f", "c"):
+        with xr.open_dataset(nc_path, engine="netcdf4", decode_timedelta=False) as ds:
+            coords_rows, coords_src = nc_tables.coords_rows(ds)
+            var_groups, var_src = nc_tables.variables_rows(
+                ds, is_qc=design.is_qc, is_sensor=design.is_sensor
+            )
+            scalar_rows, scalar_src = nc_tables.scalars_rows(ds)
+            # `history` has its own dedicated processing-history panel, so exclude it from
+            # the global-attributes table (the builder's `exclude=` drops the attr and any
+            # group it empties) rather than show the long provenance string twice.
+            global_groups, global_src = nc_tables.globals_rows(
+                ds, extras=design.ATTR_GROUP_EXTRAS, exclude=("history",)
+            )
+            summary = nc_tables.summary_counts(
+                ds, is_qc=design.is_qc, is_sensor=design.is_sensor
+            )
+            analog_vars: list[str] = []
+            for vname in sorted(ds.data_vars):
+                v = ds[vname]
+                if v.dims and "analog" in vname.lower() and v.dtype.kind in ("f", "c"):
                     finite = v.values[np.isfinite(v.values)]
                     if finite.size and not np.all(finite == 0.0):
                         analog_vars.append(vname)
-
-        coord_vars = []
-        for c in sorted(ds.coords):
-            if ds[c].ndim >= 1:
-                row = _variable_row(ds[c], str(c), qc_vars)
-                if not row["is_qc"]:
-                    coord_vars.append(row)
-
-        global_attrs = {
-            k: {"value": _round_ts_for_display(str(val)), "type": _attr_type_name(val)}
-            for k, val in ds.attrs.items()
-            if k != "history"
-        }
-        ds.close()
         return {
-            "time_vars": time_vars,
-            "scalar_vars": scalar_vars,
-            "coord_vars": coord_vars,
-            "global_attrs": global_attrs,
+            "coords_rows": coords_rows,
+            "coords_src": coords_src,
+            "var_groups": var_groups,
+            "var_src": var_src,
+            "scalar_rows": scalar_rows,
+            "scalar_src": scalar_src,
+            "global_groups": global_groups,
+            "global_src": global_src,
+            "summary": summary,
             "analog_vars": analog_vars,
         }
     except Exception as exc:
         return {
-            "error": str(exc)[:120],
-            "time_vars": [],
-            "scalar_vars": [],
-            "coord_vars": [],
-            "global_attrs": {},
+            "coords_rows": [],
+            "coords_src": None,
+            "var_groups": [],
+            "var_src": None,
+            "scalar_rows": [],
+            "scalar_src": None,
+            "global_groups": [],
+            "global_src": None,
+            "summary": {},
             "analog_vars": [],
+            "error": str(exc)[:120],
         }
 
 

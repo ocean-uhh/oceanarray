@@ -65,6 +65,7 @@
 <img class="fig{% if not bare and p.slot %} slot-{{ p.slot }}{% endif %}" src="data:image/png;base64,{{ p.payload }}" alt="{{ p.id }}">
 {{- dbg(p.payload, ("slot-" ~ p.slot) if p.slot else "full-canvas") }}
 </details>
+{%- if show_source %}{% set _src = source_of(p.payload) %}{% if _src %}<div class="fig-source">source: {{ _src }}</div>{% endif %}{% endif %}
 {%- else %}
 {% if p.caption %}<p class="caption">{{ p.caption }}</p>
 {% endif -%}

@@ -16,6 +16,7 @@ from ._env import (
     render_nc_variables,
     render_template,
 )
+from ._figdebug import as_panel
 from ._html_helpers import (
     _duration_str,
     _file_info,
@@ -29,7 +30,6 @@ from ._html_helpers import (
     _should_skip,
     _stage_file_details,
 )
-from ._manifest import Panel, PanelGroup, Profile, Section, resolve
 from ._navs import mooring_nav
 from ._plots import (
     _make_adcp_hodograph_b64,
@@ -45,6 +45,7 @@ from ._plots import (
     _make_ts_diagram,
     _make_windows_fig,
 )
+from ._vendored.page_model import Panel, PanelGroup, Profile, Section, resolve
 
 # ---------------------------------------------------------------------------
 # Per-instrument HTML template
@@ -230,24 +231,24 @@ INSTRUMENT_PANELS: dict[str, Panel] = {
         "nc_coords",
         render=lambda c: render_nc_coords(c["nc_meta"]),
         kind="table",
-        applies_to=lambda c: bool(c.get("nc_meta", {}).get("coord_vars")),
+        applies_to=lambda c: bool(c.get("nc_meta", {}).get("coords_rows")),
     ),
     "nc_variables": Panel(
         "nc_variables",
-        render=lambda c: render_nc_variables(c["nc_meta"], ""),
+        render=lambda c: render_nc_variables(c["nc_meta"]),
         kind="table",
     ),
     "nc_scalars": Panel(
         "nc_scalars",
         render=lambda c: render_nc_scalars(c["nc_meta"]),
         kind="table",
-        applies_to=lambda c: bool(c.get("nc_meta", {}).get("scalar_vars")),
+        applies_to=lambda c: bool(c.get("nc_meta", {}).get("scalar_rows")),
     ),
     "nc_globals": Panel(
         "nc_globals",
         render=lambda c: render_nc_globals(c["nc_meta"]),
         kind="table",
-        applies_to=lambda c: bool(c.get("nc_meta", {}).get("global_attrs")),
+        applies_to=lambda c: bool(c.get("nc_meta", {}).get("global_groups")),
     ),
 }
 
@@ -540,6 +541,9 @@ def generate_instrument_pages(
             ),
             "generated": generated,
             "history_entries": history_entries,
+            # _make_instrument_fig / _make_windows_fig return list[str] (paginated,
+            # multiple render_b64 calls) — not as_panel's str|None single-figure
+            # contract — so they are not wrapped (a Stub cannot stand in for a list).
             "fig_ts_b64": (
                 _make_instrument_fig(best_nc, instr_type) if best_nc else None
             ),
@@ -548,47 +552,53 @@ def generate_instrument_pages(
                     best_nc,
                     instr_type,
                     vlines=_window_vlines,
-                    stage1_nc=_stage1_nc if _stage1_nc.exists() else None,
+                    stage1_nc=(_stage1_nc if _stage1_nc.exists() else None),
                 )
                 if best_nc
                 else None
             ),
-            "fig_tsd_b64": _make_ts_diagram(best_nc) if best_nc else None,
+            "fig_tsd_b64": (
+                as_panel(lambda bn=best_nc: _make_ts_diagram(bn)) if best_nc else None
+            ),
             "fig_rose_b64": (
-                _make_instrument_rose_b64(best_nc)
+                as_panel(lambda bn=best_nc: _make_instrument_rose_b64(bn))
                 if best_nc and instr_type.lower() != "adcp"
                 else None
             ),
             "fig_adcp_velocity_b64": (
-                _make_adcp_velocity_b64(best_nc)
+                as_panel(lambda bn=best_nc: _make_adcp_velocity_b64(bn))
                 if best_nc and instr_type.lower() == "adcp"
                 else None
             ),
             "fig_adcp_rose_b64": (
-                _make_adcp_rose_b64(best_nc)
+                as_panel(lambda bn=best_nc: _make_adcp_rose_b64(bn))
                 if best_nc and instr_type.lower() in ("adcp", "rdi")
                 else None
             ),
             "fig_trajectory_b64": (
-                _make_temperature_trajectory(best_nc)
+                as_panel(lambda bn=best_nc: _make_temperature_trajectory(bn))
                 if best_nc and instr_type.lower() == "aquadopp"
                 else None
             ),
             "fig_speed_boxplot_b64": (
-                _make_speed_boxplot(best_nc)
+                as_panel(lambda bn=best_nc: _make_speed_boxplot(bn))
                 if best_nc and instr_type.lower() == "aquadopp"
                 else None
             ),
             "fig_hodograph_b64": (
-                _make_hodograph_b64(best_nc)
+                as_panel(lambda bn=best_nc: _make_hodograph_b64(bn))
                 if best_nc and instr_type.lower() == "aquadopp"
                 else (
-                    _make_adcp_hodograph_b64(best_nc)
+                    as_panel(lambda bn=best_nc: _make_adcp_hodograph_b64(bn))
                     if best_nc and instr_type.lower() in ("adcp", "rdi")
                     else None
                 )
             ),
-            "fig_dt_b64": _make_data_histogram(best_nc) if best_nc else None,
+            "fig_dt_b64": (
+                as_panel(lambda bn=best_nc: _make_data_histogram(bn))
+                if best_nc
+                else None
+            ),
             "qc_summary": _read_qc_summary(stage3_nc) if stage3_nc else [],
             "qc_thresholds": _read_qc_thresholds(stage3_nc) if stage3_nc else [],
             "nc_meta": _read_nc_metadata(best_nc) if best_nc else {},
@@ -596,7 +606,7 @@ def generate_instrument_pages(
         }
         analog_vars = ctx["nc_meta"].get("analog_vars", [])
         ctx["fig_analog_b64"] = (
-            _make_analog_timeseries(best_nc, analog_vars)
+            as_panel(lambda bn=best_nc, av=analog_vars: _make_analog_timeseries(bn, av))
             if best_nc and analog_vars
             else None
         )
@@ -635,12 +645,21 @@ def generate_instrument_pages(
             )
         ctx["analog_yaml_info"] = analog_yaml_info
         # Warn if magnetic declination was not applied (lat/lon missing from YAML)
+        _global_names = {
+            attr
+            for _title, rows in ctx["nc_meta"].get("global_groups", [])
+            for attr, _type, _val in rows
+        }
         ctx["declination_warn"] = (
             instr_type.lower() == "aquadopp"
-            and "magnetic_declination" not in ctx["nc_meta"].get("global_attrs", {})
+            and "magnetic_declination" not in _global_names
         )
         # True when the NC contains instrument-frame XYZ velocities (rose has XYZ panel)
-        _tvar_names = {v["name"] for v in ctx["nc_meta"].get("time_vars", [])}
+        _tvar_names = {
+            r["name"]
+            for _title, rows in ctx["nc_meta"].get("var_groups", [])
+            for r in rows
+        }
         ctx["rose_has_xyz"] = "velocity_x" in _tvar_names
 
         try:

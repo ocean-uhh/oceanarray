@@ -41,6 +41,10 @@ def test_no_superscript_minus_in_plotter_report_code():
     offenders: list[str] = []
     for d in _DIRS:
         for path in sorted(d.rglob("*.py")):
+            if (
+                "_vendored" in path.parts
+            ):  # upstream-managed; its unit strings are ctdcast's
+                continue
             tree = ast.parse(path.read_text(encoding="utf-8"))
             doc_ids = _docstring_constant_ids(tree)
             for node in ast.walk(tree):

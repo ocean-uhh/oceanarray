@@ -5,12 +5,12 @@ resolve, no orphans, no duplicate section id/title, and the flat numbering has n
 hand-typed gaps (the old ``2``/``3.5`` offset that the port removes).
 """
 
-from oceanarray.reports._manifest import Section
 from oceanarray.reports._mooring import (
     MOORING_DEFAULT,
     MOORING_PANELS,
     MOORING_SECTIONS,
 )
+from oceanarray.reports._vendored.page_model import Section
 
 
 def _static_panel_ids(profile) -> list[str]:
