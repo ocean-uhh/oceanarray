@@ -7,10 +7,10 @@
 {{ nc.properties_table(header_rows) }}
 {%- if event_rows %}
 <table class="sortable">
-{{ nc.thead(["Time", "Event"]) }}
+{{ nc.thead(["#", "Time", "Event"]) }}
 <tbody>
-{%- for t, ev in event_rows %}
-  <tr><td>{{ t }}</td><td>{{ ev }}</td></tr>
+{%- for n, t, ev in event_rows %}
+  <tr><td>{{ n }}</td><td>{{ t }}</td><td>{{ ev }}</td></tr>
 {%- endfor %}
 </tbody>
 </table>

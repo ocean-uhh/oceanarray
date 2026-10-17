@@ -282,14 +282,16 @@ _HISTORY_HEADER_KEYS = ("Reader", "Format", "Source file", "Stages")
 
 def _history_tables(
     entries: list[dict[str, str]],
-) -> tuple[list[tuple[str, str, str]], list[tuple[str, str]]]:
+) -> tuple[list[tuple[str, str, str]], list[tuple[int, str, str]]]:
     """Split parsed history entries into a header key/value list and dated events.
 
     Returns ``(header_rows, event_rows)``.  *header_rows* are ``(label, value, kind)``
     triples for the vendored ``properties_table`` (the processed-by line, Reader, Format,
-    Source file, Stages).  *event_rows* are ``(time, event)`` pairs for a two-column
-    Time/Event table: a ``|``-joined dated entry becomes several rows with the same time,
-    and a ``name_qc=[...]`` summary that the ``;`` split left without a time carries the
+    Source file, Stages).  *event_rows* are ``(n, time, event)`` triples for a three-column
+    #/Time/Event table: ``n`` is the row's 1-based position in the ``history`` attribute, so
+    the original sequence survives a sort by any column (events sharing one timestamp would
+    otherwise be unorderable).  A ``|``-joined dated entry becomes several rows with the same
+    time, and a ``name_qc=[...]`` summary that the ``;`` split left without a time carries the
     time of the dated entry it follows, rather than an orphan row with no time.
 
     Parameters
@@ -303,7 +305,7 @@ def _history_tables(
         ``(header_rows, event_rows)``.
     """
     header_rows: list[tuple[str, str, str]] = []
-    event_rows: list[tuple[str, str]] = []
+    events: list[tuple[str, str]] = []
     current_time = ""
     for e in entries:
         ts = e.get("timestamp", "")
@@ -311,15 +313,16 @@ def _history_tables(
         if _HISTORY_TS_RE.match(ts):  # a dated entry
             current_time = ts
             for ev in text.split(" | "):
-                event_rows.append((current_time, ev.strip()))
+                events.append((current_time, ev.strip()))
         elif ts in _HISTORY_HEADER_KEYS:
             header_rows.append((ts, text, "code" if ts == "Source file" else "text"))
         elif not ts and "Processed by" in text:
             header_rows.append(("Processed", text, "text"))
         elif not ts:  # an orphan continuation (a qc summary) -> carry the current time
-            event_rows.append((current_time, text.strip()))
+            events.append((current_time, text.strip()))
         else:  # any other "key: value" header item
             header_rows.append((ts, text, "text"))
+    event_rows = [(n, t, ev) for n, (t, ev) in enumerate(events, start=1)]
     return header_rows, event_rows
 
 
