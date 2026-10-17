@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% import "_macros.html" as m %}
+{% import "_map.html" as nc_map %}
 {% block title %}{{ array_name }} &ndash; array summary{% endblock %}
 {% block page_styles %}
   /* Table + caption styles are canonical in emit_css now. */
@@ -12,6 +13,7 @@
   .btn-miss { background:#bbb; cursor:default; pointer-events:none; }
   .fig { max-width:60%; display:block; margin:0.5rem auto 1rem; border:1px solid var(--rule); border-radius:4px; }
 {% endblock %}
+{% block head_extra %}{{ nc_map.map_styles(leaflet_css, map_height) }}{% endblock %}
 {% block masthead_title %}{{ array_name }}{% endblock %}
 {% block masthead_type %}Array{% endblock %}
 {% block masthead_nav %}{% endblock %}
@@ -33,10 +35,9 @@
   <a href="#completeness">Completeness</a>
 </p>
 
-{% if fig_map_b64 %}
+{% if payload_json != "[]" or fig_map_b64 %}
 <h2>Mooring positions</h2>
-<img class="fig" src="data:image/png;base64,{{ fig_map_b64 }}" alt="Array map">
-{{- m.dbg(fig_map_b64, "max-width 60%") }}
+{{ nc_map.track_map(payload_json, coastline_json, bounds_json, fig_map_b64, leaflet_js) }}
 {% endif %}
 
 <h2 id="moorings">Moorings</h2>
@@ -57,7 +58,7 @@
   </thead>
   <tbody>
   {% for r in moorings %}
-  <tr>
+  <tr data-track-id="{{ r.mooring }}">
     <td class="num">{% if r.color_hex %}<span style="display:inline-block;width:0.75em;height:0.75em;border-radius:50%;background:{{ r.color_hex }};margin-right:0.35em;vertical-align:middle"></span>{% endif %}{{ r.position }}</td>
     <td><strong>{{ r.mooring }}</strong></td>
     <td class="num">{{ "%.4f"|format(r.lat) if r.lat is not none else "—" }}</td>

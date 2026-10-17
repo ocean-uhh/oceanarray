@@ -116,7 +116,9 @@ def render_nc_variables(nc_meta: Any) -> str:
     ``(_QC)`` marker.
     """
     if nc_meta.get("error"):
-        return f'<p class="none-note">Could not read file: {escape(nc_meta["error"])}</p>'
+        return (
+            f'<p class="none-note">Could not read file: {escape(nc_meta["error"])}</p>'
+        )
     return str(_NC.variables_tables(nc_meta["var_groups"], source=nc_meta["var_src"]))
 
 

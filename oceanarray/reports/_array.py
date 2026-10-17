@@ -16,6 +16,7 @@ from typing import Any
 
 import numpy as np
 import yaml
+from markupsafe import escape
 
 from ..plotters.helpers import grid_despine
 from ._env import render_template
@@ -29,6 +30,7 @@ from ._html_helpers import (
 )
 from ._plots import render_b64
 from ._vendored import design_tokens as report_tokens
+from ._vendored.leaflet import coastline_geojson, load_leaflet, safe_json
 
 # ---------------------------------------------------------------------------
 # Lat/lon parsing
@@ -300,6 +302,61 @@ def _build_type_summary(
     ]
 
 
+def _array_map_payload(rows: list[dict[str, Any]]) -> tuple[str, str, str]:
+    """Return ``(payload_json, coastline_json, bounds_json)`` for the Leaflet array map.
+
+    One marker per mooring that has a position; the per-marker ``info`` HTML is
+    pre-escaped and embedded through :func:`safe_json`.  When no mooring has a
+    position the payload is ``"[]"`` and the coastline/bounds are ``"null"``.
+
+    Parameters
+    ----------
+    rows : list of dict
+        The per-mooring rows built by :func:`generate_array_report` (``mooring``,
+        ``lat``, ``lon``, ``color_hex``, ``waterdepth``, ``deploy_time``,
+        ``recover_time``, ``n_instruments``, ``report_exists``, ``report_href``).
+
+    Returns
+    -------
+    tuple of str
+        ``(payload_json, coastline_json, bounds_json)`` — all JSON strings ready to
+        embed in a ``<script>`` block.
+    """
+    marks = [r for r in rows if r.get("lat") is not None and r.get("lon") is not None]
+    payload = []
+    for r in marks:
+        info = [
+            f"<strong>{escape(r['mooring'])}</strong>",
+            f"{r['lat']:.4f}, {r['lon']:.4f}",
+        ]
+        if r.get("waterdepth"):
+            info.append(f"{escape(str(r['waterdepth']))} m")
+        info.append(f"{escape(r['deploy_time'])} &ndash; {escape(r['recover_time'])}")
+        info.append(f"{escape(str(r['n_instruments']))} instruments")
+        if r.get("report_exists"):
+            info.append(
+                f'<a href="{escape(r["report_href"])}">&rarr; Mooring report</a>'
+            )
+        payload.append(
+            {
+                "id": r["mooring"],
+                "track": [[r["lat"], r["lon"]]],
+                "color": r.get("color_hex") or "#1a3a5c",
+                "href": r["report_href"] if r.get("report_exists") else "",
+                "info": "<br>".join(info),
+            }
+        )
+    if not marks:
+        return safe_json([]), "null", "null"
+    lats = [r["lat"] for r in marks]
+    lons = [r["lon"] for r in marks]
+    bounds_json = safe_json([[min(lats), min(lons)], [max(lats), max(lons)]])
+    coastline_json = coastline_geojson(
+        (min(lons), min(lats), max(lons), max(lats)), pad_deg=1.0
+    )
+    return safe_json(payload), coastline_json, bounds_json
+
+
 # ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
@@ -457,6 +514,9 @@ def generate_array_report(
         )
 
     fig_map_b64 = _make_array_map_b64(rows, array_name)
+    # Leaflet array map; the matplotlib PNG above stays as the print / no-JS fallback.
+    payload_json, coastline_json, bounds_json = _array_map_payload(rows)
+    leaflet_js, leaflet_css = load_leaflet()
 
     deploy_dt_arr = _parse_dt(array_cfg.get("deployment_time"))
     recover_dt_arr = _parse_dt(array_cfg.get("recovery_time"))
@@ -471,6 +531,12 @@ def generate_array_report(
         "recover_time": recover_dt_arr.strftime("%Y-%m-%d") if recover_dt_arr else "",
         "moorings": rows,
         "fig_map_b64": fig_map_b64,
+        "payload_json": payload_json,
+        "coastline_json": coastline_json,
+        "bounds_json": bounds_json,
+        "leaflet_js": leaflet_js,
+        "leaflet_css": leaflet_css,
+        "map_height": 460,
         "type_summary": _build_type_summary(all_instruments),
         "mooring_completeness": mooring_completeness,
         "generated": datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
