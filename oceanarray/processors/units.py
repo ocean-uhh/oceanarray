@@ -1,30 +1,33 @@
 """Canonicalise variable units on the way out of each processing stage.
 
-The units *data* — the canonical spelling per quantity and the alias table — lives
-in :mod:`oceanarray.parameters` (``VARIABLES`` and ``UNIT_ALIASES``).  This module
-holds the transforms that apply it: :func:`canonicalise_units`, run at every stage
-boundary so each written file carries one canonical spelling per quantity, and
-:func:`format_units`, which derives the plot-label form from a canonical string.
+The canonical spelling per variable is the registry's
+(:data:`oceanarray.parameters.VARIABLES`). Which reader spellings convert to it, and
+with what factor, is the shared family data in
+:mod:`oceanarray.reports._vendored.units_tables`, read through
+:func:`oceanarray.reports._vendored.units.resolve_units`; oceanarray's view of it, with
+its own additions, is :data:`oceanarray.config.unit_tables.TABLES`, and a test keeps the
+registry and the tables' canonicals in agreement.  This module holds the transform that
+applies them, :func:`to_canonical_units`, run at every stage boundary so each written
+file carries the registry spelling for each quantity (N² excepted, see
+:data:`~oceanarray.config.unit_tables.UNIT_SPELLINGS_KEPT`).
+
+The display spelling (``mS cm-1`` → ``mS/cm``) is a separate concern, derived from the
+canonical string by :func:`oceanarray.config.unit_tables.unit_label`; it is never
+stored.
 """
 
-import re
+import warnings
 from collections.abc import Callable
 
 import numpy as np
 import xarray as xr
 
 from oceanarray import parameters as params
+from oceanarray.config.unit_tables import TABLES, UNIT_SPELLINGS_KEPT, unit_label
+from oceanarray.reports._vendored.units import Tables, UnitsError, resolve_units
 
-
-class UnitsError(ValueError):
-    """A variable carries units that cannot be canonicalised.
-
-    Raised by :func:`canonicalise_units` for an unknown spelling or a missing units
-    attribute on a registered variable.  A dedicated subclass of :class:`ValueError`
-    so a stage's per-instrument handler can catch *this* specifically (and prefix the
-    file path) without swallowing the many unrelated ``ValueError`` exceptions that
-    xarray raises.
-    """
+# Re-exported so existing callers keep importing it from the processing layer.
+__all__ = ["UnitsError", "canonicalise_units", "format_units", "to_canonical_units"]
 
 
 def _canonical_by_standard_name() -> dict[str, str]:
@@ -97,32 +100,42 @@ def _canonical_units_for(
     return sn_map.get(sn)
 
 
-def canonicalise_units(
+def to_canonical_units(
     ds: xr.Dataset,
+    *,
+    tables: Tables = TABLES,
     log_fn: Callable[[str], None] | None = None,
     stage: int | str | None = None,
 ) -> xr.Dataset:
     """Rewrite each registered variable's units to its canonical spelling.
 
-    For every variable or coordinate that maps to a registry canonical (by name or
-    ``standard_name``), the ``units`` attribute is looked up in that canonical's alias
-    group — the canonical is always an implicit ``×1`` member of its own group, and
-    :data:`parameters.UNIT_ALIASES` lists only the spellings that differ.  The value is
-    multiplied by the factor and the attribute rewritten to the canonical string.  A
-    genuine conversion (factor ≠ 1) stamps ``units_converted_from`` and
-    ``units_conversion_factor`` for provenance; a pure spelling rewrite does not (the
-    value is unchanged).  Temperature variables additionally get the CF-1.11
-    ``units_metadata = "temperature: on_scale"`` attribute.
+    The canonical spelling comes from the registry, :data:`parameters.VARIABLES` — by
+    variable name, or by ``standard_name`` for an unregistered variable whose
+    ``standard_name`` a registry entry carries.  *tables* decides only which other
+    spellings are accepted for that canonical: the alias spellings, and the spellings
+    scoped to the quantity (``PSU`` is salinity-only; the quantity is the registry's
+    ``standard_name`` for a registered variable).  The value is multiplied by the factor
+    and the attribute rewritten to the canonical string.  A genuine conversion (factor ≠
+    1) stamps ``units_converted_from`` and ``units_conversion_factor`` for provenance; a
+    pure spelling rewrite does not (the value is unchanged).  Temperature variables
+    additionally get the CF-1.11 ``units_metadata = "temperature: on_scale"`` attribute.
 
     The pass is idempotent — a variable already carrying the canonical string is left
     unchanged — so it can be run on the way out of every stage without
-    double-converting.  Unregistered engineering variables (no :data:`parameters.VARIABLES`
-    entry and no matching ``standard_name``) are left untouched.
+    double-converting.  One deliberate exception to one spelling per quantity: a
+    spelling listed in :data:`oceanarray.config.unit_tables.UNIT_SPELLINGS_KEPT` is left
+    as the file has it, so N² is written as ``s-2`` or ``rad2 s-2``, whichever arrived.
+    Unregistered engineering variables (no :data:`parameters.VARIABLES` entry and no
+    matching ``standard_name``) are left untouched.
 
     Parameters
     ----------
     ds : xarray.Dataset
         Dataset to canonicalise in place (also returned).
+    tables : Tables, optional
+        The accepted spellings (aliases and scoped spellings) to resolve against;
+        defaults to :data:`oceanarray.config.unit_tables.TABLES`.  The canonical itself
+        always comes from the registry.
     log_fn : callable, optional
         Called with one message per variable whose units string changed.  A change at
         any stage other than 1 is annotated as written by a pre-0.5.0 stage 1.
@@ -153,27 +166,26 @@ def canonicalise_units(
             if not current:
                 raise UnitsError(
                     f"{var!r} is a registered variable but carries no units "
-                    f"attribute; its canonical is {canonical!r}. Fix the reader or "
-                    f"add the spelling to parameters.UNIT_ALIASES — no silent "
-                    f"substitution."
+                    f"attribute; its canonical is {canonical!r}. The reader dropped "
+                    f"the units — fix it there; no silent substitution."
                 )
-            # The canonical is an implicit x1 member; generic spellings come from
-            # UNIT_ALIASES, and spellings that are only meaningful for one variable
-            # (e.g. PSU for salinity, NTU for turbidity, both canonical `1`) from the
-            # variable-scoped table so one quantity cannot borrow another's label.
-            aliases = {
-                canonical: 1.0,
-                **params.UNIT_ALIASES.get(canonical, {}),
-                **params.VARIABLE_UNIT_ALIASES.get(var, {}),
-            }
-            if current not in aliases:
-                where = f" (stage {stage})" if stage else ""
-                raise UnitsError(
-                    f"{var!r} units {current!r} is not a recognised spelling of "
-                    f"{canonical!r}{where}; add it to parameters.UNIT_ALIASES with a "
-                    f"verified factor or fix the reader — no silent pass-through."
+            # A registered variable's quantity is the registry's, not whatever
+            # standard_name the reader stamped (seasenselib's RDI reader writes
+            # sea_water_salinity on practical salinity); the file's attribute decides
+            # only for a variable matched by standard_name.
+            if var in params.VARIABLES:
+                standard_name = params.VARIABLES[var].get("standard_name")
+            else:
+                standard_name = ds[var].attrs.get("standard_name")
+            if current in UNIT_SPELLINGS_KEPT.get(standard_name, ()):
+                continue  # a kept spelling (N² with or without rad2) — not rewritten
+            where = f" (stage {stage})" if stage else ""
+            try:
+                _, factor = resolve_units(
+                    current, standard_name, tables=tables, canonical=canonical
                 )
-            factor = aliases[current]
+            except UnitsError as exc:
+                raise UnitsError(f"{var!r}{where}: {exc}") from exc
             attrs = dict(ds[var].attrs)
             if factor != 1.0:
                 converted = ds[var].copy(
@@ -200,64 +212,59 @@ def canonicalise_units(
     return ds
 
 
-#: Digits 0-9 mapped to their Unicode superscripts, for :func:`format_units`.
-_SUPERSCRIPT_DIGITS = str.maketrans("0123456789", "⁰¹²³⁴⁵⁶⁷⁸⁹")
+def canonicalise_units(
+    ds: xr.Dataset,
+    log_fn: Callable[[str], None] | None = None,
+    stage: int | str | None = None,
+) -> xr.Dataset:
+    """Rewrite each registered variable's units to its canonical spelling (deprecated).
 
-#: Whole-token unit spellings that map to a fixed display string.
-_DISPLAY_SPECIALS = {
-    "degree_Celsius": "°C",
-    "degrees_north": "°N",
-    "degrees_east": "°E",
-}
+    Deprecated alias of :func:`to_canonical_units`, the family name; removed in 0.6.0.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        Dataset to canonicalise in place (also returned).
+    log_fn : callable, optional
+        Called with one message per variable whose units string changed.
+    stage : int or str, optional
+        Processing stage, used only to annotate the log and error messages.
+
+    Returns
+    -------
+    xarray.Dataset
+        The same dataset, with canonical units on every registered variable.
+    """
+    warnings.warn(
+        "canonicalise_units is deprecated; use to_canonical_units (removed in 0.6.0).",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return to_canonical_units(ds, log_fn=log_fn, stage=stage)
 
 
 def format_units(units: str, standard_name: str | None = None) -> str:
-    """Return the plot ``label_units`` string derived from a CF ``units`` string.
+    """Return the plot label for a CF ``units`` string (deprecated).
 
-    Converts the UDUNITS/CF spelling stored in a file to the slash form used on plot
-    axes (as ctdcast writes): ``X Y-1`` → ``X/Y``, ``X Y-n`` → ``X/Yⁿ``, a bare
-    ``Y-n`` → ``Y⁻ⁿ``, ``degree_Celsius`` → ``°C``, ``umol`` → ``µmol``,
-    ``degrees_north``/``degrees_east`` → ``°N``/``°E``.  Dimensionless practical
-    salinity (``1`` with the practical-salinity ``standard_name``) renders ``PSU``;
-    dimensionless turbidity (``sea_water_turbidity``) renders ``NTU`` (the FLNTU scale
-    label, not a UDUNITS unit).  This is the single source for :data:`parameters.VARIABLES`
-    ``label_units``; a test asserts the explicit column equals the derived string for
-    every entry so the two cannot drift.
-
-    Handles a single denominator term (``X Y-n``), which covers every unit in the
-    registry; a product of two negative-exponent terms is not converted.
+    Deprecated alias of :func:`oceanarray.config.unit_tables.unit_label`; removed in
+    0.6.0.
 
     Parameters
     ----------
     units : str
         CF/UDUNITS units string (e.g. ``"mS cm-1"``).
     standard_name : str, optional
-        CF standard name, used for the dimensionless salinity/turbidity labels.
+        CF standard name, for the dimensionless salinity and turbidity labels.
 
     Returns
     -------
     str
         The display units string; ``""`` when *units* is empty.
-
     """
-    if not units:
-        return ""
-    if standard_name == "sea_water_turbidity":
-        return "NTU"
-    if units == "1":
-        return "PSU" if standard_name == "sea_water_practical_salinity" else "1"
-    s = units
-    for ascii_form, display in _DISPLAY_SPECIALS.items():
-        s = s.replace(ascii_form, display)
-    s = s.replace("umol", "µmol")
-    m = re.match(r"^(?:(.+?)\s+)?(\S+?)-(\d+)$", s)
-    if not m:
-        return s
-    num, den, exp = m.group(1), m.group(2), m.group(3)
-    if num:
-        return (
-            f"{num}/{den}"
-            if exp == "1"
-            else f"{num}/{den}{exp.translate(_SUPERSCRIPT_DIGITS)}"
-        )
-    return f"{den}⁻{exp.translate(_SUPERSCRIPT_DIGITS)}"
+    warnings.warn(
+        "processors.units.format_units is deprecated; use "
+        "oceanarray.config.unit_tables.unit_label (removed in 0.6.0).",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return unit_label(units, standard_name)

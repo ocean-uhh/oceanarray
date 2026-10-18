@@ -15,7 +15,7 @@ import yaml
 from oceanarray import parameters as params
 from oceanarray import paths
 from oceanarray.paths import safe_serial
-from oceanarray.processors.units import canonicalise_units
+from oceanarray.processors.units import to_canonical_units
 from oceanarray.utilities import (
     _status,
     extract_inline_instruments,
@@ -850,7 +850,7 @@ class MooringProcessor:
         both are NetCDF-illegal.  This fixes only the name and records the unit
         in ``units`` (``S/m`` or ``mS/cm``) — the S/m → mS cm-1 ×10 conversion and
         the canonical spelling are applied later by
-        :func:`oceanarray.processors.units.canonicalise_units`, the one place units
+        :func:`oceanarray.processors.units.to_canonical_units`, the one place units
         are normalised.
         """
         for raw_name, raw_units in (("cond0S/m", "S/m"), ("cond0mS/cm", "mS/cm")):
@@ -1520,7 +1520,7 @@ class MooringProcessor:
                 raw_mooring_dir=raw_mooring_dir,
             )
         except RuntimeError:
-            # A registry inconsistency (canonicalise_units raises RuntimeError, not
+            # A registry inconsistency (to_canonical_units raises RuntimeError, not
             # UnitsError) is a package bug, not a bad instrument — it must abort the
             # whole run, not be downgraded to a single-instrument skip.
             raise
@@ -1760,7 +1760,7 @@ class MooringProcessor:
         # (mS cm-1, degree_Celsius, m, dbar, m s-1, …).  Raises UnitsError on an
         # unknown or missing unit for a registered variable; the caller logs it with
         # the file path and skips this instrument.
-        dataset = canonicalise_units(dataset, log_fn=self._log_print, stage=1)
+        dataset = to_canonical_units(dataset, log_fn=self._log_print, stage=1)
 
         # Write to NetCDF
         _status("file", str(relative_output))

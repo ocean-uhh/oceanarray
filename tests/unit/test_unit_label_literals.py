@@ -3,7 +3,7 @@
 A unit string with a superscript (`m s⁻¹`, `kg m⁻³`, …) hard-coded in a label or
 caption drifts from the registry — the bug this PR fixes (a stale `µmol L⁻¹` oxygen
 caption, a `°C` written into a file). Plot labels and captions must come from
-``parameters.vunit`` / ``processors.units.format_units`` instead. This test fails if a
+``parameters.vunit`` / ``config.unit_tables.unit_label`` instead. This test fails if a
 ``⁻`` appears in a string literal under ``plotters/`` or ``reports/`` that is not a
 docstring, except the spectral power-density labels (``cpd⁻¹`` = cycles per day), which
 are composite units with no registry entry.

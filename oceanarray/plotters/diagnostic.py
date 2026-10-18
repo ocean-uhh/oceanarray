@@ -43,7 +43,7 @@ import numpy as np
 from oceanarray.reports._vendored import design_tokens as report_tokens
 
 from .. import parameters as params
-from ..processors.units import format_units
+from ..config.unit_tables import unit_label, var_unit_label
 from .helpers import distinct_line_styles, grid_despine
 from .primitives import date_offset_left, figure_title, plot_title, square_axes_grid
 
@@ -76,19 +76,19 @@ _CANONICAL_PANELS: list[tuple] = [
     ("east_velocity", params.vlabel("east_velocity"), "tab:blue", False),
     ("north_velocity", params.vlabel("north_velocity"), "tab:orange", False),
     ("up_velocity", params.vlabel("up_velocity"), "tab:cyan", False),
-    ("velocity_beam1", f"Beam 1 velocity ({format_units('m s-1')})", "tab:blue", False),
+    ("velocity_beam1", f"Beam 1 velocity ({unit_label('m s-1')})", "tab:blue", False),
     (
         "velocity_beam2",
-        f"Beam 2 velocity ({format_units('m s-1')})",
+        f"Beam 2 velocity ({unit_label('m s-1')})",
         "tab:orange",
         False,
     ),
-    ("velocity_beam3", f"Beam 3 velocity ({format_units('m s-1')})", "tab:cyan", False),
+    ("velocity_beam3", f"Beam 3 velocity ({unit_label('m s-1')})", "tab:cyan", False),
     ("tilt", "Tilt (°)", "tab:red", False),
     ("pitch", "Pitch (°)", "tab:purple", False),
     ("roll", "Roll (°)", "#8B4513", False),
     ("heading", "Heading (°)", "tab:gray", False),
-    ("speed_of_sound", f"Sound speed ({format_units('m s-1')})", "tab:olive", False),
+    ("speed_of_sound", f"Sound speed ({unit_label('m s-1')})", "tab:olive", False),
     ("turbidity", params.vlabel("turbidity"), "tab:brown", False),
     ("dissolved_oxygen", params.vlabel("dissolved_oxygen"), "steelblue", False),
     ("battery_voltage", "Battery (V)", "tab:pink", False),
@@ -172,13 +172,23 @@ def _instrument_panels(ds: xr.Dataset, combine_pitch_roll: bool = False) -> list
             continue
         if do_combo:
             if vname == "pitch":
-                out.append(("_pitch_roll_combo", "Pitch & Roll (°)", None, False))
+                pr_u = var_unit_label(ds["pitch"])
+                combo = f"Pitch & Roll ({pr_u})" if pr_u else "Pitch & Roll"
+                out.append(("_pitch_roll_combo", combo, None, False))
                 continue
             if vname == "roll":
                 continue
-        actual_units = ds[vname].attrs.get("units", "")
-        if actual_units:
-            label = _re.sub(r"\[.*?\]", f"[{actual_units}]", label)
+        # Relabel the parenthesised unit from the variable's stored `units` attribute,
+        # formatted through unit_label, so the axis tracks the data: a file written in
+        # radians (angles) or kPa (pressure) relabels rather than silently keeping the
+        # canonical spelling the label was written with.
+        u = var_unit_label(ds[vname])
+        if u:
+            label = (
+                _re.sub(r"\([^()]*\)\s*$", f"({u})", label)
+                if _re.search(r"\([^()]*\)\s*$", label)
+                else f"{label} ({u})"
+            )
         out.append((vname, label, params.VAR_COLORS.get(vname, color), invert))
     return out
 
@@ -1299,10 +1309,10 @@ def draw_data_histogram(
         ]
         # ADCP: append multi-dim velocity and percent_good panels (flattened).
         _ADCP_FLAT = [
-            ("east_velocity", f"East vel. (all bins, {format_units('m s-1')})"),
-            ("north_velocity", f"North vel. (all bins, {format_units('m s-1')})"),
-            ("up_velocity", f"Up vel. (all bins, {format_units('m s-1')})"),
-            ("error_velocity", f"Error vel. (all bins, {format_units('m s-1')})"),
+            ("east_velocity", f"East vel. (all bins, {unit_label('m s-1')})"),
+            ("north_velocity", f"North vel. (all bins, {unit_label('m s-1')})"),
+            ("up_velocity", f"Up vel. (all bins, {unit_label('m s-1')})"),
+            ("error_velocity", f"Error vel. (all bins, {unit_label('m s-1')})"),
             ("percent_good", "Pct good (all bins/beams, %)"),
         ]
         for vn, lbl in _ADCP_FLAT:
@@ -1635,7 +1645,7 @@ def draw_velocity_iqr_profile(
                 linestyle=":",
             )
             ax.set_xlim(left=0)
-        ax.set_xlabel(f"Current speed ({format_units('m s-1')})")
+        ax.set_xlabel(f"Current speed ({unit_label('m s-1')})")
         grid_despine(ax)
         ax.legend(loc="best")
 
@@ -1674,7 +1684,7 @@ def draw_velocity_iqr_profile(
         ax.axvline(0, color="k", linewidth=0.5, linestyle="--", alpha=0.4)
         if absmax > 0:
             ax.set_xlim(-absmax * 1.15, absmax * 1.15)
-        ax.set_xlabel(f"Velocity ({format_units('m s-1')})")
+        ax.set_xlabel(f"Velocity ({unit_label('m s-1')})")
         grid_despine(ax)
         ax.legend(loc="best")
 
@@ -1690,7 +1700,7 @@ def draw_velocity_iqr_profile(
     ax_count.set_xlabel("N good")
     grid_despine(ax_count)
 
-    axs[0].set_ylabel("Pressure (dbar)")
+    axs[0].set_ylabel(f"Pressure ({unit_label('dbar')})")
     axs[0].invert_yaxis()  # shared y — invert once only
 
     # Mark bottom depth if available (waterdepth global attr, dbar ≈ m seawater)

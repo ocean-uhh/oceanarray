@@ -19,7 +19,7 @@ from oceanarray.processors.helpers import (
     _safe_serial,
     _worst_flag,
 )
-from oceanarray.processors.units import UnitsError, canonicalise_units
+from oceanarray.processors.units import UnitsError, to_canonical_units
 from oceanarray.utilities import (
     _status,
     drop_all_zero_vars,
@@ -342,7 +342,7 @@ class MooringStacker:
                     ds.close()
                 # Canonicalise each instrument's units before stacking, so a
                 # pre-0.5.0 input (degC, S/m, …) joins the stack already canonical.
-                ds = canonicalise_units(ds, log_fn=print, stage="stack")
+                ds = to_canonical_units(ds, log_fn=print, stage="stack")
             except Exception as e:  # noqa: BLE001  — one bad instrument must not abort the stack
                 reason = (
                     f"units error: {e}"
@@ -725,7 +725,7 @@ class MooringStacker:
         ds_out = drop_all_zero_vars(ds_out, ["amplitude_beam", "analog_input_"])
         # OceanSITES convention: time is the unlimited (first) dimension.
         ds_out = ds_out.transpose("time", "N_LEVELS")
-        ds_out = canonicalise_units(ds_out, log_fn=print, stage="stack")
+        ds_out = to_canonical_units(ds_out, log_fn=print, stage="stack")
         if omitted:
             # Record the omission in the file so the stack report and the grid
             # (which reads this file) inherit it, and summarise it loudly.

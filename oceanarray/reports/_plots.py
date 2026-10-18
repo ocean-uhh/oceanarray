@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 
 import numpy as np
 
+from ..config.unit_tables import var_unit_label
 from ..plotters.current import (
     draw_adcp_hodograph,
     draw_adcp_rose,
@@ -110,21 +111,19 @@ def _plot_aquadopp_quick(ds: xr.Dataset) -> plt.Figure:
         for vname, color in zip(
             enu, ["tab:blue", "tab:orange", "tab:cyan"], strict=False
         ):
-            label = (
-                vname.replace("_velocity", " vel.").replace("_", " ").title() + " (m/s)"
-            )
+            label = vname.replace("_velocity", " vel.").replace("_", " ").title()
             panels.append((vname, label, color, False))
     else:
         for i, color in enumerate(["tab:blue", "tab:orange", "tab:cyan"], 1):
             vname = f"velocity_beam{i}"
             if vname in ds.data_vars:
-                panels.append((vname, f"Beam {i} vel. (m/s)", color, False))
+                panels.append((vname, f"Beam {i} vel.", color, False))
 
     pvar = next((v for v in ("pressure", "pressure_1") if v in ds.data_vars), None)
     if pvar:
-        panels.append((pvar, "Pressure (dbar)", "tab:green", True))
+        panels.append((pvar, "Pressure", "tab:green", True))
 
-    for vname, label in (("pitch", "Pitch (°)"), ("roll", "Roll (°)")):
+    for vname, label in (("pitch", "Pitch"), ("roll", "Roll")):
         if vname in ds.data_vars:
             panels.append((vname, label, "tab:purple", False))
 
@@ -140,7 +139,8 @@ def _plot_aquadopp_quick(ds: xr.Dataset) -> plt.Figure:
             ax.plot(ds["time"], ds[vname], color=color, linewidth=0.5)
             if "velocity" in vname:
                 ax.axhline(0, color="k", linewidth=0.5, linestyle="--")
-            ax.set_ylabel(label)
+            u = var_unit_label(ds[vname])
+            ax.set_ylabel(f"{label} ({u})" if u else label)
             grid_despine(ax)
             if invert:
                 vmin = float(ds[vname].min())

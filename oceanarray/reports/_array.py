@@ -19,6 +19,7 @@ import numpy as np
 import yaml
 from markupsafe import escape
 
+from ..config.unit_tables import unit_label
 from ..plotters.helpers import grid_despine
 from ._env import render_template
 from ._html_helpers import (
@@ -279,8 +280,8 @@ def _make_array_map_b64(rows: list[dict[str, Any]]) -> str | None:
                 )
         ax.set_xlim(xl0, xl1)
         ax.set_ylim(yl0, yl1)
-        ax.set_xlabel("Longitude (°)")
-        ax.set_ylabel("Latitude (°)")
+        ax.set_xlabel(f"Longitude ({unit_label('degrees_east')})")
+        ax.set_ylabel(f"Latitude ({unit_label('degrees_north')})")
         grid_despine(ax)
         plt.tight_layout()
         return fig

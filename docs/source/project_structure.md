@@ -71,8 +71,7 @@ oceanarray/
 │   ├── config/                    # Configuration
 │   │   ├── parameters.py          # Package-level defaults (VARIABLES, QC ranges, style)
 │   │   ├── validation.py          # Mooring YAML validation
-│   │   ├── OS1_var_names.yaml     # OceanSITES variable name mappings
-│   │   ├── OS1_sensor_attrs.yaml  # OceanSITES sensor attributes
+│   │   ├── unit_tables.py         # Units: oceanarray's overrides over the shared tables
 │   │   ├── logging.yaml           # Logging configuration
 │   │   └── legacy/                # Legacy RAPID/RODB configuration files
 │   │

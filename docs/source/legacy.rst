@@ -38,6 +38,8 @@ active processing code:
 
 ``convertOS.py``
    OceanSites format conversion from RODB — superseded by the Stage 1–3 pipeline.
+   Its YAML inputs live beside it: ``OS1_variable_names.yaml``,
+   ``OS1_variable_attributes.yaml`` and ``OS1_sensor_attributes.yaml``.
 
 ``rapid_interp.py`` (top-level)
    RAPID-specific interpolation helpers — not part of the active pipeline.

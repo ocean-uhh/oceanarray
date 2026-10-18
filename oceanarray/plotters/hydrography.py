@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 from oceanarray.reports._vendored import design_tokens as report_tokens
 
 from .. import parameters as params
-from ..processors.units import format_units
+from ..config.unit_tables import unit_label
 from .helpers import grid_despine, ordered_line_colors
 from .primitives import colorbar_norm, date_axis, plot_title
 
@@ -232,7 +232,7 @@ def draw_isopycnal_coverage(
         xlbl2 = "Height above seabed (m)"
     else:
         iso_z = iso_p
-        xlbl2 = "Pressure (dbar)"
+        xlbl2 = f"Pressure ({unit_label('dbar')})"
 
     with _warnings.catch_warnings():
         _warnings.simplefilter("ignore", RuntimeWarning)
@@ -269,7 +269,7 @@ def draw_isopycnal_coverage(
     for tgt in selected:
         ax0.axhline(tgt, color="#e67e22", lw=0.6, ls=":", zorder=3)
     ax0.set_xlabel("Occurrence (%)")
-    ax0.set_ylabel(f"σ₀ ({format_units('kg m-3')})  [{sv}]")
+    ax0.set_ylabel(f"σ₀ ({unit_label('kg m-3')})  [{sv}]")
     plot_title(ax0, "Distribution")
     ax0.set_ylim(y_lo, y_hi)
     ax0.invert_yaxis()

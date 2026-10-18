@@ -30,6 +30,7 @@ from matplotlib.collections import LineCollection
 
 from oceanarray import parameters as params
 from oceanarray.analysis.vector import progressive_vector, xyz_to_enu_2d
+from oceanarray.config.unit_tables import unit_label
 from oceanarray.plotters.helpers import (
     _rose_ax,
     _velocity_panel_style,
@@ -48,7 +49,6 @@ from oceanarray.plotters.primitives import (
     unit_colorbar,
     ytick_reserve_in,
 )
-from oceanarray.processors.units import format_units
 from oceanarray.reports._vendored import design_tokens as report_tokens
 from oceanarray.utilities import _nice_colorbar_bounds
 
@@ -427,8 +427,8 @@ def plot_hodograph(
     east_raw = ds[u_var].values.astype(float).ravel()
     north_raw = ds[v_var].values.astype(float).ravel()
     t = ds["time"].values
-    units = params.vunit("east_velocity") or ds[u_var].attrs.get(
-        "units", format_units("m s-1")
+    units = params.vunit("east_velocity") or unit_label(
+        ds[u_var].attrs.get("units", "m s-1")
     )
 
     dt_s = (
@@ -1211,13 +1211,13 @@ def draw_adcp_velocity(
 
     # (varname, label, panel_type)  — panel_type: "div" | "seq" | "cyc"
     _COMPONENTS = [
-        ("east_velocity", f"East velocity ({format_units('m s-1')})", "div"),
-        ("north_velocity", f"North velocity ({format_units('m s-1')})", "div"),
-        ("up_velocity", f"Up velocity ({format_units('m s-1')})", "div"),
-        ("error_velocity", f"Error velocity ({format_units('m s-1')})", "div"),
-        ("current_speed", f"Current speed ({format_units('m s-1')})", "seq"),
-        ("current_direction", "Current direction (°T)", "cyc"),
-        ("bin_pressure", "Bin pressure (dbar)", "seq"),
+        ("east_velocity", f"East velocity ({unit_label('m s-1')})", "div"),
+        ("north_velocity", f"North velocity ({unit_label('m s-1')})", "div"),
+        ("up_velocity", f"Up velocity ({unit_label('m s-1')})", "div"),
+        ("error_velocity", f"Error velocity ({unit_label('m s-1')})", "div"),
+        ("current_speed", f"Current speed ({unit_label('m s-1')})", "seq"),
+        ("current_direction", f"Current direction ({unit_label('degrees')}T)", "cyc"),
+        ("bin_pressure", f"Bin pressure ({unit_label('dbar')})", "seq"),
     ]
 
     with xr.open_dataset(nc_path, decode_timedelta=False) as ds:
@@ -1568,8 +1568,8 @@ def draw_adcp_hodograph(
             if range_coord is not None
             else np.arange(n_bins, dtype=float)
         )
-        units = params.vunit("east_velocity") or ds[u_var].attrs.get(
-            "units", format_units("m s-1")
+        units = params.vunit("east_velocity") or unit_label(
+            ds[u_var].attrs.get("units", "m s-1")
         )
 
         if "time" in ds.coords and ds["time"].size >= 2:
@@ -1689,8 +1689,8 @@ def draw_grid_hodograph(
     else:
         pressure = np.arange(n_levels, dtype=float)
 
-    units = params.vunit("east_velocity") or ds["east_velocity"].attrs.get(
-        "units", format_units("m s-1")
+    units = params.vunit("east_velocity") or unit_label(
+        ds["east_velocity"].attrs.get("units", "m s-1")
     )
 
     if "time" in ds.coords and ds["time"].size >= 2:

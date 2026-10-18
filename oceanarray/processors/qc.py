@@ -323,7 +323,7 @@ def compute_salinity_data(
     Call ``merge_salinity_parent_qc`` afterward to fold in T/C/P parent flags.
 
     Conductivity must already be canonical ``mS cm-1`` — stage 3 runs
-    :func:`oceanarray.processors.units.canonicalise_units` first, which converts any
+    :func:`oceanarray.processors.units.to_canonical_units` first, which converts any
     S/m input.  A non-canonical unit here means that pass was skipped and the ×10 is
     missing, so this raises rather than compute salinity 10× too small from S/m.
     """
@@ -335,7 +335,7 @@ def compute_salinity_data(
     if cond_units != canonical:
         raise UnitsError(
             f"conductivity units are {cond_units!r}, not the canonical {canonical!r}; "
-            f"run canonicalise_units before computing salinity (salinity from S/m "
+            f"run to_canonical_units before computing salinity (salinity from S/m "
             f"would be 10x too small)."
         )
     try:

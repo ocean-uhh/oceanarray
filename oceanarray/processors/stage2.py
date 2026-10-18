@@ -47,7 +47,7 @@ import xarray as xr
 import yaml
 
 from oceanarray import paths
-from oceanarray.processors.units import canonicalise_units
+from oceanarray.processors.units import to_canonical_units
 from oceanarray.utilities import (
     _status,
     drop_all_zero_vars,
@@ -828,7 +828,7 @@ class Stage2Processor:
 
             # Canonicalise units on the way in (rewrites a pre-0.5.0 stage-1 file's
             # reader spellings to the canonical; idempotent on a 0.5.0 stage-1 file).
-            dataset = canonicalise_units(dataset, log_fn=self._log_print, stage=2)
+            dataset = to_canonical_units(dataset, log_fn=self._log_print, stage=2)
 
             # Capture the raw stage1 time bounds before any corrections are applied.
             # Used later for the "differs by ≥ Δt" highlighting comparison in reports.

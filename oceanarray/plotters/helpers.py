@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from oceanarray.processors.units import format_units
+from oceanarray.config.unit_tables import unit_label
 
 if TYPE_CHECKING:
     import matplotlib.pyplot as plt
@@ -270,11 +270,11 @@ def _velocity_panel_style(
 
     if var in ("east_velocity", "north_velocity", "up_velocity", "error_velocity"):
         bounds, norm = colorbar_norm(vmin=-div_abs_max, vmax=div_abs_max)
-        return bounds, norm, "Spectral_r", format_units("m s-1")
+        return bounds, norm, "Spectral_r", unit_label("m s-1")
     if var == "current_speed":
         spd_max = float(np.percentile(finite_vals, 98)) if len(finite_vals) else 1.0
         bounds, norm = colorbar_norm(vmin=0.0, vmax=max(spd_max, 1e-4))
-        return bounds, norm, "plasma", format_units("m s-1")
+        return bounds, norm, "plasma", unit_label("m s-1")
     if var == "current_direction":
         import matplotlib.pyplot as plt
 
@@ -286,15 +286,15 @@ def _velocity_panel_style(
         bounds = np.linspace(0, 360, 21)
         cmap = plt.get_cmap("twilight", len(bounds) - 1)
         norm = mcolors.BoundaryNorm(bounds, cmap.N)
-        return bounds, norm, cmap, "°"
+        return bounds, norm, cmap, unit_label("degrees")
     if var == "bin_pressure":
         p_lo = float(np.percentile(finite_vals, 2)) if len(finite_vals) else 0.0
         p_hi = float(np.percentile(finite_vals, 98)) if len(finite_vals) else 1000.0
         bounds, norm = colorbar_norm(vmin=p_lo, vmax=p_hi)
-        return bounds, norm, "PuRd", "dbar"
+        return bounds, norm, "PuRd", unit_label("dbar")
     # Unknown variable — fall back to diverging
     bounds, norm = colorbar_norm(vmin=-div_abs_max, vmax=div_abs_max)
-    return bounds, norm, "Spectral_r", format_units("m s-1")
+    return bounds, norm, "Spectral_r", unit_label("m s-1")
 
 
 def _rose_ax(

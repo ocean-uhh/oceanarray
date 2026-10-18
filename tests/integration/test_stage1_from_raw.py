@@ -161,7 +161,7 @@ class TestAquadoppStage1FromRaw:
 def test_one_units_error_instrument_does_not_abort_the_mooring(tmp_path, monkeypatch):
     """A UnitsError on one instrument is logged and skipped; the rest still write.
 
-    Guards the per-instrument error path: canonicalise_units is forced to raise on
+    Guards the per-instrument error path: to_canonical_units is forced to raise on
     the microcat (the instrument with a ``conductivity`` variable), and the run must
     still write the aquadopp stage1 file and report partial success.
     """
@@ -171,7 +171,7 @@ def test_one_units_error_instrument_does_not_abort_the_mooring(tmp_path, monkeyp
     (proc_root / MOORING).mkdir(parents=True)
     shutil.copy(FIXTURE_PROC / f"{MOORING}.mooring.yaml", proc_root / MOORING)
 
-    real = pu.canonicalise_units
+    real = pu.to_canonical_units
 
     def _raise_on_microcat(ds, log_fn=None, stage=None):
         if "conductivity" in ds.data_vars:  # the microcat, not the aquadopp
@@ -179,7 +179,7 @@ def test_one_units_error_instrument_does_not_abort_the_mooring(tmp_path, monkeyp
         return real(ds, log_fn=log_fn, stage=stage)
 
     monkeypatch.setattr(
-        "oceanarray.processors.stage1.canonicalise_units", _raise_on_microcat
+        "oceanarray.processors.stage1.to_canonical_units", _raise_on_microcat
     )
 
     processor = MooringProcessor(
@@ -199,7 +199,7 @@ def test_one_units_error_instrument_does_not_abort_the_mooring(tmp_path, monkeyp
 def test_registry_inconsistency_aborts_the_whole_mooring(tmp_path, monkeypatch):
     """A RuntimeError (registry bug) must abort the run, not be swallowed per-instrument.
 
-    canonicalise_units raises RuntimeError (not UnitsError) for a registry
+    to_canonical_units raises RuntimeError (not UnitsError) for a registry
     inconsistency; the stage-1 per-instrument handler re-raises RuntimeError so a
     package bug surfaces instead of silently skipping every instrument.
     """
@@ -213,7 +213,7 @@ def test_registry_inconsistency_aborts_the_whole_mooring(tmp_path, monkeypatch):
         raise RuntimeError("synthetic registry inconsistency")
 
     monkeypatch.setattr(
-        "oceanarray.processors.stage1.canonicalise_units", _raise_runtime
+        "oceanarray.processors.stage1.to_canonical_units", _raise_runtime
     )
 
     processor = MooringProcessor(

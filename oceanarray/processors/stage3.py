@@ -82,7 +82,7 @@ from oceanarray.processors.qc import (
     set_qc_attrs,
     unify_velocity_qc,
 )
-from oceanarray.processors.units import canonicalise_units
+from oceanarray.processors.units import to_canonical_units
 from oceanarray.utilities import (
     drop_all_zero_vars,
     extract_inline_instruments,
@@ -454,7 +454,7 @@ class Stage3Processor:
             # reader's spellings (degC, S/m, …); this rewrites them to the canonical
             # (and converts S/m conductivity ×10) so QC thresholds and salinity see
             # one unit.  Logs a note for any value written by a pre-0.5.0 stage 1.
-            ds = canonicalise_units(ds, log_fn=self._log, stage=3)
+            ds = to_canonical_units(ds, log_fn=self._log, stage=3)
 
             # Record stage2 source-file provenance as named global attrs
             _st2_stat = nc_path.stat()
@@ -755,7 +755,7 @@ class Stage3Processor:
             ds = drop_all_zero_vars(ds, ["amplitude_beam", "analog_input_"])
             # Guarantee canonical units on everything stage 3 derived (salinity,
             # ENU velocities, oxygen saturation) before writing.
-            ds = canonicalise_units(ds, log_fn=self._log, stage=3)
+            ds = to_canonical_units(ds, log_fn=self._log, stage=3)
             write(ds, l3_path)
             ds.close()
             self._log(

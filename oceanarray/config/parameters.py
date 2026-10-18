@@ -373,8 +373,9 @@ ALL_FILE_TYPES: frozenset = frozenset(
 #:     without a natural diverging / sequential convention.
 #: ``valid_min`` / ``valid_max``
 #:     CF ``valid_min`` / ``valid_max`` attributes written to NetCDF output
-#:     (physically valid range).  Present only where :file:`OS1_vocab_attrs.yaml`
-#:     provides an authoritative value; absent for other variables.
+#:     (physically valid range).  Present only where
+#:     :file:`legacy/OS1_variable_attributes.yaml` provides an authoritative value;
+#:     absent for other variables.
 VARIABLES: dict[str, dict] = {
     "temperature": {
         "label": "Temperature",
@@ -382,7 +383,7 @@ VARIABLES: dict[str, dict] = {
         "units": "degree_Celsius",
         "standard_name": "sea_water_temperature",
         "cmap": "RdBu_r",
-        "valid_min": -5.0,  # OS1_vocab_attrs.yaml TEMP
+        "valid_min": -5.0,  # legacy/OS1_variable_attributes.yaml TEMP
         "valid_max": 42.0,
     },
     "conservative_temperature": {
@@ -409,7 +410,7 @@ VARIABLES: dict[str, dict] = {
         "units": "mS cm-1",
         "standard_name": "sea_water_electrical_conductivity",
         "cmap": None,
-        "valid_min": 0.0,  # OS1_vocab_attrs.yaml CNDC
+        "valid_min": 0.0,  # legacy/OS1_variable_attributes.yaml CNDC
         "valid_max": 80.0,
     },
     "salinity": {
@@ -432,7 +433,7 @@ VARIABLES: dict[str, dict] = {
         "units": "dbar",
         "standard_name": "sea_water_pressure",
         "cmap": None,
-        "valid_min": 0.0,  # OS1_vocab_attrs.yaml PRES
+        "valid_min": 0.0,  # legacy/OS1_variable_attributes.yaml PRES
         "valid_max": 11000.0,
     },
     "depth": {
@@ -441,7 +442,7 @@ VARIABLES: dict[str, dict] = {
         "units": "m",
         "standard_name": "depth",
         "cmap": None,
-        "valid_min": 0.0,  # OS1_vocab_attrs.yaml DEPTH
+        "valid_min": 0.0,  # legacy/OS1_variable_attributes.yaml DEPTH
         "valid_max": 12000.0,
     },
     "potential_density": {
@@ -716,55 +717,46 @@ def vunit(var: str) -> str:
     return VARIABLES.get(var, {}).get("label_units", "")
 
 
-# ---------------------------------------------------------------------------
-# Units canonicalisation
-# ---------------------------------------------------------------------------
+def __getattr__(name: str) -> dict[str, dict[str, float]]:
+    """Serve the deprecated tables ``UNIT_ALIASES`` and ``VARIABLE_UNIT_ALIASES``.
 
-#: Non-trivial units spellings per canonical, each mapped to the scalar factor that
-#: converts a value in that spelling to the canonical.  The canonical is always an
-#: implicit ``×1`` member of its own group, so this table lists only the spellings
-#: that *differ* from the canonical — a canonical with no differing variant (e.g.
-#: ``%``, ``dbar``) needs no entry; every registered variable is still checked by
-#: ``processors.units.canonicalise_units``.
-#:
-#: Every factor is dimensionally exact.  Spelling variants are ``×1``; ``S/m`` →
-#: ``mS cm-1`` is ``×10`` (1 S/m = 10 mS/cm).  A per-mass / per-volume difference
-#: (``umol kg-1`` vs ``umol L-1``) is **never** expressed here — those differ by
-#: in-situ density, not a scalar, and a file/registry mismatch of that kind is an
-#: error, not a conversion.  Spellings are those the instrument readers emit plus the
-#: ``S/m`` the stage-1 ``cond0S/m`` path already handles, plus each quantity's display
-#: (``label_units``) spelling as a ×1 alias — so a display string that leaks into a
-#: file's ``units`` attr (the ``°C`` a pre-0.5.0 stage wrote) is recovered, not
-#: rejected; a test asserts every ``label_units`` is an alias of its canonical.  The
-#: transform that applies this table lives in ``processors.units``; this module holds
-#: the units *data* only.
-UNIT_ALIASES: dict[str, dict[str, float]] = {
-    "degree_Celsius": {
-        "degC": 1.0,
-        "degrees_C": 1.0,
-        "Degrees C": 1.0,
-        "°C": 1.0,
-        "ITS-90, deg C": 1.0,  # SBE scale annotation leaked into units; value is °C
-    },
-    "mS cm-1": {"mS/cm": 1.0, "S/m": 10.0},
-    "m": {"meters": 1.0},
-    "dbar": {"db": 1.0},
-    "m s-1": {"m/s": 1.0},
-    "umol kg-1": {"umol/kg": 1.0, "µmol/kg": 1.0},
-    "kg m-3": {"kg/m³": 1.0},
-    "g kg-1": {"g/kg": 1.0},
-    "mL L-1": {"mL/L": 1.0, "ml l-1": 1.0},
-    "s-2": {"s⁻²": 1.0},
-}
+    Both moved to the shared units tables
+    (:data:`oceanarray.config.unit_tables.TABLES`) and are removed in 0.6.0.  Until then
+    each name warns and returns a copy built from those tables: ``UNIT_ALIASES`` as
+    ``{canonical: {spelling: factor}}``, and ``VARIABLE_UNIT_ALIASES`` as the scoped
+    spellings of each registry variable, keyed by variable name.
 
-#: Spellings accepted only for a specific variable, merged on top of
-#: :data:`UNIT_ALIASES` by ``processors.units.canonicalise_units``.  ``PSU`` and
-#: ``NTU`` are both display labels for the dimensionless canonical ``1`` but belong
-#: to different quantities, so they are scoped here (keyed by variable name) rather
-#: than put in the shared ``UNIT_ALIASES["1"]`` group — a salinity file saying ``NTU``
-#: (or turbidity saying ``PSU``) must raise, not be silently accepted.  Both are
-#: evidenced on the drive (salinity ``PSU`` 1 file; turbidity ``NTU`` 6 files).
-VARIABLE_UNIT_ALIASES: dict[str, dict[str, float]] = {
-    "salinity": {"PSU": 1.0},
-    "turbidity": {"NTU": 1.0},
-}
+    Parameters
+    ----------
+    name : str
+        Attribute looked up on this module.
+
+    Returns
+    -------
+    dict of str to dict of str to float
+        The table, rebuilt from :data:`oceanarray.config.unit_tables.TABLES`.
+
+    Raises
+    ------
+    AttributeError
+        For any other name.
+    """
+    if name not in ("UNIT_ALIASES", "VARIABLE_UNIT_ALIASES"):
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    import warnings
+
+    from oceanarray.config.unit_tables import TABLES
+
+    warnings.warn(
+        f"parameters.{name} is deprecated; use oceanarray.config.unit_tables.TABLES "
+        f"(removed in 0.6.0).",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    if name == "UNIT_ALIASES":
+        return {canonical: dict(group) for canonical, group in TABLES.aliases.items()}
+    return {
+        var: dict(TABLES.scoped[entry["standard_name"]])
+        for var, entry in VARIABLES.items()
+        if entry.get("standard_name") in TABLES.scoped
+    }

@@ -12,6 +12,7 @@ from typing import Any
 import numpy as np
 
 from .. import parameters as params
+from ..config.unit_tables import var_unit_label
 from ..plotters.helpers import grid_despine, ordered_line_colors
 from ..plotters.primitives import date_offset_left, plot_title
 from . import _figdebug
@@ -104,6 +105,14 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> str | None:
     if not has_pitch and not has_roll and not has_tilt_p:
         return None
 
+    # The angle unit for every axis on this figure, read from whichever stored angle
+    # variable is present (pitch/roll/tilt share it) so the label tracks the data: a
+    # file written in radians would relabel, not silently claim degrees.
+    _angle_var = (
+        "pitch" if has_pitch else ("roll" if has_roll else "tilt_from_pressure")
+    )
+    deg_u = var_unit_label(ds[_angle_var])
+
     time_ds = ds["time"].values[::step]
     n_panels = len(aq_indices)
 
@@ -154,7 +163,7 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> str | None:
             ax_ts.axhline(tilt_suspect, color="tab:orange", lw=0.8, ls="--", zorder=0)
             ax_ts.axhline(tilt_fail, color="tab:red", lw=0.8, ls=":", zorder=0)
             ax_ts.set_ylim(0.0, 90.0)
-            ax_ts.set_ylabel("Degrees (°)")
+            ax_ts.set_ylabel(f"Degrees ({deg_u})" if deg_u else "Degrees")
             grid_despine(ax_ts)
 
             _ref_note = ""
@@ -219,9 +228,13 @@ def _make_aquadopp_tilt_panels(ds: Any, step: int = 1) -> str | None:
                 # time-series panel's y-ticks.
                 ax_sc.set_xticks([0, 30, 60, 90])
                 ax_sc.set_yticks([0, 30, 60, 90])
-                ax_sc.set_ylabel("|pitch|, |roll| [°]")
+                ax_sc.set_ylabel(
+                    f"|pitch|, |roll| [{deg_u}]" if deg_u else "|pitch|, |roll|"
+                )
                 if row == n_panels - 1:
-                    ax_sc.set_xlabel("tilt (pressure) [°]")
+                    ax_sc.set_xlabel(
+                        f"tilt (pressure) [{deg_u}]" if deg_u else "tilt (pressure)"
+                    )
                 else:
                     ax_sc.tick_params(labelbottom=False)
                 grid_despine(ax_sc)

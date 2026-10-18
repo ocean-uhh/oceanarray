@@ -188,7 +188,7 @@ class TestMooringProcessor:
         """Raw ``cond0S/m`` → ``conductivity`` with units ``S/m``, value unchanged.
 
         The NetCDF-illegal column name is fixed here; the S/m → mS cm-1 ×10
-        conversion is left to ``processors.units.canonicalise_units``.
+        conversion is left to ``processors.units.to_canonical_units``.
         """
         ds = xr.Dataset(
             {"cond0S/m": (["time"], np.array([0.0, 0.361, 3.61], dtype="float32"))},

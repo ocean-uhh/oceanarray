@@ -27,6 +27,7 @@ from oceanarray.reports._vendored import design_tokens as report_tokens
 from oceanarray.utilities import _nice_colorbar_bounds, period_axis_ticks
 
 from ..analysis.spectral import gonella_rotary_spectrum
+from ..config.unit_tables import unit_label
 from .helpers import grid_despine
 from .primitives import figure_title, plot_title, square_axes_grid
 
@@ -714,7 +715,7 @@ def draw_wavelet(
         # Temperature time series (top)
         ts = arr[sel[i], :]
         tax[i].plot(times, ts, lw=0.6, color="0.3")
-        tax[i].set_ylabel("T (°C)")
+        tax[i].set_ylabel(f"T ({unit_label('degree_Celsius')})")
         grid_despine(tax[i])
         # Pressure level in the bottom-left corner (was a title, which overlapped
         # the scalogram of the pair above).

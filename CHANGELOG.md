@@ -16,6 +16,14 @@ All notable changes to oceanarray are documented here.
 - **base.html de-duplicated against the shared stylesheet**: report chrome rules that `emit_css()` already provides are removed from the per-page `<style>` block (only the oceanarray-specific additions remain), guarded by `test_no_base_rule_duplicates_vendored_css`.
 - **Absent figure panels say why**: a figure whose draw raises now renders a short stub with the reason instead of vanishing (`as_panel`, ported from ctdcast).
 - **Coverage floor raised** from 38% to 58%: `main` and this branch both measure 59% unit coverage, so the CI `--cov-fail-under` gate is ratcheted to one point below.
+- **Units tables come from the shared report layer**: the vendored layer is re-copied from ctdcast `f2af1d8`, where `units_display.py` became `units.py` + `units_tables.py` (canonical spellings, accepted aliases with factors, display labels, keyed by CF `standard_name`). `oceanarray.config.unit_tables` holds oceanarray's differences from those tables (N² stored as `s-2`; the `ml l-1`, `mL/L` and `s⁻²` spellings) and `unit_label()`, the display entry point the plotters now call. The storage pass is `processors.units.to_canonical_units`. It accepts the same spellings as before for every registry quantity (N² aside, below), still takes each variable's canonical spelling from `parameters.VARIABLES`, still raises on a missing units attribute, and still records `units_converted_from` / `units_conversion_factor` on a conversion; the dune2 goldens are byte-identical.
+- **N² keeps the spelling it arrives with**: `s-2` and `rad2 s-2` are both accepted and neither is rewritten into the other (`rad2 s-2` used to be refused), so N² is the one quantity whose stored spelling can differ between files.
+- **Legacy vocabulary files moved and renamed**: `config/OS1_var_names.yaml`, `config/OS1_sensor_attrs.yaml` and `legacy/OS1_vocab_attrs.yaml` are now `legacy/OS1_variable_names.yaml`, `legacy/OS1_sensor_attributes.yaml` and `legacy/OS1_variable_attributes.yaml`, beside the legacy `convertOS.py` that takes them as inputs. No other oceanarray code reads them; the wheel no longer ships them.
+
+### Deprecated
+
+- `oceanarray.processors.units.canonicalise_units` → `to_canonical_units`, and `oceanarray.processors.units.format_units` → `oceanarray.config.unit_tables.unit_label`. The old names warn and are removed in 0.6.0.
+- `oceanarray.parameters.UNIT_ALIASES` and `VARIABLE_UNIT_ALIASES`: the spellings now live in the shared units tables (`oceanarray.config.unit_tables.TABLES`, with `PSU` / `NTU` scoped by CF `standard_name`). Both names still resolve, rebuilt from those tables, with a warning; removed in 0.6.0.
 
 ### Breaking changes
 
