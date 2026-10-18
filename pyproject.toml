@@ -105,10 +105,17 @@ include = ["oceanarray", "oceanarray.*"]
 [tool.setuptools.package-data]
 oceanarray = [
   "oceanarray.mplstyle",
-  "config/*.mplstyle",   # vendored report.mplstyle — MPLSTYLE_PATH resolves it at runtime
   "config/*.yaml",
   "config/legacy/*.yaml",
   "reports/templates/*.html",   # report page templates loaded via FileSystemLoader
+  # Vendored report-design layer (byte-identical from ctdcast): the mplstyle
+  # (MPLSTYLE_PATH resolves it at runtime), shared template macros, the offline
+  # Leaflet assets, and the self-check's MANIFEST.txt / README.md.
+  "reports/_vendored/*.mplstyle",
+  "reports/_vendored/*.txt",
+  "reports/_vendored/*.md",
+  "reports/_vendored/templates/*",
+  "reports/_vendored/leaflet/*",
 ]
 
 [tool.setuptools_scm]
@@ -200,9 +207,7 @@ convention = "numpy"   # handles D203 / D213 itself — do not hand-ignore those
 # Vendored byte-identical from ctdcast (source of truth); re-vendored, never edited here.
 # RUF100 (noqa managed upstream) and the docstring/annotation rules are off so oceanarray's
 # linter cannot force an edit that diverges from ctdcast/glidertest. Mirrors ctdcast's config.
-"oceanarray/config/report_tokens.py" = ["RUF100", "D", "ANN"]
-"oceanarray/reports/_css.py" = ["RUF100", "D", "ANN"]
-"oceanarray/reports/_encode.py" = ["RUF100", "D", "ANN"]
+"oceanarray/reports/_vendored/*" = ["RUF100", "D", "ANN"]
 "oceanarray/reports/_html_helpers.py" = ["BLE001"]
 "oceanarray/reports/_grid.py" = ["BLE001"]
 "oceanarray/reports/_instrument.py" = ["BLE001", "ARG001"]

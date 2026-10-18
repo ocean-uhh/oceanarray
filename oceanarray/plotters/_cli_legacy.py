@@ -23,7 +23,9 @@ def plot_microcat_raw(ds, save_path=None):
 
     Works with seasenselib variable names (temperature, conductivity, pressure).
     """
-    style_path = Path(__file__).parent.parent / "config" / "report.mplstyle"
+    style_path = (
+        Path(__file__).parent.parent / "reports" / "_vendored" / "report.mplstyle"
+    )
     plt.style.use(str(style_path))
 
     panels = [("temperature", "Temperature [°C]", "tab:red")]
@@ -64,7 +66,9 @@ def plot_microcat_raw(ds, save_path=None):
 
 def plot_aquadopp_raw(ds, save_path=None):
     """Plot east velocity, north velocity, and pressure from a raw/stage2 Aquadopp NetCDF."""
-    style_path = Path(__file__).parent.parent / "config" / "report.mplstyle"
+    style_path = (
+        Path(__file__).parent.parent / "reports" / "_vendored" / "report.mplstyle"
+    )
     plt.style.use(str(style_path))
 
     # Pick pressure variable — prefer 'pressure', fall back to 'pressure_1'

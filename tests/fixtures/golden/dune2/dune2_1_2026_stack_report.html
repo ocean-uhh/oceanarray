@@ -32,6 +32,7 @@
   --role-aggregate-b: #27ae60;
   --role-map: #ee3377;
   --role-up: #5d6d7e;
+  --qc-mark: var(--ok);
   --package-accent: var(--ocean);
   --font-sans: system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
@@ -39,6 +40,7 @@
   --fs-h1: 1.75rem;
   --fs-type: 1.35rem;
   --fs-h2: 1rem;
+  --fs-h3: 0.88rem;
   --fs-meta: 0.84rem;
   --fs-note: 0.92rem;
   --fs-nav: 0.8rem;
@@ -57,6 +59,15 @@
   --radius-card: 8px;
   --radius-btn: 4px;
   --radius-pill: 999px;
+  --qc-0: #999999;
+  --qc-1: #009E73;
+  --qc-2: #56B4E9;
+  --qc-3: #E69F00;
+  --qc-4: #D55E00;
+  --qc-7: #CC79A7;
+  --qc-8: #0072B2;
+  --qc-9: #bdbdbd;
+  --qc-3-text: #9A6B00;
 }
 * { box-sizing: border-box; }
 body {
@@ -108,6 +119,13 @@ h2 {
    figure block, so it spans the content width rather than the 78ch prose measure a
    paragraph would otherwise inherit — which left it stranded under full-width figures. */
 h2 + .caption { margin-top: -0.5rem; max-width: none; }
+/* Subsection headings inside a panel's own HTML — un-numbered, outside the jump
+   nav (the page model numbers Sections, not these).  Same navy as h2, smaller. */
+h3 {
+  color: var(--ocean); font-size: var(--fs-h3); margin: 1.2rem 0 0.4rem;
+}
+h3 + .caption { margin-top: -0.2rem; }
+figure h3, .fig-row > h3 { margin-top: 0.6rem; }  /* first heading inside a panel sits closer */
 .explainer {
   font-size: var(--fs-note); color: var(--text);
   background: var(--bg-sunken); border-left: 3px solid var(--muted);
@@ -155,7 +173,14 @@ figure img {
   border: 1px solid var(--rule); border-radius: var(--radius-btn);
   display: block; width: 100%; height: auto;
 }
-figcaption { font-size: var(--fs-cap); color: var(--gray-5); margin-top: 0.25rem; }
+figcaption { font-size: var(--fs-cap); color: var(--gray-5); margin-bottom: 0.25rem; }
+/* Optional provenance line under a figure: which draw function produced it.
+   Off by default (vendored SHOW_FIGURE_SOURCE); a package turns it on in its
+   owned design module. */
+.fig-source {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: var(--fs-xs); color: var(--muted); margin-top: 0.15rem;
+}
 /* A stub panel's warning fills the figure slot it stands in for, rather than the
    78ch prose reading measure it would otherwise inherit as a paragraph. */
 figure .warn { max-width: none; }
@@ -175,6 +200,40 @@ td {
 tr:nth-child(even) td { background: var(--bg-sunken); }
 td.num, .num { text-align: right; font-variant-numeric: tabular-nums; }
 td.mono { font-family: var(--font-mono); font-size: var(--fs-xs); }
+/* netCDF inventory tables (vendored nc_tables): variable / coord / scalar / sensor /
+   global tables.  Package-neutral — the markup is emitted by templates/_nc_tables.html. */
+.var-table code { font-family: var(--font-mono); font-size: var(--fs-xs); }
+.muted { color: var(--muted); }
+.var-qc { color: var(--qc-mark); font-size: var(--fs-xs); }
+/* The original source name on its own muted line above the canonical name (name_cell), so the
+   Variable column does not widen to fit both on one line. */
+.var-orig { color: var(--muted); font-size: var(--fs-xs); }
+/* A long unbroken token (a tracking_id, a path, a dotted standard_name) in a scalar value or a
+   standard/long-name cell would widen the whole table; cap the width and break inside the word. */
+.cell-wrap { overflow-wrap: anywhere; max-width: 28rem; }
+.cell-bad { color: var(--warn); font-variant-numeric: tabular-nums; }
+tr.units th {
+  background: transparent; color: var(--muted); font-weight: 400;
+  font-size: var(--fs-xs); padding-top: 0;
+}
+.attr-disclosure summary { cursor: pointer; color: var(--muted); font-size: var(--fs-xs); }
+.attr-disclosure table { margin: 0.3rem 0; width: auto; }
+.attr-disclosure th { background: transparent; color: var(--text); font-weight: 600; }
+/* QC flag-count distribution bar and legend (qc_counts_table). Flag colours are inline on each
+   segment (from the vendored QC_FLAG_COLORS), so these rules carry only the layout. */
+.qc-bar { display: flex; width: 200px; height: 13px; border-radius: 3px; overflow: hidden; gap: 1px; background: #ecf0f1; }
+.qc-bar div { height: 100%; }
+.qc-legend { display: flex; flex-wrap: wrap; gap: 0.3rem 0.9rem; font-size: 0.75rem; margin: 0.2rem 0 0.6rem; }
+.qc-legend span { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: middle; margin-right: 3px; }
+/* The source: caption hugs the table it belongs to, not the next one: a table has 1.2rem
+   bottom margin, so pull the caption up under it and keep the gap below before the next table. */
+table + .fig-source { margin-top: -0.9rem; margin-bottom: 1.2rem; }
+/* Click-to-sort affordance: _JS_SORT_TABLES gives every sortable heading a tabindex, so
+   keying on th[tabindex] styles exactly the headings it wired (a data-nosort table or th
+   gets none).  The heading is a pointer; the active one shows the direction. */
+th[tabindex] { cursor: pointer; user-select: none; }
+th.sorted-asc::after { content: " \25B2"; font-size: 0.8em; }
+th.sorted-desc::after { content: " \25BC"; font-size: 0.8em; }
 .slot-full         { width: 100%; }
 .slot-twothirds     { width: calc(66.67% - 0.33rem); }
 .slot-three-fifths  { width: calc(60% - 0.40rem); }
@@ -201,11 +260,17 @@ td.mono { font-family: var(--font-mono); font-size: var(--fs-xs); }
    "Data inventory:" file strip.  A pill's colour is its role, never its page; the
    current page's pill and an already-viewed file pill are muted the same way. */
 .page-nav { margin: 0.65rem 0 0.5rem; }
+/* Consecutive nav rows (a multi-row masthead) stack tighter than the first row's
+   top margin, which is sized for a single row. */
+.page-nav + .page-nav { margin-top: 0.15rem; }
 .page-nav-label { font-size: var(--fs-top); opacity: 0.75; margin-right: 0.3rem; }
 .nav-pill {
   display: inline-block; padding: 0.2em 0.65em; border-radius: var(--radius-btn);
   font-size: var(--fs-nav); font-weight: 700; text-decoration: none; color: #fff;
   margin: 0 0.2rem 0.25rem 0;
+  /* A contrasting inner edge keeps a pill visible when its role colour matches the
+     masthead background, so colour-is-role holds on any masthead. */
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55);
 }
 .nav-landing { background: var(--role-landing); }
 .nav-entity { background: var(--role-entity); }
@@ -215,6 +280,14 @@ td.mono { font-family: var(--font-mono); font-size: var(--fs-xs); }
 .nav-aggregate-b { background: var(--role-aggregate-b); }
 .nav-map { background: var(--role-map); }
 .nav-up { background: var(--role-up); }
+.masthead.role-landing { background: var(--role-landing); }
+.masthead.role-entity { background: var(--role-entity); }
+.masthead.role-collection { background: var(--role-collection); }
+.masthead.role-component { background: var(--role-component); }
+.masthead.role-aggregate-a { background: var(--role-aggregate-a); }
+.masthead.role-aggregate-b { background: var(--role-aggregate-b); }
+.masthead.role-map { background: var(--role-map); }
+.masthead.role-up { background: var(--role-up); }
 .nav-current { opacity: 0.5; pointer-events: none; }
 .nav-missing { background: var(--gray-3); opacity: 0.5; pointer-events: none; }
 .inventory-strip { margin: 0 0 1rem; }
@@ -243,6 +316,7 @@ footer a { color: var(--muted); }
   .masthead-header h1, .masthead h1 { font-size: 1.35rem; }
   .meta-grid { grid-template-columns: repeat(4, 1fr); gap: 0.3rem 1rem; font-size: var(--fs-xs); }
   h2 { page-break-after: avoid; }
+  h3 { page-break-after: avoid; }
   .fig-row, figure, table { break-inside: avoid; }
   .jump-nav { display: none; }
 }
@@ -268,8 +342,6 @@ p, li { max-width: none; }
    inter-row gap. (ctdcast/glidertest have a single row and do not need this.) */
 .masthead .page-nav { margin:0.12rem 0 0; }
 .masthead .page-nav:first-of-type { margin-top:0.5rem; }
-.masthead-plain { background:#fff; color:var(--text); border:1px solid var(--rule); }
-.masthead-plain .wordmark { display:none; }
 /* Wordmark is now an <a> to the repo; keep the pill look (no link underline). */
 .wordmark, .wordmark:hover { text-decoration:none; }
 .masthead-title { display:flex; justify-content:space-between; align-items:baseline; gap:1rem; }
@@ -278,26 +350,14 @@ p, li { max-width: none; }
 .masthead .sub a { color:var(--accent-link); font-weight:600; text-decoration:none; }
 .masthead .sub a:hover { text-decoration:underline; }
 .meta-miss dd { color:var(--warn); opacity:1; }
-h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--seafoam);
-     padding-bottom:0.3rem; margin:2.5rem 0 1rem;
-     display:flex; justify-content:space-between; align-items:baseline; }
 .top-link { font-size:var(--fs-top); font-weight:400; color:var(--muted);
             text-decoration:none; margin-left:auto; white-space:nowrap; }
-.top-link:hover { color:var(--ocean); text-decoration:underline; }
 .report-footer { margin-top:3rem; font-size:var(--fs-cap); color:var(--muted);
                  border-top:1px solid var(--rule); padding-top:0.8rem;
                  text-align:center; }
-.jump-nav { background:var(--seafoam); padding:0.55rem 1rem; border-radius:6px;
-            margin-bottom:1.5rem; font-size:var(--fs-nav); line-height:2.2; }
 .jump-nav a { color:var(--ocean); text-decoration:none; font-weight:600;
               margin:0 0.5rem 0 0; white-space:nowrap; }
-.jump-nav a::before { content:"▸ "; font-size:var(--fs-dt); }
 .jump-nav a:hover { text-decoration:underline; }
-.history-list { list-style:none; padding:0; margin:0; }
-.history-list li { display:flex; gap:1rem; padding:0.3rem 0; border-bottom:1px solid var(--rule); font-size:var(--fs-note); }
-.history-list li:last-child { border-bottom:none; }
-.history-ts { color:var(--muted); white-space:nowrap; font-size:var(--fs-cap); min-width:11rem; }
-.history-text { flex:1; }
 /* Figure collapse toggle (shared report chrome — used by the panel() macro on
    every manifest-ported page). */
 details summary.collapse-toggle { color:var(--muted); font-size:0.76rem; cursor:pointer;
@@ -316,7 +376,6 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 .fig-cell { min-width:0; }
 .fig-cell > .fig { width:100%; }
 .none-note { color:var(--muted); font-style:italic; }
-.var-qc { color:var(--good); font-size:var(--fs-xs); }
 /* Per-row NetCDF attribute disclosure in the inventory tables (the N attrs
    expander). */
 .attr-disclosure summary { cursor:pointer; color:var(--muted); font-size:var(--fs-xs); white-space:nowrap; }
@@ -355,7 +414,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <nav class="page-nav">
   <span class="page-nav-label">Reports:</span>
   
-  <a class="nav-pill nav-entity" href="dune2_1_2026_report.html">Summary</a><span class="nav-pill nav-landing nav-current">Stack</span><a class="nav-pill nav-aggregate-a" href="dune2_1_2026_grid_report.html">Grid</a>
+  <a class="nav-pill nav-entity" href="dune2_1_2026_report.html">Summary</a><span class="nav-pill nav-landing nav-current" title="current page">Stack</span><a class="nav-pill nav-aggregate-a" href="dune2_1_2026_grid_report.html">Grid</a>
 </nav>
 
 <nav class="page-nav">
@@ -369,6 +428,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
   
   <a class="nav-pill nav-aggregate-b" href="instrument/dune2_1_2026_2941_report.html">2941</a>
 </nav>
+
 
 
 
@@ -413,19 +473,24 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <h2 id="processing_history">(1) Processing history</h2>
 
 
-<ul class="history-list">
-  
-  <li>
-    <span class="history-ts">Step 1 stack</span>
-    <span class="history-text">22 instruments onto 3600s grid</span>
-  </li>
-  
-  <li>
-    <span class="history-ts"></span>
-    <span class="history-text">fast instruments (dt&lt;=3600s) subsampled (nearest-neighbour in time), slow instruments interpolated (linear in time)</span>
-  </li>
-  
-</ul>
+
+
+
+<table class="nc properties" data-nosort>
+
+<thead><tr><th>Property</th><th>Value</th></tr></thead>
+<tbody>
+<tr><td>Step 1 stack</td><td>22 instruments onto 3600s grid</td></tr>
+</tbody></table>
+<table class="sortable">
+
+<thead>
+  <tr><th tabindex="0">#</th><th tabindex="0">Time</th><th tabindex="0">Event</th></tr>
+</thead>
+<tbody>
+  <tr><td>1</td><td></td><td>fast instruments (dt&lt;=3600s) subsampled (nearest-neighbour in time), slow instruments interpolated (linear in time)</td></tr>
+</tbody>
+</table><div class="fig-source">source: oceanarray/reports/_html_helpers.py:_history_tables</div>
 
 <h2 id="instruments">(2) Instruments (deep-first)</h2>
 <p class="caption">HAB = height above bottom (m).</p>
@@ -635,7 +700,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <p class="caption">Pseudo-Lagrangian particle trajectories integrated from each Aquadopp&#39;s east/north velocity. Start at the origin; coloured by time through the deployment.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="trajectories_aquadopp">
-</details>
+</details><div class="fig-source">source: oceanarray/plotters/current.py:plot_multi_aquadopp_trajectories</div>
 </div>
 </div>
 
@@ -645,14 +710,14 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <p class="caption">Aquadopp current-speed profile: median and interquartile range of speed against height above bottom across the deployment.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig slot-half" src="data:image/png;base64,<PNG>" alt="speed_profile">
-</details>
+</details><div class="fig-source">source: oceanarray/plotters/current.py:plot_aquadopp_speed_profile</div>
 
 <h2 id="ts_diagram">(7) T-S diagram</h2>
 
 <p class="caption">Left: scatter coloured by pressure. Middle: 2-D count heatmap. Right (when oxygen data present): scatter coloured by O₂ saturation (%). Bad (flag 4) and missing (flag 9) excluded; interpolated pressure (flag 8) retained.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="ts_diagram">
-</details>
+</details><div class="fig-source">source: oceanarray/plotters/ts.py:draw_stack_ts_diagram</div>
 
 <h2 id="roses">(8) Current rose diagrams</h2>
 
@@ -663,854 +728,254 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <p class="caption">Direction the current flows toward (oceanographic convention, 0°=N). Speed coloured light→dark blue (slow→fast). QC-flagged samples excluded. Title shows serial number and height above bottom (m).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="roses">
-</details>
+</details><div class="fig-source">source: oceanarray/reports/_plots.py:_make_rose_grid_b64</div>
 
 <h2 id="tilt">(9) Aquadopp tilt (|pitch| / |roll| / pressure estimate)</h2>
 
 <p class="caption">|pitch| / |roll| / pressure-estimate tilt per Aquadopp, sharing a y-axis. Horizontal lines mark the suspect and fail thresholds from the file attributes.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="tilt">
-</details>
+</details><div class="fig-source">source: oceanarray/reports/_stack.py:_make_aquadopp_tilt_panels</div>
 
 <h2 id="spacing">(10) Adjacent instrument spacing</h2>
 
 <p class="caption">Distribution of pressure differences between adjacent instrument pairs (pairs &lt; 2 dbar apart excluded as co-located).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig slot-third" src="data:image/png;base64,<PNG>" alt="spacing">
-</details>
+</details><div class="fig-source">source: oceanarray/reports/_stack.py:generate_stack_page</div>
 
 <h2 id="clock_check">(11) Clock alignment check</h2>
 
 <p class="caption">One temperature trace per instrument, zoomed to the first and last 30 min of the deployment, to check clock alignment across instruments.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="clock_check">
-</details>
+</details><div class="fig-source">source: oceanarray/plotters/diagnostic.py:plot_clock_offset_check</div>
 
 <h2 id="netcdf_variables">(A) NetCDF variables</h2>
 
+<h3>Coordinates</h3>
+<table class="sortable var-table">
 
 
-
-<h3 class="subhead-sm">Coordinates</h3>
-<table class="var-table">
-  
-  <thead>
-    <tr><th>Variable</th><th>Type</th><th>Units</th><th>Standard / long name</th><th class="num">Min / Max</th><th class="num">N (valid)</th><th>Attributes</th></tr>
-  </thead>
-
-  <tbody>
-    
-    <tr>
-      <td class="mono">hab</td>
-      <td class="mono cell-xs" style="font-weight:600">float64</td>
-      <td>m</td>
-      <td><span class="cell-muted">height above bottom</span></td>
-      <td class="num cell-minmax">8 / 675</td>
-      <td class="num">22</td>
-      <td></td>
-    </tr>
-
-    <tr>
-      <td class="mono">instrument_type</td>
-      <td class="mono cell-xs">&lt;U8</td>
-      <td></td>
-      <td><span class="cell-muted">instrument type</span></td>
-      <td class="num cell-minmax">&mdash;</td>
-      <td class="num">22</td>
-      <td></td>
-    </tr>
-
-    <tr>
-      <td class="mono">serial</td>
-      <td class="mono cell-xs">&lt;U6</td>
-      <td></td>
-      <td><span class="cell-muted">instrument serial number</span></td>
-      <td class="num cell-minmax">&mdash;</td>
-      <td class="num">22</td>
-      <td></td>
-    </tr>
-
-    <tr>
-      <td class="mono">time</td>
-      <td class="mono cell-xs" style="font-weight:600">datetime64[ns]</td>
-      <td></td>
-      <td><strong class="mono">time</strong><br><span class="cell-muted">time</span></td>
-      <td class="num cell-minmax">2026-07-11 20:30:00 / 2026-07-25 11:30:00</td>
-      <td class="num">328</td>
-      <td><details class="attr-disclosure"><summary>1 attr</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">axis</td><td>T</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-  </tbody>
-</table>
+<thead>
+  <tr><th tabindex="0">Variable</th><th tabindex="0">Dims</th><th tabindex="0">Type</th><th tabindex="0">Length</th><th tabindex="0">Units</th><th tabindex="0">Standard / long name</th><th tabindex="0">Min / Max</th><th data-nosort>Attributes</th></tr>
+</thead>
+<tbody>
+<tr>
+<td data-sort="hab">hab</td><td>N_LEVELS</td><td><strong><code>float64</code></strong></td><td data-sort="22">22</td>
+<td>m</td><td class="cell-wrap">height above bottom</td><td data-sort="8.0">8 / 675</td><td data-nosort>—</td></tr>
+<tr>
+<td data-sort="instrument_type">instrument_type</td><td>N_LEVELS</td><td><code>string</code></td><td data-sort="22">22</td>
+<td>—</td><td class="cell-wrap">instrument type</td><td data-sort="-1e308">—</td><td data-nosort>—</td></tr>
+<tr>
+<td data-sort="serial">serial</td><td>N_LEVELS</td><td><code>string</code></td><td data-sort="22">22</td>
+<td>—</td><td class="cell-wrap">instrument serial number</td><td data-sort="-1e308">—</td><td data-nosort>—</td></tr>
+<tr>
+<td data-sort="time">time</td><td>time</td><td><code>datetime</code></td><td data-sort="328">328</td>
+<td>—</td><td class="cell-wrap"><strong><code>time</code></strong><br>time</td><td>2026-07-11 20:30:00 / 2026-07-25 11:30:00</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
+<table data-nosort><tbody><tr><th>axis</th><td>T</td></tr>
+</tbody></table></details></td></tr>
+</tbody></table><div class="fig-source">source: oceanarray/reports/_vendored/nc_tables.py:coords_rows</div>
 
 
+<h3>Variables on N_LEVELS (22 samples)</h3>
+<table class="sortable var-table">
 
 
+<thead>
+  <tr><th tabindex="0">Variable</th><th tabindex="0">Type</th><th tabindex="0">Units</th><th tabindex="0">Standard / long name</th><th tabindex="0">Min / Max</th><th tabindex="0">Valid</th><th tabindex="0">Valid %</th></tr>
+</thead>
+<tbody>
+<tr>
+<td data-sort="InstrDepth">InstrDepth</td>
+<td><code>float32</code></td><td class="cell-bad">—</td><td class="cell-wrap">—</td><td data-sort="70.0">70 / 737</td>
+<td data-sort="22">22</td>
+<td data-sort="100.0">100.0</td></tr>
+<tr>
+<td data-sort="clock_drift_seconds">clock_drift_seconds</td>
+<td><code>float32</code></td><td>s</td><td class="cell-wrap">total linear clock drift applied</td><td data-sort="-57.0">-57 / 601</td>
+<td data-sort="19">19</td>
+<td data-sort="86.4" class="cell-bad">86.4</td></tr>
+<tr>
+<td data-sort="magnetic_declination">magnetic_declination</td>
+<td><code>float32</code></td><td>degrees_east</td><td class="cell-wrap">Magnetic declination (IGRF)</td><td data-sort="-13.96561336517334">-13.97 / -13.97</td>
+<td data-sort="7">7</td>
+<td data-sort="31.8" class="cell-bad">31.8</td></tr>
+<tr>
+<td data-sort="serial_number">serial_number</td>
+<td><code>string</code></td><td>—</td><td class="cell-wrap">—</td><td data-sort="-1e308">—</td>
+<td data-sort="22">22</td>
+<td data-sort="100.0">100.0</td></tr>
+<tr>
+<td data-sort="tilt_pressure_ref_hab">tilt_pressure_ref_hab</td>
+<td><code>float32</code></td><td>m</td><td class="cell-wrap">Height above bottom of the pressure reference instrument used for tilt</td><td data-sort="25.0">25 / 675</td>
+<td data-sort="21">21</td>
+<td data-sort="95.5" class="cell-bad">95.5</td></tr>
+<tr>
+<td data-sort="tilt_pressure_ref_serial">tilt_pressure_ref_serial</td>
+<td><code>string</code></td><td>—</td><td class="cell-wrap">Serial number of the pressure reference instrument used for tilt</td><td data-sort="-1e308">—</td>
+<td data-sort="22">22</td>
+<td data-sort="100.0">100.0</td></tr>
+</tbody></table>
+<h3>Variables on time × N_LEVELS (328 × 22 = 7,216 samples)</h3>
+<table class="sortable var-table">
 
 
-<h3 class="subhead-sm">Variables on N_LEVELS &mdash; dune2_1_2026_stack.nc</h3>
-<table class="var-table">
-  
-  <thead>
-    <tr><th>Variable</th><th>Type</th><th>Units</th><th>Standard / long name</th><th class="num">Min / Max</th><th class="num">N (valid)</th><th>Attributes</th></tr>
-  </thead>
+<thead>
+  <tr><th tabindex="0">Variable</th><th tabindex="0">Type</th><th tabindex="0">Units</th><th tabindex="0">Standard / long name</th><th tabindex="0">Min / Max</th><th tabindex="0">Valid</th><th tabindex="0">Valid %</th><th data-nosort>Attributes</th></tr>
+</thead>
+<tbody>
+<tr>
+<td data-sort="conductivity">conductivity</td>
+<td><code>float32</code></td><td>mS cm-1</td><td class="cell-wrap"><strong><code>sea_water_electrical_conductivity</code></strong><br>Conductivity</td><td data-sort="29.218799591064453">29.22 / 36.32</td>
+<td data-sort="2296">2,296</td>
+<td data-sort="31.8" class="cell-bad">31.8</td><td data-nosort><details class="attr-disclosure"><summary>6 attrs</summary>
+<table data-nosort><tbody><tr><th>cnv_original_name</th><td>cond0mS/cm</td></tr><tr><th>cnv_original_label</th><td>Conductivity [mS/cm]</td></tr><tr><th>cnv_original_unit</th><td>mS/cm</td></tr><tr><th>original_name</th><td>cond0mS/cm</td></tr><tr><th>coverage_content_type</th><td>physicalMeasurement</td></tr><tr><th>measurement_type</th><td>Measured</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="current_direction">current_direction</td>
+<td><code>float32</code></td><td>degrees</td><td class="cell-wrap"><strong><code>direction_of_sea_water_velocity</code></strong><br>Current direction (0=N, clockwise)</td><td data-sort="0.013480518944561481">0.01348 / 359.9</td>
+<td data-sort="2296">2,296</td>
+<td data-sort="31.8" class="cell-bad">31.8</td><td data-nosort>—</td></tr>
+<tr>
+<td data-sort="current_speed">current_speed</td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap"><strong><code>sea_water_speed</code></strong><br>Horizontal current speed</td><td data-sort="0.011032858863472939">0.01103 / 1.331</td>
+<td data-sort="2296">2,296</td>
+<td data-sort="31.8" class="cell-bad">31.8</td><td data-nosort>—</td></tr>
+<tr>
+<td data-sort="east_velocity">east_velocity <span class="var-qc">(_qc)</span></td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap"><strong><code>eastward_sea_water_velocity</code></strong><br>Eastward sea water velocity</td><td data-sort="-1.329809308052063">-1.33 / 0.9936</td>
+<td data-sort="2296">2,296</td>
+<td data-sort="31.8" class="cell-bad">31.8</td><td data-nosort>—</td></tr>
+<tr>
+<td data-sort="heading">heading</td>
+<td><code>float32</code></td><td>degrees</td><td class="cell-wrap"><strong><code>platform_heading_angle</code></strong><br>Heading angle</td><td data-sort="0.20000000298023224">0.2 / 359.6</td>
+<td data-sort="2296">2,296</td>
+<td data-sort="31.8" class="cell-bad">31.8</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Heading</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="north_velocity">north_velocity <span class="var-qc">(_qc)</span></td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap"><strong><code>northward_sea_water_velocity</code></strong><br>Northward sea water velocity</td><td data-sort="-1.0391464233398438">-1.039 / 0.8338</td>
+<td data-sort="2296">2,296</td>
+<td data-sort="31.8" class="cell-bad">31.8</td><td data-nosort>—</td></tr>
+<tr>
+<td data-sort="pitch">pitch</td>
+<td><code>float32</code></td><td>degrees</td><td class="cell-wrap"><strong><code>platform_pitch_angle</code></strong><br>Pitch angle</td><td data-sort="-166.10000610351562">-166.1 / 18.6</td>
+<td data-sort="2296">2,296</td>
+<td data-sort="31.8" class="cell-bad">31.8</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Pitch</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="pressure">pressure <span class="var-qc">(_qc)</span></td>
+<td><code>float32</code></td><td>dbar</td><td class="cell-wrap"><strong><code>sea_water_pressure</code></strong><br>sea water pressure</td><td data-sort="82.4679946899414">82.47 / 807.9</td>
+<td data-sort="6671">6,671</td>
+<td data-sort="92.4" class="cell-bad">92.4</td><td data-nosort><details class="attr-disclosure"><summary>2 attrs</summary>
+<table data-nosort><tbody><tr><th>pressure_source</th><td>extrapolated from microcat 26269 (hab=25.0m, static offset=+17.0 dbar) — WARNING: out of range</td></tr><tr><th>comment</th><td>interpolated from neighbouring instrument(s)</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="roll">roll</td>
+<td><code>float32</code></td><td>degrees</td><td class="cell-wrap"><strong><code>platform_roll_angle</code></strong><br>Roll angle</td><td data-sort="-27.899999618530273">-27.9 / 165.9</td>
+<td data-sort="2296">2,296</td>
+<td data-sort="31.8" class="cell-bad">31.8</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Roll</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="salinity">salinity <span class="var-qc">(_qc)</span></td>
+<td><code>float32</code></td><td>1</td><td class="cell-wrap"><strong><code>sea_water_practical_salinity</code></strong><br>Practical Salinity</td><td data-sort="34.55827713012695">34.56 / 35.57</td>
+<td data-sort="2214">2,214</td>
+<td data-sort="30.7" class="cell-bad">30.7</td><td data-nosort><details class="attr-disclosure"><summary>2 attrs</summary>
+<table data-nosort><tbody><tr><th>coverage_content_type</th><td>physicalMeasurement</td></tr><tr><th>comment</th><td>Derived from conductivity, temperature, pressure via gsw.SP_from_C</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="sigma0">sigma0</td>
+<td><code>float32</code></td><td>kg m-3</td><td class="cell-wrap"><strong><code>sea_water_sigma_t</code></strong><br>Potential density anomaly referenced to surface (sigma-0)</td><td data-sort="27.422523498535156">27.42 / 28.06</td>
+<td data-sort="2214">2,214</td>
+<td data-sort="30.7" class="cell-bad">30.7</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
+<table data-nosort><tbody><tr><th>reference_pressure_dbar</th><td>0</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="temperature">temperature <span class="var-qc">(_qc)</span></td>
+<td><code>float32</code></td><td>degree_Celsius</td><td class="cell-wrap"><strong><code>sea_water_temperature</code></strong><br>Temperature</td><td data-sort="-0.07039999961853027">-0.0704 / 8.17</td>
+<td data-sort="7216">7,216</td>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>13 attrs</summary>
+<table data-nosort><tbody><tr><th>rsk_channel_id</th><td>1</td></tr><tr><th>rsk_long_name</th><td>temperature</td></tr><tr><th>rsk_short_name</th><td>temp18</td></tr><tr><th>rsk_label</th><td>temperature_00</td></tr><tr><th>rsk_dbName</th><td>Temperature</td></tr><tr><th>rsk_units</th><td>°C</td></tr><tr><th>rsk_units_plain_text</th><td>Degrees_C</td></tr><tr><th>rsk_fe_module_type</th><td>SOLO-tmpB</td></tr><tr><th>rsk_fe_module_version</th><td>1.065</td></tr><tr><th>rsk_is_measured</th><td>1</td></tr><tr><th>rsk_is_derived</th><td>0</td></tr><tr><th>coverage_content_type</th><td>physicalMeasurement</td></tr><tr><th>measurement_type</th><td>Measured</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="tilt_from_pressure">tilt_from_pressure</td>
+<td><code>float32</code></td><td>degrees</td><td class="cell-wrap">Tilt estimated from pressure difference</td><td data-sort="0.0">0 / 75.32</td>
+<td data-sort="5725">5,725</td>
+<td data-sort="79.3" class="cell-bad">79.3</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
+<table data-nosort><tbody><tr><th>comment</th><td>arccos(ΔP / rope_length) where ΔP = pressure[i] - pressure[ref] and rope_length = hab[ref] - hab[i] from mooring YAML; r</td></tr>
+</tbody></table></details></td></tr>
+<tr>
+<td data-sort="up_velocity">up_velocity <span class="var-qc">(_qc)</span></td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap"><strong><code>upward_sea_water_velocity</code></strong><br>Upward sea water velocity</td><td data-sort="-1.3665828704833984">-1.367 / 0.8008</td>
+<td data-sort="2296">2,296</td>
+<td data-sort="31.8" class="cell-bad">31.8</td><td data-nosort>—</td></tr>
+<tr>
+<td data-sort="velocity_flag">velocity_flag</td>
+<td><code>int8</code></td><td>—</td><td class="cell-wrap">Combined velocity QC flag (worst of east/north/up)</td><td data-sort="1.0">1 / 9</td>
+<td data-sort="7216">7,216</td>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>4 attrs</summary>
+<table data-nosort><tbody><tr><th>comment</th><td>Worst OceanSITES flag across east/north/up_velocity; apply to the velocity components before use.</td></tr><tr><th>flag_values</th><td>[0 1 2 3 4 7 8 9]</td></tr><tr><th>flag_meanings</th><td>unknown good_data probably_good_data potentially_correctable_bad_data bad_data nominal_value interpolated_value missing_</td></tr><tr><th>conventions</th><td>OceanSITES reference table 2</td></tr>
+</tbody></table></details></td></tr>
+</tbody></table><div class="fig-source">source: oceanarray/reports/_vendored/nc_tables.py:variables_rows</div>
 
-  <tbody>
-    
-    <tr>
-      <td class="mono">InstrDepth</td>
-      <td class="mono cell-xs">float32</td>
-      <td></td>
-      <td></td>
-      <td class="num cell-minmax">70 / 737</td>
-      <td class="num">22</td>
-      <td></td>
-    </tr>
-
-    <tr>
-      <td class="mono">SENSOR_CNDC_2941</td>
-      <td class="mono cell-xs">&lt;U3</td>
-      <td></td>
-      <td><span class="cell-muted">Sea-Bird SBE conductivity sensor metadata</span></td>
-      <td class="num cell-minmax">&mdash;</td>
-      <td class="num">22</td>
-      <td><details class="attr-disclosure"><summary>7 attrs</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">sensor_type</td><td>CONDUCTIVITY</td></tr>
-    
-      <tr><td class="mono">sensor_serial_number</td><td>2941</td></tr>
-    
-      <tr><td class="mono">sensor_model</td><td>Sea-Bird SBE conductivity sensor</td></tr>
-    
-      <tr><td class="mono">sensor_calibration_date</td><td>2023-03-28</td></tr>
-    
-      <tr><td class="mono">CONDUCTIVITY_calibration_coefficients</td><td>G=-9.871170e-01, H=1.369976e-01, I=-3.485648e-04, J=4.990156e-05, CPCOR=-9.570000e-08, CTCOR=3.250000e-06, WBOTC=-9.105544e-06</td></tr>
-    
-      <tr><td class="mono">cf_role</td><td>sensor_id</td></tr>
-    
-      <tr><td class="mono">coverage_content_type</td><td>auxiliaryInformation</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">SENSOR_CNDC_2942</td>
-      <td class="mono cell-xs">&lt;U3</td>
-      <td></td>
-      <td><span class="cell-muted">Sea-Bird SBE conductivity sensor metadata</span></td>
-      <td class="num cell-minmax">&mdash;</td>
-      <td class="num">22</td>
-      <td><details class="attr-disclosure"><summary>7 attrs</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">sensor_type</td><td>CONDUCTIVITY</td></tr>
-    
-      <tr><td class="mono">sensor_serial_number</td><td>2942</td></tr>
-    
-      <tr><td class="mono">sensor_model</td><td>Sea-Bird SBE conductivity sensor</td></tr>
-    
-      <tr><td class="mono">sensor_calibration_date</td><td>2023-04-13</td></tr>
-    
-      <tr><td class="mono">CONDUCTIVITY_calibration_coefficients</td><td>G=-1.026039e+00, H=1.391152e-01, I=-9.522072e-05, J=3.014040e-05, CPCOR=-9.570000e-08, CTCOR=3.250000e-06, WBOTC=-9.511003e-07</td></tr>
-    
-      <tr><td class="mono">cf_role</td><td>sensor_id</td></tr>
-    
-      <tr><td class="mono">coverage_content_type</td><td>auxiliaryInformation</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">SENSOR_CNDC_3026</td>
-      <td class="mono cell-xs">&lt;U3</td>
-      <td></td>
-      <td><span class="cell-muted">Sea-Bird SBE conductivity sensor metadata</span></td>
-      <td class="num cell-minmax">&mdash;</td>
-      <td class="num">22</td>
-      <td><details class="attr-disclosure"><summary>7 attrs</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">sensor_type</td><td>CONDUCTIVITY</td></tr>
-    
-      <tr><td class="mono">sensor_serial_number</td><td>3026</td></tr>
-    
-      <tr><td class="mono">sensor_model</td><td>Sea-Bird SBE conductivity sensor</td></tr>
-    
-      <tr><td class="mono">sensor_calibration_date</td><td>2004-03-18</td></tr>
-    
-      <tr><td class="mono">CONDUCTIVITY_calibration_coefficients</td><td>G=-1.016611e+00, H=1.398992e-01, I=-1.280754e-04, J=3.116526e-05, CPCOR=-9.570000e-08, CTCOR=3.250000e-06, WBOTC=-1.238667e-05</td></tr>
-    
-      <tr><td class="mono">cf_role</td><td>sensor_id</td></tr>
-    
-      <tr><td class="mono">coverage_content_type</td><td>auxiliaryInformation</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">SENSOR_CNDC_5367</td>
-      <td class="mono cell-xs">&lt;U3</td>
-      <td></td>
-      <td><span class="cell-muted">Sea-Bird SBE conductivity sensor metadata</span></td>
-      <td class="num cell-minmax">&mdash;</td>
-      <td class="num">22</td>
-      <td><details class="attr-disclosure"><summary>7 attrs</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">sensor_type</td><td>CONDUCTIVITY</td></tr>
-    
-      <tr><td class="mono">sensor_serial_number</td><td>5367</td></tr>
-    
-      <tr><td class="mono">sensor_model</td><td>Sea-Bird SBE conductivity sensor</td></tr>
-    
-      <tr><td class="mono">sensor_calibration_date</td><td>2008-11-19</td></tr>
-    
-      <tr><td class="mono">CONDUCTIVITY_calibration_coefficients</td><td>G=-1.000883e+00, H=1.554361e-01, I=-1.542087e-04, J=3.824875e-05, CPCOR=-9.570000e-08, CTCOR=3.250000e-06, WBOTC=2.072041e-05</td></tr>
-    
-      <tr><td class="mono">cf_role</td><td>sensor_id</td></tr>
-    
-      <tr><td class="mono">coverage_content_type</td><td>auxiliaryInformation</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">SENSOR_PRES_3026</td>
-      <td class="mono cell-xs">&lt;U3</td>
-      <td></td>
-      <td><span class="cell-muted">Sea-Bird pressure sensor metadata</span></td>
-      <td class="num cell-minmax">&mdash;</td>
-      <td class="num">22</td>
-      <td><details class="attr-disclosure"><summary>7 attrs</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">sensor_type</td><td>PRESSURE</td></tr>
-    
-      <tr><td class="mono">sensor_serial_number</td><td>3195</td></tr>
-    
-      <tr><td class="mono">sensor_model</td><td>Sea-Bird pressure sensor</td></tr>
-    
-      <tr><td class="mono">sensor_calibration_date</td><td>2003-10-30</td></tr>
-    
-      <tr><td class="mono">PRESSURE_calibration_coefficients</td><td>PA0=8.620883e-01, PA1=4.952560e-01, PA2=-5.019951e-07, PTCA0=-1.704453e+01, PTCA1=9.535596e-02, PTCA2=-5.644065e-04, PTCSB0=2.450500e+01, PTCSB1=-9.999999e-04, PTCSB2=0.000000e+00, POFFSET=0.000000e+00</td></tr>
-    
-      <tr><td class="mono">cf_role</td><td>sensor_id</td></tr>
-    
-      <tr><td class="mono">coverage_content_type</td><td>auxiliaryInformation</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">SENSOR_PRES_5367</td>
-      <td class="mono cell-xs">&lt;U3</td>
-      <td></td>
-      <td><span class="cell-muted">Sea-Bird pressure sensor metadata</span></td>
-      <td class="num cell-minmax">&mdash;</td>
-      <td class="num">22</td>
-      <td><details class="attr-disclosure"><summary>7 attrs</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">sensor_type</td><td>PRESSURE</td></tr>
-    
-      <tr><td class="mono">sensor_serial_number</td><td>2385215</td></tr>
-    
-      <tr><td class="mono">sensor_model</td><td>Sea-Bird pressure sensor</td></tr>
-    
-      <tr><td class="mono">sensor_calibration_date</td><td>2008-11-10</td></tr>
-    
-      <tr><td class="mono">PRESSURE_calibration_coefficients</td><td>PA0=1.991819e-01, PA1=1.384272e-01, PA2=-3.833207e-08, PTCA0=3.345359e+01, PTCA1=1.982817e-01, PTCA2=-6.261151e-03, PTCSB0=2.599837e+01, PTCSB1=2.750000e-04, PTCSB2=0.000000e+00, POFFSET=0.000000e+00</td></tr>
-    
-      <tr><td class="mono">cf_role</td><td>sensor_id</td></tr>
-    
-      <tr><td class="mono">coverage_content_type</td><td>auxiliaryInformation</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">SENSOR_TEMP_2941</td>
-      <td class="mono cell-xs">&lt;U3</td>
-      <td></td>
-      <td><span class="cell-muted">Sea-Bird SBE temperature sensor metadata</span></td>
-      <td class="num cell-minmax">&mdash;</td>
-      <td class="num">22</td>
-      <td><details class="attr-disclosure"><summary>7 attrs</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">sensor_type</td><td>TEMPERATURE</td></tr>
-    
-      <tr><td class="mono">sensor_serial_number</td><td>2941</td></tr>
-    
-      <tr><td class="mono">sensor_model</td><td>Sea-Bird SBE temperature sensor</td></tr>
-    
-      <tr><td class="mono">sensor_calibration_date</td><td>2023-03-28</td></tr>
-    
-      <tr><td class="mono">TEMPERATURE_calibration_coefficients</td><td>TA0=6.981772e-06, TA1=2.746413e-04, TA2=-2.252296e-06, TA3=1.528407e-07</td></tr>
-    
-      <tr><td class="mono">cf_role</td><td>sensor_id</td></tr>
-    
-      <tr><td class="mono">coverage_content_type</td><td>auxiliaryInformation</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">SENSOR_TEMP_2942</td>
-      <td class="mono cell-xs">&lt;U3</td>
-      <td></td>
-      <td><span class="cell-muted">Sea-Bird SBE temperature sensor metadata</span></td>
-      <td class="num cell-minmax">&mdash;</td>
-      <td class="num">22</td>
-      <td><details class="attr-disclosure"><summary>7 attrs</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">sensor_type</td><td>TEMPERATURE</td></tr>
-    
-      <tr><td class="mono">sensor_serial_number</td><td>2942</td></tr>
-    
-      <tr><td class="mono">sensor_model</td><td>Sea-Bird SBE temperature sensor</td></tr>
-    
-      <tr><td class="mono">sensor_calibration_date</td><td>2023-04-13</td></tr>
-    
-      <tr><td class="mono">TEMPERATURE_calibration_coefficients</td><td>TA0=5.056098e-05, TA1=2.632734e-04, TA2=-1.355810e-06, TA3=1.300492e-07</td></tr>
-    
-      <tr><td class="mono">cf_role</td><td>sensor_id</td></tr>
-    
-      <tr><td class="mono">coverage_content_type</td><td>auxiliaryInformation</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">SENSOR_TEMP_3026</td>
-      <td class="mono cell-xs">&lt;U3</td>
-      <td></td>
-      <td><span class="cell-muted">Sea-Bird SBE temperature sensor metadata</span></td>
-      <td class="num cell-minmax">&mdash;</td>
-      <td class="num">22</td>
-      <td><details class="attr-disclosure"><summary>7 attrs</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">sensor_type</td><td>TEMPERATURE</td></tr>
-    
-      <tr><td class="mono">sensor_serial_number</td><td>3026</td></tr>
-    
-      <tr><td class="mono">sensor_model</td><td>Sea-Bird SBE temperature sensor</td></tr>
-    
-      <tr><td class="mono">sensor_calibration_date</td><td>2004-03-18</td></tr>
-    
-      <tr><td class="mono">TEMPERATURE_calibration_coefficients</td><td>TA0=-3.055684e-05, TA1=2.752821e-04, TA2=-2.408729e-06, TA3=1.531127e-07</td></tr>
-    
-      <tr><td class="mono">cf_role</td><td>sensor_id</td></tr>
-    
-      <tr><td class="mono">coverage_content_type</td><td>auxiliaryInformation</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">SENSOR_TEMP_5367</td>
-      <td class="mono cell-xs">&lt;U3</td>
-      <td></td>
-      <td><span class="cell-muted">Sea-Bird SBE temperature sensor metadata</span></td>
-      <td class="num cell-minmax">&mdash;</td>
-      <td class="num">22</td>
-      <td><details class="attr-disclosure"><summary>7 attrs</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">sensor_type</td><td>TEMPERATURE</td></tr>
-    
-      <tr><td class="mono">sensor_serial_number</td><td>5367</td></tr>
-    
-      <tr><td class="mono">sensor_model</td><td>Sea-Bird SBE temperature sensor</td></tr>
-    
-      <tr><td class="mono">sensor_calibration_date</td><td>2008-11-19</td></tr>
-    
-      <tr><td class="mono">TEMPERATURE_calibration_coefficients</td><td>TA0=5.992698e-05, TA1=2.581894e-04, TA2=-1.055273e-06, TA3=1.159251e-07</td></tr>
-    
-      <tr><td class="mono">cf_role</td><td>sensor_id</td></tr>
-    
-      <tr><td class="mono">coverage_content_type</td><td>auxiliaryInformation</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">clock_drift_seconds</td>
-      <td class="mono cell-xs">float32</td>
-      <td>s</td>
-      <td><span class="cell-muted">total linear clock drift applied</span></td>
-      <td class="num cell-minmax">-57 / 601</td>
-      <td class="num cell-bad">22 (19)</td>
-      <td></td>
-    </tr>
-
-    <tr>
-      <td class="mono">magnetic_declination</td>
-      <td class="mono cell-xs">float32</td>
-      <td>degrees_east</td>
-      <td><span class="cell-muted">Magnetic declination (IGRF)</span></td>
-      <td class="num cell-minmax">-13.97 / -13.97</td>
-      <td class="num cell-bad">22 (7)</td>
-      <td></td>
-    </tr>
-
-    <tr>
-      <td class="mono">serial_number</td>
-      <td class="mono cell-xs">&lt;U7</td>
-      <td></td>
-      <td></td>
-      <td class="num cell-minmax">&mdash;</td>
-      <td class="num">22</td>
-      <td></td>
-    </tr>
-
-    <tr>
-      <td class="mono">tilt_pressure_ref_hab</td>
-      <td class="mono cell-xs">float32</td>
-      <td>m</td>
-      <td><span class="cell-muted">Height above bottom of the pressure reference instrument used for tilt</span></td>
-      <td class="num cell-minmax">25 / 675</td>
-      <td class="num cell-bad">22 (21)</td>
-      <td></td>
-    </tr>
-
-    <tr>
-      <td class="mono">tilt_pressure_ref_serial</td>
-      <td class="mono cell-xs">&lt;U6</td>
-      <td></td>
-      <td><span class="cell-muted">Serial number of the pressure reference instrument used for tilt</span></td>
-      <td class="num cell-minmax">&mdash;</td>
-      <td class="num">22</td>
-      <td></td>
-    </tr>
-
-  </tbody>
-</table>
-
-<h3 class="subhead-sm">Variables on time × N_LEVELS &mdash; dune2_1_2026_stack.nc</h3>
-<table class="var-table">
-  
-  <thead>
-    <tr><th>Variable</th><th>Type</th><th>Units</th><th>Standard / long name</th><th class="num">Min / Max</th><th class="num">N (valid)</th><th>Attributes</th></tr>
-  </thead>
-
-  <tbody>
-    
-    <tr>
-      <td class="mono">conductivity</td>
-      <td class="mono cell-xs">float32</td>
-      <td>mS cm-1</td>
-      <td><strong class="mono">sea_water_electrical_conductivity</strong><br><span class="cell-muted">Conductivity</span></td>
-      <td class="num cell-minmax">29.22 / 36.32</td>
-      <td class="num cell-bad">7,216 (2,296)</td>
-      <td><details class="attr-disclosure"><summary>6 attrs</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">cnv_original_name</td><td>cond0mS/cm</td></tr>
-    
-      <tr><td class="mono">cnv_original_label</td><td>Conductivity [mS/cm]</td></tr>
-    
-      <tr><td class="mono">cnv_original_unit</td><td>mS/cm</td></tr>
-    
-      <tr><td class="mono">original_name</td><td>cond0mS/cm</td></tr>
-    
-      <tr><td class="mono">coverage_content_type</td><td>physicalMeasurement</td></tr>
-    
-      <tr><td class="mono">measurement_type</td><td>Measured</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">current_direction</td>
-      <td class="mono cell-xs">float32</td>
-      <td>degrees</td>
-      <td><strong class="mono">direction_of_sea_water_velocity</strong><br><span class="cell-muted">Current direction (0=N, clockwise)</span></td>
-      <td class="num cell-minmax">0.01348 / 359.9</td>
-      <td class="num cell-bad">7,216 (2,296)</td>
-      <td></td>
-    </tr>
-
-    <tr>
-      <td class="mono">current_speed</td>
-      <td class="mono cell-xs">float32</td>
-      <td>m s-1</td>
-      <td><strong class="mono">sea_water_speed</strong><br><span class="cell-muted">Horizontal current speed</span></td>
-      <td class="num cell-minmax">0.01103 / 1.331</td>
-      <td class="num cell-bad">7,216 (2,296)</td>
-      <td></td>
-    </tr>
-
-    <tr>
-      <td class="mono">east_velocity <span class="var-qc">(_QC)</span></td>
-      <td class="mono cell-xs">float32</td>
-      <td>m s-1</td>
-      <td><strong class="mono">eastward_sea_water_velocity</strong><br><span class="cell-muted">Eastward sea water velocity</span></td>
-      <td class="num cell-minmax">-1.33 / 0.9936</td>
-      <td class="num cell-bad">7,216 (2,296)</td>
-      <td></td>
-    </tr>
-
-    <tr>
-      <td class="mono">heading</td>
-      <td class="mono cell-xs">float32</td>
-      <td>degrees</td>
-      <td><strong class="mono">platform_heading_angle</strong><br><span class="cell-muted">Heading angle</span></td>
-      <td class="num cell-minmax">0.2 / 359.6</td>
-      <td class="num cell-bad">7,216 (2,296)</td>
-      <td><details class="attr-disclosure"><summary>1 attr</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">original_name</td><td>Heading</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">north_velocity <span class="var-qc">(_QC)</span></td>
-      <td class="mono cell-xs">float32</td>
-      <td>m s-1</td>
-      <td><strong class="mono">northward_sea_water_velocity</strong><br><span class="cell-muted">Northward sea water velocity</span></td>
-      <td class="num cell-minmax">-1.039 / 0.8338</td>
-      <td class="num cell-bad">7,216 (2,296)</td>
-      <td></td>
-    </tr>
-
-    <tr>
-      <td class="mono">pitch</td>
-      <td class="mono cell-xs">float32</td>
-      <td>degrees</td>
-      <td><strong class="mono">platform_pitch_angle</strong><br><span class="cell-muted">Pitch angle</span></td>
-      <td class="num cell-minmax">-166.1 / 18.6</td>
-      <td class="num cell-bad">7,216 (2,296)</td>
-      <td><details class="attr-disclosure"><summary>1 attr</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">original_name</td><td>Pitch</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">pressure <span class="var-qc">(_QC)</span></td>
-      <td class="mono cell-xs">float32</td>
-      <td>dbar</td>
-      <td><strong class="mono">sea_water_pressure</strong><br><span class="cell-muted">sea water pressure</span></td>
-      <td class="num cell-minmax">82.47 / 807.9</td>
-      <td class="num cell-bad">7,216 (6,671)</td>
-      <td><details class="attr-disclosure"><summary>2 attrs</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">pressure_source</td><td>extrapolated from microcat 26269 (hab=25.0m, static offset=+17.0 dbar) — WARNING: out of range</td></tr>
-    
-      <tr><td class="mono">comment</td><td>interpolated from neighbouring instrument(s)</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">roll</td>
-      <td class="mono cell-xs">float32</td>
-      <td>degrees</td>
-      <td><strong class="mono">platform_roll_angle</strong><br><span class="cell-muted">Roll angle</span></td>
-      <td class="num cell-minmax">-27.9 / 165.9</td>
-      <td class="num cell-bad">7,216 (2,296)</td>
-      <td><details class="attr-disclosure"><summary>1 attr</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">original_name</td><td>Roll</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">salinity <span class="var-qc">(_QC)</span></td>
-      <td class="mono cell-xs">float32</td>
-      <td>1</td>
-      <td><strong class="mono">sea_water_practical_salinity</strong><br><span class="cell-muted">Practical Salinity</span></td>
-      <td class="num cell-minmax">34.56 / 35.57</td>
-      <td class="num cell-bad">7,216 (2,214)</td>
-      <td><details class="attr-disclosure"><summary>2 attrs</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">coverage_content_type</td><td>physicalMeasurement</td></tr>
-    
-      <tr><td class="mono">comment</td><td>Derived from conductivity, temperature, pressure via gsw.SP_from_C</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">sigma0</td>
-      <td class="mono cell-xs">float32</td>
-      <td>kg m-3</td>
-      <td><strong class="mono">sea_water_sigma_t</strong><br><span class="cell-muted">Potential density anomaly referenced to surface (sigma-0)</span></td>
-      <td class="num cell-minmax">27.42 / 28.06</td>
-      <td class="num cell-bad">7,216 (2,214)</td>
-      <td><details class="attr-disclosure"><summary>1 attr</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">reference_pressure_dbar</td><td>0</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">temperature <span class="var-qc">(_QC)</span></td>
-      <td class="mono cell-xs">float32</td>
-      <td>degree_Celsius</td>
-      <td><strong class="mono">sea_water_temperature</strong><br><span class="cell-muted">Temperature</span></td>
-      <td class="num cell-minmax">-0.0704 / 8.17</td>
-      <td class="num">7,216</td>
-      <td><details class="attr-disclosure"><summary>13 attrs</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">rsk_channel_id</td><td>1</td></tr>
-    
-      <tr><td class="mono">rsk_long_name</td><td>temperature</td></tr>
-    
-      <tr><td class="mono">rsk_short_name</td><td>temp18</td></tr>
-    
-      <tr><td class="mono">rsk_label</td><td>temperature_00</td></tr>
-    
-      <tr><td class="mono">rsk_dbName</td><td>Temperature</td></tr>
-    
-      <tr><td class="mono">rsk_units</td><td>°C</td></tr>
-    
-      <tr><td class="mono">rsk_units_plain_text</td><td>Degrees_C</td></tr>
-    
-      <tr><td class="mono">rsk_fe_module_type</td><td>SOLO-tmpB</td></tr>
-    
-      <tr><td class="mono">rsk_fe_module_version</td><td>1.065</td></tr>
-    
-      <tr><td class="mono">rsk_is_measured</td><td>1</td></tr>
-    
-      <tr><td class="mono">rsk_is_derived</td><td>0</td></tr>
-    
-      <tr><td class="mono">coverage_content_type</td><td>physicalMeasurement</td></tr>
-    
-      <tr><td class="mono">measurement_type</td><td>Measured</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">tilt_from_pressure</td>
-      <td class="mono cell-xs">float32</td>
-      <td>degrees</td>
-      <td><span class="cell-muted">Tilt estimated from pressure difference</span></td>
-      <td class="num cell-minmax">0 / 75.32</td>
-      <td class="num cell-bad">7,216 (5,725)</td>
-      <td><details class="attr-disclosure"><summary>1 attr</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">comment</td><td>arccos(ΔP / rope_length) where ΔP = pressure[i] - pressure[ref] and rope_length = hab[ref] - hab[i] from mooring YAML; ref is the nearest instrument ≥10 m above i with valid pressure.</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-    <tr>
-      <td class="mono">up_velocity <span class="var-qc">(_QC)</span></td>
-      <td class="mono cell-xs">float32</td>
-      <td>m s-1</td>
-      <td><strong class="mono">upward_sea_water_velocity</strong><br><span class="cell-muted">Upward sea water velocity</span></td>
-      <td class="num cell-minmax">-1.367 / 0.8008</td>
-      <td class="num cell-bad">7,216 (2,296)</td>
-      <td></td>
-    </tr>
-
-    <tr>
-      <td class="mono">velocity_flag</td>
-      <td class="mono cell-xs">int8</td>
-      <td></td>
-      <td><span class="cell-muted">Combined velocity QC flag (worst of east/north/up)</span></td>
-      <td class="num cell-minmax">1 / 9</td>
-      <td class="num">7,216</td>
-      <td><details class="attr-disclosure"><summary>4 attrs</summary>
-  <table>
-    <tbody>
-    
-      <tr><td class="mono">comment</td><td>Worst OceanSITES flag across east/north/up_velocity; apply to the velocity components before use.</td></tr>
-    
-      <tr><td class="mono">flag_values</td><td>[0 1 2 3 4 7 8 9]</td></tr>
-    
-      <tr><td class="mono">flag_meanings</td><td>unknown good_data probably_good_data potentially_correctable_bad_data bad_data nominal_value interpolated_value missing_value</td></tr>
-    
-      <tr><td class="mono">conventions</td><td>OceanSITES reference table 2</td></tr>
-    
-    </tbody>
-  </table></details></td>
-    </tr>
-
-  </tbody>
-</table>
+<h3>Scalar variables</h3>
+<table class="sortable var-table">
 
 
-
-
-
-<h3 class="subhead-md">Scalar metadata variables</h3>
-<table class="var-table">
-  <thead>
-    <tr><th>Variable</th><th>Type</th><th>Units</th><th>Standard / long name</th><th>Value</th><th>Attributes</th></tr>
-  </thead>
-  <tbody>
-    
-    <tr>
-      <td class="mono">clock_offset</td>
-      <td class="mono cell-xs">float32</td>
-      <td>s</td>
-      <td></td>
-      <td class="mono cell-break">0.0</td>
-      <td></td>
-    </tr>
-    
-    <tr>
-      <td class="mono">end_time</td>
-      <td class="mono cell-xs">&lt;U16</td>
-      <td></td>
-      <td></td>
-      <td class="mono cell-break">2026-07-25T11:44</td>
-      <td></td>
-    </tr>
-    
-    <tr>
-      <td class="mono">start_time</td>
-      <td class="mono cell-xs">&lt;U16</td>
-      <td></td>
-      <td></td>
-      <td class="mono cell-break">2026-07-11T20:30</td>
-      <td></td>
-    </tr>
-    
-  </tbody>
-</table>
+<thead>
+  <tr><th tabindex="0">Variable</th><th tabindex="0">Type</th><th tabindex="0">Units</th><th tabindex="0">Value</th></tr>
+</thead>
+<tbody>
+<tr>
+<td data-sort="clock_offset">clock_offset</td><td><code>float32</code></td><td>s</td>
+<td class="cell-wrap">0</td></tr>
+<tr>
+<td data-sort="end_time">end_time</td><td><code>string</code></td><td>—</td>
+<td class="cell-wrap">2026-07-25T11:44</td></tr>
+<tr>
+<td data-sort="start_time">start_time</td><td><code>string</code></td><td>—</td>
+<td class="cell-wrap">2026-07-11T20:30</td></tr>
+</tbody></table><div class="fig-source">source: oceanarray/reports/_vendored/nc_tables.py:scalars_rows</div>
 
 <h2 id="netcdf_attributes">(B) NetCDF attributes</h2>
 
 
-<h3 class="subhead-md">Global attributes</h3>
+<h3>Identity &amp; discovery</h3>
+<table class="sortable">
 
-<h4 class="subhead-sm">Identity &amp; discovery</h4>
-<table class="var-table">
-  <thead><tr><th>Attribute</th><th>Type</th><th>Value</th></tr></thead>
-  <tbody>
-    
-    <tr>
-      <td class="mono">mooring_name</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">dune2_1_2026</td>
-    </tr>
-    
-  </tbody>
-</table>
+<thead>
+  <tr><th tabindex="0">Attribute</th><th tabindex="0">Type</th><th tabindex="0">Value</th></tr>
+</thead>
+<tbody>
+<tr><td class="mono">mooring_name</td><td><code>string</code></td><td>dune2_1_2026</td></tr>
+</tbody></table>
+<h3>Spatiotemporal coverage</h3>
+<table class="sortable">
 
-<h4 class="subhead-sm">Spatiotemporal coverage</h4>
-<table class="var-table">
-  <thead><tr><th>Attribute</th><th>Type</th><th>Value</th></tr></thead>
-  <tbody>
-    
-    <tr>
-      <td class="mono">waterdepth</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">745</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">latitude</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">65 43.913</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">longitude</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">-27 48.000</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">deployment_time</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">2026-07-11T20:30:00</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">recovery_time</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">2026-07-25T11:44:00</td>
-    </tr>
-    
-  </tbody>
-</table>
+<thead>
+  <tr><th tabindex="0">Attribute</th><th tabindex="0">Type</th><th tabindex="0">Value</th></tr>
+</thead>
+<tbody>
+<tr><td class="mono">waterdepth</td><td><code>string</code></td><td>745</td></tr>
+<tr><td class="mono">latitude</td><td><code>string</code></td><td>65 43.913</td></tr>
+<tr><td class="mono">longitude</td><td><code>string</code></td><td>-27 48.000</td></tr>
+<tr><td class="mono">deployment_time</td><td><code>string</code></td><td>2026-07-11T20:30:00.000000000</td></tr>
+<tr><td class="mono">recovery_time</td><td><code>string</code></td><td>2026-07-25T11:44:00.000000000</td></tr>
+</tbody></table>
+<h3>Provenance &amp; processing</h3>
+<table class="sortable">
 
-<h4 class="subhead-sm">Provenance &amp; processing</h4>
-<table class="var-table">
-  <thead><tr><th>Attribute</th><th>Type</th><th>Value</th></tr></thead>
-  <tbody>
-    
-    <tr>
-      <td class="mono">dt_seconds</td>
-      <td class="mono cell-xs">int64</td>
-      <td class="cell-break-lg">3600</td>
-    </tr>
-    
-    <tr>
-      <td class="mono">Conventions</td>
-      <td class="mono cell-xs">str</td>
-      <td class="cell-break-lg">CF-1.13</td>
-    </tr>
-    
-  </tbody>
-</table>
-
+<thead>
+  <tr><th tabindex="0">Attribute</th><th tabindex="0">Type</th><th tabindex="0">Value</th></tr>
+</thead>
+<tbody>
+<tr><td class="mono">dt_seconds</td><td><code>int64</code></td><td>3600</td></tr>
+<tr><td class="mono">Conventions</td><td><code>string</code></td><td>CF-1.13</td></tr>
+</tbody></table><div class="fig-source">source: oceanarray/reports/_vendored/nc_tables.py:globals_rows</div>
 
 
 <p class="none-note">Not applicable to this deployment: Turbidity, Analog channels.</p>
@@ -1524,6 +989,57 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
   });
 </script>
 
+
+<script>
+document.querySelectorAll('table').forEach(function (table) {
+  if (table.hasAttribute('data-nosort')) { return; }
+  var head = table.tHead && table.tHead.rows[0];
+  var body = table.tBodies[0];
+  if (!head || !body) { return; }
+  function cellKey(row, idx) {
+    var cell = row.cells[idx];
+    if (!cell) { return ''; }
+    var ds = cell.getAttribute('data-sort');
+    return ds !== null ? ds : cell.textContent.trim();
+  }
+  function numeric(idx) {
+    var rows = body.rows, seen = false;
+    for (var i = 0; i < rows.length; i++) {
+      var k = cellKey(rows[i], idx);
+      if (k === '') { continue; }
+      if (!/^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$/.test(k)) { return false; }
+      seen = true;
+    }
+    return seen;
+  }
+  Array.prototype.forEach.call(head.cells, function (th, idx) {
+    if (th.hasAttribute('data-nosort')) { return; }
+    th.tabIndex = 0;
+    function sort() {
+      var asc = !(th.classList.contains('sorted-asc'));
+      var isNum = numeric(idx);
+      var rows = Array.prototype.slice.call(body.rows);
+      rows.sort(function (a, b) {
+        var ka = cellKey(a, idx), kb = cellKey(b, idx);
+        if (isNum) { ka = parseFloat(ka) || 0; kb = parseFloat(kb) || 0; }
+        else { ka = ka.toLowerCase(); kb = kb.toLowerCase(); }
+        if (ka < kb) { return asc ? -1 : 1; }
+        if (ka > kb) { return asc ? 1 : -1; }
+        return 0;
+      });
+      rows.forEach(function (r) { body.appendChild(r); });
+      Array.prototype.forEach.call(head.cells, function (o) {
+        o.classList.remove('sorted-asc', 'sorted-desc');
+      });
+      th.classList.add(asc ? 'sorted-asc' : 'sorted-desc');
+    }
+    th.addEventListener('click', sort);
+    th.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sort(); }
+    });
+  });
+});
+</script>
 
 </body>
 </html>

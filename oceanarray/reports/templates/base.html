@@ -27,8 +27,6 @@ p, li { max-width: none; }
    inter-row gap. (ctdcast/glidertest have a single row and do not need this.) */
 .masthead .page-nav { margin:0.12rem 0 0; }
 .masthead .page-nav:first-of-type { margin-top:0.5rem; }
-.masthead-plain { background:#fff; color:var(--text); border:1px solid var(--rule); }
-.masthead-plain .wordmark { display:none; }
 /* Wordmark is now an <a> to the repo; keep the pill look (no link underline). */
 .wordmark, .wordmark:hover { text-decoration:none; }
 .masthead-title { display:flex; justify-content:space-between; align-items:baseline; gap:1rem; }
@@ -37,26 +35,14 @@ p, li { max-width: none; }
 .masthead .sub a { color:var(--accent-link); font-weight:600; text-decoration:none; }
 .masthead .sub a:hover { text-decoration:underline; }
 .meta-miss dd { color:var(--warn); opacity:1; }
-h2 { color:var(--ocean); font-size:var(--fs-h2); border-bottom:2px solid var(--seafoam);
-     padding-bottom:0.3rem; margin:2.5rem 0 1rem;
-     display:flex; justify-content:space-between; align-items:baseline; }
 .top-link { font-size:var(--fs-top); font-weight:400; color:var(--muted);
             text-decoration:none; margin-left:auto; white-space:nowrap; }
-.top-link:hover { color:var(--ocean); text-decoration:underline; }
 .report-footer { margin-top:3rem; font-size:var(--fs-cap); color:var(--muted);
                  border-top:1px solid var(--rule); padding-top:0.8rem;
                  text-align:center; }
-.jump-nav { background:var(--seafoam); padding:0.55rem 1rem; border-radius:6px;
-            margin-bottom:1.5rem; font-size:var(--fs-nav); line-height:2.2; }
 .jump-nav a { color:var(--ocean); text-decoration:none; font-weight:600;
               margin:0 0.5rem 0 0; white-space:nowrap; }
-.jump-nav a::before { content:"▸ "; font-size:var(--fs-dt); }
 .jump-nav a:hover { text-decoration:underline; }
-.history-list { list-style:none; padding:0; margin:0; }
-.history-list li { display:flex; gap:1rem; padding:0.3rem 0; border-bottom:1px solid var(--rule); font-size:var(--fs-note); }
-.history-list li:last-child { border-bottom:none; }
-.history-ts { color:var(--muted); white-space:nowrap; font-size:var(--fs-cap); min-width:11rem; }
-.history-text { flex:1; }
 /* Figure collapse toggle (shared report chrome — used by the panel() macro on
    every manifest-ported page). */
 details summary.collapse-toggle { color:var(--muted); font-size:0.76rem; cursor:pointer;
@@ -75,7 +61,6 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 .fig-cell { min-width:0; }
 .fig-cell > .fig { width:100%; }
 .none-note { color:var(--muted); font-style:italic; }
-.var-qc { color:var(--good); font-size:var(--fs-xs); }
 /* Per-row NetCDF attribute disclosure in the inventory tables (the N attrs
    expander). */
 .attr-disclosure summary { cursor:pointer; color:var(--muted); font-size:var(--fs-xs); white-space:nowrap; }
@@ -111,5 +96,6 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 </div>
 {% endblock %}
 {% block content %}{% endblock %}
+{{ js_sort_tables | safe }}
 </body>
 </html>

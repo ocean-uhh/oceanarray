@@ -23,7 +23,7 @@ import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 
-from oceanarray.config import report_tokens
+from oceanarray.reports._vendored import design_tokens as report_tokens
 from oceanarray.utilities import _nice_colorbar_bounds, period_axis_ticks
 
 from ..analysis.spectral import gonella_rotary_spectrum

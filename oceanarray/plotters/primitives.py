@@ -23,7 +23,7 @@ import matplotlib.ticker as mticker
 import numpy as np
 from matplotlib.collections import LineCollection
 
-from oceanarray.config import report_tokens
+from oceanarray.reports._vendored import design_tokens as report_tokens
 
 from .. import parameters as params
 from ..utilities import _nice_colorbar_bounds, nice_colorbar_ticks

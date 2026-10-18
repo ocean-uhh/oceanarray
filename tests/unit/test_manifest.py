@@ -9,7 +9,7 @@ becoming stubs while the section keeps its heading and number.
 
 import pytest
 
-from oceanarray.reports._manifest import (
+from oceanarray.reports._vendored.page_model import (
     Expand,
     Panel,
     PanelGroup,
