@@ -5,9 +5,12 @@ _build_type_summary — all functions with no I/O dependencies that can be
 exercised without fixtures or seasenselib.
 """
 
+from pathlib import Path
+
 import pytest
 
 from oceanarray.reports._array import (
+    _array_masthead,
     _build_type_summary,
     _count_instruments,
     _lat_lon_from_cfg,
@@ -244,7 +247,6 @@ class TestArrayModeOutputDir:
         self, tmp_path, capsys, monkeypatch
     ):
         import argparse
-        from pathlib import Path
 
         from oceanarray import cli
         from oceanarray.reports import _array
@@ -279,3 +281,43 @@ class TestArrayModeOutputDir:
         assert "-o/--output-dir is ignored in --array mode" in out
         # The flag that DOES apply in array mode is honoured, not dropped.
         assert seen["report_dir"] == Path(str(central))
+
+
+class TestArrayMastheadExtent:
+    """The masthead extent labels each endpoint from its coordinate sign.
+
+    Regression guard: the extent once hard-coded ``°N``/``°E``, so a western
+    longitude (MIXSED sits at ~29 °W) rendered as east.  It must read the
+    hemisphere from the sign, as ``position`` already does via ``_fmt_dm``.
+    """
+
+    @staticmethod
+    def _row(lat, lon):
+        return {
+            "lat": lat,
+            "lon": lon,
+            "waterdepth": 800,
+            "n_instruments": 3,
+            "_deploy_dt": None,
+            "_recover_dt": None,
+            "report_exists": False,
+            "stack_exists": False,
+            "grid_exists": False,
+        }
+
+    def test_western_longitude_reads_west_not_east(self):
+        rows = [self._row(65.0, -31.0), self._row(66.0, -27.0)]
+        masthead = _array_masthead(
+            {"waterdepth_min": 700, "waterdepth_max": 1000},
+            rows,
+            [],
+            None,
+            None,
+            Path("MIXSED2026.array.yaml"),
+        )
+        extent = masthead["extent"]
+        # Western longitudes are labelled W, never E; northern latitudes N.  The old
+        # buggy form hard-coded °E, so a leaked signed decimal would also fail "W" here.
+        assert "W" in extent
+        assert "E" not in extent
+        assert "N" in extent

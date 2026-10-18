@@ -199,7 +199,8 @@ def _array_masthead(
             else "—"
         ),
         "extent": (
-            f"{min(lats):.2f}–{max(lats):.2f} °N / {min(lons):.2f}–{max(lons):.2f} °E"
+            f"{_fmt_dm(min(lats), is_lat=True)}–{_fmt_dm(max(lats), is_lat=True)} / "
+            f"{_fmt_dm(min(lons), is_lat=False)}–{_fmt_dm(max(lons), is_lat=False)}"
             if lats and lons
             else "—"
         ),
