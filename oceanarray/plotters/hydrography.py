@@ -226,11 +226,13 @@ def draw_isopycnal_coverage(
         waterdepth = float("nan")
     use_hab = np.isfinite(waterdepth) and waterdepth > 0
 
+    # Both branches build the second axis from the pressure coordinate and label it dbar
+    # — HAB treats 1 dbar ≈ 1 m seawater; otherwise pressure is shown directly — so the
+    # guard runs before the branch, covering the else path's "Pressure (dbar)" label too.
+    warn_if_not_canonical(
+        ds["pressure"], "dbar", quantity="isopycnal depth axis (dbar)"
+    )
     if use_hab:
-        # HAB treats the pressure coordinate as metres (1 dbar ≈ 1 m seawater).
-        warn_if_not_canonical(
-            ds["pressure"], "dbar", quantity="height above seabed (m)"
-        )
         iso_z = waterdepth - iso_p
         iso_z[iso_z < 0] = np.nan
         xlbl2 = "Height above seabed (m)"

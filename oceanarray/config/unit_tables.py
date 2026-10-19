@@ -157,10 +157,18 @@ def warn_if_not_canonical(da: Any, expected: str, *, quantity: str) -> None:
     u = str(da.attrs.get("units", "")).strip()
     if not u or u == expected:
         return
+    # Only honour the variable's standard_name for scoped aliases when that standard
+    # name denotes the expected quantity; otherwise a cross-quantity scoped alias (a
+    # latitude ``deg`` checked against an expected ``dbar``) can resolve as a false
+    # match and silence the guard.
+    standard_name = da.attrs.get("standard_name")
+    if TABLES.canonical.get(standard_name) != expected:
+        standard_name = None
     try:
-        if resolve_units(
-            u, da.attrs.get("standard_name"), tables=TABLES, canonical=expected
-        ) == (expected, 1.0):
+        if resolve_units(u, standard_name, tables=TABLES, canonical=expected) == (
+            expected,
+            1.0,
+        ):
             return
     except UnitsError:
         pass

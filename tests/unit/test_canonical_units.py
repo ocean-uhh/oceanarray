@@ -368,6 +368,18 @@ def test_warn_if_not_canonical_warns_on_real_mismatch():
         ut.warn_if_not_canonical(da, "dbar", quantity="instrument spacing (dbar)")
 
 
+def test_warn_if_not_canonical_rejects_cross_quantity_standard_name():
+    """A standard_name from a different quantity must not silence the guard.
+
+    ``units='deg'`` with ``standard_name='latitude'`` resolves to ``('dbar', 1.0)``
+    through latitude-scoped aliases; the guard ignores a standard_name whose canonical
+    is not the expected quantity, so a foreign/mislabelled variable still warns.
+    """
+    da = xr.DataArray([1.0], attrs={"units": "deg", "standard_name": "latitude"})
+    with pytest.warns(UserWarning, match="may be wrong"):
+        ut.warn_if_not_canonical(da, "dbar", quantity="instrument spacing (dbar)")
+
+
 def test_oceanarray_unit_aliases_reach_vunit():
     """oceanarray's unit_tables customisation reaches the display entry points.
 

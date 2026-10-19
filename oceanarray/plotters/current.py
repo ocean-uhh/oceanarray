@@ -91,8 +91,9 @@ def plot_temperature_trajectory(
     matplotlib.figure.Figure
 
     """
-    # The km label assumes velocity in m/s integrated over dt in seconds.
+    # The km label assumes both velocity components in m/s integrated over dt in seconds.
     warn_if_not_canonical(ds[u_var], "m s-1", quantity="trajectory displacement (km)")
+    warn_if_not_canonical(ds[v_var], "m s-1", quantity="trajectory displacement (km)")
     u = np.nan_to_num(ds[u_var].values, nan=0.0)
     v = np.nan_to_num(ds[v_var].values, nan=0.0)
     time = ds["time"].values
@@ -245,8 +246,9 @@ def plot_multi_aquadopp_trajectories(
 
     has_temp = temp_var in ds.data_vars
 
-    # The km label assumes velocity in m/s integrated over dt in seconds.
+    # The km label assumes both velocity components in m/s integrated over dt in seconds.
     warn_if_not_canonical(ds[u_var], "m s-1", quantity="trajectory displacement (km)")
+    warn_if_not_canonical(ds[v_var], "m s-1", quantity="trajectory displacement (km)")
 
     # Build trajectories and collect temperature data for shared norm
     trajs = []
