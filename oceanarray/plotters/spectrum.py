@@ -27,7 +27,7 @@ from oceanarray.reports._vendored import design_tokens as report_tokens
 from oceanarray.utilities import _nice_colorbar_bounds, period_axis_ticks
 
 from ..analysis.spectral import gonella_rotary_spectrum
-from ..config.unit_tables import unit_label
+from ..config.unit_tables import unit_label, warn_if_not_canonical
 from .helpers import grid_despine
 from .primitives import figure_title, plot_title, square_axes_grid
 
@@ -239,6 +239,11 @@ def draw_spectrum(
     from matplotlib.transforms import blended_transform_factory
 
     from ..tools import welch_psd, welch_psd_gapaware
+
+    # The PSD axis is labelled °C² cpd⁻¹; the variance is in the temperature's unit².
+    warn_if_not_canonical(
+        da_temp, "degree_Celsius", quantity="temperature PSD (°C² cpd⁻¹)"
+    )
 
     if da_temp.dims[0] != "pressure":
         da_temp = da_temp.transpose("pressure", ...)

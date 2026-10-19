@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 from oceanarray.reports._vendored import design_tokens as report_tokens
 
 from .. import parameters as params
-from ..config.unit_tables import unit_label
+from ..config.unit_tables import unit_label, warn_if_not_canonical
 from .helpers import grid_despine, ordered_line_colors
 from .primitives import colorbar_norm, date_axis, plot_title
 
@@ -227,6 +227,10 @@ def draw_isopycnal_coverage(
     use_hab = np.isfinite(waterdepth) and waterdepth > 0
 
     if use_hab:
+        # HAB treats the pressure coordinate as metres (1 dbar ≈ 1 m seawater).
+        warn_if_not_canonical(
+            ds["pressure"], "dbar", quantity="height above seabed (m)"
+        )
         iso_z = waterdepth - iso_p
         iso_z[iso_z < 0] = np.nan
         xlbl2 = "Height above seabed (m)"

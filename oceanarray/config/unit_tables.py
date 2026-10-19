@@ -14,13 +14,16 @@ oceanarray's real differences from the family are live here.
 from __future__ import annotations
 
 import os
+import warnings
 from typing import Any
 
 from oceanarray.reports._vendored.units import (
     DEFAULT_TABLES,
     Tables,
+    UnitsError,
     format_units,
     merge_tables,
+    resolve_units,
 )
 
 #: Stored-spelling overrides, keyed by CF ``standard_name``.  oceanarray writes the
@@ -126,3 +129,43 @@ def var_unit_label(da: Any) -> str:
         The display units string, or ``""`` when the variable has no ``units``.
     """
     return unit_label(da.attrs.get("units", ""), da.attrs.get("standard_name"))
+
+
+def warn_if_not_canonical(da: Any, expected: str, *, quantity: str) -> None:
+    """Warn when *da* does not carry the canonical units a derivation assumes.
+
+    A derived display — displacement in km, height-above-seabed in m, a spectral
+    density, a period — hard-codes the unit of its *output*, which is only correct if
+    the *source* variable carries the unit the derivation was written for.  The storage
+    pass (:func:`oceanarray.processors.units.to_canonical_units`) canonicalises every
+    registered variable, so this never fires on an oceanarray-written file; it catches a
+    foreign or hand-edited file whose units the derivation would otherwise silently
+    mislabel.  A spelling that resolves to *expected* at factor 1 is not flagged; a
+    variable with no ``units`` attribute is not flagged (nothing to check against).
+
+    Parameters
+    ----------
+    da : xarray.DataArray
+        The source variable whose ``units`` the derivation depends on.
+    expected : str
+        The canonical units the derivation was written for (e.g. ``"m s-1"``, ``"dbar"``,
+        ``"degree_Celsius"``).
+    quantity : str
+        Short description of the derived quantity, for the warning message.
+
+    """
+    u = str(da.attrs.get("units", "")).strip()
+    if not u or u == expected:
+        return
+    try:
+        if resolve_units(
+            u, da.attrs.get("standard_name"), tables=TABLES, canonical=expected
+        ) == (expected, 1.0):
+            return
+    except UnitsError:
+        pass
+    warnings.warn(
+        f"{quantity}: source variable carries units {u!r}, not the expected "
+        f"{expected!r}; the derived label assumes {expected!r} and may be wrong.",
+        stacklevel=3,
+    )

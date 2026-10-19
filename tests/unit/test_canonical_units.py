@@ -13,6 +13,7 @@ from __future__ import annotations
 import re
 import subprocess
 import sys
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -343,6 +344,28 @@ def test_every_registry_var_gets_a_display_label():
         assert "(" in label and label.endswith(")"), f"{var}: no unit in {label!r}"
         unit = label[label.rfind("(") + 1 : -1]
         assert unit, f"{var}: empty unit in vlabel {label!r}"
+
+
+def test_warn_if_not_canonical_silent_on_canonical_and_aliases():
+    """The derived-quantity guard stays silent for the unit the derivation assumes.
+
+    A canonical unit, an accepted alias (factor 1), and a variable with no ``units``
+    attribute must not warn — else every oceanarray report (all canonical) would be
+    noisy.
+    """
+    for units, expected in [("m s-1", "m s-1"), ("degrees", "degree"), (None, "dbar")]:
+        attrs = {"units": units} if units is not None else {}
+        da = xr.DataArray([1.0], attrs=attrs)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            ut.warn_if_not_canonical(da, expected, quantity="x")  # must not raise
+
+
+def test_warn_if_not_canonical_warns_on_real_mismatch():
+    """A source unit that is not the expected canonical (nor an alias) warns loudly."""
+    da = xr.DataArray([1.0], attrs={"units": "furlong"})
+    with pytest.warns(UserWarning, match="may be wrong"):
+        ut.warn_if_not_canonical(da, "dbar", quantity="instrument spacing (dbar)")
 
 
 def test_oceanarray_unit_aliases_reach_vunit():
