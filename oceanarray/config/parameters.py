@@ -24,6 +24,8 @@ from pathlib import Path
 
 import numpy as np
 
+from oceanarray.config.unit_tables import unit_label
+
 # ---------------------------------------------------------------------------
 # Package identity (shown as the report masthead wordmark)
 # ---------------------------------------------------------------------------
@@ -357,14 +359,12 @@ ALL_FILE_TYPES: frozenset = frozenset(
 #:
 #: ``label``
 #:     human-readable name for plot titles and legends.
-#: ``label_units``
-#:     Unicode units string for plot axis labels (e.g. ``"°C"``).
-#:     Use :func:`vlabel` to get the combined ``"Label (units)"``
-#:     string.  Empty string for dimensionless quantities.
 #: ``units``
-#:     udunits-2 / CF-compliant ASCII units for NetCDF attributes
-#:     (e.g. ``"degree_Celsius"``).  May differ from ``label_units``
-#:     only in encoding (Unicode → ASCII).
+#:     udunits-2 / CF-compliant ASCII units for NetCDF attributes (e.g.
+#:     ``"degree_Celsius"``).  The display unit for an axis label is derived from
+#:     this through :func:`vunit` / :func:`vlabel` (``degree_Celsius`` → ``°C``) —
+#:     there is no separate ``label_units`` column, so the display spelling cannot
+#:     drift from the stored one.
 #: ``standard_name``
 #:     CF standard name.  ``None`` when no standard name exists
 #:     (e.g. turbidity in NTU, which has no udunits-2 unit).
@@ -379,7 +379,6 @@ ALL_FILE_TYPES: frozenset = frozenset(
 VARIABLES: dict[str, dict] = {
     "temperature": {
         "label": "Temperature",
-        "label_units": "°C",
         "units": "degree_Celsius",
         "standard_name": "sea_water_temperature",
         "cmap": "RdBu_r",
@@ -388,7 +387,6 @@ VARIABLES: dict[str, dict] = {
     },
     "conservative_temperature": {
         "label": "Conservative temperature",
-        "label_units": "°C",
         "units": "degree_Celsius",
         "standard_name": "sea_water_conservative_temperature",
         "cmap": "RdBu_r",
@@ -397,7 +395,6 @@ VARIABLES: dict[str, dict] = {
     },
     "potential_temperature": {
         "label": "Potential temperature",
-        "label_units": "°C",
         "units": "degree_Celsius",
         "standard_name": "sea_water_potential_temperature",
         "cmap": "RdBu_r",
@@ -406,7 +403,6 @@ VARIABLES: dict[str, dict] = {
     },
     "conductivity": {
         "label": "Conductivity",
-        "label_units": "mS/cm",
         "units": "mS cm-1",
         "standard_name": "sea_water_electrical_conductivity",
         "cmap": None,
@@ -415,21 +411,18 @@ VARIABLES: dict[str, dict] = {
     },
     "salinity": {
         "label": "Salinity",
-        "label_units": "PSU",
         "units": "1",  # PSS-78 is dimensionless per CF
         "standard_name": "sea_water_practical_salinity",
         "cmap": "YlGnBu_r",
     },
     "absolute_salinity": {
         "label": "Absolute salinity",
-        "label_units": "g/kg",
         "units": "g kg-1",
         "standard_name": "sea_water_absolute_salinity",
         "cmap": "YlGnBu_r",
     },
     "pressure": {
         "label": "Pressure",
-        "label_units": "dbar",
         "units": "dbar",
         "standard_name": "sea_water_pressure",
         "cmap": None,
@@ -438,7 +431,6 @@ VARIABLES: dict[str, dict] = {
     },
     "depth": {
         "label": "Depth",
-        "label_units": "m",
         "units": "m",
         "standard_name": "depth",
         "cmap": None,
@@ -447,7 +439,6 @@ VARIABLES: dict[str, dict] = {
     },
     "potential_density": {
         "label": "σ₀",
-        "label_units": "kg/m³",
         "units": "kg m-3",
         # sea_water_sigma_theta = potential density anomaly referenced to 0 dbar
         # (i.e. rho(T_potential, S, p=0) − 1000 kg m-3)
@@ -456,56 +447,48 @@ VARIABLES: dict[str, dict] = {
     },
     "u": {
         "label": "Eastward velocity",
-        "label_units": "m/s",
         "units": "m s-1",
         "standard_name": "eastward_sea_water_velocity",
         "cmap": "RdBu_r",
     },
     "v": {
         "label": "Northward velocity",
-        "label_units": "m/s",
         "units": "m s-1",
         "standard_name": "northward_sea_water_velocity",
         "cmap": "RdBu_r",
     },
     "w": {
         "label": "Vertical velocity",
-        "label_units": "m/s",
         "units": "m s-1",
         "standard_name": "upward_sea_water_velocity",
         "cmap": "RdBu_r",
     },
     "east_velocity": {
         "label": "Eastward velocity",
-        "label_units": "m/s",
         "units": "m s-1",
         "standard_name": "eastward_sea_water_velocity",
         "cmap": "RdBu_r",
     },
     "north_velocity": {
         "label": "Northward velocity",
-        "label_units": "m/s",
         "units": "m s-1",
         "standard_name": "northward_sea_water_velocity",
         "cmap": "RdBu_r",
     },
     "up_velocity": {
         "label": "Upward velocity",
-        "label_units": "m/s",
         "units": "m s-1",
         "standard_name": "upward_sea_water_velocity",
         "cmap": "RdBu_r",
     },
     "speed": {
         "label": "Speed",
-        "label_units": "m/s",
         "units": "m s-1",
         "standard_name": "sea_water_speed",
         "cmap": "plasma",
     },
     "dissolved_oxygen": {
         "label": "Dissolved oxygen",
-        "label_units": "µmol/kg",
         "units": "umol kg-1",
         # SBE 63/43 report dissolved oxygen per unit mass (…Mm/Kg columns); the
         # standard name's canonical units are mol kg-1 (molality).  A per-volume
@@ -518,14 +501,12 @@ VARIABLES: dict[str, dict] = {
         # Second per-mass oxygen sensor (SBE ``sbeox1Mm/Kg``); same as
         # dissolved_oxygen, registered so the units pass canonicalises it.
         "label": "Dissolved oxygen (sensor 2)",
-        "label_units": "µmol/kg",
         "units": "umol kg-1",
         "standard_name": "moles_of_oxygen_per_unit_mass_in_sea_water",
         "cmap": "RdYlGn",
     },
     "dissolved_oxygen_ml_l": {
         "label": "Dissolved oxygen",
-        "label_units": "mL/L",
         "units": "mL L-1",
         # mL/L is a volume ratio, not a molar concentration; no exact CF standard_name.
         # mole_concentration_* has canonical units mol m-3 and is dimensionally
@@ -538,14 +519,12 @@ VARIABLES: dict[str, dict] = {
         # dissolved_oxygen_ml_l, registered so the units pass canonicalises it
         # instead of leaving it untouched.
         "label": "Dissolved oxygen (sensor 2)",
-        "label_units": "mL/L",
         "units": "mL L-1",
         "standard_name": None,
         "cmap": "RdYlGn",
     },
     "oxygen_saturation_pct": {
         "label": "O₂ percent saturation",
-        "label_units": "%",
         "units": "%",
         # CF "fractional_saturation_of_oxygen_in_sea_water" is 0–1, not 0–100; no
         # unambiguous standard_name for the percent form.
@@ -554,24 +533,64 @@ VARIABLES: dict[str, dict] = {
     },
     "apparent_oxygen_utilization": {
         "label": "Apparent oxygen utilization",
-        "label_units": "µmol/kg",
         "units": "umol kg-1",
         "standard_name": "apparent_oxygen_utilization",
         "cmap": None,
     },
     "turbidity": {
         "label": "Turbidity",
-        "label_units": "NTU",  # NTU is a sensor-scale label (FLNTU), not a udunits unit
         "units": "1",  # CF-canonical dimensionless, as the FLNTU reader writes
         "standard_name": "sea_water_turbidity",
         "cmap": "YlOrBr",
     },
     "n2": {
         "label": "N²",
-        "label_units": "s⁻²",
         "units": "s-2",
         "standard_name": "square_of_brunt_vaisala_frequency_in_sea_water",
         "cmap": "plasma",
+    },
+    # Attitude / engineering variables.  Canonical CF ``degree``; the readers write
+    # ``degrees`` (an alias in unit_tables.UNIT_ALIAS_EXTRAS, evidenced on dune2).
+    # Registered so the units pass canonicalises them and ``vunit`` labels them ``°``.
+    "pitch": {
+        "label": "Pitch",
+        "units": "degree",
+        "standard_name": "platform_pitch_angle",
+        "cmap": None,
+    },
+    "roll": {
+        "label": "Roll",
+        "units": "degree",
+        "standard_name": "platform_roll_angle",
+        "cmap": None,
+    },
+    "heading": {
+        "label": "Heading",
+        "units": "degree",
+        "standard_name": "platform_heading_angle",
+        "cmap": None,
+    },
+    "tilt": {
+        # Derived from pitch/roll (arccos, in _plots._augment_tilt); no CF standard name.
+        "label": "Tilt",
+        "units": "degree",
+        "standard_name": None,
+        "cmap": None,
+    },
+    "current_direction": {
+        "label": "Current direction",
+        "units": "degree",
+        "standard_name": "direction_of_sea_water_velocity",
+        "cmap": None,
+    },
+    "bin_pressure": {
+        # ADCP per-bin pressure (dbar).  Matched by name, so no standard_name:
+        # sea_water_pressure already maps to "pressure" — a second entry would clash
+        # in the standard-name → canonical map.
+        "label": "Bin pressure",
+        "units": "dbar",
+        "standard_name": None,
+        "cmap": None,
     },
 }
 
@@ -663,11 +682,11 @@ def var_color(var: str) -> str:
 def vlabel(var: str, prefix: str = "") -> str:
     """Return a matplotlib axis label for *var* from the :data:`VARIABLES` registry.
 
-    Format is ``"{prefix}Label (units)"`` when ``label_units`` is non-empty, or
-    ``"{prefix}Label (1)"`` for a dimensionless quantity — ``1`` is the CF /
-    UDUNITS unit string for dimensionless (e.g. practical salinity, whose NetCDF
-    ``units`` attribute is ``"1"``), so the label matches the stored metadata
-    rather than leaving the reader to wonder whether a unit was forgotten.  The
+    Format is ``"{prefix}Label (units)"``, the units coming from :func:`vunit` (the
+    registry's canonical CF units formatted through the display pipeline), or
+    ``"{prefix}Label (1)"`` for a dimensionless quantity without a scale label — ``1``
+    is the CF / UDUNITS unit string for dimensionless, so the label matches the stored
+    metadata rather than leaving the reader to wonder whether a unit was forgotten.  The
     ``prefix`` is prepended to the label component only, not the units, so
     ``vlabel("temperature", prefix="Δ")`` produces ``"ΔTemperature (°C)"``.
 
@@ -685,23 +704,28 @@ def vlabel(var: str, prefix: str = "") -> str:
         is not in the registry so callers always get something useful.
 
     """
-    entry = VARIABLES.get(var, {})
-    lbl = f"{prefix}{entry.get('label', var)}"
-    if var not in VARIABLES:
+    entry = VARIABLES.get(var)
+    if entry is None:
         # Unknown variable: return the bare name.  Do NOT append "( )" — that
         # would falsely assert the quantity is dimensionless when we simply have
         # no registry entry for it.
-        return lbl
-    lu = entry.get("label_units", "")
-    return f"{lbl} ({lu})" if lu else f"{lbl} (1)"
+        return f"{prefix}{var}"
+    lbl = f"{prefix}{entry.get('label', var)}"
+    u = vunit(var)
+    return f"{lbl} ({u})" if u else f"{lbl} (1)"
 
 
 def vunit(var: str) -> str:
-    """Return the axis-label units string for *var* from :data:`VARIABLES`.
+    """Return the display units for *var*, formatted through the units pipeline.
 
-    This is the ``label_units`` component alone (e.g. ``"°C"``, ``"dbar"``),
-    suitable for a units-only colorbar title.  Returns an empty string for a
-    dimensionless quantity or an unknown variable.
+    The registry's canonical CF ``units`` for *var* is formatted by
+    :func:`oceanarray.config.unit_tables.unit_label` (oceanarray's view of the family
+    tables), so a colorbar/axis unit is produced by the same rule as every other label
+    — ``degree_Celsius`` → ``°C``, ``dbar`` → ``dbar``, ``1`` with the salinity standard
+    name → ``PSU``.  Reading from the registry (not from a dataset) means the storage
+    pass is the single guarantee of unit correctness; a non-canonical stored unit is
+    refused on write, not silently relabelled here.  Returns an empty string for a
+    dimensionless-without-label or unknown variable.
 
     Parameters
     ----------
@@ -711,10 +735,14 @@ def vunit(var: str) -> str:
     Returns
     -------
     str
-        The unit string, or ``""`` when none is registered.
+        The display unit string, or ``""`` when none is registered.
 
     """
-    return VARIABLES.get(var, {}).get("label_units", "")
+    entry = VARIABLES.get(var)
+    if entry is None:
+        return ""
+    cf = entry.get("units", "")
+    return unit_label(cf, entry.get("standard_name")) if cf else ""
 
 
 def __getattr__(name: str) -> dict[str, dict[str, float]]:

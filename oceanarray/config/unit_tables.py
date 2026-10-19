@@ -41,6 +41,14 @@ UNIT_ALIAS_EXTRAS: dict[str, dict[str, float]] = {
     },
     # the N² display label, leaked into a units attr by a pre-0.5.0 stage
     "s-2": {"s⁻²": 1.0},
+    # The SeaBird/Nortek readers write angle variables (pitch, roll, heading,
+    # current_direction, tilt) as 'degrees'; the CF canonical is 'degree'.  Evidence:
+    # every dune2 stage file stores pitch/roll/heading/current_direction/tilt_from_pressure
+    # as units='degrees'.  Factor 1 — a spelling, not a conversion.
+    "degree": {"degrees": 1.0},
+    # The reader writes battery as 'volts'; the CF/UDUNITS canonical symbol is 'V'.
+    # Evidence: dune2 battery_voltage stores units='volts'.  Factor 1.
+    "V": {"volts": 1.0},
 }
 
 #: Spellings the storage pass keeps as the file has them, keyed by CF ``standard_name``.
@@ -52,20 +60,12 @@ UNIT_SPELLINGS_KEPT: dict[str, frozenset[str]] = {
     "square_of_brunt_vaisala_frequency_in_sea_water": frozenset({"s-2", "rad2 s-2"}),
 }
 
-#: Display-label overrides, keyed by units string.  The family table has no label for the
-#: angle (``degrees``), voltage (``volts``) or geographic-coordinate spellings oceanarray's
-#: instruments store, so ``unit_label`` would echo the raw word; these map them to the
-#: symbol a plot axis expects.  Filed for the vendored table upstream (a universal display
-#: rule); kept here until it lands so an angle/battery/coordinate axis reads the stored unit
-#: through the pipeline and still renders ``°``/``V`` rather than ``degrees``/``volts``.
-UNIT_LABEL_OVERRIDES: dict[str, str] = {
-    "degrees": "°",
-    "degree": "°",
-    "degrees_east": "°E",
-    "degrees_north": "°N",
-    "volts": "V",
-    "volt": "V",
-}
+#: Display-label overrides, keyed by units string.  Empty: the family rule already labels
+#: every canonical oceanarray uses — ``degree`` → ``°``, ``degrees_east/north`` → ``°E``/``°N``,
+#: ``V`` → ``V`` — so the non-canonical reader spellings (``degrees``, ``volts``) are handled
+#: as aliases of those canonicals in :data:`UNIT_ALIAS_EXTRAS`, not relabelled here.  Add an
+#: entry only for a label the family rule cannot produce (e.g. ``{"percent": "%sat"}``).
+UNIT_LABEL_OVERRIDES: dict[str, str] = {}
 
 #: oceanarray's resolved view: the family defaults with the overrides above folded in.
 TABLES: Tables = merge_tables(

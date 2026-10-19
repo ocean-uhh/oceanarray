@@ -66,7 +66,7 @@ _CANONICAL_PANELS: list[tuple] = [
     ("pressure", params.vlabel("pressure"), "tab:green", True),
     (
         "pressure_1",
-        f"Pressure 1 ({params.VARIABLES['pressure']['label_units']})",
+        f"Pressure 1 ({params.vunit('pressure')})",
         "tab:green",
         True,
     ),

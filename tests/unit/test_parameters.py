@@ -10,7 +10,7 @@ class TestVariablesRegistry:
         assert isinstance(params.VARIABLES, dict)
 
     def test_all_entries_have_required_keys(self):
-        required = {"label", "label_units", "units", "standard_name", "cmap"}
+        required = {"label", "units", "standard_name", "cmap"}
         for var, entry in params.VARIABLES.items():
             missing = required - entry.keys()
             assert not missing, f"{var!r} missing keys: {missing}"
@@ -21,12 +21,20 @@ class TestVariablesRegistry:
                 f"{var!r} empty label"
             )
 
-    def test_label_units_is_units_only(self):
+    def test_vunit_derives_a_display_unit(self):
+        """vunit formats the canonical units through the display pipeline, never bare.
+
+        The ``label_units`` column is gone; the display unit is derived from ``units``
+        via :func:`vunit`.  Every registered variable with a non-empty ``units`` yields
+        a non-empty display unit that does not carry the variable's label text.
+        """
         for var, entry in params.VARIABLES.items():
-            lu = entry["label_units"]
-            assert isinstance(lu, str), f"{var!r} label_units is not a str"
-            assert entry["label"] not in lu, (
-                f"{var!r} label_units {lu!r} contains the label; store units only"
+            if not entry.get("units"):
+                continue
+            u = params.vunit(var)
+            assert isinstance(u, str) and u, f"{var!r} empty vunit"
+            assert entry["label"] not in u, (
+                f"{var!r} vunit {u!r} contains the label; units only"
             )
 
     def test_units_field_is_ascii(self):
@@ -89,7 +97,7 @@ class TestVariablesRegistry:
 
 
 class TestVlabel:
-    def test_known_variable_returns_label_units(self):
+    def test_known_variable_returns_label(self):
         assert params.vlabel("temperature") == "Temperature (°C)"
 
     def test_known_variable_with_prefix(self):

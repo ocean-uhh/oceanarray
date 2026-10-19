@@ -4,8 +4,8 @@ Covers :func:`oceanarray.processors.units.to_canonical_units` (the registry-scop
 idempotent pass that rewrites a file's units to one canonical spelling per quantity),
 oceanarray's view of the family tables (:mod:`oceanarray.config.unit_tables`) — its
 density-basis invariant and its agreement with the registry — and
-:func:`oceanarray.config.unit_tables.unit_label` (the plot-label derivation that must
-reproduce every registry ``label_units``).
+:func:`oceanarray.config.unit_tables.unit_label` (the plot-label derivation every
+registered variable's display unit is derived from, via :func:`vunit`/:func:`vlabel`).
 """
 
 from __future__ import annotations
@@ -22,7 +22,6 @@ import xarray as xr
 from oceanarray import parameters as params
 from oceanarray.config import unit_tables as ut
 from oceanarray.processors import units as pu
-from oceanarray.reports._vendored.units import resolve_units
 
 
 def _ds(**vars_with_units):
@@ -331,34 +330,33 @@ def test_registry_units_agree_with_the_tables():
 # ---------------------------------------------------------------------------
 
 
-def test_every_label_units_is_an_alias_of_its_canonical():
-    """A display string that leaks into a file's units attr must be recoverable.
+def test_every_registry_var_gets_a_display_label():
+    """Every registered variable yields an axis label with a non-empty unit.
 
-    Guards the ``°C`` drift class: every registry ``label_units`` resolves to its
-    canonical with factor 1, so the pass rewrites it instead of raising, whichever
-    stage wrote it.
+    Replaces the old ``label_units`` drift guard (the column is gone): :func:`vlabel`
+    derives the unit from the canonical ``units`` through :func:`unit_label`, so the
+    check is that every variable produces ``"Name (unit)"`` with a real unit — or the
+    CF dimensionless ``"(1)"`` — never a bare name.
     """
-    for var, entry in params.VARIABLES.items():
-        canonical = entry["units"]
-        resolved = resolve_units(
-            entry["label_units"],
-            entry.get("standard_name"),
-            tables=ut.TABLES,
-            canonical=canonical,
-        )
-        assert resolved == (canonical, 1.0), (
-            f"{var}: label_units {entry['label_units']!r} is not an alias of "
-            f"canonical {canonical!r}"
-        )
+    for var in params.VARIABLES:
+        label = params.vlabel(var)
+        assert "(" in label and label.endswith(")"), f"{var}: no unit in {label!r}"
+        unit = label[label.rfind("(") + 1 : -1]
+        assert unit, f"{var}: empty unit in vlabel {label!r}"
 
 
-def test_unit_label_reproduces_every_registry_label():
-    for var, entry in params.VARIABLES.items():
-        derived = ut.unit_label(entry["units"], entry.get("standard_name"))
-        assert derived == entry["label_units"], (
-            f"{var}: unit_label({entry['units']!r}) = {derived!r} != "
-            f"{entry['label_units']!r}"
-        )
+def test_oceanarray_unit_aliases_reach_vunit():
+    """oceanarray's unit_tables customisation reaches the display entry points.
+
+    The readers write angles as ``degrees`` and voltage as ``volts``; UNIT_ALIAS_EXTRAS
+    maps them to the CF canonicals (``degree`` / ``V``), which the family rule labels
+    ``°`` / ``V``.  Confirm both the registry path (:func:`vunit`, via the canonical) and
+    the raw reader spelling (:func:`unit_label`) land on the symbol.
+    """
+    assert params.vunit("pitch") == "°"
+    assert params.vunit("bin_pressure") == "dbar"
+    assert ut.unit_label("degrees") == "°"
+    assert ut.unit_label("volts") == "V"
 
 
 def test_unit_label_specials():
