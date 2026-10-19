@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 from oceanarray.reports._vendored import design_tokens as report_tokens
 
 from .. import parameters as params
-from ..config.unit_tables import unit_label
+from ..config.unit_tables import unit_label, warn_if_not_canonical
 from .helpers import grid_despine, ordered_line_colors
 from .primitives import colorbar_norm, date_axis, plot_title
 
@@ -226,6 +226,12 @@ def draw_isopycnal_coverage(
         waterdepth = float("nan")
     use_hab = np.isfinite(waterdepth) and waterdepth > 0
 
+    # Both branches build the second axis from the pressure coordinate and label it dbar
+    # — HAB treats 1 dbar ≈ 1 m seawater; otherwise pressure is shown directly — so the
+    # guard runs before the branch, covering the else path's "Pressure (dbar)" label too.
+    warn_if_not_canonical(
+        ds["pressure"], "dbar", quantity="isopycnal depth axis (dbar)"
+    )
     if use_hab:
         iso_z = waterdepth - iso_p
         iso_z[iso_z < 0] = np.nan

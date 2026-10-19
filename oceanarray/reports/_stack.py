@@ -12,7 +12,7 @@ from typing import Any
 import numpy as np
 
 from .. import parameters as params
-from ..config.unit_tables import var_unit_label
+from ..config.unit_tables import var_unit_label, warn_if_not_canonical
 from ..plotters.helpers import grid_despine, ordered_line_colors
 from ..plotters.primitives import date_offset_left, plot_title
 from . import _figdebug
@@ -967,6 +967,10 @@ def generate_stack_page(
         fig_spacing_b64: str | None = None
         if "pressure" in ds.data_vars and n_instr > 1:
             try:
+                # The spacing axis is labelled dbar; it is a difference of pressures.
+                warn_if_not_canonical(
+                    ds["pressure"], "dbar", quantity="instrument spacing (dbar)"
+                )
                 pres_arr = ds["pressure"].values  # (time, N_LEVELS)
                 with np.errstate(all="ignore"):
                     med_p = np.nanmedian(
