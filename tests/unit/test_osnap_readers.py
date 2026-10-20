@@ -58,6 +58,34 @@ def test_oceansites_rejects_a_file_with_no_known_codes(tmp_path):
         read_oceansites(path)
 
 
+def test_oceansites_one_record_file_keeps_its_time_axis(tmp_path):
+    """A single-record (TIME=1, DEPTH=1) file must not squeeze TIME to a scalar.
+
+    `squeeze(drop=True)` would drop the length-1 TIME as well, which then fails both the
+    data path (`dims="time"` on a 0-d value) and the QC path (`dims[0]` on a scalar).
+    """
+    path = tmp_path / "onerec.nc"
+    xr.Dataset(
+        {
+            "TEMP": (
+                ("TIME", "DEPTH"),
+                np.array([[4.2]], dtype="float32"),
+                {"units": "degree_Celsius", "standard_name": "sea_water_temperature"},
+            ),
+            "TEMP_QC": (("TIME", "DEPTH"), np.array([[1]], dtype="int8")),
+        },
+        coords={
+            "TIME": np.array(["2026-01-01"], dtype="datetime64[ns]"),
+            "DEPTH": [100.0],
+        },
+    ).to_netcdf(path)
+
+    ds = read_oceansites(path)
+    assert ds["temperature"].dims == ("time",)
+    assert ds["temperature"].sizes == {"time": 1}
+    assert ds["temperature_qc_originator"].dims == ("time",)
+
+
 def test_rodb_microcat_names_units_fill_and_time():
     ds = read_rodb(RODB_MICROCAT)
     assert list(ds.data_vars) == ["temperature", "conductivity", "pressure"]

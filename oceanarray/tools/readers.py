@@ -422,9 +422,18 @@ def read_oceansites(path: str | Path) -> xr.Dataset:
             f"supported OceanSITES file"
         )
 
+    def _squeeze_non_time(v: xr.DataArray) -> xr.DataArray:
+        """Drop every size-1 dim except TIME, so a one-record file keeps its time axis.
+
+        A plain ``squeeze(drop=True)`` would also drop a length-1 TIME, leaving a scalar
+        that cannot be given ``dims="time"`` (data path) and has no ``dims[0]`` (QC path).
+        """
+        extra = [d for d in v.dims if d != "TIME" and v.sizes[d] == 1]
+        return v.squeeze(dim=extra, drop=True) if extra else v
+
     out = xr.Dataset(coords={"time": src["TIME"].values})
     for code in found:
-        da = src[code].squeeze(drop=True)
+        da = _squeeze_non_time(src[code])
         name = OCEANSITES_VARIABLES[code]
         attrs = {k: v for k, v in da.attrs.items() if k in ("units", "long_name")}
         attrs["standard_name"] = da.attrs.get("standard_name", "")
@@ -432,9 +441,10 @@ def read_oceansites(path: str | Path) -> xr.Dataset:
         out[name] = xr.DataArray(da.values, dims="time", attrs=attrs)
         qc = f"{code}_QC"
         if qc in src.data_vars:
-            out[f"{name}_qc_originator"] = _originator_flags(
-                src[qc].squeeze(drop=True).rename(qc)
-            ).rename({src[qc].squeeze(drop=True).dims[0]: "time"})
+            qc_da = _squeeze_non_time(src[qc])
+            out[f"{name}_qc_originator"] = _originator_flags(qc_da.rename(qc)).rename(
+                {qc_da.dims[0]: "time"}
+            )
 
     for key in ("LATITUDE", "LONGITUDE", "DEPTH"):
         if key in src.variables:
