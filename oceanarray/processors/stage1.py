@@ -8,6 +8,7 @@ import warnings
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import seasenselib
 import xarray as xr
 import yaml
@@ -15,7 +16,7 @@ import yaml
 from oceanarray import parameters as params
 from oceanarray import paths
 from oceanarray.paths import safe_serial
-from oceanarray.processors.units import to_canonical_units
+from oceanarray.processors.units import UnitsError, to_canonical_units
 from oceanarray.utilities import (
     _status,
     extract_inline_instruments,
@@ -349,6 +350,12 @@ class MooringProcessor:
         if file_type not in self.SUPPORTED_FILE_TYPES:
             msg = f"Unknown file type: {file_type}"
             raise ValueError(msg)
+
+        if file_type in ("oceansites", "rodb"):
+            from oceanarray.tools.readers import read_oceansites, read_rodb
+
+            reader = read_oceansites if file_type == "oceansites" else read_rodb
+            return reader(file_path)
 
         if file_type == "nortek-csv-oa":
             import warnings
@@ -929,6 +936,89 @@ class MooringProcessor:
         if to_rename:
             dataset = dataset.rename_vars(to_rename)
         return dataset
+
+    def _apply_units_override(
+        self, dataset: xr.Dataset, instrument_config: dict[str, Any]
+    ) -> xr.Dataset:
+        """Replace a variable's units attribute with the one given in the mooring YAML.
+
+        For a file whose ``units`` attribute is known to be wrong (e.g. conductivity
+        labelled ``S/m`` with values in mS/cm).  The YAML key is
+        ``units_override: {variable: units}`` on the instrument; the stated value is
+        kept in ``units_override_from`` so the correction is visible in the output.
+
+        Parameters
+        ----------
+        dataset : xarray.Dataset
+            The dataset as read.
+        instrument_config : dict
+            The instrument's entry from the mooring YAML.
+
+        Returns
+        -------
+        xarray.Dataset
+            *dataset*, with the overridden units.
+
+        Raises
+        ------
+        ValueError
+            If ``units_override`` names a variable the file does not hold.
+        """
+        overrides = instrument_config.get("units_override") or {}
+        for var, units in overrides.items():
+            if var not in dataset.data_vars:
+                raise ValueError(
+                    f"units_override names {var!r}, which the file does not hold "
+                    f"(variables: {sorted(dataset.data_vars)})"
+                )
+            attrs = dict(dataset[var].attrs)
+            attrs["units_override_from"] = str(attrs.get("units", ""))
+            attrs["units"] = str(units)
+            dataset[var].attrs = attrs
+            self._log_print(
+                f"  {var}: units overridden {attrs['units_override_from']!r} -> "
+                f"{units!r} (mooring YAML units_override)"
+            )
+        return dataset
+
+    def _check_value_ranges(
+        self, dataset: xr.Dataset, stated_units: dict[str, Any]
+    ) -> None:
+        """Refuse a variable whose values contradict its units.
+
+        After the units pass, the median of each registered variable with a
+        ``valid_min`` / ``valid_max`` in :data:`parameters.VARIABLES` must fall in
+        that range.  A median outside it means the stated units are wrong (a file
+        that says ``S/m`` but holds mS/cm becomes ten times too large).
+
+        Parameters
+        ----------
+        dataset : xarray.Dataset
+            The dataset after :func:`to_canonical_units`.
+        stated_units : dict
+            Each variable's units attribute as it was before the units pass.
+
+        Raises
+        ------
+        UnitsError
+            Naming the variable, its stated units and the remedy.
+        """
+        for var in dataset.data_vars:
+            entry = params.VARIABLES.get(var, {})
+            lo, hi = entry.get("valid_min"), entry.get("valid_max")
+            if lo is None or hi is None:
+                continue
+            values = np.asarray(dataset[var].values, dtype=float)
+            if not np.isfinite(values).any():
+                continue
+            median = float(np.nanmedian(values))
+            if not lo <= median <= hi:
+                raise UnitsError(
+                    f"{var!r}: median {median:g} {dataset[var].attrs.get('units')} is "
+                    f"outside the valid range [{lo:g}, {hi:g}]; the file's units "
+                    f"{stated_units.get(var)!r} look wrong. Set units_override: "
+                    f"{{{var}: <units>}} on this instrument in the mooring YAML."
+                )
 
     def _clean_dataset_variables(
         self, dataset: xr.Dataset, file_type: str
@@ -1756,11 +1846,20 @@ class MooringProcessor:
         for _redundant_attr in ("processor_level", "source_format_name"):
             dataset.attrs.pop(_redundant_attr, None)
 
+        # A file whose units attribute is known to be wrong is corrected from the
+        # mooring YAML (``units_override``) before the units pass reads it.
+        dataset = self._apply_units_override(dataset, instrument_config)
+        stated_units = {v: dataset[v].attrs.get("units") for v in dataset.data_vars}
+
         # Canonicalise every registered variable's units to one spelling per quantity
         # (mS cm-1, degree_Celsius, m, dbar, m s-1, …).  Raises UnitsError on an
         # unknown or missing unit for a registered variable; the caller logs it with
         # the file path and skips this instrument.
         dataset = to_canonical_units(dataset, log_fn=self._log_print, stage=1)
+
+        # An imported file's units are the originator's word; check the values agree.
+        if file_type in ("oceansites", "rodb"):
+            self._check_value_ranges(dataset, stated_units)
 
         # Write to NetCDF
         _status("file", str(relative_output))

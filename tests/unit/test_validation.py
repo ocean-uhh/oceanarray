@@ -406,3 +406,15 @@ def test_process_refuses_colliding_serials_before_writing(tmp_path):
 def test_case_only_serials_collide_on_case_insensitive_fs():
     # 'Alpha' and 'alpha' are one file on macOS/Windows → a collision.
     assert len(_errors(check_serials([_mk("Alpha"), _mk("alpha")]))) == 1
+
+
+def test_stack_key_must_be_boolean(tmp_path):
+    import copy
+
+    data = copy.deepcopy(_VALID_MINIMAL)
+    data["instruments"][0]["stack"] = "no"
+    errors = _errors(validate_mooring_yaml(_write_yaml(tmp_path, data)))
+    assert any("stack=" in e.message for e in errors)
+    data["instruments"][0]["stack"] = False
+    errors = _errors(validate_mooring_yaml(_write_yaml(tmp_path, data)))
+    assert not any("stack=" in e.message for e in errors)

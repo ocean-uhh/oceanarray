@@ -440,8 +440,9 @@ def test_deprecated_tables_warn_and_match_the_old_shape():
     assert aliases["mS cm-1"]["S/m"] == 10.0
     with pytest.warns(DeprecationWarning, match="VARIABLE_UNIT_ALIASES"):
         scoped = params.VARIABLE_UNIT_ALIASES
-    assert scoped["salinity"] == {"PSU": 1.0}
-    assert scoped["turbidity"] == {"NTU": 1.0}
+    # rebuilt from the live tables: the old entries are still there
+    assert scoped["salinity"]["PSU"] == 1.0
+    assert scoped["turbidity"]["NTU"] == 1.0
 
 
 def test_units_layer_imports_no_plotting_or_templating():
