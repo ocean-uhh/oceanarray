@@ -22,6 +22,12 @@ All notable changes to oceanarray are documented here.
 - **N² keeps the spelling it arrives with**: `s-2` and `rad2 s-2` are both accepted and neither is rewritten into the other (`rad2 s-2` used to be refused), so N² is the one quantity whose stored spelling can differ between files.
 - **Legacy vocabulary files moved and renamed**: `config/OS1_var_names.yaml`, `config/OS1_sensor_attrs.yaml` and `legacy/OS1_vocab_attrs.yaml` are now `legacy/OS1_variable_names.yaml`, `legacy/OS1_sensor_attributes.yaml` and `legacy/OS1_variable_attributes.yaml`, beside the legacy `convertOS.py` that takes them as inputs. No other oceanarray code reads them; the wheel no longer ships them.
 
+### Added
+
+- **Readers for files already processed by their originator**: `file_type: oceansites` (OceanSITES 1.3 netCDF, and the OSNAP variant with variables on `TIME`) and `file_type: rodb` (RAPID/BODC `.microcat`, `.edt`, `.lowedt`), in `oceanarray.tools.readers` (`read_oceansites`, `read_rodb`). Variables are renamed to oceanarray names; the originator's QC flags are kept as `<name>_qc_originator`; the originator's metadata as `originator_*` attributes. Velocities are geographic, so Stage 3 applies no rotation and no second magnetic declination (`originator_magnetic_declination`). New instrument class `currentmeter` for a processed point current meter. Tested on trimmed real OSNAP files (WHOI, GEOMAR, Scripps, RODB) in `tests/fixtures/raw/osnap/`.
+- **`units_override`** per instrument in the mooring YAML corrects a file whose units attribute is wrong; Stage 1 refuses an imported (`oceansites` / `rodb`) instrument whose values fall outside the registry's valid range for the stated units, naming this key.
+- Unit spellings accepted: `decibar`, `meter/second`, `meter`, `psu` (practical salinity only), and RODB `cm s-1` (converted ×0.01 to `m s-1`).
+
 ### Deprecated
 
 - `oceanarray.processors.units.canonicalise_units` → `to_canonical_units`, and `oceanarray.processors.units.format_units` → `oceanarray.config.unit_tables.unit_label`. The old names warn and are removed in 0.6.0.

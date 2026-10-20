@@ -12,12 +12,13 @@ Valid instrument names and their typical file types
 +------------+-------------------------------+--------------------------------------+
 | instrument | Description                   | Typical file_type                    |
 +============+===============================+======================================+
-| microcat   | SeaBird SBE37 CTD             | sbe-cnv, sbe-ascii                   |
+| microcat   | SeaBird SBE37 CTD             | sbe-cnv, sbe-ascii, oceansites, rodb |
 | sbe56      | SeaBird SBE56 temperature     | sbe-cnv                              |
 | sbe16      | SeaBird SBE16 CTD             | sbe-cnv, sbe-hex                     |
 | rbrsolo    | RBR Solo temperature          | rbr-rsk, rbr-dat                     |
 | rbrduet    | RBR Duet CT                   | rbr-rsk, rbr-dat                     |
 | aquadopp   | Nortek Aquadopp current meter | nortek-raw, nortek-ascii, nortek-csv |
+| currentmeter | Processed point current meter | oceansites, rodb                     |
 | adcp       | Acoustic Doppler Current Prof | adcp-matlab                          |
 | tr1050     | Turner TR-1050 (via RBR)      | rbr-matlab                           |
 +------------+-------------------------------+--------------------------------------+

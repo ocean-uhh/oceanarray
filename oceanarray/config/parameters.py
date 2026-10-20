@@ -294,16 +294,23 @@ INSTRUMENT_ABBREV = {
 #
 # ``file_type:``   is the seasenselib reader key that controls how the raw
 #                  file is parsed.  Each instrument may have several variants.
+#                  ``oceansites`` and ``rodb`` are read by oceanarray's own
+#                  readers (``tools.readers``): files already processed by their
+#                  originator (OceanSITES netCDF, RAPID/BODC RODB text).
 #
 # To add a new instrument class: add an entry here.  Everything that checks
 # instrument type (reports, mooring_level, plotters) reads KNOWN_INSTRUMENT_TYPES
 # from this dict.
 # ---------------------------------------------------------------------------
 INSTRUMENT_FILE_TYPES: dict = {
-    "microcat": ["sbe-cnv", "sbe-ascii", "sbe-hex"],
+    "microcat": ["sbe-cnv", "sbe-ascii", "sbe-hex", "oceansites", "rodb"],
     "sbe56": ["sbe-cnv", "sbe-ascii"],  # SeaBird SBE56 temperature logger
     "sbe16": ["sbe-cnv", "sbe-hex"],  # SeaBird SBE16 CTD
     "aquadopp": ["nortek-raw", "nortek-ascii", "nortek-csv"],
+    # A point current meter delivered already processed (velocities in geographic
+    # east/north), e.g. an Aanderaa RCM from an OceanSITES or RODB archive.  Read by
+    # oceanarray's own readers (tools.readers), not seasenselib.
+    "currentmeter": ["oceansites", "rodb"],
     "tr1050": ["rbr-hex"],  # RBR TR-1050 thermistor chain
     "rbrsolo": ["rbr-rsk"],  # RBR soloT — single-channel temperature
     "rbrduet": ["rbr-rsk"],  # RBR duet — temperature + pressure or T+C

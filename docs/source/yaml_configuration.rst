@@ -297,6 +297,15 @@ Optional fields
      - string
      - Special sentinel value indicating no data file exists yet.
        Processing is skipped; the instrument appears in reports as pending.
+   * - ``units_override``
+     - mapping
+     - Corrects a file whose ``units`` attribute is wrong, as
+       ``{variable: units}``, e.g. ``{conductivity: mS/cm}`` for a file that
+       labels mS/cm values ``S/m``.  Applied in Stage 1 before the units pass;
+       the stated value is kept in the variable's ``units_override_from``
+       attribute.  For ``oceansites`` and ``rodb`` files Stage 1 checks each
+       variable's median against the registry's valid range and refuses the
+       instrument, naming this key, when the stated units look wrong.
 
 Additional fields
 ~~~~~~~~~~~~~~~~~
@@ -349,7 +358,7 @@ Valid values and their descriptions:
      - Reader families accepted by ``file_type``
    * - ``microcat``
      - SeaBird SBE37 CTD
-     - ``sbe-cnv``, ``sbe-ascii``, ``sbe-hex``
+     - ``sbe-cnv``, ``sbe-ascii``, ``sbe-hex``, ``oceansites``, ``rodb``
    * - ``sbe56``
      - SeaBird SBE56 temperature logger
      - ``sbe-cnv``
@@ -365,6 +374,10 @@ Valid values and their descriptions:
    * - ``aquadopp``
      - Nortek Aquadopp current meter
      - ``nortek-raw``, ``nortek-ascii``, ``nortek-csv``
+   * - ``currentmeter``
+     - Point current meter delivered already processed (e.g. an Aanderaa RCM
+       from an OceanSITES or RODB archive)
+     - ``oceansites``, ``rodb``
    * - ``ADCP``
      - RDI WorkHorse broadband ADCP
      - ``rdi-raw``
@@ -417,6 +430,22 @@ Valid ``file_type`` values
      - Nortek CSV string-data export
      - Aquadopp (400### series)
      -
+   * - ``oceansites``
+     - OceanSITES netCDF (oceanarray reader)
+     - MicroCAT, current meter
+     - A single-instrument time series already processed by its originator:
+       OceanSITES 1.3 (variables on ``TIME, DEPTH``) or the OSNAP variant
+       (variables on ``TIME``).  ``TEMP``, ``PSAL``, ``CNDC``, ``PRES``,
+       ``UCUR``, ``VCUR``, ``WCUR`` are read; a ``<CODE>_QC`` variable is kept
+       as ``<name>_qc_originator``.  Velocities are geographic, so Stage 3
+       applies no rotation and no magnetic declination.
+   * - ``rodb``
+     - RODB text (oceanarray reader)
+     - MicroCAT, current meter
+     - RAPID/BODC ``.microcat``, ``.edt`` and ``.lowedt`` files.  Units are
+       those documented for each column code (``U``/``V``/``W`` in cm/s,
+       converted to m s-1).  An ``.edt`` header's ``MagDeviation`` is recorded
+       as ``originator_magnetic_declination`` and not applied again.
    * - ``rbr-rsk``
      - RBR Ruskin SQLite
      - RBR Solo, Duet, etc.

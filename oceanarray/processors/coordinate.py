@@ -275,7 +275,9 @@ def apply_declination_to_enu(
         v_true = -u_mag * sin(D) + v_mag * cos(D)
 
     No-ops if east_velocity or north_velocity are absent, or if magnetic
-    declination has already been applied (``magnetic_declination`` attr present).
+    declination has already been applied — by oceanarray (``magnetic_declination``
+    attr present) or by the originator of an imported file
+    (``originator_magnetic_declination`` attr present).
     """
 
     def _warn(msg: str) -> None:
@@ -286,6 +288,8 @@ def apply_declination_to_enu(
 
     if "magnetic_declination" in ds.attrs:
         return ds  # already applied
+    if "originator_magnetic_declination" in ds.attrs:
+        return ds  # applied by the file's originator (imported OceanSITES / RODB)
 
     if "east_velocity" not in ds.data_vars or "north_velocity" not in ds.data_vars:
         return ds

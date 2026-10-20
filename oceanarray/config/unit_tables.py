@@ -52,6 +52,26 @@ UNIT_ALIAS_EXTRAS: dict[str, dict[str, float]] = {
     # The reader writes battery as 'volts'; the CF/UDUNITS canonical symbol is 'V'.
     # Evidence: dune2 battery_voltage stores units='volts'.  Factor 1.
     "V": {"volts": 1.0},
+    # OceanSITES 1.3 files from the OSNAP arrays (WHOI, NIOZ, UMiami, GEOMAR, Scripps)
+    # spell units in words.  Evidence: OS_OSNAP_WHOI_CF7_202007_CM_500m.nc,
+    # os_osnap-ic2_201807_cm_611m.nc, OS_OSNAP-UMD2_201407_*.nc,
+    # OS_OSNAP-10633_KPO_1111_K7_201408_D_MCTD_OSNAPstyleOceanSITES.nc.  Factor 1.
+    "dbar": {"decibar": 1.0},
+    "m s-1": {
+        "meter/second": 1.0,
+        # RODB files (RAPID/BODC) carry velocities in cm/s, as documented for the
+        # U/V/W codes in config/legacy/rodb_keys.yaml; evidence rtwb1_01_2014_11021.edt.
+        # A conversion, not a spelling: belongs in the vendored family table once
+        # ctdcast reviews it (raised there); held here until then.
+        "cm s-1": 0.01,
+    },
+    "m": {"meter": 1.0},
+}
+
+#: Extra spellings meaningful for one quantity only, keyed by CF ``standard_name``.
+#: Evidence: the OSNAP OceanSITES files above write practical salinity as 'psu'.
+UNIT_SCOPED_EXTRAS: dict[str, dict[str, float]] = {
+    "sea_water_practical_salinity": {"psu": 1.0},
 }
 
 #: Spellings the storage pass keeps as the file has them, keyed by CF ``standard_name``.
@@ -75,6 +95,7 @@ TABLES: Tables = merge_tables(
     DEFAULT_TABLES,
     canonical=CANONICAL_UNIT_OVERRIDES,
     aliases=UNIT_ALIAS_EXTRAS,
+    scoped=UNIT_SCOPED_EXTRAS,
     labels=UNIT_LABEL_OVERRIDES,
 )
 
