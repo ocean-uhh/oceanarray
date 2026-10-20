@@ -297,6 +297,14 @@ Optional fields
      - string
      - Special sentinel value indicating no data file exists yet.
        Processing is skipped; the instrument appears in reports as pending.
+   * - ``stack``
+     - boolean
+     - Set to ``false`` to keep this instrument out of the stack and grid
+       while still processing it through Stages 1–3 and its instrument
+       report (reference data, e.g. a low-passed RODB ``.lowedt`` file).
+       The stack records it in its ``instruments_excluded`` attribute.
+       Default ``true``.  A low-passed file reaching the stack without it is
+       omitted with an error naming this key.
    * - ``units_override``
      - mapping
      - Corrects a file whose ``units`` attribute is wrong, as

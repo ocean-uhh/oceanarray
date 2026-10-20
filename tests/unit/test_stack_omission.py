@@ -71,3 +71,42 @@ def test_stack_all_instruments_omitted_writes_no_file(tmp_path):
     assert not (proc / "dune2_1_2026_stack.nc").exists(), (
         "an all-omitted mooring must not write a stack file"
     )
+
+
+def _set_yaml_key(proc: Path, serial: int, key: str, value: object) -> None:
+    import yaml
+
+    path = proc / "dune2_1_2026.mooring.yaml"
+    cfg = yaml.safe_load(path.read_text())
+    for entry in cfg["clamp"]:
+        if str(entry["serial"]).rstrip("*") == str(serial):
+            entry[key] = value
+    path.write_text(yaml.safe_dump(cfg, sort_keys=False))
+
+
+def test_stack_false_excludes_and_records_without_failing(tmp_path):
+    shutil.copytree(_FIXTURE, tmp_path / "dune2_1_2026")
+    proc = tmp_path / "dune2_1_2026"
+    _set_yaml_key(proc, 2941, "stack", False)
+    ok = MooringStacker(proc_dir=str(tmp_path)).stack("dune2_1_2026", force=True)
+    assert ok is True, "an exclusion is deliberate, not a failure"
+    ds = xr.open_dataset(proc / "dune2_1_2026_stack.nc", engine="netcdf4")
+    assert ds.sizes["N_LEVELS"] == 1
+    assert "2941" in ds.attrs["instruments_excluded"]
+    assert "instruments_omitted" not in ds.attrs
+    ds.close()
+
+
+def test_low_passed_file_without_stack_false_is_omitted(tmp_path):
+    shutil.copytree(_FIXTURE, tmp_path / "dune2_1_2026")
+    proc = tmp_path / "dune2_1_2026"
+    nc = proc / "microcat" / "dune2_1_2026_2941_stage3.nc"
+    ds = xr.open_dataset(nc, engine="netcdf4", decode_timedelta=False).load()
+    ds.close()
+    ds.attrs["originator_low_passed"] = "2-day low-pass, 12-hour time step"
+    ds.to_netcdf(nc, engine="netcdf4")
+    ok = MooringStacker(proc_dir=str(tmp_path)).stack("dune2_1_2026", force=True)
+    assert ok is False
+    out = xr.open_dataset(proc / "dune2_1_2026_stack.nc", engine="netcdf4")
+    assert "stack: false" in out.attrs["instruments_omitted"]
+    out.close()

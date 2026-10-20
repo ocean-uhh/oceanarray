@@ -421,6 +421,14 @@ def validate_mooring_yaml(yaml_path: str) -> list[ValidationIssue]:
                 )
             )
 
+        if "stack" in entry and not isinstance(entry["stack"], bool):
+            issues.append(
+                ValidationIssue(
+                    "ERROR",
+                    f"{prefix} stack={entry['stack']!r} must be true or false",
+                )
+            )
+
         # Clock correction field checks
         has_comp = "computer_clock_at_recovery" in entry
         has_inst = "instrument_clock_at_recovery" in entry

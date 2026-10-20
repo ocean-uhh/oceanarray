@@ -118,3 +118,10 @@ def test_mislabelled_conductivity_converts_out_of_range():
     out = to_canonical_units(read_oceansites(SCRIPPS_MCTD))
     assert float(np.nanmedian(out["conductivity"].values)) > 80.0
     assert issubclass(UnitsError, ValueError)
+
+
+def test_lowedt_is_tagged_low_passed(tmp_path):
+    path = tmp_path / "rtwb1_01_2014_11021.lowedt"
+    path.write_text(RODB_EDT.read_text())
+    ds = read_rodb(path)
+    assert ds.attrs["originator_low_passed"].startswith("2-day low-pass")

@@ -30,6 +30,11 @@ from oceanarray.writers import write
 
 KNOWN_INSTRUMENT_TYPES: frozenset = params.KNOWN_INSTRUMENT_TYPES
 
+
+class _LowPassedError(ValueError):
+    """A low-passed instrument file reached the stack without ``stack: false``."""
+
+
 _SIGMA_META = {
     0: (
         "sigma0",
@@ -152,8 +157,12 @@ class MooringStacker:
         )
         instrument_list += extract_inline_instruments(mooring_config.get("inline", []))
 
-        # Collect instruments with known hab and an available stage2/stage3 file
+        # Collect instruments with known hab and an available stage2/stage3 file.
+        # An instrument marked ``stack: false`` in the mooring YAML is processed
+        # through stages 1-3 (reference data) but kept out of the stack, and named
+        # in ``instruments_excluded`` — distinct from an error omission.
         instruments = []
+        excluded: list[str] = []
         for entry in instrument_list:
             if not isinstance(entry, dict):
                 continue
@@ -166,6 +175,10 @@ class MooringStacker:
                     "it will be stacked as a generic instrument (Aquadopp/ADCP-specific "
                     "handling skipped)."
                 )
+            if entry.get("stack", True) is False:
+                excluded.append(f"{instr_type} s/n {serial}")
+                print(f"  EXCLUDE {instr_type} s/n {serial}: stack: false in the YAML")
+                continue
             hab = entry.get("hab")
             if hab is None:
                 continue
@@ -343,12 +356,21 @@ class MooringStacker:
                 # Canonicalise each instrument's units before stacking, so a
                 # pre-0.5.0 input (degC, S/m, …) joins the stack already canonical.
                 ds = to_canonical_units(ds, log_fn=print, stage="stack")
+                # A low-passed file (e.g. RODB .lowedt) on a coarse step would be
+                # interpolated onto the stack grid as if it were full-rate data.
+                if "originator_low_passed" in ds.attrs:
+                    raise _LowPassedError(
+                        f"low-passed reference data "
+                        f"({ds.attrs['originator_low_passed']}); set stack: false "
+                        f"on this instrument in the mooring YAML"
+                    )
             except Exception as e:  # noqa: BLE001  — one bad instrument must not abort the stack
-                reason = (
-                    f"units error: {e}"
-                    if isinstance(e, UnitsError)
-                    else f"could not load {info['nc_path'].name}: {e}"
-                )
+                if isinstance(e, UnitsError):
+                    reason = f"units error: {e}"
+                elif isinstance(e, _LowPassedError):
+                    reason = str(e)
+                else:
+                    reason = f"could not load {info['nc_path'].name}: {e}"
                 print(
                     f"  ERROR: omitting {info['instrument']} s/n {info['serial']} — {reason}"
                 )
@@ -726,6 +748,8 @@ class MooringStacker:
         # OceanSITES convention: time is the unlimited (first) dimension.
         ds_out = ds_out.transpose("time", "N_LEVELS")
         ds_out = to_canonical_units(ds_out, log_fn=print, stage="stack")
+        if excluded:
+            ds_out.attrs["instruments_excluded"] = "; ".join(excluded)
         if omitted:
             # Record the omission in the file so the stack report and the grid
             # (which reads this file) inherit it, and summarise it loudly.

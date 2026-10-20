@@ -14,3 +14,25 @@ global attributes are unchanged; only the time dimension is cut.
 
 The OSNAP data were "collected and made freely available by the OSNAP project and
 the national programs that contribute to it" (from the files' `citation` attribute).
+
+## Running the pipeline on these files
+
+The two RODB files form one mooring (a MicroCAT and a current meter). From the
+repository root:
+
+```bash
+bash tests/fixtures/raw/osnap/run_example.sh
+```
+
+The script copies the two files into a raw tree, writes the mooring YAML, runs
+`oceanarray validate` and `oceanarray run`, and prints the report path. Everything
+goes under `outputs/osnap-demo/` (git-ignored); set `W` to write elsewhere. The
+current meter's velocities leave stage 3 unrotated: the `.edt` header's
+`MagDeviation` was already applied by the originator and is recorded as
+`originator_magnetic_declination`. The two slices cover different weeks of 2014,
+so the stack and grid have one instrument at any one time.
+
+The netCDF files run the same way with `file_type: oceansites`. The Scripps
+MicroCAT (`CF7_MCTD_2020_22225_50m.nc`) is refused at stage 1 until its
+instrument entry carries `units_override: {conductivity: mS/cm}`, because the
+file labels mS/cm values `S/m`.
