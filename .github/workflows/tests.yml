@@ -43,6 +43,14 @@ jobs:
       - name: Run unit tests
         # Coverage gate runs once, on the canonical ubuntu + 3.11 leg; the extra
         # version legs run --no-cov so they only verify install + test pass.
+        env:
+          # Windows: the netCDF4 wheel points HDF5_PLUGIN_PATH at its bundled plugins
+          # folder, and HDF5 rescans it on every filter query -- xarray calls
+          # var.filters() once per variable, so each NETCDF4 open costs ~36 ms/variable
+          # on the hosted runner. "::" preloads no plugins. oceanarray writes zlib
+          # (built into HDF5), so only zstd/bzip2/blosc files would need them -- none
+          # here. No effect on Linux/macOS.
+          HDF5_PLUGIN_PRELOAD: "::"
         run: >
           pytest tests/unit -m "not slow and not local and not needs_seasenselib" -q
           ${{ (matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11') && '--cov=oceanarray --cov-report=term-missing --cov-fail-under=58' || '--no-cov' }}
