@@ -45,7 +45,13 @@ from oceanarray.reports._vendored import design_tokens as report_tokens
 from .. import parameters as params
 from ..config.unit_tables import unit_label, var_unit_label
 from .helpers import distinct_line_styles, grid_despine
-from .primitives import date_offset_left, figure_title, plot_title, square_axes_grid
+from .primitives import (
+    date_offset_left,
+    figure_title,
+    plot_title,
+    square_axes_grid,
+    ytick_reserve_in,
+)
 
 if TYPE_CHECKING:
     from datetime import datetime
@@ -676,8 +682,16 @@ def plot_knockdown_displacement(
         # matched the left panel — square_axes_grid places both by construction.)
         # Tight inter-panel gap (the heatmap shares the scatter's y-axis and hides
         # its own y-labels) and a wider colorbar-text reserve for the long label.
+        # Reserve left margin for the pressure y-labels — square_axes_grid bypasses
+        # tight_layout, so a deep mooring's 4-digit dbar labels clip without this.
         fig, axs, cax = square_axes_grid(
-            width_in, 1, 2, colorbar=True, wgap_in=0.3, cbar_txt_in=1.0
+            width_in,
+            1,
+            2,
+            colorbar=True,
+            wgap_in=0.3,
+            cbar_txt_in=1.0,
+            left_in=ytick_reserve_in(all_p),
         )
         ax1, ax2 = axs[0, 0], axs[0, 1]
 

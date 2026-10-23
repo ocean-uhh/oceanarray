@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import warnings
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -129,6 +129,19 @@ GRID_CAPTIONS: dict[str, str] = {
         "the tracking figure above correspond to times when the isopycnal is "
         "outside the measured range (pycnocline above the shallowest grid "
         "level, or below the deepest)."
+    ),
+    # Per-isopycnal panel — one per sigma variable, so the caption is a template
+    # with a {sigma_var} field the panel builder formats in.  It is the one
+    # GRID_CAPTIONS entry carrying a substitution; in the future YAML it is a
+    # caption string with the same field.
+    "isopycnal_ts": (
+        "Isopycnal height above seabed — {sigma_var}. Height above seabed (m) "
+        "of each target σ₀ surface through time. Tracked by linear "
+        "interpolation in density space from the gridded {sigma_var} field; "
+        "1-hour running median applied. NaN where the surface outcrops or is "
+        "outside the observed range. Light blue = lighter water (shallower); "
+        "dark blue = denser water (deeper). Targets set by --sig-level "
+        "(default σ₀ = 27.70)."
     ),
     "overflow_temp": (
         "Temperature ~100 m above seabed. 1-hour running median temperature at "
@@ -346,15 +359,7 @@ def _isopycnal_ts_panel(sigma_var: str) -> Panel:
             )
             return None
 
-    caption = (
-        f"Isopycnal height above seabed — {sigma_var}. Height above seabed (m) "
-        f"of each target σ₀ surface through time. Tracked by linear "
-        f"interpolation in density space from the gridded {sigma_var} field; "
-        f"1-hour running median applied. NaN where the surface outcrops or is "
-        f"outside the observed range. Light blue = lighter water (shallower); "
-        f"dark blue = denser water (deeper). Targets set by --sig-level "
-        f"(default σ₀ = 27.70)."
-    )
+    caption = GRID_CAPTIONS["isopycnal_ts"].format(sigma_var=sigma_var)
     return Panel(id=f"isopycnal_ts_{sigma_var}", render=_render, caption=caption)
 
 
@@ -559,23 +564,6 @@ GRID_DEFAULT = Profile(
         GRID_SECTIONS["processing_history"],
         GRID_SECTIONS["hydrography"],
         GRID_SECTIONS["ts_diagram"],
-        GRID_SECTIONS["velocity"],
-        GRID_SECTIONS["velocity_structure"],
-        GRID_SECTIONS["stratification"],
-        GRID_SECTIONS["overflow"],
-        GRID_SECTIONS["frequency_analysis"],
-        GRID_SECTIONS["netcdf_variables"],
-        GRID_SECTIONS["netcdf_attributes"],
-    ),
-)
-
-#: Merged-hydrography variant: T-S folds into Hydrography, §3 disappears (the
-#: four-line ``replace`` that proves regrouping costs no code — design §7).
-GRID_COMBINED_HYDRO = replace(
-    GRID_DEFAULT,
-    entries=(
-        GRID_SECTIONS["processing_history"],
-        Section("hydrography", "Hydrography", ("hydro", "ts_diagram")),
         GRID_SECTIONS["velocity"],
         GRID_SECTIONS["velocity_structure"],
         GRID_SECTIONS["stratification"],

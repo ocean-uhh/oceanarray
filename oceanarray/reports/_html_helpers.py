@@ -10,6 +10,7 @@ import base64
 import contextlib
 import io
 import re
+from collections.abc import Callable, Mapping
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -24,10 +25,37 @@ from ..utilities import (  # noqa: F401  (re-exported)
     _status,
     should_skip_regeneration,
 )
+from ._vendored.page_model import Panel
 
 # ---------------------------------------------------------------------------
 # helpers
 # ---------------------------------------------------------------------------
+
+
+def make_fig_panel(
+    captions: Mapping[str, str],
+) -> Callable[[str, str, str | None], Panel]:
+    """Return a figure-panel factory for a dict-context page, bound to *captions*.
+
+    The mooring and instrument pages build bare-``.fig`` panels that read a
+    pre-built base64 image from the dict context by *fig_key*; they differ only
+    in which caption dict they consult, so this binds that dict once.  *slot*
+    must match the width the figure's adapter renders at (``render_slot``): a
+    half-width adapter carries ``slot="half"``; a bare ``None`` is a full-width
+    ``.fig``.  (The stack page uses a dataclass context, not a dict, so it keeps
+    its own builder.)
+    """
+
+    def fig_panel(pid: str, fig_key: str, slot: str | None = None) -> Panel:
+        return Panel(
+            pid,
+            render=lambda c, _k=fig_key: c.get(_k),
+            slot=slot,
+            caption=captions.get(pid),
+            applies_to=lambda c, _k=fig_key: bool(c.get(_k)),
+        )
+
+    return fig_panel
 
 
 def _safe_serial(serial: Any) -> str:

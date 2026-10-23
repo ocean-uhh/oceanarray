@@ -465,3 +465,17 @@ def test_deprecated_names_warn_and_delegate():
     assert out["temperature"].attrs["units"] == "degree_Celsius"
     with pytest.warns(DeprecationWarning, match="unit_label"):
         assert pu.format_units("mS cm-1") == "mS/cm"
+
+
+def test_degree_symbol_accepted_and_bare_deg_refused():
+    """The storage pass accepts the ``°`` symbol as ``degree`` for an attitude var; ``deg`` is not.
+
+    ``deg`` is scoped to latitude/longitude in the vendored tables, so it is deliberately
+    not a package-level ``degree`` alias — a registered attitude variable carrying ``deg``
+    is refused rather than silently shadowing the lat/lon scoping.
+    """
+    good = _ds(pitch=([1.0, 2.0], "°", "platform_pitch_angle"))
+    assert pu.to_canonical_units(good)["pitch"].attrs["units"] == "degree"
+    bad = _ds(pitch=([1.0, 2.0], "deg", "platform_pitch_angle"))
+    with pytest.raises(pu.UnitsError):
+        pu.to_canonical_units(bad)
