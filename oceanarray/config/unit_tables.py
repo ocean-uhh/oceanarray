@@ -47,8 +47,13 @@ UNIT_ALIAS_EXTRAS: dict[str, dict[str, float]] = {
     # The SeaBird/Nortek readers write angle variables (pitch, roll, heading,
     # current_direction, tilt) as 'degrees'; the CF canonical is 'degree'.  Evidence:
     # every dune2 stage file stores pitch/roll/heading/current_direction/tilt_from_pressure
-    # as units='degrees'.  Factor 1 — a spelling, not a conversion.
-    "degree": {"degrees": 1.0},
+    # as units='degrees'.  Factor 1 — a spelling, not a conversion.  '°' is defensive:
+    # registering the attitude vars makes the storage pass refuse any attitude unit that is
+    # not a registered degree spelling, so a reader writing the '°' symbol would otherwise
+    # abort that instrument.  'deg' is intentionally NOT here — it is scoped to
+    # latitude/longitude in the vendored tables, so a package-level 'degree' alias would
+    # shadow that; it belongs in the vendored family ALIASES, scoped, and arrives upstream.
+    "degree": {"degrees": 1.0, "°": 1.0},
     # The reader writes battery as 'volts'; the CF/UDUNITS canonical symbol is 'V'.
     # Evidence: dune2 battery_voltage stores units='volts'.  Factor 1.
     "V": {"volts": 1.0},

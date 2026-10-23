@@ -302,6 +302,12 @@ def test_instrument_rose_lone_tier_is_boxed_to_third_slot(tmp_path):
     assert fig.get_size_inches()[1] == pytest.approx(W_FULL / 3 + 0.4)
     assert fig.subplotpars.left > 1 / 3
     assert fig.subplotpars.right < 2 / 3
+    # The bug this guards: a full-width lone rose fills the short figure and the
+    # 2-line title clips above it.  Assert the rendered title stays in the figure.
+    fig.canvas.draw()
+    ax = fig.axes[0]
+    assert "\n" in ax.get_title()  # the ENU-true panel title is two lines
+    assert ax.title.get_window_extent().y1 <= fig.bbox.y1 + 1
 
 
 def test_instrument_rose_two_tiers_keep_half_slot_height(tmp_path):
