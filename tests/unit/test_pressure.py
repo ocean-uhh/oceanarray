@@ -397,9 +397,45 @@ def test_adcp_bin_pressure_apply_on_beam_matches_cos_tilt():
 
 
 def test_adcp_bin_pressure_no_pitch_roll_skips_with_warning():
-    """No pitch/roll and no firmware bin mapping: fall back to nominal, loudly."""
-    ds = _adcp_ds("down")  # synthetic: has pressure + range, no pitch/roll, no firmware attrs
+    """Known beam coords but no pitch/roll: fall back to nominal, loudly."""
+    ds = _adcp_ds("down")  # pressure + range, no pitch/roll
+    ds.attrs["firmware_coordinate_system"] = "beam"  # known non-mapped; reaches the tilt step
     msgs: list[str] = []
     out = P.compute_adcp_bin_pressure(ds, lat=60.0, log_fn=msgs.append)
     assert out["bin_pressure"].attrs["tilt_correction"] == "none (pitch/roll unavailable)"
+    assert out["bin_pressure"].attrs["tilt_source"] == "n/a"
     assert any("pitch/roll" in m for m in msgs)
+
+
+def test_adcp_bin_pressure_unknown_firmware_fails_closed():
+    """Unknown firmware config (no attrs) must NOT apply cos(tilt), even with pitch/roll.
+
+    Absence of the firmware attrs (a non-RDI ADCP, or a file predating the Stage-1 surfacing)
+    must not be read as beam input — otherwise a firmware-mapped file whose attrs were lost
+    would be double-corrected.  The correction fires only on positive non-mapped evidence.
+    """
+    ds = _adcp_ds("down")  # no firmware_* attrs
+    ds["pitch"] = ("time", np.array([20.0, 20.0]))
+    ds["roll"] = ("time", np.array([5.0, 5.0]))
+    msgs: list[str] = []
+    out = P.compute_adcp_bin_pressure(ds, lat=60.0, log_fn=msgs.append)
+    assert out["bin_pressure"].attrs["tilt_correction"] == "none (firmware config unknown)"
+    # bin_pressure is the untilted nominal despite the 20° pitch
+    np.testing.assert_allclose(
+        out["bin_pressure"].values, _nominal_bin_pressure(ds, 60.0), atol=1e-4
+    )
+    assert any("unknown" in m for m in msgs)
+
+
+def test_adcp_bin_pressure_nan_pitch_roll_warns_and_does_not_claim_clean():
+    """Beam input with gappy pitch/roll: NaN bins are flagged, not silently 'applied' clean."""
+    ds = _adcp_ds("down")
+    ds.attrs["firmware_coordinate_system"] = "beam"
+    ds["pitch"] = ("time", np.array([20.0, np.nan]))  # one gap
+    ds["roll"] = ("time", np.array([5.0, 5.0]))
+    msgs: list[str] = []
+    out = P.compute_adcp_bin_pressure(ds, lat=60.0, log_fn=msgs.append)
+    bp = out["bin_pressure"].values
+    assert np.isfinite(bp[0]).all()  # good timestep
+    assert np.isnan(bp[1]).all()  # gap timestep → NaN depth, not a wrong number
+    assert any("missing" in m and "NaN" in m for m in msgs)
