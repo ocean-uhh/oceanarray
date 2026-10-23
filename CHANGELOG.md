@@ -23,6 +23,7 @@ All notable changes to oceanarray are documented here.
 - **Legacy vocabulary files moved and renamed**: `config/OS1_var_names.yaml`, `config/OS1_sensor_attrs.yaml` and `legacy/OS1_vocab_attrs.yaml` are now `legacy/OS1_variable_names.yaml`, `legacy/OS1_sensor_attributes.yaml` and `legacy/OS1_variable_attributes.yaml`, beside the legacy `convertOS.py` that takes them as inputs. No other oceanarray code reads them; the wheel no longer ships them.
 - **Report figure layout**: a single-tier current rose (one QC tier, no magnetic panel) renders as a third-slot circle centred in whitespace instead of a full-slot-width square; the knockdown-displacement figure reserves left margin for its pressure y-labels so a deep mooring's four-digit dbar labels no longer clip. The unreachable `GRID_COMBINED_HYDRO` grid profile is removed (T-S stays its own section).
 - **`°` accepted as a degree spelling**: the storage pass accepts the `°` symbol as the canonical `degree` (factor 1) for attitude variables. `deg` is not accepted here — it is scoped to latitude/longitude in the vendored unit tables and arrives, scoped, at the next vendored sync.
+- **Report layer re-vendored from ctdcast v0.4.0**: the `degree`/`degrees`/`°` alias moves into the vendored family tables (the duplicate package-side copy is removed; unit resolution is unchanged). The array-map graticule gains edge labels drawn inside the west/south edges, a bottom-right scale bar, and antimeridian handling for basin-scale tracks.
 
 ### Added
 
