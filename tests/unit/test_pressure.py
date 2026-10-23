@@ -11,11 +11,24 @@ Milestone A of ``.claude/notes/2026-08-19-stage-coverage-plan.md``.
 
 from __future__ import annotations
 
+from pathlib import Path
+
+import gsw
 import numpy as np
 import xarray as xr
 
 from oceanarray import parameters as params
 from oceanarray.processors import pressure as P
+
+#: Trimmed real dsG2 WH75 ADCP stage-3 file over a knock-down window (earth + firmware
+#: bin mapping; tilt 4.6–45°).  Raw ``.000`` is not in the repo — see the file's attrs.
+DSG2_KNOCKDOWN = (
+    Path(__file__).resolve().parents[1]
+    / "fixtures"
+    / "adcp"
+    / "dsG2_adcp_stage3_knockdown.nc"
+)
+DSG2_LAT = 65.56
 
 
 def _dt(seconds: list[float]) -> np.ndarray:
@@ -321,3 +334,72 @@ def test_adcp_bin_pressure_records_formula_in_comment():
     out = P.compute_adcp_bin_pressure(_adcp_ds("down"), lat=60.0)
     comment = out["bin_pressure"].attrs["comment"]
     assert "gsw.p_from_z" in comment and "down-looking" in comment
+
+
+def _nominal_bin_pressure(ds: xr.Dataset, lat: float) -> np.ndarray:
+    """Untilted bin pressure: transducer + gsw.p_from_z(-range) (down-looking sign)."""
+    p = ds["pressure"].values.astype(float)
+    rng = ds["range"].values.astype(float)
+    return p[:, None] + gsw.p_from_z(-rng, lat)[None, :]
+
+
+def test_adcp_bin_pressure_guard_skips_firmware_bin_mapping():
+    """Real dsG2 (earth + firmware bin mapping): cos(tilt) must NOT be applied.
+
+    The firmware recorded earth coordinates with bin mapping on, so it has already
+    tilt-placed the bins; applying cos(tilt) again would double-correct.  bin_pressure must
+    equal the untilted value and the provenance must say so.
+    """
+    ds = xr.open_dataset(DSG2_KNOCKDOWN, decode_timedelta=False).load()
+    ds.close()
+    assert ds.attrs["firmware_coordinate_system"] == "earth"
+    assert ds.attrs["firmware_bin_mapping"] == "yes"
+    msgs: list[str] = []
+    out = P.compute_adcp_bin_pressure(
+        ds.drop_vars("bin_pressure"), lat=DSG2_LAT, log_fn=msgs.append
+    )
+    assert out["bin_pressure"].attrs["tilt_correction"] == "none (firmware bin mapping)"
+    np.testing.assert_allclose(
+        out["bin_pressure"].values, _nominal_bin_pressure(ds, DSG2_LAT), atol=0.5
+    )
+    assert any("bin mapping" in m for m in msgs)
+
+
+def test_adcp_bin_pressure_apply_on_beam_matches_cos_tilt():
+    """BEAM input: bin ranges are tilt-reduced by cos(θ), verified on dsG2's real tilt.
+
+    No current UHH deployment records beam coordinates (all are earth + bin mapping), so this
+    path is exercised only by this test's forced-beam metadata — but it is the correct
+    treatment for beam input and future deployments.  Uses the fixture's real pitch/roll and
+    range vector rather than a synthetic tilt.
+    """
+    ds = xr.open_dataset(DSG2_KNOCKDOWN, decode_timedelta=False).load()
+    ds.close()
+    ds = ds.drop_vars("bin_pressure")
+    ds.attrs["firmware_coordinate_system"] = "beam"
+    ds.attrs["firmware_bin_mapping"] = "no"
+
+    out = P.compute_adcp_bin_pressure(ds, lat=DSG2_LAT)
+    assert out["bin_pressure"].attrs["tilt_correction"] == "applied"
+
+    # Reconstruct θ via the documented definition and assert range·cos(θ) through gsw.
+    roll_r = np.deg2rad(ds["roll"].values.astype(float))
+    p_true = np.arctan(np.tan(np.deg2rad(ds["pitch"].values.astype(float))) * np.cos(roll_r))
+    tilt = np.arccos(np.clip(np.cos(p_true) * np.cos(roll_r), -1.0, 1.0))
+    rng = ds["range"].values.astype(float)
+    p = ds["pressure"].values.astype(float)
+    expected = p[:, None] + gsw.p_from_z(-rng[None, :] * np.cos(tilt)[:, None], DSG2_LAT)
+    np.testing.assert_allclose(out["bin_pressure"].values, expected, atol=0.5)
+
+    # The far bin at the biggest knock-down is many dbar shallower than nominal.
+    shallower = _nominal_bin_pressure(ds, DSG2_LAT) - out["bin_pressure"].values
+    assert shallower.max() > 50.0
+
+
+def test_adcp_bin_pressure_no_pitch_roll_skips_with_warning():
+    """No pitch/roll and no firmware bin mapping: fall back to nominal, loudly."""
+    ds = _adcp_ds("down")  # synthetic: has pressure + range, no pitch/roll, no firmware attrs
+    msgs: list[str] = []
+    out = P.compute_adcp_bin_pressure(ds, lat=60.0, log_fn=msgs.append)
+    assert out["bin_pressure"].attrs["tilt_correction"] == "none (pitch/roll unavailable)"
+    assert any("pitch/roll" in m for m in msgs)
