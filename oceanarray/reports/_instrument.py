@@ -29,6 +29,7 @@ from ._html_helpers import (
     _safe_serial,
     _should_skip,
     _stage_file_details,
+    make_fig_panel,
 )
 from ._navs import mooring_nav
 from ._plots import (
@@ -115,15 +116,9 @@ def _has_fig(key: str) -> Callable:
     return lambda c: bool(c.get(key))
 
 
-def _fig_panel(pid: str, fig_key: str, slot: str | None = None) -> Panel:
-    """Build a bare-``.fig`` instrument figure panel that reads *fig_key* from ctx."""
-    return Panel(
-        pid,
-        render=lambda c, _k=fig_key: c.get(_k),
-        slot=slot,
-        caption=INSTRUMENT_CAPTIONS.get(pid),
-        applies_to=_has_fig(fig_key),
-    )
+#: Instrument figure-panel factory (shared with the mooring page, bound to the
+#: instrument caption dict).
+_fig_panel = make_fig_panel(INSTRUMENT_CAPTIONS)
 
 
 def _img_panel(pid: str, b64: str) -> Panel:

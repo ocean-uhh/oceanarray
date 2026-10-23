@@ -34,6 +34,7 @@ from ._html_helpers import (
     _should_skip,
     _stage_files,
     _status,
+    make_fig_panel,
 )
 from ._instrument import generate_instrument_pages
 from ._navs import mooring_nav
@@ -88,21 +89,10 @@ MOORING_CAPTIONS: dict[str, str] = {
 }
 
 
-def _fig_panel(pid: str, fig_key: str, slot: str | None = None) -> Panel:
-    """Build a mooring figure panel that reads *fig_key* from ctx.
-
-    *slot* must match the width the adapter renders at (``render_slot``): the
-    knockdown HAB and anomaly plots are drawn at ``"half"``, so they carry
-    ``slot="half"``; a bare ``None`` (full-width ``.fig``) is for full-canvas
-    figures.
-    """
-    return Panel(
-        pid,
-        render=lambda c, _k=fig_key: c.get(_k),
-        slot=slot,
-        caption=MOORING_CAPTIONS.get(pid),
-        applies_to=lambda c, _k=fig_key: bool(c.get(_k)),
-    )
+#: Mooring figure-panel factory (shared with the instrument page, bound to the
+#: mooring caption dict).  The knockdown HAB and anomaly plots are drawn at
+#: ``"half"``, so they carry ``slot="half"``.
+_fig_panel = make_fig_panel(MOORING_CAPTIONS)
 
 
 #: Mooring panel registry (dict-context: panels read ctx by key).

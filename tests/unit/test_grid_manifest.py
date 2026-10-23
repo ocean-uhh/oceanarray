@@ -2,13 +2,12 @@
 
 These check the registry and profiles are internally well-formed *without*
 rendering — every referenced panel exists, every registered panel is used, no
-duplicate section id or title, and the two profiles have the shape design §7
+duplicate section id or title, and the profile has the shape design §7
 specifies.  Rendering (numbering on a real page, ``ts_bounds`` independence) is
 verified with the dune2 fixture at the template port (commit 4), not here.
 """
 
 from oceanarray.reports._grid import (
-    GRID_COMBINED_HYDRO,
     GRID_DEFAULT,
     GRID_PANELS,
     GRID_SECTIONS,
@@ -27,10 +26,9 @@ def _static_panel_ids(profile: Profile) -> list[str]:
 
 
 def test_every_referenced_panel_id_exists_in_registry():
-    """Every static panel id in either profile resolves against GRID_PANELS."""
-    for profile in (GRID_DEFAULT, GRID_COMBINED_HYDRO):
-        for pid in _static_panel_ids(profile):
-            assert pid in GRID_PANELS, pid
+    """Every static panel id in the profile resolves against GRID_PANELS."""
+    for pid in _static_panel_ids(GRID_DEFAULT):
+        assert pid in GRID_PANELS, pid
 
 
 def test_every_registered_panel_is_referenced():
@@ -68,16 +66,6 @@ def test_grid_default_shape_is_eight_content_plus_appendix():
         "frequency_analysis",
     ]
     assert [s.id for s in appendix] == ["netcdf_variables", "netcdf_attributes"]
-
-
-def test_combined_hydro_folds_ts_and_drops_the_section():
-    """GRID_COMBINED_HYDRO merges T-S into Hydrography and has no T-S section."""
-    ids = [s.id for s in GRID_COMBINED_HYDRO.entries]
-    assert "ts_diagram" not in ids
-    hydro = next(s for s in GRID_COMBINED_HYDRO.entries if s.id == "hydrography")
-    assert hydro.panels == ("hydro", "ts_diagram")
-    content = [s for s in GRID_COMBINED_HYDRO.entries if s.role == "content"]
-    assert len(content) == 7
 
 
 def test_overflow_uses_a_panelgroup_for_isopycnals():

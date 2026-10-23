@@ -1,12 +1,15 @@
 import matplotlib
 import numpy as np
 import pandas as pd
+import pytest
 import xarray as xr
 
 matplotlib.use("Agg")  # Use non-interactive backend for testing
 
 
 from oceanarray import inspect
+from oceanarray.plotters.current import draw_instrument_rose
+from oceanarray.reports._vendored.design_tokens import W_FULL
 from oceanarray.tools.rapid_interp import plot_climatology
 
 
@@ -268,3 +271,43 @@ def test_figure_title_is_centered():
     assert t.get_horizontalalignment() == "center"
     assert fig._suptitle is not None
     plt.close(fig)
+
+
+def _rose_ds(n=240, suspect=0):
+    """1-D ENU-velocity dataset for a rose: no magnetic tier, *suspect* samples flagged 3."""
+    ang = np.linspace(0.0, 2 * np.pi, n, endpoint=False)
+    qc = np.ones(n, dtype=int)
+    qc[:suspect] = 3
+    return xr.Dataset(
+        {
+            "east_velocity": ("time", np.cos(ang)),
+            "north_velocity": ("time", np.sin(ang)),
+            "east_velocity_qc": ("time", qc),
+        },
+        coords={"time": pd.date_range("2021-01-01", periods=n, freq="h")},
+    )
+
+
+def test_instrument_rose_lone_tier_is_boxed_to_third_slot(tmp_path):
+    """One QC tier gives one rose at third-slot height, centred in a narrow box.
+
+    The narrow box makes the circle width-limited so its 2-line title clears; a
+    full-width lone rose fills the short figure and clips the title's first line.
+    """
+    path = tmp_path / "one.nc"
+    _rose_ds().to_netcdf(path)
+    fig = draw_instrument_rose(path, width_in=W_FULL)
+    assert fig is not None
+    assert len(fig.axes) == 1
+    assert fig.get_size_inches()[1] == pytest.approx(W_FULL / 3 + 0.4)
+    assert fig.subplotpars.left > 1 / 3
+    assert fig.subplotpars.right < 2 / 3
+
+
+def test_instrument_rose_two_tiers_keep_half_slot_height(tmp_path):
+    """Two QC tiers (good + suspect) keep width_in/2 height; the lone-rose cap must not shrink them."""
+    path = tmp_path / "two.nc"
+    _rose_ds(suspect=60).to_netcdf(path)
+    fig = draw_instrument_rose(path, width_in=W_FULL)
+    assert len(fig.axes) == 2
+    assert fig.get_size_inches()[1] == pytest.approx(W_FULL / 2 + 0.4)

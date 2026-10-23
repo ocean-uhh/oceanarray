@@ -825,22 +825,33 @@ def draw_instrument_rose(
         return None
 
     ncols = len(panels)
+    # Each rose is a circle (polar axes keep a circular aspect).  The figure keeps the
+    # full slot width so the PNG is displayed at 100% and the browser does not rescale
+    # it (which shrinks the panel fonts).  Row height is one rose-diameter per column;
+    # a lone rose (ncols == 1) uses the same third-slot row height and is centred in a
+    # narrow box below (see subplots_adjust) so it is a small centred circle with its
+    # 2-line title clear, not a full-slot-width square.
+    lone = ncols == 1
+    per_rose = width_in / 3.0 if lone else width_in / ncols
     fig, axs = plt.subplots(
         1,
         ncols,
-        # Full width — the figure is displayed at 100% (see instrument.html), so
-        # figsize width == slot width and the browser does not rescale (which would
-        # shrink the panel fonts).  Was bumped 6"→9" after "too small" feedback.
-        figsize=(width_in, width_in / max(ncols, 1) + 0.4),
+        figsize=(width_in, per_rose + 0.4),
         subplot_kw={"projection": "polar"},
         squeeze=False,
     )
     for ax, (east, north, title, cmap) in zip(axs[0], panels, strict=False):
         _rose_ax(ax, east, north, title=title, cmap=cmap)
 
-    # Polar figures skip the encoder's tight_layout, so set panel spacing here;
-    # more wspace gives the roses room left-to-right.
-    fig.subplots_adjust(wspace=0.5)
+    # Polar figures skip the encoder's tight_layout, so set panel spacing here.  A lone
+    # rose is centred in a box ~a fifth of the width so the circle is width-limited
+    # (like a 3-panel cell), leaving vertical room for its 2-line title; without this
+    # the circle fills the short figure's height and the title's first line clips.
+    # Multi-panel rows get wspace for room left-to-right.
+    if lone:
+        fig.subplots_adjust(left=0.39, right=0.61)
+    else:
+        fig.subplots_adjust(wspace=0.5)
     return fig
 
 
