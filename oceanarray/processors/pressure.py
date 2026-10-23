@@ -305,24 +305,50 @@ def compute_adcp_bin_pressure(
     lat: float,
     log_fn: Any = None,
 ) -> xr.Dataset:
-    """Compute pressure at each ADCP bin from transducer pressure and along-beam range.
+    """Compute pressure at each ADCP bin from transducer pressure and tilt-reduced range.
 
-    For each time step, adds a pressure offset per bin based on the bin's distance
-    from the transducer.  The offset is ``gsw.p_from_z(-range_m, lat)``, which
-    approximates the hydrostatic pressure contribution of *range_m* metres of
-    seawater at the given latitude.
+    For each time step, adds a pressure offset per bin, ``gsw.p_from_z(-range_eff, lat)``,
+    the hydrostatic pressure of *range_eff* metres of seawater at the given latitude, where
+    *range_eff* is the bin's vertical distance from the transducer reduced for instrument
+    tilt (knock-down).
 
-    **Note on ``range`` units**: the RDI WorkHorse firmware already converts slant range
-    to vertical distance before writing to the raw output (using the nominal beam angle;
-    see RDI ADCP Coordinate Transformation manual §4.2, Equation 8).  Dolfyn reads these
-    vertical distances directly, so ``range`` is already in metres of vertical depth —
-    no beam-angle correction is needed.
+    **Tilt correction.** The RDI firmware converts slant range to vertical distance using
+    the *nominal* beam angle (RDI Coordinate Transformation manual §4.2, Eq. 8), i.e.
+    assuming the instrument is vertical.  When the mooring is knocked down by an angle θ the
+    true vertical distance of each bin shrinks to ``range × cos(θ)``.  θ is the angle of the
+    instrument axis from vertical, ``arccos(cos(P_true)·cos(roll))``, where ``P_true =
+    arctan(tan(tilt1)·cos(roll))`` converts the raw tilt-1 pitch the RDI variable leader
+    stores into the true pitch.  This is the first-order, ensemble-mean correction: the ADCP
+    averages opposing beams, so the mean vertical bin range is ``range × cos(θ)`` (individual
+    beams differ, consistent with velocity being a beam-averaged quantity); it is not a full
+    3-beam geometry solution.  oceanarray's own BEAM→ENU
+    (:func:`oceanarray.processors.coordinate.apply_beam_to_enu`) rotates velocity vectors only
+    and does not bin-map, so beam/XYZ-coordinate bins reach this function at their nominal
+    depth and need this correction; the firmware's earth + bin mapping is the only step in the
+    pipeline that tilt-places the bins (and is the skip case below).
 
-    **Approximation** (fixable post-OdB):
-    ``gsw.p_from_z(-range_m, lat)`` computes the pressure of a water column of depth
-    *range_m* measured from the *sea surface*, not the true pressure increment at the
-    ADCP's actual depth.  Error at 300 m range from a 500 m transducer is ~2–3 dbar —
-    within the seabed-QC margin (~20 dbar) for current moorings.
+    **Guard — fail closed.** The correction is applied *only* on positive evidence that the
+    bins are not already tilt-placed:
+
+    - earth + bin mapping (``firmware_coordinate_system == "earth"`` and
+      ``firmware_bin_mapping == "yes"``, surfaced by Stage 1 from the RDI ``EX`` command): the
+      firmware already re-selected cells per beam for tilt, so each bin's nominal range is its
+      true vertical distance → **skip** (``cos(tilt)`` would double-correct),
+      ``tilt_correction = "none (firmware bin mapping)"``.
+    - firmware config **unknown** (attrs absent — a non-RDI ADCP, or a file predating this
+      surfacing) → **skip** (``"none (firmware config unknown)"``): absence must not be read as
+      beam input, or a firmware-mapped file whose attrs were lost would be double-corrected.
+    - no pitch/roll → **skip** (``"none (pitch/roll unavailable)"``).
+
+    Every current UHH deployment is earth + bin-mapping, so in practice the apply path is
+    exercised only by beam-coordinate input (none in the current UHH data); it is correct for
+    such input and for future deployments.  Timesteps whose pitch/roll are NaN get a NaN
+    ``bin_pressure`` (the depth is unknown) and a warning naming the count — the correction is
+    never silently applied over missing attitude data.
+
+    **Approximation** (unchanged, separate from tilt): ``gsw.p_from_z`` measures the column
+    pressure from the *sea surface*, not the increment at the ADCP's depth — ~2–3 dbar at
+    300 m range from a 500 m transducer, within the seabed-QC margin.
 
     The sign follows instrument orientation:
 
@@ -350,8 +376,10 @@ def compute_adcp_bin_pressure(
     Returns
     -------
     xr.Dataset
-        Input dataset with ``bin_pressure(time, N_BINS)`` added in dbar.
-        The variable's ``comment`` attribute records the formula and orientation used.
+        Input dataset with ``bin_pressure(time, N_BINS)`` added in dbar.  The variable's
+        ``comment`` records the formula and orientation; ``tilt_correction`` is ``"applied"``,
+        ``"none (firmware bin mapping)"`` or ``"none (pitch/roll unavailable)"``, and
+        ``tilt_definition`` records the tilt formula when applied.
         Returns *ds* unchanged if ``pressure`` or ``range`` are absent.
 
     """
@@ -380,10 +408,80 @@ def compute_adcp_bin_pressure(
     p_trans = ds["pressure"].values.astype(float)  # (time,)
     range_m = ds["range"].values.astype(float)  # (N_BINS,)
 
-    # gsw.p_from_z(z, lat): z is depth in m (negative = below surface)
-    dp = gsw.p_from_z(-range_m, lat)  # (N_BINS,) pressure offset per bin
+    # Decide whether to apply the knock-down tilt correction to the bin ranges, from the
+    # firmware recording config Stage 1 surfaced (firmware_coordinate_system /
+    # firmware_bin_mapping, from the RDI EX command):
+    #   - earth + bin mapping on: the firmware already re-selected cells per beam for tilt,
+    #     so each bin's nominal range *is* its true vertical distance — applying cos(tilt)
+    #     again would double-correct.  Skip.
+    #   - a known non-mapped recording (beam/instrument coords, or earth without bin
+    #     mapping): the nominal range is the untilted vertical distance — apply cos(tilt).
+    #   - unknown (attrs absent: a non-RDI ADCP, or a file predating this surfacing): we
+    #     cannot tell, so DO NOT apply (fail closed) — this keeps the pre-correction values
+    #     and avoids double-correcting a firmware-mapped file whose attrs were lost.  The
+    #     correction only fires on positive evidence that the bins are *not* tilt-placed.
+    firmware_cs = ds.attrs.get("firmware_coordinate_system")
+    firmware_binmap = str(ds.attrs.get("firmware_bin_mapping", "")).lower()
+    firmware_known = firmware_cs is not None
+    firmware_mapped = str(firmware_cs).lower() == "earth" and firmware_binmap == "yes"
+    has_tilt = "pitch" in ds.data_vars and "roll" in ds.data_vars
 
-    bin_p = p_trans[:, np.newaxis] + sign * dp[np.newaxis, :]  # (time, N_BINS)
+    tilt: np.ndarray | None = (
+        None  # instrument-axis angle from vertical, radians (time,)
+    )
+    tilt_definition = "n/a"
+    tilt_source = "n/a"
+    if not firmware_known:
+        tilt_correction = "none (firmware config unknown)"
+        _warn = (
+            "  WARNING: ADCP bin_pressure: firmware coordinate/bin-mapping config unknown "
+            "(not an RDI raw file, or attrs lost) — cos(tilt) NOT applied; bins at nominal "
+            "depth."
+        )
+    elif firmware_mapped:
+        tilt_correction = "none (firmware bin mapping)"
+        _warn = (
+            "  ADCP bin_pressure: firmware earth + bin mapping — bins already tilt-placed; "
+            "cos(tilt) NOT applied (would double-correct)."
+        )
+    elif has_tilt:
+        # Angle of the instrument axis from vertical.  RDI stores pitch as the raw tilt-1
+        # reading; the true pitch is arctan(tan(tilt1)·cos(roll)) (RDI Coordinate
+        # Transformation manual), and the angle from vertical is arccos(cos P_true·cos R)
+        # (roll is already the true roll, tilt-2).
+        roll_r = np.deg2rad(ds["roll"].values.astype(float))  # (time,)
+        p_true = np.arctan(
+            np.tan(np.deg2rad(ds["pitch"].values.astype(float))) * np.cos(roll_r)
+        )
+        tilt = np.arccos(np.clip(np.cos(p_true) * np.cos(roll_r), -1.0, 1.0))
+        tilt_correction = "applied"
+        tilt_definition = "arccos(cos(true_pitch)·cos(roll)); true_pitch = arctan(tan(tilt1)·cos(roll))"
+        tilt_source = "pitch,roll"
+        _n_nan = int(np.isnan(tilt).sum())
+        _warn = (
+            f"  WARNING: ADCP bin_pressure: {_n_nan} of {tilt.size} timesteps have missing "
+            "pitch/roll — bin_pressure is NaN there (tilt could not be computed)."
+            if _n_nan
+            else ""
+        )
+    else:
+        tilt_correction = "none (pitch/roll unavailable)"
+        _warn = (
+            "  WARNING: ADCP bin_pressure: coordinates are not firmware-mapped but pitch/"
+            "roll are absent — cos(tilt) NOT applied; knocked-down bins sit at nominal depth."
+        )
+    if log_fn and _warn:
+        log_fn(_warn)
+
+    # Tilt-reduced vertical range (2-D when the correction is applied, else the untilted 1-D
+    # range broadcast over time).  The correction is the first-order, ensemble-mean form:
+    # opposing beams average out the first-order asymmetry, so the mean vertical bin range is
+    # range × cos(tilt).  gsw.p_from_z(z, lat): z is depth in m (negative = below surface).
+    range_vert = range_m[np.newaxis, :]
+    if tilt is not None:
+        range_vert = range_vert * np.cos(tilt)[:, np.newaxis]
+    dp = gsw.p_from_z(-range_vert, lat)
+    bin_p = p_trans[:, np.newaxis] + sign * dp  # (time, N_BINS)
 
     ds["bin_pressure"] = xr.Variable(
         ("time", params.ADCP_BIN_DIM),
@@ -392,14 +490,22 @@ def compute_adcp_bin_pressure(
             "long_name": "pressure at ADCP bin",
             "units": "dbar",
             "comment": (
-                f"transducer pressure + gsw.p_from_z(-range, lat={lat:.2f}°)"
-                f" × sign({orientation}-looking)"
+                f"transducer pressure + sign({orientation}-looking) × "
+                f"gsw.p_from_z(-range×cos(tilt), lat={lat:.2f}°); "
+                f"tilt_correction={tilt_correction}"
             ),
+            "tilt_correction": tilt_correction,
+            "tilt_definition": tilt_definition,
+            "tilt_source": tilt_source,
         },
     )
     if log_fn:
+        _extra = ""
+        if tilt is not None and np.isfinite(tilt).any():
+            _td = np.rad2deg(tilt)
+            _extra = f", tilt median={np.nanmedian(_td):.1f}° max={np.nanmax(_td):.1f}°"
         log_fn(
             f"  ADCP bin_pressure: {ds['range'].size} bins, "
-            f"orientation={orientation}, lat={lat:.2f}°"
+            f"orientation={orientation}, lat={lat:.2f}°, {tilt_correction}{_extra}"
         )
     return ds

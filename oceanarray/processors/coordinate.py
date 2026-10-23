@@ -69,6 +69,12 @@ def apply_beam_to_enu(
     No-ops for instruments already in ENU or with unknown coordinate system.
     Requires normalized variable names (heading, pitch, roll) — re-run stage1
     if these are absent.
+
+    This rotates the velocity *vectors* only (and applies magnetic declination).
+    It does not re-select range cells per beam (bin mapping) and does not change
+    bin depths, so a knocked-down profiler's bins stay at their nominal range here;
+    the per-bin *depth* tilt correction is applied separately by
+    :func:`oceanarray.processors.pressure.compute_adcp_bin_pressure`.
     """
 
     def _warn(msg: str) -> None:

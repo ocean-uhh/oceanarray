@@ -1229,6 +1229,12 @@ class MooringProcessor:
                 ("n_cells", "n_cells"),
                 ("pings_per_ensemble", "n_pings_per_ensemble"),
                 ("carrier_freq", "carrier_freq_khz"),
+                # Recording-time coordinate frame and tilt bin-mapping (RDI EX command).
+                # The Stage-3 ADCP bin-pressure tilt correction reads these: earth + bin
+                # mapping means the firmware already tilt-placed the bins, so it must NOT
+                # apply cos(tilt) again (see compute_adcp_bin_pressure).
+                ("coord_sys", "firmware_coordinate_system"),
+                ("bin_mapping", "firmware_bin_mapping"),
             ]:
                 if _raw_key in _ga:
                     dataset.attrs[_attr_name] = _ga[_raw_key]
