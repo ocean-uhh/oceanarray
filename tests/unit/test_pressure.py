@@ -384,11 +384,15 @@ def test_adcp_bin_pressure_apply_on_beam_matches_cos_tilt():
 
     # Reconstruct θ via the documented definition and assert range·cos(θ) through gsw.
     roll_r = np.deg2rad(ds["roll"].values.astype(float))
-    p_true = np.arctan(np.tan(np.deg2rad(ds["pitch"].values.astype(float))) * np.cos(roll_r))
+    p_true = np.arctan(
+        np.tan(np.deg2rad(ds["pitch"].values.astype(float))) * np.cos(roll_r)
+    )
     tilt = np.arccos(np.clip(np.cos(p_true) * np.cos(roll_r), -1.0, 1.0))
     rng = ds["range"].values.astype(float)
     p = ds["pressure"].values.astype(float)
-    expected = p[:, None] + gsw.p_from_z(-rng[None, :] * np.cos(tilt)[:, None], DSG2_LAT)
+    expected = p[:, None] + gsw.p_from_z(
+        -rng[None, :] * np.cos(tilt)[:, None], DSG2_LAT
+    )
     np.testing.assert_allclose(out["bin_pressure"].values, expected, atol=0.5)
 
     # The far bin at the biggest knock-down is many dbar shallower than nominal.
@@ -399,10 +403,14 @@ def test_adcp_bin_pressure_apply_on_beam_matches_cos_tilt():
 def test_adcp_bin_pressure_no_pitch_roll_skips_with_warning():
     """Known beam coords but no pitch/roll: fall back to nominal, loudly."""
     ds = _adcp_ds("down")  # pressure + range, no pitch/roll
-    ds.attrs["firmware_coordinate_system"] = "beam"  # known non-mapped; reaches the tilt step
+    ds.attrs["firmware_coordinate_system"] = (
+        "beam"  # known non-mapped; reaches the tilt step
+    )
     msgs: list[str] = []
     out = P.compute_adcp_bin_pressure(ds, lat=60.0, log_fn=msgs.append)
-    assert out["bin_pressure"].attrs["tilt_correction"] == "none (pitch/roll unavailable)"
+    assert (
+        out["bin_pressure"].attrs["tilt_correction"] == "none (pitch/roll unavailable)"
+    )
     assert out["bin_pressure"].attrs["tilt_source"] == "n/a"
     assert any("pitch/roll" in m for m in msgs)
 
@@ -419,7 +427,9 @@ def test_adcp_bin_pressure_unknown_firmware_fails_closed():
     ds["roll"] = ("time", np.array([5.0, 5.0]))
     msgs: list[str] = []
     out = P.compute_adcp_bin_pressure(ds, lat=60.0, log_fn=msgs.append)
-    assert out["bin_pressure"].attrs["tilt_correction"] == "none (firmware config unknown)"
+    assert (
+        out["bin_pressure"].attrs["tilt_correction"] == "none (firmware config unknown)"
+    )
     # bin_pressure is the untilted nominal despite the 20° pitch
     np.testing.assert_allclose(
         out["bin_pressure"].values, _nominal_bin_pressure(ds, 60.0), atol=1e-4

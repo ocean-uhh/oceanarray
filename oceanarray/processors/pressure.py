@@ -321,7 +321,11 @@ def compute_adcp_bin_pressure(
     stores into the true pitch.  This is the first-order, ensemble-mean correction: the ADCP
     averages opposing beams, so the mean vertical bin range is ``range × cos(θ)`` (individual
     beams differ, consistent with velocity being a beam-averaged quantity); it is not a full
-    3-beam geometry solution.
+    3-beam geometry solution.  oceanarray's own BEAM→ENU
+    (:func:`oceanarray.processors.coordinate.apply_beam_to_enu`) rotates velocity vectors only
+    and does not bin-map, so beam/XYZ-coordinate bins reach this function at their nominal
+    depth and need this correction; the firmware's earth + bin mapping is the only step in the
+    pipeline that tilt-places the bins (and is the skip case below).
 
     **Guard — fail closed.** The correction is applied *only* on positive evidence that the
     bins are not already tilt-placed:
@@ -422,7 +426,9 @@ def compute_adcp_bin_pressure(
     firmware_mapped = str(firmware_cs).lower() == "earth" and firmware_binmap == "yes"
     has_tilt = "pitch" in ds.data_vars and "roll" in ds.data_vars
 
-    tilt: np.ndarray | None = None  # instrument-axis angle from vertical, radians (time,)
+    tilt: np.ndarray | None = (
+        None  # instrument-axis angle from vertical, radians (time,)
+    )
     tilt_definition = "n/a"
     tilt_source = "n/a"
     if not firmware_known:
@@ -444,12 +450,12 @@ def compute_adcp_bin_pressure(
         # Transformation manual), and the angle from vertical is arccos(cos P_true·cos R)
         # (roll is already the true roll, tilt-2).
         roll_r = np.deg2rad(ds["roll"].values.astype(float))  # (time,)
-        p_true = np.arctan(np.tan(np.deg2rad(ds["pitch"].values.astype(float))) * np.cos(roll_r))
+        p_true = np.arctan(
+            np.tan(np.deg2rad(ds["pitch"].values.astype(float))) * np.cos(roll_r)
+        )
         tilt = np.arccos(np.clip(np.cos(p_true) * np.cos(roll_r), -1.0, 1.0))
         tilt_correction = "applied"
-        tilt_definition = (
-            "arccos(cos(true_pitch)·cos(roll)); true_pitch = arctan(tan(tilt1)·cos(roll))"
-        )
+        tilt_definition = "arccos(cos(true_pitch)·cos(roll)); true_pitch = arctan(tan(tilt1)·cos(roll))"
         tilt_source = "pitch,roll"
         _n_nan = int(np.isnan(tilt).sum())
         _warn = (
