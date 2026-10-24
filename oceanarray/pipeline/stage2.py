@@ -546,7 +546,9 @@ def _clean_unnecessary_variables(dataset: xr.Dataset) -> xr.Dataset:
             )
         else:
             n_flagged = int(np.sum(np.isfinite(flag_vals) & (flag_vals != 0)))
-            log_info("Keeping 'flag': %d non-zero scan flag(s) from SeaBird CNV", n_flagged)
+            log_info(
+                "Keeping 'flag': %d non-zero scan flag(s) from SeaBird CNV", n_flagged
+            )
     return dataset
 
 
@@ -579,8 +581,14 @@ def _stage2_instrument(
     instrument_type = entry.get("instrument", "unknown")
     if not np.isfinite(deploy_time) or not np.isfinite(recover_time):
         _warn_missing_deployment_window(
-            serial, instrument_type, mooring_name,
-            deploy_time, recover_time, sug_start, sug_end, clock_offset,
+            serial,
+            instrument_type,
+            mooring_name,
+            deploy_time,
+            recover_time,
+            sug_start,
+            sug_end,
+            clock_offset,
         )
 
     dataset = _add_missing_metadata(dataset, entry)
