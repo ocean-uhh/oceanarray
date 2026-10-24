@@ -255,9 +255,11 @@ def _join_description(
 
     Reading a mooring means joining a file with the description it belongs to, so the
     stamping-contract attributes travel on the dataset whatever path it came by (raw
-    or a stage file). ``mooring_name`` is set from the description — the mooring's
-    identity — which corrects an old file's case or stale short name. A ``serial`` that
-    differs from the entry's raises :class:`MooringError` (rule 11 — never mislabel).
+    or a stage file). ``mooring_name`` is the mooring's identity: a file whose
+    ``mooring_name`` differs from the description's ``name`` only by case is corrected
+    with a ``history`` line; one that differs otherwise was made under a different
+    description and raises :class:`MooringError` (reprocess it from stage 1). A
+    ``serial`` that differs from the entry's raises too (rule 11 — never mislabel).
     Other contract attributes are filled when absent.
 
     Parameters
@@ -285,9 +287,21 @@ def _join_description(
             f"{moor_attrs['mooring_name']}: dataset serial {existing!r} contradicts "
             f"the description's {serial!r} for this instrument — refusing to mislabel it."
         )
+    name = moor_attrs["mooring_name"]
+    existing_name = ds.attrs.get("mooring_name")
+    if existing_name is not None and existing_name != name:
+        if str(existing_name).lower() != str(name).lower():
+            raise MooringError(
+                f"{name}: the dataset's mooring_name {existing_name!r} differs from the "
+                f"description's name {name!r} by more than case — it was made under a "
+                "different description; reprocess it from stage 1."
+            )
+        _stage.append_history(
+            ds, f"mooring_name corrected from {existing_name!r} to {name!r} (case)"
+        )
     for key, value in moor_attrs.items():
-        # mooring_name is the identity: always taken from the description (corrects
-        # case / an old cleaname); the rest are filled only when absent.
+        # mooring_name is the identity (checked above); the rest are filled only
+        # when absent.
         if key == "mooring_name" or key not in ds.attrs:
             ds.attrs[key] = value
     ds.attrs["serial"] = serial

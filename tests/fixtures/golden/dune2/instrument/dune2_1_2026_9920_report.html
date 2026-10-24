@@ -516,7 +516,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
     <td>Stage3</td>
     
     <td class="mono">dune2_1_2026_9920_stage3.nc</td>
-    <td class="num">2 MB</td>
+    <td class="num">667 KB</td>
     <td><MTIME></td>
     
   </tr>
@@ -534,7 +534,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 
 <thead><tr><th>Property</th><th>Value</th></tr></thead>
 <tbody>
-<tr><td>Processed</td><td>2026-07-26T18:41:57.504269Z - Processed by SeaSenseLib v0.6.0</td></tr>
+<tr><td>Processed</td><td>2026-08-07T06:37:35.005793Z - Processed by SeaSenseLib v0.6.0</td></tr>
 <tr><td>Reader</td><td>NortekAsciiReader</td></tr>
 <tr><td>Format</td><td>Nortek ASCII</td></tr>
 <tr><td>Source file</td><td class="mono">9920_recovery.dat</td></tr>
@@ -546,17 +546,20 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
   <tr><th tabindex="0">#</th><th tabindex="0">Time</th><th tabindex="0">Event</th></tr>
 </thead>
 <tbody>
-  <tr><td>1</td><td>2026-07-29T12:10Z</td><td>clock_drift=-55.0s over deployment (computer=20260725T13:13:20, instrument=20260725T13:14:15)</td></tr>
-  <tr><td>2</td><td>2026-07-29T12:10Z</td><td>tilt QC (tilt≥30.0°→suspect, tilt≥50.0°→bad): suspect=1039, bad=0</td></tr>
-  <tr><td>3</td><td>2026-07-29T12:10Z</td><td>BEAM→ENU rotation applied: beam_angle=?° (from YAML), declination=-13.97° (ppigrf IGRF)</td></tr>
-  <tr><td>4</td><td>2026-07-29T12:10Z</td><td>QARTOD gross-range+spike: east_velocity_qc=[good=8731, suspect=1087]</td></tr>
-  <tr><td>5</td><td>2026-07-29T12:10Z</td><td>north_velocity_qc=[good=8731, suspect=1087]</td></tr>
-  <tr><td>6</td><td>2026-07-29T12:10Z</td><td>pressure_qc=[good=9816]</td></tr>
-  <tr><td>7</td><td>2026-07-29T12:10Z</td><td>temperature_qc=[good=9816]</td></tr>
-  <tr><td>8</td><td>2026-07-29T12:10Z</td><td>up_velocity_qc=[good=8731, suspect=1087]</td></tr>
-  <tr><td>9</td><td>2026-07-29T12:10Z</td><td>velocity_beam1_qc=[good=8779, suspect=1039]</td></tr>
-  <tr><td>10</td><td>2026-07-29T12:10Z</td><td>velocity_beam2_qc=[good=8779, suspect=1039]</td></tr>
-  <tr><td>11</td><td>2026-07-29T12:10Z</td><td>velocity_beam3_qc=[good=8779, suspect=1039]</td></tr>
+  <tr><td>1</td><td>2026-10-24T11:36Z</td><td>processing_stage 1</td></tr>
+  <tr><td>2</td><td>2026-10-24T11:36Z</td><td>clock_drift=-55.0s over deployment (computer=20260725T13:13:20, instrument=20260725T13:14:15)</td></tr>
+  <tr><td>3</td><td>2026-10-24T11:36Z</td><td>processing_stage 2</td></tr>
+  <tr><td>4</td><td>2026-10-24T11:56Z</td><td>tilt QC (tilt≥30.0°→suspect, tilt≥50.0°→bad): suspect=1039, bad=0</td></tr>
+  <tr><td>5</td><td>2026-10-24T11:56Z</td><td>BEAM→ENU rotation applied: beam_angle=?° (from YAML), declination=-14.79° (ppigrf IGRF)</td></tr>
+  <tr><td>6</td><td>2026-10-24T11:56Z</td><td>QARTOD gross-range+spike: east_velocity_qc=[good=8731, suspect=1087]</td></tr>
+  <tr><td>7</td><td>2026-10-24T11:56Z</td><td>north_velocity_qc=[good=8731, suspect=1087]</td></tr>
+  <tr><td>8</td><td>2026-10-24T11:56Z</td><td>pressure_qc=[good=9818]</td></tr>
+  <tr><td>9</td><td>2026-10-24T11:56Z</td><td>temperature_qc=[good=9818]</td></tr>
+  <tr><td>10</td><td>2026-10-24T11:56Z</td><td>up_velocity_qc=[good=8731, suspect=1087]</td></tr>
+  <tr><td>11</td><td>2026-10-24T11:56Z</td><td>velocity_beam1_qc=[good=8779, suspect=1039]</td></tr>
+  <tr><td>12</td><td>2026-10-24T11:56Z</td><td>velocity_beam2_qc=[good=8779, suspect=1039]</td></tr>
+  <tr><td>13</td><td>2026-10-24T11:56Z</td><td>velocity_beam3_qc=[good=8779, suspect=1039]</td></tr>
+  <tr><td>14</td><td>2026-10-24T11:56Z</td><td>processing_stage 3</td></tr>
 </tbody>
 </table><div class="fig-source">source: oceanarray/reports/_html_helpers.py:_history_tables</div>
 
@@ -973,7 +976,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="current_direction">current_direction</td>
-<td><code>float32</code></td><td>degrees</td><td class="cell-wrap"><strong><code>direction_of_sea_water_velocity</code></strong><br>Current direction (0=N, clockwise)</td><td data-sort="0.06001155078411102">0.06001 / 359.9</td>
+<td><code>float32</code></td><td>degree</td><td class="cell-wrap"><strong><code>direction_of_sea_water_velocity</code></strong><br>Current direction (0=N, clockwise)</td><td data-sort="0.009237625636160374">0.009238 / 360</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort>—</td></tr>
 <tr>
@@ -992,8 +995,8 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <td data-sort="depth">depth</td>
 <td><code>float32</code></td><td>m</td><td class="cell-wrap"><strong><code>depth</code></strong><br>Depth</td><td data-sort="557.3489990234375">557.3 / 688.1</td>
 <td data-sort="9818">9,818</td>
-<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>4 attrs</summary>
-<table data-nosort><tbody><tr><th>original_name</th><td>Pressure</td></tr><tr><th>coverage_content_type</th><td>coordinate</td></tr><tr><th>positive</th><td>up</td></tr><tr><th>short_name</th><td>D</td></tr>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>6 attrs</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Pressure</td></tr><tr><th>coverage_content_type</th><td>coordinate</td></tr><tr><th>positive</th><td>up</td></tr><tr><th>short_name</th><td>D</td></tr><tr><th>valid_min</th><td>0</td></tr><tr><th>valid_max</th><td>1.2e+04</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="direction">direction</td>
@@ -1004,7 +1007,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="east_velocity">east_velocity <span class="var-qc">(_qc)</span></td>
-<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap"><strong><code>eastward_sea_water_velocity</code></strong><br>Eastward sea water velocity</td><td data-sort="-0.8975104093551636">-0.8975 / 0.7406</td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap"><strong><code>eastward_sea_water_velocity</code></strong><br>Eastward sea water velocity</td><td data-sort="-0.8964208364486694">-0.8964 / 0.7466</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort>—</td></tr>
 <tr>
@@ -1016,7 +1019,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="heading">heading</td>
-<td><code>float32</code></td><td>degrees</td><td class="cell-wrap"><strong><code>platform_heading_angle</code></strong><br>Heading angle</td><td data-sort="0.0">0 / 359.7</td>
+<td><code>float32</code></td><td>degree</td><td class="cell-wrap"><strong><code>platform_heading_angle</code></strong><br>Heading angle</td><td data-sort="0.0">0 / 359.7</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Heading</td></tr>
@@ -1051,12 +1054,12 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="north_velocity">north_velocity <span class="var-qc">(_qc)</span></td>
-<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap"><strong><code>northward_sea_water_velocity</code></strong><br>Northward sea water velocity</td><td data-sort="-0.6844239830970764">-0.6844 / 0.7064</td>
+<td><code>float32</code></td><td>m s-1</td><td class="cell-wrap"><strong><code>northward_sea_water_velocity</code></strong><br>Northward sea water velocity</td><td data-sort="-0.6783738136291504">-0.6784 / 0.7065</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort>—</td></tr>
 <tr>
 <td data-sort="pitch">pitch</td>
-<td><code>float32</code></td><td>degrees</td><td class="cell-wrap"><strong><code>platform_pitch_angle</code></strong><br>Pitch angle</td><td data-sort="-36.599998474121094">-36.6 / 1.5</td>
+<td><code>float32</code></td><td>degree</td><td class="cell-wrap"><strong><code>platform_pitch_angle</code></strong><br>Pitch angle</td><td data-sort="-36.599998474121094">-36.6 / 1.5</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Pitch</td></tr>
@@ -1065,12 +1068,12 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <td data-sort="pressure">pressure <span class="var-qc">(_qc)</span></td>
 <td><code>float32</code></td><td>dbar</td><td class="cell-wrap"><strong><code>sea_water_pressure</code></strong><br>Pressure</td><td data-sort="561.18798828125">561.2 / 693</td>
 <td data-sort="9818">9,818</td>
-<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>4 attrs</summary>
-<table data-nosort><tbody><tr><th>original_name</th><td>Pressure</td></tr><tr><th>coverage_content_type</th><td>physicalMeasurement</td></tr><tr><th>measurement_type</th><td>Measured</td></tr><tr><th>short_name</th><td>WP</td></tr>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>6 attrs</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Pressure</td></tr><tr><th>coverage_content_type</th><td>physicalMeasurement</td></tr><tr><th>measurement_type</th><td>Measured</td></tr><tr><th>short_name</th><td>WP</td></tr><tr><th>valid_min</th><td>0</td></tr><tr><th>valid_max</th><td>1.1e+04</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="roll">roll</td>
-<td><code>float32</code></td><td>degrees</td><td class="cell-wrap"><strong><code>platform_roll_angle</code></strong><br>Roll angle</td><td data-sort="-18.100000381469727">-18.1 / 15.7</td>
+<td><code>float32</code></td><td>degree</td><td class="cell-wrap"><strong><code>platform_roll_angle</code></strong><br>Roll angle</td><td data-sort="-18.100000381469727">-18.1 / 15.7</td>
 <td data-sort="9818">9,818</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>1 attr</summary>
 <table data-nosort><tbody><tr><th>original_name</th><td>Roll</td></tr>
@@ -1107,8 +1110,8 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <td data-sort="temperature">temperature <span class="var-qc">(_qc)</span></td>
 <td><code>float32</code></td><td>degree_Celsius</td><td class="cell-wrap"><strong><code>sea_water_temperature</code></strong><br>Temperature</td><td data-sort="-0.05000000074505806">-0.05 / 7.02</td>
 <td data-sort="9818">9,818</td>
-<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>4 attrs</summary>
-<table data-nosort><tbody><tr><th>original_name</th><td>Temperature</td></tr><tr><th>coverage_content_type</th><td>physicalMeasurement</td></tr><tr><th>measurement_type</th><td>Measured</td></tr><tr><th>short_name</th><td>WT</td></tr>
+<td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>7 attrs</summary>
+<table data-nosort><tbody><tr><th>original_name</th><td>Temperature</td></tr><tr><th>coverage_content_type</th><td>physicalMeasurement</td></tr><tr><th>measurement_type</th><td>Measured</td></tr><tr><th>short_name</th><td>WT</td></tr><tr><th>units_metadata</th><td>temperature: on_scale</td></tr><tr><th>valid_min</th><td>-5</td></tr><tr><th>valid_max</th><td>42</td></tr>
 </tbody></table></details></td></tr>
 <tr>
 <td data-sort="up_velocity">up_velocity <span class="var-qc">(_qc)</span></td>
@@ -1201,7 +1204,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
   <tr><th tabindex="0">Attribute</th><th tabindex="0">Type</th><th tabindex="0">Value</th></tr>
 </thead>
 <tbody>
-<tr><td class="mono">mooring_name</td><td><code>string</code></td><td>dune2</td></tr>
+<tr><td class="mono">mooring_name</td><td><code>string</code></td><td>dune2_1_2026</td></tr>
 </tbody></table>
 <h3>Spatiotemporal coverage</h3>
 <table class="sortable">
@@ -1211,8 +1214,8 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 </thead>
 <tbody>
 <tr><td class="mono">waterdepth</td><td><code>int64</code></td><td>745</td></tr>
-<tr><td class="mono">longitude</td><td><code>string</code></td><td>-28 01.234</td></tr>
-<tr><td class="mono">latitude</td><td><code>string</code></td><td>65 48.405</td></tr>
+<tr><td class="mono">longitude</td><td><code>string</code></td><td>-27 48.000</td></tr>
+<tr><td class="mono">latitude</td><td><code>string</code></td><td>65 43.913</td></tr>
 <tr><td class="mono">deployment_time</td><td><code>string</code></td><td>2026-07-11T20:30</td></tr>
 <tr><td class="mono">recovery_time</td><td><code>string</code></td><td>2026-07-25T11:44</td></tr>
 </tbody></table>
@@ -1224,8 +1227,8 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 </thead>
 <tbody>
 <tr><td class="mono">processing_level</td><td><code>string</code></td><td>L1</td></tr>
-<tr><td class="mono">date_created</td><td><code>string</code></td><td>2026-07-26T18:41:57.504269Z</td></tr>
-<tr><td class="mono">date_modified</td><td><code>string</code></td><td>2026-07-26T18:41:57.504269Z</td></tr>
+<tr><td class="mono">date_created</td><td><code>string</code></td><td>2026-08-07T06:37:35.005793Z</td></tr>
+<tr><td class="mono">date_modified</td><td><code>string</code></td><td>2026-08-07T06:37:35.005793Z</td></tr>
 <tr><td class="mono">Conventions</td><td><code>string</code></td><td>CF-1.13</td></tr>
 </tbody></table>
 <h3>Other</h3>
@@ -1249,9 +1252,9 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <tr><td class="mono">processor_module_key</td><td><code>string</code></td><td>nortek-ascii</td></tr>
 <tr><td class="mono">processor_runtime</td><td><code>string</code></td><td>CPython</td></tr>
 <tr><td class="mono">processor_runtime_version</td><td><code>string</code></td><td>3.11.7</td></tr>
-<tr><td class="mono">processor_execution_time_utc</td><td><code>string</code></td><td>2026-07-26T18:41:57.504259Z</td></tr>
-<tr><td class="mono">processor_machine</td><td><code>string</code></td><td>EFWmac14-2.local</td></tr>
-<tr><td class="mono">processor_os</td><td><code>string</code></td><td>Darwin 25.5.0</td></tr>
+<tr><td class="mono">processor_execution_time_utc</td><td><code>string</code></td><td>2026-08-07T06:37:35.005780Z</td></tr>
+<tr><td class="mono">processor_machine</td><td><code>string</code></td><td>EFWmac14</td></tr>
+<tr><td class="mono">processor_os</td><td><code>string</code></td><td>Darwin 25.6.0</td></tr>
 <tr><td class="mono">coordinate_system</td><td><code>string</code></td><td>ENU</td></tr>
 <tr><td class="mono">nortek_pressure_cal_number_of_beams</td><td><code>string</code></td><td>3</td></tr>
 <tr><td class="mono">nortek_pressure_cal_system5</td><td><code>string</code></td><td>65 65 65 0</td></tr>
@@ -1283,6 +1286,18 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <tr><td class="mono">deployment_longitude</td><td><code>string</code></td><td>000 00.000 W</td></tr>
 <tr><td class="mono">seabed_latitude</td><td><code>string</code></td><td>00 00.000 N</td></tr>
 <tr><td class="mono">seabed_longitude</td><td><code>string</code></td><td>000 00.000 W</td></tr>
+<tr><td class="mono">processing_stage</td><td><code>int64</code></td><td>3</td></tr>
+<tr><td class="mono">location_source</td><td><code>string</code></td><td>latitude/longitude</td></tr>
+<tr><td class="mono">latitude_str</td><td><code>string</code></td><td>65.7319° N</td></tr>
+<tr><td class="mono">longitude_str</td><td><code>string</code></td><td>27.8000° W</td></tr>
+<tr><td class="mono">deployment_window_source</td><td><code>string</code></td><td>deployment_time/recovery_time</td></tr>
+<tr><td class="mono">serial</td><td><code>string</code></td><td>9920</td></tr>
+<tr><td class="mono">hab</td><td><code>int64</code></td><td>226</td></tr>
+<tr><td class="mono">clamp_id</td><td><code>string</code></td><td>11</td></tr>
+<tr><td class="mono">sample_interval_seconds</td><td><code>int64</code></td><td>120</td></tr>
+<tr><td class="mono">file_type</td><td><code>string</code></td><td>nortek-ascii</td></tr>
+<tr><td class="mono">instrument</td><td><code>string</code></td><td>aquadopp</td></tr>
+<tr><td class="mono">stack</td><td><code>int8</code></td><td>1</td></tr>
 <tr><td class="mono">qc_convention</td><td><code>string</code></td><td>OceanSITES reference table 2</td></tr>
 <tr><td class="mono">suggested_deployment_time</td><td><code>string</code></td><td>2026-07-11T20:30:00</td></tr>
 <tr><td class="mono">suggested_recovery_time</td><td><code>string</code></td><td>2026-07-25T11:44:00</td></tr>
@@ -1296,18 +1311,22 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <tr><td class="mono">stage1_time_end</td><td><code>string</code></td><td>2026-07-25T12:58:00</td></tr>
 <tr><td class="mono">yaml_deployment_time</td><td><code>string</code></td><td>2026-07-11T20:30:00</td></tr>
 <tr><td class="mono">yaml_recovery_time</td><td><code>string</code></td><td>2026-07-25T11:44:00</td></tr>
-<tr><td class="mono">stage2_source_file</td><td><code>string</code></td><td>dune2_1_2026_9920_stage2.nc</td></tr>
-<tr><td class="mono">stage2_source_mtime</td><td><code>string</code></td><td>2026-07-29T12:10:34Z</td></tr>
-<tr><td class="mono">stage2_source_sha256</td><td><code>string</code></td><td>a45e2284</td></tr>
-<tr><td class="mono">magnetic_declination</td><td><strong><code>float64</code></strong></td><td>-13.965613674756257</td></tr>
-<tr><td class="mono">magnetic_declination_units</td><td><code>string</code></td><td>degrees_east</td></tr>
+<tr><td class="mono">magnetic_declination</td><td><strong><code>float64</code></strong></td><td>-14.792467215882699</td></tr>
+<tr><td class="mono">magnetic_declination_units</td><td><code>string</code></td><td>degree</td></tr>
+<tr><td class="mono">magnetic_declination_sign_convention</td><td><code>string</code></td><td>positive_east</td></tr>
 <tr><td class="mono">magnetic_declination_method</td><td><code>string</code></td><td>ppigrf IGRF at deployment midpoint</td></tr>
 <tr><td class="mono">magnetic_declination_lat</td><td><strong><code>float64</code></strong></td><td>65.73188333333333</td></tr>
-<tr><td class="mono">magnetic_declination_lon</td><td><strong><code>float64</code></strong></td><td>-26.2</td></tr>
+<tr><td class="mono">magnetic_declination_lon</td><td><strong><code>float64</code></strong></td><td>-27.8</td></tr>
 <tr><td class="mono">magnetic_declination_latlon_source</td><td><code>string</code></td><td>mooring YAML (latitude/longitude)</td></tr>
 <tr><td class="mono">coordinate_system_source</td><td><code>string</code></td><td>rotated from XYZ by oceanarray stage3</td></tr>
 <tr><td class="mono">tilt_suspect_threshold</td><td><strong><code>float64</code></strong></td><td>30.0</td></tr>
 <tr><td class="mono">tilt_fail_threshold</td><td><strong><code>float64</code></strong></td><td>50.0</td></tr>
+<tr><td class="mono">qc_flag_convention</td><td><code>string</code></td><td>OceanSITES reference table 2</td></tr>
+<tr><td class="mono">qc_merge_rule</td><td><code>string</code></td><td>worst flag wins; priority weakest to strongest: 0 &lt; 1 &lt; 2 &lt; 7 &lt; 8 &lt; 3 &lt; 4 &lt; 9</td></tr>
+<tr><td class="mono">qc_ingest_remap</td><td><code>string</code></td><td>QARTOD not_evaluated(2) -&gt; OceanSITES unknown(0) at test ingest</td></tr>
+<tr><td class="mono">stage2_source_file</td><td><code>string</code></td><td>dune2_1_2026_9920_stage2.nc</td></tr>
+<tr><td class="mono">stage2_source_mtime</td><td><code>string</code></td><td>2026-10-24T11:56:55Z</td></tr>
+<tr><td class="mono">stage2_source_sha256</td><td><code>string</code></td><td>3db15389</td></tr>
 </tbody></table><div class="fig-source">source: oceanarray/reports/_vendored/nc_tables.py:globals_rows</div>
 
 
