@@ -1,30 +1,19 @@
-"""Read one raw instrument file to a normalised dataset.
+"""Nortek (Aquadopp / AquaPro) header parsers and variable normalisers.
 
-:func:`read` is the single entry point: given a path it sniffs the file's
-content (never its suffix) to decide the format, finds the Nortek ``.hdr``
-beside a data file, and dispatches to the per-type reader. An oceanarray netCDF
-is returned unchanged. The format can be forced with ``file_type=`` when the
-content is not one the sniffer recognises.
-
-The per-type reader bodies (the seasenselib dispatch, the Nortek header parsers,
-the Nortek/SBE normalisers) moved here from ``processors.stage1`` unchanged;
-``stage1`` now delegates to them.
+The ``.hdr`` parsers read the coordinate system, transformation matrix and
+pressure calibration from a Nortek header file; :func:`normalize_nortek_variables`
+tidies the dataset seasenselib produces; :func:`load_nortek_csv` reads the
+AquaPro CSV export directly.
 """
 
-import calendar
 import re
-import tempfile
-import warnings
 from pathlib import Path
 
 import numpy as np
-import seasenselib
+import pandas as pd
 import xarray as xr
 
-from oceanarray import parameters as params
-
-#: OceanSITES parameter codes used to recognise an OceanSITES netCDF by content.
-_OCEANSITES_CODES = frozenset({"TEMP", "PSAL", "CNDC", "PRES", "UCUR", "VCUR", "WCUR"})
+from oceanarray.logger import log_info
 
 
 def _parse_nortek_coord_system(hdr_path: Path) -> str:
@@ -165,35 +154,6 @@ def _parse_nortek_pressure_cal(hdr_path: Path) -> dict:
     return cal
 
 
-def normalize_sbe_ascii(file_path: Path) -> Path:
-    """Return path to file with SBE ASCII format issues fixed.
-
-    Fixes two issues produced by some SBE software versions:
-    - Dates in MM-DD-YYYY format instead of DD Mon YYYY
-    - Missing space after comma when a value is negative (e.g. '1.23,-0.01')
-    """
-    MONTHS = {f"{i:02d}": calendar.month_abbr[i] for i in range(1, 13)}
-    content = file_path.read_text()
-
-    needs_fix = re.search(r"\b\d{2}-\d{2}-\d{4}\b", content) or re.search(
-        r",(?! )", content
-    )
-    if not needs_fix:
-        return file_path
-
-    def _replace_date(m: re.Match) -> str:
-        mm, dd, yyyy = m.group(1), m.group(2), m.group(3)
-        return f"{dd} {MONTHS[mm]} {yyyy}"
-
-    normalized = re.sub(r"\b(\d{2})-(\d{2})-(\d{4})\b", _replace_date, content)
-    normalized = re.sub(r",(?! )", ", ", normalized)
-
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".asc", delete=False) as tmp:
-        tmp.write(normalized)
-        tmp_name = tmp.name
-    return Path(tmp_name)
-
-
 def normalize_nortek_variables(
     dataset: xr.Dataset, coord_system: str = "ENU"
 ) -> xr.Dataset:
@@ -234,9 +194,7 @@ def normalize_nortek_variables(
     # producing phantom _1 duplicates for every variable (all NaN because
     # the .dat file only has the plain columns).  Match on any {base}_{digits}
     # suffix — drop if the plain base exists OR if the column is entirely NaN.
-    import re as _re
-
-    _suffix_re = _re.compile(r"^(.+)_\d+$")
+    _suffix_re = re.compile(r"^(.+)_\d+$")
     _to_drop = []
     for _vname in list(dataset.data_vars):
         _m = _suffix_re.match(_vname)
@@ -397,224 +355,180 @@ def normalize_nortek_variables(
     return dataset
 
 
-def _read_typed(
-    file_type: str, file_path: str, header_path: str | None = None
-) -> xr.Dataset:
-    """Read a raw instrument file of a known *file_type* and return a Dataset.
+def _clean_nortek_var_name(col: str) -> str:
+    """Convert a raw Nortek CSV column name to a valid NetCDF variable name."""
+    name = col.lower().strip()
+    name = re.sub(r"[^\w\s]", " ", name)  # special chars → spaces
+    name = re.sub(r"\s+", "_", name.strip())
+    return re.sub(r"_+", "_", name)
 
-    Deprecated aliases in ``parameters.DEPRECATED_FILE_TYPE_ALIASES`` (e.g.
-    ``rbr-hex-oa`` → ``rbr-hex``) are remapped to their current equivalent
-    first, with a deprecation warning. ``nortek-csv-oa`` then routes to the
-    deprecated internal reader (also with a warning); all other types go
-    straight to ``seasenselib.read``.
-    For Nortek formats the coordinate system is parsed from *header_path* and
-    ``normalize_nortek_variables`` is called.  For ``sbe-hex``, the seasenselib
-    output variable ``press`` is renamed to ``pressure`` for consistency.
 
-    Parameters
-    ----------
-    file_type : str
-        One of ``parameters.ALL_FILE_TYPES`` (e.g. ``"nortek-raw"``, ``"sbe-cnv"``).
-    file_path : str
-        Path to the raw instrument file.
-    header_path : str or None, optional
-        Path to the companion header file (required for Nortek formats to read
-        the coordinate system and transformation matrix).
+def _parse_nortek_csv_columns(df: pd.DataFrame) -> dict:
+    """Build a complete variable dict from all columns in a Nortek CSV DataFrame.
 
-    Returns
-    -------
-    xarray.Dataset
-        The normalised dataset.
+    Nortek AquaPro exports mix two column-naming styles:
+    - camelCase (``velBeam1#1``, ``speedOfSound``) for the AquaPro velocity block
+    - Title Case (``Pressure``, ``Temperature``, ``Soundspeed``) for the
+      environmental summary block
+
+    Rules applied:
+    - Column matching for canonical names is case-insensitive.
+    - When the same name appears more than once (e.g. ``Pressure`` in dbar then
+      ``Pressure`` in m), the first occurrence maps to the canonical name and
+      all later occurrences are dropped — the second Pressure column is depth
+      (derived from pressure) and is not needed.
+    - All remaining columns are included with cleaned variable names so that
+      no data from the raw file is silently discarded.
+    - Time component columns (Year, Month, Day, Hour, Minute, Second) are
+      dropped because the ``time`` coordinate already captures this information.
     """
-    # Remap deprecated file_type aliases to their current equivalent before
-    # the membership check — aliases are intentionally excluded from
-    # ALL_FILE_TYPES so they no longer appear in any public list.
-    if file_type in params.DEPRECATED_FILE_TYPE_ALIASES:
-        canonical = params.DEPRECATED_FILE_TYPE_ALIASES[file_type]
-        warnings.warn(
-            f"file_type '{file_type}' is deprecated and remapped to "
-            f"'{canonical}' automatically; update your mooring YAML to "
-            f"'{canonical}'.",
-            DeprecationWarning,
-            stacklevel=4,
-        )
-        file_type = canonical
+    # Build case-insensitive lookup: lower_name -> first df column name
+    col_map: dict[str, str] = {}
+    for col in df.columns:
+        key = col.lower().strip()
+        if key not in col_map:
+            col_map[key] = col  # first occurrence wins
 
-    if file_type not in params.ALL_FILE_TYPES:
-        msg = f"Unknown file type: {file_type}"
-        raise ValueError(msg)
+    # Canonical name mappings — covers both camelCase and Title Case spellings
+    canonical: dict[str, str] = {}  # df_col_name -> var_name
 
-    if file_type in ("oceansites", "rodb"):
-        from oceanarray.tools.readers import read_oceansites, read_rodb
+    scalar_mappings = [
+        (["temperature"], "temperature"),
+        (["pressure"], "pressure"),  # first = dbar
+        (["heading"], "heading"),
+        (["pitch"], "pitch"),
+        (["roll"], "roll"),
+        (["soundspeed", "speedofsound"], "speed_of_sound"),
+        (["battery voltage", "batteryvoltage"], "battery_voltage"),
+        (["speed"], "speed"),
+    ]
+    for csv_names, var_name in scalar_mappings:
+        for csv_name in csv_names:
+            if csv_name in col_map:
+                canonical[col_map[csv_name]] = var_name
+                break
 
-        reader = read_oceansites if file_type == "oceansites" else read_rodb
-        return reader(file_path)
+    # AquaPro camelCase beam variables
+    for i in [1, 2, 3]:
+        for data_type, prefix in [
+            ("vel", "velocity"),
+            ("amp", "amplitude"),
+            ("corr", "correlation"),
+        ]:
+            df_col = f"{data_type}Beam{i}#1"
+            if df_col in df.columns:
+                canonical[df_col] = f"{prefix}_beam{i}"
 
-    if file_type == "nortek-csv-oa":
-        warnings.warn(
-            "file_type 'nortek-csv-oa' is deprecated. "
-            "Use 'nortek-csv' once seasenselib supports Nortek CSV export files.",
-            DeprecationWarning,
-            stacklevel=4,
-        )
-        from oceanarray.tools.readers import load_nortek_csv
+    # Columns to drop entirely
+    time_components = {"year", "month", "day", "hour", "minute", "second"}
+    # The second (and any further) occurrence of "pressure" is depth in metres
+    first_pressure_col = col_map.get("pressure")
+    duplicate_pressure = {
+        col
+        for col in df.columns
+        if col.lower().strip() == "pressure" and col != first_pressure_col
+    }
+    drop_cols = time_components | duplicate_pressure | {"datetime"}
 
-        ds = load_nortek_csv(file_path, header_file=header_path)
-        coord_system = ds.attrs.get("coordinate_system")
-        if coord_system is None:
-            print(
-                f"WARNING: nortek-csv-oa file {file_path} has no coordinate_system "
-                "attribute — coordinate system unknown (UNK); velocities not renamed."
+    # Build data_vars: canonical names first, then everything else
+    data_vars: dict = {}
+    assigned_df_cols: set = set(canonical.keys())
+
+    for df_col, var_name in canonical.items():
+        data_vars[var_name] = (["time"], df[df_col].values)
+
+    for df_col in df.columns:
+        if df_col in assigned_df_cols:
+            continue
+        if df_col.lower().strip() in drop_cols or df_col in drop_cols:
+            continue
+        var_name = _clean_nortek_var_name(df_col)
+        if var_name and var_name not in data_vars:
+            data_vars[var_name] = (["time"], df[df_col].values)
+
+    return data_vars
+
+
+def _add_nortek_csv_attributes(ds: xr.Dataset) -> xr.Dataset:
+    """Add units and metadata attributes to variables in a Nortek CSV dataset."""
+    attr_map = {
+        "temperature": {"units": "degrees_C", "long_name": "Water Temperature"},
+        "pressure": {"units": "dbar", "long_name": "Pressure"},
+        "heading": {"units": "degrees", "long_name": "Heading"},
+        "pitch": {"units": "degrees", "long_name": "Pitch"},
+        "roll": {"units": "degrees", "long_name": "Roll"},
+        "speed_of_sound": {"units": "m/s", "long_name": "Speed of Sound"},
+        "battery_voltage": {"units": "V", "long_name": "Battery Voltage"},
+    }
+    for var_name, attrs in attr_map.items():
+        if var_name in ds.data_vars:
+            ds[var_name].attrs.update(attrs)
+
+    for i in [1, 2, 3]:
+        if f"velocity_beam{i}" in ds.data_vars:
+            ds[f"velocity_beam{i}"].attrs.update(
+                {
+                    "units": "m/s",
+                    "long_name": f"Velocity Beam {i}",
+                    "coordinate_system": "BEAM",
+                }
             )
-            coord_system = "UNK"
-        return normalize_nortek_variables(ds, coord_system=coord_system)
-
-    kwargs = {}
-    if file_type in ("nortek-raw", "nortek-ascii") and header_path:
-        kwargs["header_file"] = header_path
-
-    ds = seasenselib.read(
-        file_path,
-        file_format=file_type,
-        pipeline_skip_stages=["derivation"],
-        **kwargs,
-    )
-    if file_type in ("nortek-ascii", "nortek-raw"):
-        if header_path:
-            coord_system = _parse_nortek_coord_system(Path(header_path))
-        else:
-            print(
-                f"WARNING: no header file for {file_path} — "
-                "coordinate system unknown (UNK); velocities not renamed."
+        if f"amplitude_beam{i}" in ds.data_vars:
+            ds[f"amplitude_beam{i}"].attrs.update(
+                {"units": "counts", "long_name": f"Amplitude Beam {i}"}
             )
-            coord_system = "UNK"
-        ds = normalize_nortek_variables(ds, coord_system=coord_system)
-    if (
-        file_type == "sbe-hex"
-        and "press" in ds.data_vars
-        and "pressure" not in ds.data_vars
-    ):
-        ds = ds.rename_vars({"press": "pressure"})
+        if f"correlation_beam{i}" in ds.data_vars:
+            ds[f"correlation_beam{i}"].attrs.update(
+                {"units": "%", "long_name": f"Correlation Beam {i}"}
+            )
+
     return ds
 
 
-def _is_netcdf(path: Path) -> bool:
-    """Return True if *path* begins with a classic-netCDF or HDF5 magic number."""
-    try:
-        with path.open("rb") as fh:
-            magic = fh.read(4)
-    except OSError:
-        return False
-    return magic[:3] == b"CDF" or magic == b"\x89HDF"
-
-
-def _looks_oceansites(path: Path) -> bool:
-    """Return True if a netCDF holds a TIME dimension and an OceanSITES code."""
-    try:
-        with xr.open_dataset(path, engine="netcdf4", decode_times=False) as src:
-            return "TIME" in src.dims and bool(_OCEANSITES_CODES & set(src.data_vars))
-    except Exception:  # noqa: BLE001  — unreadable or non-netCDF content
-        return False
-
-
-def _sniff_text(path: Path) -> str | None:
-    """Return the file_type of a text instrument file from its content, or None.
-
-    Recognises SBE (``sbe-cnv`` when the CNV ``# nquan`` marker is present, else
-    ``sbe-ascii``), RODB (``Key = value`` header with a ``Columns`` line), and
-    Nortek (an ASCII data file with a sibling ``.hdr`` that looks like a Nortek
-    header). The suffix is never consulted.
-    """
-    try:
-        head = path.read_text(errors="replace")[:4096]
-    except OSError:
-        return None
-    lines = [ln for ln in head.splitlines() if ln.strip()]
-    if not lines:
-        return None
-    first = lines[0].lstrip()
-
-    # SBE: header lines begin with "* Sea-Bird" / "* SBE".
-    if re.match(r"\*\s*(Sea-Bird|SBE)", first, re.IGNORECASE):
-        return (
-            "sbe-cnv" if re.search(r"^#\s*nquan", head, re.MULTILINE) else "sbe-ascii"
-        )
-
-    # RODB: "Key = value" header lines, one of which is "Columns = ...".
-    if re.match(r"^\w[\w ]*=", first) and re.search(
-        r"^\s*Columns\s*=", head, re.MULTILINE
-    ):
-        return "rodb"
-
-    # Nortek: an ASCII data file with a sibling .hdr that is a Nortek header.
-    hdr = path.with_suffix(".hdr")
-    if hdr.exists() and _is_nortek_header(hdr):
-        return "nortek-ascii"
-
-    return None
-
-
-def _is_nortek_header(hdr_path: Path) -> bool:
-    """Return True if *hdr_path* looks like a Nortek .hdr header file."""
-    try:
-        head = hdr_path.read_text(errors="replace")[:2048]
-    except OSError:
-        return False
-    return "Number of measurements" in head or bool(
-        re.search(r"\.aqd\]", head, re.IGNORECASE)
-    )
-
-
-def read(path: str | Path, *, file_type: str | None = None) -> xr.Dataset:
-    """Read one raw instrument file and return a normalised dataset.
-
-    The format is taken from *file_type* when given, otherwise sniffed from the
-    file's content (the suffix is never used). A netCDF is read as an OceanSITES
-    time series when it carries a ``TIME`` dimension and an OceanSITES parameter
-    code, and returned unchanged otherwise. For Nortek data the companion
-    ``.hdr`` beside the data file supplies the coordinate system.
+def load_nortek_csv(
+    file_path: str | Path,
+    header_file: str | None = None,  # noqa: ARG001
+) -> xr.Dataset:
+    """Load Nortek CSV data exported from AquaPro software.
 
     Parameters
     ----------
-    path : str or pathlib.Path
-        The raw instrument file.
-    file_type : str or None, optional
-        Force a format from ``parameters.ALL_FILE_TYPES`` instead of sniffing.
+    file_path : str or Path
+        Path to the semicolon-delimited CSV data file (e.g. "Average Velocity DF3.csv").
+    header_file : str, optional
+        Path to the accompanying Units.csv file (reserved for future metadata use).
 
     Returns
     -------
-    xarray.Dataset
-        The normalised dataset.
+    xr.Dataset
+        Dataset with time coordinate and variables for velocity beams,
+        amplitude, correlation, and environmental channels.
 
-    Raises
-    ------
-    ValueError
-        If *file_type* is not a known type, or no *file_type* is given and the
-        content is not one the sniffer recognises.
     """
-    path = Path(path)
+    file_path = Path(file_path)
+    if not file_path.exists():
+        raise FileNotFoundError(f"Nortek CSV file not found: {file_path}")
 
-    if _is_netcdf(path):
-        if file_type == "oceansites" or (file_type is None and _looks_oceansites(path)):
-            from oceanarray.tools.readers import read_oceansites
+    df = pd.read_csv(file_path, delimiter=";")
+    df["datetime"] = pd.to_datetime(df["dateTime"])
+    times = df["datetime"].values
 
-            return read_oceansites(path)
-        if file_type is None:
-            return xr.open_dataset(path, engine="netcdf4")
-        return _read_typed(file_type, str(path))
+    data_vars = _parse_nortek_csv_columns(df)
+    ds = xr.Dataset(data_vars, coords={"time": times})
 
-    if file_type is None:
-        file_type = _sniff_text(path)
-        if file_type is None:
-            raise ValueError(
-                f"{path.name}: cannot determine the file type from its content; "
-                f"pass file_type= (one of {sorted(params.ALL_FILE_TYPES)})."
-            )
+    ds.attrs.update(
+        {
+            "instrument_type": "Nortek_Aquadopp",
+            "filename": str(file_path),
+            "data_format": "Nortek_CSV_Export",
+            "coordinate_system": "BEAM",
+        }
+    )
 
-    header_path = None
-    if file_type in ("nortek-raw", "nortek-ascii"):
-        hdr = path.with_suffix(".hdr")
-        if hdr.exists():
-            header_path = str(hdr)
+    if "serialNumber" in df.columns:
+        ds.attrs["serial_number"] = str(df["serialNumber"].iloc[0])
 
-    return _read_typed(file_type, str(path), header_path)
+    ds = _add_nortek_csv_attributes(ds)
+
+    log_info("Nortek CSV: loaded %d samples from %s", len(times), file_path.name)
+    return ds

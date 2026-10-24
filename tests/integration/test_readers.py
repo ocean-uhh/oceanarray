@@ -1,4 +1,4 @@
-"""Unit tests for oceanarray.tools.readers.
+"""Unit tests for the Nortek CSV reader in :mod:`oceanarray.readers.nortek`.
 
 All tests use synthetic in-memory or tmp_path files — no raw instrument data
 required, no seasenselib dependency.  Safe to run on all CI platforms.
@@ -9,15 +9,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-import xarray as xr
 
 from oceanarray import logger
-from oceanarray.tools.readers import (
+from oceanarray.readers.nortek import (
     _clean_nortek_var_name,
     _parse_nortek_csv_columns,
-    load_dataset,
     load_nortek_csv,
-    rodbload_old,
 )
 
 logger.disable_logging()
@@ -62,63 +59,6 @@ def _write_nortek_csv(path: Path, n: int = 5) -> Path:
     df = pd.DataFrame(rows)
     df.to_csv(path, sep=";", index=False)
     return path
-
-
-def _write_rodb_file(path: Path) -> Path:
-    """Write a minimal RODB-style text file to *path*."""
-    content = (
-        "# test RODB file\n"
-        "columns= temperature:pressure:salinity\n"
-        "5.0 200.0 35.0\n"
-        "5.1 201.0 35.1\n"
-        "5.2 202.0 35.2\n"
-    )
-    path.write_text(content)
-    return path
-
-
-# ---------------------------------------------------------------------------
-# load_dataset
-# ---------------------------------------------------------------------------
-
-
-class TestLoadDataset:
-    """Tests for load_dataset with NetCDF files."""
-
-    def test_single_nc_returns_dataset(self, tmp_path):
-        ds = xr.Dataset({"temperature": ("time", [1.0, 2.0, 3.0])})
-        nc_path = tmp_path / "test.nc"
-        ds.to_netcdf(nc_path)
-
-        result = load_dataset(nc_path)
-        assert isinstance(result, xr.Dataset)
-        assert "temperature" in result.data_vars
-        result.close()
-
-    def test_single_string_path_works(self, tmp_path):
-        ds = xr.Dataset({"x": ("t", [0.0])})
-        nc_path = tmp_path / "test.nc"
-        ds.to_netcdf(nc_path)
-
-        result = load_dataset(str(nc_path))
-        assert isinstance(result, xr.Dataset)
-        result.close()
-
-    def test_list_of_two_returns_list(self, tmp_path):
-        for name in ("a.nc", "b.nc"):
-            xr.Dataset({"v": ("t", [1.0])}).to_netcdf(tmp_path / name)
-
-        result = load_dataset([tmp_path / "a.nc", tmp_path / "b.nc"])
-        assert isinstance(result, list)
-        assert len(result) == 2
-        for ds in result:
-            ds.close()
-
-    def test_unknown_extension_raises(self, tmp_path):
-        bogus = tmp_path / "data.xyz"
-        bogus.write_text("not a real file")
-        with pytest.raises(ValueError, match="Unknown file type"):
-            load_dataset(bogus)
 
 
 # ---------------------------------------------------------------------------
@@ -228,46 +168,3 @@ class TestParseNortekCsvColumns:
     def test_datetime_col_dropped(self):
         data_vars = _parse_nortek_csv_columns(self._df())
         assert "datetime" not in data_vars
-
-
-# ---------------------------------------------------------------------------
-# rodbload_old
-# ---------------------------------------------------------------------------
-
-
-class TestRodbloadOld:
-    """Tests for rodbload_old with a synthetic RODB-style text file."""
-
-    @pytest.fixture(autouse=True)
-    def rodb_dataset(self, tmp_path):
-        path = _write_rodb_file(tmp_path / "data.dat")
-        self._ds = rodbload_old(path, variables=["temperature", "pressure"])
-        yield
-        self._ds.close()
-
-    def test_obs_coordinate_present(self):
-        assert "obs" in self._ds.coords
-
-    def test_record_count(self):
-        assert self._ds.sizes["obs"] == 3
-
-    def test_requested_variables_present(self):
-        assert "temperature" in self._ds.data_vars
-        assert "pressure" in self._ds.data_vars
-
-    def test_temperature_values_correct(self):
-        np.testing.assert_allclose(
-            self._ds["temperature"].values, [5.0, 5.1, 5.2], rtol=1e-5
-        )
-
-    def test_unrequested_variable_absent(self):
-        # salinity is in the file but not requested
-        assert "salinity" not in self._ds.data_vars
-
-    def test_missing_variable_raises(self, tmp_path):
-        path = _write_rodb_file(tmp_path / "data2.dat")
-        with pytest.raises(ValueError, match="Variables not found"):
-            rodbload_old(path, variables=["nonexistent"])
-
-    def test_source_file_attr(self):
-        assert "source_file" in self._ds.attrs

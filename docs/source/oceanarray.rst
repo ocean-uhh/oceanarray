@@ -36,9 +36,22 @@ I/O and shared tools
 
 readers
 ^^^^^^^
-Supplementary data readers (Nortek CSV, RODB legacy format).
+``oceanarray.readers.read(path)`` reads one raw instrument file to a canonical
+dataset: it sniffs the file content (never the suffix) to pick the format, finds
+the Nortek ``.hdr`` beside a data file, and dispatches to the per-format module
+(``sbe``, ``nortek``, ``rodb``, ``oceansites``, ``netcdf``). An oceanarray netCDF
+is returned unchanged; an OceanSITES netCDF is read to oceanarray names. A known
+``file_type=`` overrides the sniffer.
 
-.. automodule:: oceanarray.tools.readers
+.. automodule:: oceanarray.readers
+   :members:
+   :undoc-members:
+
+.. automodule:: oceanarray.readers.oceansites
+   :members:
+   :undoc-members:
+
+.. automodule:: oceanarray.readers.rodb
    :members:
    :undoc-members:
 

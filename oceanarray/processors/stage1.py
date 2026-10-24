@@ -14,7 +14,8 @@ from oceanarray import parameters as params
 from oceanarray import paths, readers
 from oceanarray.paths import safe_serial
 from oceanarray.processors.units import UnitsError, to_canonical_units
-from oceanarray.readers import (
+from oceanarray.readers import sbe
+from oceanarray.readers.nortek import (
     _parse_nortek_pressure_cal,
     _parse_nortek_T_matrix_csv,
     _parse_nortek_T_matrix_hdr,
@@ -35,27 +36,6 @@ logging.getLogger("pycnv").setLevel(logging.WARNING)
 
 # Re-export for backward compatibility; canonical definition is in parameters.py.
 ADCP_BIN_DIM: str = params.ADCP_BIN_DIM
-
-
-def _dms_str_to_decimal(s: str) -> float | None:
-    """Convert 'DD MM.mmm N/S/E/W' or a plain float string to decimal degrees."""
-    s = str(s).strip()
-    try:
-        return float(s)
-    except ValueError:
-        pass
-    parts = s.upper().split()
-    if not parts:
-        return None
-    hemi = parts[-1] if parts[-1] in ("N", "S", "E", "W") else None
-    nums = parts[:-1] if hemi else parts
-    try:
-        val = sum(float(x) / 60.0**i for i, x in enumerate(nums))
-    except (ValueError, ZeroDivisionError):
-        return None
-    if hemi in ("S", "W"):
-        val = -val
-    return val
 
 
 class MooringProcessor:
@@ -1212,7 +1192,7 @@ class MooringProcessor:
         # Normalize date format for sbe-ascii files if needed
         read_path = input_file
         if file_type == "sbe-ascii":
-            read_path = readers.normalize_sbe_ascii(input_file)
+            read_path = sbe.normalize_sbe_ascii(input_file)
 
         # Read data
         try:

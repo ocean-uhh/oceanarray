@@ -8,6 +8,8 @@ All notable changes to oceanarray are documented here.
 
 ### Added
 
+- `oceanarray.readers` — a package reading one raw instrument file to a canonical dataset. `readers.read(path, *, file_type=None)` sniffs the file content (never the suffix) to pick the format, finds the Nortek `.hdr` beside a data file, and dispatches to a per-format module (`sbe`, `nortek`, `rodb`, `oceansites`, `netcdf`). A netCDF is read as OceanSITES when it carries a `TIME` dimension and an OceanSITES parameter code, and returned unchanged otherwise; an unrecognised file with no `file_type=` raises. The per-format reader bodies moved here unchanged from `processors.stage1` and the former `tools.readers`.
+- `oceanarray.processors._stage` — the `processing_stage` marker: `stamp(ds, stage, *, source=)` writes the marker, a `history` line and `source_file`; `require(datasets, stage, step)` raises `StageError` when a dataset is at the wrong stage. A file written before the marker existed is tolerated for one release (a missing marker on read is a WARNING).
 - `oceanarray.mooring` — the single seam for reading a mooring description: `load` (path, name + `proc_dir`, or dict; validates and raises `MooringError` on an invalid config), `check` (never raises; adds an unknown-top-level-key warning), `template` and `save`, plus `oceanarray.MooringError`. Every stage, report and CLI path now receives the loaded dict instead of calling `yaml.safe_load` itself; a test (`test_config_sites`) fails if a new mooring-config `safe_load` appears outside the loader. `scripts/survey_mooring_keys.py` lists the top-level keys on a processed-data root that are not yet in `mooring.KNOWN_KEYS`.
 - `utilities.instrument_entries(mooring)` — the one place the `clamp`/legacy-`instruments` fallback and the inline merge live, used by every stage, report and the CLI; it treats a present-but-null `clamp:`/`inline:` as empty (previously a `TypeError`).
 
@@ -24,6 +26,10 @@ All notable changes to oceanarray are documented here.
 
 - `config.validation.validate_mooring_yaml(path)` — use `oceanarray.mooring.check`, which reads the file once and adds the unknown-key check. The wrapper warns and will be removed in a future release.
 - `directory:` in a mooring description — a raw-data root belongs to `raw_dir` / `--raw-dir`, not the YAML; `check` warns, and the stage-1 absolute-path override is removed in 0.7.0.
+
+### Breaking changes
+
+- `oceanarray.tools.readers` is removed; its readers moved to the `oceanarray.readers` package. Old → new: `oceanarray.tools.readers.read_oceansites` → `oceanarray.readers.read_oceansites` (or `oceanarray.readers.oceansites.read_oceansites`); `read_rodb` → `oceanarray.readers.read_rodb`; `load_nortek_csv` → `oceanarray.readers.load_nortek_csv`. The dead `load_dataset` and `rodbload_old` are removed with no replacement — use `oceanarray.readers.read` and `read_rodb`.
 
 ## [0.5.1] — 2026-10-23
 
