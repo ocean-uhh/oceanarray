@@ -15,7 +15,13 @@ pytest.importorskip("seasenselib", reason="seasenselib not installed")
 
 from oceanarray.pipeline.stage2 import (
     Stage2Processor,
+    _add_missing_metadata,
+    _apply_clock_offset,
+    _clean_unnecessary_variables,
     _parse_clock_str,
+    _read_yaml_time,
+    _resolve_clock_drift,
+    _trim_to_deployment_window,
     detect_deployment_window,
 )
 
@@ -98,37 +104,37 @@ class TestStage2Processor:
         assert mooring_name in processor.log_file.name
         assert "stage2.log" in processor.log_file.name
 
-    def test_read_yaml_time_valid(self, processor):
+    def test_read_yaml_time_valid(self):
         """Test reading valid time from YAML."""
         data = {"deployment_time": "2018-08-12T09:00:00"}
-        result = processor._read_yaml_time(data, "deployment_time")
+        result = _read_yaml_time(data, "deployment_time")
         expected = pd.to_datetime("2018-08-12T09:00:00").to_datetime64()
         assert result == expected
 
-    def test_read_yaml_time_missing(self, processor):
+    def test_read_yaml_time_missing(self):
         """Test reading missing time from YAML."""
         data = {}
-        result = processor._read_yaml_time(data, "deployment_time")
+        result = _read_yaml_time(data, "deployment_time")
         assert pd.isna(result)
 
-    def test_read_yaml_time_empty_string(self, processor):
+    def test_read_yaml_time_empty_string(self):
         """Test reading empty string time from YAML."""
         data = {"deployment_time": ""}
-        result = processor._read_yaml_time(data, "deployment_time")
+        result = _read_yaml_time(data, "deployment_time")
         assert pd.isna(result)
 
-    def test_read_yaml_time_invalid_raises(self, processor):
+    def test_read_yaml_time_invalid_raises(self):
         """A present-but-unparseable time is a log-sheet typo, not a missing field."""
         from oceanarray.exceptions import MooringError
 
         data = {"deployment_time": "not-a-date"}
         with pytest.raises(MooringError, match="deployment_time"):
-            processor._read_yaml_time(data, "deployment_time")
+            _read_yaml_time(data, "deployment_time")
 
-    def test_apply_clock_offset_zero(self, processor, sample_raw_dataset):
+    def test_apply_clock_offset_zero(self, sample_raw_dataset):
         """Test applying zero clock offset - Version 2.0 with proper array testing."""
         original_time = sample_raw_dataset.time.copy()
-        result = processor._apply_clock_offset(sample_raw_dataset, 0)
+        result = _apply_clock_offset(sample_raw_dataset, 0)
 
         np.testing.assert_array_equal(result.time.values, original_time.values)
 
@@ -136,11 +142,11 @@ class TestStage2Processor:
             sample_raw_dataset.time.values, original_time.values
         )
 
-    def test_apply_clock_offset_positive(self, processor, sample_raw_dataset):
+    def test_apply_clock_offset_positive(self, sample_raw_dataset):
         """Test applying positive clock offset - Version 2.0 with immutability testing."""
         offset_seconds = 300  # 5 minutes
         original_time = sample_raw_dataset.time.copy()
-        result = processor._apply_clock_offset(sample_raw_dataset, offset_seconds)
+        result = _apply_clock_offset(sample_raw_dataset, offset_seconds)
 
         assert "clock_offset" in result.variables
         assert result["clock_offset"].values == offset_seconds
@@ -153,11 +159,11 @@ class TestStage2Processor:
             sample_raw_dataset.time.values, original_time.values
         )
 
-    def test_apply_clock_offset_negative(self, processor, sample_raw_dataset):
+    def test_apply_clock_offset_negative(self, sample_raw_dataset):
         """Test applying negative clock offset - Version 2.0 with immutability testing."""
         offset_seconds = -600  # -10 minutes
         original_time = sample_raw_dataset.time.copy()
-        result = processor._apply_clock_offset(sample_raw_dataset, offset_seconds)
+        result = _apply_clock_offset(sample_raw_dataset, offset_seconds)
 
         expected_time = original_time + np.timedelta64(offset_seconds, "s")
         np.testing.assert_array_equal(result.time.values, expected_time.values)
@@ -166,12 +172,12 @@ class TestStage2Processor:
             sample_raw_dataset.time.values, original_time.values
         )
 
-    def test_trim_to_deployment_window_both_bounds(self, processor, sample_raw_dataset):
+    def test_trim_to_deployment_window_both_bounds(self, sample_raw_dataset):
         """Test trimming with both deployment and recovery times."""
         deploy_time = np.datetime64("2018-08-12T10:00:00")
         recover_time = np.datetime64("2018-08-26T18:00:00")
 
-        result = processor._trim_to_deployment_window(
+        result = _trim_to_deployment_window(
             sample_raw_dataset, deploy_time, recover_time
         )
 
@@ -179,149 +185,97 @@ class TestStage2Processor:
         assert result.time.max() <= recover_time
         assert len(result.time) < len(sample_raw_dataset.time)
 
-    def test_trim_to_deployment_window_deploy_only(self, processor, sample_raw_dataset):
+    def test_trim_to_deployment_window_deploy_only(self, sample_raw_dataset):
         """Test trimming with only deployment time."""
         deploy_time = np.datetime64("2018-08-12T10:00:00")
         recover_time = np.datetime64("NaT")
 
-        result = processor._trim_to_deployment_window(
+        result = _trim_to_deployment_window(
             sample_raw_dataset, deploy_time, recover_time
         )
 
         assert result.time.min() >= deploy_time
         assert result.time.max() == sample_raw_dataset.time.max()
 
-    def test_trim_to_deployment_window_recover_only(
-        self, processor, sample_raw_dataset
-    ):
+    def test_trim_to_deployment_window_recover_only(self, sample_raw_dataset):
         """Test trimming with only recovery time."""
         deploy_time = np.datetime64("NaT")
         recover_time = np.datetime64("2018-08-26T18:00:00")
 
-        result = processor._trim_to_deployment_window(
+        result = _trim_to_deployment_window(
             sample_raw_dataset, deploy_time, recover_time
         )
 
         assert result.time.min() == sample_raw_dataset.time.min()
         assert result.time.max() <= recover_time
 
-    def test_trim_to_deployment_window_no_trimming(self, processor, sample_raw_dataset):
+    def test_trim_to_deployment_window_no_trimming(self, sample_raw_dataset):
         """Test trimming with no valid times."""
         deploy_time = np.datetime64("NaT")
         recover_time = np.datetime64("NaT")
 
-        result = processor._trim_to_deployment_window(
+        result = _trim_to_deployment_window(
             sample_raw_dataset, deploy_time, recover_time
         )
 
         assert len(result.time) == len(sample_raw_dataset.time)
 
-    def test_trim_to_deployment_window_empty_result(
-        self, processor, sample_raw_dataset
-    ):
+    def test_trim_to_deployment_window_empty_result(self, sample_raw_dataset):
         """Test trimming that results in empty dataset."""
         deploy_time = np.datetime64("2019-01-01T00:00:00")
         recover_time = np.datetime64("2019-01-02T00:00:00")
 
-        result = processor._trim_to_deployment_window(
+        result = _trim_to_deployment_window(
             sample_raw_dataset, deploy_time, recover_time
         )
 
         assert len(result.time) == 0
 
-    def test_add_missing_metadata(self, processor, sample_raw_dataset, tmp_path):
-        """Test adding missing metadata variables."""
+    def test_add_missing_metadata(self, sample_raw_dataset):
+        """Metadata scalar variables are added from the description entry when absent."""
         ds = sample_raw_dataset.copy()
         ds = ds.drop_vars(["InstrDepth", "instrument", "serial_number"])
 
         instrument_config = {"depth": 150, "instrument": "new_microcat", "serial": 9999}
-
-        mock_filepath = tmp_path / "microcat" / "test_mooring_7518_stage1.nc"
-        mock_filepath.parent.mkdir(parents=True)
-        mock_filepath.touch()
-
-        result = processor._add_missing_metadata(
-            ds, instrument_config, mock_filepath, "test_mooring"
-        )
+        result = _add_missing_metadata(ds, instrument_config)
 
         assert result["InstrDepth"].values == 150
         assert result["instrument"].values == "new_microcat"
         assert result["serial_number"].values == 9999
 
-    def test_add_missing_metadata_no_overwrite(
-        self, processor, sample_raw_dataset, tmp_path
-    ):
-        """Test that existing metadata is not overwritten."""
+    def test_add_missing_metadata_no_overwrite(self, sample_raw_dataset):
+        """Existing metadata variables are not overwritten."""
         instrument_config = {
             "depth": 999,
             "instrument": "different_instrument",
             "serial": 8888,
         }
-
-        mock_filepath = tmp_path / "microcat" / "test_mooring_7518_stage1.nc"
-        mock_filepath.parent.mkdir(parents=True)
-        mock_filepath.touch()
-
-        result = processor._add_missing_metadata(
-            sample_raw_dataset, instrument_config, mock_filepath, "test_mooring"
-        )
+        result = _add_missing_metadata(sample_raw_dataset, instrument_config)
 
         assert result["InstrDepth"].values == 100
         assert result["instrument"].values == "microcat"
         assert result["serial_number"].values == 7518
 
-    def test_fallback_metadata_extraction(self, processor, tmp_path):
-        """Test fallback metadata extraction from filepath."""
+    def test_add_missing_metadata_depth_default(self):
+        """A missing depth defaults InstrDepth to 0; identity comes from read_mooring.
+
+        The old filepath-fallback (instrument/serial inferred from the filename) is
+        gone — ``read_mooring`` joins the file with its description instead.
+        """
         ds = xr.Dataset(
             {"temperature": (["time"], np.random.random(10))},
             coords={"time": pd.date_range("2018-01-01", periods=10, freq="h")},
         )
-
-        instrument_config = {"depth": 150}
-
-        mock_filepath = tmp_path / "sbe56" / "dsE_1_2018_6363_stage1.nc"
-        mock_filepath.parent.mkdir(parents=True)
-        mock_filepath.touch()
-
-        result = processor._add_missing_metadata(
-            ds, instrument_config, mock_filepath, "dsE_1_2018"
-        )
-
-        assert result["instrument"].values == "sbe56"
-        assert result["serial_number"].values == 6363
-        assert result["InstrDepth"].values == 150
-
-        assert (
-            "non-standard enrichment of metadata from filename patterns"
-            in result.attrs["history"]
-        )
-
-    def test_no_fallback_when_yaml_complete(self, processor, tmp_path):
-        """Test that fallback is not used when YAML provides complete metadata."""
-        ds = xr.Dataset(
-            {"temperature": (["time"], np.random.random(10))},
-            coords={"time": pd.date_range("2018-01-01", periods=10, freq="h")},
-        )
-
-        instrument_config = {"depth": 150, "instrument": "microcat", "serial": 7518}
-
-        mock_filepath = tmp_path / "sbe56" / "dsE_1_2018_6363_stage1.nc"
-        mock_filepath.parent.mkdir(parents=True)
-        mock_filepath.touch()
-
-        result = processor._add_missing_metadata(
-            ds, instrument_config, mock_filepath, "dsE_1_2018"
-        )
+        result = _add_missing_metadata(ds, {"instrument": "microcat", "serial": 7518})
 
         assert result["instrument"].values == "microcat"
         assert result["serial_number"].values == 7518
-        assert result["InstrDepth"].values == 150
-
+        assert result["InstrDepth"].values == 0
         assert "history" not in result.attrs
 
-    def test_clean_unnecessary_variables(self, processor, sample_raw_dataset):
+    def test_clean_unnecessary_variables(self, sample_raw_dataset):
         """Test removal of unnecessary variables."""
-        result = processor._clean_unnecessary_variables(sample_raw_dataset)
+        result = _clean_unnecessary_variables(sample_raw_dataset)
 
         assert "timeS" not in result.variables
         assert "temperature" in result.variables
@@ -441,70 +395,66 @@ class TestParseClockStr:
 class TestResolveClockDrift:
     """Tests for Stage2Processor._resolve_clock_drift with real YAML field names."""
 
-    @pytest.fixture
-    def processor(self, tmp_path):
-        return Stage2Processor(proc_dir=str(tmp_path))
-
-    def test_option_b_standard_iso_instrument_slow(self, processor):
+    def test_option_b_standard_iso_instrument_slow(self):
         cfg = {
             "computer_clock_at_recovery": "2026-07-10T19:12:39",
             "instrument_clock_at_recovery": "2026-07-10T19:12:30",
         }
-        drift_s, note = processor._resolve_clock_drift(cfg)
+        drift_s, note = _resolve_clock_drift(cfg)
         assert drift_s == 9.0
         assert "clock_drift=+9.0s" in note
 
-    def test_option_b_standard_iso_instrument_fast(self, processor):
+    def test_option_b_standard_iso_instrument_fast(self):
         cfg = {
             "computer_clock_at_recovery": "2026-07-10T21:03:00",
             "instrument_clock_at_recovery": "2026-07-10T21:03:07",
         }
-        drift_s, note = processor._resolve_clock_drift(cfg)
+        drift_s, note = _resolve_clock_drift(cfg)
         assert drift_s == -7.0
         assert "clock_drift=-7.0s" in note
 
-    def test_option_b_time_only(self, processor):
+    def test_option_b_time_only(self):
         cfg = {
             "computer_clock_at_recovery": "19:12:39",
             "instrument_clock_at_recovery": "19:12:30",
         }
-        drift_s, note = processor._resolve_clock_drift(cfg)
+        drift_s, note = _resolve_clock_drift(cfg)
         assert drift_s == 9.0
 
-    def test_option_b_compact_datetime(self, processor):
+    def test_option_b_compact_datetime(self):
         cfg = {
             "computer_clock_at_recovery": "20260710T19:12:39",
             "instrument_clock_at_recovery": "20260710T19:12:30",
         }
-        drift_s, note = processor._resolve_clock_drift(cfg)
+        drift_s, note = _resolve_clock_drift(cfg)
         assert drift_s == 9.0
 
-    def test_option_b_takes_priority_over_option_a(self, processor):
+    def test_option_b_takes_priority_over_option_a(self):
         cfg = {
             "clock_drift_seconds": 999,
             "computer_clock_at_recovery": "2026-07-10T19:12:39",
             "instrument_clock_at_recovery": "2026-07-10T19:12:30",
         }
-        drift_s, _ = processor._resolve_clock_drift(cfg)
+        drift_s, _ = _resolve_clock_drift(cfg)
         assert drift_s == 9.0  # Option B wins
 
-    def test_option_a_drift_seconds(self, processor):
+    def test_option_a_drift_seconds(self):
         cfg = {"clock_drift_seconds": 33}
-        drift_s, note = processor._resolve_clock_drift(cfg)
+        drift_s, note = _resolve_clock_drift(cfg)
         assert drift_s == 33.0
         assert "33.0s" in note
 
-    def test_no_clock_info_returns_zero(self, processor):
-        drift_s, _ = processor._resolve_clock_drift({})
+    def test_no_clock_info_returns_zero(self):
+        drift_s, _ = _resolve_clock_drift({})
         assert drift_s == 0.0
 
-    def test_unknown_string_ignored(self, processor):
+    def test_unknown_string_ignored(self):
         """'unknown' in YAML should be treated as no correction."""
         cfg = {
             "computer_clock_at_recovery": "unknown",
             "instrument_clock_at_recovery": "unknown",
         }
-        drift_s, _ = processor._resolve_clock_drift(cfg)
+        drift_s, _ = _resolve_clock_drift(cfg)
         assert drift_s == 0.0
 
 

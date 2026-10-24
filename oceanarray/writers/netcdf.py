@@ -106,6 +106,10 @@ def _clean_attr_value(value: object) -> object:
         return json.dumps(value)
     if value is None:
         return _DROP
+    if isinstance(value, bool):
+        # netCDF4 has no boolean attribute type; store the CF-conventional 0/1.
+        # (bool is a subclass of int, so this must precede any int handling.)
+        return np.int8(value)
     if isinstance(value, (list, tuple)) and len(value) > 0:
         try:
             str(value)
