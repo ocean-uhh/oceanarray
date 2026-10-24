@@ -70,6 +70,6 @@ def write_mooring(
             )
         name = ds.attrs.get("mooring_name", "unknown")
         instr_type = ds.attrs.get("instrument", "unknown")
-        path = moor_dir / instr_type / paths.stage_output_name(name, serial, int(stage))
+        path = paths.stage_file(moor_dir, name, instr_type, serial, int(stage))
         written.append(write(ds, path, overwrite=overwrite))
     return written
