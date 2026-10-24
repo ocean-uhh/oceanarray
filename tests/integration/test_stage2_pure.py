@@ -76,3 +76,46 @@ def test_clock_recommended_window_preserved():
     aq = results["9920"]
     assert aq.attrs["suggested_deployment_time_utc"] == "2026-07-11T20:30:00"
     assert aq.attrs["suggested_recovery_time_utc"] == "2026-07-25T11:43:05"
+
+
+def _proc_copy(tmp_path: Path) -> Path:
+    """Copy the dune2 fixture mooring (stage 1 and 2 only) into a fresh proc root."""
+    import shutil
+
+    shutil.copytree(
+        _FIX,
+        tmp_path / "dune2_1_2026",
+        ignore=shutil.ignore_patterns("*_stage3.nc", "*_stack.nc", "*_grid.nc"),
+    )
+    return tmp_path
+
+
+@pytest.mark.filterwarnings("ignore")
+def test_stage2_processor_writes_the_instruments_that_succeed(tmp_path):
+    """One unreadable stage-1 file is logged; the other instrument is still written."""
+    from oceanarray.pipeline.stage2 import Stage2Processor
+
+    root = _proc_copy(tmp_path)
+    moor = root / "dune2_1_2026"
+    (moor / "microcat" / "dune2_1_2026_2941_stage1.nc").write_bytes(b"not netcdf")
+    for p in moor.glob("*/*_stage2.nc"):
+        p.unlink()
+
+    assert Stage2Processor(proc_dir=str(root)).process_mooring(
+        "dune2_1_2026", force=True
+    )
+    assert (moor / "aquadopp" / "dune2_1_2026_9920_stage2.nc").exists()
+    assert not (moor / "microcat" / "dune2_1_2026_2941_stage2.nc").exists()
+
+
+@pytest.mark.filterwarnings("ignore")
+def test_stage2_processor_skips_existing_outputs_without_force(tmp_path):
+    """Existing stage-2 files are left alone (and count as success) unless force is given."""
+    from oceanarray.pipeline.stage2 import Stage2Processor
+
+    root = _proc_copy(tmp_path)
+    outputs = sorted((root / "dune2_1_2026").glob("*/*_stage2.nc"))
+    before = [p.read_bytes() for p in outputs]
+
+    assert Stage2Processor(proc_dir=str(root)).process_mooring("dune2_1_2026")
+    assert [p.read_bytes() for p in outputs] == before

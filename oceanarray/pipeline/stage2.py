@@ -761,21 +761,56 @@ class Stage2Processor:
             self._log_print(f"ERROR: Failed to load configuration: {e}")
             return False
 
-        # read → stage2 → write: read_mooring joins the stage-1 files with the
-        # description (identity + facts + marker), stage2 is the pure transform,
-        # write_mooring lays the stage-2 files out from each dataset's stamped facts.
-        try:
-            datasets = read_mooring(
-                mooring_config, stage=1, serials=serials, mooring_dir=proc_dir
+        # read → stage2 → write, one instrument at a time: read_mooring joins the
+        # stage-1 file with the description (identity + facts + marker), stage2 is
+        # the pure transform, write_mooring lays the stage-2 file out from the
+        # dataset's stamped facts. One instrument's failure is logged and the rest
+        # of the mooring is still written.
+        wanted = {paths.safe_serial(s) for s in serials} if serials else None
+        success_count = 0
+        total_count = 0
+        for entry in instrument_entries(mooring_config):
+            if not isinstance(entry, dict):
+                continue
+            serial = paths.safe_serial(entry.get("serial", ""))
+            if wanted is not None and serial not in wanted:
+                continue
+            total_count += 1
+            instr_type = entry.get("instrument", "unknown")
+            if entry.get("skip"):
+                reason = entry.get("skip_reason", "marked skip:true in YAML")
+                self._log_print(f"SKIP {instr_type} {serial}: {reason}")
+                success_count += 1
+                continue
+            out_path = paths.stage_file(
+                proc_dir,
+                mooring_config.get("name", mooring_name),
+                instr_type,
+                serial,
+                2,
             )
-            if not datasets:
-                self._log_print("No instruments matched — nothing processed.")
-                return False
-            results = stage2(datasets, mooring_config)
-            write_mooring(results, proc_dir, overwrite=force)
-        except Exception as e:  # noqa: BLE001  — intentional broad catch at I/O boundary
-            self._log_print(f"ERROR: Stage 2 failed: {e}")
-            return False
+            if out_path.exists() and not force:
+                self._log_print(f"SKIP (exists): {self._rel(out_path)}")
+                success_count += 1
+                continue
+            try:
+                datasets = read_mooring(
+                    mooring_config, stage=1, serials=[serial], mooring_dir=proc_dir
+                )
+                write_mooring(
+                    stage2(datasets, mooring_config), proc_dir, overwrite=True
+                )
+            except Exception as e:  # noqa: BLE001  — one instrument must not abort the mooring
+                self._log_print(f"ERROR: {instr_type} {serial}: {e}")
+                continue
+            success_count += 1
 
-        self._log_print(f"Stage 2 completed: {len(results)} instrument(s) written")
-        return True
+        self._log_print(
+            f"Stage 2 completed: {success_count}/{total_count} instruments successful"
+        )
+        if total_count == 0:
+            self._log_print("No instruments matched — nothing processed.")
+            return False
+        # Partial success is still success: the instruments that processed are
+        # written and the log names the ones that failed.
+        return success_count > 0
