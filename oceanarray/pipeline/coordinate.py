@@ -66,7 +66,9 @@ def apply_beam_to_enu(
 
     Adds east_velocity, north_velocity, up_velocity, current_speed,
     current_direction.  Updates coordinate_system attr to 'ENU'.
-    No-ops for instruments already in ENU or with unknown coordinate system.
+    A quiet no-op for instruments already in ENU.  For an unknown ('UNK')
+    coordinate system it refuses loudly and does not rotate — the velocities
+    are in an undetermined frame and must not be treated as geographic.
     Requires normalized variable names (heading, pitch, roll) — re-run stage1
     if these are absent.
 
@@ -84,6 +86,18 @@ def apply_beam_to_enu(
             print(msg)
 
     coord_sys = ds.attrs.get("coordinate_system", "ENU")
+    if coord_sys == "UNK":
+        _warn(
+            f"  WARNING: coordinate_system is UNK for serial "
+            f"{entry.get('serial', '?')} — the Nortek header did not declare "
+            "BEAM/XYZ/ENU, so the velocities are in an undetermined frame and are "
+            "NOT rotated to ENU. Do not treat east/north/up as geographic; re-run "
+            "stage1 with the instrument header so the coordinate system is known."
+        )
+        ds.attrs["coordinate_system_source"] = (
+            "unknown (header did not declare it); velocities not rotated to ENU"
+        )
+        return ds
     if coord_sys not in ("BEAM", "XYZ"):
         return ds
 
