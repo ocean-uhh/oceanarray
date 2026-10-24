@@ -249,7 +249,7 @@ The reference Python script from Nortek Support is reproduced at
 
    R = H @ P
 
-The ``oceanarray`` implementation in ``processors.coordinate.xyz_to_enu()`` expands this
+The ``oceanarray`` implementation in ``pipeline.coordinate.xyz_to_enu()`` expands this
 product analytically (vectorised over the time dimension) and adds the magnetic
 declination offset to the heading before computing :math:`h`.
 

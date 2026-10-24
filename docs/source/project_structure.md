@@ -17,7 +17,7 @@ oceanarray/
 │   ├── logger.py                  # [core] Logging configuration and helpers
 │   ├── paths.py                   # [core] Filesystem path and filename conventions
 │   │
-│   ├── processors/                # [core] Processing stages + pipeline registry
+│   ├── pipeline/                # [core] Processing stages + pipeline registry
 │   │   ├── __init__.py            # Pipeline stage registry and public process() entry point
 │   │   ├── stage1.py              # Stage 1: raw data → CF-NetCDF (*_stage1.nc)
 │   │   ├── stage2.py              # Stage 2: clock correction + deployment trim (*_stage2.nc)
@@ -103,29 +103,29 @@ The pipeline processes raw instrument data through sequential stages, each
 producing a CF-NetCDF output file. `oceanarray.STAGES` is the registry of stages,
 and `oceanarray.process(mooring, stage=…, proc_dir=…, raw_dir=…)` runs any subset.
 
-### Stage 1 — Standardisation (`processors/stage1.py`)
+### Stage 1 — Standardisation (`pipeline/stage1.py`)
 - **Input**: raw instrument files (`.cnv`, `.rsk`, `.dat`, `.hex`, RDI raw)
 - **Output**: `{proc_dir}/{mooring}/{mooring}_{serial}_stage1.nc`
 - Faithful to the raw data — no QC, no trimming. Stores the transformation matrix
   and coordinate system so later stages can rotate correctly.
 
-### Stage 2 — Clock correction + trimming (`processors/stage2.py`)
+### Stage 2 — Clock correction + trimming (`pipeline/stage2.py`)
 - **Input**: `*_stage1.nc` + mooring YAML (clock offsets, deployment window)
 - **Output**: `*_stage2.nc`
 - Applies linear clock-offset correction; trims to the deployment window.
 
-### Stage 3 — QC, rotation, derived variables (`processors/stage3.py`)
+### Stage 3 — QC, rotation, derived variables (`pipeline/stage3.py`)
 - **Input**: `*_stage2.nc`
 - **Output**: `*_stage3.nc`
 - Gross-range and tilt QC flags, BEAM→ENU rotation (Aquadopp), magnetic declination
   correction, salinity, density.
 
-### Stack — multi-instrument coordination (`processors/stack.py`)
+### Stack — multi-instrument coordination (`pipeline/stack.py`)
 - **Input**: `*_stage3.nc` files for all instruments on a mooring
 - **Output**: `{mooring}_stack.nc`  — `(N_LEVELS, time)` Dataset
 - Aligns instruments onto a common time axis; HAB-ordered deepest-first (index 0).
 
-### Grid — vertical gridding (`processors/grid.py`)
+### Grid — vertical gridding (`pipeline/grid.py`)
 - **Input**: `*_stack.nc`
 - **Output**: `{mooring}_grid.nc` — `(N_LEVELS, time)` on uniform pressure levels
 - Simple 1-D linear interpolation at each time step (preliminary; no objective mapping).

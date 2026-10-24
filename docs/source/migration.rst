@@ -4,6 +4,36 @@
 Migrating from the ``--basedir`` Layout
 =========================================
 
+Upgrading from 0.5 to 0.6
+-------------------------
+
+0.6.0 is a breaking release.  If you are upgrading an existing install:
+
+- **The ``oceanarray.processors`` package is now ``oceanarray.pipeline``.**  Update
+  imports: ``from oceanarray.processors.stage1 import ...`` becomes
+  ``from oceanarray.pipeline.stage1 import ...`` (likewise ``stage2``, ``stage3``,
+  ``stack``, ``grid``, ``qc``, ``coordinate``, ``pressure``, ``units``, ``caldip``,
+  and ``process`` / ``run``).  There is no compatibility shim.
+- **``oceanarray.tools.readers`` is removed.**  Its readers moved to the new
+  ``oceanarray.readers`` package: ``read_oceansites`` and ``read_rodb`` are now
+  ``oceanarray.readers.read_oceansites`` / ``oceanarray.readers.read_rodb``, and
+  ``load_nortek_csv`` is ``oceanarray.readers.load_nortek_csv``.  The unused
+  ``load_dataset`` and ``rodbload_old`` are gone — use ``oceanarray.readers.read(path)``,
+  which picks the format from the file's content, and ``read_rodb``.
+- **``oceanarray.writers.write`` no longer overwrites silently.**  It refuses to
+  replace an existing file unless you pass ``overwrite=True`` (the processing
+  stages do), logs one INFO line when it does replace a file, and returns the
+  written ``Path`` instead of ``None``.
+- **Output filenames come from the mooring's ``name:`` field, not its directory
+  name.**  Every stage and product file is ``{name}_{serial}_stage{N}.nc`` /
+  ``{name}_stack.nc`` / ``{name}_grid.nc``.  Make sure each
+  ``*.mooring.yaml``'s ``name:`` is the mooring you intend: a directory whose
+  basename differs from ``name:`` now produces a WARNING — most often a folder
+  copied and not renamed, which would otherwise write its outputs under the
+  original mooring's name.
+
+----
+
 Upgrading from 0.4 to 0.5
 -------------------------
 

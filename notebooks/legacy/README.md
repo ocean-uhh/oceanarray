@@ -17,5 +17,5 @@ current package):
   back out of legacy.
 
 For current usage, see the notebooks in the parent directory:
-- `../demo_mooring.ipynb` - raw files to stage 1/2/3, stack, grid via `oceanarray.processors.process`
+- `../demo_mooring.ipynb` - raw files to stage 1/2/3, stack, grid via `oceanarray.pipeline.process`
 - `../demo_climatology.ipynb` - RAPID climatological-gradient gridding
