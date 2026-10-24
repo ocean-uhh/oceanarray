@@ -312,6 +312,19 @@ def validate_mooring(
                 )
             )
 
+    # A raw-data root in the description is a run-time fact, not part of the
+    # mooring; it belongs to raw_dir / --raw-dir. Deprecated: the stage-1
+    # absolute-path override is removed in 0.7.0.
+    if "directory" in data:
+        issues.append(
+            ValidationIssue(
+                "WARNING",
+                "directory is ignored; pass the raw-data root as raw_dir "
+                "(--raw-dir), not the mooring YAML. Deprecated — the override is "
+                "removed in 0.7.0.",
+            )
+        )
+
     # The mooring's name must equal its directory name, case included.  stage1/2/3,
     # stacking and gridding build every output filename from the directory (the CLI
     # `MOORING` argument), never from this `name:` field, so a mismatch — most often

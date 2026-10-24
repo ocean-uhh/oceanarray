@@ -73,12 +73,6 @@ def test_missing_deployment_window_warns_not_errors() -> None:
     assert mooring.load(cfg)["waterdepth"] == 100
 
 
-def test_position_raises_when_unparseable() -> None:
-    """``position`` raises rather than defaulting to 0, 0 when no lat/lon parses."""
-    with pytest.raises(MooringError, match="position"):
-        mooring.position({"name": "x", "waterdepth": 100})
-
-
 def test_unknown_key_warns() -> None:
     """An unrecognised top-level key is a WARNING, not an ERROR."""
     cfg = {
@@ -96,28 +90,45 @@ def test_unknown_key_warns() -> None:
     assert mooring.load(cfg)["wibble"] == 3
 
 
-def test_instruments_merges_clamp_and_inline() -> None:
-    """``instruments`` returns clamp entries first, then processable inline ones."""
-    cfg = {
-        "clamp": [{"serial": 1, "instrument": "microcat"}],
-        "inline": [
-            {"type": "rope"},  # passive hardware, dropped
-            {"instrument": "aquadopp", "serial": 9, "filename": "a.dat"},
-        ],
-    }
-    insts = mooring.instruments(cfg)
-    assert [e["serial"] for e in insts] == [1, 9]
-    assert insts[1]["source"] == "inline"
+def test_template_and_comment_keys_are_known() -> None:
+    """The template and its field comments stay within ``KNOWN_KEYS`` (no drift)."""
+    from oceanarray.mooring import _FIELD_COMMENTS, KNOWN_KEYS
+
+    assert set(_FIELD_COMMENTS) <= KNOWN_KEYS
+    assert set(mooring.template("dsX_1_2026")) <= KNOWN_KEYS
 
 
-def test_instruments_legacy_instruments_key() -> None:
-    """The legacy ``instruments`` key is read when ``clamp`` is absent."""
-    cfg = {"instruments": [{"serial": 5, "instrument": "microcat"}]}
-    assert [e["serial"] for e in mooring.instruments(cfg)] == [5]
+def test_template_has_required_keys_and_one_block_per_type() -> None:
+    """``template`` returns the skeleton: name set, required keys present, 4 blocks."""
+    doc = mooring.template("dsX_1_2026")
+    assert doc["name"] == "dsX_1_2026"
+    assert "waterdepth" in doc and doc["waterdepth"] is None
+    assert [e["instrument"] for e in doc["clamp"]] == [
+        "aquadopp",
+        "microcat",
+        "rbrsolo",
+        "ADCP",
+    ]
 
 
-def test_position_decimal_degrees() -> None:
-    """``position`` parses the degree-minute strings to decimal degrees."""
-    lat, lon = mooring.position(mooring.load(FIXTURE))
-    assert lat == pytest.approx(65.7319, abs=1e-3)
-    assert lon == pytest.approx(-27.8, abs=1e-3)
+def test_save_matches_init_golden(tmp_path: Path) -> None:
+    """``save(template(...))`` reproduces the hand-written ``init`` stub byte-for-byte."""
+    golden = Path("tests/fixtures/init_template_golden.yaml").read_text()
+    out = mooring.save(mooring.template("dsX_1_2026"), tmp_path / "x.mooring.yaml")
+    assert out.read_text() == golden
+
+
+def test_save_refuses_existing_without_overwrite(tmp_path: Path) -> None:
+    """``save`` will not clobber an existing file unless ``overwrite=True``."""
+    p = tmp_path / "x.mooring.yaml"
+    mooring.save(mooring.template("dsX_1_2026"), p)
+    with pytest.raises(FileExistsError):
+        mooring.save(mooring.template("dsX_1_2026"), p)
+    mooring.save(mooring.template("dsX_1_2026"), p, overwrite=True)  # no raise
+
+
+def test_save_is_lenient_on_incomplete_draft(tmp_path: Path) -> None:
+    """``save`` writes a draft whose required instrument serials are still null."""
+    # The template's serials are None — an ERROR for load, a warning for save.
+    p = mooring.save(mooring.template("dsX_1_2026"), tmp_path / "x.mooring.yaml")
+    assert p.exists()

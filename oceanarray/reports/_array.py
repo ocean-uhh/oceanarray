@@ -326,12 +326,11 @@ def _collect_mooring_instruments(
         YAML recovery time used for stopped-early detection.
 
     """
-    from ..utilities import extract_inline_instruments
+    from ..utilities import instrument_entries
 
     mooring_proc = proc_dir / mooring_id
     waterdepth = mcfg.get("waterdepth")
-    entries = list(mcfg.get("clamp", mcfg.get("instruments", [])))
-    entries += extract_inline_instruments(mcfg.get("inline", []))
+    entries = instrument_entries(mcfg)
 
     results = []
     for entry in entries:

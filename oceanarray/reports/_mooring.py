@@ -12,7 +12,7 @@ import numpy as np
 from oceanarray import mooring as _mooring
 from oceanarray import paths
 
-from ..utilities import extract_inline_instruments
+from ..utilities import instrument_entries
 from . import _figdebug
 from ._env import render_template
 from ._grid import generate_grid_page
@@ -500,8 +500,7 @@ class MooringReport:
         recover_dt = _parse_dt(cfg.get("recovery_time"))
         waterdepth = cfg.get("waterdepth")
 
-        instrument_list = list(cfg.get("clamp", cfg.get("instruments", [])))
-        instrument_list += extract_inline_instruments(cfg.get("inline", []))
+        instrument_list = instrument_entries(cfg)
 
         stack_nc = proc_dir / f"{mooring_name}_stack.nc"
         grid_nc = proc_dir / f"{mooring_name}_grid.nc"

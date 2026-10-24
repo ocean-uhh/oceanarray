@@ -1,8 +1,9 @@
 """Unit tests for oceanarray.validation module."""
 
+import pytest
 import yaml
 
-from oceanarray.config.validation import validate_mooring_yaml
+from oceanarray import mooring
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -51,7 +52,7 @@ def _warnings(issues):
 
 
 def test_validate_missing_file():
-    issues = validate_mooring_yaml("/nonexistent/path/test.yaml")
+    issues = mooring.check("/nonexistent/path/test.yaml")
     assert len(issues) == 1
     assert issues[0].level == "ERROR"
     assert "File not found" in issues[0].message
@@ -60,8 +61,18 @@ def test_validate_missing_file():
 def test_validate_invalid_yaml(tmp_path):
     p = tmp_path / "bad.yaml"
     p.write_text("invalid: yaml: content: [")
-    issues = validate_mooring_yaml(str(p))
+    issues = mooring.check(str(p))
     assert any(i.level == "ERROR" and "YAML parse error" in i.message for i in issues)
+
+
+def test_validate_mooring_yaml_is_deprecated_wrapper(tmp_path):
+    """The old path entry warns and returns exactly what mooring.check returns."""
+    from oceanarray.config.validation import validate_mooring_yaml
+
+    path = _write_yaml(tmp_path, _VALID_MINIMAL)
+    with pytest.warns(DeprecationWarning, match="mooring.check"):
+        issues = validate_mooring_yaml(path)
+    assert issues == mooring.check(path)
 
 
 # ---------------------------------------------------------------------------
@@ -71,7 +82,7 @@ def test_validate_invalid_yaml(tmp_path):
 
 def test_validate_valid_minimal(tmp_path):
     path = _write_yaml(tmp_path, _VALID_MINIMAL)
-    issues = validate_mooring_yaml(path)
+    issues = mooring.check(path)
     assert _errors(issues) == [], f"Unexpected errors: {_errors(issues)}"
 
 
@@ -79,7 +90,7 @@ def test_validate_missing_required_key(tmp_path):
     data = dict(_VALID_MINIMAL)
     del data["waterdepth"]
     path = _write_yaml(tmp_path, data)
-    issues = validate_mooring_yaml(path)
+    issues = mooring.check(path)
     errs = _errors(issues)
     assert any("waterdepth" in e.message for e in errs), (
         f"Expected waterdepth error, got: {errs}"
@@ -87,19 +98,47 @@ def test_validate_missing_required_key(tmp_path):
 
 
 def test_validate_missing_multiple_required_keys(tmp_path):
-    data = {"name": "test"}  # missing waterdepth, deployment_time, recovery_time
+    # Only 'waterdepth' is a required key now (name is present); the absent
+    # deployment/recovery times are recommended → WARNINGs, not required-key ERRORs.
+    data = {"name": "test"}
     path = _write_yaml(tmp_path, data)
-    issues = validate_mooring_yaml(path)
+    issues = mooring.check(path)
     missing = {
         e.message for e in _errors(issues) if "Missing required key" in e.message
     }
-    assert len(missing) == 3
+    assert len(missing) == 1
+    assert any("waterdepth" in m for m in missing)
+    # The deployment window is a recommendation, not a requirement.
+    assert any("deployment_time" in w.message for w in _warnings(issues))
+    assert any("recovery_time" in w.message for w in _warnings(issues))
+
+
+def test_directory_key_is_deprecated_warning(tmp_path):
+    """The deprecated 'directory' key produces an 'is ignored' WARNING, not an ERROR."""
+    data = dict(_VALID_MINIMAL, directory="raw/")
+    issues = mooring.check(_write_yaml(tmp_path, data))
+    assert any("directory is ignored" in w.message for w in _warnings(issues))
+    assert _errors(issues) == []
+
+
+def test_survey_confirmed_keys_are_known(tmp_path):
+    """Position tiers and qc_ranges (confirmed against real files) are not 'unknown'."""
+    data = dict(
+        _VALID_MINIMAL,
+        seabed_latitude="65 00.000 N",
+        seabed_longitude="010 00.000 W",
+        planned_latitude="65 00.000 N",
+        planned_longitude="010 00.000 W",
+        qc_ranges={},
+    )
+    issues = mooring.check(_write_yaml(tmp_path, data))
+    assert not any("Unknown top-level key" in w.message for w in _warnings(issues))
 
 
 def test_validate_name_matches_directory(tmp_path):
     """name: equal to its directory (case included) → no name/directory warning."""
     path = _write_yaml(tmp_path, _VALID_MINIMAL)  # helper nests under <name>/
-    issues = validate_mooring_yaml(path)
+    issues = mooring.check(path)
     assert not [
         w for w in _warnings(issues) if "does not match its directory" in w.message
     ]
@@ -117,7 +156,7 @@ def test_validate_name_differs_from_directory_case_only(tmp_path):
     d.mkdir()
     p = d / "dsTest_1_2026.mooring.yaml"
     p.write_text(yaml.dump(data))
-    issues = validate_mooring_yaml(str(p))
+    issues = mooring.check(str(p))
     warns = [
         w for w in _warnings(issues) if "does not match its directory" in w.message
     ]
@@ -143,7 +182,7 @@ def test_validate_instrument_alias(tmp_path):
         }
     ]
     path = _write_yaml(tmp_path, data)
-    issues = validate_mooring_yaml(path)
+    issues = mooring.check(path)
     assert any("microcat" in e.message for e in _errors(issues))
 
 
@@ -159,7 +198,7 @@ def test_validate_nortek_alias_is_error(tmp_path):
         }
     ]
     path = _write_yaml(tmp_path, data)
-    issues = validate_mooring_yaml(path)
+    issues = mooring.check(path)
     assert any("aquadopp" in e.message for e in _errors(issues))
 
 
@@ -170,7 +209,7 @@ def test_validate_filename_without_file_type(tmp_path):
         # file_type deliberately absent
     ]
     path = _write_yaml(tmp_path, data)
-    issues = validate_mooring_yaml(path)
+    issues = mooring.check(path)
     assert any("file_type" in e.message for e in _errors(issues))
 
 
@@ -182,7 +221,7 @@ def test_validate_no_filename_is_warning(tmp_path):
         # no filename
     ]
     path = _write_yaml(tmp_path, data)
-    issues = validate_mooring_yaml(path)
+    issues = mooring.check(path)
     assert any("not yet staged" in w.message for w in _warnings(issues))
     assert _errors(issues) == []
 
@@ -204,7 +243,7 @@ def test_validate_deprecated_file_type_alias_is_warning(tmp_path):
         }
     ]
     path = _write_yaml(tmp_path, data)
-    issues = validate_mooring_yaml(path)
+    issues = mooring.check(path)
     assert any(
         "deprecated" in w.message and "rbr-hex" in w.message for w in _warnings(issues)
     ), f"Expected rbr-hex-oa deprecation warning, got: {_warnings(issues)}"
@@ -224,7 +263,7 @@ def test_validate_sbe_asc_alias_is_warning(tmp_path):
         }
     ]
     path = _write_yaml(tmp_path, data)
-    issues = validate_mooring_yaml(path)
+    issues = mooring.check(path)
     assert any(
         "deprecated" in w.message and "sbe-ascii" in w.message
         for w in _warnings(issues)
@@ -243,7 +282,7 @@ def test_validate_unrecognised_file_type_is_warning(tmp_path):
         }
     ]
     path = _write_yaml(tmp_path, data)
-    issues = validate_mooring_yaml(path)
+    issues = mooring.check(path)
     assert any("not recognised" in w.message for w in _warnings(issues))
 
 
@@ -266,7 +305,7 @@ def test_validate_clock_fields_one_missing_is_error(tmp_path):
         }
     ]
     path = _write_yaml(tmp_path, data)
-    issues = validate_mooring_yaml(path)
+    issues = mooring.check(path)
     assert any("must both be present" in e.message for e in _errors(issues))
 
 
@@ -285,7 +324,7 @@ def test_validate_clock_fields_conflict_with_drift_seconds(tmp_path):
         }
     ]
     path = _write_yaml(tmp_path, data)
-    issues = validate_mooring_yaml(path)
+    issues = mooring.check(path)
     assert any("conflicts" in e.message for e in _errors(issues))
 
 
@@ -306,7 +345,7 @@ def test_validate_serial_with_special_chars_is_warning(tmp_path):
         }
     ]
     path = _write_yaml(tmp_path, data)
-    issues = validate_mooring_yaml(path)
+    issues = mooring.check(path)
     assert any(
         "illegal" in w.message.lower() or "stripped" in w.message.lower()
         for w in _warnings(issues)
@@ -372,7 +411,7 @@ def test_distinct_star_serials_are_clean():
 def test_star_only_serial_is_marker_warning_not_illegal(tmp_path):
     data = dict(_VALID_MINIMAL)
     data["instruments"] = [{**_VALID_MINIMAL["instruments"][0], "serial": "9920*"}]
-    issues = validate_mooring_yaml(_write_yaml(tmp_path, data))
+    issues = mooring.check(_write_yaml(tmp_path, data))
     assert any("`*` marker" in w.message for w in _warnings(issues))
     assert not any("collide" in e.message for e in _errors(issues))
 
@@ -413,8 +452,8 @@ def test_stack_key_must_be_boolean(tmp_path):
 
     data = copy.deepcopy(_VALID_MINIMAL)
     data["instruments"][0]["stack"] = "no"
-    errors = _errors(validate_mooring_yaml(_write_yaml(tmp_path, data)))
+    errors = _errors(mooring.check(_write_yaml(tmp_path, data)))
     assert any("stack=" in e.message for e in errors)
     data["instruments"][0]["stack"] = False
-    errors = _errors(validate_mooring_yaml(_write_yaml(tmp_path, data)))
+    errors = _errors(mooring.check(_write_yaml(tmp_path, data)))
     assert not any("stack=" in e.message for e in errors)

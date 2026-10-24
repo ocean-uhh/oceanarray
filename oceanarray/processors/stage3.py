@@ -85,7 +85,7 @@ from oceanarray.processors.qc import (
 from oceanarray.processors.units import to_canonical_units
 from oceanarray.utilities import (
     drop_all_zero_vars,
-    extract_inline_instruments,
+    instrument_entries,
 )
 from oceanarray.writers import write
 
@@ -180,10 +180,7 @@ class Stage3Processor:
 
         mooring_config = _mooring.load(config_file)
 
-        instrument_list = list(
-            mooring_config.get("clamp", mooring_config.get("instruments", []))
-        )
-        instrument_list += extract_inline_instruments(mooring_config.get("inline", []))
+        instrument_list = instrument_entries(mooring_config)
 
         # ── Mooring location for BEAM→ENU declination ──────────────────
         from oceanarray.utilities import parse_latlon_with_source

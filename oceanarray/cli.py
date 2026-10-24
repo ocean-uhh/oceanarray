@@ -378,6 +378,7 @@ def cmd_report(args: argparse.Namespace) -> int:
 
     if getattr(args, "dry_run", False):
         from oceanarray import mooring as _mooring
+        from oceanarray.utilities import instrument_entries
 
         _status("section", f"Report (dry run): {args.mooring}")
         proc_dir = proc_root / args.mooring
@@ -397,16 +398,24 @@ def cmd_report(args: argparse.Namespace) -> int:
             p = proc_dir / f"{args.mooring}_grid_report.html"
             print(f"Grid:     {p}  ({'exists' if p.exists() else 'new'})")
         if do_instruments and yaml_path.exists():
-            instrument_list = _mooring.instruments(_mooring.load(yaml_path))
-            for entry in instrument_list:
-                if not isinstance(entry, dict):
-                    continue
-                serial = str(entry.get("serial", "")).split(",")[0].strip()
-                instr_type = entry.get("instrument", "unknown")
-                p = proc_dir / "instrument" / f"{args.mooring}_{serial}_report.html"
-                print(
-                    f"  Instrument {instr_type:12s} s/n {serial:8s}  {p.name}  ({'exists' if p.exists() else 'new'})"
-                )
+            # A dry run is a preview — never raise on a half-filled config. Show
+            # the validation issues (as `validate` would), then list whatever the
+            # file parses to; only a file that is not YAML at all stops the listing.
+            cfg = _mooring._parse(yaml_path)
+            if cfg is None:
+                print(f"  (cannot preview instruments: {yaml_path} is not valid YAML)")
+            else:
+                for issue in _mooring.check(yaml_path):
+                    print(f"  {issue.level.lower()}: {issue.message}")
+                for entry in instrument_entries(cfg):
+                    if not isinstance(entry, dict):
+                        continue
+                    serial = str(entry.get("serial", "")).split(",")[0].strip()
+                    instr_type = entry.get("instrument", "unknown")
+                    p = proc_dir / "instrument" / f"{args.mooring}_{serial}_report.html"
+                    print(
+                        f"  Instrument {instr_type:12s} s/n {serial:8s}  {p.name}  ({'exists' if p.exists() else 'new'})"
+                    )
         if getattr(args, "pdf", False) or all_reports:
             _html_dir = paths.resolve_report_dir(
                 args.mooring, getattr(args, "outdir", None), report_dir, proc_root
@@ -898,161 +907,15 @@ def _add_shared_report_args(p: "argparse.ArgumentParser") -> None:
 
 def cmd_init(args: argparse.Namespace) -> int:
     """Create a skeleton mooring YAML in {proc_dir}/{mooring}/{mooring}.mooring.yaml."""
-    try:
-        from ruamel.yaml import YAML
-        from ruamel.yaml.comments import CommentedMap, CommentedSeq
-    except ImportError:
-        print(
-            "ERROR: ruamel.yaml is required for 'oceanarray init'. Install it with: pip install ruamel.yaml"
-        )
-        return 1
+    from oceanarray import mooring as _mooring
 
-    proc_dir = Path(args.proc_dir)
-    mooring = args.mooring
-    mooring_dir = proc_dir / mooring
-    out_path = mooring_dir / f"{mooring}.mooring.yaml"
-
+    out_path = Path(args.proc_dir) / args.mooring / f"{args.mooring}.mooring.yaml"
     if out_path.exists():
         print(f"ERROR: {out_path} already exists.")
         print("Rename or delete the existing file before generating a new stub.")
         return 1
 
-    mooring_dir.mkdir(parents=True, exist_ok=True)
-
-    # --- top-level metadata ---
-    doc = CommentedMap()
-    doc["name"] = mooring
-    doc.yaml_add_eol_comment(
-        "mooring identifier (matches directory and filename)", "name"
-    )
-    doc["year"] = None
-    doc.yaml_add_eol_comment("deployment year, e.g. 2026", "year")
-    doc["waterdepth"] = None
-    doc.yaml_add_eol_comment("water depth at anchor in metres", "waterdepth")
-    doc["deployment_cruise"] = None
-    doc.yaml_add_eol_comment("cruise ID, e.g. MSM142", "deployment_cruise")
-    doc["deployment_ship"] = None
-    doc.yaml_add_eol_comment("ship name, e.g. MS Merian", "deployment_ship")
-    doc["recovery_cruise"] = None
-    doc.yaml_add_eol_comment(
-        "cruise ID at recovery (omit if same cruise)", "recovery_cruise"
-    )
-    doc["recovery_ship"] = None
-    doc.yaml_add_eol_comment(
-        "ship name at recovery (omit if same ship)", "recovery_ship"
-    )
-    doc["latitude"] = None
-    doc.yaml_add_eol_comment("planned position, e.g. 65 29.840 N", "latitude")
-    doc["longitude"] = None
-    doc.yaml_add_eol_comment("planned position, e.g. 029 24.600 W", "longitude")
-    doc["deployment_time"] = None
-    doc.yaml_add_eol_comment("ISO-8601, e.g. '2026-05-07T17:06'", "deployment_time")
-    doc["recovery_time"] = None
-    doc.yaml_add_eol_comment("ISO-8601, e.g. '2026-07-10T17:45'", "recovery_time")
-
-    # --- clamp entries: one template block per instrument type ---
-    clamp: CommentedSeq = CommentedSeq()
-
-    def _instr(fields: dict) -> CommentedMap:
-        m = CommentedMap()
-        for k, v in fields.items():
-            m[k] = v
-        return m
-
-    clamp.append(
-        _instr(
-            {
-                "instrument": "aquadopp",
-                "serial": None,
-                "hab": None,
-                "sample_interval_seconds": None,
-                "filename": None,
-                "file_type": "nortek-raw",
-                "header": None,
-                "clock_offset": 0,
-                "computer_clock_at_recovery": None,
-                "instrument_clock_at_recovery": None,
-            }
-        )
-    )
-    clamp[-1].yaml_add_eol_comment(
-        "if comma-separated (e.g. '16430, R01-024') the first token is the "
-        "primary serial used in filenames/output; the rest is beacon_id. "
-        "Characters illegal in filenames are stripped.",
-        "serial",
-    )
-    clamp[-1].yaml_add_eol_comment("height above bottom (m) of transducer", "hab")
-    clamp[-1].yaml_add_eol_comment(
-        ".hdr file for T-matrix (same base name if null)", "header"
-    )
-    clamp[-1].yaml_add_eol_comment(
-        "seconds; computer time minus instrument time at recovery", "clock_offset"
-    )
-
-    clamp.append(
-        _instr(
-            {
-                "instrument": "microcat",
-                "serial": None,
-                "hab": None,
-                "sample_interval_seconds": None,
-                "filename": None,
-                "file_type": "sbe-cnv",
-                "clock_offset": 0,
-                "computer_clock_at_recovery": None,
-                "instrument_clock_at_recovery": None,
-            }
-        )
-    )
-
-    clamp.append(
-        _instr(
-            {
-                "instrument": "rbrsolo",
-                "serial": None,
-                "hab": None,
-                "sample_interval_seconds": None,
-                "filename": None,
-                "file_type": "rbr-rsk",
-                "clock_offset": 0,
-                "computer_clock_at_recovery": None,
-                "instrument_clock_at_recovery": None,
-            }
-        )
-    )
-
-    clamp.append(
-        _instr(
-            {
-                "instrument": "ADCP",
-                "serial": None,
-                "hab_bottom": None,
-                "hab_top": None,
-                "sample_interval_seconds": None,
-                "filename": None,
-                "file_type": "rdi-raw",
-                "orientation": "down",
-                "clock_offset": 0,
-                "computer_clock_at_recovery": None,
-                "instrument_clock_at_recovery": None,
-            }
-        )
-    )
-    clamp[-1].yaml_add_eol_comment(
-        "HAB of transducer face (downward-looking)", "hab_bottom"
-    )
-    clamp[-1].yaml_add_eol_comment("HAB of top of housing", "hab_top")
-    clamp[-1].yaml_add_eol_comment("down or up", "orientation")
-
-    doc["clamp"] = clamp
-
-    yaml = YAML()
-    yaml.default_flow_style = False
-    yaml.width = 120
-
-    with out_path.open("w") as fh:
-        yaml.dump(doc, fh)
-
+    _mooring.save(_mooring.template(args.mooring), out_path)
     print(f"Wrote stub: {out_path}")
     print(
         "Edit the file to fill in metadata and instrument details, then delete unused clamp entries."

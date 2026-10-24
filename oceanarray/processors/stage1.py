@@ -20,6 +20,7 @@ from oceanarray.processors.units import UnitsError, to_canonical_units
 from oceanarray.utilities import (
     _status,
     extract_inline_instruments,
+    instrument_entries,
     should_skip_regeneration,
 )
 from oceanarray.writers import write
@@ -1937,14 +1938,13 @@ class MooringProcessor:
 
         # Process each instrument — support both 'instruments' (legacy) and 'clamp' (new format).
         # Also scan the 'inline' hardware list for entries that have an instrument field.
-        instrument_list = list(yaml_data.get("clamp", yaml_data.get("instruments", [])))
-        inline_instruments = extract_inline_instruments(yaml_data.get("inline", []))
+        instrument_list = instrument_entries(yaml_data)
+        inline_instruments = extract_inline_instruments(yaml_data.get("inline") or [])
         if inline_instruments:
             self._log_print(
                 f"Found {len(inline_instruments)} instrument(s) in 'inline' list: "
                 + ", ".join(str(ic.get("serial", "?")) for ic in inline_instruments)
             )
-        instrument_list = instrument_list + inline_instruments
 
         # Filter by serial if requested
         if serials:

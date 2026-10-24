@@ -21,6 +21,7 @@ import xarray as xr
 from oceanarray import mooring as _mooring
 from oceanarray.analysis.temporal import lag_correlation
 from oceanarray.legacy import find_deployment
+from oceanarray.utilities import instrument_entries
 
 
 def load_mooring_instruments(
@@ -55,8 +56,7 @@ def load_mooring_instruments(
 
     moor_yaml_data = _mooring.load(moor_yaml)
 
-    # Support both new key 'clamp' and legacy key 'instruments'
-    instrument_list = moor_yaml_data.get("clamp", moor_yaml_data.get("instruments", []))
+    instrument_list = instrument_entries(moor_yaml_data)
     if not instrument_list:
         raise KeyError(
             f"Mooring YAML {moor_yaml} has neither 'clamp' nor 'instruments' key."

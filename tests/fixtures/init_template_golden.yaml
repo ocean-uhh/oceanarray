@@ -1,0 +1,51 @@
+name: dsX_1_2026  # mooring identifier (matches directory and filename)
+year: # deployment year, e.g. 2026
+waterdepth: # water depth at anchor in metres
+deployment_cruise: # cruise ID, e.g. MSM142
+deployment_ship: # ship name, e.g. MS Merian
+recovery_cruise: # cruise ID at recovery (omit if same cruise)
+recovery_ship: # ship name at recovery (omit if same ship)
+latitude: # planned position, e.g. 65 29.840 N
+longitude: # planned position, e.g. 029 24.600 W
+deployment_time: # ISO-8601, e.g. '2026-05-07T17:06'
+recovery_time: # ISO-8601, e.g. '2026-07-10T17:45'
+clamp:
+- instrument: aquadopp
+  serial:  # if comma-separated (e.g. '16430, R01-024') the first token is the primary serial used in filenames/output; the rest is beacon_id. Characters illegal in filenames are stripped.
+  hab: # height above bottom (m) of transducer
+  sample_interval_seconds:
+  filename:
+  file_type: nortek-raw
+  header:  # .hdr file for T-matrix (same base name if null)
+  clock_offset: 0 # seconds; computer time minus instrument time at recovery
+  computer_clock_at_recovery:
+  instrument_clock_at_recovery:
+- instrument: microcat
+  serial:
+  hab:
+  sample_interval_seconds:
+  filename:
+  file_type: sbe-cnv
+  clock_offset: 0
+  computer_clock_at_recovery:
+  instrument_clock_at_recovery:
+- instrument: rbrsolo
+  serial:
+  hab:
+  sample_interval_seconds:
+  filename:
+  file_type: rbr-rsk
+  clock_offset: 0
+  computer_clock_at_recovery:
+  instrument_clock_at_recovery:
+- instrument: ADCP
+  serial:
+  hab_bottom:  # HAB of transducer face (downward-looking)
+  hab_top: # HAB of top of housing
+  sample_interval_seconds:
+  filename:
+  file_type: rdi-raw
+  orientation: down  # down or up
+  clock_offset: 0
+  computer_clock_at_recovery:
+  instrument_clock_at_recovery:

@@ -7,19 +7,23 @@ description; every stage and report receives the loaded dict rather than
 re-reading the file.
 
 Inside the package the module is imported under an alias so a function whose
-parameter is ``mooring`` can still call the module's helpers::
+parameter is ``mooring`` can still call the module's functions::
 
     from oceanarray import mooring as _mooring
     ...
-    for entry in _mooring.instruments(mooring):
-        ...
+    cfg = _mooring.load(path)
 
-Users write ``oceanarray.mooring.load(...)`` and ``oceanarray.mooring.instruments(...)``.
+Users write ``oceanarray.mooring.load(...)``. This module handles the description
+*file* — ``load``, ``check``, ``template``, ``save``; interpreting the loaded dict
+(which entries to process, the position) is the caller's job, through
+:func:`oceanarray.utilities.instrument_entries` and
+:func:`oceanarray.utilities.parse_latlon_with_source`.
 
 The file shape is a cross-package contract (moordiag reads the same file), so
 ``load`` keeps every key exactly as written and never rewrites a value.
 """
 
+import logging
 from collections.abc import Mapping
 from os import PathLike
 from pathlib import Path
@@ -29,14 +33,16 @@ import yaml
 from oceanarray.config import validation
 from oceanarray.config.validation import ValidationIssue
 from oceanarray.exceptions import MooringError
-from oceanarray.utilities import extract_inline_instruments, parse_latlon_with_source
+
+logger = logging.getLogger(__name__)
 
 # Keys the fixtures, ``cmd_init`` and real UHH configs are known to use. The
 # list is deliberately generous: ``cmd_init`` writes ``deployment_cruise`` /
 # ``recovery_ship`` etc. while older configs use ``cruise`` / ``ship`` /
 # ``status``, and both are valid. An unknown top-level key is a WARNING (not an
 # ERROR) for now so a real config carrying a key the fixtures never showed is
-# not rejected; promotion to ERROR waits one release (see the branch notes).
+# not rejected; promotion to ERROR is planned for a later release, once this list
+# has been checked against the configs on the drive (``scripts/survey_mooring_keys.py``).
 KNOWN_KEYS: frozenset[str] = frozenset(
     {
         # identity / header
@@ -52,11 +58,24 @@ KNOWN_KEYS: frozenset[str] = frozenset(
         "deployment_ship",
         "recovery_cruise",
         "recovery_ship",
-        # time / position
+        # time
         "deployment_time",
         "recovery_time",
+        # position: the bare pair and the three graded tiers the position chain
+        # reads in order of preference (seabed → deployment → planned → latitude).
         "latitude",
         "longitude",
+        "seabed_latitude",
+        "seabed_longitude",
+        "deployment_latitude",
+        "deployment_longitude",
+        "planned_latitude",
+        "planned_longitude",
+        # QC thresholds (read by the QC pass).
+        "qc_ranges",
+        # Deprecated: a raw-data root in the description is a run-time fact; use
+        # raw_dir / --raw-dir. check() WARNs; the override is removed in 0.7.0.
+        "directory",
         # instrument lists
         "clamp",
         "instruments",
@@ -231,54 +250,198 @@ def check(
     return issues
 
 
-def instruments(mooring: Mapping) -> list[dict]:
-    """Return the mooring's processable instruments, clamp plus inline.
+# The one source for the commented ``init`` template: key -> inline description.
+# ``save`` writes these as end-of-line comments; keep in sync with KNOWN_KEYS.
+_FIELD_COMMENTS: dict[str, str] = {
+    "name": "mooring identifier (matches directory and filename)",
+    "year": "deployment year, e.g. 2026",
+    "waterdepth": "water depth at anchor in metres",
+    "deployment_cruise": "cruise ID, e.g. MSM142",
+    "deployment_ship": "ship name, e.g. MS Merian",
+    "recovery_cruise": "cruise ID at recovery (omit if same cruise)",
+    "recovery_ship": "ship name at recovery (omit if same ship)",
+    "latitude": "planned position, e.g. 65 29.840 N",
+    "longitude": "planned position, e.g. 029 24.600 W",
+    "deployment_time": "ISO-8601, e.g. '2026-05-07T17:06'",
+    "recovery_time": "ISO-8601, e.g. '2026-07-10T17:45'",
+}
 
-    Reproduces the merge every stage repeats today: the ``clamp`` list (with a
-    legacy ``instruments`` fallback) followed by the normalised, processable
-    entries from the ``inline`` hardware list.
+# Per-instrument field descriptions. ``save`` comments the first clamp entry that
+# carries each field, so the explanation appears once (as the hand-written stub did).
+_INSTRUMENT_COMMENTS: dict[str, str] = {
+    "serial": (
+        "if comma-separated (e.g. '16430, R01-024') the first token is the "
+        "primary serial used in filenames/output; the rest is beacon_id. "
+        "Characters illegal in filenames are stripped."
+    ),
+    "hab": "height above bottom (m) of transducer",
+    "header": ".hdr file for T-matrix (same base name if null)",
+    "clock_offset": "seconds; computer time minus instrument time at recovery",
+    "hab_bottom": "HAB of transducer face (downward-looking)",
+    "hab_top": "HAB of top of housing",
+    "orientation": "down or up",
+}
+
+# One example clamp block per instrument type; a user fills these in and deletes
+# the unused ones. Key order is the order written to the file.
+_TEMPLATE_INSTRUMENTS: list[dict] = [
+    {
+        "instrument": "aquadopp",
+        "serial": None,
+        "hab": None,
+        "sample_interval_seconds": None,
+        "filename": None,
+        "file_type": "nortek-raw",
+        "header": None,
+        "clock_offset": 0,
+        "computer_clock_at_recovery": None,
+        "instrument_clock_at_recovery": None,
+    },
+    {
+        "instrument": "microcat",
+        "serial": None,
+        "hab": None,
+        "sample_interval_seconds": None,
+        "filename": None,
+        "file_type": "sbe-cnv",
+        "clock_offset": 0,
+        "computer_clock_at_recovery": None,
+        "instrument_clock_at_recovery": None,
+    },
+    {
+        "instrument": "rbrsolo",
+        "serial": None,
+        "hab": None,
+        "sample_interval_seconds": None,
+        "filename": None,
+        "file_type": "rbr-rsk",
+        "clock_offset": 0,
+        "computer_clock_at_recovery": None,
+        "instrument_clock_at_recovery": None,
+    },
+    {
+        "instrument": "ADCP",
+        "serial": None,
+        "hab_bottom": None,
+        "hab_top": None,
+        "sample_interval_seconds": None,
+        "filename": None,
+        "file_type": "rdi-raw",
+        "orientation": "down",
+        "clock_offset": 0,
+        "computer_clock_at_recovery": None,
+        "instrument_clock_at_recovery": None,
+    },
+]
+
+
+def template(name: str, *, instruments: list[dict] | None = None) -> dict:
+    """Return a skeleton mooring description for *name*, as a plain dict.
+
+    The required and recommended keys are present with ``None`` values for a user
+    to fill in; ``clamp`` carries one example block per instrument type (or
+    *instruments* if given). :func:`save` renders it with the field comments.
 
     Parameters
     ----------
-    mooring : Mapping
-        A loaded mooring description (from :func:`load`).
+    name : str
+        The mooring name (becomes the ``name`` field; matches the directory).
+    instruments : list of dict or None, optional
+        Clamp entries to use instead of the one-per-type examples.
 
     Returns
     -------
-    list of dict
-        One entry per instrument, in clamp-then-inline order.
+    dict
+        The skeleton description, keys in write order.
     """
-    clamp = mooring.get("clamp", mooring.get("instruments", []))
-    return list(clamp) + extract_inline_instruments(mooring.get("inline", []))
+    doc: dict = {"name": name}
+    for key in (
+        "year",
+        "waterdepth",
+        "deployment_cruise",
+        "deployment_ship",
+        "recovery_cruise",
+        "recovery_ship",
+        "latitude",
+        "longitude",
+        "deployment_time",
+        "recovery_time",
+    ):
+        doc[key] = None
+    examples = _TEMPLATE_INSTRUMENTS if instruments is None else instruments
+    doc["clamp"] = [dict(entry) for entry in examples]
+    return doc
 
 
-def position(mooring: Mapping) -> tuple[float, float]:
-    """Return the mooring's ``(latitude, longitude)`` in decimal degrees.
+def save(mooring: Mapping, path: str | PathLike, *, overwrite: bool = False) -> Path:
+    """Write a mooring description to a YAML file with field comments.
 
-    Parses the position strings (e.g. ``65 43.913``) once, through the existing
-    :func:`oceanarray.utilities.parse_latlon_with_source`; the dict itself is not
-    rewritten.
+    Lenient by design — a description being drafted may be incomplete, so ``save``
+    runs :func:`check` and logs a warning on any ERROR but still writes (unlike
+    :func:`load`, which refuses an invalid description about to be processed). The
+    field comments come from the module's comment tables, so they cannot drift
+    from the validator.
 
     Parameters
     ----------
     mooring : Mapping
-        A loaded mooring description (from :func:`load`).
+        The description to write (e.g. from :func:`template`).
+    path : str or os.PathLike
+        Destination ``*.mooring.yaml`` path.
+    overwrite : bool, default False
+        Overwrite an existing file; otherwise a ``FileExistsError`` is raised.
 
     Returns
     -------
-    tuple of float
-        ``(latitude, longitude)`` in decimal degrees.
+    pathlib.Path
+        The path written.
 
     Raises
     ------
-    MooringError
-        If no latitude/longitude pair can be parsed (the position is never
-        silently defaulted to ``0, 0``).
+    FileExistsError
+        If *path* exists and *overwrite* is False.
     """
-    lat, lon, source = parse_latlon_with_source(dict(mooring))
-    if source.startswith("unknown"):
-        raise MooringError(
-            f"Cannot determine mooring position: no parseable latitude/longitude "
-            f"(latitude={mooring.get('latitude')!r}, longitude={mooring.get('longitude')!r})."
+    from ruamel.yaml import YAML
+    from ruamel.yaml.comments import CommentedMap, CommentedSeq
+
+    path = Path(path)
+    if path.exists() and not overwrite:
+        raise FileExistsError(f"{path} already exists")
+
+    errors = [i.message for i in check(mooring) if i.level == "ERROR"]
+    if errors:
+        logger.warning(
+            "saving an incomplete mooring description (%d issue(s) to resolve): %s",
+            len(errors),
+            "; ".join(errors),
         )
-    return lat, lon
+
+    data = dict(mooring)
+    clamp = data.pop("clamp", None)
+    doc = CommentedMap()
+    for key, value in data.items():
+        doc[key] = value
+        if key in _FIELD_COMMENTS:
+            doc.yaml_add_eol_comment(_FIELD_COMMENTS[key], key)
+
+    if clamp is not None:
+        commented: set[str] = set()
+        seq = CommentedSeq()
+        for entry in clamp:
+            block = CommentedMap()
+            for key, value in entry.items():
+                block[key] = value
+            for key in entry:
+                if key in _INSTRUMENT_COMMENTS and key not in commented:
+                    block.yaml_add_eol_comment(_INSTRUMENT_COMMENTS[key], key)
+                    commented.add(key)
+            seq.append(block)
+        doc["clamp"] = seq
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    writer = YAML()
+    writer.default_flow_style = False
+    writer.width = 120
+    with path.open("w") as fh:
+        writer.dump(doc, fh)
+    return path

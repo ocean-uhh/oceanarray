@@ -220,6 +220,31 @@ def test_extract_inline_instruments_no_instrument_excluded():
     assert result == []
 
 
+def test_instrument_entries_merges_clamp_and_inline():
+    """clamp entries come first, then the processable inline ones (normalised)."""
+    cfg = {
+        "clamp": [{"serial": 1, "instrument": "microcat"}],
+        "inline": [
+            {"type": "rope"},  # passive hardware, dropped
+            {"instrument": "aquadopp", "serial": 9, "filename": "a.dat"},
+        ],
+    }
+    entries = utilities.instrument_entries(cfg)
+    assert [e["serial"] for e in entries] == [1, 9]
+    assert entries[1]["source"] == "inline"
+
+
+def test_instrument_entries_legacy_instruments_key():
+    """The legacy 'instruments' key is read when 'clamp' is absent."""
+    cfg = {"instruments": [{"serial": 5, "instrument": "microcat"}]}
+    assert [e["serial"] for e in utilities.instrument_entries(cfg)] == [5]
+
+
+def test_instrument_entries_tolerates_null_clamp_and_inline():
+    """A present-but-null 'clamp:' / 'inline:' yields no instruments, not a crash."""
+    assert utilities.instrument_entries({"clamp": None, "inline": None}) == []
+
+
 # ---------------------------------------------------------------------------
 # get_dims — DataArray and multi-dim pressure branches
 # ---------------------------------------------------------------------------
