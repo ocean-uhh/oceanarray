@@ -352,7 +352,7 @@ class TestRbrHexOaAlias:
 
         with (
             mock.patch(
-                "oceanarray.processors.stage1.seasenselib.read", return_value=fake_ds
+                "oceanarray.readers.seasenselib.read", return_value=fake_ds
             ) as mock_read,
             pytest.warns(DeprecationWarning, match="rbr-hex-oa"),
         ):
