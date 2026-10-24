@@ -17,8 +17,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import xarray as xr
-import yaml
 
+from oceanarray import mooring as _mooring
 from oceanarray.analysis.temporal import lag_correlation
 from oceanarray.legacy import find_deployment
 
@@ -53,8 +53,7 @@ def load_mooring_instruments(
     proc_dir = output_path + mooring_name
     moor_yaml = proc_dir + "/" + mooring_name + ".mooring.yaml"
 
-    with Path(moor_yaml).open() as f:
-        moor_yaml_data = yaml.safe_load(f)
+    moor_yaml_data = _mooring.load(moor_yaml)
 
     # Support both new key 'clamp' and legacy key 'instruments'
     instrument_list = moor_yaml_data.get("clamp", moor_yaml_data.get("instruments", []))

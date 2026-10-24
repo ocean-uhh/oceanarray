@@ -334,6 +334,7 @@ class TestMooringReport:
     """Tests for MooringReport._build_context and .generate()."""
 
     _YAML = {
+        "name": "TEST_M1",
         "deployment_time": "2024-06-01T00:00:00",
         "recovery_time": "2024-09-01T00:00:00",
         "waterdepth": 1000,
@@ -456,6 +457,7 @@ class TestPageGenerators:
         out_dir.mkdir()
 
         cfg = {
+            "name": "TEST_M1",
             "deployment_time": "2024-06-01T00:00:00",
             "recovery_time": "2024-09-01T00:00:00",
             "waterdepth": 1000,
@@ -537,6 +539,7 @@ class TestPageGenerators:
         out_dir = proc_dir / "report"
         out_dir.mkdir()
         cfg = {
+            "name": "TEST_M1",
             "deployment_time": "2024-06-01T00:00:00",
             "recovery_time": "2024-09-01T00:00:00",
             "waterdepth": 1000,

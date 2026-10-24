@@ -4,8 +4,8 @@ from pathlib import Path
 
 import numpy as np
 import xarray as xr
-import yaml
 
+from oceanarray import mooring as _mooring
 from oceanarray import parameters as params
 from oceanarray import paths
 from oceanarray.processors.helpers import (
@@ -139,8 +139,7 @@ class MooringStacker:
             print(f"ERROR: Config not found: {config_file}")
             return False
 
-        with config_file.open() as f:
-            mooring_config = yaml.safe_load(f)
+        mooring_config = _mooring.load(config_file)
 
         deploy_time = np.datetime64(mooring_config["deployment_time"], "ns")
         recover_time = np.datetime64(mooring_config["recovery_time"], "ns")

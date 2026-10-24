@@ -11,8 +11,8 @@ from typing import Any
 import numpy as np
 import seasenselib
 import xarray as xr
-import yaml
 
+from oceanarray import mooring as _mooring
 from oceanarray import parameters as params
 from oceanarray import paths
 from oceanarray.paths import safe_serial
@@ -268,11 +268,6 @@ class MooringProcessor:
             except ValueError:
                 continue
         return path.name
-
-    def _load_mooring_config(self, config_path: Path) -> dict[str, Any]:
-        """Load mooring configuration from YAML file."""
-        with config_path.open() as f:
-            return yaml.safe_load(f)
 
     def _normalize_sbe_ascii(self, file_path: Path) -> Path:
         """Return path to file with SBE ASCII format issues fixed.
@@ -1912,7 +1907,7 @@ class MooringProcessor:
             return False
 
         try:
-            yaml_data = self._load_mooring_config(config_file)
+            yaml_data = _mooring.load(config_file)
         except (OSError, KeyError, ValueError) as e:
             self._log_print(f"ERROR: Failed to load configuration: {e}")
             return False

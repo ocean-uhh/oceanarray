@@ -87,6 +87,8 @@ class TestTimeGriddingIntegration:
         yaml_data = {
             "name": "test_mooring",
             "waterdepth": 1000,
+            "deployment_time": "2018-08-12T08:00:00",
+            "recovery_time": "2018-08-12T12:00:00",
             "instruments": [
                 {"instrument": "microcat", "serial": 7518, "depth": 100},
                 {"instrument": "microcat", "serial": 7519, "depth": 200},
@@ -214,6 +216,9 @@ class TestTimeGriddingIntegration:
 
         yaml_data = {
             "name": "test_mooring",
+            "waterdepth": 1000,
+            "deployment_time": "2018-08-12T08:00:00",
+            "recovery_time": "2018-08-12T12:00:00",
             "instruments": [{"instrument": "microcat", "serial": 9999, "depth": 100}],
         }
 

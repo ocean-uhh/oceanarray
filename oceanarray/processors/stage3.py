@@ -55,8 +55,8 @@ from typing import Any
 
 import numpy as np
 import xarray as xr
-import yaml
 
+from oceanarray import mooring as _mooring
 from oceanarray import paths
 from oceanarray.paths import safe_serial
 from oceanarray.processors.caldip import CALDIP_STUB_APPLIED
@@ -178,8 +178,7 @@ class Stage3Processor:
             self._log(f"ERROR: Config not found: {config_file}")
             return False
 
-        with config_file.open() as f:
-            mooring_config = yaml.safe_load(f)
+        mooring_config = _mooring.load(config_file)
 
         instrument_list = list(
             mooring_config.get("clamp", mooring_config.get("instruments", []))

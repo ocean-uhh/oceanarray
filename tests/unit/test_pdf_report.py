@@ -19,6 +19,7 @@ from oceanarray.reports._pdf import (
 # Minimal mooring YAML that MooringReport.generate() can render a summary from
 # (mirrors the fixture in test_report.py::TestMooringReport).
 _MOORING_YAML = {
+    "name": "TEST_M1",
     "deployment_time": "2024-06-01T00:00:00",
     "recovery_time": "2024-09-01T00:00:00",
     "waterdepth": 1000,

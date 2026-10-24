@@ -377,9 +377,7 @@ def cmd_report(args: argparse.Namespace) -> int:
     sig_level = getattr(args, "sig_level", None)
 
     if getattr(args, "dry_run", False):
-        import yaml as _yaml
-
-        from .utilities import extract_inline_instruments
+        from oceanarray import mooring as _mooring
 
         _status("section", f"Report (dry run): {args.mooring}")
         proc_dir = proc_root / args.mooring
@@ -399,10 +397,7 @@ def cmd_report(args: argparse.Namespace) -> int:
             p = proc_dir / f"{args.mooring}_grid_report.html"
             print(f"Grid:     {p}  ({'exists' if p.exists() else 'new'})")
         if do_instruments and yaml_path.exists():
-            with yaml_path.open() as fh:
-                cfg = _yaml.safe_load(fh)
-            instrument_list = list(cfg.get("clamp", cfg.get("instruments", [])))
-            instrument_list += extract_inline_instruments(cfg.get("inline", []))
+            instrument_list = _mooring.instruments(_mooring.load(yaml_path))
             for entry in instrument_list:
                 if not isinstance(entry, dict):
                     continue

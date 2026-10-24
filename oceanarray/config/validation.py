@@ -72,10 +72,9 @@ records what was applied and when.
 """
 
 import re
+from collections.abc import Mapping
 from pathlib import Path
 from typing import NamedTuple
-
-import yaml
 
 from oceanarray import parameters as params
 from oceanarray import paths
@@ -96,7 +95,10 @@ VALID_FILE_TYPES = params.ALL_FILE_TYPES
 
 UNSUPPORTED_FILE_TYPES: dict[str, str] = {}
 
-REQUIRED_MOORING_KEYS = ["name", "waterdepth", "deployment_time", "recovery_time"]
+# Only what cannot be processed without is required; the deployment window is
+# recommended (Stage 2 can detect it from the records) — see RECOMMENDED_MOORING_KEYS.
+REQUIRED_MOORING_KEYS = ["name", "waterdepth"]
+RECOMMENDED_MOORING_KEYS = ["deployment_time", "recovery_time"]
 
 # Safe serials reserved because a per-instrument report named for them would
 # overwrite a mooring page: ``{mooring}_stack_report.html`` / ``_grid_report.html``.
@@ -189,33 +191,30 @@ def check_serials(entries: list[dict]) -> list[ValidationIssue]:
     return issues
 
 
-def serial_collision_errors(yaml_path: str | Path) -> list[str]:
-    """Return the serial-collision ERROR messages for a mooring YAML, or ``[]``.
+def serial_collision_errors(mooring_config: str | Path | Mapping) -> list[str]:
+    """Return the serial-collision ERROR messages for a mooring config, or ``[]``.
 
-    The thin wrapper the processing path calls before any stage writes: it loads
-    *yaml_path*, builds the combined instrument list (``clamp`` + ``instruments`` +
-    inline, same rule as :func:`validate_mooring_yaml`), and returns only the
-    :func:`check_serials` ERROR messages.  A missing or unparseable file returns
-    ``[]`` (those are reported by the normal validator, not this guard).
+    The pre-flight guard the processing path runs before any stage writes: it
+    builds the combined instrument list (``clamp`` + ``instruments`` + inline, same
+    rule as :func:`validate_mooring`) and returns only the :func:`check_serials`
+    ERROR messages.  It parses leniently through :func:`oceanarray.mooring._parse`
+    — a missing or unparseable file returns ``[]`` (those are reported by the normal
+    validator, not this guard) — rather than :func:`oceanarray.mooring.load`, which
+    would raise on the very collision this guard reports and swallow it.
 
     Parameters
     ----------
-    yaml_path : str or pathlib.Path
-        Path to the mooring YAML.
+    mooring_config : str or pathlib.Path or Mapping
+        A mooring YAML path, or an already-parsed mapping.
 
     Returns
     -------
     list of str
         One message per serial collision; empty when the serials are safe.
     """
-    path = Path(yaml_path)
-    if not path.exists():
-        return []
-    try:
-        with path.open() as f:
-            data = yaml.safe_load(f)
-    except yaml.YAMLError:
-        return []
+    from oceanarray import mooring as _mooring
+
+    data = _mooring._parse(mooring_config)
     if not isinstance(data, dict):
         return []
     instrument_list = data.get("clamp", data.get("instruments", []))
@@ -231,37 +230,87 @@ def serial_collision_errors(yaml_path: str | Path) -> list[str]:
 
 
 def validate_mooring_yaml(yaml_path: str) -> list[ValidationIssue]:
-    """Validate a mooring YAML configuration file.
+    """Validate a mooring YAML configuration file by path.
+
+    .. deprecated::
+        Use :func:`oceanarray.mooring.check`, which reads the file once and adds
+        the unknown-key check. This wrapper delegates to it and will be removed in
+        a future release.
+
+    Parameters
+    ----------
+    yaml_path : str
+        Path to the mooring YAML.
+
+    Returns
+    -------
+    list of ValidationIssue
+        One issue per finding; an empty list means the file passed all checks.
+    """
+    import warnings
+
+    from oceanarray import mooring as _mooring
+
+    warnings.warn(
+        "validate_mooring_yaml is deprecated; use oceanarray.mooring.check instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+    return _mooring.check(yaml_path)
+
+
+def validate_mooring(
+    data: object, *, dir_name: str | None = None
+) -> list[ValidationIssue]:
+    """Validate a parsed mooring configuration mapping.
 
     Checks:
     - Required top-level keys are present
+    - The ``name`` matches *dir_name* when both are given (output filenames use
+      the directory name, so a mismatch loads zero files on a case-sensitive
+      filesystem)
     - Each instrument entry uses a valid ``instrument`` name (not a model alias)
     - Each instrument entry with a ``file_type`` uses a recognised value
     - Instruments with ``filename`` also have ``file_type``
     - Instruments without ``filename`` are flagged as warnings (not yet staged)
 
-    Returns a list of :class:`ValidationIssue` named-tuples. An empty list
-    means the file passed all checks.
+    Parameters
+    ----------
+    data : object
+        The parsed YAML root; an ERROR is returned if it is not a mapping.
+    dir_name : str, optional
+        The name of the directory the config was read from. When given, the
+        ``name`` field is compared against it (case-sensitively).
+
+    Returns
+    -------
+    list of ValidationIssue
+        One issue per finding; an empty list means the config passed all checks.
     """
     issues: list[ValidationIssue] = []
-    path = Path(yaml_path)
-
-    if not path.exists():
-        return [ValidationIssue("ERROR", f"File not found: {yaml_path}")]
-
-    try:
-        with path.open() as f:
-            data = yaml.safe_load(f)
-    except yaml.YAMLError as e:
-        return [ValidationIssue("ERROR", f"YAML parse error: {e}")]
 
     if not isinstance(data, dict):
         return [ValidationIssue("ERROR", "YAML root must be a mapping")]
 
-    # Check required mooring-level keys
+    # Check required mooring-level keys. Only what cannot be processed without is
+    # required (``name`` builds every filename; ``waterdepth`` is in no record).
     for key in REQUIRED_MOORING_KEYS:
         if key not in data:
             issues.append(ValidationIssue("ERROR", f"Missing required key: '{key}'"))
+
+    # The deployment window is recommended, not required: Stage 2 can detect each
+    # instrument's in-water interval from the records and write the union, so an
+    # absent declared window is a WARNING (the detected window is recorded with
+    # ``deployment_window_source``), never an ERROR.
+    for key in RECOMMENDED_MOORING_KEYS:
+        if key not in data:
+            issues.append(
+                ValidationIssue(
+                    "WARNING",
+                    f"No '{key}' — Stage 2 will use the window detected from the "
+                    f"records (recorded as deployment_window_source='detected').",
+                )
+            )
 
     # The mooring's name must equal its directory name, case included.  stage1/2/3,
     # stacking and gridding build every output filename from the directory (the CLI
@@ -270,8 +319,7 @@ def validate_mooring_yaml(yaml_path: str) -> list[ValidationIssue]:
     # files on Linux/CI.  WARNING, not ERROR, so a deliberately mismatched regression
     # fixture can still be processed.
     yaml_name = data.get("name")
-    dir_name = path.parent.name
-    if isinstance(yaml_name, str) and yaml_name != dir_name:
+    if isinstance(yaml_name, str) and dir_name is not None and yaml_name != dir_name:
         issues.append(
             ValidationIssue(
                 "WARNING",
@@ -490,7 +538,9 @@ def validate_mooring_yaml(yaml_path: str) -> list[ValidationIssue]:
 
 def print_validation_report(yaml_path: str) -> bool:
     """Print a human-readable validation report. Returns True if no errors."""
-    issues = validate_mooring_yaml(yaml_path)
+    from oceanarray import mooring as _mooring
+
+    issues = _mooring.check(yaml_path)
 
     errors = [i for i in issues if i.level == "ERROR"]
     warnings = [i for i in issues if i.level == "WARNING"]

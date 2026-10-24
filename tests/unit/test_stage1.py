@@ -6,7 +6,6 @@ from pathlib import Path
 import numpy as np
 import pytest
 import xarray as xr
-import yaml
 
 pytest.importorskip("seasenselib", reason="seasenselib not installed")
 
@@ -117,15 +116,6 @@ class TestMooringProcessor:
         assert processor.log_file.exists()
         log_content = processor.log_file.read_text()
         assert test_message in log_content
-
-    def test_load_mooring_config(self, processor, temp_dir, sample_yaml_data):
-        """Test loading YAML configuration."""
-        config_file = temp_dir / "test_config.yaml"
-        with config_file.open("w") as f:
-            yaml.dump(sample_yaml_data, f)
-
-        loaded_data = processor._load_mooring_config(config_file)
-        assert loaded_data == sample_yaml_data
 
     def test_find_file_tag(self, processor):
         """Test finding file tags."""
@@ -348,16 +338,6 @@ class TestErrorHandling:
 
         with pytest.raises(ValueError, match="Unknown file type"):
             processor._read_file("invalid-type", "test.dat")
-
-    def test_yaml_parsing_error(self, tmp_path):
-        """Test handling of invalid YAML file."""
-        processor = MooringProcessor(raw_dir=str(tmp_path), proc_dir=str(tmp_path))
-
-        invalid_yaml = tmp_path / "invalid.yaml"
-        invalid_yaml.write_text("invalid: yaml: content: [")
-
-        with pytest.raises(yaml.YAMLError):
-            processor._load_mooring_config(invalid_yaml)
 
 
 class TestRbrHexOaAlias:
