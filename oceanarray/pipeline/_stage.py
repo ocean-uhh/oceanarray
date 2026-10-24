@@ -86,9 +86,9 @@ def stamp(
 def require(
     datasets: Mapping[str, xr.Dataset] | Sequence[xr.Dataset],
     stage: int,
-    step: str,
+    next_stage: int,
 ) -> None:
-    """Raise :class:`StageError` unless every dataset is at *stage*.
+    """Raise :class:`StageError` unless every dataset is at *stage* before *next_stage*.
 
     A dataset with no ``processing_stage`` marker (written before the marker
     existed) is a WARNING and is tolerated at *stage*, for one release.
@@ -96,29 +96,29 @@ def require(
     Parameters
     ----------
     datasets : Mapping of str to xarray.Dataset, or sequence of xarray.Dataset
-        The datasets about to enter *step*.
+        The datasets about to enter stage *next_stage*.
     stage : int
         The stage the datasets must already be at.
-    step : str
-        The step being entered, named in the error (e.g. ``"stage 3"``).
+    next_stage : int
+        The stage about to run, named in the error and the warning.
 
     Raises
     ------
     StageError
-        If any dataset carries a marker other than *stage*, naming the step to run.
+        If any dataset carries a marker other than *stage*, naming the stage to run.
     """
     items = datasets.items() if isinstance(datasets, Mapping) else enumerate(datasets)
     for key, ds in items:
         marker = ds.attrs.get(STAGE_ATTR)
         if marker is None:
             warnings.warn(
-                f"{step}: dataset {key!r} has no '{STAGE_ATTR}' marker; assuming "
-                f"stage {stage} (written before the marker existed).",
+                f"stage {next_stage}: dataset {key!r} has no '{STAGE_ATTR}' marker; "
+                f"assuming stage {stage} (written before the marker existed).",
                 stacklevel=2,
             )
             continue
         if int(marker) != stage:
             raise StageError(
-                f"{step} expects stage-{stage} datasets; {key!r} is stage "
-                f"{int(marker)} — run stage {stage} first."
+                f"stage {next_stage} expects stage-{stage} datasets; {key!r} is "
+                f"stage {int(marker)} — run stage {stage} first."
             )

@@ -214,14 +214,16 @@ def read_mooring(
             ds = _read_raw(entry, instr_type, name, raw_dir)
             if ds is None:
                 continue
-            ds = _stamp_raw(ds, entry, serial, instr_type, moor_attrs)
+            ds = _join_description(ds, entry, serial, instr_type, moor_attrs)
+            ds = _stage.stamp(ds, 1, source=entry.get("filename"))
         else:
             ds = _read_stage(
                 serial, instr_type, name, stage, mooring_dir, allow_missing
             )
             if ds is None:
                 continue
-            _stage.require({serial: ds}, stage, f"read_mooring stage {stage}")
+            _stage.require({serial: ds}, stage, stage)
+            ds = _join_description(ds, entry, serial, instr_type, moor_attrs)
 
         datasets[serial] = ds
 
@@ -242,23 +244,59 @@ def _read_raw(
     return readers.read(raw_path, file_type=entry.get("file_type"))
 
 
-def _stamp_raw(
+def _join_description(
     ds: xr.Dataset,
     entry: dict[str, Any],
     serial: str,
     instr_type: str,
     moor_attrs: dict[str, Any],
 ) -> xr.Dataset:
-    """Stamp the description's facts and the stage-1 marker on a raw dataset."""
+    """Join a dataset with its mooring description — the stamping contract (ruling 1).
+
+    Reading a mooring means joining a file with the description it belongs to, so the
+    stamping-contract attributes travel on the dataset whatever path it came by (raw
+    or a stage file). ``mooring_name`` is set from the description — the mooring's
+    identity — which corrects an old file's case or stale short name. A ``serial`` that
+    differs from the entry's raises :class:`MooringError` (rule 11 — never mislabel).
+    Other contract attributes are filled when absent.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        The dataset just read.
+    entry : dict
+        The instrument's description entry.
+    serial : str
+        The cleaned serial from the entry.
+    instr_type : str
+        The instrument type from the entry.
+    moor_attrs : dict
+        The per-mooring header attributes from :func:`_mooring_attrs`.
+
+    Returns
+    -------
+    xarray.Dataset
+        A copy carrying the stamping-contract attributes.
+    """
     ds = ds.copy()
-    ds.attrs.update(moor_attrs)
+    existing = ds.attrs.get("serial")
+    if existing is not None and paths.safe_serial(existing) != serial:
+        raise MooringError(
+            f"{moor_attrs['mooring_name']}: dataset serial {existing!r} contradicts "
+            f"the description's {serial!r} for this instrument — refusing to mislabel it."
+        )
+    for key, value in moor_attrs.items():
+        # mooring_name is the identity: always taken from the description (corrects
+        # case / an old cleaname); the rest are filled only when absent.
+        if key == "mooring_name" or key not in ds.attrs:
+            ds.attrs[key] = value
     ds.attrs["serial"] = serial
     for key in _INSTRUMENT_ATTRS:
-        if entry.get(key) is not None:
+        if entry.get(key) is not None and key not in ds.attrs:
             ds.attrs[key] = entry[key]
     ds.attrs["instrument"] = instr_type
     ds.attrs["stack"] = bool(entry.get("stack", True))
-    return _stage.stamp(ds, 1, source=entry.get("filename"))
+    return ds
 
 
 def _read_stage(

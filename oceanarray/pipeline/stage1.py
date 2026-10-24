@@ -13,6 +13,7 @@ from oceanarray import mooring as _mooring
 from oceanarray import parameters as params
 from oceanarray import paths, readers
 from oceanarray.paths import safe_serial
+from oceanarray.pipeline import _stage
 from oceanarray.pipeline.units import UnitsError, to_canonical_units
 from oceanarray.readers import sbe
 from oceanarray.readers.nortek import (
@@ -1378,6 +1379,10 @@ class MooringProcessor:
         # An imported file's units are the originator's word; check the values agree.
         if file_type in ("oceansites", "rodb"):
             self._check_value_ranges(dataset, stated_units)
+
+        # Mark the stage so the file is honest from the source (not "inferred" when
+        # read back); values are unchanged, the marker + a history line are added.
+        dataset = _stage.stamp(dataset, 1)
 
         # Write to NetCDF
         _status("file", str(relative_output))
