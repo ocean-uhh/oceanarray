@@ -16,7 +16,6 @@ import re
 import warnings
 from pathlib import Path
 
-import seasenselib
 import xarray as xr
 
 from oceanarray import parameters as params
@@ -110,6 +109,11 @@ def _read_typed(
     if file_type in ("nortek-raw", "nortek-ascii") and header_path:
         kwargs["header_file"] = header_path
 
+    # Imported lazily: the netCDF / OceanSITES / RODB readers do not need
+    # seasenselib, so importing oceanarray.readers must not pull it (and its
+    # ~0.4 s / pycnv side effects) in for those consumers.
+    import seasenselib
+
     ds = seasenselib.read(
         file_path,
         file_format=file_type,
@@ -143,15 +147,6 @@ def _is_netcdf(path: Path) -> bool:
     except OSError:
         return False
     return magic[:3] == b"CDF" or magic == b"\x89HDF"
-
-
-def _looks_oceansites(path: Path) -> bool:
-    """Return True if a netCDF holds a TIME dimension and an OceanSITES code."""
-    try:
-        with xr.open_dataset(path, engine="netcdf4", decode_times=False) as src:
-            return "TIME" in src.dims and bool(_OCEANSITES_CODES & set(src.data_vars))
-    except Exception:  # noqa: BLE001  — unreadable or non-netCDF content
-        return False
 
 
 def _is_nortek_header(hdr_path: Path) -> bool:
@@ -232,11 +227,20 @@ def read(path: str | Path, *, file_type: str | None = None) -> xr.Dataset:
     path = Path(path)
 
     if _is_netcdf(path):
-        if file_type == "oceansites" or (file_type is None and _looks_oceansites(path)):
+        if file_type not in (None, "oceansites"):
+            return _read_typed(file_type, str(path))
+        # Open once.  An OceanSITES file (a TIME dimension and an OceanSITES code)
+        # goes to read_oceansites, which re-opens with its own decode; our own
+        # netCDF is already canonical, so the open dataset is the result and
+        # read_netcdf is not re-opened.
+        src = xr.open_dataset(path, engine="netcdf4")
+        is_oceansites = "TIME" in src.dims and bool(
+            _OCEANSITES_CODES & set(src.data_vars)
+        )
+        if file_type == "oceansites" or is_oceansites:
+            src.close()
             return read_oceansites(path)
-        if file_type is None:
-            return read_netcdf(path)
-        return _read_typed(file_type, str(path))
+        return src
 
     if file_type is None:
         file_type = _sniff_text(path)

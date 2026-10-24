@@ -68,8 +68,14 @@ def write_mooring(
                 f"dataset serial {ds_serial!r} does not match its key {serial!r}; "
                 "the write would mislabel the file."
             )
-        name = ds.attrs.get("mooring_name", "unknown")
-        instr_type = ds.attrs.get("instrument", "unknown")
+        name = ds.attrs.get("mooring_name")
+        instr_type = ds.attrs.get("instrument")
+        if not name or not instr_type:
+            raise MooringError(
+                f"s/n {serial}: the dataset is missing "
+                f"{'mooring_name' if not name else 'instrument'}; both name the "
+                "output file and cannot be defaulted — stamp the dataset first."
+            )
         path = paths.stage_file(moor_dir, name, instr_type, serial, int(stage))
         written.append(write(ds, path, overwrite=overwrite))
     return written

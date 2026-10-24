@@ -294,7 +294,11 @@ def generate_recovery_table(
     """
     from datetime import datetime
 
-    from ..utilities import format_latlon, parse_latlon_with_source
+    from ..utilities import (
+        format_latlon,
+        is_unknown_latlon_source,
+        parse_latlon_with_source,
+    )
     from ._html_helpers import _duration_str
 
     proc_dir = Path(proc_dir)
@@ -323,7 +327,7 @@ def generate_recovery_table(
     # placeholder) then format with the hemisphere derived from the sign — never a
     # hardcoded suffix, which produced the malformed "-27.8 W" for signed inputs.
     lat_v, lon_v, source = parse_latlon_with_source(cfg)
-    if source.startswith("unknown"):
+    if is_unknown_latlon_source(source):
         latitude = longitude = ""
     else:
         latitude, longitude = format_latlon(lat_v, lon_v)

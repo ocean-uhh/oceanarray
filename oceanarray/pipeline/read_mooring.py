@@ -29,6 +29,7 @@ from oceanarray.pipeline import _stage
 from oceanarray.utilities import (
     format_latlon,
     instrument_entries,
+    is_unknown_latlon_source,
     parse_latlon_with_source,
 )
 
@@ -36,12 +37,12 @@ from oceanarray.utilities import (
 # (Eleanor, 2026-10-24: nobody mistakes 0/0 or the YYYY string for data). They
 # stay, but become loud: a WARNING naming the missing keys, and a *_source of
 # "none" so a consumer never infers the value is real.
-_POSITION_UNKNOWN = "unknown (defaulting to 0, 0)"
 _TIME_PLACEHOLDER = "YYYY-mm-ddTHH:MM:ss"
 
 # Per-instrument entry keys copied verbatim onto the dataset (when present).
+# ``instrument`` is not listed — it is stamped explicitly in _stamp_raw after
+# the loop has already resolved and validated it.
 _INSTRUMENT_ATTRS = (
-    "instrument",
     "hab",
     "clamp_id",
     "sample_interval_seconds",
@@ -97,7 +98,7 @@ def _mooring_attrs(cfg: Mapping[str, Any]) -> dict[str, Any]:
     lat, lon, source = parse_latlon_with_source(cfg)
     attrs["latitude"] = lat
     attrs["longitude"] = lon
-    if source == _POSITION_UNKNOWN:
+    if is_unknown_latlon_source(source):
         attrs["location_source"] = "none"
         warnings.warn(
             f"{name}: no position in the mooring description "
@@ -201,7 +202,13 @@ def read_mooring(
         serial = paths.safe_serial(entry.get("serial", ""))
         if wanted is not None and serial not in wanted:
             continue
-        instr_type = entry.get("instrument", "unknown")
+        instr_type = entry.get("instrument")
+        if not instr_type:
+            raise MooringError(
+                f"{name}: instrument entry for serial {serial!r} has no "
+                "'instrument' key; it names the subdirectory and the stamped "
+                "instrument type, so it cannot be defaulted."
+            )
 
         if stage is None:
             ds = _read_raw(entry, instr_type, name, raw_dir)
@@ -262,7 +269,14 @@ def _read_stage(
     mooring_dir: Path | None,
     allow_missing: bool,
 ) -> xr.Dataset | None:
-    """Open one instrument's stage file, or refuse/skip when it is absent."""
+    """Open one instrument's stage file, or refuse/skip when it is absent.
+
+    A file written before the ``processing_stage`` marker existed is stamped
+    in memory with the stage read off its filename (``inferred``) and a WARNING,
+    so the returned dataset always carries a marker — nothing is written to disk
+    by reading, and the read/write pair stays symmetric. Persist the marker with
+    ``stamp``.
+    """
     stage_path = paths.stage_file(mooring_dir, name, instr_type, serial, stage)
     if not stage_path.exists():
         if allow_missing:
@@ -277,4 +291,13 @@ def _read_stage(
             f"at {stage_path}. Run stage {stage} first, or pass allow_missing=True "
             f"(CLI --allow-mixed-stages)."
         )
-    return readers.read(stage_path)
+    ds = readers.read(stage_path)
+    if _stage.STAGE_ATTR not in ds.attrs:
+        warnings.warn(
+            f"{name}: {instr_type} s/n {serial} stage-{stage} file has no "
+            f"'{_stage.STAGE_ATTR}' marker (written before it existed); inferring "
+            f"stage {stage} from the filename. Run stamp to persist it.",
+            stacklevel=2,
+        )
+        ds = _stage.stamp(ds, stage, inferred=True)
+    return ds

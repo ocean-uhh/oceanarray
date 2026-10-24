@@ -776,11 +776,22 @@ def parse_latlon(cfg: dict) -> tuple[float, float]:
     return lat, lon
 
 
+#: The ``source`` value :func:`parse_latlon_with_source` returns when no position
+#: key pair is found.  Test it with :func:`is_unknown_latlon_source`, never by
+#: string-matching the literal, so the wording lives in one place.
+LATLON_UNKNOWN_SOURCE = "unknown (defaulting to 0, 0)"
+
+
+def is_unknown_latlon_source(source: str) -> bool:
+    """Return True if *source* is the no-position sentinel from :func:`parse_latlon_with_source`."""
+    return source == LATLON_UNKNOWN_SOURCE
+
+
 def parse_latlon_with_source(cfg: dict) -> tuple[float, float, str]:
     """Return (lat, lon, source_key) from a mooring config dict.
 
     source_key is the YAML key pair used, e.g. ``'seabed_latitude/seabed_longitude'``,
-    or ``'unknown (defaulting to 0, 0)'`` if none found.
+    or :data:`LATLON_UNKNOWN_SOURCE` if none found.
 
     Zero values (lat == 0 and lon == 0) are treated as unfilled placeholders and
     skipped so that a later key with a real location is used instead.
@@ -814,4 +825,4 @@ def parse_latlon_with_source(cfg: dict) -> tuple[float, float, str]:
             if lat_v == 0.0 and lon_v == 0.0:
                 continue  # treat (0, 0) as an unfilled placeholder
             return lat_v, lon_v, f"{lat_key}/{lon_key}"
-    return 0.0, 0.0, "unknown (defaulting to 0, 0)"
+    return 0.0, 0.0, LATLON_UNKNOWN_SOURCE

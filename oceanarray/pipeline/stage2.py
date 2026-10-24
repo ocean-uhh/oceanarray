@@ -80,13 +80,15 @@ def _parse_clock_str(s: str) -> pd.Timestamp | None:
 
 
 def _append_history(dataset: xr.Dataset, note: str) -> None:
-    """Append a timestamped note to dataset.attrs['history'] in place."""
-    import datetime
+    """Append a timestamped note to dataset.attrs['history'] in place.
 
-    stamp = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%MZ")
-    entry = f"{stamp}: {note}"
-    existing = dataset.attrs.get("history", "")
-    dataset.attrs["history"] = f"{existing}; {entry}" if existing else entry
+    Delegates to :func:`oceanarray.pipeline._stage.append_history` so the
+    ``history`` timestamp format lives in one place (and uses the non-deprecated
+    UTC clock).
+    """
+    from oceanarray.pipeline._stage import append_history
+
+    append_history(dataset, note)
 
 
 def detect_deployment_window(

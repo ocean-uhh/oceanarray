@@ -7,7 +7,7 @@ import numpy as np
 import xarray as xr
 
 from oceanarray import parameters as params
-from oceanarray.paths import safe_serial
+from oceanarray.paths import safe_serial, stage_file
 
 STACK_VARS = [
     "temperature",
@@ -130,9 +130,8 @@ def _best_nc(
     proc_dir: Path, instr_type: str, mooring_name: str, serial: str
 ) -> Path | None:
     """Return best available stage3 or stage2 file for one instrument; None if only stage1."""
-    base = proc_dir / instr_type / f"{mooring_name}_{serial}"
-    for suffix in ("_stage3.nc", "_stage2.nc"):
-        p = Path(str(base) + suffix)
+    for stage in (3, 2):
+        p = stage_file(proc_dir, mooring_name, instr_type, serial, stage)
         if p.exists():
             return p
     return None

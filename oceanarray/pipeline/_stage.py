@@ -28,7 +28,27 @@ def _history_stamp() -> str:
     return datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%dT%H:%MZ")
 
 
-def stamp(ds: xr.Dataset, stage: int, *, source: str | None = None) -> xr.Dataset:
+def append_history(ds: xr.Dataset, note: str) -> None:
+    """Append a timestamped *note* to ``ds.attrs['history']`` in place.
+
+    The one place the ``history`` timestamp format and the ``"; "`` separator
+    live, so every stage appends in the same form.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        The dataset whose ``history`` attribute is extended.
+    note : str
+        The event text, timestamped and appended.
+    """
+    entry = f"{_history_stamp()}: {note}"
+    existing = ds.attrs.get("history", "")
+    ds.attrs["history"] = f"{existing}; {entry}" if existing else entry
+
+
+def stamp(
+    ds: xr.Dataset, stage: int, *, source: str | None = None, inferred: bool = False
+) -> xr.Dataset:
     """Return a copy of *ds* marked as the output of *stage*.
 
     Sets the ``processing_stage`` marker, appends a ``history`` line, and records
@@ -42,6 +62,10 @@ def stamp(ds: xr.Dataset, stage: int, *, source: str | None = None) -> xr.Datase
         The stage that produced *ds* (1, 2 or 3).
     source : str or None, optional
         The source filename to record as ``source_file``.
+    inferred : bool, optional
+        When True, the stage was not earned by processing but read off an
+        unmarked file's name; the ``history`` line says so, keeping the
+        provenance honest.
 
     Returns
     -------
@@ -50,9 +74,10 @@ def stamp(ds: xr.Dataset, stage: int, *, source: str | None = None) -> xr.Datase
     """
     out = ds.copy()
     out.attrs[STAGE_ATTR] = int(stage)
-    entry = f"{_history_stamp()}: processing_stage {int(stage)}"
-    existing = out.attrs.get("history", "")
-    out.attrs["history"] = f"{existing}; {entry}" if existing else entry
+    note = f"processing_stage {int(stage)}"
+    if inferred:
+        note += " inferred from filename"
+    append_history(out, note)
     if source is not None:
         out.attrs["source_file"] = source
     return out

@@ -44,10 +44,12 @@ def test_stage3_from_a_directory_path():
     assert sorted(datasets) == ["2941", "9920"]
 
 
-def test_stage3_warns_on_unmarked_fixture_files():
-    """The committed fixtures predate the marker, so require warns (and tolerates)."""
-    with pytest.warns(UserWarning, match="no 'processing_stage'"):
-        read_mooring(_cfg(), stage=3, mooring_dir=_MOORING_DIR)
+def test_stage3_warns_and_infers_on_unmarked_fixture_files():
+    """The committed fixtures predate the marker, so the stage is inferred (with a WARNING)."""
+    with pytest.warns(UserWarning, match="inferring stage 3 from the filename"):
+        datasets = read_mooring(_cfg(), stage=3, mooring_dir=_MOORING_DIR)
+    # The inferred marker is stamped in memory, so the returned datasets carry it.
+    assert all(ds.attrs[_stage.STAGE_ATTR] == 3 for ds in datasets.values())
 
 
 def test_serials_filter_selects_one():

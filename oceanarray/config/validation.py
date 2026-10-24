@@ -325,18 +325,22 @@ def validate_mooring(
             )
         )
 
-    # Output filenames are built from the ``name:`` field, not the directory, so a
-    # directory whose name differs from ``name:`` is usually a copied mooring folder
-    # left unrenamed (its files would be written under the original mooring's name).
-    # WARNING, not ERROR: ``name`` governs, the directory is only a hint.
+    # The directory name and the ``name:`` field should match.  They name output
+    # files on two code paths that are mid-migration: the processing stages still
+    # name from the directory, while read_mooring / write_mooring name from
+    # ``name:``; from 0.6.0 both use ``name:``.  A mismatch (most often a copied
+    # mooring folder left unrenamed) therefore writes outputs under different
+    # moorings depending on the path, so warn until they are identical.
     yaml_name = data.get("name")
     if isinstance(yaml_name, str) and dir_name is not None and yaml_name != dir_name:
         issues.append(
             ValidationIssue(
                 "WARNING",
                 f"directory '{dir_name}' differs from 'name: {yaml_name}' "
-                f"(compared case-sensitively) — outputs are named from 'name', not the "
-                f"directory, so check this folder is not a copy left unrenamed.",
+                f"(compared case-sensitively). The processing stages name outputs "
+                f"from the directory and read_mooring/write_mooring from 'name:' "
+                f"(from 0.6.0 both use 'name:'); make the directory and 'name:' "
+                f"identical so files land under the same mooring on either path.",
             )
         )
 
