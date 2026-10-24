@@ -114,3 +114,47 @@ def test_read_mooring_refuses_a_different_mooring_name(tmp_path):
     cfg = _mooring.load(dest / "dune2_1_2026.mooring.yaml")
     with pytest.raises(MooringError, match=r"'dune2'.*'dune2_1_2026'"):
         read_mooring(cfg, stage=2, serials=["2941"], mooring_dir=dest)
+
+
+def test_stage3_leaves_its_input_datasets_unchanged():
+    """stage3 works on copies: the caller's stage-2 datasets keep their variables and values."""
+    cfg = _mooring.load(_YAML)
+    datasets = read_mooring(cfg, stage=2, mooring_dir=_FIX)
+    before = {s: ds.copy(deep=True) for s, ds in datasets.items()}
+    stage3(datasets, cfg)
+    for serial, ds in datasets.items():
+        assert set(ds.data_vars) == set(before[serial].data_vars), serial
+        assert ds.attrs == before[serial].attrs, serial
+        assert _values_identical(ds, before[serial]) == [], serial
+
+
+def test_stage3_processor_logs_to_console_and_stage_log(tmp_path, capsys, monkeypatch):
+    """The pure function's messages reach stdout and the stage log, as before the carve."""
+    monkeypatch.setattr("oceanarray.logger.LOGGING_ENABLED", True)
+    from oceanarray.pipeline.stage3 import Stage3Processor
+
+    shutil.copytree(
+        _FIX,
+        tmp_path / "dune2_1_2026",
+        ignore=shutil.ignore_patterns("*_stack.nc", "*_grid.nc"),
+    )
+    assert Stage3Processor(proc_dir=str(tmp_path)).process_mooring(
+        "dune2_1_2026", force=True
+    )
+    out = capsys.readouterr().out
+    assert "Pressure sources (1): aquadopp 9920" in out
+    logs = list((tmp_path / "dune2_1_2026").rglob("*stage3*.log"))
+    assert logs, "no stage-3 log written"
+    assert "Pressure sources (1): aquadopp 9920" in logs[0].read_text()
+
+
+def test_stage3_processor_names_files_from_the_description(tmp_path):
+    """A mooring directory named differently from name: still finds and writes the right files."""
+    from oceanarray.pipeline.stage3 import Stage3Processor
+
+    moor = tmp_path / "dune2_copy"
+    shutil.copytree(_FIX, moor, ignore=shutil.ignore_patterns("*_stage3.nc"))
+    (moor / "dune2_1_2026.mooring.yaml").rename(moor / "dune2_copy.mooring.yaml")
+    assert Stage3Processor(proc_dir=str(tmp_path)).process_mooring("dune2_copy")
+    assert (moor / "microcat" / "dune2_1_2026_2941_stage3.nc").exists()
+    assert (moor / "aquadopp" / "dune2_1_2026_9920_stage3.nc").exists()

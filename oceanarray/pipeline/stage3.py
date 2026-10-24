@@ -59,7 +59,7 @@ import xarray as xr
 from oceanarray import mooring as _mooring
 from oceanarray import parameters as params
 from oceanarray import paths
-from oceanarray.logger import log_info, log_warning
+from oceanarray.logger import log_info, log_warning, with_stage_handlers
 from oceanarray.paths import safe_serial
 from oceanarray.pipeline import _stage
 from oceanarray.pipeline.caldip import CALDIP_STUB_APPLIED
@@ -367,7 +367,7 @@ def _stage3_instrument(
     # Canonicalise units on the way in: a pre-0.5.0 stage-2 file carries the reader's
     # spellings (degC, S/m, …); this rewrites them to the canonical (and converts S/m
     # conductivity ×10) so QC thresholds and salinity see one unit.
-    ds = to_canonical_units(info["ds"], log_fn=_log, stage=3)
+    ds = to_canonical_units(info["ds"].copy(deep=True), log_fn=_log, stage=3)
 
     target_time = ds["time"].values
     history_notes: list[str] = []
@@ -593,9 +593,10 @@ class Stage3Processor:
         self.log_file = None
 
     def _setup_logging(self, mooring_name: str, output_path: Path) -> None:
-        from oceanarray.logger import setup_stage_logging
+        from oceanarray.logger import attach_stage_handlers, setup_stage_logging
 
         self.log_file = setup_stage_logging(mooring_name, "stage3", output_path)
+        self._log_handlers = attach_stage_handlers(self.log_file)
 
     def _log(self, *args: Any, **kwargs: Any) -> None:
         print(*args, **kwargs)
@@ -606,6 +607,7 @@ class Stage3Processor:
             except OSError:
                 pass
 
+    @with_stage_handlers
     def process_mooring(
         self,
         mooring_name: str,
@@ -657,7 +659,12 @@ class Stage3Processor:
                 mooring_dir=proc_dir,
             )
             if not datasets:
-                self._log("No instruments matched — nothing processed.")
+                if serials:
+                    self._log(
+                        f"  No instruments found matching serial(s): {', '.join(serials)}"
+                    )
+                    return True
+                self._log("ERROR: No _stage2 datasets found for this mooring")
                 return False
 
             if dry_run:
@@ -674,12 +681,14 @@ class Stage3Processor:
                 return True
 
             results = stage3(datasets, mooring_config, caldip_dir=caldip_dir)
+            if not results:
+                self._log("ERROR: No stage-2 datasets with hab values")
+                return False
+            name = mooring_config["name"]
             to_write: dict[str, xr.Dataset] = {}
             for serial, ds in results.items():
                 instr_type = ds.attrs["instrument"]
-                out_path = paths.stage_file(
-                    proc_dir, mooring_name, instr_type, serial, 3
-                )
+                out_path = paths.stage_file(proc_dir, name, instr_type, serial, 3)
                 # A caldip request invalidates an existing output like --force, so the
                 # (stub) marker reaches every output.
                 if out_path.exists() and not force and caldip_dir is None:
@@ -687,9 +696,7 @@ class Stage3Processor:
                         f"  SKIP (exists): {out_path.name}  (--force to overwrite)"
                     )
                     continue
-                st2_path = paths.stage_file(
-                    proc_dir, mooring_name, instr_type, serial, 2
-                )
+                st2_path = paths.stage_file(proc_dir, name, instr_type, serial, 2)
                 ds.attrs.update(_source_provenance(st2_path))
                 to_write[serial] = ds
             write_mooring(to_write, proc_dir, overwrite=True)

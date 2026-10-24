@@ -293,7 +293,6 @@ def stack(
     # stack still builds (partial stacks are useful operationally), but each
     # omission is recorded loudly: in the summary, in an `instruments_omitted`
     # global attribute the grid inherits, and in the exit code.
-    omitted: list[str] = []
     omitted_idx: list[int] = []  # enumerate positions of omitted instruments
 
     for i, info in enumerate(instruments):

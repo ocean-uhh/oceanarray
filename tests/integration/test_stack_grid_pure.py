@@ -113,3 +113,24 @@ def test_grid_refuses_a_stack_without_pressure(ds_stack):
     """A stack with no pressure variable cannot be gridded."""
     with pytest.raises(ValueError, match="pressure"):
         grid(ds_stack.drop_vars("pressure"))
+
+
+def test_stacker_records_an_unreadable_file_as_omitted(tmp_path):
+    """A stage file that cannot be read is named in instruments_omitted and the run reports failure."""
+    import shutil
+
+    from oceanarray.pipeline.stack import MooringStacker
+
+    moor = tmp_path / "dune2_1_2026"
+    shutil.copytree(
+        _FIX, moor, ignore=shutil.ignore_patterns("*_stack.nc", "*_grid.nc")
+    )
+    (moor / "microcat" / "dune2_1_2026_2941_stage3.nc").write_bytes(b"truncated")
+
+    ok = MooringStacker(proc_dir=str(tmp_path)).stack(
+        "dune2_1_2026", dt_seconds=_DT, force=True
+    )
+    assert ok is False
+    with xr.open_dataset(moor / "dune2_1_2026_stack.nc") as ds:
+        assert "2941" in ds.attrs["instruments_omitted"]
+        assert ds["serial"].values.tolist() == ["9920"]

@@ -3,6 +3,7 @@
 import shutil
 from pathlib import Path
 
+import netCDF4
 import numpy as np
 import pytest
 import xarray as xr
@@ -30,16 +31,26 @@ def _open(path: Path) -> xr.Dataset:
         return ds.load()
 
 
-def test_stamp_marks_an_unmarked_file_and_keeps_its_values(tmp_path):
-    """The marker is written as declared; every data value is unchanged."""
+def _raw(path: Path) -> dict[str, tuple]:
+    """Return each variable's stored dtype and undecoded values."""
+    with netCDF4.Dataset(path) as nc:
+        nc.set_auto_maskandscale(False)
+        return {k: (v.dtype, np.array(v[:])) for k, v in nc.variables.items()}
+
+
+def test_stamp_marks_an_unmarked_file_and_leaves_its_data_untouched(tmp_path):
+    """Only the marker and history change: every variable, time included, keeps its stored bytes."""
     path = _unmarked_copy(_STAGE3, tmp_path / _STAGE3.name)
-    before = _open(path)
+    before = _raw(path)
     assert stamp_file(path, 3) is True
-    after = _open(path)
-    assert after.attrs[STAGE_ATTR] == 3
-    assert "processing_stage 3 declared via stamp" in after.attrs["history"]
-    for v in before.data_vars:
-        np.testing.assert_array_equal(after[v].values, before[v].values, err_msg=v)
+    after = _raw(path)
+    assert after.keys() == before.keys()
+    for name, (dtype, values) in before.items():
+        assert after[name][0] == dtype, name
+        np.testing.assert_array_equal(after[name][1], values, err_msg=name)
+    attrs = _open(path).attrs
+    assert attrs[STAGE_ATTR] == 3
+    assert "processing_stage 3 declared via stamp" in attrs["history"]
 
 
 def test_stamp_is_a_no_op_on_a_marked_file(tmp_path):

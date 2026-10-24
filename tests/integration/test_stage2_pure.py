@@ -119,3 +119,19 @@ def test_stage2_processor_skips_existing_outputs_without_force(tmp_path):
 
     assert Stage2Processor(proc_dir=str(root)).process_mooring("dune2_1_2026")
     assert [p.read_bytes() for p in outputs] == before
+
+
+@pytest.mark.filterwarnings("ignore")
+def test_stage2_processor_logs_to_console_and_stage_log(tmp_path, capsys, monkeypatch):
+    """The pure function's messages reach stdout and the stage log, as before the carve."""
+    monkeypatch.setattr("oceanarray.logger.LOGGING_ENABLED", True)
+    from oceanarray.pipeline.stage2 import Stage2Processor
+
+    root = _proc_copy(tmp_path)
+    assert Stage2Processor(proc_dir=str(root)).process_mooring(
+        "dune2_1_2026", force=True
+    )
+    assert "Final time range" in capsys.readouterr().out
+    logs = list((root / "dune2_1_2026").rglob("*stage2*.log"))
+    assert logs, "no stage-2 log written"
+    assert "Final time range" in logs[0].read_text()

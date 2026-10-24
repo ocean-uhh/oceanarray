@@ -49,7 +49,7 @@ from oceanarray import mooring as _mooring
 from oceanarray import parameters as params
 from oceanarray import paths
 from oceanarray.exceptions import MooringError
-from oceanarray.logger import log_info
+from oceanarray.logger import log_info, with_stage_handlers
 from oceanarray.pipeline import _stage
 from oceanarray.pipeline.read_mooring import read_mooring
 from oceanarray.pipeline.units import to_canonical_units
@@ -565,7 +565,7 @@ def _stage2_instrument(
     units, resolve/apply the clock offset and linear drift, trim to the window, and
     stamp the stage-1 bounds, the suggested window and the YAML window as attributes.
     """
-    dataset = to_canonical_units(ds, log_fn=log_info, stage=2)
+    dataset = to_canonical_units(ds.copy(deep=True), log_fn=log_info, stage=2)
 
     _stage1_t0 = dataset["time"].values[0]
     _stage1_t1 = dataset["time"].values[-1]
@@ -704,9 +704,10 @@ class Stage2Processor:
 
     def _setup_logging(self, mooring_name: str, output_path: Path) -> None:
         """Set up logging for the processing run using global config."""
-        from oceanarray.logger import setup_stage_logging
+        from oceanarray.logger import attach_stage_handlers, setup_stage_logging
 
         self.log_file = setup_stage_logging(mooring_name, "stage2", output_path)
+        self._log_handlers = attach_stage_handlers(self.log_file)
 
     def _log_print(self, *args: Any, **kwargs: Any) -> None:
         """Print to both console and log file."""
@@ -715,6 +716,7 @@ class Stage2Processor:
             with self.log_file.open("a", encoding="utf-8") as f:
                 print(*args, **kwargs, file=f)
 
+    @with_stage_handlers
     def process_mooring(
         self,
         mooring_name: str,
