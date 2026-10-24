@@ -9,7 +9,7 @@ import numpy as np
 import xarray as xr
 
 from oceanarray import parameters as params
-from oceanarray.processors.units import UnitsError
+from oceanarray.pipeline.units import UnitsError
 
 # Merge priority for combining QC flags (higher priority wins = worse quality).
 # Single source of truth: parameters.QC_MERGE_PRIORITY, shared with
@@ -323,7 +323,7 @@ def compute_salinity_data(
     Call ``merge_salinity_parent_qc`` afterward to fold in T/C/P parent flags.
 
     Conductivity must already be canonical ``mS cm-1`` — stage 3 runs
-    :func:`oceanarray.processors.units.to_canonical_units` first, which converts any
+    :func:`oceanarray.pipeline.units.to_canonical_units` first, which converts any
     S/m input.  A non-canonical unit here means that pass was skipped and the ×10 is
     missing, so this raises rather than compute salinity 10× too small from S/m.
     """
@@ -657,7 +657,7 @@ def derive_oxygen_saturation(ds: xr.Dataset) -> xr.Dataset:
       **seawater** density ``gsw.rho(SA, CT, p)/1000`` (kg L⁻¹) to convert to per mass.
       Seawater density (~1025–1028 kg m⁻³) gives a ~2.5 % correction relative to
       freshwater — oceanographically significant, not skippable.
-    - anything else: :class:`~oceanarray.processors.units.UnitsError` — the basis must
+    - anything else: :class:`~oceanarray.pipeline.units.UnitsError` — the basis must
       be known, never guessed.
 
     lon/lat for ``gsw.SA_from_SP`` are taken from global attrs (default 0.0 if absent;

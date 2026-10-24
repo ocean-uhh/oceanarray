@@ -325,21 +325,18 @@ def validate_mooring(
             )
         )
 
-    # The mooring's name must equal its directory name, case included.  stage1/2/3,
-    # stacking and gridding build every output filename from the directory (the CLI
-    # `MOORING` argument), never from this `name:` field, so a mismatch — most often
-    # case only — is invisible on a case-insensitive filesystem (macOS) and loads zero
-    # files on Linux/CI.  WARNING, not ERROR, so a deliberately mismatched regression
-    # fixture can still be processed.
+    # Output filenames are built from the ``name:`` field, not the directory, so a
+    # directory whose name differs from ``name:`` is usually a copied mooring folder
+    # left unrenamed (its files would be written under the original mooring's name).
+    # WARNING, not ERROR: ``name`` governs, the directory is only a hint.
     yaml_name = data.get("name")
     if isinstance(yaml_name, str) and dir_name is not None and yaml_name != dir_name:
         issues.append(
             ValidationIssue(
                 "WARNING",
-                f"mooring 'name: {yaml_name}' does not match its directory '{dir_name}' "
-                f"(compared case-sensitively) — output filenames use the directory name, "
-                f"so a mismatch loads zero files on a case-sensitive filesystem. Make them "
-                f"identical.",
+                f"directory '{dir_name}' differs from 'name: {yaml_name}' "
+                f"(compared case-sensitively) — outputs are named from 'name', not the "
+                f"directory, so check this folder is not a copy left unrenamed.",
             )
         )
 

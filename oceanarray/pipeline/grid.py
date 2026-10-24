@@ -8,7 +8,7 @@ import xarray as xr
 
 from oceanarray import mooring as _mooring
 from oceanarray import paths
-from oceanarray.processors.units import to_canonical_units
+from oceanarray.pipeline.units import to_canonical_units
 from oceanarray.utilities import _status
 from oceanarray.writers import write
 
@@ -280,7 +280,7 @@ class MooringGridder:
         ds_out = to_canonical_units(ds_out, log_fn=print, stage="grid")
         # write() replaces atomically (temp file then rename), so the previous
         # output survives a failed write; do not unlink it first.
-        write(ds_out, output_path)
+        write(ds_out, output_path, overwrite=True)
         _status("file", self._rel(output_path))
         return True
 
@@ -1085,7 +1085,7 @@ class TimeGriddingProcessor:
             ds_to_save = to_canonical_units(
                 ds_to_save, log_fn=self._log_print, stage="grid"
             )
-            write(ds_to_save, output_filepath)
+            write(ds_to_save, output_filepath, overwrite=True)
 
             self._log_print(
                 f"Successfully wrote time-gridded dataset: {output_filepath}"

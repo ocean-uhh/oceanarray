@@ -96,7 +96,7 @@ def _run_stage1(
     """
     if raw_dir is None:
         raise ValueError("stage1 requires raw_dir")
-    from oceanarray.processors.stage1 import MooringProcessor
+    from oceanarray.pipeline.stage1 import MooringProcessor
 
     proc = MooringProcessor(raw_dir=str(raw_dir), proc_dir=str(proc_dir))
     return bool(proc.process_mooring(mooring, serials=serials, force=force))
@@ -124,7 +124,7 @@ def _run_stage2(
         Restrict to these serial numbers.
 
     """
-    from oceanarray.processors.stage2 import Stage2Processor
+    from oceanarray.pipeline.stage2 import Stage2Processor
 
     return bool(
         Stage2Processor(proc_dir=str(proc_dir)).process_mooring(
@@ -158,7 +158,7 @@ def _run_stage3(
         If True, log what would be done without writing output files.
 
     """
-    from oceanarray.processors.stage3 import Stage3Processor
+    from oceanarray.pipeline.stage3 import Stage3Processor
 
     return bool(
         Stage3Processor(proc_dir=str(proc_dir)).process_mooring(
@@ -189,7 +189,7 @@ def _run_stack(
         Target sampling interval in seconds (default 60).
 
     """
-    from oceanarray.processors.stack import MooringStacker
+    from oceanarray.pipeline.stack import MooringStacker
 
     return bool(
         MooringStacker(proc_dir=str(proc_dir)).stack(
@@ -226,7 +226,7 @@ def _run_grid(
         Pressure step in dbar.
 
     """
-    from oceanarray.processors.grid import MooringGridder
+    from oceanarray.pipeline.grid import MooringGridder
 
     return bool(
         MooringGridder(proc_dir=str(proc_dir)).grid(

@@ -7,7 +7,7 @@ from typing import Any
 import numpy as np
 import xarray as xr
 
-from oceanarray.processors.qc import set_qc_attrs
+from oceanarray.pipeline.qc import set_qc_attrs
 
 HAB_THRESHOLD = 2.0  # metres — use near-neighbour below this Δhab
 
@@ -322,7 +322,7 @@ def compute_adcp_bin_pressure(
     averages opposing beams, so the mean vertical bin range is ``range × cos(θ)`` (individual
     beams differ, consistent with velocity being a beam-averaged quantity); it is not a full
     3-beam geometry solution.  oceanarray's own BEAM→ENU
-    (:func:`oceanarray.processors.coordinate.apply_beam_to_enu`) rotates velocity vectors only
+    (:func:`oceanarray.pipeline.coordinate.apply_beam_to_enu`) rotates velocity vectors only
     and does not bin-map, so beam/XYZ-coordinate bins reach this function at their nominal
     depth and need this correction; the firmware's earth + bin mapping is the only step in the
     pipeline that tilt-places the bins (and is the skip case below).

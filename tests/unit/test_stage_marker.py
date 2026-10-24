@@ -1,11 +1,11 @@
-"""Tests for the processing-stage marker (:mod:`oceanarray.processors._stage`)."""
+"""Tests for the processing-stage marker (:mod:`oceanarray.pipeline._stage`)."""
 
 from pathlib import Path
 
 import pytest
 import xarray as xr
 
-from oceanarray.processors._stage import STAGE_ATTR, StageError, require, stamp
+from oceanarray.pipeline._stage import STAGE_ATTR, StageError, require, stamp
 
 _FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "proc" / "dune2_1_2026"
 _STAGE3 = _FIXTURE / "microcat" / "dune2_1_2026_2941_stage3.nc"

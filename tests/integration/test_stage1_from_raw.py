@@ -18,7 +18,7 @@ pytest.importorskip("seasenselib", reason="seasenselib not installed")
 
 pytestmark = pytest.mark.needs_seasenselib
 
-from oceanarray.processors.stage1 import MooringProcessor  # noqa: E402
+from oceanarray.pipeline.stage1 import MooringProcessor  # noqa: E402
 
 FIXTURE_ROOT = Path(__file__).parent.parent / "fixtures"
 FIXTURE_RAW = FIXTURE_ROOT / "raw" / "dune2_1_2026"
@@ -165,7 +165,7 @@ def test_one_units_error_instrument_does_not_abort_the_mooring(tmp_path, monkeyp
     the microcat (the instrument with a ``conductivity`` variable), and the run must
     still write the aquadopp stage1 file and report partial success.
     """
-    from oceanarray.processors import units as pu
+    from oceanarray.pipeline import units as pu
 
     proc_root = tmp_path / "proc"
     (proc_root / MOORING).mkdir(parents=True)
@@ -179,7 +179,7 @@ def test_one_units_error_instrument_does_not_abort_the_mooring(tmp_path, monkeyp
         return real(ds, log_fn=log_fn, stage=stage)
 
     monkeypatch.setattr(
-        "oceanarray.processors.stage1.to_canonical_units", _raise_on_microcat
+        "oceanarray.pipeline.stage1.to_canonical_units", _raise_on_microcat
     )
 
     processor = MooringProcessor(
@@ -212,9 +212,7 @@ def test_registry_inconsistency_aborts_the_whole_mooring(tmp_path, monkeypatch):
     def _raise_runtime(_ds, **_kwargs):
         raise RuntimeError("synthetic registry inconsistency")
 
-    monkeypatch.setattr(
-        "oceanarray.processors.stage1.to_canonical_units", _raise_runtime
-    )
+    monkeypatch.setattr("oceanarray.pipeline.stage1.to_canonical_units", _raise_runtime)
 
     processor = MooringProcessor(
         raw_dir=str(FIXTURE_RAW.parent), proc_dir=str(proc_root)

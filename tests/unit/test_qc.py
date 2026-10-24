@@ -1,4 +1,4 @@
-"""Unit tests for :mod:`oceanarray.processors.qc`.
+"""Unit tests for :mod:`oceanarray.pipeline.qc`.
 
 QARTOD QC wrappers, OceanSITES flag handling, and CTD derivations. The flag
 scheme (OceanSITES Reference Table 2) and merge priority are the scientific
@@ -15,7 +15,7 @@ import pytest
 import xarray as xr
 
 from oceanarray import parameters as params
-from oceanarray.processors import qc as Q
+from oceanarray.pipeline import qc as Q
 
 
 def _dt(seconds: list[float]) -> np.ndarray:
@@ -355,7 +355,7 @@ def test_derive_oxygen_saturation_per_volume_divides_by_density():
 
 
 def test_derive_oxygen_saturation_unknown_units_raises():
-    from oceanarray.processors.units import UnitsError
+    from oceanarray.pipeline.units import UnitsError
 
     with pytest.raises(UnitsError, match="dissolved_oxygen units"):
         Q.derive_oxygen_saturation(_o2_ds(250.0, "mL/L"))

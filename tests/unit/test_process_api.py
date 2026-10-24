@@ -1,10 +1,10 @@
-"""Tests for the processors registry and public process() API."""
+"""Tests for the pipeline registry and public process() API."""
 
 import dataclasses
 
 import pytest
 
-from oceanarray.processors import STAGES, Stage, process, resolve_stage
+from oceanarray.pipeline import STAGES, Stage, process, resolve_stage
 
 
 class TestStagesRegistry:
@@ -111,9 +111,9 @@ def _make_spy(call_list: list, name: str, *, ok: bool = True):
 
 
 def _patch_stages(monkeypatch, stages):
-    from oceanarray import processors
+    from oceanarray import pipeline
 
-    monkeypatch.setattr(processors, "STAGES", stages)
+    monkeypatch.setattr(pipeline, "STAGES", stages)
 
 
 class TestProcess:
@@ -164,7 +164,7 @@ class TestProcess:
 
     def test_process_stage1_requires_raw_dir_via_registry(self, tmp_path):
         """stage1 wrapper raises ValueError when raw_dir is not provided."""
-        from oceanarray.processors import _run_stage1
+        from oceanarray.pipeline import _run_stage1
 
         with pytest.raises(ValueError, match="raw_dir"):
             _run_stage1("test_mooring", tmp_path, raw_dir=None, force=False)
@@ -296,12 +296,12 @@ class TestRunWrappersNoSeasenselib:
     def test_run_stage3_instantiates_and_forwards(self, tmp_path, monkeypatch):
         from unittest import mock
 
-        from oceanarray.processors import _run_stage3
+        from oceanarray.pipeline import _run_stage3
 
         inst = mock.MagicMock()
         inst.process_mooring.return_value = True
         cls = mock.MagicMock(return_value=inst)
-        monkeypatch.setattr("oceanarray.processors.stage3.Stage3Processor", cls)
+        monkeypatch.setattr("oceanarray.pipeline.stage3.Stage3Processor", cls)
 
         assert (
             _run_stage3("m", tmp_path, serials=["9"], force=True, dry_run=True) is True
@@ -314,12 +314,12 @@ class TestRunWrappersNoSeasenselib:
     def test_run_stage3_dry_run_defaults_false(self, tmp_path, monkeypatch):
         from unittest import mock
 
-        from oceanarray.processors import _run_stage3
+        from oceanarray.pipeline import _run_stage3
 
         inst = mock.MagicMock()
         inst.process_mooring.return_value = True
         cls = mock.MagicMock(return_value=inst)
-        monkeypatch.setattr("oceanarray.processors.stage3.Stage3Processor", cls)
+        monkeypatch.setattr("oceanarray.pipeline.stage3.Stage3Processor", cls)
 
         _run_stage3("m", tmp_path)
         inst.process_mooring.assert_called_once_with(
@@ -329,12 +329,12 @@ class TestRunWrappersNoSeasenselib:
     def test_run_stack_instantiates_and_forwards(self, tmp_path, monkeypatch):
         from unittest import mock
 
-        from oceanarray.processors import _run_stack
+        from oceanarray.pipeline import _run_stack
 
         inst = mock.MagicMock()
         inst.stack.return_value = True
         cls = mock.MagicMock(return_value=inst)
-        monkeypatch.setattr("oceanarray.processors.stack.MooringStacker", cls)
+        monkeypatch.setattr("oceanarray.pipeline.stack.MooringStacker", cls)
 
         assert _run_stack("m", tmp_path, dt_seconds=120, force=True) is True
         cls.assert_called_once_with(proc_dir=str(tmp_path))
@@ -354,12 +354,12 @@ class TestRunWrappersSeasenselib:
         pytest.importorskip("seasenselib")
         from unittest import mock
 
-        from oceanarray.processors import _run_stage1
+        from oceanarray.pipeline import _run_stage1
 
         inst = mock.MagicMock()
         inst.process_mooring.return_value = True
         cls = mock.MagicMock(return_value=inst)
-        monkeypatch.setattr("oceanarray.processors.stage1.MooringProcessor", cls)
+        monkeypatch.setattr("oceanarray.pipeline.stage1.MooringProcessor", cls)
 
         raw = tmp_path / "raw"
         out = _run_stage1("m", tmp_path, raw_dir=raw, serials=["1"], force=False)
@@ -371,12 +371,12 @@ class TestRunWrappersSeasenselib:
         pytest.importorskip("seasenselib")
         from unittest import mock
 
-        from oceanarray.processors import _run_stage2
+        from oceanarray.pipeline import _run_stage2
 
         inst = mock.MagicMock()
         inst.process_mooring.return_value = True
         cls = mock.MagicMock(return_value=inst)
-        monkeypatch.setattr("oceanarray.processors.stage2.Stage2Processor", cls)
+        monkeypatch.setattr("oceanarray.pipeline.stage2.Stage2Processor", cls)
 
         assert _run_stage2("m", tmp_path, serials=["2"], force=True) is True
         cls.assert_called_once_with(proc_dir=str(tmp_path))
@@ -386,12 +386,12 @@ class TestRunWrappersSeasenselib:
         pytest.importorskip("seasenselib")
         from unittest import mock
 
-        from oceanarray.processors import _run_grid
+        from oceanarray.pipeline import _run_grid
 
         inst = mock.MagicMock()
         inst.grid.return_value = True
         cls = mock.MagicMock(return_value=inst)
-        monkeypatch.setattr("oceanarray.processors.grid.MooringGridder", cls)
+        monkeypatch.setattr("oceanarray.pipeline.grid.MooringGridder", cls)
 
         out = _run_grid("m", tmp_path, p_start=100.0, p_end=500.0, dp=25.0, force=True)
         assert out is True

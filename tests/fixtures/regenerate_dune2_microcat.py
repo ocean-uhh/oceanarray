@@ -22,9 +22,9 @@ from pathlib import Path
 import numpy as np
 import xarray as xr
 
-from oceanarray.processors.stage1 import MooringProcessor
-from oceanarray.processors.stage2 import Stage2Processor
-from oceanarray.processors.stage3 import Stage3Processor
+from oceanarray.pipeline.stage1 import MooringProcessor
+from oceanarray.pipeline.stage2 import Stage2Processor
+from oceanarray.pipeline.stage3 import Stage3Processor
 
 MOORING = "dune2_1_2026"
 SERIAL = "2941"

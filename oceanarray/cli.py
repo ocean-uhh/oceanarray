@@ -6,7 +6,7 @@ from pathlib import Path
 
 from . import paths
 from ._version import __version__
-from .processors import STAGES, resolve_stage
+from .pipeline import STAGES, resolve_stage
 from .utilities import _status
 
 
@@ -165,7 +165,7 @@ def cmd_process(args: argparse.Namespace) -> int:
     - ``--plot``: save a PNG overview plot for each instrument alongside the
       stage2 NetCDF file in the proc directory.
     """
-    from .processors import process as _process
+    from .pipeline import process as _process
 
     raw_dir, proc_root = _parse_dirs_checked(args)
 
@@ -528,7 +528,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     HTML tree) and ``--sig-level`` (grid isopycnal targets); when unset it writes
     to the default ``{proc-dir}/{mooring}/report/`` with the default σ₀ grid.
     """
-    from .processors import process as _process
+    from .pipeline import process as _process
 
     raw_dir, proc_root = _parse_dirs_checked(args)
 
@@ -758,7 +758,7 @@ def _stage_token(value: str) -> "int | str":
     Raises
     ------
     argparse.ArgumentTypeError
-        If *value* is not recognised by :func:`~oceanarray.processors.resolve_stage`.
+        If *value* is not recognised by :func:`~oceanarray.pipeline.resolve_stage`.
 
     """
     coerced: int | str = int(value) if value.isdigit() else value

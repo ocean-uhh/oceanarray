@@ -1,4 +1,4 @@
-"""Contract tests for the caldip stub (:mod:`oceanarray.processors.caldip`).
+"""Contract tests for the caldip stub (:mod:`oceanarray.pipeline.caldip`).
 
 The module carries only the shared contract (constants, serial join-key rule) and the interface
 the correction is built to (five functions that raise :class:`NotImplementedError`). These
@@ -16,7 +16,7 @@ import pytest
 import xarray as xr
 
 from oceanarray.config.parameters import KNOWN_INSTRUMENT_TYPES
-from oceanarray.processors import caldip
+from oceanarray.pipeline import caldip
 
 FIXTURE = (
     Path(__file__).resolve().parent.parent / "fixtures" / "caldip" / "castM4_caldip.nc"
@@ -94,7 +94,7 @@ def test_apply_caldip_is_stub():
 # ── stage 3: caldip_dir is a data-null action that stamps stub provenance ────
 def _run_stage3(tmp_root: Path, *, caldip_dir: str | None) -> Path:
     """Copy the mooring fixture into a fresh tree and run Stage 3; return its proc root."""
-    from oceanarray.processors.stage3 import Stage3Processor
+    from oceanarray.pipeline.stage3 import Stage3Processor
 
     dest = tmp_root / MOORING
     shutil.copytree(
@@ -143,7 +143,7 @@ def test_caldip_dir_reprocesses_existing_outputs(tmp_path):
     (no --force) and never gain `caldip_applied` — leaving stub-written and pre-stub files
     indistinguishable from their attributes.
     """
-    from oceanarray.processors.stage3 import Stage3Processor
+    from oceanarray.pipeline.stage3 import Stage3Processor
 
     root = _run_stage3(
         tmp_path / "m", caldip_dir=None

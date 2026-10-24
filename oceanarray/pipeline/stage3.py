@@ -59,19 +59,19 @@ import xarray as xr
 from oceanarray import mooring as _mooring
 from oceanarray import paths
 from oceanarray.paths import safe_serial
-from oceanarray.processors.caldip import CALDIP_STUB_APPLIED
-from oceanarray.processors.coordinate import (
+from oceanarray.pipeline.caldip import CALDIP_STUB_APPLIED
+from oceanarray.pipeline.coordinate import (
     apply_adcp_seabed_qc,
     apply_adcp_surface_qc,
     apply_adcp_velocity_qc,
     apply_beam_to_enu,
     apply_declination_to_enu,
 )
-from oceanarray.processors.pressure import (
+from oceanarray.pipeline.pressure import (
     compute_adcp_bin_pressure,
     interpolate_pressure,
 )
-from oceanarray.processors.qc import (
+from oceanarray.pipeline.qc import (
     apply_enu_velocity_qc,
     apply_qc_tests,
     apply_tilt_qc,
@@ -82,7 +82,7 @@ from oceanarray.processors.qc import (
     set_qc_attrs,
     unify_velocity_qc,
 )
-from oceanarray.processors.units import to_canonical_units
+from oceanarray.pipeline.units import to_canonical_units
 from oceanarray.utilities import (
     drop_all_zero_vars,
     instrument_entries,
@@ -151,7 +151,7 @@ class Stage3Processor:
         """Run Stage 3 QC and pressure interpolation for all instruments on a mooring.
 
         ``caldip_dir`` is the entry point for the planned front-of-Stage-3 calibration-dip
-        correction. It is **not yet implemented** (:mod:`oceanarray.processors.caldip` is a
+        correction. It is **not yet implemented** (:mod:`oceanarray.pipeline.caldip` is a
         stub): supplying it logs a warning and continues, so the science data is unchanged, but
         each output stamps a ``caldip_applied`` attribute recording that only the stub ran, so
         the first real correction is visible as a change in that attribute. A caldip request
@@ -304,7 +304,7 @@ class Stage3Processor:
         # When implemented, apply per-instrument caldip offsets to each instrument's stage-2
         # data *here*, before the sources/targets split below, so a sensorless target's
         # pressure interpolates from already-corrected neighbours. Use the interface in
-        # oceanarray.processors.caldip: find_caldip_casts → read_caldip_cast → assign_dip_role
+        # oceanarray.pipeline.caldip: find_caldip_casts → read_caldip_cast → assign_dip_role
         # → select_offsets → apply_caldip. Until then `caldip_dir` is a null action: a warning
         # is logged above, and caldip_applied is stamped on each output at write time.
 
@@ -752,7 +752,7 @@ class Stage3Processor:
             # Guarantee canonical units on everything stage 3 derived (salinity,
             # ENU velocities, oxygen saturation) before writing.
             ds = to_canonical_units(ds, log_fn=self._log, stage=3)
-            write(ds, l3_path)
+            write(ds, l3_path, overwrite=True)
             ds.close()
             self._log(
                 f"  Creating output file: {l3_path.name}  ({'; '.join(qc_summary)})"

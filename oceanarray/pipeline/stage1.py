@@ -13,7 +13,7 @@ from oceanarray import mooring as _mooring
 from oceanarray import parameters as params
 from oceanarray import paths, readers
 from oceanarray.paths import safe_serial
-from oceanarray.processors.units import UnitsError, to_canonical_units
+from oceanarray.pipeline.units import UnitsError, to_canonical_units
 from oceanarray.readers import sbe
 from oceanarray.readers.nortek import (
     _parse_nortek_pressure_cal,
@@ -369,7 +369,7 @@ class MooringProcessor:
         both are NetCDF-illegal.  This fixes only the name and records the unit
         in ``units`` (``S/m`` or ``mS/cm``) — the S/m → mS cm-1 ×10 conversion and
         the canonical spelling are applied later by
-        :func:`oceanarray.processors.units.to_canonical_units`, the one place units
+        :func:`oceanarray.pipeline.units.to_canonical_units`, the one place units
         are normalised.
         """
         for raw_name, raw_units in (("cond0S/m", "S/m"), ("cond0mS/cm", "mS/cm")):
@@ -1381,7 +1381,7 @@ class MooringProcessor:
 
         # Write to NetCDF
         _status("file", str(relative_output))
-        write(dataset, output_file)
+        write(dataset, output_file, overwrite=True)
 
         return True
 

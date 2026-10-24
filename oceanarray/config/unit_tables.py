@@ -3,7 +3,7 @@
 The one place oceanarray speaks about units.  Three override dicts are folded over the
 vendored family defaults (:data:`oceanarray.reports._vendored.units.DEFAULT_TABLES`)
 into :data:`TABLES`, which the storage pass
-(:func:`oceanarray.processors.units.to_canonical_units`) and the display entry point
+(:func:`oceanarray.pipeline.units.to_canonical_units`) and the display entry point
 (:func:`unit_label`) both take.
 
 An override entry identical to the family default is a no-op and ``merge_tables`` warns
@@ -157,7 +157,7 @@ def warn_if_not_canonical(da: Any, expected: str, *, quantity: str) -> None:
     A derived display — displacement in km, height-above-seabed in m, a spectral
     density, a period — hard-codes the unit of its *output*, which is only correct if
     the *source* variable carries the unit the derivation was written for.  The storage
-    pass (:func:`oceanarray.processors.units.to_canonical_units`) canonicalises every
+    pass (:func:`oceanarray.pipeline.units.to_canonical_units`) canonicalises every
     registered variable, so this never fires on an oceanarray-written file; it catches a
     foreign or hand-edited file whose units the derivation would otherwise silently
     mislabel.  A spelling that resolves to *expected* at factor 1 is not flagged; a

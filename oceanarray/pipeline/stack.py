@@ -9,7 +9,7 @@ from oceanarray import mooring as _mooring
 from oceanarray import parameters as params
 from oceanarray import paths
 from oceanarray.exceptions import MooringError
-from oceanarray.processors.helpers import (
+from oceanarray.pipeline.helpers import (
     STACK_VARS,
     _best_nc,
     _detect_interval_s,
@@ -20,7 +20,7 @@ from oceanarray.processors.helpers import (
     _safe_serial,
     _worst_flag,
 )
-from oceanarray.processors.units import UnitsError, to_canonical_units
+from oceanarray.pipeline.units import UnitsError, to_canonical_units
 from oceanarray.utilities import (
     _status,
     drop_all_zero_vars,
@@ -770,7 +770,7 @@ class MooringStacker:
             )
             for line in omitted:
                 print(f"    - {line}")
-        write(ds_out, output_path)
+        write(ds_out, output_path, overwrite=True)
         _status("file", self._rel(output_path))
         # Return False when anything was omitted so the CLI exits 1 ("something
         # failed") even though the partial stack file was written; process() only

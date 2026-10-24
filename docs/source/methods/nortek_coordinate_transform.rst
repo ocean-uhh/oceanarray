@@ -286,6 +286,6 @@ See also
 - `Nortek Support: How do I transform a coordinate system manually?
   <https://support.nortekgroup.com/hc/en-us/articles/26048113914652-How-do-I-transform-a-coordinate-system-manually>`_
 - :doc:`auto_qc` — QARTOD flags applied to velocity after tilt QC
-- :py:func:`oceanarray.processors.coordinate.xyz_to_enu` — vectorised ENU rotation
-- :py:func:`oceanarray.processors.coordinate.apply_beam_to_enu` — full BEAM/XYZ → ENU pipeline
-- :py:func:`oceanarray.processors.stage1._parse_nortek_T_matrix_hdr` — header parsing
+- :py:func:`oceanarray.pipeline.coordinate.xyz_to_enu` — vectorised ENU rotation
+- :py:func:`oceanarray.pipeline.coordinate.apply_beam_to_enu` — full BEAM/XYZ → ENU pipeline
+- :py:func:`oceanarray.pipeline.stage1._parse_nortek_T_matrix_hdr` — header parsing

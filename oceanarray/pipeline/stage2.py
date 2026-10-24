@@ -48,7 +48,7 @@ import xarray as xr
 from oceanarray import mooring as _mooring
 from oceanarray import paths
 from oceanarray.exceptions import MooringError
-from oceanarray.processors.units import to_canonical_units
+from oceanarray.pipeline.units import to_canonical_units
 from oceanarray.utilities import (
     _status,
     drop_all_zero_vars,
@@ -951,7 +951,7 @@ class Stage2Processor:
             # Units were canonicalised on load; stage 2 only trims time and writes
             # attrs, creating no unit-bearing variable, so no second pass is needed.
             dataset = drop_all_zero_vars(dataset, ["amplitude_beam", "analog_input_"])
-            write(dataset, use_filepath)
+            write(dataset, use_filepath, overwrite=True)
 
             _status("file", self._rel(use_filepath))
 

@@ -28,12 +28,12 @@ This creates a uniform structure suitable for later trimming, filtering, and con
 3. Current Implementation (Stage 1)
 -----------------------------------
 
-The standardisation process is implemented in the :mod:`oceanarray.processors.stage1` module, which provides automated conversion from native instrument formats to standardised NetCDF files.
+The standardisation process is implemented in the :mod:`oceanarray.pipeline.stage1` module, which provides automated conversion from native instrument formats to standardised NetCDF files.
 
 3.1. Input Formats Supported
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The :class:`oceanarray.processors.stage1.MooringProcessor` class supports multiple instrument formats:
+The :class:`oceanarray.pipeline.stage1.MooringProcessor` class supports multiple instrument formats:
 
 - **Sea-Bird CNV files** (`sbe-cnv`): Standard SBE 37 MicroCAT output
 - **Sea-Bird ASCII files** (`sbe-ascii`): Alternative SBE ASCII format
@@ -239,7 +239,7 @@ This script performed similar functions to the current Python implementation:
    :linenos:
    :caption: Excerpt from `microcat2rodb_3.m`
 
-The Python implementation in :mod:`oceanarray.processors.stage1` provides equivalent functionality with improved:
+The Python implementation in :mod:`oceanarray.pipeline.stage1` provides equivalent functionality with improved:
 
 - **Error handling**: Logging and graceful failure modes
 - **Format support**: Multiple instrument types through pluggable readers
