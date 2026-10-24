@@ -11,8 +11,8 @@ from typing import Any
 import numpy as np
 import seasenselib
 import xarray as xr
-import yaml
 
+from oceanarray import mooring as _mooring
 from oceanarray import parameters as params
 from oceanarray import paths
 from oceanarray.paths import safe_serial
@@ -20,6 +20,7 @@ from oceanarray.processors.units import UnitsError, to_canonical_units
 from oceanarray.utilities import (
     _status,
     extract_inline_instruments,
+    instrument_entries,
     should_skip_regeneration,
 )
 from oceanarray.writers import write
@@ -268,11 +269,6 @@ class MooringProcessor:
             except ValueError:
                 continue
         return path.name
-
-    def _load_mooring_config(self, config_path: Path) -> dict[str, Any]:
-        """Load mooring configuration from YAML file."""
-        with config_path.open() as f:
-            return yaml.safe_load(f)
 
     def _normalize_sbe_ascii(self, file_path: Path) -> Path:
         """Return path to file with SBE ASCII format issues fixed.
@@ -1912,7 +1908,7 @@ class MooringProcessor:
             return False
 
         try:
-            yaml_data = self._load_mooring_config(config_file)
+            yaml_data = _mooring.load(config_file)
         except (OSError, KeyError, ValueError) as e:
             self._log_print(f"ERROR: Failed to load configuration: {e}")
             return False
@@ -1942,14 +1938,13 @@ class MooringProcessor:
 
         # Process each instrument — support both 'instruments' (legacy) and 'clamp' (new format).
         # Also scan the 'inline' hardware list for entries that have an instrument field.
-        instrument_list = list(yaml_data.get("clamp", yaml_data.get("instruments", [])))
-        inline_instruments = extract_inline_instruments(yaml_data.get("inline", []))
+        instrument_list = instrument_entries(yaml_data)
+        inline_instruments = extract_inline_instruments(yaml_data.get("inline") or [])
         if inline_instruments:
             self._log_print(
                 f"Found {len(inline_instruments)} instrument(s) in 'inline' list: "
                 + ", ".join(str(ic.get("serial", "?")) for ic in inline_instruments)
             )
-        instrument_list = instrument_list + inline_instruments
 
         # Filter by serial if requested
         if serials:

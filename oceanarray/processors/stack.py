@@ -4,10 +4,11 @@ from pathlib import Path
 
 import numpy as np
 import xarray as xr
-import yaml
 
+from oceanarray import mooring as _mooring
 from oceanarray import parameters as params
 from oceanarray import paths
+from oceanarray.exceptions import MooringError
 from oceanarray.processors.helpers import (
     STACK_VARS,
     _best_nc,
@@ -23,7 +24,7 @@ from oceanarray.processors.units import UnitsError, to_canonical_units
 from oceanarray.utilities import (
     _status,
     drop_all_zero_vars,
-    extract_inline_instruments,
+    instrument_entries,
     parse_latlon,
 )
 from oceanarray.writers import write
@@ -139,9 +140,21 @@ class MooringStacker:
             print(f"ERROR: Config not found: {config_file}")
             return False
 
-        with config_file.open() as f:
-            mooring_config = yaml.safe_load(f)
+        mooring_config = _mooring.load(config_file)
 
+        # The common time axis IS the deployment window, so stacking needs it.
+        # Stage 2 writing a window detected from the records (when the YAML omits
+        # it) is later work; until then a window-less config fails loud here
+        # rather than with a bare KeyError.
+        if "deployment_time" not in mooring_config or (
+            "recovery_time" not in mooring_config
+        ):
+            raise MooringError(
+                f"Cannot stack {mooring_name}: the mooring config has no "
+                f"'deployment_time'/'recovery_time' (the common time axis is the "
+                f"deployment window). A window detected from the records is not yet "
+                f"implemented — add both to the YAML."
+            )
         deploy_time = np.datetime64(mooring_config["deployment_time"], "ns")
         recover_time = np.datetime64(mooring_config["recovery_time"], "ns")
 
@@ -152,10 +165,7 @@ class MooringStacker:
         ).astype("datetime64[ns]")
         n_time = len(common_time)
 
-        instrument_list = list(
-            mooring_config.get("clamp", mooring_config.get("instruments", []))
-        )
-        instrument_list += extract_inline_instruments(mooring_config.get("inline", []))
+        instrument_list = instrument_entries(mooring_config)
 
         # Collect instruments with known hab and an available stage2/stage3 file.
         # An instrument marked ``stack: false`` in the mooring YAML is processed

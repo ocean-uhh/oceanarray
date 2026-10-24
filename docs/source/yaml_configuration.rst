@@ -131,10 +131,11 @@ mooring as a whole.
      - Generic fallback position if none of the above are set.
    * - ``directory``
      - string
-     - Optional
-     - Absolute path override for raw files.  Needed only if raw files are
-       not in the standard ``{raw_dir}/{mooring}/{instrument}/`` layout.
-       Omit this key when using the canonical directory structure.
+     - Deprecated
+     - **Deprecated — do not use.**  The raw-data root is a run-time location,
+       not part of the mooring description; pass it as ``raw_dir`` / ``--raw-dir``.
+       ``validate`` warns on this key, and the stage-1 absolute-path override is
+       removed in 0.7.0.
    * - ``qc_ranges``
      - mapping
      - Optional
@@ -790,3 +791,30 @@ You can validate multiple files at once:
 .. code-block:: bash
 
    oceanarray validate /path/to/proc/*/  *.mooring.yaml
+
+----
+
+From Python
+-----------
+
+The same file is read, written and validated from Python through
+``oceanarray.mooring``:
+
+.. code-block:: python
+
+   from oceanarray import mooring
+
+   # Load one mooring's description (a path, a name + proc_dir, or a dict).
+   m = mooring.load("proc/dsG3_1_2026/dsG3_1_2026.mooring.yaml")
+   m = mooring.load("dsG3_1_2026", proc_dir="proc")
+
+   # Validate without raising (returns a list of issues).
+   issues = mooring.check("proc/dsG3_1_2026/dsG3_1_2026.mooring.yaml")
+
+   # Write a commented stub (what ``oceanarray init`` does).
+   mooring.save(mooring.template("dsG3_1_2026"), "proc/dsG3_1_2026/dsG3_1_2026.mooring.yaml")
+
+``load`` keeps every key exactly as written and raises ``MooringError`` on an
+invalid config; ``check`` never raises.  ``name`` and ``waterdepth`` are
+required; ``deployment_time`` and ``recovery_time`` are recommended — if absent,
+Stage 2 uses the deployment window detected from the records.

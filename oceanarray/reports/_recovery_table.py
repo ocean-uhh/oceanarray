@@ -152,11 +152,10 @@ def _build_rows(
         section below the table.
 
     """
-    from ..utilities import extract_inline_instruments
+    from ..utilities import instrument_entries
 
     waterdepth = cfg.get("waterdepth")
-    entries = list(cfg.get("clamp", cfg.get("instruments", [])))
-    entries += extract_inline_instruments(cfg.get("inline", []))
+    entries = instrument_entries(cfg)
 
     rows = []
     for entry in entries:

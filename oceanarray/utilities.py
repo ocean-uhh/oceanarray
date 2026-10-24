@@ -118,6 +118,30 @@ def extract_inline_instruments(
     return result
 
 
+def instrument_entries(mooring: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return a mooring's processable instruments: clamp (or legacy) plus inline.
+
+    The one place the clamp/``instruments`` fallback and the inline merge live:
+    the ``clamp`` list (falling back to the legacy ``instruments`` key) followed
+    by the normalised, processable entries from the ``inline`` hardware list. A
+    present-but-null ``clamp:`` / ``inline:`` (YAML ``None``) is treated as empty.
+
+    Parameters
+    ----------
+    mooring : dict
+        A loaded mooring description.
+
+    Returns
+    -------
+    list of dict
+        One entry per instrument, in clamp-then-inline order.
+    """
+    clamp = mooring.get("clamp")
+    if clamp is None:
+        clamp = mooring.get("instruments")
+    return list(clamp or []) + extract_inline_instruments(mooring.get("inline") or [])
+
+
 def concat_with_scalar_vars(
     datasets: list[xr.Dataset],
     dim: str,

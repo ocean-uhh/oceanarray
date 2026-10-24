@@ -8,11 +8,11 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-import yaml
 
+from oceanarray import mooring as _mooring
 from oceanarray import paths
 
-from ..utilities import extract_inline_instruments
+from ..utilities import instrument_entries
 from . import _figdebug
 from ._env import render_template
 from ._grid import generate_grid_page
@@ -420,8 +420,7 @@ class MooringReport:
             print(f"ERROR: Config not found: {yaml_path}")
             return None
 
-        with yaml_path.open() as f:
-            cfg = yaml.safe_load(f)
+        cfg = _mooring.load(yaml_path)
 
         # Display root for pretty-printing paths in the instrument/grid/stack pages.
         display_root = self._proc_dir or proc_dir.parent
@@ -501,8 +500,7 @@ class MooringReport:
         recover_dt = _parse_dt(cfg.get("recovery_time"))
         waterdepth = cfg.get("waterdepth")
 
-        instrument_list = list(cfg.get("clamp", cfg.get("instruments", [])))
-        instrument_list += extract_inline_instruments(cfg.get("inline", []))
+        instrument_list = instrument_entries(cfg)
 
         stack_nc = proc_dir / f"{mooring_name}_stack.nc"
         grid_nc = proc_dir / f"{mooring_name}_grid.nc"

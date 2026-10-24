@@ -5,8 +5,8 @@ from typing import Any
 
 import numpy as np
 import xarray as xr
-import yaml
 
+from oceanarray import mooring as _mooring
 from oceanarray import paths
 from oceanarray.processors.units import to_canonical_units
 from oceanarray.utilities import _status
@@ -313,11 +313,6 @@ class TimeGriddingProcessor:
         if self.log_file:
             with self.log_file.open("a") as f:
                 print(*args, **kwargs, file=f)
-
-    def _load_mooring_config(self, config_path: Path) -> dict[str, Any]:
-        """Load mooring configuration from YAML file."""
-        with config_path.open() as f:
-            return yaml.safe_load(f)
 
     def _load_instrument_datasets(
         self,
@@ -1032,7 +1027,7 @@ class TimeGriddingProcessor:
             return False
 
         try:
-            mooring_config = self._load_mooring_config(config_file)
+            mooring_config = _mooring.load(config_file)
         except Exception as e:  # noqa: BLE001  — config parse failure must not crash mooring
             self._log_print(f"ERROR: Failed to load configuration: {e}")
             return False

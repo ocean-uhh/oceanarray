@@ -55,8 +55,8 @@ from typing import Any
 
 import numpy as np
 import xarray as xr
-import yaml
 
+from oceanarray import mooring as _mooring
 from oceanarray import paths
 from oceanarray.paths import safe_serial
 from oceanarray.processors.caldip import CALDIP_STUB_APPLIED
@@ -85,7 +85,7 @@ from oceanarray.processors.qc import (
 from oceanarray.processors.units import to_canonical_units
 from oceanarray.utilities import (
     drop_all_zero_vars,
-    extract_inline_instruments,
+    instrument_entries,
 )
 from oceanarray.writers import write
 
@@ -178,13 +178,9 @@ class Stage3Processor:
             self._log(f"ERROR: Config not found: {config_file}")
             return False
 
-        with config_file.open() as f:
-            mooring_config = yaml.safe_load(f)
+        mooring_config = _mooring.load(config_file)
 
-        instrument_list = list(
-            mooring_config.get("clamp", mooring_config.get("instruments", []))
-        )
-        instrument_list += extract_inline_instruments(mooring_config.get("inline", []))
+        instrument_list = instrument_entries(mooring_config)
 
         # ── Mooring location for BEAM→ENU declination ──────────────────
         from oceanarray.utilities import parse_latlon_with_source

@@ -117,11 +117,13 @@ class TestStage2Processor:
         result = processor._read_yaml_time(data, "deployment_time")
         assert pd.isna(result)
 
-    def test_read_yaml_time_invalid(self, processor):
-        """Test reading invalid time from YAML."""
+    def test_read_yaml_time_invalid_raises(self, processor):
+        """A present-but-unparseable time is a log-sheet typo, not a missing field."""
+        from oceanarray.exceptions import MooringError
+
         data = {"deployment_time": "not-a-date"}
-        result = processor._read_yaml_time(data, "deployment_time")
-        assert pd.isna(result)
+        with pytest.raises(MooringError, match="deployment_time"):
+            processor._read_yaml_time(data, "deployment_time")
 
     def test_apply_clock_offset_zero(self, processor, sample_raw_dataset):
         """Test applying zero clock offset - Version 2.0 with proper array testing."""

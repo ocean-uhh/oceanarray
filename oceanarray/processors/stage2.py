@@ -44,14 +44,15 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import xarray as xr
-import yaml
 
+from oceanarray import mooring as _mooring
 from oceanarray import paths
+from oceanarray.exceptions import MooringError
 from oceanarray.processors.units import to_canonical_units
 from oceanarray.utilities import (
     _status,
     drop_all_zero_vars,
-    extract_inline_instruments,
+    instrument_entries,
 )
 from oceanarray.writers import write
 
@@ -320,20 +321,22 @@ class Stage2Processor:
             with self.log_file.open("a", encoding="utf-8") as f:
                 print(*args, **kwargs, file=f)
 
-    def _load_mooring_config(self, config_path: Path) -> dict[str, Any]:
-        """Load mooring configuration from YAML file."""
-        with config_path.open() as f:
-            return yaml.safe_load(f)
-
     def _read_yaml_time(self, data: dict[str, Any], key: str) -> np.datetime64:
-        """Return datetime64[ns] from YAML dict or NaT if missing/invalid."""
+        """Return ``datetime64[ns]`` for *key*, ``NaT`` if absent, raising if bad.
+
+        An absent (or blank) value is a recommended-not-required field — the
+        deployment window may be detected from the records — and returns ``NaT``.
+        A present-but-unparseable value is a log-sheet typo the pipeline must not
+        swallow, and raises :class:`oceanarray.exceptions.MooringError` naming the
+        key and the value.
+        """
         val = data.get(key)
         if val is None or (isinstance(val, str) and not val.strip()):
             return np.datetime64("NaT", "ns")
         try:
             return pd.to_datetime(val).to_datetime64()
-        except Exception:  # noqa: BLE001  — returns NaT for any unparseable value
-            return np.datetime64("NaT", "ns")
+        except Exception as e:  # any parse failure — re-raised, not swallowed
+            raise MooringError(f"{key}={val!r} is not a valid timestamp: {e}") from e
 
     def _preserve_time_orig(self, dataset: xr.Dataset) -> xr.Dataset:
         """Save original (uncorrected) time as time_orig before any clock corrections."""
@@ -998,7 +1001,7 @@ class Stage2Processor:
             return False
 
         try:
-            mooring_config = self._load_mooring_config(config_file)
+            mooring_config = _mooring.load(config_file)
         except Exception as e:  # noqa: BLE001  — intentional broad catch at I/O boundary
             self._log_print(f"ERROR: Failed to load configuration: {e}")
             return False
@@ -1010,11 +1013,8 @@ class Stage2Processor:
         self._log_print(f"Deployment time: {deploy_time}")
         self._log_print(f"Recovery time: {recover_time}")
 
-        # Process each instrument — support both 'instruments' (legacy) and 'clamp' (new format)
-        instrument_list = list(
-            mooring_config.get("clamp", mooring_config.get("instruments", []))
-        )
-        instrument_list += extract_inline_instruments(mooring_config.get("inline", []))
+        # Process each instrument (clamp/legacy instruments + processable inline).
+        instrument_list = instrument_entries(mooring_config)
 
         # Filter by serial if requested
         if serials:

@@ -11,8 +11,11 @@ from __future__ import annotations
 import shutil
 from pathlib import Path
 
+import pytest
 import xarray as xr
+import yaml
 
+from oceanarray.exceptions import MooringError
 from oceanarray.processors.stack import MooringStacker
 
 _FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "proc" / "dune2_1_2026"
@@ -23,6 +26,19 @@ def _corrupt_units(nc_path: Path, var: str, bad_units: str) -> None:
     ds.close()
     ds[var].attrs["units"] = bad_units
     ds.to_netcdf(nc_path, engine="netcdf4")
+
+
+def test_stack_without_deployment_window_raises(tmp_path):
+    """A config load() accepts but with no deployment window fails loud, not KeyError."""
+    shutil.copytree(_FIXTURE, tmp_path / "dune2_1_2026")
+    proc = tmp_path / "dune2_1_2026"
+    yaml_path = proc / "dune2_1_2026.mooring.yaml"
+    cfg = yaml.safe_load(yaml_path.read_text())
+    cfg.pop("deployment_time", None)
+    cfg.pop("recovery_time", None)
+    yaml_path.write_text(yaml.dump(cfg))
+    with pytest.raises(MooringError, match="deployment_time"):
+        MooringStacker(proc_dir=str(tmp_path)).stack("dune2_1_2026", force=True)
 
 
 def test_stack_omits_bad_units_instrument_but_builds_and_records(tmp_path):
