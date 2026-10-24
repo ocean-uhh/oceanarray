@@ -1,0 +1,280 @@
+"""Read every instrument of one mooring into a dict of datasets.
+
+:func:`read_mooring` loops :func:`oceanarray.readers.read` (or opens the stage
+files) over the instruments a mooring description lists, and — when reading raw
+(``stage=None``) — stamps each dataset with the description's facts: the
+per-instrument entry (serial, instrument, hab, …) and the per-mooring header
+(name, position, deployment window, water depth). These attributes are the
+contract every pure stage function and product relies on, so they travel with
+the data rather than being re-read from the YAML at each step.
+
+A mooring's **identity** is its ``name:`` field (every file is named
+``<name>_<serial>_stage<N>.nc``); its **location** is where the caller points
+(*mooring_dir* for stage files, *raw_dir* for raw). A directory whose basename
+differs from ``name`` is tolerated — the files are still named from ``name`` —
+and the validator warns about it.
+"""
+
+import warnings
+from collections.abc import Iterable, Mapping
+from pathlib import Path
+from typing import Any
+
+import xarray as xr
+
+from oceanarray import mooring as _mooring
+from oceanarray import paths, readers
+from oceanarray.exceptions import MooringError
+from oceanarray.pipeline import _stage
+from oceanarray.utilities import (
+    format_latlon,
+    instrument_entries,
+    parse_latlon_with_source,
+)
+
+# Placeholders the pipeline has always written when position / window are absent
+# (Eleanor, 2026-10-24: nobody mistakes 0/0 or the YYYY string for data). They
+# stay, but become loud: a WARNING naming the missing keys, and a *_source of
+# "none" so a consumer never infers the value is real.
+_POSITION_UNKNOWN = "unknown (defaulting to 0, 0)"
+_TIME_PLACEHOLDER = "YYYY-mm-ddTHH:MM:ss"
+
+# Per-instrument entry keys copied verbatim onto the dataset (when present).
+_INSTRUMENT_ATTRS = (
+    "instrument",
+    "hab",
+    "clamp_id",
+    "sample_interval_seconds",
+    "file_type",
+)
+
+
+def _resolve(
+    mooring: Mapping[str, Any] | str | Path,
+    mooring_dir: str | Path | None,
+    stage: int | None,
+) -> tuple[Mapping[str, Any], Path | None]:
+    """Return the loaded description and its directory from *mooring*.
+
+    A path (a ``*.mooring.yaml`` or a directory holding exactly one) supplies its
+    own directory; a dict carries no location, so *mooring_dir* is required when a
+    stage file is to be read.
+    """
+    if isinstance(mooring, Mapping):
+        if stage is not None and mooring_dir is None:
+            raise MooringError(
+                "read_mooring was given a mooring dict with stage="
+                f"{stage} but no mooring_dir=; a dict has no location to find "
+                "the stage files — pass mooring_dir=."
+            )
+        return mooring, Path(mooring_dir) if mooring_dir is not None else None
+
+    path = Path(mooring)
+    if path.is_dir():
+        candidates = sorted(path.glob("*.mooring.yaml"))
+        if len(candidates) != 1:
+            raise MooringError(
+                f"{path} holds {len(candidates)} '*.mooring.yaml' files; "
+                "read_mooring needs exactly one (or point at the file)."
+            )
+        return _mooring.load(candidates[0]), Path(mooring_dir or path)
+    return _mooring.load(path), Path(mooring_dir or path.parent)
+
+
+def _mooring_attrs(cfg: Mapping[str, Any]) -> dict[str, Any]:
+    """Return the per-mooring header attributes, stamped on every instrument.
+
+    Position and the deployment window are always stamped (placeholder when
+    absent) with a ``*_source`` of ``"none"`` and a WARNING; other header values
+    are omitted when absent rather than defaulted. ``mooring_name`` is the
+    description's ``name`` (the mooring's identity).
+    """
+    name = cfg.get("name")
+    if name is None:
+        raise MooringError("the mooring description has no 'name'; it is required.")
+    attrs: dict[str, Any] = {"mooring_name": name}
+
+    lat, lon, source = parse_latlon_with_source(cfg)
+    attrs["latitude"] = lat
+    attrs["longitude"] = lon
+    if source == _POSITION_UNKNOWN:
+        attrs["location_source"] = "none"
+        warnings.warn(
+            f"{name}: no position in the mooring description "
+            f"(seabed_/deployment_/planned_latitude or latitude); "
+            f"stamping latitude=0, longitude=0 with location_source='none'.",
+            stacklevel=2,
+        )
+    else:
+        attrs["location_source"] = source
+        lat_s, lon_s = format_latlon(lat, lon)
+        attrs["latitude_str"] = lat_s
+        attrs["longitude_str"] = lon_s
+
+    deploy = cfg.get("deployment_time")
+    recover = cfg.get("recovery_time")
+    if deploy is not None and recover is not None:
+        attrs["deployment_time"] = str(deploy)
+        attrs["recovery_time"] = str(recover)
+        attrs["deployment_window_source"] = "deployment_time/recovery_time"
+    else:
+        attrs["deployment_time"] = _TIME_PLACEHOLDER
+        attrs["recovery_time"] = _TIME_PLACEHOLDER
+        attrs["deployment_window_source"] = "none"
+        warnings.warn(
+            f"{name}: no deployment window in the mooring description "
+            f"(deployment_time/recovery_time); stamping the placeholder with "
+            f"deployment_window_source='none'.",
+            stacklevel=2,
+        )
+
+    for key in ("waterdepth", "density_reference"):
+        if cfg.get(key) is not None:
+            attrs[key] = cfg[key]
+
+    return attrs
+
+
+def read_mooring(
+    mooring: Mapping[str, Any] | str | Path,
+    *,
+    stage: int | None = None,
+    serials: Iterable[str] | None = None,
+    allow_missing: bool = False,
+    mooring_dir: str | Path | None = None,
+    raw_dir: str | Path | None = None,
+) -> dict[str, xr.Dataset]:
+    """Read one mooring's instruments into a dict keyed by instrument serial.
+
+    Parameters
+    ----------
+    mooring : Mapping or str or pathlib.Path
+        A loaded mooring description, a ``*.mooring.yaml`` path, or a directory
+        holding exactly one such file.
+    stage : int or None, optional
+        ``None`` reads each raw file (from *raw_dir*) and stamps the description's
+        facts; ``2`` or ``3`` opens the stage file (from *mooring_dir*) and checks
+        its ``processing_stage`` marker.
+    serials : iterable of str or None, optional
+        If given, read only the instruments whose (cleaned) serial is listed.
+    allow_missing : bool, optional
+        When True, an instrument with no file at the requested stage is skipped
+        with a WARNING instead of raising (the CLI ``--allow-mixed-stages`` flag).
+    mooring_dir : str or pathlib.Path or None, optional
+        The mooring's own directory, holding the per-instrument subdirectories.
+        Required for ``stage`` 2 or 3 when *mooring* is a dict; derived from the
+        path otherwise.
+    raw_dir : str or pathlib.Path or None, optional
+        Cruise-level raw-data root; required for ``stage=None``.
+
+    Returns
+    -------
+    dict of str to xarray.Dataset
+        One dataset per instrument, keyed by cleaned serial, in the order the
+        description lists them.
+
+    Raises
+    ------
+    oceanarray.exceptions.MooringError
+        If a dict is given with a stage but no *mooring_dir*, or the description
+        has no ``name``.
+    ValueError
+        If *raw_dir* is not given for ``stage=None``.
+    FileNotFoundError
+        If an instrument's file for the chosen *stage* is absent and
+        *allow_missing* is False.
+    oceanarray.pipeline._stage.StageError
+        If an opened stage file carries the wrong ``processing_stage`` marker.
+    """
+    cfg, mooring_dir = _resolve(mooring, mooring_dir, stage)
+    if stage is None and raw_dir is None:
+        raise ValueError("read_mooring(stage=None) needs raw_dir= to find raw files.")
+
+    name = cfg["name"]
+    wanted = {paths.safe_serial(s) for s in serials} if serials is not None else None
+    moor_attrs = _mooring_attrs(cfg)
+
+    datasets: dict[str, xr.Dataset] = {}
+    for entry in instrument_entries(cfg):
+        if not isinstance(entry, dict):
+            continue
+        serial = paths.safe_serial(entry.get("serial", ""))
+        if wanted is not None and serial not in wanted:
+            continue
+        instr_type = entry.get("instrument", "unknown")
+
+        if stage is None:
+            ds = _read_raw(entry, instr_type, name, raw_dir)
+            if ds is None:
+                continue
+            ds = _stamp_raw(ds, entry, serial, instr_type, moor_attrs)
+        else:
+            ds = _read_stage(
+                serial, instr_type, name, stage, mooring_dir, allow_missing
+            )
+            if ds is None:
+                continue
+            _stage.require({serial: ds}, stage, f"read_mooring stage {stage}")
+
+        datasets[serial] = ds
+
+    return datasets
+
+
+def _read_raw(
+    entry: dict[str, Any],
+    instr_type: str,
+    name: str,
+    raw_dir: str | Path | None,
+) -> xr.Dataset | None:
+    """Read one instrument's raw file, or None if the entry names no file."""
+    filename = entry.get("filename")
+    if not filename:
+        return None
+    raw_path = paths.raw_mooring_dir(raw_dir, name) / instr_type / filename
+    return readers.read(raw_path, file_type=entry.get("file_type"))
+
+
+def _stamp_raw(
+    ds: xr.Dataset,
+    entry: dict[str, Any],
+    serial: str,
+    instr_type: str,
+    moor_attrs: dict[str, Any],
+) -> xr.Dataset:
+    """Stamp the description's facts and the stage-1 marker on a raw dataset."""
+    ds = ds.copy()
+    ds.attrs.update(moor_attrs)
+    ds.attrs["serial"] = serial
+    for key in _INSTRUMENT_ATTRS:
+        if entry.get(key) is not None:
+            ds.attrs[key] = entry[key]
+    ds.attrs["instrument"] = instr_type
+    ds.attrs["stack"] = bool(entry.get("stack", True))
+    return _stage.stamp(ds, 1, source=entry.get("filename"))
+
+
+def _read_stage(
+    serial: str,
+    instr_type: str,
+    name: str,
+    stage: int,
+    mooring_dir: Path | None,
+    allow_missing: bool,
+) -> xr.Dataset | None:
+    """Open one instrument's stage file, or refuse/skip when it is absent."""
+    stage_path = mooring_dir / instr_type / paths.stage_output_name(name, serial, stage)
+    if not stage_path.exists():
+        if allow_missing:
+            warnings.warn(
+                f"{name}: {instr_type} s/n {serial} has no stage-{stage} "
+                f"file ({stage_path.name}); skipping (allow_missing).",
+                stacklevel=2,
+            )
+            return None
+        raise FileNotFoundError(
+            f"{name}: {instr_type} s/n {serial} has no stage-{stage} file "
+            f"at {stage_path}. Run stage {stage} first, or pass allow_missing=True "
+            f"(CLI --allow-mixed-stages)."
+        )
+    return readers.read(stage_path)
