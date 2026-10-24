@@ -19,16 +19,19 @@ import pandas as pd
 import xarray as xr
 
 from oceanarray import mooring as _mooring
+from oceanarray import paths
 from oceanarray.analysis.temporal import lag_correlation
 from oceanarray.legacy import find_deployment
 from oceanarray.utilities import instrument_entries
+
+_STAGE2_TAG = paths.stage_tag(2)
 
 
 def load_mooring_instruments(
     mooring_name,
     base_dir,  # noqa: ARG001
     output_path,
-    file_suffix="_stage2",
+    file_suffix=_STAGE2_TAG,
 ):
     """Load all instruments for a mooring from netCDF files and enrich with YAML metadata.
 

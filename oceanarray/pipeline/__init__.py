@@ -351,7 +351,9 @@ def process(
 
     from oceanarray import paths
 
-    stack_file = paths.mooring_proc_dir(proc_dir, mooring) / f"{mooring}_stack.nc"
+    stack_file = paths.product_file(
+        paths.mooring_proc_dir(proc_dir, mooring), mooring, "stack"
+    )
 
     overall = True
     skip_grid = False

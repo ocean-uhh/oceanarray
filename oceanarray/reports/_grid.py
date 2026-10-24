@@ -9,6 +9,8 @@ from typing import Any
 
 import numpy as np
 
+from oceanarray import paths
+
 from .. import parameters as params
 from ..utilities import is_unknown_latlon_source, parse_latlon_with_source
 from ._env import (
@@ -623,7 +625,9 @@ def generate_grid_page(
         report = resolve(GRID_DEFAULT, gctx, GRID_PANELS)
         ds.close()
 
-        stack_exists = (grid_path.parent / f"{mooring_name}_stack.nc").exists()
+        stack_exists = paths.product_file(
+            grid_path.parent, mooring_name, "stack"
+        ).exists()
 
         html = render_template(
             "grid.html",

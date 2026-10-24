@@ -410,8 +410,8 @@ class MooringReport:
         out_dir.mkdir(parents=True, exist_ok=True)
         output_path = out_dir / f"{mooring_name}_report.html"
         yaml_path = proc_dir / f"{mooring_name}.mooring.yaml"
-        source_ncs = list(proc_dir.glob("*/*_stage3.nc")) + list(
-            proc_dir.glob("*/*_stage2.nc")
+        source_ncs = list(proc_dir.glob(f"*/{paths.stage_glob(3)}")) + list(
+            proc_dir.glob(f"*/{paths.stage_glob(2)}")
         )
         if _should_skip(output_path, force, skip_existing, yaml_path, *source_ncs):
             _status("skip", self._rel(output_path))
@@ -453,7 +453,7 @@ class MooringReport:
                 output_path.write_text(html, encoding="utf-8")
 
         if grid:
-            grid_path = proc_dir / f"{mooring_name}_grid.nc"
+            grid_path = paths.product_file(proc_dir, mooring_name, "grid")
             if grid_path.exists():
                 generate_grid_page(
                     mooring_name,
@@ -470,7 +470,7 @@ class MooringReport:
                 )
 
         if stack:
-            stack_path = proc_dir / f"{mooring_name}_stack.nc"
+            stack_path = paths.product_file(proc_dir, mooring_name, "stack")
             if stack_path.exists():
                 generate_stack_page(
                     mooring_name,
@@ -502,8 +502,8 @@ class MooringReport:
 
         instrument_list = instrument_entries(cfg)
 
-        stack_nc = proc_dir / f"{mooring_name}_stack.nc"
-        grid_nc = proc_dir / f"{mooring_name}_grid.nc"
+        stack_nc = paths.product_file(proc_dir, mooring_name, "stack")
+        grid_nc = paths.product_file(proc_dir, mooring_name, "grid")
         stack_exists = stack_nc.exists()
         grid_exists = grid_nc.exists()
         stack_serials = _serials_in_nc(stack_nc) if stack_exists else frozenset()
@@ -587,7 +587,7 @@ class MooringReport:
             nc_info = _read_instrument_info(proc_dir, instr_type, mooring_name, serial)
 
             _base_nc = proc_dir / instr_type / f"{mooring_name}_{serial}"
-            _stage3_nc = Path(str(_base_nc) + "_stage3.nc")
+            _stage3_nc = Path(str(_base_nc) + paths.stage_suffix(3))
             _stage3_nc = _stage3_nc if _stage3_nc.exists() else None
 
             stopped_early = False
@@ -751,9 +751,9 @@ class MooringReport:
             _s = _instr["serial"]
             _itype = _instr["instr_type"]
             _base = proc_dir / _itype / f"{mooring_name}_{_s}"
-            _s1 = Path(str(_base) + "_stage1.nc")
-            _s3 = Path(str(_base) + "_stage3.nc")
-            _s2 = Path(str(_base) + "_stage2.nc")
+            _s1 = Path(str(_base) + paths.stage_suffix(1))
+            _s3 = Path(str(_base) + paths.stage_suffix(3))
+            _s2 = Path(str(_base) + paths.stage_suffix(2))
             if _s1.exists():
                 _clock_nc_paths[_s] = _s1
             elif _s2.exists():

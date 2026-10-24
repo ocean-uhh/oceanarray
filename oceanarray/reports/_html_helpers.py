@@ -18,6 +18,8 @@ from typing import Any
 import numpy as np
 from PIL import Image
 
+from oceanarray import paths
+
 from ..paths import safe_serial
 from ..utilities import (  # noqa: F401  (re-exported)
     _nice_colorbar_bounds,
@@ -590,7 +592,7 @@ def _read_instrument_info(
     """
     base = proc_dir / instr_type / f"{mooring}_{serial}"
     nc_path = None
-    for suffix in ("_stage3.nc", "_stage2.nc"):
+    for suffix in (paths.stage_suffix(3), paths.stage_suffix(2)):
         p = Path(str(base) + suffix)
         if p.exists():
             nc_path = p
@@ -697,7 +699,7 @@ def _read_timing_info(
     dt_s
         Median sample interval in seconds (p90 of first-differences).
     """
-    nc_path = proc_dir / instr_type / f"{mooring}_{serial}_stage2.nc"
+    nc_path = proc_dir / instr_type / f"{mooring}_{serial}{paths.stage_suffix(2)}"
     if not nc_path.exists():
         return {}
     try:
@@ -795,7 +797,7 @@ def _read_sensor_info(
     proc_dir: Path, instr_type: str, mooring: str, serial: str
 ) -> list[dict[str, Any]]:
     """Return one dict per SENSOR_* variable found in the stage2 NC file."""
-    nc_path = proc_dir / instr_type / f"{mooring}_{serial}_stage2.nc"
+    nc_path = proc_dir / instr_type / f"{mooring}_{serial}{paths.stage_suffix(2)}"
     if not nc_path.exists():
         return []
     try:
@@ -828,9 +830,9 @@ def _stage_files(
 ) -> dict[str, bool]:
     base = proc_dir / instr_type / f"{mooring}_{serial}"
     return {
-        "stage1": Path(str(base) + "_stage1.nc").exists(),
-        "stage2": Path(str(base) + "_stage2.nc").exists(),
-        "stage3": Path(str(base) + "_stage3.nc").exists(),
+        "stage1": Path(str(base) + paths.stage_suffix(1)).exists(),
+        "stage2": Path(str(base) + paths.stage_suffix(2)).exists(),
+        "stage3": Path(str(base) + paths.stage_suffix(3)).exists(),
     }
 
 

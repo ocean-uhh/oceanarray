@@ -77,9 +77,10 @@ def _print_report(proc_dir: Path) -> None:
     import xarray as xr
 
     # Collect all processed files; prefer _stage3 > _use as the "best" file per serial
-    use_files = sorted(proc_dir.rglob("*_stage2.nc"))
+    use_files = sorted(proc_dir.rglob(paths.stage_glob(2)))
     stage3_files = {
-        f.name.replace("_stage3.nc", ""): f for f in proc_dir.rglob("*_stage3.nc")
+        f.name.replace(paths.stage_suffix(3), ""): f
+        for f in proc_dir.rglob(paths.stage_glob(3))
     }
 
     if not use_files and not stage3_files:
@@ -95,7 +96,7 @@ def _print_report(proc_dir: Path) -> None:
         print(f"\n  {instrument}")
         for nc in sorted(files):
             # Use _stage3.nc for reporting if it exists
-            stem = nc.name.replace("_stage2.nc", "")
+            stem = nc.name.replace(paths.stage_suffix(2), "")
             best_nc = stage3_files.get(stem, nc)
             stage_label = "stage3" if best_nc != nc else "use"
             try:
@@ -129,7 +130,9 @@ def _print_report(proc_dir: Path) -> None:
                     interval = "? s"
                 ds.close()
 
-                raw_nc = nc.with_name(nc.name.replace("_stage2.nc", "_stage1.nc"))
+                raw_nc = nc.with_name(
+                    nc.name.replace(paths.stage_suffix(2), paths.stage_suffix(1))
+                )
                 try:
                     if raw_nc.exists():
                         ds_raw = xr.open_dataset(raw_nc, decode_timedelta=False)
@@ -209,12 +212,12 @@ def cmd_process(args: argparse.Namespace) -> int:
         _status("section", f"Plotting: {args.mooring}")
         proc_dir = proc_root / args.mooring
 
-        for nc in sorted((proc_dir / "microcat").glob("*_stage2.nc")):
+        for nc in sorted((proc_dir / "microcat").glob(paths.stage_glob(2))):
             ds = xr.open_dataset(nc, decode_timedelta=False)
             plot_microcat_raw(ds, save_path=nc.with_suffix(".png"))
             print(f"Saved: {nc.with_suffix('.png')}")
 
-        for nc in sorted((proc_dir / "aquadopp").glob("*_stage2.nc")):
+        for nc in sorted((proc_dir / "aquadopp").glob(paths.stage_glob(2))):
             ds = xr.open_dataset(nc, decode_timedelta=False)
             plot_aquadopp_raw(ds, save_path=nc.with_suffix(".png"))
             print(f"Saved: {nc.with_suffix('.png')}")
@@ -630,8 +633,8 @@ def cmd_animate(args: argparse.Namespace) -> int:
 
     # Build {stem: best_nc} — stage3 preferred over stage2
     stage3_map = {
-        f.name.replace("_stage3.nc", ""): f
-        for f in sorted(proc_dir.rglob("*_stage3.nc"))
+        f.name.replace(paths.stage_suffix(3), ""): f
+        for f in sorted(proc_dir.rglob(paths.stage_glob(3)))
     }
 
     if serials:
@@ -641,9 +644,9 @@ def cmd_animate(args: argparse.Namespace) -> int:
             if matches:
                 candidates.extend((m, stage3_map[m]) for m in matches)
             else:
-                stage2 = sorted(proc_dir.rglob(f"*{sn}*_stage2.nc"))
+                stage2 = sorted(proc_dir.rglob(f"*{sn}*{paths.stage_suffix(2)}"))
                 if stage2:
-                    stem = stage2[0].name.replace("_stage2.nc", "")
+                    stem = stage2[0].name.replace(paths.stage_suffix(2), "")
                     candidates.append((stem, stage2[0]))
                 else:
                     print(
@@ -653,8 +656,8 @@ def cmd_animate(args: argparse.Namespace) -> int:
         # All stage3 files; fill in with stage2 where stage3 is absent
         seen: set[str] = set(stage3_map)
         candidates = list(stage3_map.items())
-        for nc in sorted(proc_dir.rglob("*_stage2.nc")):
-            stem = nc.name.replace("_stage2.nc", "")
+        for nc in sorted(proc_dir.rglob(paths.stage_glob(2))):
+            stem = nc.name.replace(paths.stage_suffix(2), "")
             if stem not in seen:
                 seen.add(stem)
                 candidates.append((stem, nc))

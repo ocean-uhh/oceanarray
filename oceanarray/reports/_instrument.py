@@ -7,6 +7,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from oceanarray import paths
+
 from .. import parameters as params
 from ._env import (
     render_history,
@@ -388,8 +390,8 @@ def generate_instrument_pages(
     """
     mooring_report_link = f"../{mooring_name}_report.html"
     generated = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
-    stack_exists = (proc_dir / f"{mooring_name}_stack.nc").exists()
-    grid_exists = (proc_dir / f"{mooring_name}_grid.nc").exists()
+    stack_exists = paths.product_file(proc_dir, mooring_name, "stack").exists()
+    grid_exists = paths.product_file(proc_dir, mooring_name, "grid").exists()
     _d = cfg.get("deployment_cruise") or cfg.get("cruise", "—")
     _r = cfg.get("recovery_cruise") or cfg.get("cruise") or _d
     cruise = _d if _d == _r else f"{_d} / {_r}"
@@ -411,10 +413,10 @@ def generate_instrument_pages(
             continue
 
         _base = proc_dir / instr_type / f"{mooring_name}_{serial}"
-        stage3_nc = Path(str(_base) + "_stage3.nc")
+        stage3_nc = Path(str(_base) + paths.stage_suffix(3))
         stage3_nc = stage3_nc if stage3_nc.exists() else None
-        _stage2_nc = Path(str(_base) + "_stage2.nc")
-        _stage1_nc = Path(str(_base) + "_stage1.nc")
+        _stage2_nc = Path(str(_base) + paths.stage_suffix(2))
+        _stage1_nc = Path(str(_base) + paths.stage_suffix(1))
         _source_nc = next(
             (
                 p

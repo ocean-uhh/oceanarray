@@ -809,7 +809,7 @@ class MooringStacker:
             print(f"ERROR: Processing directory not found: {proc_dir}")
             return False
 
-        output_path = proc_dir / f"{mooring_name}_stack.nc"
+        output_path = paths.product_file(proc_dir, mooring_name, "stack")
         if output_path.exists() and not force:
             _status("skip", self._rel(output_path))
             return True

@@ -280,8 +280,8 @@ class MooringGridder:
         Returns True on success, False on error.
         """
         proc_dir = self._resolve_proc_dir(mooring_name)
-        merge_path = proc_dir / f"{mooring_name}_stack.nc"
-        output_path = proc_dir / f"{mooring_name}_grid.nc"
+        merge_path = paths.product_file(proc_dir, mooring_name, "stack")
+        output_path = paths.product_file(proc_dir, mooring_name, "grid")
 
         try:
             stack_found = merge_path.exists()
@@ -356,7 +356,7 @@ class TimeGriddingProcessor:
         self,
         mooring_config: dict[str, Any],
         proc_dir: Path,
-        file_suffix: str = "_stage2",
+        file_suffix: str = paths.stage_tag(2),
     ) -> list[xr.Dataset]:
         """Load all instrument datasets for a mooring."""
         datasets = []
@@ -1016,7 +1016,7 @@ class TimeGriddingProcessor:
         self,
         mooring_name: str,
         output_path: str | None = None,
-        file_suffix: str = "_stage2",
+        file_suffix: str = paths.stage_tag(2),
         vars_to_keep: list[str] = None,
         filter_type: str | None = None,
         filter_params: dict[str, Any] | None = None,
@@ -1141,7 +1141,7 @@ def time_gridding_mooring(
     mooring_name: str,
     proc_dir: str,
     output_path: str | None = None,
-    file_suffix: str = "_stage2",
+    file_suffix: str = paths.stage_tag(2),
     filter_type: str | None = None,
     filter_params: dict[str, Any] | None = None,
 ) -> bool:
@@ -1173,7 +1173,7 @@ def time_gridding_mooring(
 def process_multiple_moorings_time_gridding(
     mooring_list: list[str],
     proc_dir: str,
-    file_suffix: str = "_stage2",
+    file_suffix: str = paths.stage_tag(2),
     filter_type: str | None = None,
     filter_params: dict[str, Any] | None = None,
 ) -> dict[str, bool]:

@@ -18,6 +18,8 @@ from typing import Any
 
 import yaml
 
+from oceanarray import paths
+
 from ._env import render_template
 from ._html_helpers import (
     _parse_dt,
@@ -65,7 +67,7 @@ def _read_stage1_times(
     proc_dir: Path, instr_type: str, mooring: str, serial: str
 ) -> tuple:
     """Return (t_start_str, t_end_str) from the stage-1 NC, or ('—', '—')."""
-    stage1_path = proc_dir / instr_type / f"{mooring}_{serial}_stage1.nc"
+    stage1_path = proc_dir / instr_type / f"{mooring}_{serial}{paths.stage_suffix(1)}"
     if not stage1_path.exists():
         return "—", "—"
     try:
@@ -87,7 +89,7 @@ def _read_stage2_times(
     proc_dir: Path, instr_type: str, mooring: str, serial: str
 ) -> tuple:
     """Return (t_start_str, t_end_str) from the stage-2 NC, or ('—', '—')."""
-    stage2_path = proc_dir / instr_type / f"{mooring}_{serial}_stage2.nc"
+    stage2_path = proc_dir / instr_type / f"{mooring}_{serial}{paths.stage_suffix(2)}"
     if not stage2_path.exists():
         return "—", "—"
     try:
