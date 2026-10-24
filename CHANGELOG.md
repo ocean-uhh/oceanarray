@@ -37,6 +37,10 @@ All notable changes to oceanarray are documented here.
 - Output filenames are built from the mooring's `name:` field, not its directory name. A directory whose basename differs from `name:` is a WARNING (previously framed as "name must match the directory"); the files are named from `name`.
 - `oceanarray.tools.readers` is removed; its readers moved to the `oceanarray.readers` package. Old → new: `oceanarray.tools.readers.read_oceansites` → `oceanarray.readers.read_oceansites` (or `oceanarray.readers.oceansites.read_oceansites`); `read_rodb` → `oceanarray.readers.read_rodb`; `load_nortek_csv` → `oceanarray.readers.load_nortek_csv`. The dead `load_dataset` and `rodbload_old` are removed with no replacement — use `oceanarray.readers.read` and `read_rodb`.
 
+### Fixed
+
+- A Nortek header whose coordinate system cannot be read is now marked `coordinate_system = "UNK"` instead of being assumed `"ENU"`, and stage 3 refuses to rotate `UNK` velocities (with a WARNING) rather than passing them through as if geographic. Previously a BEAM/XYZ instrument with an unrecognised header was silently labelled ENU, skipping the BEAM→ENU transform and magnetic-declination correction — a silent physical error in the velocity output.
+
 ## [0.5.1] — 2026-10-23
 
 > The units-display entries — *Units tables come from the shared report layer*, *N² keeps the spelling it arrives with*, *Legacy vocabulary files moved and renamed*, and the two *Deprecated* items — landed as direct-to-main commits (`cdcffc9`/`8982831`/`735adaa`, the units display sweep), not a pull request; [#107](https://github.com/ocean-uhh/oceanarray/pull/107) documented the sweep and added the derived-quantity guard. See `.claude/done/ROADMAP.md`.

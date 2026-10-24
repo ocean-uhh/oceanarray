@@ -26,8 +26,10 @@ def _parse_nortek_coord_system(hdr_path: Path) -> str:
     * New CSV format — looks for ``CY="BEAM"`` in a ``GETAVG,`` line anywhere in
       the file (e.g. ``GETAVG,...,CY="BEAM",...``).
 
-    Returns "ENU" if neither pattern is found (safe default: no rename / no
-    BEAM→ENU transform in stage3).
+    Returns ``"UNK"`` if neither pattern is found: the coordinate system is
+    undeterminable from the header, so it is marked unknown rather than assumed
+    ENU — stage 3 then refuses to treat the velocities as geographic (see
+    :func:`oceanarray.pipeline.coordinate.apply_beam_to_enu`).
     """
     try:
         with hdr_path.open(encoding="utf-8", errors="replace") as f:
@@ -45,7 +47,7 @@ def _parse_nortek_coord_system(hdr_path: Path) -> str:
                         return cy.group(1).strip().upper()
     except Exception:  # noqa: BLE001  — intentional broad catch at I/O boundary
         pass
-    return "ENU"
+    return "UNK"
 
 
 def _parse_nortek_T_matrix_hdr(hdr_path: Path) -> dict[str, float] | None:
