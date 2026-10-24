@@ -14,11 +14,13 @@ import pytest
 from oceanarray.paths import (
     LegacyLayoutError,
     mooring_proc_dir,
+    product_file,
     raw_mooring_dir,
     require_current_layout,
     resolve_pdf_path,
     resolve_report_dir,
     safe_serial,
+    stage_file,
     stage_output_name,
 )
 
@@ -86,8 +88,8 @@ def test_all_call_sites_agree():
     across stage3, the report layer, and the mooring helpers.  (stage1 is covered
     separately because importing it requires the optional ``seasenselib`` package.)
     """
-    from oceanarray.processors.helpers import _safe_serial as h
-    from oceanarray.processors.stage3 import _safe_serial as s3
+    from oceanarray.pipeline.helpers import _safe_serial as h
+    from oceanarray.pipeline.stage3 import _safe_serial as s3
     from oceanarray.reports._html_helpers import _safe_serial as r
 
     raw = "16430, R01-024"
@@ -103,7 +105,7 @@ def test_stage1_call_site_agrees():
     pulls in the optional ``seasenselib`` dependency.
     """
     pytest.importorskip("seasenselib")
-    from oceanarray.processors.stage1 import MooringProcessor
+    from oceanarray.pipeline.stage1 import MooringProcessor
 
     assert MooringProcessor._safe_serial("16430, R01-024") == safe_serial(
         "16430, R01-024"
@@ -169,3 +171,32 @@ def test_require_current_layout_raises_on_proc(tmp_path):
     with pytest.raises(LegacyLayoutError) as exc:
         require_current_layout(tmp_path, "dsG3")
     assert str(tmp_path / "proc") in str(exc.value)
+
+
+# ---------------------------------------------------------------------------
+# stage_file / product_file
+# ---------------------------------------------------------------------------
+
+
+def test_stage_file_joins_mooring_dir_instrument_and_name(tmp_path):
+    """stage_file builds <mooring_dir>/<instrument>/<name>_<serial>_stageN.nc."""
+    p = stage_file(tmp_path, "dune2_1_2026", "microcat", "2941", 3)
+    assert p == tmp_path / "microcat" / "dune2_1_2026_2941_stage3.nc"
+
+
+def test_stage_file_cleans_the_serial_and_applies_the_tag(tmp_path):
+    """The serial is cleaned via safe_serial and the adcp-matlab tag is inserted."""
+    p = stage_file(tmp_path, "m", "adcp", "9920*", 1, tag="_000")
+    assert p.name == "m_9920_000_stage1.nc"
+
+
+def test_product_file_names_stack_and_grid(tmp_path):
+    """product_file builds <mooring_dir>/<name>_<product>.nc for stack and grid."""
+    assert product_file(tmp_path, "m", "stack") == tmp_path / "m_stack.nc"
+    assert product_file(tmp_path, "m", "grid") == tmp_path / "m_grid.nc"
+
+
+def test_product_file_rejects_an_unknown_product(tmp_path):
+    """An unknown product name raises, naming the valid set."""
+    with pytest.raises(ValueError, match="unknown product"):
+        product_file(tmp_path, "m", "merge")

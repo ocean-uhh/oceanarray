@@ -14,7 +14,7 @@ import xarray as xr
 
 pytest.importorskip("seasenselib", reason="seasenselib not installed")
 
-from oceanarray.processors.grid import (
+from oceanarray.pipeline.grid import (
     TimeGriddingProcessor,
     process_multiple_moorings_time_gridding,
     time_gridding_mooring,
@@ -330,7 +330,7 @@ class TestTimeGriddingProcessor:
 class TestConvenienceFunctions:
     """Test convenience functions."""
 
-    @patch("oceanarray.processors.grid.TimeGriddingProcessor")
+    @patch("oceanarray.pipeline.grid.TimeGriddingProcessor")
     def test_time_gridding_mooring(self, mock_processor_class):
         """Test convenience function."""
         mock_processor = Mock()
@@ -342,7 +342,7 @@ class TestConvenienceFunctions:
         assert result is True
         mock_processor_class.assert_called_once_with(proc_dir="/test/dir")
 
-    @patch("oceanarray.processors.grid.TimeGriddingProcessor")
+    @patch("oceanarray.pipeline.grid.TimeGriddingProcessor")
     def test_process_multiple_moorings_time_gridding(self, mock_processor_class):
         """Test batch processing function."""
         mock_processor = Mock()

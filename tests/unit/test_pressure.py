@@ -1,4 +1,4 @@
-"""Unit tests for :mod:`oceanarray.processors.pressure`.
+"""Unit tests for :mod:`oceanarray.pipeline.pressure`.
 
 Pure-numeric pressure interpolation helpers, tested against hand-computed known
 answers on synthetic arrays (not instrument files) — per the fixture rule, the
@@ -18,7 +18,7 @@ import numpy as np
 import xarray as xr
 
 from oceanarray import parameters as params
-from oceanarray.processors import pressure as P
+from oceanarray.pipeline import pressure as P
 
 #: Trimmed real dsG2 WH75 ADCP stage-3 file over a knock-down window (earth + firmware
 #: bin mapping; tilt 4.6–45°).  Raw ``.000`` is not in the repo — see the file's attrs.

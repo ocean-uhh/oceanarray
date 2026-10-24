@@ -262,7 +262,7 @@ def format_units(units: str, standard_name: str | None = None) -> str:
         The display units string; ``""`` when *units* is empty.
     """
     warnings.warn(
-        "processors.units.format_units is deprecated; use "
+        "pipeline.units.format_units is deprecated; use "
         "oceanarray.config.unit_tables.unit_label (removed in 0.6.0).",
         DeprecationWarning,
         stacklevel=2,

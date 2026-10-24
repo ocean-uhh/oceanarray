@@ -4,7 +4,7 @@
 # Dropped: the other ~20 instruments and the full `inline:` hardware section
 # (mooring-line schematic), none of which these two fixtures exercise.
 # Values are faithful to the source config as of 2026-07-29.
-name: Dune2_1_2026 #needed, otherwise key error
+name: dune2_1_2026 #needed, otherwise key error
 cleaname: dune2
 year: 2026
 waterdepth: 745

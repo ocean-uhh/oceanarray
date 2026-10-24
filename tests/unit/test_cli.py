@@ -148,7 +148,7 @@ class TestStageToken:
 
     def test_choices_derived_from_stages(self):
         """choices= for --stage is derived from STAGES, not a hardcoded list."""
-        from oceanarray.processors import STAGES
+        from oceanarray.pipeline import STAGES
 
         parser = build_parser()
         process_sub = parser._subparsers._actions[-1].choices["process"]

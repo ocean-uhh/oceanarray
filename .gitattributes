@@ -6,3 +6,7 @@
 # remain tracked/committed (the demo suite is served from _static by Sphinx).
 tests/fixtures/golden/** linguist-generated=true
 docs/source/_static/demo/** linguist-generated=true binary
+
+# The init-template golden is compared byte-for-byte against mooring.save output
+# (which writes LF on every platform); keep it LF so Windows autocrlf cannot flip it.
+tests/fixtures/init_template_golden.yaml text eol=lf

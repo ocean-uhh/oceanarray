@@ -325,21 +325,22 @@ def validate_mooring(
             )
         )
 
-    # The mooring's name must equal its directory name, case included.  stage1/2/3,
-    # stacking and gridding build every output filename from the directory (the CLI
-    # `MOORING` argument), never from this `name:` field, so a mismatch — most often
-    # case only — is invisible on a case-insensitive filesystem (macOS) and loads zero
-    # files on Linux/CI.  WARNING, not ERROR, so a deliberately mismatched regression
-    # fixture can still be processed.
+    # The directory name and the ``name:`` field should match.  They name output
+    # files on two code paths that are mid-migration: the processing stages still
+    # name from the directory, while read_mooring / write_mooring name from
+    # ``name:``; from 0.6.0 both use ``name:``.  A mismatch (most often a copied
+    # mooring folder left unrenamed) therefore writes outputs under different
+    # moorings depending on the path, so warn until they are identical.
     yaml_name = data.get("name")
     if isinstance(yaml_name, str) and dir_name is not None and yaml_name != dir_name:
         issues.append(
             ValidationIssue(
                 "WARNING",
-                f"mooring 'name: {yaml_name}' does not match its directory '{dir_name}' "
-                f"(compared case-sensitively) — output filenames use the directory name, "
-                f"so a mismatch loads zero files on a case-sensitive filesystem. Make them "
-                f"identical.",
+                f"directory '{dir_name}' differs from 'name: {yaml_name}' "
+                f"(compared case-sensitively). The processing stages name outputs "
+                f"from the directory and read_mooring/write_mooring from 'name:' "
+                f"(from 0.6.0 both use 'name:'); make the directory and 'name:' "
+                f"identical so files land under the same mooring on either path.",
             )
         )
 

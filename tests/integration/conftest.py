@@ -19,7 +19,7 @@ def _make_proc_tree(tmp_path: Path, stages: list) -> Path:
     Creates ``tmp_path/proc/dune2_1_2026/`` mirroring the fixture layout for
     the given stage suffixes (e.g. ``["stage1"]``, ``["stage2", "stage3"]``).
     Always copies the mooring YAML. Returns the cruise-level proc root
-    (``tmp_path/proc``), so callers pass ``proc_dir=str(proc_root)`` to processors.
+    (``tmp_path/proc``), so callers pass ``proc_dir=str(proc_root)`` to the pipeline.
     """
     proc_root = tmp_path / "proc"
     mooring_dir = proc_root / MOORING

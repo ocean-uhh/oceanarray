@@ -1,4 +1,4 @@
-"""Unit tests for :mod:`oceanarray.processors.helpers`.
+"""Unit tests for :mod:`oceanarray.pipeline.helpers`.
 
 Pure stack/grid helper functions — QC masking, worst-flag merge, time
 conversion, interval detection, nearest/linear resampling, and ADCP head/bin
@@ -13,7 +13,7 @@ import numpy as np
 import xarray as xr
 
 from oceanarray import parameters as params
-from oceanarray.processors import helpers as H
+from oceanarray.pipeline import helpers as H
 
 
 def _dt(seconds: list[float]) -> np.ndarray:

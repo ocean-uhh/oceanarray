@@ -3,7 +3,7 @@
 import numpy as np
 import xarray as xr
 
-from oceanarray.processors.coordinate import (
+from oceanarray.pipeline.coordinate import (
     apply_declination_to_enu as _apply_declination_to_enu,
 )
 
@@ -55,14 +55,14 @@ def test_declination_guard_only_triggers_on_unknown_source():
 # _merge_flags
 # ---------------------------------------------------------------------------
 
-from oceanarray.processors.qc import (  # noqa: E402 — grouped imports after fixtures
+from oceanarray.pipeline.qc import (  # noqa: E402 — grouped imports after fixtures
     _merge_flags,
     _tilt_from_span,
 )
-from oceanarray.processors.qc import (  # noqa: E402 — grouped imports after fixtures
+from oceanarray.pipeline.qc import (  # noqa: E402 — grouped imports after fixtures
     load_qc_config as _load_qc_config,
 )
-from oceanarray.processors.qc import (  # noqa: E402 — grouped imports after fixtures
+from oceanarray.pipeline.qc import (  # noqa: E402 — grouped imports after fixtures
     merge_salinity_parent_qc as _merge_salinity_parent_qc,
 )
 
@@ -124,8 +124,8 @@ def test_merge_priority_single_source():
     parameters.QC_MERGE_PRIORITY, so they must agree on every combination.
     """
     from oceanarray import parameters as params
-    from oceanarray.processors.helpers import _worst_flag
-    from oceanarray.processors.qc import _QC_PRIORITY
+    from oceanarray.pipeline.helpers import _worst_flag
+    from oceanarray.pipeline.qc import _QC_PRIORITY
 
     assert _QC_PRIORITY is params.QC_MERGE_PRIORITY
     a = np.array([1, 8, 0, 3], dtype=np.int8)
@@ -137,7 +137,7 @@ def test_merge_priority_single_source():
 def test_set_qc_attrs_preserves_author_long_name():
     """set_qc_attrs fills long_name only when absent — never clobbers a standalone
     diagnostic flag's own long_name (e.g. seabed_qc), but still attaches the table."""
-    from oceanarray.processors.qc import set_qc_attrs
+    from oceanarray.pipeline.qc import set_qc_attrs
 
     ds = xr.Dataset(
         {"seabed_qc": ("time", np.array([1, 1], dtype=np.int8))},
@@ -218,7 +218,7 @@ def test_load_qc_config_instrument_override_wins_over_mooring():
 
 import pandas as pd  # noqa: E402 — needed for date_range in helpers below
 
-from oceanarray.processors.qc import apply_qc_tests as _apply_qc_tests  # noqa: E402
+from oceanarray.pipeline.qc import apply_qc_tests as _apply_qc_tests  # noqa: E402
 
 
 def _make_pressure_dataset(n=50, stuck=False, out_of_range=False):

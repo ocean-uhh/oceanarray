@@ -24,7 +24,7 @@ The file shape is a cross-package contract (moordiag reads the same file), so
 """
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from os import PathLike
 from pathlib import Path
 
@@ -87,25 +87,7 @@ REQUIRED_KEYS: list[str] = validation.REQUIRED_MOORING_KEYS
 
 
 def _resolve_path(mooring: str | PathLike, proc_dir: str | PathLike | None) -> Path:
-    """Resolve a mooring reference to a YAML path.
-
-    A reference ending in ``.yaml`` / ``.yml`` or pointing at an existing file
-    is used as-is; a bare mooring name is resolved against *proc_dir* as
-    ``{proc_dir}/{name}/{name}.mooring.yaml`` — the layout every stage and CLI
-    verb uses today.
-
-    Parameters
-    ----------
-    mooring : str or os.PathLike
-        A path to a ``*.mooring.yaml`` file, or a bare mooring name.
-    proc_dir : str or os.PathLike or None
-        The processing directory a bare name is resolved against.
-
-    Returns
-    -------
-    pathlib.Path
-        The resolved YAML path (not guaranteed to exist).
-    """
+    """Resolve a reference (a YAML path, or a bare name + *proc_dir*) to a YAML path."""
     path = Path(mooring)
     if path.suffix in {".yaml", ".yml"} or path.exists():
         return path
@@ -116,23 +98,7 @@ def _resolve_path(mooring: str | PathLike, proc_dir: str | PathLike | None) -> P
 
 
 def _parse(source: str | PathLike | Mapping) -> dict | None:
-    """Parse a mooring config to a mapping without validating (lenient).
-
-    The read seam for callers that must inspect a config's content before
-    validation — the pre-flight serial-collision guard in ``process`` needs the
-    instrument list even for a config that :func:`load` would refuse. A missing
-    file, a YAML parse error, or a non-mapping root all return ``None``.
-
-    Parameters
-    ----------
-    source : str or os.PathLike or Mapping
-        A YAML path or an already-parsed mapping.
-
-    Returns
-    -------
-    dict or None
-        The parsed mapping, or ``None`` when it could not be read as one.
-    """
+    """Parse a config leniently to a mapping, or None if it cannot be read as one."""
     if isinstance(source, Mapping):
         return dict(source)
     path = Path(source)
@@ -416,32 +382,36 @@ def save(mooring: Mapping, path: str | PathLike, *, overwrite: bool = False) -> 
             "; ".join(errors),
         )
 
+    def _block(
+        items: Iterable[tuple[str, object]],
+        comments: Mapping[str, str],
+        seen: set[str] | None = None,
+    ) -> CommentedMap:
+        """CommentedMap of *items*; comment keys in *comments* (first occurrence if *seen*)."""
+        block = CommentedMap()
+        for key, value in items:
+            block[key] = value
+            if key in comments and (seen is None or key not in seen):
+                block.yaml_add_eol_comment(comments[key], key)
+                if seen is not None:
+                    seen.add(key)
+        return block
+
     data = dict(mooring)
     clamp = data.pop("clamp", None)
-    doc = CommentedMap()
-    for key, value in data.items():
-        doc[key] = value
-        if key in _FIELD_COMMENTS:
-            doc.yaml_add_eol_comment(_FIELD_COMMENTS[key], key)
-
+    doc = _block(data.items(), _FIELD_COMMENTS)
     if clamp is not None:
-        commented: set[str] = set()
-        seq = CommentedSeq()
-        for entry in clamp:
-            block = CommentedMap()
-            for key, value in entry.items():
-                block[key] = value
-            for key in entry:
-                if key in _INSTRUMENT_COMMENTS and key not in commented:
-                    block.yaml_add_eol_comment(_INSTRUMENT_COMMENTS[key], key)
-                    commented.add(key)
-            seq.append(block)
-        doc["clamp"] = seq
+        seen: set[str] = set()
+        doc["clamp"] = CommentedSeq(
+            _block(entry.items(), _INSTRUMENT_COMMENTS, seen) for entry in clamp
+        )
 
     path.parent.mkdir(parents=True, exist_ok=True)
     writer = YAML()
     writer.default_flow_style = False
     writer.width = 120
-    with path.open("w") as fh:
+    # newline="\n": deterministic LF on every platform — Windows text mode would
+    # otherwise write CRLF and break the byte-identical init-template golden.
+    with path.open("w", newline="\n") as fh:
         writer.dump(doc, fh)
     return path

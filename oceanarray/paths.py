@@ -170,6 +170,84 @@ def stage_output_name(mooring: str, serial: Any, stage: int, tag: str = "") -> s
     return f"{mooring}_{safe_serial(serial)}{tag}_stage{stage}.nc"
 
 
+#: The multi-instrument products a mooring directory holds, each named
+#: ``{name}_{product}.nc`` at the top of the mooring directory.
+PRODUCTS: frozenset[str] = frozenset({"stack", "grid"})
+
+
+def stage_file(
+    mooring_dir: _PathLike,
+    name: str,
+    instrument: str,
+    serial: Any,
+    stage: int,
+    *,
+    tag: str = "",
+) -> Path:
+    """Return the full path of one instrument's stage file.
+
+    ``<mooring_dir>/<instrument>/<name>_<serial>{tag}_stage<N>.nc`` — the mooring's
+    identity is *name* (every file is named from it), its location is *mooring_dir*,
+    and the instrument type is the subdirectory. Thin wrapper over
+    :func:`stage_output_name`.
+
+    Parameters
+    ----------
+    mooring_dir : str or pathlib.Path
+        The mooring's own directory, holding the per-instrument subdirectories.
+    name : str
+        The mooring's ``name`` (its identity).
+    instrument : str
+        The instrument type (the subdirectory name, e.g. ``"microcat"``).
+    serial : Any
+        Raw instrument serial (cleaned internally via :func:`safe_serial`).
+    stage : int
+        Processing stage number (1, 2, or 3).
+    tag : str, optional
+        Extra filename tag before ``_stage``. Used only for ``adcp-matlab`` files,
+        where it carries the per-file index (``_000``, ``_001``, …) from
+        ``stage1._find_file_tag``; ``""`` for every other instrument.
+
+    Returns
+    -------
+    pathlib.Path
+        The stage file path.
+    """
+    return Path(mooring_dir) / instrument / stage_output_name(name, serial, stage, tag)
+
+
+def product_file(mooring_dir: _PathLike, name: str, product: str) -> Path:
+    """Return the full path of a mooring-level product file.
+
+    ``<mooring_dir>/<name>_<product>.nc`` for *product* in :data:`PRODUCTS`
+    (``"stack"`` or ``"grid"``).
+
+    Parameters
+    ----------
+    mooring_dir : str or pathlib.Path
+        The mooring's own directory.
+    name : str
+        The mooring's ``name`` (its identity).
+    product : str
+        The product, one of :data:`PRODUCTS`.
+
+    Returns
+    -------
+    pathlib.Path
+        The product file path.
+
+    Raises
+    ------
+    ValueError
+        If *product* is not in :data:`PRODUCTS`.
+    """
+    if product not in PRODUCTS:
+        raise ValueError(
+            f"unknown product {product!r}; expected one of {sorted(PRODUCTS)}."
+        )
+    return Path(mooring_dir) / f"{name}_{product}.nc"
+
+
 def require_current_layout(proc_root: _PathLike, mooring: str) -> None:
     """Raise if *proc_root* points at a removed legacy layout, naming the fix.
 

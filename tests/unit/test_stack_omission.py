@@ -16,7 +16,7 @@ import xarray as xr
 import yaml
 
 from oceanarray.exceptions import MooringError
-from oceanarray.processors.stack import MooringStacker
+from oceanarray.pipeline.stack import MooringStacker
 
 _FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "proc" / "dune2_1_2026"
 

@@ -15,7 +15,7 @@ pytest.importorskip(
     "seasenselib", reason="grid imports seasenselib.writers at module load"
 )
 
-from oceanarray.processors.grid import TimeGriddingProcessor
+from oceanarray.pipeline.grid import TimeGriddingProcessor
 
 pytestmark = pytest.mark.needs_seasenselib
 

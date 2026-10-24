@@ -2,7 +2,6 @@
 
 Submodules
 ----------
-readers      : Supplementary data readers (Nortek CSV, RODB legacy).
 rapid_interp : Physics-informed vertical interpolation (RAPID array scheme).
 
 Science utilities from the legacy ``tools.py`` are re-exported here so that

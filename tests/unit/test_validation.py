@@ -145,11 +145,11 @@ def test_validate_name_matches_directory(tmp_path):
 
 
 def test_validate_name_differs_from_directory_case_only(tmp_path):
-    """name: differing from its directory by case only → WARNING, not ERROR.
+    """A directory whose basename differs from name: → WARNING, not ERROR.
 
-    The regression that motivated the check: ``name: Dune2_1_2026`` in a
-    ``dune2_1_2026`` directory loads zero files on a case-sensitive filesystem but
-    is invisible on macOS.
+    Outputs are named from ``name:``, so a directory that differs (most often a
+    copied folder left unrenamed) is a hint, not an error — the files are still
+    named from ``name``.
     """
     data = dict(_VALID_MINIMAL, name="dsTest_1_2026")
     d = tmp_path / "dstest_1_2026"  # directory differs by case
@@ -157,9 +157,7 @@ def test_validate_name_differs_from_directory_case_only(tmp_path):
     p = d / "dsTest_1_2026.mooring.yaml"
     p.write_text(yaml.dump(data))
     issues = mooring.check(str(p))
-    warns = [
-        w for w in _warnings(issues) if "does not match its directory" in w.message
-    ]
+    warns = [w for w in _warnings(issues) if "differs from 'name:" in w.message]
     assert len(warns) == 1
     assert "dsTest_1_2026" in warns[0].message and "dstest_1_2026" in warns[0].message
     assert _errors(issues) == []  # warning only — the fixture must stay processable
@@ -426,7 +424,7 @@ def test_serial_collision_errors_reads_yaml(tmp_path):
 def test_process_refuses_colliding_serials_before_writing(tmp_path):
     import pytest
 
-    from oceanarray.processors import process
+    from oceanarray.pipeline import process
 
     mooring = "dsTest_1_2026"
     mdir = tmp_path / mooring

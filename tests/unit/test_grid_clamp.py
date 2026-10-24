@@ -21,7 +21,7 @@ from pathlib import Path
 
 import yaml
 
-from oceanarray.processors.grid import TimeGriddingProcessor
+from oceanarray.pipeline.grid import TimeGriddingProcessor
 
 _FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "proc" / "dune2_1_2026"
 

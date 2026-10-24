@@ -10,7 +10,7 @@ from typing import Any
 import numpy as np
 
 from .. import parameters as params
-from ..utilities import parse_latlon_with_source
+from ..utilities import is_unknown_latlon_source, parse_latlon_with_source
 from ._env import (
     render_history,
     render_nc_coords,
@@ -244,7 +244,7 @@ def build_grid_context(ds: Any, grid_path: Path) -> GridContext:
 
     """
     lat_v, _, source = parse_latlon_with_source(dict(ds.attrs))
-    lat_resolved = not source.startswith("unknown")
+    lat_resolved = not is_unknown_latlon_source(source)
     if not lat_resolved:
         warnings.warn(
             f"grid report: mooring latitude unresolved from attrs "

@@ -31,10 +31,10 @@ pytest.importorskip(
     "seasenselib", reason="stage2/grid import seasenselib.writers at module load"
 )
 
-from oceanarray.processors.grid import MooringGridder
-from oceanarray.processors.stack import MooringStacker
-from oceanarray.processors.stage2 import Stage2Processor
-from oceanarray.processors.stage3 import Stage3Processor
+from oceanarray.pipeline.grid import MooringGridder
+from oceanarray.pipeline.stack import MooringStacker
+from oceanarray.pipeline.stage2 import Stage2Processor
+from oceanarray.pipeline.stage3 import Stage3Processor
 
 pytestmark = pytest.mark.needs_seasenselib
 

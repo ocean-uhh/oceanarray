@@ -16,7 +16,7 @@ pytest.importorskip(
     "seasenselib", reason="stage2 imports seasenselib.writers at module load"
 )
 
-from oceanarray.processors.stage2 import Stage2Processor
+from oceanarray.pipeline.stage2 import Stage2Processor
 
 pytestmark = pytest.mark.needs_seasenselib
 

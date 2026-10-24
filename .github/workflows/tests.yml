@@ -25,6 +25,10 @@ jobs:
           # ubuntu-only to keep the job count down.
           - { os: ubuntu-latest, python-version: "3.12" }
           - { os: ubuntu-latest, python-version: "3.13" }
+          # Forward-looking probe for 3.14: allowed to fail (experimental) so a
+          # dependency not yet 3.14-ready does not block the required check. Not
+          # in the supported range / pyproject classifiers yet.
+          - { os: ubuntu-latest, python-version: "3.14", experimental: true }
 
     steps:
       - uses: actions/checkout@v7
@@ -33,6 +37,7 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
+          allow-prereleases: ${{ matrix.experimental == true }}
           cache: "pip"
 
       - name: Install oceanarray (test extra = runtime + pytest)

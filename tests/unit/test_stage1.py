@@ -9,7 +9,7 @@ import xarray as xr
 
 pytest.importorskip("seasenselib", reason="seasenselib not installed")
 
-from oceanarray.processors.stage1 import MooringProcessor
+from oceanarray.pipeline.stage1 import MooringProcessor
 
 pytestmark = pytest.mark.needs_seasenselib
 
@@ -178,7 +178,7 @@ class TestMooringProcessor:
         """Raw ``cond0S/m`` → ``conductivity`` with units ``S/m``, value unchanged.
 
         The NetCDF-illegal column name is fixed here; the S/m → mS cm-1 ×10
-        conversion is left to ``processors.units.to_canonical_units``.
+        conversion is left to ``pipeline.units.to_canonical_units``.
         """
         ds = xr.Dataset(
             {"cond0S/m": (["time"], np.array([0.0, 0.361, 3.61], dtype="float32"))},
@@ -351,9 +351,7 @@ class TestRbrHexOaAlias:
         fake_ds = xr.Dataset({"temperature": ("time", [1.0, 2.0])})
 
         with (
-            mock.patch(
-                "oceanarray.processors.stage1.seasenselib.read", return_value=fake_ds
-            ) as mock_read,
+            mock.patch("seasenselib.read", return_value=fake_ds) as mock_read,
             pytest.warns(DeprecationWarning, match="rbr-hex-oa"),
         ):
             out = processor._read_file("rbr-hex-oa", "13875_recovery.hex")

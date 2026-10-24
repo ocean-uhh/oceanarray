@@ -1,6 +1,6 @@
 """Unit tests for the units-canonicalisation machinery.
 
-Covers :func:`oceanarray.processors.units.to_canonical_units` (the registry-scoped,
+Covers :func:`oceanarray.pipeline.units.to_canonical_units` (the registry-scoped,
 idempotent pass that rewrites a file's units to one canonical spelling per quantity),
 oceanarray's view of the family tables (:mod:`oceanarray.config.unit_tables`) — its
 density-basis invariant and its agreement with the registry — and
@@ -22,7 +22,7 @@ import xarray as xr
 
 from oceanarray import parameters as params
 from oceanarray.config import unit_tables as ut
-from oceanarray.processors import units as pu
+from oceanarray.pipeline import units as pu
 
 
 def _ds(**vars_with_units):
@@ -448,14 +448,14 @@ def test_deprecated_tables_warn_and_match_the_old_shape():
 def test_units_layer_imports_no_plotting_or_templating():
     """The storage pass reaches into the vendored layer for its tables only."""
     code = (
-        "import sys, oceanarray.processors.units; "
+        "import sys, oceanarray.pipeline.units; "
         "bad = [m for m in ('matplotlib', 'jinja2') if m in sys.modules]; "
         "print(','.join(bad))"
     )
     out = subprocess.run(
         [sys.executable, "-c", code], capture_output=True, text=True, check=True
     )
-    assert out.stdout.strip() == "", f"processors.units imports {out.stdout.strip()}"
+    assert out.stdout.strip() == "", f"pipeline.units imports {out.stdout.strip()}"
 
 
 def test_deprecated_names_warn_and_delegate():

@@ -13,7 +13,7 @@ Top-level ``process()`` function, ``STAGES`` registry, and ``resolve_stage()``
 dispatcher.  These are the primary public API for driving the pipeline from
 Python code.
 
-.. automodule:: oceanarray.processors
+.. automodule:: oceanarray.pipeline
    :members:
    :undoc-members:
 
@@ -36,9 +36,22 @@ I/O and shared tools
 
 readers
 ^^^^^^^
-Supplementary data readers (Nortek CSV, RODB legacy format).
+``oceanarray.readers.read(path)`` reads one raw instrument file to a canonical
+dataset: it sniffs the file content (never the suffix) to pick the format, finds
+the Nortek ``.hdr`` beside a data file, and dispatches to the per-format module
+(``sbe``, ``nortek``, ``rodb``, ``oceansites``, ``netcdf``). An oceanarray netCDF
+is returned unchanged; an OceanSITES netCDF is read to oceanarray names. A known
+``file_type=`` overrides the sniffer.
 
-.. automodule:: oceanarray.tools.readers
+.. automodule:: oceanarray.readers
+   :members:
+   :undoc-members:
+
+.. automodule:: oceanarray.readers.oceansites
+   :members:
+   :undoc-members:
+
+.. automodule:: oceanarray.readers.rodb
    :members:
    :undoc-members:
 
@@ -86,7 +99,7 @@ stage 1 — standardisation
 Convert raw instrument files (SeaBird, RBR, Nortek, RDI) to CF-NetCDF.
 Faithful to raw data; no QC.
 
-.. automodule:: oceanarray.processors.stage1
+.. automodule:: oceanarray.pipeline.stage1
    :members:
    :undoc-members:
 
@@ -94,7 +107,7 @@ stage 2 — trimming and clock correction
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Trim to the deployment window; apply linear clock-offset/drift correction.
 
-.. automodule:: oceanarray.processors.stage2
+.. automodule:: oceanarray.pipeline.stage2
    :members:
    :undoc-members:
 
@@ -103,7 +116,7 @@ stage 3 — QC, rotation, and derived variables
 Apply QC flags, rotate ADCP velocities to ENU, apply magnetic declination
 correction, and compute derived quantities (salinity, density, speed/direction).
 
-.. automodule:: oceanarray.processors.stage3
+.. automodule:: oceanarray.pipeline.stage3
    :members:
    :undoc-members:
 
@@ -111,7 +124,7 @@ pressure
 ^^^^^^^^
 Pressure interpolation helpers (HAB computation, gap-filling).
 
-.. automodule:: oceanarray.processors.pressure
+.. automodule:: oceanarray.pipeline.pressure
    :members:
    :undoc-members:
 
@@ -119,7 +132,7 @@ qc
 ^^
 QARTOD quality-control tests.
 
-.. automodule:: oceanarray.processors.qc
+.. automodule:: oceanarray.pipeline.qc
    :members:
    :undoc-members:
 
@@ -127,7 +140,7 @@ coordinate
 ^^^^^^^^^^
 Coordinate system transformations (BEAM → XYZ → ENU, magnetic declination).
 
-.. automodule:: oceanarray.processors.coordinate
+.. automodule:: oceanarray.pipeline.coordinate
    :members:
    :undoc-members:
 
@@ -137,7 +150,7 @@ Calibration-dip correction contract and interface, applied at the front of Stage
 Currently a stub: the interface functions raise ``NotImplementedError`` pending the
 implementation (see :doc:`methods/calibration`).
 
-.. automodule:: oceanarray.processors.caldip
+.. automodule:: oceanarray.pipeline.caldip
    :members:
    :undoc-members:
 
@@ -149,7 +162,7 @@ stack
 Interpolate multiple instruments onto a common time grid and stack into a
 single mooring dataset (``oceanarray process MOORING --stage stack``).
 
-.. automodule:: oceanarray.processors.stack
+.. automodule:: oceanarray.pipeline.stack
    :members:
    :undoc-members:
 
@@ -158,7 +171,7 @@ grid
 Interpolate stacked mooring data onto a regular pressure grid
 (``oceanarray process MOORING --stage grid``).
 
-.. automodule:: oceanarray.processors.grid
+.. automodule:: oceanarray.pipeline.grid
    :members:
    :undoc-members:
 
@@ -166,7 +179,7 @@ mooring helpers
 ^^^^^^^^^^^^^^^
 Shared helpers for position parsing, HAB computation, and instrument metadata.
 
-.. automodule:: oceanarray.processors.helpers
+.. automodule:: oceanarray.pipeline.helpers
    :members:
    :undoc-members:
 

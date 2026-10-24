@@ -13,7 +13,7 @@ FIXTURE = Path("tests/fixtures/proc/dune2_1_2026/dune2_1_2026.mooring.yaml")
 def test_load_keeps_every_key() -> None:
     """``load`` returns the parsed mapping with every key as written."""
     data = mooring.load(FIXTURE)
-    assert data["name"] == "Dune2_1_2026"
+    assert data["name"] == "dune2_1_2026"
     assert data["waterdepth"] == 745
     assert data["latitude"] == "65 43.913"  # kept as the raw string, not parsed
     assert "clamp" in data
@@ -30,7 +30,7 @@ def test_load_from_mapping_round_trips() -> None:
 def test_load_by_name_and_proc_dir() -> None:
     """A bare mooring name resolves against ``proc_dir``."""
     data = mooring.load("dune2_1_2026", proc_dir="tests/fixtures/proc")
-    assert data["name"] == "Dune2_1_2026"
+    assert data["name"] == "dune2_1_2026"
 
 
 def test_load_missing_file_raises() -> None:

@@ -8,9 +8,9 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from oceanarray.processors.coordinate import apply_declination_to_enu
-from oceanarray.processors.units import UnitsError, to_canonical_units
-from oceanarray.tools.readers import read_oceansites, read_rodb
+from oceanarray.pipeline.coordinate import apply_declination_to_enu
+from oceanarray.pipeline.units import UnitsError, to_canonical_units
+from oceanarray.readers import read_oceansites, read_rodb
 
 OSNAP = Path(__file__).resolve().parents[1] / "fixtures" / "raw" / "osnap"
 WHOI_CM = OSNAP / "OS_OSNAP_WHOI_CF7_202007_CM_500m.nc"

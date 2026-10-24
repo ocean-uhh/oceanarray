@@ -22,6 +22,7 @@ from pathlib import Path
 import numpy as np
 import xarray as xr
 
+from oceanarray.logger import log_info
 from oceanarray.utilities import cast_output_dtypes
 
 _DATETIME_ENCODING_ATTRS = ("units", "calendar")
@@ -323,7 +324,7 @@ def _prepare(ds: xr.Dataset, *, compress: bool = True) -> xr.Dataset:
     return safe
 
 
-def write(ds: xr.Dataset, path: Path | str) -> None:
+def write(ds: xr.Dataset, path: Path | str, *, overwrite: bool = False) -> Path:
     """Write *ds* to *path* as compressed CF-NetCDF, one seam for every stage.
 
     Casts variables to their storage dtypes, sanitizes names and attributes to
@@ -340,12 +341,28 @@ def write(ds: xr.Dataset, path: Path | str) -> None:
         Dataset to write.
     path : pathlib.Path or str
         Output netCDF path.  The parent directory is created if absent.
+    overwrite : bool, optional
+        When False (the default), refuse to replace an existing *path*; the
+        processing stages pass ``overwrite=True`` so re-running a stage replaces
+        its output.
 
     Returns
     -------
-    None
+    pathlib.Path
+        The path written.
+
+    Raises
+    ------
+    FileExistsError
+        If *path* exists and *overwrite* is False.
     """
     path = Path(path)
+    if path.exists():
+        if not overwrite:
+            raise FileExistsError(f"{path} exists; pass overwrite=True to replace it.")
+        # Re-running a stage is routine, but never silent: a replaced file is logged
+        # so a re-run is visible in the log and the report's run summary.
+        log_info("overwriting %s", path)
     path.parent.mkdir(parents=True, exist_ok=True)
 
     safe = _prepare(ds)
@@ -362,3 +379,4 @@ def write(ds: xr.Dataset, path: Path | str) -> None:
         if tmp.exists():
             tmp.unlink()
         raise
+    return path
