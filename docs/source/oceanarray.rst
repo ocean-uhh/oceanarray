@@ -17,6 +17,20 @@ Python code.
    :members:
    :undoc-members:
 
+mooring
+^^^^^^^
+``oceanarray.mooring`` is the single seam for reading one mooring's description
+(a ``*.mooring.yaml`` file or the dict parsed from one): ``load`` (validates,
+raises ``MooringError`` on an invalid config), ``check`` (never raises), and
+``template`` / ``save`` for the ``init`` stub. Every stage and report receives the
+loaded dict rather than re-reading the file. Interpreting that dict — which
+entries to process, the position — is the caller's job, through
+``utilities.instrument_entries`` and ``utilities.parse_latlon_with_source``.
+
+.. automodule:: oceanarray.mooring
+   :members:
+   :undoc-members:
+
 I/O and shared tools
 ---------------------
 

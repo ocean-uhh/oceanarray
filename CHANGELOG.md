@@ -6,6 +6,25 @@ All notable changes to oceanarray are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- `oceanarray.mooring` — the single seam for reading a mooring description: `load` (path, name + `proc_dir`, or dict; validates and raises `MooringError` on an invalid config), `check` (never raises; adds an unknown-top-level-key warning), `template` and `save`, plus `oceanarray.MooringError`. Every stage, report and CLI path now receives the loaded dict instead of calling `yaml.safe_load` itself; a test (`test_config_sites`) fails if a new mooring-config `safe_load` appears outside the loader. `scripts/survey_mooring_keys.py` lists the top-level keys on a processed-data root that are not yet in `mooring.KNOWN_KEYS`.
+- `utilities.instrument_entries(mooring)` — the one place the `clamp`/legacy-`instruments` fallback and the inline merge live, used by every stage, report and the CLI; it treats a present-but-null `clamp:`/`inline:` as empty (previously a `TypeError`).
+
+### Changed
+
+- Required mooring-config keys are now `name` and `waterdepth` only; `deployment_time` and `recovery_time` are recommended — absent, they produce a WARNING (Stage 2 can detect the window from the records) rather than the ERROR `validate` used to report.
+- Stage 2 raises `MooringError` on a present-but-unparseable `deployment_time`/`recovery_time` (a log-sheet typo) instead of silently treating it as absent; a genuinely absent value is still tolerated (`NaT`).
+- `stack` raises `MooringError` naming both keys when the config has no deployment window (the common time axis is that window) instead of a bare `KeyError`.
+- `oceanarray report --dry-run` previews a half-filled config without raising: it prints the validation issues and lists what parses, and only stops on a file that is not YAML at all.
+- `oceanarray init` builds its stub through `mooring.template` + `mooring.save`; the written file is byte-identical to before.
+- `mooring.KNOWN_KEYS` (the vocabulary the unknown-key warning checks against) gains the position tiers `seabed_*` / `deployment_*` / `planned_*`, `qc_ranges` and `directory`, confirmed against real mooring descriptions.
+
+### Deprecated
+
+- `config.validation.validate_mooring_yaml(path)` — use `oceanarray.mooring.check`, which reads the file once and adds the unknown-key check. The wrapper warns and will be removed in a future release.
+- `directory:` in a mooring description — a raw-data root belongs to `raw_dir` / `--raw-dir`, not the YAML; `check` warns, and the stage-1 absolute-path override is removed in 0.7.0.
+
 ## [0.5.1] — 2026-10-23
 
 > The units-display entries — *Units tables come from the shared report layer*, *N² keeps the spelling it arrives with*, *Legacy vocabulary files moved and renamed*, and the two *Deprecated* items — landed as direct-to-main commits (`cdcffc9`/`8982831`/`735adaa`, the units display sweep), not a pull request; [#107](https://github.com/ocean-uhh/oceanarray/pull/107) documented the sweep and added the derived-quantity guard. See `.claude/done/ROADMAP.md`.
