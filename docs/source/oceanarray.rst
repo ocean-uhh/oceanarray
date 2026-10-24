@@ -154,6 +154,14 @@ implementation (see :doc:`methods/calibration`).
    :members:
    :undoc-members:
 
+stamp
+^^^^^
+Mark stage files written before the ``processing_stage`` marker existed
+(``oceanarray stamp FILE... --stage N``).
+
+.. automodule:: oceanarray.pipeline.stamp
+   :members:
+
 Mooring processing
 -------------------
 

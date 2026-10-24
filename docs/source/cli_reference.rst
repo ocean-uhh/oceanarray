@@ -47,6 +47,32 @@ if any errors are found.
 
 ----
 
+``oceanarray stamp``
+---------------------
+
+Mark stage files written before the ``processing_stage`` marker existed.  Each file
+is read, the marker for the stage its filename states is added (with a ``history``
+line saying it was declared, not earned by processing), and the file is rewritten
+with its data unchanged.  A file whose name or existing marker says another stage is
+refused; a file already carrying the marker is left alone.
+
+.. argparse::
+   :module: oceanarray.cli
+   :func: build_parser
+   :prog: oceanarray
+   :path: stamp
+   :nodescription:
+
+**Example**
+
+.. code-block:: bash
+
+   oceanarray stamp /data/proc/dsG3_1_2026/*/dsG3_1_2026_*_stage3.nc --stage 3
+
+Exits with a non-zero status if any file was refused.
+
+----
+
 ``oceanarray init``
 -------------------
 

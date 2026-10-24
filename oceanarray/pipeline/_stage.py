@@ -47,7 +47,12 @@ def append_history(ds: xr.Dataset, note: str) -> None:
 
 
 def stamp(
-    ds: xr.Dataset, stage: int, *, source: str | None = None, inferred: bool = False
+    ds: xr.Dataset,
+    stage: int,
+    *,
+    source: str | None = None,
+    inferred: bool = False,
+    declared: bool = False,
 ) -> xr.Dataset:
     """Return a copy of *ds* marked as the output of *stage*.
 
@@ -66,6 +71,9 @@ def stamp(
         When True, the stage was not earned by processing but read off an
         unmarked file's name; the ``history`` line says so, keeping the
         provenance honest.
+    declared : bool, optional
+        When True, the stage was declared by the ``stamp`` command for a file
+        written before the marker existed; the ``history`` line says so.
 
     Returns
     -------
@@ -77,6 +85,8 @@ def stamp(
     note = f"processing_stage {int(stage)}"
     if inferred:
         note += " inferred from filename"
+    elif declared:
+        note += " declared via stamp"
     append_history(out, note)
     if source is not None:
         out.attrs["source_file"] = source

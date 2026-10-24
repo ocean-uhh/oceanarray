@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 import xarray as xr
 
+from oceanarray import parameters as params
 from oceanarray import readers
 
 _RAW = Path(__file__).parent.parent / "fixtures" / "raw"
@@ -38,8 +39,10 @@ _OCEANSITES_NC = _RAW / "osnap" / "OS_OSNAP_WHOI_CF7_202007_CM_500m.nc"
     ],
 )
 def test_sniff_text_identifies_each_type(path, expected):
-    """Each text fixture is identified from its content, not its suffix."""
-    assert readers._sniff_text(path) == expected
+    """Each text fixture is identified from its content, as a valid ``file_type:`` value."""
+    sniffed = readers._sniff_text(path)
+    assert sniffed == expected
+    assert sniffed in params.ALL_FILE_TYPES
 
 
 def test_sniff_ignores_the_suffix(tmp_path):

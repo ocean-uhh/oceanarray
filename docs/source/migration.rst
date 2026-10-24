@@ -31,6 +31,17 @@ Upgrading from 0.5 to 0.6
   basename differs from ``name:`` now produces a WARNING — most often a folder
   copied and not renamed, which would otherwise write its outputs under the
   original mooring's name.
+- **Stage files carry a ``processing_stage`` marker.**  Files written by 0.6 record
+  the stage that produced them, and reading a stage file checks it.  A file written
+  before 0.6 has no marker: it is still read, with a WARNING, and its stage inferred
+  from its filename.  0.7.0 will refuse unmarked files; mark existing ones once with
+  ``oceanarray stamp <files> --stage N`` (it writes only the marker, and refuses a
+  file whose name says another stage).
+- **A stage file made under a different mooring name is refused.**  Reading a stage
+  file whose ``mooring_name`` differs from the description's ``name:`` by more than
+  case raises; reprocess it from stage 1.  A case-only difference is corrected.
+- **Stacking no longer reads ``sample_interval_seconds``.**  Each instrument's
+  sampling interval is detected from its time stamps.
 
 ----
 
