@@ -103,6 +103,15 @@ Faithful to raw data; no QC.
    :members:
    :undoc-members:
 
+raw files
+^^^^^^^^^
+Find and read one instrument's raw file as stage 1 does: the recovery-file naming
+convention for a missing ``filename``, the Nortek header, and the calibration metadata
+only the raw header holds.
+
+.. automodule:: oceanarray.pipeline.raw_files
+   :members:
+
 stage 2 — trimming and clock correction
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Trim to the deployment window; apply linear clock-offset/drift correction.

@@ -98,18 +98,42 @@ def test_all_call_sites_agree():
 
 
 @pytest.mark.needs_seasenselib
-def test_stage1_call_site_agrees():
-    """stage1's ``_safe_serial`` static method delegates to the same rule.
+def test_stage1_call_site_agrees(tmp_path):
+    """Stage 1 names a comma serial's output by the primary serial, as every stage does.
 
     Separated from :func:`test_all_call_sites_agree` because importing stage1
     pulls in the optional ``seasenselib`` dependency.
     """
     pytest.importorskip("seasenselib")
+    import shutil
+    import warnings
+
+    import yaml
+
     from oceanarray.pipeline.stage1 import MooringProcessor
 
-    assert MooringProcessor._safe_serial("16430, R01-024") == safe_serial(
-        "16430, R01-024"
+    fixtures = Path(__file__).parent.parent / "fixtures"
+    cfg = yaml.safe_load(
+        (fixtures / "proc/dune2_1_2026/dune2_1_2026.mooring.yaml").read_text()
     )
+    cfg["clamp"] = [cfg["clamp"][0]]
+    cfg["clamp"][0]["serial"] = "2941, R01-024"
+    raw = tmp_path / "raw" / "dune2_1_2026" / "microcat"
+    raw.mkdir(parents=True)
+    shutil.copy(fixtures / "raw/dune2_1_2026/microcat/2941_recovery.asc", raw)
+    proc = tmp_path / "proc" / "dune2_1_2026"
+    proc.mkdir(parents=True)
+    (proc / "dune2_1_2026.mooring.yaml").write_text(yaml.safe_dump(cfg))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        assert MooringProcessor(
+            raw_dir=str(tmp_path / "raw"), proc_dir=str(tmp_path / "proc")
+        ).process_mooring("dune2_1_2026", force=True)
+    expected = stage_file(
+        proc, "dune2_1_2026", "microcat", safe_serial("2941, R01-024"), 1
+    )
+    assert expected.name == "dune2_1_2026_2941_stage1.nc"
+    assert expected.exists()
 
 
 def test_mooring_and_raw_dirs():
