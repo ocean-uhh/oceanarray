@@ -136,15 +136,15 @@ def test_mooring_attrs_warn_and_mark_none_when_absent():
 # ---------------------------------------------------------------------------
 
 
-def test_raw_read_stamps_the_marker_and_facts():
-    """read_mooring(stage=None) reads each raw file and stamps the stage-1 facts."""
+def test_raw_read_stamps_the_facts_and_no_marker():
+    """read_mooring(stage=None) reads each raw file, stamps the facts, and leaves it unmarked."""
     pytest.importorskip("seasenselib", reason="seasenselib not installed")
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         datasets = read_mooring(_cfg(), stage=None, raw_dir=_RAW)
     assert sorted(datasets) == ["2941", "9920"]
     mc = datasets["2941"]
-    assert mc.attrs[_stage.STAGE_ATTR] == 1
+    assert _stage.STAGE_ATTR not in mc.attrs
     assert mc.attrs["serial"] == "2941"
     assert mc.attrs["instrument"] == "microcat"
     assert mc.attrs["hab"] == 425

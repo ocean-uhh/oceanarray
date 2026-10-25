@@ -1,9 +1,8 @@
 """Read every instrument of one mooring into a dict of datasets.
 
-:func:`read_mooring` loops :func:`oceanarray.readers.read` (or opens the stage
-files) over the instruments a mooring description lists, and — when reading raw
-(``stage=None``) — stamps each dataset with the description's facts: the
-per-instrument entry (serial, instrument, hab, …) and the per-mooring header
+:func:`read_mooring` reads each raw file (or opens each stage file) of the
+instruments a mooring description lists, and stamps each dataset with the
+description's facts: the per-instrument entry (serial, instrument, hab, …) and the per-mooring header
 (name, position, deployment window, water depth). These attributes are the
 contract every pure stage function and product relies on, so they travel with
 the data rather than being re-read from the YAML at each step.
@@ -25,7 +24,7 @@ import xarray as xr
 from oceanarray import mooring as _mooring
 from oceanarray import paths, readers
 from oceanarray.exceptions import MooringError
-from oceanarray.pipeline import _stage
+from oceanarray.pipeline import _stage, raw_files
 from oceanarray.utilities import (
     format_latlon,
     instrument_entries,
@@ -153,9 +152,13 @@ def read_mooring(
         A loaded mooring description, a ``*.mooring.yaml`` path, or a directory
         holding exactly one such file.
     stage : int or None, optional
-        ``None`` reads each raw file (from *raw_dir*) and stamps the description's
-        facts; ``2`` or ``3`` opens the stage file (from *mooring_dir*) and checks
-        its ``processing_stage`` marker.
+        ``None`` finds and reads each raw file (from *raw_dir*) as stage 1 does —
+        a missing ``filename`` found by naming convention, the Nortek header, the
+        raw header's calibration metadata — and returns it unmarked, ready for
+        :func:`oceanarray.pipeline.stage1.stage1`; entries marked ``skip`` are left
+        out. ``1``, ``2`` or ``3`` opens the stage file (from *mooring_dir*) and
+        checks its ``processing_stage`` marker. The description's facts are
+        stamped on every path.
     serials : iterable of str or None, optional
         If given, read only the instruments whose (cleaned) serial is listed.
     allow_missing : bool, optional
@@ -211,11 +214,26 @@ def read_mooring(
             )
 
         if stage is None:
-            ds = _read_raw(entry, instr_type, name, raw_dir)
-            if ds is None:
+            if entry.get("skip"):
                 continue
-            ds = _join_description(ds, entry, serial, instr_type, moor_attrs)
-            ds = _stage.stamp(ds, 1, source=entry.get("filename"))
+            try:
+                raw = raw_files.resolve_raw_file(entry, cfg, raw_dir)
+                if not raw.path.exists():
+                    raise FileNotFoundError(
+                        f"{name}: {instr_type} s/n {serial} raw file not found at "
+                        f"{raw.path}."
+                    )
+            except (MooringError, FileNotFoundError):
+                if not allow_missing:
+                    raise
+                warnings.warn(
+                    f"{name}: {instr_type} s/n {serial} has no raw file; skipping "
+                    "(allow_missing).",
+                    stacklevel=2,
+                )
+                continue
+            ds = raw_files.read_raw_file(raw)
+            ds = _join_description(ds, raw.entry, serial, instr_type, moor_attrs)
         else:
             ds = _read_stage(
                 serial, instr_type, name, stage, mooring_dir, allow_missing
@@ -230,18 +248,37 @@ def read_mooring(
     return datasets
 
 
-def _read_raw(
-    entry: dict[str, Any],
-    instr_type: str,
-    name: str,
-    raw_dir: str | Path | None,
-) -> xr.Dataset | None:
-    """Read one instrument's raw file, or None if the entry names no file."""
-    filename = entry.get("filename")
-    if not filename:
-        return None
-    raw_path = paths.raw_mooring_dir(raw_dir, name) / instr_type / filename
-    return readers.read(raw_path, file_type=entry.get("file_type"))
+def join_raw(
+    ds: xr.Dataset, entry: dict[str, Any], mooring: Mapping[str, Any]
+) -> xr.Dataset:
+    """Join one instrument's raw dataset with its description, as ``read_mooring`` does.
+
+    For a caller that has already found and read the raw file (the stage-1 class,
+    which needs the file's path before reading to decide whether to skip it).
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        The raw dataset, from :func:`oceanarray.pipeline.raw_files.read_raw_file`.
+    entry : dict
+        The instrument's description entry.
+    mooring : Mapping
+        The loaded mooring description.
+
+    Returns
+    -------
+    xarray.Dataset
+        A copy carrying the stamping-contract attributes, unmarked.
+    """
+    serial = paths.safe_serial(entry.get("serial", ""))
+    instr_type = entry.get("instrument")
+    if not instr_type:
+        raise MooringError(
+            f"{mooring['name']}: instrument entry for serial {serial!r} has no "
+            "'instrument' key; it names the subdirectory and the stamped "
+            "instrument type, so it cannot be defaulted."
+        )
+    return _join_description(ds, entry, serial, instr_type, _mooring_attrs(mooring))
 
 
 def _join_description(

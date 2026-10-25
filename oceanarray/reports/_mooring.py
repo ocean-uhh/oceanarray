@@ -550,15 +550,15 @@ class MooringReport:
                 readable, readable_note = (False, "not checked (no --raw-dir)")
             else:
                 # Try auto-guessing filename from standard naming conventions
-                # (same logic as MooringProcessor._guess_instrument_filename).
+                # (the stage-1 raw-file finder, raw_files.guess_instrument_filename).
                 # Skip guessing for instruments marked skip:true — they won't
                 # be processed and there's nothing useful to report.
                 _guessed = None
                 if self._raw_dir is not None and not entry.get("skip"):
-                    from oceanarray.pipeline.stage1 import MooringProcessor as _S1
+                    from oceanarray.pipeline.raw_files import guess_instrument_filename
 
                     _raw_mooring = self._raw_dir / mooring_name
-                    _guessed = _S1._guess_instrument_filename(
+                    _guessed = guess_instrument_filename(
                         entry, mooring_name, _raw_mooring, None
                     )
                 if _guessed is not None:
