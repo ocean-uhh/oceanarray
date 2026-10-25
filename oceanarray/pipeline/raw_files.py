@@ -402,36 +402,80 @@ def read_raw_file(raw: RawFile) -> xr.Dataset:
     return dataset
 
 
+#: The SBE sensors stage 1 records, as (variable suffix, sensor type, sensor model).
+_SBE_SENSORS = {
+    "temperature": ("TEMP", "TEMPERATURE", "Sea-Bird SBE temperature sensor"),
+    "conductivity": ("CNDC", "CONDUCTIVITY", "Sea-Bird SBE conductivity sensor"),
+    "pressure": ("PRES", "PRESSURE", "Sea-Bird pressure sensor"),
+}
+
+
+def _iso_date(raw: str, formats: tuple[str, ...]) -> str:
+    """Return *raw* as ``YYYY-MM-DD`` when it parses with one of *formats*, else unchanged."""
+    import datetime
+
+    for fmt in formats:
+        try:
+            return datetime.datetime.strptime(raw, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            pass
+    return raw
+
+
+def _add_sensor_var(
+    dataset: xr.Dataset,
+    sensor: str,
+    instr_serial: str,
+    sensor_serial: str,
+    cal_date: str,
+    coefficients: str,
+) -> None:
+    """Add one ``SENSOR_<TEMP|CNDC|PRES>_<serial>`` scalar variable carrying the calibration."""
+    import numpy as np
+
+    suffix, sensor_type, model = _SBE_SENSORS[sensor]
+    dataset[f"SENSOR_{suffix}_{instr_serial}"] = xr.Variable(
+        (),
+        np.array(b"", dtype="|S1"),
+        attrs={
+            "long_name": f"{model} metadata",
+            "sensor_type": sensor_type,
+            "sensor_serial_number": sensor_serial,
+            "sensor_model": model,
+            "sensor_calibration_date": cal_date,
+            f"{sensor_type}_calibration_coefficients": coefficients,
+            "cf_role": "sensor_id",
+            "coverage_content_type": "auxiliaryInformation",
+        },
+    )
+
+
 def _add_sbe_ascii_sensor_vars(
     dataset: xr.Dataset, file_path: Path, instrument_config: dict[str, Any]
 ) -> xr.Dataset:
     """Parse calibration coefficients from an SBE ASCII header and add SENSOR_* vars.
 
-    seasenselib's sbe-ascii reader discards the ``* TA0 = …`` header lines.
-    This method re-reads the raw file, extracts the same coefficients the CNV
-    reader would produce, and creates matching SENSOR_* scalar variables so the
-    report calibration table is populated for ASCII-format instruments.
+    seasenselib's sbe-ascii reader discards the ``* TA0 = …`` header lines. This
+    re-reads the raw file, extracts the same coefficients the CNV reader would
+    produce, and creates matching SENSOR_* scalar variables so the report
+    calibration table is populated for ASCII-format instruments.
     """
-    import numpy as np
-    import xarray as xr
-
     try:
         text = file_path.read_text(errors="ignore")
     except OSError:
         return dataset
 
     instr_serial = safe_serial(instrument_config.get("serial", ""))
-
-    # Matches the start of a new calibration section or end-of-header markers
-    _section_start = re.compile(
+    # The start of a new calibration section or an end-of-header marker.
+    section_start = re.compile(
         r"^(temperature|conductivity|pressure|rtc|S>|\*END\*)", re.IGNORECASE
     )
 
-    def _extract_block(header: str, start_pat: str) -> dict[str, str]:
-        """Return coefficient dict from a labelled block of ``*     KEY = VAL`` lines."""
+    def _block(start_pat: str) -> str:
+        """Return ``KEY=VAL, …`` from a labelled block of ``*     KEY = VAL`` lines."""
         coeffs: dict[str, str] = {}
         in_block = False
-        for line in header.splitlines():
+        for line in text.splitlines():
             stripped = line.lstrip("* ").strip()
             if re.match(start_pat, stripped, re.IGNORECASE):
                 in_block = True
@@ -440,99 +484,36 @@ def _add_sbe_ascii_sensor_vars(
                 m = re.match(r"([A-Za-z_]\w*)\s*=\s*(.+)", stripped)
                 if m:
                     coeffs[m.group(1)] = m.group(2).strip()
-                elif stripped and _section_start.match(stripped):
-                    break  # new section started
-        return coeffs
+                elif stripped and section_start.match(stripped):
+                    break
+        return ", ".join(f"{k}={v}" for k, v in coeffs.items())
 
-    def _extract_date(header: str, pat: str) -> str:
-        m = re.search(pat, header, re.IGNORECASE)
-        if m:
-            raw = m.group(1).strip()
-            # Convert dd-Mon-yy → ISO
-            try:
-                import datetime
+    def _date(pat: str) -> str:
+        m = re.search(pat, text, re.IGNORECASE)
+        return _iso_date(m.group(1).strip(), ("%d-%b-%y",)) if m else "—"
 
-                return datetime.datetime.strptime(raw, "%d-%b-%y").strftime("%Y-%m-%d")
-            except ValueError:
-                return raw
-        return "—"
-
-    def _coeff_str(d: dict[str, str]) -> str:
-        return ", ".join(f"{k}={v}" for k, v in d.items())
-
-    def _make_sensor_var(name: str, attrs: dict[str, Any]) -> xr.Variable:  # noqa: ARG001
-        return xr.Variable((), np.array(b"", dtype="|S1"), attrs=attrs)
-
-    # Temperature
-    t_coeffs = _extract_block(text, r"temperature:")
-    t_date = _extract_date(text, r"\* temperature:\s+(.+)")
-    if t_coeffs:
-        coeff_str = _coeff_str(t_coeffs)
-        dataset[f"SENSOR_TEMP_{instr_serial}"] = _make_sensor_var(
-            f"SENSOR_TEMP_{instr_serial}",
-            {
-                "long_name": "Sea-Bird SBE temperature sensor metadata",
-                "sensor_type": "TEMPERATURE",
-                "sensor_serial_number": instr_serial,
-                "sensor_model": "Sea-Bird SBE temperature sensor",
-                "sensor_calibration_date": t_date,
-                "TEMPERATURE_calibration_coefficients": coeff_str,
-                "cf_role": "sensor_id",
-                "coverage_content_type": "auxiliaryInformation",
-            },
-        )
-
-    # Conductivity
-    c_coeffs = _extract_block(text, r"conductivity:")
-    c_date = _extract_date(text, r"\* conductivity:\s+(.+)")
-    if c_coeffs:
-        coeff_str = _coeff_str(c_coeffs)
-        dataset[f"SENSOR_CNDC_{instr_serial}"] = _make_sensor_var(
-            f"SENSOR_CNDC_{instr_serial}",
-            {
-                "long_name": "Sea-Bird SBE conductivity sensor metadata",
-                "sensor_type": "CONDUCTIVITY",
-                "sensor_serial_number": instr_serial,
-                "sensor_model": "Sea-Bird SBE conductivity sensor",
-                "sensor_calibration_date": c_date,
-                "CONDUCTIVITY_calibration_coefficients": coeff_str,
-                "cf_role": "sensor_id",
-                "coverage_content_type": "auxiliaryInformation",
-            },
-        )
-
-    # Pressure  (line like: * pressure S/N 2385215, range = 2900 psia: 10-nov-08)
-    p_coeffs = _extract_block(text, r"pressure\s+S/N")
-    p_date_match = re.search(r"\* pressure\s+S/N[^:]+:\s+(.+)", text, re.IGNORECASE)
-    p_date = "—"
-    p_serial = instr_serial
-    if p_date_match:
-        raw = p_date_match.group(1).strip()
-        try:
-            import datetime
-
-            p_date = datetime.datetime.strptime(raw, "%d-%b-%y").strftime("%Y-%m-%d")
-        except ValueError:
-            p_date = raw
+    # Pressure header line: "* pressure S/N 2385215, range = 2900 psia: 10-nov-08".
     sn_match = re.search(r"pressure\s+S/N\s+(\d+)", text, re.IGNORECASE)
-    if sn_match:
-        p_serial = sn_match.group(1)
-    if p_coeffs:
-        coeff_str = _coeff_str(p_coeffs)
-        dataset[f"SENSOR_PRES_{instr_serial}"] = _make_sensor_var(
-            f"SENSOR_PRES_{instr_serial}",
-            {
-                "long_name": "Sea-Bird pressure sensor metadata",
-                "sensor_type": "PRESSURE",
-                "sensor_serial_number": p_serial,
-                "sensor_model": "Sea-Bird pressure sensor",
-                "sensor_calibration_date": p_date,
-                "PRESSURE_calibration_coefficients": coeff_str,
-                "cf_role": "sensor_id",
-                "coverage_content_type": "auxiliaryInformation",
-            },
-        )
-
+    blocks = {
+        "temperature": (r"temperature:", r"\* temperature:\s+(.+)", instr_serial),
+        "conductivity": (r"conductivity:", r"\* conductivity:\s+(.+)", instr_serial),
+        "pressure": (
+            r"pressure\s+S/N",
+            r"\* pressure\s+S/N[^:]+:\s+(.+)",
+            sn_match.group(1) if sn_match else instr_serial,
+        ),
+    }
+    for sensor, (start_pat, date_pat, sensor_serial) in blocks.items():
+        coefficients = _block(start_pat)
+        if coefficients:
+            _add_sensor_var(
+                dataset,
+                sensor,
+                instr_serial,
+                sensor_serial,
+                _date(date_pat),
+                coefficients,
+            )
     return dataset
 
 
@@ -541,13 +522,10 @@ def _add_sbe_hex_sensor_vars(
 ) -> xr.Dataset:
     """Parse calibration coefficients from an SBE hex header and add SENSOR_* vars.
 
-    Uses seasenselib's ``parse_hex_header_sensors`` which extracts calibration XML
-    embedded in the hex file header.  Creates the same SENSOR_* scalar variables as
-    ``_add_sbe_ascii_sensor_vars`` so the report calibration table is populated.
+    Uses seasenselib's ``parse_hex_header_sensors``, which extracts the calibration
+    XML embedded in the hex file header, and creates the same SENSOR_* variables as
+    the ASCII header.
     """
-    import numpy as np
-    import xarray as xr
-
     try:
         from seasenselib.readers.sbe_hex_reader import parse_hex_header_sensors
 
@@ -560,77 +538,20 @@ def _add_sbe_hex_sensor_vars(
         return dataset
 
     instr_serial = safe_serial(instrument_config.get("serial", ""))
-
-    def _coeff_str(coeffs: dict[str, Any]) -> str:
-        return ", ".join(
-            f"{k}={v}" for k, v in coeffs.items() if k not in ("serialnum", "caldate")
+    for sensor in _SBE_SENSORS:
+        if sensor not in cal_coeffs:
+            continue
+        coeffs = cal_coeffs[sensor]["coefficients"]
+        _add_sensor_var(
+            dataset,
+            sensor,
+            instr_serial,
+            coeffs.get("serialnum", instr_serial),
+            _iso_date(coeffs.get("caldate", "—"), ("%d-%b-%y", "%d-%b-%Y")),
+            ", ".join(
+                f"{k}={v}"
+                for k, v in coeffs.items()
+                if k not in ("serialnum", "caldate")
+            ),
         )
-
-    def _make_sensor_var(attrs: dict[str, Any]) -> "xr.Variable":
-        return xr.Variable((), np.array(b"", dtype="|S1"), attrs=attrs)
-
-    def _iso_date(raw: str) -> str:
-        import datetime
-
-        for fmt in ("%d-%b-%y", "%d-%b-%Y"):
-            try:
-                return datetime.datetime.strptime(raw, fmt).strftime("%Y-%m-%d")
-            except ValueError:
-                pass
-        return raw
-
-    # Temperature
-    if "temperature" in cal_coeffs:
-        tc = cal_coeffs["temperature"]["coefficients"]
-        sn = tc.get("serialnum", instr_serial)
-        cal_date = _iso_date(tc.get("caldate", "—"))
-        dataset[f"SENSOR_TEMP_{instr_serial}"] = _make_sensor_var(
-            {
-                "long_name": "Sea-Bird SBE temperature sensor metadata",
-                "sensor_type": "TEMPERATURE",
-                "sensor_serial_number": sn,
-                "sensor_model": "Sea-Bird SBE temperature sensor",
-                "sensor_calibration_date": cal_date,
-                "TEMPERATURE_calibration_coefficients": _coeff_str(tc),
-                "cf_role": "sensor_id",
-                "coverage_content_type": "auxiliaryInformation",
-            }
-        )
-
-    # Conductivity
-    if "conductivity" in cal_coeffs:
-        cc = cal_coeffs["conductivity"]["coefficients"]
-        sn = cc.get("serialnum", instr_serial)
-        cal_date = _iso_date(cc.get("caldate", "—"))
-        dataset[f"SENSOR_CNDC_{instr_serial}"] = _make_sensor_var(
-            {
-                "long_name": "Sea-Bird SBE conductivity sensor metadata",
-                "sensor_type": "CONDUCTIVITY",
-                "sensor_serial_number": sn,
-                "sensor_model": "Sea-Bird SBE conductivity sensor",
-                "sensor_calibration_date": cal_date,
-                "CONDUCTIVITY_calibration_coefficients": _coeff_str(cc),
-                "cf_role": "sensor_id",
-                "coverage_content_type": "auxiliaryInformation",
-            }
-        )
-
-    # Pressure
-    if "pressure" in cal_coeffs:
-        pc = cal_coeffs["pressure"]["coefficients"]
-        sn = pc.get("serialnum", instr_serial)
-        cal_date = _iso_date(pc.get("caldate", "—"))
-        dataset[f"SENSOR_PRES_{instr_serial}"] = _make_sensor_var(
-            {
-                "long_name": "Sea-Bird pressure sensor metadata",
-                "sensor_type": "PRESSURE",
-                "sensor_serial_number": sn,
-                "sensor_model": "Sea-Bird pressure sensor",
-                "sensor_calibration_date": cal_date,
-                "PRESSURE_calibration_coefficients": _coeff_str(pc),
-                "cf_role": "sensor_id",
-                "coverage_content_type": "auxiliaryInformation",
-            }
-        )
-
     return dataset

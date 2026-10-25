@@ -231,11 +231,10 @@ def test_stage_and_product_patterns_share_one_spelling():
     from oceanarray import paths
 
     stage_path = paths.stage_file("/m", "dune2_1_2026", "microcat", "2941", 3)
-    assert paths.stage_tag(3) == "_stage3"
     assert stage_path.name.endswith(paths.stage_suffix(3))
     assert stage_path.match(paths.stage_glob(3))
     grid_path = paths.product_file("/m", "dune2_1_2026", "grid")
-    assert grid_path.name.endswith(paths.product_suffix("grid"))
+    assert grid_path.name == "dune2_1_2026_grid.nc"
     assert grid_path.match(paths.product_glob("grid"))
     with pytest.raises(ValueError, match="unknown product"):
         paths.product_glob("raw")

@@ -24,7 +24,7 @@ from oceanarray.analysis.temporal import lag_correlation
 from oceanarray.legacy import find_deployment
 from oceanarray.utilities import instrument_entries
 
-_STAGE2_TAG = paths.stage_tag(2)
+_STAGE2_TAG = paths.stage_suffix(2).removesuffix(".nc")
 
 
 def load_mooring_instruments(

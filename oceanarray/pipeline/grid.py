@@ -12,6 +12,9 @@ from oceanarray.pipeline.units import to_canonical_units
 from oceanarray.utilities import _status
 from oceanarray.writers import write
 
+# Input-file tag of the time-gridding processor (stage-2 files, without ``.nc``).
+_STAGE2_TAG = paths.stage_suffix(2).removesuffix(".nc")
+
 
 def grid(
     ds_stack: xr.Dataset,
@@ -356,7 +359,7 @@ class TimeGriddingProcessor:
         self,
         mooring_config: dict[str, Any],
         proc_dir: Path,
-        file_suffix: str = paths.stage_tag(2),
+        file_suffix: str = _STAGE2_TAG,
     ) -> list[xr.Dataset]:
         """Load all instrument datasets for a mooring."""
         datasets = []
@@ -1016,7 +1019,7 @@ class TimeGriddingProcessor:
         self,
         mooring_name: str,
         output_path: str | None = None,
-        file_suffix: str = paths.stage_tag(2),
+        file_suffix: str = _STAGE2_TAG,
         vars_to_keep: list[str] = None,
         filter_type: str | None = None,
         filter_params: dict[str, Any] | None = None,
@@ -1141,7 +1144,7 @@ def time_gridding_mooring(
     mooring_name: str,
     proc_dir: str,
     output_path: str | None = None,
-    file_suffix: str = paths.stage_tag(2),
+    file_suffix: str = _STAGE2_TAG,
     filter_type: str | None = None,
     filter_params: dict[str, Any] | None = None,
 ) -> bool:
@@ -1173,7 +1176,7 @@ def time_gridding_mooring(
 def process_multiple_moorings_time_gridding(
     mooring_list: list[str],
     proc_dir: str,
-    file_suffix: str = paths.stage_tag(2),
+    file_suffix: str = _STAGE2_TAG,
     filter_type: str | None = None,
     filter_params: dict[str, Any] | None = None,
 ) -> dict[str, bool]:

@@ -143,22 +143,6 @@ def raw_mooring_dir(raw_root: _PathLike, mooring: str) -> Path:
     return Path(raw_root) / mooring
 
 
-def stage_tag(stage: int) -> str:
-    """Return the filename tag of a stage file, ``"_stage<N>"``.
-
-    Parameters
-    ----------
-    stage : int
-        Processing stage number (1, 2, or 3).
-
-    Returns
-    -------
-    str
-        The tag, e.g. ``"_stage2"``.
-    """
-    return f"_stage{int(stage)}"
-
-
 def stage_suffix(stage: int) -> str:
     """Return the filename ending of a stage file, ``"_stage<N>.nc"``.
 
@@ -172,7 +156,7 @@ def stage_suffix(stage: int) -> str:
     str
         The ending, e.g. ``"_stage2.nc"``.
     """
-    return f"{stage_tag(stage)}.nc"
+    return f"_stage{int(stage)}.nc"
 
 
 def stage_glob(stage: int) -> str:
@@ -266,31 +250,6 @@ def stage_file(
     return Path(mooring_dir) / instrument / stage_output_name(name, serial, stage, tag)
 
 
-def product_suffix(product: str) -> str:
-    """Return the filename ending of a mooring product, ``"_<product>.nc"``.
-
-    Parameters
-    ----------
-    product : str
-        The product, one of :data:`PRODUCTS`.
-
-    Returns
-    -------
-    str
-        The ending, e.g. ``"_stack.nc"``.
-
-    Raises
-    ------
-    ValueError
-        If *product* is not in :data:`PRODUCTS`.
-    """
-    if product not in PRODUCTS:
-        raise ValueError(
-            f"unknown product {product!r}; expected one of {sorted(PRODUCTS)}."
-        )
-    return f"_{product}.nc"
-
-
 def product_glob(product: str) -> str:
     """Return the glob pattern matching every *product* file, ``"*_<product>.nc"``.
 
@@ -304,7 +263,11 @@ def product_glob(product: str) -> str:
     str
         The pattern, e.g. ``"*_grid.nc"``.
     """
-    return f"*{product_suffix(product)}"
+    if product not in PRODUCTS:
+        raise ValueError(
+            f"unknown product {product!r}; expected one of {sorted(PRODUCTS)}."
+        )
+    return f"*_{product}.nc"
 
 
 def product_file(mooring_dir: _PathLike, name: str, product: str) -> Path:
@@ -332,7 +295,11 @@ def product_file(mooring_dir: _PathLike, name: str, product: str) -> Path:
     ValueError
         If *product* is not in :data:`PRODUCTS`.
     """
-    return Path(mooring_dir) / f"{name}{product_suffix(product)}"
+    if product not in PRODUCTS:
+        raise ValueError(
+            f"unknown product {product!r}; expected one of {sorted(PRODUCTS)}."
+        )
+    return Path(mooring_dir) / f"{name}_{product}.nc"
 
 
 def require_current_layout(proc_root: _PathLike, mooring: str) -> None:
