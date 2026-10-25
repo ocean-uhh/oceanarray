@@ -39,14 +39,14 @@ def test_stamp_appends_to_existing_history() -> None:
 def test_require_passes_at_the_right_stage() -> None:
     """``require`` returns quietly when every dataset carries the expected marker."""
     ds = stamp(_ds(), 2)
-    require({"2941": ds}, 2, "stage 3")  # no raise
+    require({"2941": ds}, 2, 3)  # no raise
 
 
 def test_require_raises_on_the_wrong_stage() -> None:
-    """A stage-1 dataset entering stage 3 raises ``StageError`` naming the step to run."""
+    """A stage-1 dataset entering stage 3 raises ``StageError`` naming the stage to run."""
     ds = stamp(_ds(), 1)
     with pytest.raises(StageError, match="run stage 2 first"):
-        require({"2941": ds}, 2, "stage 3")
+        require({"2941": ds}, 2, 3)
 
 
 def test_require_tolerates_a_missing_marker_with_a_warning() -> None:
@@ -54,5 +54,5 @@ def test_require_tolerates_a_missing_marker_with_a_warning() -> None:
     ds = _ds()
     ds.attrs.pop(STAGE_ATTR, None)
     with pytest.warns(UserWarning, match="no 'processing_stage'"):
-        require([ds], 2, "stage 3")
+        require([ds], 2, 3)
     ds.close()

@@ -46,15 +46,18 @@ import pandas as pd
 import xarray as xr
 
 from oceanarray import mooring as _mooring
+from oceanarray import parameters as params
 from oceanarray import paths
 from oceanarray.exceptions import MooringError
+from oceanarray.logger import log_info, with_stage_handlers
+from oceanarray.pipeline import _stage
+from oceanarray.pipeline.read_mooring import read_mooring
 from oceanarray.pipeline.units import to_canonical_units
+from oceanarray.pipeline.write_mooring import write_mooring
 from oceanarray.utilities import (
-    _status,
     drop_all_zero_vars,
     instrument_entries,
 )
-from oceanarray.writers import write
 
 
 def _parse_clock_str(s: str) -> pd.Timestamp | None:
@@ -280,6 +283,395 @@ def _find_nonnull_bounds(
     return time[first_idx], time[last_idx]
 
 
+def _read_yaml_time(data: dict[str, Any], key: str) -> np.datetime64:
+    """Return ``datetime64[ns]`` for *key*, ``NaT`` if absent, raising if unparseable."""
+    val = data.get(key)
+    if val is None or (isinstance(val, str) and not val.strip()):
+        return np.datetime64("NaT", "ns")
+    try:
+        return pd.to_datetime(val).to_datetime64()
+    except Exception as e:  # any parse failure — re-raised, not swallowed
+        raise MooringError(f"{key}={val!r} is not a valid timestamp: {e}") from e
+
+
+def _preserve_time_orig(dataset: xr.Dataset) -> xr.Dataset:
+    """Save original (uncorrected) time as time_orig before any clock corrections."""
+    if "time_orig" not in dataset.coords:
+        dataset = dataset.assign_coords(time_orig=dataset["time"])
+        dataset["time_orig"].attrs = {
+            "long_name": "original instrument time before clock correction",
+            "standard_name": "time",
+        }
+    return dataset
+
+
+def _apply_clock_offset(dataset: xr.Dataset, clock_offset: float) -> xr.Dataset:
+    """Apply a constant clock offset (seconds added to instrument time)."""
+    if clock_offset == 0:
+        return dataset
+
+    log_info("Applying clock offset: %+.1f s", clock_offset)
+    result = dataset.copy()
+    result["clock_offset"] = clock_offset
+    result["clock_offset"].attrs = {
+        "units": "s",
+        "long_name": "constant clock offset added to time",
+    }
+    result = result.assign_coords(
+        time=result["time"].values + np.timedelta64(int(clock_offset * 1e9), "ns")
+    )
+    sign = "+" if clock_offset >= 0 else ""
+    _append_history(result, f"clock_offset={sign}{clock_offset:.1f}s applied")
+    return result
+
+
+def _resolve_clock_drift(instrument_config: dict[str, Any]) -> tuple:
+    """Return (drift_seconds, history_note) from the YAML config.
+
+    Convention: drift is the amount ADDED to instrument time at recovery to get
+    corrected time (positive = instrument was slow/behind).  Option B (two recovery
+    timestamps) takes priority over Option A (``clock_drift_seconds``).
+    """
+    comp_str = instrument_config.get("computer_clock_at_recovery")
+    inst_str = instrument_config.get("instrument_clock_at_recovery")
+    if comp_str and inst_str:
+        comp_t = _parse_clock_str(str(comp_str))
+        inst_t = _parse_clock_str(str(inst_str))
+        if comp_t is None or inst_t is None:
+            drift_s = float(instrument_config.get("clock_drift_seconds", 0))
+            note = f"clock_drift={drift_s:+.1f}s over deployment"
+            return drift_s, note
+        drift_s = (comp_t - inst_t).total_seconds()  # +ve when instrument was slow
+        note = (
+            f"clock_drift={drift_s:+.1f}s over deployment "
+            f"(computer={comp_str}, instrument={inst_str})"
+        )
+        return drift_s, note
+
+    drift_s = float(instrument_config.get("clock_drift_seconds", 0))
+    note = f"clock_drift={drift_s:+.1f}s over deployment"
+    return drift_s, note
+
+
+def _apply_clock_drift(
+    dataset: xr.Dataset,
+    clock_drift_seconds: float,
+    deploy_time: np.datetime64,
+    recover_time: np.datetime64,
+    history_note: str = "",
+) -> xr.Dataset:
+    """Apply a linear clock-drift ramp (0 at deployment → *clock_drift_seconds* at recovery)."""
+    if clock_drift_seconds == 0:
+        return dataset
+
+    log_info("Applying clock drift: %+.1f s over deployment", clock_drift_seconds)
+
+    total_duration_s = (recover_time - deploy_time) / np.timedelta64(1, "s")
+    if total_duration_s <= 0:
+        log_info("WARNING: deploy_time >= recover_time; skipping clock drift ramp")
+        return dataset
+    time_since_deploy_s = np.clip(
+        (dataset["time"].values - deploy_time) / np.timedelta64(1, "s"),
+        0.0,
+        total_duration_s,
+    )
+    correction_ns = (
+        clock_drift_seconds * time_since_deploy_s / total_duration_s * 1e9
+    ).astype("int64")
+
+    result = dataset.copy()
+    result["clock_drift_seconds"] = clock_drift_seconds
+    result["clock_drift_seconds"].attrs = {
+        "units": "s",
+        "long_name": "total linear clock drift applied",
+    }
+    corrected_times = dataset["time"].values + correction_ns.astype("timedelta64[ns]")
+    result = result.assign_coords(time=corrected_times)
+    _append_history(
+        result, history_note or f"clock_drift={clock_drift_seconds:+.1f}s applied"
+    )
+    return result
+
+
+def _warn_missing_deployment_window(
+    serial: str,
+    instrument_type: str,
+    mooring_name: str,
+    deploy_time: np.datetime64,
+    recover_time: np.datetime64,
+    sug_start: np.datetime64,
+    sug_end: np.datetime64,
+    clock_offset: float = 0,
+) -> None:
+    """Warn (console + log) when YAML deployment times are absent, suggesting a window."""
+    missing_keys = []
+    if not np.isfinite(deploy_time):
+        missing_keys.append("deployment_time")
+    if not np.isfinite(recover_time):
+        missing_keys.append("recovery_time")
+    if not missing_keys:
+        return
+
+    border = "─" * 60
+    lines = [
+        "",
+        f"  ┌─ DEPLOYMENT WINDOW WARNING {'─' * 32}",
+        f"  │  Mooring : {mooring_name}",
+        f"  │  Instrument: {instrument_type} {serial}",
+        f"  │  Missing YAML key(s): {', '.join(missing_keys)}",
+        "  │  No deployment-window trimming applied for this instrument.",
+    ]
+    if sug_start is not None:
+        offset_td = (
+            np.timedelta64(int(clock_offset * 1e9), "ns")
+            if clock_offset
+            else np.timedelta64(0, "ns")
+        )
+        offset_note = (
+            f" (clock_offset={clock_offset:+.1f}s applied)" if clock_offset else ""
+        )
+        lines += [
+            "  │",
+            f"  │  Auto-detected window from pressure{offset_note} (copy-paste into YAML):",
+            f"  │    deployment_time: {pd.Timestamp(sug_start + offset_td).isoformat()}",
+            f"  │    recovery_time:   {pd.Timestamp(sug_end + offset_td).isoformat()}",
+        ]
+    else:
+        lines += [
+            "  │",
+            "  │  No pressure variable — cannot auto-detect deployment window.",
+            "  │  Set deployment_time and recovery_time manually in the YAML.",
+        ]
+    lines += [
+        "  │",
+        f"  │  Update {mooring_name}.mooring.yaml then re-run stage 2.",
+        f"  └{border}",
+        "",
+    ]
+    for line in lines:
+        log_info(line)
+
+
+def _trim_to_deployment_window(
+    dataset: xr.Dataset,
+    deploy_time: np.datetime64,
+    recover_time: np.datetime64,
+) -> xr.Dataset:
+    """Trim to the deployment window, pre-filtering stray (clock-wrap) records first.
+
+    A stray-record pre-filter (boolean indexing, non-monotonic safe) drops any record
+    more than 31 days outside the window; the remainder is sliced to
+    ``[deploy_time, recover_time]`` (which requires a monotonic time index).
+    """
+    original_size = len(dataset.time)
+
+    _one_month = np.timedelta64(31, "D")
+    t_vals = dataset.time.values
+    mask = np.ones(len(t_vals), dtype=bool)
+    if np.isfinite(deploy_time):
+        early_cutoff = deploy_time - _one_month
+        n_early = int(np.sum(t_vals < early_cutoff))
+        if n_early:
+            log_info(
+                "WARNING: dropping %d record(s) with timestamps more than 31 days "
+                "before deployment (%s): %s",
+                n_early,
+                early_cutoff,
+                t_vals[t_vals < early_cutoff],
+            )
+            mask &= t_vals >= early_cutoff
+    if np.isfinite(recover_time):
+        late_cutoff = recover_time + _one_month
+        n_late = int(np.sum(t_vals > late_cutoff))
+        if n_late:
+            log_info(
+                "WARNING: dropping %d record(s) with timestamps more than 31 days "
+                "after recovery (%s): %s",
+                n_late,
+                late_cutoff,
+                t_vals[t_vals > late_cutoff],
+            )
+            mask &= t_vals <= late_cutoff
+    if not mask.all():
+        dataset = dataset.isel(time=np.where(mask)[0])
+
+    if np.isfinite(deploy_time):
+        log_info("Trimming start to deployment time: %s", deploy_time)
+        dataset = dataset.sel(time=slice(deploy_time, None))
+
+    if np.isfinite(recover_time):
+        log_info("Trimming end to recovery time: %s", recover_time)
+        dataset = dataset.sel(time=slice(None, recover_time))
+
+    final_size = len(dataset.time)
+    log_info("Trimmed from %d to %d records", original_size, final_size)
+    if final_size == 0:
+        log_info("WARNING: No data remains after trimming!")
+    return dataset
+
+
+def _add_missing_metadata(
+    dataset: xr.Dataset, instrument_config: dict[str, Any]
+) -> xr.Dataset:
+    """Add the InstrDepth / instrument / serial_number scalar variables from the YAML.
+
+    The identity *attributes* are stamped by :func:`read_mooring`; this adds the scalar
+    *variables* the downstream report and stack expect, from the description entry.
+    """
+    if "InstrDepth" not in dataset.variables:
+        dataset["InstrDepth"] = instrument_config.get("depth", 0)
+    instrument = instrument_config.get("instrument")
+    serial = instrument_config.get("serial")
+    if "instrument" not in dataset.variables and instrument is not None:
+        dataset["instrument"] = instrument
+    if "serial_number" not in dataset.variables and serial is not None:
+        dataset["serial_number"] = serial
+    return dataset
+
+
+def _clean_unnecessary_variables(dataset: xr.Dataset) -> xr.Dataset:
+    """Drop redundant SeaBird CNV columns (timeS/timeQ; flag when all-zero)."""
+    for var in ("timeS", "timeQ"):
+        if var in dataset.variables:
+            log_info("Removing redundant SeaBird time variable: %s", var)
+            dataset = dataset.drop_vars(var)
+
+    if "flag" in dataset.variables:
+        flag_vals = np.asarray(dataset["flag"].values, dtype="float64")
+        if np.all((flag_vals == 0) | np.isnan(flag_vals)):
+            log_info("Removing 'flag': all values are zero (no SeaBird scan flags set)")
+            dataset = dataset.drop_vars("flag")
+            _append_history(
+                dataset, "dropped SeaBird 'flag' column: all values were 0 (good data)"
+            )
+        else:
+            n_flagged = int(np.sum(np.isfinite(flag_vals) & (flag_vals != 0)))
+            log_info(
+                "Keeping 'flag': %d non-zero scan flag(s) from SeaBird CNV", n_flagged
+            )
+    return dataset
+
+
+def _stage2_instrument(
+    ds: xr.Dataset,
+    entry: dict[str, Any],
+    mooring_name: str,
+    deploy_time: np.datetime64,
+    recover_time: np.datetime64,
+) -> xr.Dataset:
+    """Apply clock corrections and deployment trimming to one instrument dataset.
+
+    The body of the old ``_process_instrument`` with the file I/O removed: canonicalise
+    units, resolve/apply the clock offset and linear drift, trim to the window, and
+    stamp the stage-1 bounds, the suggested window and the YAML window as attributes.
+    """
+    dataset = to_canonical_units(ds.copy(deep=True), log_fn=log_info, stage=2)
+
+    _stage1_t0 = dataset["time"].values[0]
+    _stage1_t1 = dataset["time"].values[-1]
+
+    clock_offset = entry.get("clock_offset", 0)
+    drift_s, drift_note = _resolve_clock_drift(entry)
+    drift_ramp = (drift_s - clock_offset) if drift_s != 0 else 0
+
+    sug_start, sug_end, sug_source = detect_deployment_window(dataset)
+    _nonnull_start, _nonnull_end = _find_nonnull_bounds(dataset)
+
+    serial = paths.safe_serial(entry.get("serial", "unknown"))
+    instrument_type = entry.get("instrument", "unknown")
+    if not np.isfinite(deploy_time) or not np.isfinite(recover_time):
+        _warn_missing_deployment_window(
+            serial,
+            instrument_type,
+            mooring_name,
+            deploy_time,
+            recover_time,
+            sug_start,
+            sug_end,
+            clock_offset,
+        )
+
+    dataset = _add_missing_metadata(dataset, entry)
+    dataset = _clean_unnecessary_variables(dataset)
+
+    if clock_offset != 0 or drift_ramp != 0:
+        dataset = _preserve_time_orig(dataset)
+    dataset = _apply_clock_offset(dataset, clock_offset)
+    dataset = _apply_clock_drift(
+        dataset, drift_ramp, deploy_time, recover_time, history_note=drift_note
+    )
+    dataset = _trim_to_deployment_window(dataset, deploy_time, recover_time)
+
+    if len(dataset.time) == 0:
+        raise MooringError(
+            f"No data remains after processing {instrument_type} {serial}"
+        )
+
+    start_time = dataset["time"].values.min()
+    end_time = dataset["time"].values.max()
+    log_info("Final time range: %s to %s", start_time, end_time)
+
+    dataset.attrs.setdefault("qc_convention", params.QC_CONVENTION)
+
+    if sug_start is not None:
+        dataset.attrs["suggested_deployment_time"] = pd.Timestamp(sug_start).isoformat()
+        dataset.attrs["suggested_recovery_time"] = pd.Timestamp(sug_end).isoformat()
+        dataset.attrs["suggested_window_source"] = sug_source
+        dataset.attrs["suggested_window_clock"] = "raw_instrument_clock"
+        _sugg_start_utc = pd.Timestamp(sug_start) + pd.Timedelta(seconds=clock_offset)
+        dataset.attrs["suggested_deployment_time_utc"] = _sugg_start_utc.isoformat()
+        _end_correction = drift_s if drift_s else clock_offset
+        _sugg_end_utc = pd.Timestamp(sug_end) + pd.Timedelta(seconds=_end_correction)
+        dataset.attrs["suggested_recovery_time_utc"] = _sugg_end_utc.isoformat()
+    dataset.attrs["stage1_first_nonnull"] = pd.Timestamp(_nonnull_start).isoformat()
+    dataset.attrs["stage1_last_nonnull"] = pd.Timestamp(_nonnull_end).isoformat()
+    dataset.attrs["stage1_time_start"] = pd.Timestamp(_stage1_t0).isoformat()
+    dataset.attrs["stage1_time_end"] = pd.Timestamp(_stage1_t1).isoformat()
+    if np.isfinite(deploy_time):
+        dataset.attrs["yaml_deployment_time"] = pd.Timestamp(deploy_time).isoformat()
+    if np.isfinite(recover_time):
+        dataset.attrs["yaml_recovery_time"] = pd.Timestamp(recover_time).isoformat()
+
+    return drop_all_zero_vars(dataset, ["amplitude_beam", "analog_input_"])
+
+
+def stage2(
+    datasets: dict[str, xr.Dataset], mooring: dict[str, Any]
+) -> dict[str, xr.Dataset]:
+    """Apply clock corrections and deployment trimming to a mooring's stage-1 datasets.
+
+    Pure function over datasets: no file I/O.  *datasets* is keyed by serial (as
+    :func:`read_mooring` returns); *mooring* is the loaded description.  Returns the
+    stage-2 datasets, each marked ``processing_stage = 2``.
+
+    Parameters
+    ----------
+    datasets : dict of str to xarray.Dataset
+        Stage-1 datasets keyed by cleaned serial.
+    mooring : dict
+        The loaded mooring description.
+
+    Returns
+    -------
+    dict of str to xarray.Dataset
+        Stage-2 datasets keyed by serial.
+    """
+    deploy_time = _read_yaml_time(mooring, "deployment_time")
+    recover_time = _read_yaml_time(mooring, "recovery_time")
+    mooring_name = mooring["name"]
+    by_serial = {
+        paths.safe_serial(e.get("serial", "")): e
+        for e in instrument_entries(mooring)
+        if isinstance(e, dict)
+    }
+    out: dict[str, xr.Dataset] = {}
+    for serial, ds in datasets.items():
+        entry = by_serial.get(serial, {})
+        result = _stage2_instrument(ds, entry, mooring_name, deploy_time, recover_time)
+        out[serial] = _stage.stamp(result, 2)
+    return out
+
+
 class Stage2Processor:
     """Handles Stage 2 processing: clock correction and temporal trimming."""
 
@@ -312,9 +704,10 @@ class Stage2Processor:
 
     def _setup_logging(self, mooring_name: str, output_path: Path) -> None:
         """Set up logging for the processing run using global config."""
-        from oceanarray.logger import setup_stage_logging
+        from oceanarray.logger import attach_stage_handlers, setup_stage_logging
 
         self.log_file = setup_stage_logging(mooring_name, "stage2", output_path)
+        self._log_handlers = attach_stage_handlers(self.log_file)
 
     def _log_print(self, *args: Any, **kwargs: Any) -> None:
         """Print to both console and log file."""
@@ -323,645 +716,7 @@ class Stage2Processor:
             with self.log_file.open("a", encoding="utf-8") as f:
                 print(*args, **kwargs, file=f)
 
-    def _read_yaml_time(self, data: dict[str, Any], key: str) -> np.datetime64:
-        """Return ``datetime64[ns]`` for *key*, ``NaT`` if absent, raising if bad.
-
-        An absent (or blank) value is a recommended-not-required field — the
-        deployment window may be detected from the records — and returns ``NaT``.
-        A present-but-unparseable value is a log-sheet typo the pipeline must not
-        swallow, and raises :class:`oceanarray.exceptions.MooringError` naming the
-        key and the value.
-        """
-        val = data.get(key)
-        if val is None or (isinstance(val, str) and not val.strip()):
-            return np.datetime64("NaT", "ns")
-        try:
-            return pd.to_datetime(val).to_datetime64()
-        except Exception as e:  # any parse failure — re-raised, not swallowed
-            raise MooringError(f"{key}={val!r} is not a valid timestamp: {e}") from e
-
-    def _preserve_time_orig(self, dataset: xr.Dataset) -> xr.Dataset:
-        """Save original (uncorrected) time as time_orig before any clock corrections."""
-        if "time_orig" not in dataset.coords:
-            dataset = dataset.assign_coords(time_orig=dataset["time"])
-            dataset["time_orig"].attrs = {
-                "long_name": "original instrument time before clock correction",
-                "standard_name": "time",
-            }
-        return dataset
-
-    def _apply_clock_offset(
-        self, dataset: xr.Dataset, clock_offset: float
-    ) -> xr.Dataset:
-        """Apply constant clock offset correction.
-
-        Convention: clock_offset is the amount ADDED to instrument time to get
-        corrected time.
-          clock_offset > 0: instrument was slow (behind); times shifted later.
-          clock_offset < 0: instrument was fast (ahead); times shifted earlier.
-        """
-        if clock_offset == 0:
-            return dataset
-
-        self._log_print(f"Applying clock offset: {clock_offset:+.1f} s")
-        result = dataset.copy()
-        result["clock_offset"] = clock_offset
-        result["clock_offset"].attrs = {
-            "units": "s",
-            "long_name": "constant clock offset added to time",
-        }
-        result = result.assign_coords(
-            time=result["time"].values + np.timedelta64(int(clock_offset * 1e9), "ns")
-        )
-        sign = "+" if clock_offset >= 0 else ""
-        _append_history(result, f"clock_offset={sign}{clock_offset:.1f}s applied")
-        return result
-
-    def _resolve_clock_drift(
-        self,
-        instrument_config: dict[str, Any],
-    ) -> tuple:
-        """Return (drift_seconds, history_note) from YAML config.
-
-        Convention: drift is the amount ADDED to instrument time at recovery to
-        get corrected time (positive = instrument was slow/behind).
-
-        Supports two YAML approaches:
-          Option A — direct:
-            clock_drift_seconds: 8    # instrument was 8 s slow at recovery
-          Option B — two timestamps at recovery (preferred; no sign errors):
-            computer_clock_at_recovery:   '2026-07-11T10:23:30'
-            instrument_clock_at_recovery: '2026-07-11T10:23:22'
-            # computer - instrument = 8 s → instrument was 8 s behind → drift = +8
-          Option B takes priority.
-        """
-        comp_str = instrument_config.get("computer_clock_at_recovery")
-        inst_str = instrument_config.get("instrument_clock_at_recovery")
-        if comp_str and inst_str:
-            comp_t = _parse_clock_str(str(comp_str))
-            inst_t = _parse_clock_str(str(inst_str))
-            if comp_t is None or inst_t is None:
-                drift_s = float(instrument_config.get("clock_drift_seconds", 0))
-                note = f"clock_drift={drift_s:+.1f}s over deployment"
-                return drift_s, note
-            drift_s = (comp_t - inst_t).total_seconds()  # +ve when instrument was slow
-            note = (
-                f"clock_drift={drift_s:+.1f}s over deployment "
-                f"(computer={comp_str}, instrument={inst_str})"
-            )
-            return drift_s, note
-
-        drift_s = float(instrument_config.get("clock_drift_seconds", 0))
-        note = f"clock_drift={drift_s:+.1f}s over deployment"
-        return drift_s, note
-
-    def _apply_clock_drift(
-        self,
-        dataset: xr.Dataset,
-        clock_drift_seconds: float,
-        deploy_time: np.datetime64,
-        recover_time: np.datetime64,
-        history_note: str = "",
-    ) -> xr.Dataset:
-        """Apply linear clock drift ramp on top of any already-applied constant offset.
-
-        ``clock_drift_seconds`` here is the *additional* ramp needed above the constant
-        offset — i.e. (total_at_recovery − clock_offset).  Call site computes this.
-        Ramp goes from 0 at deployment to clock_drift_seconds at recovery.
-        """
-        if clock_drift_seconds == 0:
-            return dataset
-
-        self._log_print(
-            f"Applying clock drift: {clock_drift_seconds:+.1f} s over deployment"
-        )
-
-        total_duration_s = (recover_time - deploy_time) / np.timedelta64(1, "s")
-        if total_duration_s <= 0:
-            self._log_print(
-                "WARNING: deploy_time >= recover_time; skipping clock drift ramp"
-            )
-            return dataset
-        time_since_deploy_s = np.clip(
-            (dataset["time"].values - deploy_time) / np.timedelta64(1, "s"),
-            0.0,
-            total_duration_s,
-        )
-        correction_ns = (
-            clock_drift_seconds * time_since_deploy_s / total_duration_s * 1e9
-        ).astype("int64")
-
-        result = dataset.copy()
-        result["clock_drift_seconds"] = clock_drift_seconds
-        result["clock_drift_seconds"].attrs = {
-            "units": "s",
-            "long_name": "total linear clock drift applied",
-        }
-        corrected_times = dataset["time"].values + correction_ns.astype(
-            "timedelta64[ns]"
-        )
-        result = result.assign_coords(time=corrected_times)
-        _append_history(
-            result, history_note or f"clock_drift={clock_drift_seconds:+.1f}s applied"
-        )
-        return result
-
-    def _warn_missing_deployment_window(
-        self,
-        serial: str,
-        instrument_type: str,
-        mooring_name: str,
-        deploy_time: np.datetime64,
-        recover_time: np.datetime64,
-        sug_start: np.datetime64,
-        sug_end: np.datetime64,
-        clock_offset: float = 0,
-    ) -> None:
-        """Print a prominent console + log warning when YAML deployment times are absent.
-
-        Suggests copy-pasteable ISO-8601 timestamps (with clock_offset applied for
-        display) so the operator can fill in the YAML and re-run.  Stage 2 never
-        applies the suggested window automatically.
-
-        Parameters
-        ----------
-        serial : str
-            Instrument serial number.
-        instrument_type : str
-            Instrument type string (e.g. ``"sbe"``).
-        mooring_name : str
-            Mooring name.
-        deploy_time : np.datetime64
-            Resolved YAML deployment_time (NaT if absent).
-        recover_time : np.datetime64
-            Resolved YAML recovery_time (NaT if absent).
-        sug_start : np.datetime64
-            Suggested start from ``detect_deployment_window`` (raw stage1 clock).
-        sug_end : np.datetime64
-            Suggested end from ``detect_deployment_window`` (raw stage1 clock).
-        clock_offset : float
-            Constant clock offset in seconds to apply to suggested times for display.
-
-        """
-        missing_keys = []
-        if not np.isfinite(deploy_time):
-            missing_keys.append("deployment_time")
-        if not np.isfinite(recover_time):
-            missing_keys.append("recovery_time")
-        if not missing_keys:
-            return
-
-        border = "─" * 60
-        lines = [
-            "",
-            f"  ┌─ DEPLOYMENT WINDOW WARNING {'─' * 32}",
-            f"  │  Mooring : {mooring_name}",
-            f"  │  Instrument: {instrument_type} {serial}",
-            f"  │  Missing YAML key(s): {', '.join(missing_keys)}",
-            "  │  No deployment-window trimming applied for this instrument.",
-        ]
-        if sug_start is not None:
-            offset_td = (
-                np.timedelta64(int(clock_offset * 1e9), "ns")
-                if clock_offset
-                else np.timedelta64(0, "ns")
-            )
-            offset_note = (
-                f" (clock_offset={clock_offset:+.1f}s applied)" if clock_offset else ""
-            )
-            lines += [
-                "  │",
-                f"  │  Auto-detected window from pressure{offset_note} (copy-paste into YAML):",
-                f"  │    deployment_time: {pd.Timestamp(sug_start + offset_td).isoformat()}",
-                f"  │    recovery_time:   {pd.Timestamp(sug_end + offset_td).isoformat()}",
-            ]
-        else:
-            lines += [
-                "  │",
-                "  │  No pressure variable — cannot auto-detect deployment window.",
-                "  │  Set deployment_time and recovery_time manually in the YAML.",
-            ]
-        lines += [
-            "  │",
-            f"  │  Update {mooring_name}.mooring.yaml then re-run stage 2.",
-            f"  └{border}",
-            "",
-        ]
-        for line in lines:
-            self._log_print(line)
-
-    def _trim_to_deployment_window(
-        self,
-        dataset: xr.Dataset,
-        deploy_time: np.datetime64,
-        recover_time: np.datetime64,
-    ) -> xr.Dataset:
-        """Trim dataset to deployment time window.
-
-        A two-pass approach is used:
-
-        1. **Stray-record pre-filter** (boolean indexing, non-monotonic safe):
-           Any record whose timestamp falls more than 31 days before deployment
-           or more than 31 days after recovery is dropped with a WARNING.  The
-           31-day window is hard-coded; it was chosen to handle clock-wrap
-           artefacts (e.g. SeaBird clocks jumping to 2038) without discarding
-           instruments that start logging a few weeks before entering the water.
-           TODO: consider making this window configurable via YAML or a package
-           parameter if shorter/longer windows are needed for specific deployments.
-
-        2. **Deployment-window trim** (``sel(time=slice(...))``): the remaining
-           time-series is sliced to ``[deploy_time, recover_time]``.  This call
-           requires a monotonic time index; if non-monotonic timestamps remain
-           after the pre-filter, the ``sel`` call will raise — use ``skip: true``
-           in the YAML for instruments with irrecoverably corrupted clocks.
-        """
-        original_size = len(dataset.time)
-
-        # Drop timestamps that are wildly out of range before attempting
-        # monotonic-index slicing.  SeaBird (and other) instruments sometimes
-        # download stray records from older deployments or clock-wrap artifacts.
-        # Use boolean indexing (works on non-monotonic time) to cull anything
-        # more than 31 days outside the known deployment window.
-        _one_month = np.timedelta64(31, "D")
-        t_vals = dataset.time.values
-        mask = np.ones(len(t_vals), dtype=bool)
-        if np.isfinite(deploy_time):
-            early_cutoff = deploy_time - _one_month
-            n_early = int(np.sum(t_vals < early_cutoff))
-            if n_early:
-                self._log_print(
-                    f"WARNING: dropping {n_early} record(s) with timestamps "
-                    f"more than 31 days before deployment ({early_cutoff}): "
-                    f"{t_vals[t_vals < early_cutoff]}"
-                )
-                mask &= t_vals >= early_cutoff
-        if np.isfinite(recover_time):
-            late_cutoff = recover_time + _one_month
-            n_late = int(np.sum(t_vals > late_cutoff))
-            if n_late:
-                self._log_print(
-                    f"WARNING: dropping {n_late} record(s) with timestamps "
-                    f"more than 31 days after recovery ({late_cutoff}): "
-                    f"{t_vals[t_vals > late_cutoff]}"
-                )
-                mask &= t_vals <= late_cutoff
-        if not mask.all():
-            dataset = dataset.isel(time=np.where(mask)[0])
-
-        # Apply deployment time trimming
-        if np.isfinite(deploy_time):
-            self._log_print(f"Trimming start to deployment time: {deploy_time}")
-            dataset = dataset.sel(time=slice(deploy_time, None))
-
-        # Apply recovery time trimming
-        if np.isfinite(recover_time):
-            self._log_print(f"Trimming end to recovery time: {recover_time}")
-            dataset = dataset.sel(time=slice(None, recover_time))
-
-        final_size = len(dataset.time)
-        self._log_print(f"Trimmed from {original_size} to {final_size} records")
-
-        if final_size == 0:
-            self._log_print("WARNING: No data remains after trimming!")
-
-        return dataset
-
-    def _extract_metadata_from_filepath(
-        self, filepath: Path, mooring_name: str
-    ) -> dict[str, Any]:
-        """Extract metadata from filepath when not available in YAML or dataset.
-
-        Expected pattern: {instrument_type}/{mooring_name}_{serial}_stage1.nc
-        """
-        fallback_metadata = {}
-
-        # Extract instrument type from parent directory
-        instrument_type = filepath.parent.name
-        fallback_metadata["instrument"] = instrument_type
-
-        # Extract serial number from filename
-        filename = filepath.stem  # Remove .nc extension
-        for suffix in ("_stage1", "_stage2"):
-            if filename.endswith(suffix):
-                filename = filename[: -len(suffix)]
-                break
-
-        # Pattern: mooring_name_serial
-        if filename.startswith(f"{mooring_name}_"):
-            serial_str = filename[len(f"{mooring_name}_") :]
-            try:
-                serial = int(serial_str)
-                fallback_metadata["serial"] = serial
-                self._log_print(
-                    f"Extracted from filename - instrument: {instrument_type}, serial: {serial}"
-                )
-            except ValueError:
-                self._log_print(
-                    f"WARNING: Could not parse serial number from filename: {filename}"
-                )
-
-        return fallback_metadata
-
-    def _get_figure_naming_info(
-        self, dataset: xr.Dataset, mooring_name: str
-    ) -> dict[str, str]:
-        """Get information needed for figure naming convention.
-
-        Returns dict with mooring_name, instrument, serial for creating
-        figure names like: dsE_1_2018_microcat_7518_ctd.png
-        """
-        instrument = str(dataset.get("instrument", "unknown").values)
-        serial = str(int(dataset.get("serial_number", 0).values))
-
-        return {
-            "mooring_name": mooring_name,
-            "instrument": instrument,
-            "serial": serial,
-        }
-
-    def _add_missing_metadata(
-        self,
-        dataset: xr.Dataset,
-        instrument_config: dict[str, Any],
-        filepath: Path,
-        mooring_name: str,
-    ) -> xr.Dataset:
-        """Add any missing metadata variables to dataset with fallback extraction."""
-        # Get metadata from YAML config (highest priority)
-        yaml_instrument = instrument_config.get("instrument")
-        yaml_serial = instrument_config.get("serial")
-        yaml_depth = instrument_config.get("depth", 0)
-
-        # Check if we need fallback for any missing fields
-        needs_instrument_fallback = yaml_instrument is None
-        needs_serial_fallback = yaml_serial is None
-
-        fallback_used = False
-        final_instrument = yaml_instrument
-        final_serial = yaml_serial
-
-        if needs_instrument_fallback or needs_serial_fallback:
-            self._log_print(
-                "Some metadata missing from YAML, attempting extraction from filepath..."
-            )
-            fallback_metadata = self._extract_metadata_from_filepath(
-                filepath, mooring_name
-            )
-
-            # Use fallback only for the missing fields
-            if needs_instrument_fallback and "instrument" in fallback_metadata:
-                final_instrument = fallback_metadata["instrument"]
-                self._log_print(f"Using fallback instrument type: {final_instrument}")
-                fallback_used = True
-
-            if needs_serial_fallback and "serial" in fallback_metadata:
-                final_serial = fallback_metadata["serial"]
-                self._log_print(f"Using fallback serial number: {final_serial}")
-                fallback_used = True
-
-        # Add metadata to dataset if missing
-        if "InstrDepth" not in dataset.variables:
-            dataset["InstrDepth"] = yaml_depth
-
-        if "instrument" not in dataset.variables and final_instrument is not None:
-            dataset["instrument"] = final_instrument
-
-        if "serial_number" not in dataset.variables and final_serial is not None:
-            dataset["serial_number"] = final_serial
-
-        # Add history note if fallback was used
-        if fallback_used:
-            history_note = "non-standard enrichment of metadata from filename patterns"
-            if "history" in dataset.attrs:
-                dataset.attrs["history"] += f"; {history_note}"
-            else:
-                dataset.attrs["history"] = history_note
-            self._log_print(f"Added history note: {history_note}")
-
-        return dataset
-
-    def _clean_unnecessary_variables(self, dataset: xr.Dataset) -> xr.Dataset:
-        """Remove variables that are not needed in the final product.
-
-        - timeS, timeQ: SeaBird CNV elapsed-time columns; redundant with the
-          ``time`` coordinate (same clock, different encoding).
-        - flag: SeaBird CNV scan flag column; dropped only when all values are
-          zero (no scans were flagged by SeaBird software).
-        """
-        for var in ("timeS", "timeQ"):
-            if var in dataset.variables:
-                self._log_print(f"Removing redundant SeaBird time variable: {var}")
-                dataset = dataset.drop_vars(var)
-
-        if "flag" in dataset.variables:
-            flag_vals = np.asarray(dataset["flag"].values, dtype="float64")
-            if np.all((flag_vals == 0) | np.isnan(flag_vals)):
-                self._log_print(
-                    "Removing 'flag': all values are zero (no SeaBird scan flags set)"
-                )
-                dataset = dataset.drop_vars("flag")
-                _append_history(
-                    dataset,
-                    "dropped SeaBird 'flag' column: all values were 0 (good data)",
-                )
-            else:
-                n_flagged = int(np.sum(np.isfinite(flag_vals) & (flag_vals != 0)))
-                self._log_print(
-                    f"Keeping 'flag': {n_flagged} non-zero scan flag(s) from SeaBird CNV"
-                )
-
-        return dataset
-
-    def _process_instrument(
-        self,
-        instrument_config: dict[str, Any],
-        mooring_config: dict[str, Any],  # noqa: ARG002  — reserved for future per-mooring overrides
-        proc_dir: Path,
-        mooring_name: str,
-        deploy_time: np.datetime64,
-        recover_time: np.datetime64,
-        force: bool = False,
-    ) -> bool:
-        """Apply clock corrections and deployment trimming to one instrument.
-
-        Reads the Stage 1 NetCDF for *instrument_config*, applies (in order):
-        constant clock offset, linear clock drift, and trimming to the
-        deployment window [*deploy_time*, *recover_time*].  Writes the result
-        as ``{mooring}_{serial}_stage2.nc`` in the same directory.
-
-        Skips silently if the Stage 1 file does not exist (not yet staged) or
-        if the Stage 2 output already exists and *force* is False.
-
-        Returns True on success or skip, False if the Stage 1 file is missing
-        or an error occurs.
-        """
-        # Match how stage1/stage3 named the file (comma split + illegal chars stripped);
-        # a bare re.sub without the comma split would miss a comma serial's stage1 file.
-        serial = paths.safe_serial(instrument_config.get("serial", "unknown"))
-        instrument_type = instrument_config.get("instrument", "unknown")
-
-        if instrument_config.get("skip"):
-            reason = instrument_config.get("skip_reason", "marked skip:true in YAML")
-            self._log_print(f"SKIP {instrument_type} {serial}: {reason}")
-            return True
-
-        # Construct file paths
-        raw_filename = f"{mooring_name}_{serial}_stage1.nc"
-        use_filename = f"{mooring_name}_{serial}_stage2.nc"
-
-        raw_filepath = proc_dir / instrument_type / raw_filename
-        use_filepath = proc_dir / instrument_type / use_filename
-
-        if not raw_filepath.exists():
-            if "filename" in instrument_config:
-                self._log_print(f"WARNING: Raw file not found: {raw_filepath}")
-            return False
-
-        _status("instr", f"{instrument_type} {serial}")
-
-        if use_filepath.exists() and not force:
-            _status("skip", self._rel(use_filepath))
-            return True
-
-        try:
-            # Load the raw dataset
-            with xr.open_dataset(
-                raw_filepath, engine="netcdf4", decode_timedelta=False
-            ) as ds:
-                # Create a copy to modify
-                dataset = ds.load()
-
-            # Canonicalise units on the way in (rewrites a pre-0.5.0 stage-1 file's
-            # reader spellings to the canonical; idempotent on a 0.5.0 stage-1 file).
-            dataset = to_canonical_units(dataset, log_fn=self._log_print, stage=2)
-
-            # Capture the raw stage1 time bounds before any corrections are applied.
-            # Used later for the "differs by ≥ Δt" highlighting comparison in reports.
-            _stage1_t0 = dataset["time"].values[0]
-            _stage1_t1 = dataset["time"].values[-1]
-
-            # Resolve corrections early (needed for suggested-window display)
-            clock_offset = instrument_config.get("clock_offset", 0)
-            drift_s, drift_note = self._resolve_clock_drift(instrument_config)
-            # drift_s is the total correction at recovery; clock_offset is the total at
-            # deployment.  The ramp applied on top of the constant offset is the difference.
-            drift_ramp = (drift_s - clock_offset) if drift_s != 0 else 0
-
-            # Always detect the suggested deployment window from the stage1 pressure record
-            sug_start, sug_end, sug_source = detect_deployment_window(dataset)
-
-            # Find first/last non-NaN timestamps (variable hierarchy: pressure > temp > …)
-            _nonnull_start, _nonnull_end = _find_nonnull_bounds(dataset)
-
-            # Warn loudly when YAML deployment times are absent
-            if not np.isfinite(deploy_time) or not np.isfinite(recover_time):
-                self._warn_missing_deployment_window(
-                    serial,
-                    instrument_type,
-                    mooring_name,
-                    deploy_time,
-                    recover_time,
-                    sug_start,
-                    sug_end,
-                    clock_offset,
-                )
-
-            # Add missing metadata with fallback extraction
-            dataset = self._add_missing_metadata(
-                dataset, instrument_config, raw_filepath, mooring_name
-            )
-
-            # Clean unnecessary variables
-            dataset = self._clean_unnecessary_variables(dataset)
-
-            # Only save time_orig when we are actually going to change time
-            if clock_offset != 0 or drift_ramp != 0:
-                dataset = self._preserve_time_orig(dataset)
-
-            dataset = self._apply_clock_offset(dataset, clock_offset)
-            dataset = self._apply_clock_drift(
-                dataset, drift_ramp, deploy_time, recover_time, history_note=drift_note
-            )
-
-            # Trim to deployment window
-            dataset = self._trim_to_deployment_window(
-                dataset, deploy_time, recover_time
-            )
-
-            if len(dataset.time) == 0:
-                self._log_print(
-                    f"ERROR: No data remains after processing {instrument_type} {serial}"
-                )
-                return False
-
-            # Log time range
-            start_time = dataset["time"].values.min()
-            end_time = dataset["time"].values.max()
-            self._log_print(f"Final time range: {start_time} to {end_time}")
-
-            # Tag with QC convention so downstream tools know the flag vocabulary
-            from oceanarray import parameters as params
-
-            dataset.attrs.setdefault("qc_convention", params.QC_CONVENTION)
-
-            # Suggested deployment window — only written when pressure detection succeeded.
-            # All raw-clock attrs use the uncorrected instrument clock; _utc variants add
-            # the clock correction so they are safe to paste directly into the YAML.
-            if sug_start is not None:
-                dataset.attrs["suggested_deployment_time"] = pd.Timestamp(
-                    sug_start
-                ).isoformat()
-                dataset.attrs["suggested_recovery_time"] = pd.Timestamp(
-                    sug_end
-                ).isoformat()
-                dataset.attrs["suggested_window_source"] = sug_source
-                dataset.attrs["suggested_window_clock"] = "raw_instrument_clock"
-                _sugg_start_utc = pd.Timestamp(sug_start) + pd.Timedelta(
-                    seconds=clock_offset
-                )
-                dataset.attrs["suggested_deployment_time_utc"] = (
-                    _sugg_start_utc.isoformat()
-                )
-                _end_correction = drift_s if drift_s else clock_offset
-                _sugg_end_utc = pd.Timestamp(sug_end) + pd.Timedelta(
-                    seconds=_end_correction
-                )
-                dataset.attrs["suggested_recovery_time_utc"] = _sugg_end_utc.isoformat()
-            # First/last non-NaN timestamps (raw clock) from the priority variable.
-            dataset.attrs["stage1_first_nonnull"] = pd.Timestamp(
-                _nonnull_start
-            ).isoformat()
-            dataset.attrs["stage1_last_nonnull"] = pd.Timestamp(
-                _nonnull_end
-            ).isoformat()
-            # Store the raw stage1 full-record bounds for report comparison (same clock).
-            dataset.attrs["stage1_time_start"] = pd.Timestamp(_stage1_t0).isoformat()
-            dataset.attrs["stage1_time_end"] = pd.Timestamp(_stage1_t1).isoformat()
-            # Store the YAML trim bounds (UTC) so the report can compare stage2_end
-            # against the expected recovery time without needing the YAML directly.
-            if np.isfinite(deploy_time):
-                dataset.attrs["yaml_deployment_time"] = pd.Timestamp(
-                    deploy_time
-                ).isoformat()
-            if np.isfinite(recover_time):
-                dataset.attrs["yaml_recovery_time"] = pd.Timestamp(
-                    recover_time
-                ).isoformat()
-
-            # Write the processed dataset. write() replaces atomically (temp file
-            # then rename), so the previous output survives a failed write.
-            # Units were canonicalised on load; stage 2 only trims time and writes
-            # attrs, creating no unit-bearing variable, so no second pass is needed.
-            dataset = drop_all_zero_vars(dataset, ["amplitude_beam", "analog_input_"])
-            write(dataset, use_filepath, overwrite=True)
-
-            _status("file", self._rel(use_filepath))
-
-        except Exception as e:  # noqa: BLE001  — intentional broad catch at I/O boundary
-            self._log_print(f"ERROR processing {instrument_type} {serial}: {e}")
-            return False
-        return True
-
+    @with_stage_handlers
     def process_mooring(
         self,
         mooring_name: str,
@@ -1008,45 +763,49 @@ class Stage2Processor:
             self._log_print(f"ERROR: Failed to load configuration: {e}")
             return False
 
-        # Extract deployment time window
-        deploy_time = self._read_yaml_time(mooring_config, "deployment_time")
-        recover_time = self._read_yaml_time(mooring_config, "recovery_time")
-
-        self._log_print(f"Deployment time: {deploy_time}")
-        self._log_print(f"Recovery time: {recover_time}")
-
-        # Process each instrument (clamp/legacy instruments + processable inline).
-        instrument_list = instrument_entries(mooring_config)
-
-        # Filter by serial if requested
-        if serials:
-            # Match on the filename-safe serial (first comma token, illegal chars
-            # stripped) so `9920`, `9920*` and `9920, R01` all filter the same way.
-            safe_serials = {paths.safe_serial(s) for s in serials}
-            instrument_list = [
-                ic
-                for ic in instrument_list
-                if paths.safe_serial(ic.get("serial", "")) in safe_serials
-            ]
-            self._log_print(
-                f"Filtered to {len(instrument_list)} instrument(s) matching serial(s): {', '.join(serials)}"
-            )
-
+        # read → stage2 → write, one instrument at a time: read_mooring joins the
+        # stage-1 file with the description (identity + facts + marker), stage2 is
+        # the pure transform, write_mooring lays the stage-2 file out from the
+        # dataset's stamped facts. One instrument's failure is logged and the rest
+        # of the mooring is still written.
+        wanted = {paths.safe_serial(s) for s in serials} if serials else None
         success_count = 0
-        total_count = len(instrument_list)
-
-        for instrument_config in instrument_list:
-            success = self._process_instrument(
-                instrument_config,
-                mooring_config,
-                proc_dir,
-                mooring_name,
-                deploy_time,
-                recover_time,
-                force=force,
-            )
-            if success:
+        total_count = 0
+        for entry in instrument_entries(mooring_config):
+            if not isinstance(entry, dict):
+                continue
+            serial = paths.safe_serial(entry.get("serial", ""))
+            if wanted is not None and serial not in wanted:
+                continue
+            total_count += 1
+            instr_type = entry.get("instrument", "unknown")
+            if entry.get("skip"):
+                reason = entry.get("skip_reason", "marked skip:true in YAML")
+                self._log_print(f"SKIP {instr_type} {serial}: {reason}")
                 success_count += 1
+                continue
+            out_path = paths.stage_file(
+                proc_dir,
+                mooring_config.get("name", mooring_name),
+                instr_type,
+                serial,
+                2,
+            )
+            if out_path.exists() and not force:
+                self._log_print(f"SKIP (exists): {self._rel(out_path)}")
+                success_count += 1
+                continue
+            try:
+                datasets = read_mooring(
+                    mooring_config, stage=1, serials=[serial], mooring_dir=proc_dir
+                )
+                write_mooring(
+                    stage2(datasets, mooring_config), proc_dir, overwrite=True
+                )
+            except Exception as e:  # noqa: BLE001  — one instrument must not abort the mooring
+                self._log_print(f"ERROR: {instr_type} {serial}: {e}")
+                continue
+            success_count += 1
 
         self._log_print(
             f"Stage 2 completed: {success_count}/{total_count} instruments successful"
@@ -1054,6 +813,6 @@ class Stage2Processor:
         if total_count == 0:
             self._log_print("No instruments matched — nothing processed.")
             return False
-        # Partial success is still success: instruments that processed are written
-        # and the record summary reports which succeeded and which failed.
+        # Partial success is still success: the instruments that processed are
+        # written and the log names the ones that failed.
         return success_count > 0

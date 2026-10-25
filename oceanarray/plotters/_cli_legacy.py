@@ -17,6 +17,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
+from oceanarray import paths
+
 
 def plot_microcat_raw(ds, save_path=None):
     """Plot temperature, conductivity, and pressure from a raw/stage2 microcat NetCDF.
@@ -195,7 +197,7 @@ def plot_mooring_timeseries(
     dt_s = downsample_seconds or P.DOWNSAMPLE_SECONDS
 
     mooring_proc = Path(proc_dir) / mooring
-    use_files = sorted(mooring_proc.rglob("*_stage2.nc"))
+    use_files = sorted(mooring_proc.rglob(paths.stage_glob(2)))
 
     if not use_files:
         raise FileNotFoundError(f"No _stage2.nc files found under {mooring_proc}")

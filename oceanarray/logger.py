@@ -1,7 +1,10 @@
 """Logging configuration and helpers for the oceanarray processing pipeline."""
 
 import datetime
+import functools
 import logging
+import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -48,6 +51,55 @@ def log_debug(message: str, *args: Any) -> None:
     """Log a debug message, if logging is enabled."""
     if LOGGING_ENABLED:
         log.debug(message, *args, stacklevel=2)
+
+
+def attach_stage_handlers(log_file: Path | None) -> list[logging.Handler]:
+    """Send the package's INFO-and-above messages to stdout and *log_file*.
+
+    A processing stage calls this when it starts, so the messages its pure
+    functions log reach the console and the stage log as they did when the stage
+    printed them. Detach with :func:`detach_handlers`.
+
+    Parameters
+    ----------
+    log_file : pathlib.Path or None
+        The stage log file; None sends to stdout only.
+
+    Returns
+    -------
+    list of logging.Handler
+        The handlers attached, for :func:`detach_handlers`.
+    """
+    formatter = logging.Formatter("%(message)s")
+    handlers: list[logging.Handler] = [logging.StreamHandler(sys.stdout)]
+    if log_file is not None:
+        handlers.append(logging.FileHandler(log_file, encoding="utf-8"))
+    for handler in handlers:
+        handler.setLevel(logging.INFO)
+        handler.setFormatter(formatter)
+        log.addHandler(handler)
+    return handlers
+
+
+def detach_handlers(handlers: list[logging.Handler]) -> None:
+    """Remove and close handlers attached by :func:`attach_stage_handlers`."""
+    for handler in handlers:
+        log.removeHandler(handler)
+        handler.close()
+
+
+def with_stage_handlers(method: Callable) -> Callable:
+    """Detach a stage's log handlers (``self._log_handlers``) when *method* returns."""
+
+    @functools.wraps(method)
+    def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
+        try:
+            return method(self, *args, **kwargs)
+        finally:
+            detach_handlers(getattr(self, "_log_handlers", []))
+            self._log_handlers = []
+
+    return wrapper
 
 
 def setup_logger(array_name: str, output_dir: str = "logs") -> None:

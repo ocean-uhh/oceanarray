@@ -1,9 +1,8 @@
 """Read every instrument of one mooring into a dict of datasets.
 
-:func:`read_mooring` loops :func:`oceanarray.readers.read` (or opens the stage
-files) over the instruments a mooring description lists, and — when reading raw
-(``stage=None``) — stamps each dataset with the description's facts: the
-per-instrument entry (serial, instrument, hab, …) and the per-mooring header
+:func:`read_mooring` reads each raw file (or opens each stage file) of the
+instruments a mooring description lists, and stamps each dataset with the
+description's facts: the per-instrument entry (serial, instrument, hab, …) and the per-mooring header
 (name, position, deployment window, water depth). These attributes are the
 contract every pure stage function and product relies on, so they travel with
 the data rather than being re-read from the YAML at each step.
@@ -25,7 +24,7 @@ import xarray as xr
 from oceanarray import mooring as _mooring
 from oceanarray import paths, readers
 from oceanarray.exceptions import MooringError
-from oceanarray.pipeline import _stage
+from oceanarray.pipeline import _stage, raw_files
 from oceanarray.utilities import (
     format_latlon,
     instrument_entries,
@@ -153,9 +152,13 @@ def read_mooring(
         A loaded mooring description, a ``*.mooring.yaml`` path, or a directory
         holding exactly one such file.
     stage : int or None, optional
-        ``None`` reads each raw file (from *raw_dir*) and stamps the description's
-        facts; ``2`` or ``3`` opens the stage file (from *mooring_dir*) and checks
-        its ``processing_stage`` marker.
+        ``None`` finds and reads each raw file (from *raw_dir*) as stage 1 does —
+        a missing ``filename`` found by naming convention, the Nortek header, the
+        raw header's calibration metadata — and returns it unmarked, ready for
+        :func:`oceanarray.pipeline.stage1.stage1`; entries marked ``skip`` are left
+        out. ``1``, ``2`` or ``3`` opens the stage file (from *mooring_dir*) and
+        checks its ``processing_stage`` marker. The description's facts are
+        stamped on every path.
     serials : iterable of str or None, optional
         If given, read only the instruments whose (cleaned) serial is listed.
     allow_missing : bool, optional
@@ -211,54 +214,140 @@ def read_mooring(
             )
 
         if stage is None:
-            ds = _read_raw(entry, instr_type, name, raw_dir)
-            if ds is None:
+            if entry.get("skip"):
                 continue
-            ds = _stamp_raw(ds, entry, serial, instr_type, moor_attrs)
+            try:
+                raw = raw_files.resolve_raw_file(entry, cfg, raw_dir)
+                if not raw.path.exists():
+                    raise FileNotFoundError(
+                        f"{name}: {instr_type} s/n {serial} raw file not found at "
+                        f"{raw.path}."
+                    )
+            except (MooringError, FileNotFoundError):
+                if not allow_missing:
+                    raise
+                warnings.warn(
+                    f"{name}: {instr_type} s/n {serial} has no raw file; skipping "
+                    "(allow_missing).",
+                    stacklevel=2,
+                )
+                continue
+            ds = raw_files.read_raw_file(raw)
+            ds = _join_description(ds, raw.entry, serial, instr_type, moor_attrs)
         else:
             ds = _read_stage(
                 serial, instr_type, name, stage, mooring_dir, allow_missing
             )
             if ds is None:
                 continue
-            _stage.require({serial: ds}, stage, f"read_mooring stage {stage}")
+            _stage.require({serial: ds}, stage, stage)
+            ds = _join_description(ds, entry, serial, instr_type, moor_attrs)
 
         datasets[serial] = ds
 
     return datasets
 
 
-def _read_raw(
-    entry: dict[str, Any],
-    instr_type: str,
-    name: str,
-    raw_dir: str | Path | None,
-) -> xr.Dataset | None:
-    """Read one instrument's raw file, or None if the entry names no file."""
-    filename = entry.get("filename")
-    if not filename:
-        return None
-    raw_path = paths.raw_mooring_dir(raw_dir, name) / instr_type / filename
-    return readers.read(raw_path, file_type=entry.get("file_type"))
+def join_raw(
+    ds: xr.Dataset, entry: dict[str, Any], mooring: Mapping[str, Any]
+) -> xr.Dataset:
+    """Join one instrument's raw dataset with its description, as ``read_mooring`` does.
+
+    For a caller that has already found and read the raw file (the stage-1 class,
+    which needs the file's path before reading to decide whether to skip it).
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        The raw dataset, from :func:`oceanarray.pipeline.raw_files.read_raw_file`.
+    entry : dict
+        The instrument's description entry.
+    mooring : Mapping
+        The loaded mooring description.
+
+    Returns
+    -------
+    xarray.Dataset
+        A copy carrying the stamping-contract attributes, unmarked.
+    """
+    serial = paths.safe_serial(entry.get("serial", ""))
+    instr_type = entry.get("instrument")
+    if not instr_type:
+        raise MooringError(
+            f"{mooring['name']}: instrument entry for serial {serial!r} has no "
+            "'instrument' key; it names the subdirectory and the stamped "
+            "instrument type, so it cannot be defaulted."
+        )
+    return _join_description(ds, entry, serial, instr_type, _mooring_attrs(mooring))
 
 
-def _stamp_raw(
+def _join_description(
     ds: xr.Dataset,
     entry: dict[str, Any],
     serial: str,
     instr_type: str,
     moor_attrs: dict[str, Any],
 ) -> xr.Dataset:
-    """Stamp the description's facts and the stage-1 marker on a raw dataset."""
+    """Join a dataset with its mooring description — the stamping contract (ruling 1).
+
+    Reading a mooring means joining a file with the description it belongs to, so the
+    stamping-contract attributes travel on the dataset whatever path it came by (raw
+    or a stage file). ``mooring_name`` is the mooring's identity: a file whose
+    ``mooring_name`` differs from the description's ``name`` only by case is corrected
+    with a ``history`` line; one that differs otherwise was made under a different
+    description and raises :class:`MooringError` (reprocess it from stage 1). A
+    ``serial`` that differs from the entry's raises too (rule 11 — never mislabel).
+    Other contract attributes are filled when absent.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        The dataset just read.
+    entry : dict
+        The instrument's description entry.
+    serial : str
+        The cleaned serial from the entry.
+    instr_type : str
+        The instrument type from the entry.
+    moor_attrs : dict
+        The per-mooring header attributes from :func:`_mooring_attrs`.
+
+    Returns
+    -------
+    xarray.Dataset
+        A copy carrying the stamping-contract attributes.
+    """
     ds = ds.copy()
-    ds.attrs.update(moor_attrs)
+    existing = ds.attrs.get("serial")
+    if existing is not None and paths.safe_serial(existing) != serial:
+        raise MooringError(
+            f"{moor_attrs['mooring_name']}: dataset serial {existing!r} contradicts "
+            f"the description's {serial!r} for this instrument — refusing to mislabel it."
+        )
+    name = moor_attrs["mooring_name"]
+    existing_name = ds.attrs.get("mooring_name")
+    if existing_name is not None and existing_name != name:
+        if str(existing_name).lower() != str(name).lower():
+            raise MooringError(
+                f"{name}: the dataset's mooring_name {existing_name!r} differs from the "
+                f"description's name {name!r} by more than case — it was made under a "
+                "different description; reprocess it from stage 1."
+            )
+        _stage.append_history(
+            ds, f"mooring_name corrected from {existing_name!r} to {name!r} (case)"
+        )
+    for key, value in moor_attrs.items():
+        # mooring_name is the identity (checked above); the rest are filled only
+        # when absent.
+        if key == "mooring_name" or key not in ds.attrs:
+            ds.attrs[key] = value
     ds.attrs["serial"] = serial
     for key in _INSTRUMENT_ATTRS:
-        if entry.get(key) is not None:
+        if entry.get(key) is not None and key not in ds.attrs:
             ds.attrs[key] = entry[key]
     ds.attrs["instrument"] = instr_type
     ds.attrs["stack"] = bool(entry.get("stack", True))
-    return _stage.stamp(ds, 1, source=entry.get("filename"))
+    return ds
 
 
 def _read_stage(

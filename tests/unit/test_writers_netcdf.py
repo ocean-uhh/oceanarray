@@ -231,6 +231,16 @@ def test_clean_attr_value_branches():
     assert _clean_attr_value(3.5) == 3.5
 
 
+def test_bool_attribute_is_stored_as_int8():
+    """A bool attribute (netCDF has no boolean type) becomes CF 0/1 as int8."""
+    import numpy as np
+
+    for value, expected in ((True, 1), (False, 0)):
+        out = _clean_attr_value(value)
+        assert out == expected
+        assert isinstance(out, np.int8)
+
+
 def test_none_attributes_dropped_with_warning(tmp_path):
     """A None global or variable attribute is dropped from the file, with a warning."""
     ds = xr.Dataset(

@@ -11,6 +11,8 @@ from typing import Any
 
 import numpy as np
 
+from oceanarray import paths
+
 from .. import parameters as params
 from ..config.unit_tables import var_unit_label, warn_if_not_canonical
 from ..plotters.helpers import grid_despine, ordered_line_colors
@@ -1028,8 +1030,8 @@ def generate_stack_page(
             _s = str(serials[i])
             _itype = str(instr_types[i])
             _base = proc_dir / _itype / f"{mooring_name}_{_s}"
-            _s3 = Path(str(_base) + "_stage3.nc")
-            _s2 = Path(str(_base) + "_stage2.nc")
+            _s3 = Path(str(_base) + paths.stage_suffix(3))
+            _s2 = Path(str(_base) + paths.stage_suffix(2))
             if _s3.exists():
                 _clock_nc_paths[_s] = _s3
             elif _s2.exists():
@@ -1053,7 +1055,9 @@ def generate_stack_page(
             if analog_vars
             else None
         )
-        grid_exists = (stack_path.parent / f"{mooring_name}_grid.nc").exists()
+        grid_exists = paths.product_file(
+            stack_path.parent, mooring_name, "grid"
+        ).exists()
 
         report = resolve(
             STACK_DEFAULT,

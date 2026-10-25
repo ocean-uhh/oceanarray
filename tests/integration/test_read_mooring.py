@@ -11,6 +11,7 @@ import warnings
 from pathlib import Path
 
 import pytest
+import xarray as xr
 
 from oceanarray import mooring as _mooring
 from oceanarray.exceptions import MooringError
@@ -44,10 +45,17 @@ def test_stage3_from_a_directory_path():
     assert sorted(datasets) == ["2941", "9920"]
 
 
-def test_stage3_warns_and_infers_on_unmarked_fixture_files():
-    """The committed fixtures predate the marker, so the stage is inferred (with a WARNING)."""
+def test_stage3_warns_and_infers_on_unmarked_files(tmp_path):
+    """A stage file written before the marker existed has its stage inferred (with a WARNING)."""
+    moor_dir = tmp_path / "dune2_1_2026"
+    shutil.copytree(_MOORING_DIR, moor_dir)
+    for path in moor_dir.glob("*/*_stage3.nc"):
+        with xr.open_dataset(path, engine="netcdf4", decode_timedelta=False) as ds:
+            ds = ds.load()
+        del ds.attrs[_stage.STAGE_ATTR]
+        ds.to_netcdf(path)
     with pytest.warns(UserWarning, match="inferring stage 3 from the filename"):
-        datasets = read_mooring(_cfg(), stage=3, mooring_dir=_MOORING_DIR)
+        datasets = read_mooring(_cfg(), stage=3, mooring_dir=moor_dir)
     # The inferred marker is stamped in memory, so the returned datasets carry it.
     assert all(ds.attrs[_stage.STAGE_ATTR] == 3 for ds in datasets.values())
 
@@ -128,15 +136,15 @@ def test_mooring_attrs_warn_and_mark_none_when_absent():
 # ---------------------------------------------------------------------------
 
 
-def test_raw_read_stamps_the_marker_and_facts():
-    """read_mooring(stage=None) reads each raw file and stamps the stage-1 facts."""
+def test_raw_read_stamps_the_facts_and_no_marker():
+    """read_mooring(stage=None) reads each raw file, stamps the facts, and leaves it unmarked."""
     pytest.importorskip("seasenselib", reason="seasenselib not installed")
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         datasets = read_mooring(_cfg(), stage=None, raw_dir=_RAW)
     assert sorted(datasets) == ["2941", "9920"]
     mc = datasets["2941"]
-    assert mc.attrs[_stage.STAGE_ATTR] == 1
+    assert _stage.STAGE_ATTR not in mc.attrs
     assert mc.attrs["serial"] == "2941"
     assert mc.attrs["instrument"] == "microcat"
     assert mc.attrs["hab"] == 425

@@ -103,6 +103,15 @@ Faithful to raw data; no QC.
    :members:
    :undoc-members:
 
+raw files
+^^^^^^^^^
+Find and read one instrument's raw file as stage 1 does: the recovery-file naming
+convention for a missing ``filename``, the Nortek header, and the calibration metadata
+only the raw header holds.
+
+.. automodule:: oceanarray.pipeline.raw_files
+   :members:
+
 stage 2 — trimming and clock correction
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Trim to the deployment window; apply linear clock-offset/drift correction.
@@ -153,6 +162,14 @@ implementation (see :doc:`methods/calibration`).
 .. automodule:: oceanarray.pipeline.caldip
    :members:
    :undoc-members:
+
+stamp
+^^^^^
+Mark stage files written before the ``processing_stage`` marker existed
+(``oceanarray stamp FILE... --stage N``).
+
+.. automodule:: oceanarray.pipeline.stamp
+   :members:
 
 Mooring processing
 -------------------
