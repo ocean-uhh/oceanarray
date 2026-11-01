@@ -32,8 +32,9 @@ def run(
     p_start: float | None = None,
     p_end: float | None = None,
     dp: float | None = None,
+    report: bool = False,
 ) -> list[Path]:
-    """Run stages 1–3 for one mooring, then stack and grid it.
+    """Run stages 1–3 for one mooring, then stack and grid it (and build its report).
 
     :func:`oceanarray.process` writes the stage files; the stack is built from
     every instrument's stage-3 file and written as ``<name>_stack.nc``, then
@@ -70,12 +71,15 @@ def run(
     p_start, p_end, dp : float or None, optional
         The grid's pressure levels, in dbar. ``None`` takes the description's
         ``grid:`` block, else 200, 1000 and 20.
+    report : bool, optional
+        Then build the mooring's report pages with :func:`oceanarray.report`
+        (summary, per-instrument, stack and grid; no PDF), in the default place.
 
     Returns
     -------
     list of pathlib.Path
         The stage files (as :func:`oceanarray.process` returns them), then the
-        stack and grid files.
+        stack and grid files, then (with *report*) the report's summary page.
 
     Raises
     ------
@@ -102,6 +106,7 @@ def run(
     from oceanarray.pipeline.stack import _stack_file
 
     wanted = _stage_numbers(stages)
+    serial_list = _serial_list(serials)
     cfg, moor_dir = _resolve_mooring(mooring, mooring_dir, "run")
     settings = _settings(
         cfg, dt_seconds=dt_seconds, p_start=p_start, p_end=p_end, dp=dp
@@ -115,7 +120,7 @@ def run(
             moor_dir,
             wanted,
             outcome,
-            serial_list=list(serials) if serials is not None else None,
+            serial_list=serial_list,
             force=force,
             keep_going=keep_going,
             raw_dir=raw_dir,
@@ -161,8 +166,29 @@ def run(
             raise MooringError(f"{name}: cannot grid the stack: {e}") from e
         print(f"WARNING: keep_going: no grid — {e}")
         _remove_stale(products[1:], "the stack changed but could not be gridded")
-        return [*outcome.files, stack_path]
-    return [*outcome.files, stack_path, grid_path]
+        files = [*outcome.files, stack_path]
+    else:
+        files = [*outcome.files, stack_path, grid_path]
+    if report:
+        from oceanarray.reports import report as _report
+
+        files.append(
+            _report(
+                cfg,
+                mooring_dir=moor_dir,
+                raw_dir=raw_dir,
+                serials=serial_list,
+                force=force,
+            )
+        )
+    return files
+
+
+def _serial_list(serials: Iterable[str] | None) -> list[str] | None:
+    """Return *serials* as a list read once; a bare string is one serial."""
+    if serials is None:
+        return None
+    return [serials] if isinstance(serials, str) else list(serials)
 
 
 def _remove_stale(paths_: list[Path], why: str) -> None:

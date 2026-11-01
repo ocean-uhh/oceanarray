@@ -63,97 +63,6 @@ def _parse_dirs_checked(
     return raw_dir, proc_root
 
 
-def _print_report(proc_dir: Path) -> None:
-    """Print a per-instrument summary of stage1/stage2/stage3 NetCDF files.
-
-    *proc_dir* is the mooring-level processed directory (``<proc-dir>/<mooring>``).
-    For each instrument, reports: serial number, record count (raw from stage1 vs
-    processed from stage2/stage3), time span, nominal depth, sampling interval, and
-    which geophysical variables are present (temperature, salinity, velocity, etc.).
-    """
-    import datetime
-
-    import numpy as np
-    import xarray as xr
-
-    # Collect all processed files; prefer _stage3 > _use as the "best" file per serial
-    use_files = sorted(proc_dir.rglob(paths.stage_glob(2)))
-    stage3_files = {
-        f.name.replace(paths.stage_suffix(3), ""): f
-        for f in proc_dir.rglob(paths.stage_glob(3))
-    }
-
-    if not use_files and not stage3_files:
-        print("  No processed files found.")
-        return
-
-    by_instrument: dict = {}
-    for nc in use_files:
-        instrument = nc.parent.name
-        by_instrument.setdefault(instrument, []).append(nc)
-
-    for instrument, files in sorted(by_instrument.items()):
-        print(f"\n  {instrument}")
-        for nc in sorted(files):
-            # Use _stage3.nc for reporting if it exists
-            stem = nc.name.replace(paths.stage_suffix(2), "")
-            best_nc = stage3_files.get(stem, nc)
-            stage_label = "stage3" if best_nc != nc else "use"
-            try:
-                ds = xr.open_dataset(best_nc, decode_timedelta=False)
-                n_rec = len(ds.time)
-                t0 = str(ds.time.values[0])[:16].replace("T", " ")
-                t1 = str(ds.time.values[-1])[:16].replace("T", " ")
-                serial = ds["serial_number"].item() if "serial_number" in ds else "?"
-                depth = (
-                    f"{ds['InstrDepth'].item():.0f} m" if "InstrDepth" in ds else "?"
-                )
-                vars_present = [
-                    v
-                    for v in (
-                        "temperature",
-                        "conductivity",
-                        "pressure",
-                        "east_velocity",
-                        "north_velocity",
-                        "up_velocity",
-                        "velocity_beam1",
-                    )
-                    if v in ds.data_vars
-                ]
-                if len(ds.time) > 1:
-                    dt_s = np.median(
-                        np.diff(ds.time.values).astype("timedelta64[s]").astype(float)
-                    )
-                    interval = f"{dt_s:.0f} s"
-                else:
-                    interval = "? s"
-                ds.close()
-
-                raw_nc = nc.with_name(
-                    nc.name.replace(paths.stage_suffix(2), paths.stage_suffix(1))
-                )
-                try:
-                    if raw_nc.exists():
-                        ds_raw = xr.open_dataset(raw_nc, decode_timedelta=False)
-                        n_raw = len(ds_raw.time)
-                        ds_raw.close()
-                        counts = f"{n_raw:>7} raw → {n_rec:>7} {stage_label}"
-                    else:
-                        counts = f"{'?':>7} raw → {n_rec:>7} {stage_label}"
-                except Exception:  # noqa: BLE001  — intentional broad catch at I/O boundary
-                    counts = f"{'HDF ERR':>7} raw → {n_rec:>7} {stage_label}"
-
-                mtime = datetime.datetime.fromtimestamp(
-                    best_nc.stat().st_mtime
-                ).strftime("%Y-%m-%d %H:%M")
-                print(
-                    f"    s/n {serial:<8}  {counts}  {t0} → {t1}  depth: {depth}  dt: {interval}  processed: {mtime}  vars: {', '.join(vars_present)}"
-                )
-            except Exception as e:  # noqa: BLE001  — display helper; must not crash status output
-                print(f"    {nc.name}: ERROR — {e}")
-
-
 def cmd_process(args: argparse.Namespace) -> int:
     """Convert raw instrument files to processed NetCDF for one mooring.
 
@@ -198,8 +107,10 @@ def cmd_process(args: argparse.Namespace) -> int:
         )
 
     if args.report:
+        from .reports import summary
+
         _status("section", f"Record Summary: {args.mooring}")
-        _print_report(proc_root / args.mooring)
+        print(summary(paths.mooring_proc_dir(proc_root, args.mooring)))
 
     if args.plot:
         import matplotlib
@@ -272,247 +183,176 @@ def cmd_plot(args: argparse.Namespace) -> int:
     return 0
 
 
-def _generate_mooring_report(
-    mooring: str,
-    *,
-    proc_root: "Path",
-    raw_dir: "Path | None",
-    report_dir: "str | None",
-    outdir: "str | None",
-    sig_level: "list[float] | None",
-    serials: "list[str] | None",
-    force: bool,
-    instruments: bool,
-    grid: bool,
-    stack: bool,
-    skip_existing: bool = False,
-) -> bool:
-    """Generate the standard mooring report pages and return True on success.
-
-    Shared by :func:`cmd_report` (single-mooring path) and :func:`cmd_run`.
-    Applies the *sig_level* isopycnal-grid override for the duration of the call
-    and restores the previous ``SIGMA_GRID`` afterwards, so batch callers in the
-    same process do not inherit the mutation (not thread-safe).  Layout
-    validation is the caller's responsibility.
-
-    Parameters
-    ----------
-    mooring : str
-        Mooring name.
-    proc_root : Path
-        Cruise-level processed output directory.
-    raw_dir : Path or None
-        Cruise-level raw directory, or None when unavailable.
-    report_dir : str or None
-        Central report directory; when set, pages go to ``report_dir/{mooring}/``.
-    outdir : str or None
-        Explicit output directory for this mooring's HTML, overriding the default.
-    sig_level : list of float or None
-        σ₀ targets for the grid report; None leaves the default ``SIGMA_GRID``.
-    serials : list of str or None
-        Restrict per-instrument pages to these serials (implies *instruments*).
-    force : bool
-        Overwrite existing output files.
-    instruments, grid, stack : bool
-        Whether to also build the per-instrument, grid, and stack pages.
-    skip_existing : bool, optional
-        Skip outputs that already exist regardless of source mtime.
-
-    Returns
-    -------
-    bool
-        True if report generation succeeded.
-
-    """
-    from .reports import MooringReport
-
-    _sigma_restore: tuple | None = None
-    if sig_level is not None:
-        import numpy as _np
-
-        from .config import parameters as params
-
-        _sigma_restore = (params, params.SIGMA_GRID.copy())
-        params.SIGMA_GRID = _np.array(sorted(sig_level))
-    try:
-        _status("section", f"Report: {mooring}")
-        reporter = MooringReport(
-            proc_dir=str(proc_root),
-            raw_dir=str(raw_dir) if raw_dir else None,
-            report_dir=report_dir,
-        )
-        return bool(
-            reporter.generate(
-                mooring,
-                force=force,
-                skip_existing=skip_existing,
-                outdir=outdir,
-                serials=serials,
-                instruments=instruments,
-                grid=grid,
-                stack=stack,
-            )
-        )
-    finally:
-        if _sigma_restore is not None:
-            _sigma_restore[0].SIGMA_GRID = _sigma_restore[1]
-
-
 def cmd_report(args: argparse.Namespace) -> int:
-    """Generate HTML quality-control reports for a mooring or an array.
+    """Generate HTML reports for a mooring or an array, through :func:`oceanarray.report`.
 
-    Without ``--array``: generates the mooring summary page (and optionally
-    ``--instruments``, ``--stack``, ``--grid`` pages) for a single mooring.
+    Without ``--array``: the mooring summary page, plus ``--instruments``,
+    ``--stack`` and ``--grid`` pages (``--all``: all of them and the PDF).
+    ``--cruise-table`` adds the recovery table; ``--pdf`` the combined PDF.
 
-    With ``--array``: the positional argument is treated as a path to an
-    ``*.array.yaml`` file and an array-level HTML index is generated linking
-    all mooring reports.  Other report flags are ignored in array mode.
+    With ``--array``: the positional argument is an ``*.array.yaml`` path and the
+    array index linking each mooring's report is built; the other report flags
+    are ignored.
     """
-    from pathlib import Path
+    from .exceptions import MooringError
+    from .reports import report
 
     raw_dir, proc_root = _parse_dirs(args)
-    # Array mode treats the positional as a YAML path, not a mooring name, so the
-    # per-mooring layout check does not apply there.
-    if not getattr(args, "array", False):
-        paths.require_current_layout(proc_root, args.mooring)
-
     report_dir = getattr(args, "report_dir", None)
-    sig_level = getattr(args, "sig_level", None)
-
-    if getattr(args, "dry_run", False):
-        from oceanarray import mooring as _mooring
-        from oceanarray.utilities import instrument_entries
-
-        _status("section", f"Report (dry run): {args.mooring}")
-        proc_dir = proc_root / args.mooring
-        yaml_path = proc_dir / f"{args.mooring}.mooring.yaml"
-        all_reports = getattr(args, "all_reports", False)
-        do_instruments = all_reports or getattr(args, "instruments", False)
-        do_stack = all_reports or getattr(args, "stack", False)
-        do_grid = all_reports or getattr(args, "grid", False)
-        mooring_html = proc_dir / f"{args.mooring}_report.html"
-        print(
-            f"Summary:  {mooring_html}  ({'exists' if mooring_html.exists() else 'new'})"
-        )
-        if do_stack:
-            p = proc_dir / f"{args.mooring}_stack_report.html"
-            print(f"Stack:    {p}  ({'exists' if p.exists() else 'new'})")
-        if do_grid:
-            p = proc_dir / f"{args.mooring}_grid_report.html"
-            print(f"Grid:     {p}  ({'exists' if p.exists() else 'new'})")
-        if do_instruments and yaml_path.exists():
-            # A dry run is a preview — never raise on a half-filled config. Show
-            # the validation issues (as `validate` would), then list whatever the
-            # file parses to; only a file that is not YAML at all stops the listing.
-            cfg = _mooring._parse(yaml_path)
-            if cfg is None:
-                print(f"  (cannot preview instruments: {yaml_path} is not valid YAML)")
-            else:
-                for issue in _mooring.check(yaml_path):
-                    print(f"  {issue.level.lower()}: {issue.message}")
-                for entry in instrument_entries(cfg):
-                    if not isinstance(entry, dict):
-                        continue
-                    serial = str(entry.get("serial", "")).split(",")[0].strip()
-                    instr_type = entry.get("instrument", "unknown")
-                    p = proc_dir / "instrument" / f"{args.mooring}_{serial}_report.html"
-                    print(
-                        f"  Instrument {instr_type:12s} s/n {serial:8s}  {p.name}  ({'exists' if p.exists() else 'new'})"
-                    )
-        if getattr(args, "pdf", False) or all_reports:
-            _html_dir = paths.resolve_report_dir(
-                args.mooring, getattr(args, "outdir", None), report_dir, proc_root
-            )
-            pdf_path = paths.resolve_pdf_path(
-                args.mooring, getattr(args, "pdf_dir", None), _html_dir
-            )
-            print(f"PDF:      {pdf_path}  (combined from the HTML pages above)")
-        return 0
+    outdir = getattr(args, "outdir", None)
 
     if getattr(args, "array", False):
-        from .reports._array import generate_array_report
-
         if getattr(args, "pdf", False) or getattr(args, "all_reports", False):
             _status(
                 "error",
                 "--pdf is not supported in --array mode; the array index is "
                 "HTML-only. Run 'report MOORING --pdf' per mooring instead.",
             )
-        if getattr(args, "outdir", None):
+        if outdir:
             _status(
                 "error",
                 "-o/--output-dir is ignored in --array mode; the array index "
                 "goes to the tree root. Use --report-dir to set it.",
             )
-        # Resolve the YAML path: try as-given first, then relative to proc_dir.
-        _yaml_path = Path(args.mooring)
-        if not _yaml_path.exists() and not _yaml_path.is_absolute():
-            _yaml_path = proc_root / args.mooring
-        _status("section", f"Array report: {_yaml_path.name}")
-        result = generate_array_report(
-            array_yaml_path=_yaml_path,
-            proc_dir=proc_root,
-            force=args.force,
-            report_dir=Path(report_dir) if report_dir else None,
-        )
-        return 0 if result else 1
-
-    serials = getattr(args, "serial", None)
-    all_reports = getattr(args, "all_reports", False)
-    result = _generate_mooring_report(
-        args.mooring,
-        proc_root=proc_root,
-        raw_dir=raw_dir,
-        report_dir=report_dir,
-        outdir=getattr(args, "outdir", None),
-        sig_level=sig_level,
-        serials=serials,
-        force=args.force,
-        instruments=all_reports or args.instruments or bool(serials),
-        grid=all_reports or args.grid,
-        stack=all_reports or args.stack,
-        skip_existing=getattr(args, "skip_existing", False),
-    )
-    if getattr(args, "cruise_table", False):
-        from .reports._recovery_table import generate_recovery_table
-
-        mooring_proc = proc_root / args.mooring
-        out_dir = Path(
-            getattr(args, "outdir", None)
-            or (Path(report_dir) / args.mooring if report_dir else mooring_proc)
-        )
-        generate_recovery_table(
-            mooring_name=args.mooring,
-            proc_dir=mooring_proc,
-            out_path=out_dir / f"{args.mooring}_recovery_table.html",
-            force=args.force,
-        )
-    if getattr(args, "pdf", False) or all_reports:
-        from .reports import combine_mooring_pdf
-
-        # Combine reads the same directory generate() wrote to; both resolve it
-        # through paths.resolve_report_dir so they can never drift.
-        html_dir = paths.resolve_report_dir(
-            args.mooring, getattr(args, "outdir", None), report_dir, proc_root
-        )
-        # --pdf-dir redirects the PDF to a shared directory; when unset it stays
-        # beside the HTML.  Resolved identically to the dry-run preview above.
-        pdf_path = paths.resolve_pdf_path(
-            args.mooring, getattr(args, "pdf_dir", None), html_dir
-        )
-        pdf_path.parent.mkdir(parents=True, exist_ok=True)
         try:
-            pdf_path = combine_mooring_pdf(html_dir, args.mooring, output_path=pdf_path)
-            _status("file", str(pdf_path))
-        except (ImportError, FileNotFoundError) as exc:
-            # An explicit --pdf request that cannot be honoured is a failure.
-            # When the PDF was only implied by --all, treat it as best-effort:
-            # warn but keep the (successful) HTML result and do not fail, so
-            # `report --all` still works on machines without the pdf extra.
-            _status("error", str(exc))
+            report(
+                args.mooring,
+                kind="array",
+                proc_dir=proc_root,
+                report_dir=report_dir,
+                force=args.force,
+            )
+        except MooringError as e:
+            _status("error", str(e))
+            return 1
+        return 0
+
+    # Array mode treats the positional as a YAML path, not a mooring name, so the
+    # per-mooring layout check applies only here.
+    paths.require_current_layout(proc_root, args.mooring)
+    moor_dir = paths.mooring_proc_dir(proc_root, args.mooring)
+    all_reports = getattr(args, "all_reports", False)
+    serials = getattr(args, "serial", None) or None
+    do_instruments = all_reports or getattr(args, "instruments", False) or bool(serials)
+    do_stack = all_reports or getattr(args, "stack", False)
+    do_grid = all_reports or getattr(args, "grid", False)
+    want_pdf = getattr(args, "pdf", False) or all_reports
+
+    if getattr(args, "dry_run", False):
+        return _report_dry_run(
+            args,
+            moor_dir,
+            outdir,
+            report_dir,
+            do_instruments,
+            do_stack,
+            do_grid,
+            want_pdf,
+        )
+
+    try:
+        page = report(
+            moor_dir,
+            raw_dir=raw_dir,
+            out_dir=outdir,
+            report_dir=report_dir,
+            instruments=do_instruments,
+            stack=do_stack,
+            grid=do_grid,
+            serials=serials,
+            sig_level=getattr(args, "sig_level", None),
+            force=args.force,
+            skip_existing=getattr(args, "skip_existing", False),
+        )
+        if getattr(args, "cruise_table", False):
+            report(
+                moor_dir,
+                kind="recovery",
+                out_dir=outdir,
+                report_dir=report_dir,
+                force=args.force,
+            )
+    except MooringError as e:
+        _status("error", str(e))
+        return 1
+    if want_pdf:
+        from .reports._verb import _combine_pdf, _name_and_dir
+
+        name, _ = _name_and_dir(moor_dir, None)
+        try:
+            _combine_pdf(name, page.parent, getattr(args, "pdf_dir", None))
+        except MooringError as e:
+            # An explicit --pdf that cannot be honoured is a failure; a PDF only
+            # implied by --all is best-effort, so the HTML result stands.
+            _status("error", str(e))
             if getattr(args, "pdf", False):
                 return 1
-    return 0 if result else 1
+    return 0
+
+
+def _report_dry_run(
+    args: argparse.Namespace,
+    moor_dir: Path,
+    outdir: str | None,
+    report_dir: str | None,
+    do_instruments: bool,
+    do_stack: bool,
+    do_grid: bool,
+    want_pdf: bool,
+) -> int:
+    """Print the pages a report run would write, at the paths it would write them to."""
+    from oceanarray import mooring as _mooring
+    from oceanarray.reports import report_paths
+    from oceanarray.reports._verb import _description_file, _name_and_dir
+    from oceanarray.utilities import instrument_entries
+
+    from .exceptions import MooringError
+
+    _status("section", f"Report (dry run): {args.mooring}")
+    try:
+        name, _ = _name_and_dir(moor_dir, None)
+    except MooringError as e:
+        _status("error", str(e))
+        return 1
+    where = report_paths(
+        moor_dir,
+        out_dir=outdir,
+        report_dir=report_dir,
+        pdf_dir=getattr(args, "pdf_dir", None),
+    )
+
+    def _state(p: Path) -> str:
+        """Return whether *p* already exists, for the listing."""
+        return "exists" if p.exists() else "new"
+
+    print(f"Summary:  {where['summary']}  ({_state(where['summary'])})")
+    if do_stack:
+        print(f"Stack:    {where['stack']}  ({_state(where['stack'])})")
+    if do_grid:
+        print(f"Grid:     {where['grid']}  ({_state(where['grid'])})")
+    yaml_path = _description_file(moor_dir, moor_dir, name)
+    if do_instruments and yaml_path.exists():
+        # A dry run is a preview — never raise on a half-filled config. Show the
+        # validation issues (as `validate` would), then list whatever the file
+        # parses to; only a file that is not YAML at all stops the listing.
+        cfg = _mooring._parse(yaml_path)
+        if cfg is None:
+            print(f"  (cannot preview instruments: {yaml_path} is not valid YAML)")
+        else:
+            for issue in _mooring.check(yaml_path):
+                print(f"  {issue.level.lower()}: {issue.message}")
+            for entry in instrument_entries(cfg):
+                if not isinstance(entry, dict):
+                    continue
+                serial = paths.safe_serial(entry.get("serial", ""))
+                instr_type = entry.get("instrument", "unknown")
+                p = where["instrument_dir"] / f"{name}_{serial}_report.html"
+                print(
+                    f"  Instrument {instr_type:12s} s/n {serial:8s}  {p}  ({_state(p)})"
+                )
+    if want_pdf:
+        print(f"PDF:      {where['pdf']}  (combined from the HTML pages above)")
+    return 0
 
 
 def cmd_run(args: argparse.Namespace) -> int:
@@ -561,20 +401,22 @@ def cmd_run(args: argparse.Namespace) -> int:
         print(f"ERROR: {e}")
         return 1
 
-    report_ok = _generate_mooring_report(
-        args.mooring,
-        proc_root=proc_root,
-        raw_dir=raw_dir,
-        report_dir=args.report_dir,
-        outdir=args.outdir,
-        sig_level=args.sig_level,
-        serials=serials,
-        force=args.force,
-        instruments=True,
-        grid=True,
-        stack=True,
-    )
-    return 0 if report_ok else 1
+    from .reports import report
+
+    try:
+        report(
+            yaml_path,
+            raw_dir=raw_dir,
+            out_dir=args.outdir,
+            report_dir=args.report_dir,
+            serials=serials,
+            sig_level=args.sig_level,
+            force=args.force,
+        )
+    except MooringError as e:
+        print(f"ERROR: {e}")
+        return 1
+    return 0
 
 
 def cmd_validate(args: argparse.Namespace) -> int:

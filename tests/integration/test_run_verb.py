@@ -218,9 +218,10 @@ def _cli(args: list[str]) -> int:
 
 def test_cli_run_keep_going_stacks_what_exists(tmp_path, capsys, monkeypatch):
     """A missing raw file: --strict exits 1 with no stack; the default carries on and stacks the rest."""
-    import oceanarray.cli as cli
 
-    monkeypatch.setattr(cli, "_generate_mooring_report", lambda *_a, **_k: True)
+    import oceanarray.reports as reports
+
+    monkeypatch.setattr(reports, "report", lambda *_a, **_k: None)
     raw = _without_aquadopp_raw(tmp_path)
     yaml_path = _fresh_tree(tmp_path)
     proc = str(yaml_path.parent.parent)
@@ -236,12 +237,13 @@ def test_cli_run_keep_going_stacks_what_exists(tmp_path, capsys, monkeypatch):
 
 def test_cli_run_takes_stages_and_the_description_settings(ran, monkeypatch):
     """--stage reaches run(), keep_going defaults True (--strict makes it False); unset settings stay None."""
-    import oceanarray.cli as cli
     import oceanarray.pipeline as pipeline
 
     seen: dict = {}
     monkeypatch.setattr(pipeline, "run", lambda _path, **kw: seen.update(kw) or [])
-    monkeypatch.setattr(cli, "_generate_mooring_report", lambda *_a, **_k: True)
+    import oceanarray.reports as reports
+
+    monkeypatch.setattr(reports, "report", lambda *_a, **_k: None)
     yaml_path, _ = ran
     proc = str(yaml_path.parent.parent)
     assert _cli(["run", _NAME, "--proc-dir", proc, "--stage", "3", "2"]) == 0
