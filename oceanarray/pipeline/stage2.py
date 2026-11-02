@@ -807,6 +807,7 @@ def _stage2_files(
     """
     wanted = {paths.safe_serial(s) for s in serials} if serials else None
     run = _stage.StageRun()
+    n_skipped = n_excluded = 0
     for entry in instrument_entries(mooring):
         if not isinstance(entry, dict):
             continue
@@ -818,9 +819,11 @@ def _stage2_files(
         if entry.get("skip"):
             reason = entry.get("skip_reason", "marked skip:true in YAML")
             log(f"SKIP {instr_type} {serial}: {reason}")
+            n_skipped += 1
             continue
         if serial in exclude:
             log(f"SKIP {instr_type} {serial}: failed earlier in this run")
+            n_excluded += 1
             continue
         out_path = paths.stage_file(mooring_dir, mooring["name"], instr_type, serial, 2)
         if out_path.exists() and not force:
@@ -839,9 +842,18 @@ def _stage2_files(
             run.failed.append(f"{instr_type} {serial}: {e}")
             run.failed_serials.append(serial)
 
+    attempted = run.matched - n_skipped - n_excluded
+    extra = "".join(
+        f", {n} {what}"
+        for n, what in (
+            (n_skipped, "skipped (skip: true)"),
+            (n_excluded, "left out (failed earlier in this run)"),
+        )
+        if n
+    )
     log(
-        f"Stage 2 completed: {run.matched - len(run.failed)}/{run.matched} "
-        "instruments successful"
+        f"Stage 2 completed: {attempted - len(run.failed)}/{attempted} "
+        f"instruments successful{extra}"
     )
     if run.matched == 0:
         log("No instruments matched — nothing processed.")

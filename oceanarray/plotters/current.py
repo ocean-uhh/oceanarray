@@ -15,7 +15,7 @@ Public draw_* functions (migrated from report/_plots.py):
 - draw_adcp_rose: current rose panels for an ADCP per-instrument report.
 - draw_adcp_hodograph: two-depth hodograph for an ADCP per-instrument report.
 - draw_grid_hodograph: two-depth hodograph for the grid report.
-- draw_aquadopp_tilt_panels: |pitch|, |roll| and pressure tilt per Aquadopp for the stack report.
+- draw_aquadopp_tilt_panels: absolute pitch, roll and pressure tilt per Aquadopp for the stack report.
 """
 
 from __future__ import annotations

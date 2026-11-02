@@ -317,3 +317,71 @@ _MOORING_HELP = (
     "The mooring: its <name>.mooring.yaml file or its folder (any name), or, with "
     "--proc-dir, its name, e.g. dsG3_1_2026 (the folder <proc-dir>/<name>)"
 )
+
+
+def _print_stage_plan(
+    args: argparse.Namespace, location: Path, wanted: list[int], title: str
+) -> tuple[str, Path] | None:
+    """Print each stage file *wanted* stages would write, from the description; write nothing.
+
+    Each file is shown as ``new``, ``keep`` or ``rewrite`` (``--force``); stage 1
+    also rewrites a file older than its raw file. For stage 3 the instruments
+    whose pressure is interpolated from others are named, when the stage-2
+    files are there to tell.
+
+    Returns
+    -------
+    tuple of str and pathlib.Path, or None
+        The mooring's name and folder; None (after an ERROR line) if the
+        description cannot be read.
+    """
+    from oceanarray import mooring as _mooring
+    from oceanarray.exceptions import MooringError
+    from oceanarray.reports._verb import _description_file, _name_and_dir
+    from oceanarray.utilities import _status, instrument_entries
+
+    try:
+        name, moor_dir = _name_and_dir(location, None)
+    except MooringError as e:
+        _status("error", str(e))
+        return None
+    cfg = _mooring._parse(_description_file(location, _folder(location), name)) or {}
+    only = {paths.safe_serial(s) for s in getattr(args, "serials", None) or []}
+
+    def _state(path: Path, n: int) -> str:
+        """Return what the stage would do with *path*."""
+        if not path.exists():
+            return "new"
+        if args.force:
+            return "rewrite"
+        return "keep, unless older than its raw file" if n == 1 else "keep"
+
+    _status("section", f"{title} (dry run): {name}")
+    targets = _pressure_targets(cfg, moor_dir) if 3 in wanted else set()
+    for n in wanted:
+        print(f"Stage {n}:")
+        for entry in instrument_entries(cfg):
+            if not isinstance(entry, dict) or entry.get("skip"):
+                continue
+            serial = paths.safe_serial(entry.get("serial", ""))
+            if only and serial not in only:
+                continue
+            f = paths.stage_file(
+                moor_dir, name, entry.get("instrument", "unknown"), serial, n
+            )
+            note = "; pressure interpolated" if n == 3 and serial in targets else ""
+            print(f"  {f}  ({_state(f, n)}{note})")
+    return name, moor_dir
+
+
+def _pressure_targets(cfg: dict, moor_dir: Path) -> set[str]:
+    """Return the serials stage 3 would give interpolated pressure, from the stage-2 files on disk."""
+    from oceanarray.pipeline.read_mooring import read_mooring
+    from oceanarray.pipeline.stage3 import _instrument_table, _split_pressure_sources
+
+    try:
+        datasets = read_mooring(cfg, stage=2, allow_missing=True, mooring_dir=moor_dir)
+        _, targets = _split_pressure_sources(_instrument_table(datasets, cfg))
+    except Exception:  # noqa: BLE001  — a preview: no stage-2 files, or unreadable ones
+        return set()
+    return {str(t["serial"]) for t in targets}

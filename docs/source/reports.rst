@@ -129,7 +129,7 @@ Stack report
 **File**: ``{proc_dir}/{mooring}/report/{mooring}_stack_report.html``
 
 Generated when ``--stack`` is passed.  Requires ``{mooring}_stack.nc`` (run
-``oceanarray process MOORING --stage stack`` first).  Sections include:
+``oceanarray run MOORING`` first).  Sections include:
 
 - **Processing history** — how many instruments were stacked and the
   resampling method used (nearest-neighbour for fast instruments,
@@ -154,8 +154,8 @@ Grid report
 
 **File**: ``{proc_dir}/{mooring}/report/{mooring}_grid_report.html``
 
-Generated when ``--grid`` is passed.  Requires ``{mooring}_grid.nc`` (run
-``oceanarray process MOORING --stage grid`` first).  Sections include:
+Generated when ``--grid`` is passed.  Requires ``{mooring}_grid.nc`` (built by
+``oceanarray run MOORING``).  Sections include:
 
 - **Processing history** — stack parameters then grid interpolation method
   and pressure range.

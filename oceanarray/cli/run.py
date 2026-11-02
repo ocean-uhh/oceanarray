@@ -38,19 +38,17 @@ def cmd_run(args: argparse.Namespace) -> int:
     yaml_path = _mooring_location(args)
     raw_dir = _raw_dir(args)
     try:
-        wanted = _run_stages(args.stage, args.from_stage, args.stack_stage)
+        wanted = _run_stages(args.stage, args.from_stage, args.stack_stage, cli=True)
     except ValueError as e:
-        print(
-            f"ERROR: {str(e).replace('stages=', '--stage ').replace('from_stage=', '--from ')}"
-        )
+        print(f"ERROR: {e}")
         return 1
+    if args.dry_run:
+        return _run_dry_run(args, yaml_path, wanted)
     if wanted and wanted[0] == 1 and raw_dir is None:
         raise SystemExit(
             "ERROR: --raw-dir is required for stage 1 (or pass --from 2 to start "
             "from the stage-1 files)."
         )
-    if args.dry_run:
-        return _run_dry_run(args, yaml_path, wanted)
 
     serials = args.serials
     try:
@@ -92,42 +90,15 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 def _run_dry_run(args: argparse.Namespace, location: Path, wanted: list[int]) -> int:
     """Print the files a run would write, from the description; write nothing."""
-    from oceanarray import mooring as _mooring
     from oceanarray import paths
     from oceanarray.reports import report_paths
-    from oceanarray.reports._verb import _description_file, _name_and_dir
-    from oceanarray.utilities import _status, instrument_entries
 
-    from ..exceptions import MooringError
-    from ._common import _folder
+    from ._common import _print_stage_plan
 
-    try:
-        name, moor_dir = _name_and_dir(location, None)
-    except MooringError as e:
-        _status("error", str(e))
+    found = _print_stage_plan(args, location, wanted, "Run")
+    if found is None:
         return 1
-    cfg = _mooring._parse(_description_file(location, _folder(location), name)) or {}
-    only = {paths.safe_serial(s) for s in args.serials or []}
-
-    def _state(p: Path) -> str:
-        """Return what the run would do with *p*."""
-        if not p.exists():
-            return "new"
-        return "rewrite" if args.force else "keep"
-
-    _status("section", f"Run (dry run): {name}")
-    for n in wanted:
-        print(f"Stage {n}:")
-        for entry in instrument_entries(cfg):
-            if not isinstance(entry, dict) or entry.get("skip"):
-                continue
-            serial = paths.safe_serial(entry.get("serial", ""))
-            if only and serial not in only:
-                continue
-            f = paths.stage_file(
-                moor_dir, name, entry.get("instrument", "unknown"), serial, n
-            )
-            print(f"  {f}  ({_state(f)})")
+    name, moor_dir = found
     for product in ("stack", "grid"):
         f = paths.product_file(moor_dir, name, product)
         print(

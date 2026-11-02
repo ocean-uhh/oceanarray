@@ -41,8 +41,8 @@ sparse instrument levels onto a uniform pressure axis. The result is a
 ``(time, pressure)`` dataset convenient for section plots, density cross-sections, and
 further analysis.
 
-Run ``oceanarray process {mooring} --stage stack`` first; the grid step requires a ``{mooring}_stack.nc`` file
-containing a ``pressure`` variable.
+``oceanarray run`` builds the stack and then grids it; the grid step requires the stack to
+contain a ``pressure`` variable.
 
 Input files
 -----------

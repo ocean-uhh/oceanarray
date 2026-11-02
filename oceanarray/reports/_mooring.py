@@ -548,9 +548,7 @@ class MooringReport:
                     skip_existing=skip_existing,
                 )
             else:
-                print(
-                    "  NOTE: no grid file found — run 'oceanarray process MOORING --stage grid' first"
-                )
+                print("  NOTE: no grid file found — run 'oceanarray run MOORING' first")
 
         if stack:
             stack_path = paths.product_file(proc_dir, mooring_name, "stack")
@@ -733,7 +731,7 @@ class MooringReport:
 
         instruments.sort(key=lambda x: x["hab"])
 
-        # Compute recommended --pmin / --pmax for `oceanarray process --stage grid`.
+        # Compute recommended --pmin / --pmax for `oceanarray run`.
         # Collect finite min/max pressure values from instruments that have real
         # pressure data (exclude stuck-at-zero sensors: p_max must be > 20 dbar).
         _all_pmin: list[float] = []

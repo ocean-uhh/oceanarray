@@ -176,17 +176,18 @@ Rerun stage 2 for a single instrument after updating the YAML:
 
    oceanarray process dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --stage 2 --only 26261 --force
 
-Full pipeline — all instrument stages plus stack and grid:
+See what each stage would write, without writing anything:
 
 .. code-block:: bash
 
-   oceanarray process dsG3_1_2026 --raw-dir /data/raw --proc-dir /data/proc --stage 1 2 3 stack grid
+   oceanarray process /data/proc/dsG3_1_2026 --dry-run
 
-Stack and grid only (after stages 1–3 already ran), non-default grid spacing:
+The stack and grid are built by ``oceanarray run`` (``process --stage stack grid``
+still works, with a note, until 0.7.0):
 
 .. code-block:: bash
 
-   oceanarray process dsG3_1_2026 --proc-dir /data/proc --stage stack grid --dp 10 --pmin 100 --pmax 2000
+   oceanarray run dsG3_1_2026 --proc-dir /data/proc --stage 3 --dp 10 --pmin 100 --pmax 2000
 
 ----
 
@@ -343,7 +344,7 @@ be installed for GIF output.
 
 .. code-block:: bash
 
-   oceanarray animate dsG3_1_2026 --proc-dir /data/proc --only 400115 -o dsG3_400115_hodograph.gif
+   oceanarray animate dsG3_1_2026 --proc-dir /data/proc --only 400115 --output dsG3_400115_hodograph.gif
 
 ----
 

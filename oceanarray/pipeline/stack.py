@@ -73,6 +73,7 @@ def stack(
     *,
     dt_seconds: int = 60,
     omitted: list[str] | None = None,
+    stage2_reason: str = "no stage-3 file",
 ) -> xr.Dataset:
     """Stack a mooring's instruments onto a common time axis.
 
@@ -96,6 +97,9 @@ def stack(
     omitted : list of str or None, optional
         Instruments the caller already dropped (e.g. unreadable files), recorded
         in ``instruments_omitted`` with the ones dropped here.
+    stage2_reason : str, optional
+        Why any stage-2 datasets were stacked, recorded in ``stage2_reason`` and
+        shown in the report's amber note (e.g. ``"stage 3 failed in this run"``).
 
     Returns
     -------
@@ -162,7 +166,14 @@ def stack(
         if hab is None:
             continue
         if serial not in datasets:
-            print(f"  SKIP {instr_type} s/n {serial}: no stage2/stage3 file")
+            why = next(
+                (o for o in omitted or () if f"s/n {serial} " in f"{o} "),
+                None,
+            )
+            print(
+                f"  SKIP {instr_type} s/n {serial}: "
+                + ("left out, see below" if why else "no stage2/stage3 file")
+            )
             continue
         ds_in = datasets[serial]
         instruments.append(
@@ -715,6 +726,7 @@ def stack(
     )
     if at_stage2:
         ds_out.attrs["stage2_instruments"] = " ".join(at_stage2)
+        ds_out.attrs["stage2_reason"] = stage2_reason
         # Stage 2 has no magnetic declination: name the levels whose east/north
         # velocities are therefore referenced to magnetic north.
         if "east_velocity" in ds_out:
@@ -730,8 +742,33 @@ def stack(
             )
             if magnetic:
                 ds_out.attrs["stage2_magnetic_north"] = " ".join(magnetic)
+        # Current meters whose stage-2 velocities are in instrument coordinates
+        # (beam or XYZ): stage 3 rotates them to east/north, so the stack has none.
+        if "instrument_type" in ds_out:
+            has_enu = "east_velocity" in ds_out
+            no_velocity = sorted(
+                {
+                    s
+                    for i, (s, label, itype) in enumerate(
+                        zip(
+                            serials,
+                            stage_labels,
+                            ds_out["instrument_type"].values,
+                            strict=True,
+                        )
+                    )
+                    if label == "stage2"
+                    and str(itype).lower() in ("aquadopp", "adcp")
+                    and not (
+                        has_enu
+                        and np.isfinite(ds_out["east_velocity"].isel(N_LEVELS=i)).any()
+                    )
+                }
+            )
+            if no_velocity:
+                ds_out.attrs["stage2_no_velocity"] = " ".join(no_velocity)
         print(
-            f"  WARNING: stacked from stage 2 (no stage-3 file): {' '.join(at_stage2)}"
+            f"  WARNING: stacked from stage 2 ({stage2_reason}): {' '.join(at_stage2)}"
         )
     if excluded:
         ds_out.attrs["instruments_excluded"] = "; ".join(excluded)
@@ -791,6 +828,7 @@ def _stack_file(
     keep_going: bool = False,
     failed: Mapping[str, str] | None = None,
     from_stage2: bool = False,
+    stage2_reason: str | None = None,
     failures: Sequence[str] = (),
 ) -> tuple[Path, xr.Dataset]:
     """Stack a mooring's stage-3 files and write the stack file; return its path and dataset.
@@ -819,6 +857,9 @@ def _stack_file(
         Stack every instrument from its stage-2 file: stage 3 failed as a whole in
         this run (any stage-3 file on disk is older than it), or the caller asked
         for a stage-2 quick look (``run(stack_stage=2)``).
+    stage2_reason : str or None, optional
+        Why stage-2 files were stacked, recorded in ``stage2_reason``; None gives
+        ``"no stage-3 file"`` (the per-instrument fallback with ``keep_going``).
     failures : sequence of str, optional
         What failed in this run, recorded in the stack's ``keep_going_failures``
         attribute (the grid inherits it).
@@ -885,7 +926,13 @@ def _stack_file(
     omitted += [
         f"{m} (no stage-{'2' if from_stage2 else '2 or stage-3'} file)" for m in missing
     ]
-    ds = stack(datasets, mooring, dt_seconds=dt_seconds, omitted=omitted)
+    ds = stack(
+        datasets,
+        mooring,
+        dt_seconds=dt_seconds,
+        omitted=omitted,
+        stage2_reason=stage2_reason or "no stage-3 file",
+    )
     if failures:
         ds.attrs["keep_going_failures"] = "; ".join(failures)
     return write(ds, paths.product_file(mooring_dir, name, "stack"), overwrite=True), ds

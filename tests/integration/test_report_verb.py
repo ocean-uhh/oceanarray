@@ -209,11 +209,14 @@ def test_a_stage_2_stack_says_so_in_the_amber_note(tree):
     oa.run(tree, stages=2, force=True, dt_seconds=3600, stack_stage=2)
     report(tree, stack=True, grid=False, instruments=False, force=True)
     html = report_paths(tree)["stack"].read_text(encoding="utf-8")
-    assert "Stacked from stage 2" in html
+    assert "Stacked from stage 2 (stage 2 requested with stack_stage=2)" in html
     assert "s/n&nbsp;2941, 9920" in html
-    assert (
-        "recorded beam velocities" in html
-    )  # the dune2 aquadopp is in beam coordinates
+    # the dune2 aquadopp is in beam coordinates: no east/north in the stack
+    assert "instrument coordinates (beam or XYZ)" in html
+    report(tree, stack=False, grid=True, instruments=False, force=True)
+    grid_html = report_paths(tree)["grid"].read_text(encoding="utf-8")
+    assert "stage 2 requested with stack_stage=2" in grid_html
+    assert "instrument coordinates (beam or XYZ)" in grid_html  # same note as the stack
 
 
 def test_stage_2_velocities_are_flagged_as_magnetic_north(tree):

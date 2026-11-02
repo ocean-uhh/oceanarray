@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-import xarray as xr
 
 from oceanarray import paths
 
@@ -179,7 +178,10 @@ class StackContext:
     stage2_velocity : bool
         Whether any of them carries velocities (then without magnetic declination).
     stage2_current_meters : list
-        Those of them that are Aquadopps or ADCPs.
+        Those of them that are current meters without east/north velocities
+        (``stage2_no_velocity``: their velocities are in instrument coordinates).
+    stage2_reason : str
+        Why they were stacked from stage 2 (``stage2_reason``).
     stage2_magnetic_north : list
         Those of them with east/north velocities, which lack magnetic declination.
 
@@ -201,18 +203,7 @@ class StackContext:
     stage2_velocity: bool = False
     stage2_current_meters: list = field(default_factory=list)
     stage2_magnetic_north: list = field(default_factory=list)
-
-
-def _current_meter_serials(ds: xr.Dataset, serials: list[str]) -> list[str]:
-    """Return those of *serials* whose level is an Aquadopp or ADCP."""
-    svar = next((v for v in ("serial", "serial_number") if v in ds), None)
-    if svar is None or "instrument_type" not in ds:
-        return []
-    return [
-        str(s)
-        for s, t in zip(ds[svar].values, ds["instrument_type"].values, strict=True)
-        if str(s) in serials and str(t).lower() in ("aquadopp", "adcp")
-    ]
+    stage2_reason: str = ""
 
 
 def _fig(panel_id: str) -> Callable[[StackContext], str | None]:
@@ -282,6 +273,7 @@ STACK_PANELS: dict[str, Panel] = {
             serials=c.stage2_serials,
             velocity=c.stage2_velocity,
             current_meters=c.stage2_current_meters,
+            reason=c.stage2_reason,
         ),
         kind="html",
         applies_to=lambda c: bool(c.stage2_serials),
@@ -580,7 +572,7 @@ def generate_stack_page(
         # for a missing position: the stage-2 note says so instead.
         stage2_serials = ds.attrs.get("stage2_instruments", "").split()
         stage2_velocity = bool(ds.attrs.get("stage2_magnetic_north"))
-        stage2_current_meters = _current_meter_serials(ds, stage2_serials)
+        stage2_current_meters = ds.attrs.get("stage2_no_velocity", "").split()
         _decl_missing_serials = [
             s
             for s in _decl_missing_serials
@@ -671,6 +663,7 @@ def generate_stack_page(
                 stage2_serials=stage2_serials,
                 stage2_velocity=stage2_velocity,
                 stage2_current_meters=stage2_current_meters,
+                stage2_reason=str(ds.attrs.get("stage2_reason", "")),
                 stage2_magnetic_north=ds.attrs.get("stage2_magnetic_north", "").split(),
             ),
             STACK_PANELS,

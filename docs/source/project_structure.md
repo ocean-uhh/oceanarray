@@ -100,8 +100,8 @@ oceanarray/
 ## Processing Stages
 
 The pipeline processes raw instrument data through sequential stages, each
-producing a CF-NetCDF output file. `oceanarray.STAGES` is the registry of stages,
-and `oceanarray.process(mooring, stage=…, proc_dir=…, raw_dir=…)` runs any subset.
+producing a CF-NetCDF output file. `oceanarray.process(yaml_path, stages=…, raw_dir=…)`
+runs any of stages 1–3; `oceanarray.run` adds the stack and grid.
 
 ### Stage 1 — Standardisation (`pipeline/stage1.py`)
 - **Input**: raw instrument files (`.cnv`, `.rsk`, `.dat`, `.hex`, RDI raw)
@@ -146,12 +146,12 @@ Raw files
    ▼ oceanarray process --stage 3
 *_stage3.nc   (QC flagged, ENU velocities, salinity/density)
    │
-   ▼ oceanarray process --stage stack
+   ▼ oceanarray run (stack)
 {mooring}_stack.nc   (N_LEVELS × time)
    │
    ├──▶ oceanarray report  →  HTML reports
    │
-   ▼ oceanarray process --stage grid
+   ▼ oceanarray run (grid)
 {mooring}_grid.nc   (uniform pressure × time)
    │
    └──▶ oceanarray report  →  grid HTML report

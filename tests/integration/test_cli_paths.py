@@ -224,3 +224,31 @@ def test_dt_is_the_old_spelling_of_dt_seconds(capsys):
     ns = build_parser().parse_args(["run", "m", "--proc-dir", ".", "--dt", "600"])
     assert ns.dt_seconds == 600
     assert "--dt is now --dt-seconds" in capsys.readouterr().err
+
+
+def test_process_dry_run_lists_every_stage_and_the_interpolated_pressure(
+    folder, capsys
+):
+    """process --dry-run covers stages 1-3 by path, names the pressure targets, writes nothing."""
+    before = {p: p.stat().st_mtime for p in folder.rglob("*.nc")}
+    assert _cli(["process", str(folder), "--dry-run"]) == 0
+    out = capsys.readouterr().out
+    for n in (1, 2, 3):
+        assert f"Stage {n}:" in out
+    line = next(ln for ln in out.splitlines() if "2941_stage3" in ln)
+    assert "pressure interpolated" in line  # the microcat takes its pressure from 9920
+    assert "pressure interpolated" not in next(
+        ln for ln in out.splitlines() if "9920_stage3" in ln
+    )
+    assert {p: p.stat().st_mtime for p in before} == before
+
+
+def test_process_strict_with_stack_points_to_run(tmp_path):
+    """process --stage stack --strict is refused, naming oceanarray run --strict."""
+    from oceanarray.cli import build_parser
+
+    ns = build_parser().parse_args(
+        ["process", "m", "--proc-dir", str(tmp_path), "--stage", "stack", "--strict"]
+    )
+    with pytest.raises(SystemExit, match="oceanarray run MOORING --strict"):
+        ns.func(ns)

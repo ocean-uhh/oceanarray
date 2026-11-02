@@ -148,6 +148,13 @@ def run(
             keep_going=keep_going,
             failed=outcome.failed_serials,
             from_stage2=outcome.stage3_failed or stack_stage == 2,
+            stage2_reason=(
+                "stage 2 requested with stack_stage=2"
+                if stack_stage == 2
+                else "stage 3 failed in this run"
+                if outcome.stage3_failed
+                else None
+            ),
             failures=outcome.failures,
         )
     except Exception:
@@ -204,9 +211,30 @@ def run(
 
 
 def _run_stages(
-    stages: int | str | Iterable[int] | None, from_stage: int | None, stack_stage: int
+    stages: int | str | Iterable[int] | None,
+    from_stage: int | None,
+    stack_stage: int,
+    *,
+    cli: bool = False,
 ) -> list[int]:
     """Return the stages ``run`` runs, refusing a set that would leave older files under the stack.
+
+    Parameters
+    ----------
+    stages : int, str, iterable of int or None
+        The stages asked for; None or ``"all"`` is stages 1 through *stack_stage*.
+    from_stage : int or None
+        Start at this stage and run through *stack_stage*.
+    stack_stage : int
+        The stage the stack is built from (2 or 3).
+    cli : bool, optional
+        Word the error messages with the command-line flags (``--stage``,
+        ``--from``, ``--stack-stage``) instead of the Python keywords.
+
+    Returns
+    -------
+    list of int
+        The stages to run, in order.
 
     Raises
     ------
@@ -216,13 +244,29 @@ def _run_stages(
     """
     from oceanarray.pipeline import _stage_numbers
 
+    if cli:
+
+        def show(n: int | str | Iterable[int] | None) -> str:
+            return " ".join(str(v) for v in _stage_numbers(n))
+
+        stage_kw, from_kw, stack_kw = "--stage ", "--from ", "--stack-stage "
+        one_stage = "'oceanarray process --stage N'"
+    else:
+
+        def show(n: int | str | Iterable[int] | None) -> str:
+            return repr(n)
+
+        stage_kw, from_kw, stack_kw = "stages=", "from_stage=", "stack_stage="
+        one_stage = "oceanarray.process"
+    if isinstance(stages, str) and stages.strip().lower() == "all":
+        stages = None
     if stages is not None and from_stage is not None:
-        raise ValueError("give stages= or from_stage=, not both")
+        raise ValueError(f"give {stage_kw.strip()} or {from_kw.strip()}, not both")
     if from_stage is not None:
         if from_stage not in range(1, stack_stage + 1):
             raise ValueError(
-                f"from_stage={from_stage!r}: expected 1–{stack_stage} with "
-                f"stack_stage={stack_stage}"
+                f"{from_kw}{from_stage}: expected 1–{stack_stage} with "
+                f"{stack_kw}{stack_stage}"
             )
         return list(range(from_stage, stack_stage + 1))
     if stages is None:
@@ -230,18 +274,20 @@ def _run_stages(
     wanted = _stage_numbers(stages)
     if wanted[0] > stack_stage:
         raise ValueError(
-            f"stages={stages!r} with stack_stage={stack_stage}: the stack is built "
-            f"from the stage-{stack_stage} files, so start at stage {stack_stage} "
-            "or earlier"
+            f"{stage_kw}{show(stages)} with {stack_kw}{stack_stage}: the stack is "
+            f"built from the stage-{stack_stage} files, so start at stage "
+            f"{stack_stage} or earlier"
         )
     through = list(range(wanted[0], stack_stage + 1))
     if wanted != through:
+        listed = " ".join(map(str, through)) if cli else repr(tuple(through))
         raise ValueError(
-            f"stages={stages!r}: the stack is built from the stage-{stack_stage} "
-            f"files, so the stages must run from stage {wanted[0]} through "
-            f"{stack_stage} (stages={tuple(through)}, or from_stage={wanted[0]}); "
-            "otherwise it would take files older than the ones just written. "
-            "To run one stage on its own, use oceanarray.process."
+            f"{stage_kw}{show(stages)}: run rebuilds the stack from the "
+            f"stage-{stack_stage} files, so the stages must run from stage "
+            f"{wanted[0]} through {stack_stage} ({stage_kw}{listed}, or "
+            f"{from_kw}{wanted[0]}); otherwise the stack would take files older "
+            f"than the ones just written. To run one stage on its own, use "
+            f"{one_stage}."
         )
     return wanted
 

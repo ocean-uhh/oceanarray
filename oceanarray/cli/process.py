@@ -29,8 +29,10 @@ def cmd_process(args: argparse.Namespace) -> int:
     velocity rotation), carrying on past a failed instrument (``--strict``: stop
     at the first failure and exit 1).
 
-    ``--stage stack`` / ``grid`` and ``--dry-run`` still run through the pre-0.6
-    stage classes (``oceanarray run`` builds the stack and grid).
+    ``--dry-run`` lists the file each stage would write, without writing. ``--stage
+    stack`` / ``grid`` still run through the pre-0.6 stage classes, with a note
+    (``oceanarray run`` builds the stack and grid); ``--strict`` with them is
+    refused.
 
     Optional side effects:
     - ``--report``: after processing, print a per-instrument record summary to
@@ -46,12 +48,22 @@ def cmd_process(args: argparse.Namespace) -> int:
     stages = args.stage if (args.stage is not None or not args.report) else []
     if stages is None:
         stages = [1, 2, 3]
+    products = [s for s in stages if s in ("stack", "grid")]
+    if args.dry_run and not products:
+        from ._common import _print_stage_plan
+
+        ints = sorted({int(s) for s in stages})
+        return 0 if _print_stage_plan(args, location, ints, "Process") else 1
     if 1 in stages and raw_dir is None:
         raise SystemExit("ERROR: --raw-dir is required for stage 1.")
 
+    if products and not args.keep_going:
+        raise SystemExit(
+            "ERROR: --strict does not apply to --stage stack/grid; use "
+            "'oceanarray run MOORING --strict' to build the stack and grid."
+        )
     ok = True
-    products = [s for s in stages if s in ("stack", "grid")]
-    if products or getattr(args, "dry_run", False):
+    if products:
         ok = _process_with_classes(args, stages, raw_dir)
     elif stages:
         from ..pipeline import process
@@ -87,13 +99,13 @@ def cmd_process(args: argparse.Namespace) -> int:
 def _process_with_classes(
     args: argparse.Namespace, stages: list, raw_dir: Path | None
 ) -> bool:
-    """Run *stages* the pre-0.6 way (by name under ``--proc-dir``), for stack/grid and --dry-run."""
+    """Run the stack/grid *stages* the pre-0.6 way (by name under ``--proc-dir``)."""
     from ..pipeline import _process_legacy
 
     if not getattr(args, "proc_dir", None):
         raise SystemExit(
-            "ERROR: --stage stack/grid and --dry-run need a mooring name and "
-            "--proc-dir; or use 'oceanarray run PATH' for the stack and grid."
+            "ERROR: --stage stack/grid needs a mooring name and --proc-dir; or use "
+            "'oceanarray run PATH' for the stack and grid."
         )
     if any(s in ("stack", "grid") for s in stages):
         print(
@@ -112,7 +124,7 @@ def _process_with_classes(
         p_start=args.pmin,
         p_end=args.pmax,
         dp=args.dp,
-        dry_run=getattr(args, "dry_run", False),
+        dry_run=args.dry_run,
     )
 
 
@@ -194,6 +206,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
         "--dry-run",
         action="store_true",
         dest="dry_run",
-        help="Do not actually modify any files; show what would be done (stage 3 only)",
+        help="List the stage files each stage would write (new, keep or rewrite) and, "
+        "for stage 3, which instruments get interpolated pressure; write nothing.",
     )
     p_process.set_defaults(func=cmd_process)

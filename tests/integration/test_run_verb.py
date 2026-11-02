@@ -179,6 +179,8 @@ def test_keep_going_stacks_from_stage2_when_stage3_fails(tmp_path, monkeypatch):
     with xr.open_dataset(files[-2]) as ds:
         assert set(ds["source_stage"].values.tolist()) == {2}
         assert ds.attrs["stage2_instruments"] == "2941 9920"
+        assert ds.attrs["stage2_reason"] == "stage 3 failed in this run"
+        assert ds.attrs["stage2_no_velocity"] == "9920"
     assert _attrs(files[-1])["stage2_instruments"] == "2941 9920"
     with pytest.raises(MooringError, match="stage 3 failed"):
         oa.run(yaml_path, raw_dir=_RAW, dt_seconds=3600, keep_going=False)
@@ -197,6 +199,7 @@ def test_strict_stack_refuses_a_missing_stage3_file(ran, tmp_path):
         _stack_file(cfg, moor, dt_seconds=3600)
     _, ds = _stack_file(cfg, moor, dt_seconds=3600, keep_going=True)
     assert ds.attrs["stage2_instruments"] == "2941"
+    assert ds.attrs["stage2_reason"] == "no stage-3 file"
 
 
 def test_run_from_stage2_needs_no_raw_directory(ran, tmp_path):
@@ -401,7 +404,13 @@ def test_cli_run_from_and_stage_list(ran, tmp_path, capsys):
     """run --stage 2 is refused with the --from hint; --from 2 runs; --dry-run writes nothing."""
     yaml_path = _copy(ran, tmp_path)
     assert _cli(["run", str(yaml_path), "--stage", "2"]) == 1
-    assert "--from 2" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "--stage 2: run rebuilds the stack" in out
+    assert "--stage 2 3, or --from 2" in out
+    assert "oceanarray process --stage N" in out
+    assert "stages=" not in out
+    assert _cli(["run", str(yaml_path), "--stage", "2", "3", "--from", "2"]) == 1
+    assert "give --stage or --from, not both" in capsys.readouterr().out
     before = {p: p.stat().st_mtime for p in yaml_path.parent.rglob("*.nc")}
     assert _cli(["run", str(yaml_path), "--from", "2", "--force", "--dry-run"]) == 0
     out = capsys.readouterr().out
@@ -442,3 +451,29 @@ def test_any_error_after_the_stage_files_change_sets_the_products_aside(
         oa.run(yaml_path, stages=3, force=True, dt_seconds=3600)
     assert not stack_nc.exists() and not grid.exists()
     assert paths.stale_file(stack_nc).exists() and paths.stale_file(grid).exists()
+
+
+def test_run_stages_all_is_every_stage():
+    """stages="all" is the default set, not a refusal."""
+    from oceanarray.pipeline._run import _run_stages
+
+    assert _run_stages("all", None, 3) == [1, 2, 3]
+    assert _run_stages("all", None, 2) == [1, 2]
+
+
+def test_cli_run_dry_run_needs_no_raw_dir(ran, tmp_path, capsys):
+    """run --dry-run from stage 1 lists the plan without --raw-dir."""
+    yaml_path = _copy(ran, tmp_path)
+    assert _cli(["run", str(yaml_path), "--dry-run"]) == 0
+    assert "Stage 1:" in capsys.readouterr().out
+
+
+def test_stage2_log_counts_instruments_left_out(ran, tmp_path, capsys):
+    """An instrument that failed earlier is counted apart, not as a stage-2 success."""
+    from oceanarray.pipeline.stage2 import _stage2_files
+
+    yaml_path = _copy(ran, tmp_path)
+    cfg = oa.mooring.load(yaml_path)
+    _stage2_files(cfg, yaml_path.parent, force=True, exclude={"9920"}, log=print)
+    out = capsys.readouterr().out
+    assert "Stage 2 completed: 1/1 instruments successful, 1 left out" in out
