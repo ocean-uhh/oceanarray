@@ -12,6 +12,9 @@ from typing import Any
 log = logging.getLogger("oceanarray")
 log.setLevel(logging.DEBUG)  # capture everything; handlers filter later
 
+#: Level of the console handler a processing stage attaches (``oceanarray -v``: DEBUG).
+CONSOLE_LEVEL = logging.INFO
+
 # Global logging flag
 # Set to True to enable logging, False to disable
 LOGGING_ENABLED = True
@@ -56,6 +59,9 @@ def log_debug(message: str, *args: Any) -> None:
 def attach_stage_handlers(log_file: Path | None) -> list[logging.Handler]:
     """Send the package's INFO-and-above messages to stdout and *log_file*.
 
+    The console takes :data:`CONSOLE_LEVEL` and above (DEBUG with
+    ``oceanarray -v``).
+
     A processing stage calls this when it starts, so the messages its pure
     functions log reach the console and the stage log as they did when the stage
     printed them. Detach with :func:`detach_handlers`.
@@ -74,8 +80,10 @@ def attach_stage_handlers(log_file: Path | None) -> list[logging.Handler]:
     handlers: list[logging.Handler] = [logging.StreamHandler(sys.stdout)]
     if log_file is not None:
         handlers.append(logging.FileHandler(log_file, encoding="utf-8"))
-    for handler in handlers:
+    handlers[0].setLevel(CONSOLE_LEVEL)
+    for handler in handlers[1:]:
         handler.setLevel(logging.INFO)
+    for handler in handlers:
         handler.setFormatter(formatter)
         log.addHandler(handler)
     return handlers

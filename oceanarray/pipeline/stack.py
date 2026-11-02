@@ -7,8 +7,8 @@ import numpy as np
 import xarray as xr
 
 from oceanarray import mooring as _mooring
-from oceanarray import parameters as params
 from oceanarray import paths
+from oceanarray.config import parameters as params
 from oceanarray.exceptions import MooringError
 from oceanarray.pipeline.helpers import (
     STACK_VARS,
@@ -401,7 +401,7 @@ def stack(
             f"  NOTE: {len(dropped_ts_vars)} stage-3 time-series variable(s) not in "
             f"STACK_VARS were dropped from the stack: "
             f"{', '.join(sorted(dropped_ts_vars))}. "
-            f"Add them to STACK_VARS in mooring/helpers.py to retain them."
+            f"Add them to oceanarray.pipeline.helpers.STACK_VARS to retain them."
         )
 
     # Drop omitted instruments from every per-level array/list so the written
@@ -715,6 +715,21 @@ def stack(
     )
     if at_stage2:
         ds_out.attrs["stage2_instruments"] = " ".join(at_stage2)
+        # Stage 2 has no magnetic declination: name the levels whose east/north
+        # velocities are therefore referenced to magnetic north.
+        if "east_velocity" in ds_out:
+            magnetic = sorted(
+                {
+                    s
+                    for i, (s, label) in enumerate(
+                        zip(serials, stage_labels, strict=True)
+                    )
+                    if label == "stage2"
+                    and np.isfinite(ds_out["east_velocity"].isel(N_LEVELS=i)).any()
+                }
+            )
+            if magnetic:
+                ds_out.attrs["stage2_magnetic_north"] = " ".join(magnetic)
         print(
             f"  WARNING: stacked from stage 2 (no stage-3 file): {' '.join(at_stage2)}"
         )
@@ -775,7 +790,7 @@ def _stack_file(
     dt_seconds: int = 60,
     keep_going: bool = False,
     failed: Mapping[str, str] | None = None,
-    stage3_failed: bool = False,
+    from_stage2: bool = False,
     failures: Sequence[str] = (),
 ) -> tuple[Path, xr.Dataset]:
     """Stack a mooring's stage-3 files and write the stack file; return its path and dataset.
@@ -800,9 +815,10 @@ def _stack_file(
         Serials that failed in stages 1–3 of this run, with the reason. Their files
         on disk are older than this run, so they are left out and named in
         ``instruments_omitted`` rather than stacked.
-    stage3_failed : bool, optional
-        Stage 3 failed as a whole in this run: any stage-3 file on disk is older
-        than it, so every instrument is stacked from its stage-2 file.
+    from_stage2 : bool, optional
+        Stack every instrument from its stage-2 file: stage 3 failed as a whole in
+        this run (any stage-3 file on disk is older than it), or the caller asked
+        for a stage-2 quick look (``run(stack_stage=2)``).
     failures : sequence of str, optional
         What failed in this run, recorded in the stack's ``keep_going_failures``
         attribute (the grid inherits it).
@@ -820,7 +836,7 @@ def _stack_file(
     """
     name = mooring["name"]
     failed = dict(failed or {})
-    if stage3_failed:
+    if from_stage2:
         stages: tuple[int, ...] = (2,)
     else:
         stages = (3, 2) if keep_going else (3,)
@@ -867,8 +883,7 @@ def _stack_file(
             "the instrument 'skip: true', or use keep_going=True to stack what exists."
         )
     omitted += [
-        f"{m} (no stage-{'2' if stage3_failed else '2 or stage-3'} file)"
-        for m in missing
+        f"{m} (no stage-{'2' if from_stage2 else '2 or stage-3'} file)" for m in missing
     ]
     ds = stack(datasets, mooring, dt_seconds=dt_seconds, omitted=omitted)
     if failures:
@@ -877,7 +892,11 @@ def _stack_file(
 
 
 class MooringStacker:
-    """Step 1: stack all instruments onto a common time axis → ``_stack.nc``."""
+    """Step 1: stack all instruments onto a common time axis → ``_stack.nc``.
+
+    .. deprecated:: 0.6.0
+        Removed in 0.7.0; see the migration page.
+    """
 
     def __init__(
         self,
@@ -898,6 +917,9 @@ class MooringStacker:
             ``/{mooring}/`` internally (see :func:`oceanarray.paths.mooring_proc_dir`).
 
         """
+        from oceanarray import _deprecated
+
+        _deprecated.warn("oceanarray.pipeline.stack.MooringStacker")
         self._proc_dir = Path(proc_dir)
 
     def _resolve_proc_dir(self, mooring_name: str) -> Path:

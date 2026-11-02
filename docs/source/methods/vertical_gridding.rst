@@ -18,16 +18,20 @@ Command
 
 .. code-block:: bash
 
-   oceanarray process {mooring} --proc-dir /data/proc --stage grid [--pmin 200] [--pmax 1000] [--dp 20] [--force]
+   oceanarray run {mooring} --proc-dir /data/proc --stage 3 [--pmin 200] [--pmax 1000] [--dp 20]
 
 Python API
 ----------
 
 .. code-block:: python
 
-   from oceanarray.pipeline.grid import MooringGridder
+   import oceanarray as oa
 
-   MooringGridder(proc_dir=proc_dir).grid(mooring_name, p_start=200.0, p_end=1000.0, dp=20.0, force=False)
+   # stage 3 (kept where it exists), then the stack and grid
+   oa.run(yaml_path, stages=3, p_start=200.0, p_end=1000.0, dp=20.0)
+
+   # or on a stack dataset: the grid itself, no files written
+   gridded = oa.grid(stacked, p_start=200.0, p_end=1000.0, dp=20.0)
 
 Purpose
 -------

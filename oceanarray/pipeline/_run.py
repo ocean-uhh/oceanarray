@@ -32,6 +32,7 @@ def run(
     p_start: float | None = None,
     p_end: float | None = None,
     dp: float | None = None,
+    stack_stage: int = 3,
     report: bool = False,
 ) -> list[Path]:
     """Run stages 1–3 for one mooring, then stack and grid it (and build its report).
@@ -47,9 +48,12 @@ def run(
         A ``*.mooring.yaml`` path, a directory holding exactly one, or a loaded
         description (then *mooring_dir* is required).
     stages : int or "all" or iterable of int, optional
-        Which of stages 1–3 to run first (see :func:`oceanarray.process`); the
-        stack and grid always follow. Default all three; ``stages=(2, 3)``
-        re-runs from the stage-1 files without needing *raw_dir*.
+        The stage to start from: ``run`` always continues through stage 3 (through
+        stage 2 with ``stack_stage=2``), so the stack never meets stage files older
+        than the ones just written. ``stages=2`` (or ``(2, 3)``) re-runs stages 2
+        and 3 from the stage-1 files without needing *raw_dir*; ``stages=3``
+        re-runs stage 3 only. To run one stage on its own, use
+        :func:`oceanarray.process`. Default: from stage 1.
     serials : iterable of str or None, optional
         Run stages 1–3 for these instruments only; the stack still takes every
         instrument's stage-3 file.
@@ -71,6 +75,11 @@ def run(
     p_start, p_end, dp : float or None, optional
         The grid's pressure levels, in dbar. ``None`` takes the description's
         ``grid:`` block, else 200, 1000 and 20.
+    stack_stage : {3, 2}, optional
+        Which stage files the stack is built from. 2 builds a quick look at sea
+        from the stage-2 files without running stage 3: no QC flags, no
+        interpolated pressure, no magnetic declination (recorded per level in
+        ``source_stage`` and in ``stage2_instruments``; the report says so).
     report : bool, optional
         Then build the mooring's report pages with :func:`oceanarray.report`
         (summary, per-instrument, stack and grid; no PDF), in the default place.
@@ -105,7 +114,15 @@ def run(
     from oceanarray.pipeline.grid import _grid_file
     from oceanarray.pipeline.stack import _stack_file
 
-    wanted = _stage_numbers(stages)
+    if stack_stage not in (2, 3):
+        raise ValueError(f"stack_stage={stack_stage!r}: expected 3 or 2")
+    start = min(_stage_numbers(stages))
+    if start > stack_stage:
+        raise ValueError(
+            f"stages={stages!r} with stack_stage=2: the stage-2 files would not be "
+            "rewritten; start at stage 1 or 2"
+        )
+    wanted = list(range(start, stack_stage + 1))
     serial_list = _serial_list(serials)
     cfg, moor_dir = _resolve_mooring(mooring, mooring_dir, "run")
     settings = _settings(
@@ -133,10 +150,12 @@ def run(
             dt_seconds=int(settings["dt_seconds"]),
             keep_going=keep_going,
             failed=outcome.failed_serials,
-            stage3_failed=outcome.stage3_failed,
+            from_stage2=outcome.stage3_failed or stack_stage == 2,
             failures=outcome.failures,
         )
-    except MooringError:
+    except Exception:
+        # Whatever stopped the run, a product built from the old stage files no
+        # longer matches the ones it rewrote.
         if outcome.written:
             _remove_stale(products, "the stage files changed but the run stopped")
         raise
@@ -167,6 +186,9 @@ def run(
         print(f"WARNING: keep_going: no grid — {e}")
         _remove_stale(products[1:], "the stack changed but could not be gridded")
         files = [*outcome.files, stack_path]
+    except Exception:
+        _remove_stale(products[1:], "the stack changed but could not be gridded")
+        raise
     else:
         files = [*outcome.files, stack_path, grid_path]
     if report:
@@ -192,11 +214,17 @@ def _serial_list(serials: Iterable[str] | None) -> list[str] | None:
 
 
 def _remove_stale(paths_: list[Path], why: str) -> None:
-    """Delete product files that no longer match the stage files, saying so."""
+    """Rename product files that no longer match the stage files to ``*.stale.nc``, saying so.
+
+    Each product keeps one stale copy: a later rename replaces it.
+    """
     for path in paths_:
         if path.exists():
-            path.unlink()
-            print(f"  removed {path.name}: {why}, so it no longer matched.")
+            stale = paths.stale_file(path)
+            path.replace(stale)
+            print(
+                f"  renamed {path.name} to {stale.name}: {why}, so it no longer matched."
+            )
 
 
 def _settings(cfg: Mapping[str, Any], **given: float | None) -> dict[str, float]:

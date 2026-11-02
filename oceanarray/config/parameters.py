@@ -12,7 +12,7 @@ figure sizes that differ from the per-plot mplstyle default.
 
 Import and reassign any value here to override it globally, e.g.::
 
-    import oceanarray.parameters as params
+    from oceanarray.config import parameters as params
     params.DOWNSAMPLE_SECONDS = 60
     params.DEFAULT_COLORMAP = "viridis"
 
@@ -759,48 +759,3 @@ def vunit(var: str) -> str:
         return ""
     cf = entry.get("units", "")
     return unit_label(cf, entry.get("standard_name")) if cf else ""
-
-
-def __getattr__(name: str) -> dict[str, dict[str, float]]:
-    """Serve the deprecated tables ``UNIT_ALIASES`` and ``VARIABLE_UNIT_ALIASES``.
-
-    Both moved to the shared units tables
-    (:data:`oceanarray.config.unit_tables.TABLES`) and are removed in 0.6.0.  Until then
-    each name warns and returns a copy built from those tables: ``UNIT_ALIASES`` as
-    ``{canonical: {spelling: factor}}``, and ``VARIABLE_UNIT_ALIASES`` as the scoped
-    spellings of each registry variable, keyed by variable name.
-
-    Parameters
-    ----------
-    name : str
-        Attribute looked up on this module.
-
-    Returns
-    -------
-    dict of str to dict of str to float
-        The table, rebuilt from :data:`oceanarray.config.unit_tables.TABLES`.
-
-    Raises
-    ------
-    AttributeError
-        For any other name.
-    """
-    if name not in ("UNIT_ALIASES", "VARIABLE_UNIT_ALIASES"):
-        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-    import warnings
-
-    from oceanarray.config.unit_tables import TABLES
-
-    warnings.warn(
-        f"parameters.{name} is deprecated; use oceanarray.config.unit_tables.TABLES "
-        f"(removed in 0.6.0).",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    if name == "UNIT_ALIASES":
-        return {canonical: dict(group) for canonical, group in TABLES.aliases.items()}
-    return {
-        var: dict(TABLES.scoped[entry["standard_name"]])
-        for var, entry in VARIABLES.items()
-        if entry.get("standard_name") in TABLES.scoped
-    }

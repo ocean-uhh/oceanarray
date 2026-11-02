@@ -1,9 +1,9 @@
 """Legacy CLI plot functions, kept pending the ``oceanarray plot <file>`` redesign.
 
 STATUS: this module is the last remnant of the pre-tier plotting code. Only the
-three functions the CLI still calls remain — ``plot_microcat_raw`` and
-``plot_aquadopp_raw`` (``oceanarray process --plot``) and
-``plot_mooring_timeseries`` (``oceanarray plot``). They are scheduled for
+three functions the CLI still calls remain — ``draw_microcat_raw`` and
+``draw_aquadopp_raw`` (``oceanarray process --plot``) and
+``draw_mooring_timeseries`` (``oceanarray plot``). They are scheduled for
 replacement by a single file-oriented ``oceanarray plot <file>`` built on the
 report's ``_make_instrument_fig`` (§11); ``plotter.py`` is deleted then. Do not
 build new code on these functions or add to this module — new plotting belongs in
@@ -17,10 +17,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
-from oceanarray import paths
+from oceanarray import _deprecated, paths
 
 
-def plot_microcat_raw(ds, save_path=None):
+def draw_microcat_raw(ds, save_path=None):
     """Plot temperature, conductivity, and pressure from a raw/stage2 microcat NetCDF.
 
     Works with seasenselib variable names (temperature, conductivity, pressure).
@@ -66,7 +66,7 @@ def plot_microcat_raw(ds, save_path=None):
     return fig
 
 
-def plot_aquadopp_raw(ds, save_path=None):
+def draw_aquadopp_raw(ds, save_path=None):
     """Plot east velocity, north velocity, and pressure from a raw/stage2 Aquadopp NetCDF."""
     style_path = (
         Path(__file__).parent.parent / "reports" / "_vendored" / "report.mplstyle"
@@ -129,7 +129,7 @@ def plot_aquadopp_raw(ds, save_path=None):
 
 def _instrument_label(nc_path: Path, ds: xr.Dataset) -> str:
     """Build a short instrument label, e.g. 'MC2942 868m'."""
-    from . import parameters as P
+    from ..config import parameters as P
 
     instrument_dir = nc_path.parent.name
     prefix = P.INSTRUMENT_ABBREV.get(instrument_dir, instrument_dir[:2].upper())
@@ -144,7 +144,7 @@ def _instrument_label(nc_path: Path, ds: xr.Dataset) -> str:
     return f"{prefix}{serial} {depth}".strip()
 
 
-def plot_mooring_timeseries(
+def draw_mooring_timeseries(
     proc_dir: Path,
     mooring: str,
     var_y: str = "temperature",
@@ -190,7 +190,7 @@ def plot_mooring_timeseries(
     matplotlib.figure.Figure
 
     """
-    from . import parameters as P
+    from ..config import parameters as P
 
     plt.style.use(str(P.MPLSTYLE))
     cmap_name = colormap or P.DEFAULT_COLORMAP
@@ -320,3 +320,15 @@ def plot_mooring_timeseries(
         plt.close(fig)
 
     return fig
+
+
+# Old names (0.5), removed in 0.7.0.
+plot_microcat_raw = _deprecated.alias(
+    "oceanarray.plotters.plot_microcat_raw", draw_microcat_raw
+)
+plot_aquadopp_raw = _deprecated.alias(
+    "oceanarray.plotters.plot_aquadopp_raw", draw_aquadopp_raw
+)
+plot_mooring_timeseries = _deprecated.alias(
+    "oceanarray.plotters.plot_mooring_timeseries", draw_mooring_timeseries
+)

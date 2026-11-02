@@ -26,8 +26,8 @@ oceanarray/
 │   │   ├── qc.py                  # QARTOD QC tests and CTD derivations for stage 3
 │   │   ├── coordinate.py          # BEAM→ENU transforms and ADCP QC for stage 3
 │   │   ├── caldip.py              # CalDip calibration-dip corrections (not yet implemented)
-│   │   ├── stack.py               # MooringStacker: instruments → common time grid (*_stack.nc)
-│   │   ├── grid.py                # MooringGridder: stack → regular pressure grid (*_grid.nc)
+│   │   ├── stack.py               # stack(): instruments → common time grid (*_stack.nc)
+│   │   ├── grid.py                # grid(): stack → regular pressure grid (*_grid.nc)
 │   │   └── helpers.py             # Internal helpers for stack and grid operations
 │   │
 │   ├── analysis/                  # [analysis] Science utilities

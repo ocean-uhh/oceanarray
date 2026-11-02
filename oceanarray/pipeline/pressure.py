@@ -406,7 +406,7 @@ def compute_adcp_bin_pressure(
     """
     import gsw
 
-    from oceanarray import parameters as params
+    from oceanarray.config import parameters as params
 
     if "pressure" not in ds.data_vars or "range" not in ds.coords:
         if log_fn:

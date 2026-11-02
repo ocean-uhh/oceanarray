@@ -18,6 +18,7 @@ import numpy as np
 
 from oceanarray import paths
 
+from ..config import parameters as params
 from ..paths import safe_serial
 from ..utilities import (  # noqa: F401  (re-exported)
     _nice_colorbar_bounds,
@@ -607,10 +608,10 @@ def _read_instrument_info(
         if "pressure" in ds.data_vars:
             try:
                 pvals = ds["pressure"].values.astype(float)
-                # Mask QC=4 (bad) and QC=9 (missing) if stage3 QC is available
+                # Mask the bad flags (3, 4, 9) if stage-3 QC is available
                 if "pressure_qc" in ds.data_vars:
-                    qc = ds["pressure_qc"].values.astype(int)
-                    pvals = np.where(np.isin(qc, [4, 9]), np.nan, pvals)
+                    qc = ds["pressure_qc"].values
+                    pvals = np.where(np.isin(qc, params.QC_BAD_FLAGS), np.nan, pvals)
                 # Exclude non-positive values (pre-deployment bench / stuck sensor)
                 pvals = np.where(pvals > 0, pvals, np.nan)
                 _pmin = float(np.nanmin(pvals))

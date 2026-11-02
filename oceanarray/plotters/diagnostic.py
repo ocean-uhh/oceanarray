@@ -2,18 +2,18 @@
 
 Knockdown plots
 ---------------
-- :func:`plot_knockdown_pressure` — IQR of measured pressure vs. nominal design
+- :func:`draw_knockdown_pressure` — IQR of measured pressure vs. nominal design
   depth, equal aspect ratio with 1:1 reference line.
-- :func:`plot_knockdown_hab` — IQR of measured pressure vs. nominal HAB, equal
+- :func:`draw_knockdown_hab` — IQR of measured pressure vs. nominal HAB, equal
   aspect ratio with expected-pressure reference line.
-- :func:`plot_knockdown_anomaly` — IQR of pressure anomaly (measured minus nominal)
+- :func:`draw_knockdown_anomaly` — IQR of pressure anomaly (measured minus nominal)
   per instrument, colour-coded by knockdown severity.
-- :func:`plot_knockdown_displacement` — scatter and 2-D heatmap of estimated
+- :func:`draw_knockdown_displacement` — scatter and 2-D heatmap of estimated
   horizontal displacement vs. measured pressure.
 
 Clock-alignment check
 ---------------------
-- :func:`plot_clock_offset_check` — overlaid temperature time series zoomed to
+- :func:`draw_clock_offset_check` — overlaid temperature time series zoomed to
   deployment start and end.
 
 Deployment window figures (moved from report._plots)
@@ -40,9 +40,10 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from oceanarray import _deprecated
 from oceanarray.reports._vendored import design_tokens as report_tokens
 
-from .. import parameters as params
+from ..config import parameters as params
 from ..config.unit_tables import unit_label, var_unit_label
 from .helpers import distinct_line_styles, grid_despine
 from .primitives import (
@@ -266,7 +267,7 @@ def _collect_knockdown_records(
 # ---------------------------------------------------------------------------
 
 
-def plot_knockdown_pressure(
+def draw_knockdown_pressure(
     ds: xr.Dataset,
 ) -> matplotlib.figure.Figure | None:
     """IQR of measured pressure vs. nominal design depth, equal aspect ratio.
@@ -301,7 +302,7 @@ def plot_knockdown_pressure(
 
     import matplotlib.pyplot as plt
 
-    from oceanarray import parameters as params
+    from oceanarray.config import parameters as params
 
     try:
         waterdepth = float(ds.attrs.get("waterdepth", 0) or 0)
@@ -371,14 +372,14 @@ def plot_knockdown_pressure(
 # ---------------------------------------------------------------------------
 
 
-def plot_knockdown_hab(
+def draw_knockdown_hab(
     ds: xr.Dataset,
     *,
     width_in: float = report_tokens.W_HALF,
 ) -> matplotlib.figure.Figure | None:
     """IQR of measured pressure vs. nominal HAB, equal aspect ratio.
 
-    Companion to :func:`plot_knockdown_pressure`.  The y-axis is identical
+    Companion to :func:`draw_knockdown_pressure`.  The y-axis is identical
     (measured pressure, dbar, increasing downward); only the x-axis changes
     from nominal pressure to nominal height-above-bottom (m).
 
@@ -412,7 +413,7 @@ def plot_knockdown_hab(
 
     import matplotlib.pyplot as plt
 
-    from oceanarray import parameters as params
+    from oceanarray.config import parameters as params
 
     try:
         waterdepth = float(ds.attrs.get("waterdepth", 0) or 0)
@@ -489,7 +490,7 @@ def plot_knockdown_hab(
 # ---------------------------------------------------------------------------
 
 
-def plot_knockdown_anomaly(
+def draw_knockdown_anomaly(
     ds: xr.Dataset,
     *,
     width_in: float = report_tokens.W_HALF,
@@ -518,7 +519,7 @@ def plot_knockdown_anomaly(
     Parameters
     ----------
     ds : xr.Dataset
-        Stack dataset; same requirements as :func:`plot_knockdown_pressure`.
+        Stack dataset; same requirements as :func:`draw_knockdown_pressure`.
     width_in : float, optional
         Figure width in inches -- the display-slot width the report builder
         resolves; standalone callers get the full content width.
@@ -533,7 +534,7 @@ def plot_knockdown_anomaly(
 
     import matplotlib.pyplot as plt
 
-    from oceanarray import parameters as params
+    from oceanarray.config import parameters as params
 
     try:
         waterdepth = float(ds.attrs.get("waterdepth", 0) or 0)
@@ -595,7 +596,7 @@ def plot_knockdown_anomaly(
 # ---------------------------------------------------------------------------
 
 
-def plot_knockdown_displacement(
+def draw_knockdown_displacement(
     ds: xr.Dataset,
     *,
     width_in: float = report_tokens.W_FULL,
@@ -621,7 +622,7 @@ def plot_knockdown_displacement(
     Parameters
     ----------
     ds : xr.Dataset
-        Stack dataset; same requirements as :func:`plot_knockdown_pressure`.
+        Stack dataset; same requirements as :func:`draw_knockdown_pressure`.
     width_in : float, optional
         Figure width in inches -- the display-slot width the report builder
         resolves; standalone callers get the full content width.
@@ -637,7 +638,7 @@ def plot_knockdown_displacement(
     import matplotlib.colors as mcolors
     import matplotlib.pyplot as plt
 
-    from oceanarray import parameters as params
+    from oceanarray.config import parameters as params
     from oceanarray.utilities import _nice_colorbar_bounds
 
     try:
@@ -769,7 +770,7 @@ def plot_knockdown_displacement(
 # ---------------------------------------------------------------------------
 
 
-def plot_clock_offset_check(
+def draw_clock_offset_check(
     nc_paths: dict[str, Path],
     deploy_dt: datetime | None,
     recover_dt: datetime | None,
@@ -829,7 +830,7 @@ def plot_clock_offset_check(
     import matplotlib.pyplot as plt
     import xarray as xr
 
-    from oceanarray import parameters as params
+    from oceanarray.config import parameters as params
 
     _TEMP_VARS = ("temperature", "temp", "TEMP", "sea_water_temperature")
 
@@ -1287,7 +1288,7 @@ def draw_data_histogram(
 ) -> plt.Figure | None:
     """Histogram of data values for each main variable; return a Figure.
 
-    Each panel shows grey bars (all finite data) and blue bars (kept, not bad/missing),
+    Each panel shows grey bars (all finite data) and blue bars (kept: not flagged 3, 4 or 9),
     with QC range threshold lines overlaid.
 
     Parameters
@@ -1309,7 +1310,7 @@ def draw_data_histogram(
     import matplotlib.pyplot as plt
     import xarray as xr
 
-    from .. import parameters as params
+    from ..config import parameters as params
 
     with xr.open_dataset(nc_path, decode_timedelta=False) as ds:
         ds.load()
@@ -1365,7 +1366,7 @@ def draw_data_histogram(
                     if flatten
                     else ds[qc_var].values.astype(int)
                 )
-                kept_mask = np.isfinite(data) & ~np.isin(flags, [4, 9])
+                kept_mask = np.isfinite(data) & ~np.isin(flags, params.QC_BAD_FLAGS)
             else:
                 kept_mask = np.isfinite(data)
             all_mask = np.isfinite(data)
@@ -1774,3 +1775,22 @@ def draw_instrument_spacing(
     ax.set_ylabel("Count (instrument pair × time step)")
     plot_title(ax, "Instrument spacing")
     return fig
+
+
+# Old names (0.5), removed in 0.7.0.
+plot_knockdown_pressure = _deprecated.alias(
+    "oceanarray.plotters.diagnostic.plot_knockdown_pressure", draw_knockdown_pressure
+)
+plot_knockdown_hab = _deprecated.alias(
+    "oceanarray.plotters.diagnostic.plot_knockdown_hab", draw_knockdown_hab
+)
+plot_knockdown_anomaly = _deprecated.alias(
+    "oceanarray.plotters.diagnostic.plot_knockdown_anomaly", draw_knockdown_anomaly
+)
+plot_knockdown_displacement = _deprecated.alias(
+    "oceanarray.plotters.diagnostic.plot_knockdown_displacement",
+    draw_knockdown_displacement,
+)
+plot_clock_offset_check = _deprecated.alias(
+    "oceanarray.plotters.diagnostic.plot_clock_offset_check", draw_clock_offset_check
+)

@@ -414,7 +414,9 @@ class MooringReport:
         instruments, grid, stack : bool, optional
             Also build these pages.
         cfg : Mapping or None, optional
-            The loaded description; read from *yaml_path* when not given.
+            The loaded description; read from *yaml_path* when not given. When
+            given, the summary page is rebuilt whatever its age (the description
+            may differ from the file).
         mooring_dir : str or pathlib.Path or None, optional
             The mooring's folder, whatever it is called; default
             ``<proc_dir>/<mooring_name>``.
@@ -457,6 +459,7 @@ class MooringReport:
             if yaml_path is not None
             else proc_dir / f"{mooring_name}.mooring.yaml"
         )
+        given_cfg = cfg
         if cfg is not None:
             cfg = dict(cfg)
         elif yaml_path.exists():
@@ -485,7 +488,9 @@ class MooringReport:
         products = [
             paths.product_file(proc_dir, mooring_name, p) for p in ("stack", "grid")
         ]
-        summary_fresh = _should_skip(
+        # A description passed in may differ from the file on disk, whose time is
+        # all the freshness check can see: the summary is always rebuilt from it.
+        summary_fresh = given_cfg is None and _should_skip(
             output_path, force, skip_existing, yaml_path, *source_ncs, *products
         )
         if summary_fresh and not (instruments or grid or stack):

@@ -3,6 +3,7 @@
 import shutil
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 import oceanarray as oa
@@ -142,6 +143,7 @@ def test_a_loaded_description_is_the_one_reported(tree):
     """A dict is used as given, not replaced by the file on disk."""
     from oceanarray import mooring as _mooring
 
+    report(tree, stack=False, grid=False, instruments=False)  # a fresh page first
     cfg = _mooring.load(tree / f"{_NAME}.mooring.yaml")
     cfg["waterdepth"] = 4321
     page = report(cfg, mooring_dir=tree, stack=False, grid=False, instruments=False)
@@ -200,3 +202,38 @@ def test_run_with_report_returns_the_summary_page_last(tree, monkeypatch):
         paths.product_file(tree, _NAME, "grid"),
     ]
     assert pages == [(tree, ["2941"])]  # a generator of serials is read once
+
+
+def test_a_stage_2_stack_says_so_in_the_amber_note(tree):
+    """A stack built from stage-2 files: the page names them, and why the aquadopp has no velocity."""
+    oa.run(tree, stages=2, force=True, dt_seconds=3600, stack_stage=2)
+    report(tree, stack=True, grid=False, instruments=False, force=True)
+    html = report_paths(tree)["stack"].read_text(encoding="utf-8")
+    assert "Stacked from stage 2" in html
+    assert "s/n&nbsp;2941, 9920" in html
+    assert (
+        "recorded beam velocities" in html
+    )  # the dune2 aquadopp is in beam coordinates
+
+
+def test_stage_2_velocities_are_flagged_as_magnetic_north(tree):
+    """A stage-2 level with east/north velocity: the note says no declination, not 'position missing'."""
+    import xarray as xr
+
+    stack_nc = paths.product_file(tree, _NAME, "stack")
+    with xr.open_dataset(stack_nc) as ds:
+        ds = ds.load()
+    # as if 9920 had been stacked from stage 2 with east/north velocities
+    ds.attrs["stage2_instruments"] = "9920"
+    ds.attrs["stage2_magnetic_north"] = "9920"
+    level = ds["serial"].values.tolist().index("9920")
+    decl = ds["magnetic_declination"].values.copy()
+    decl[level] = np.nan  # stage 2 has no declination
+    ds["magnetic_declination"] = ("N_LEVELS", decl, ds["magnetic_declination"].attrs)
+    stack_nc.unlink()
+    ds.to_netcdf(stack_nc)
+    report(tree, stack=True, grid=False, instruments=False, force=True)
+    html = report_paths(tree)["stack"].read_text(encoding="utf-8")
+    assert "no magnetic declination correction" in html
+    assert "Magnetic declination not applied to s/n&nbsp;9920" in html
+    assert "latitude/longitude are missing" not in html

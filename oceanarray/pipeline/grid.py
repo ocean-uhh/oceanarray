@@ -243,7 +243,11 @@ def _grid_file(
 
 
 class MooringGridder:
-    """Step 2: vertically interpolate stacked instruments onto a pressure grid → ``_grid.nc``."""
+    """Step 2: vertically interpolate stacked instruments onto a pressure grid → ``_grid.nc``.
+
+    .. deprecated:: 0.6.0
+        Removed in 0.7.0; see the migration page.
+    """
 
     def __init__(
         self,
@@ -264,6 +268,9 @@ class MooringGridder:
             ``/{mooring}/`` internally (see :func:`oceanarray.paths.mooring_proc_dir`).
 
         """
+        from oceanarray import _deprecated
+
+        _deprecated.warn("oceanarray.pipeline.grid.MooringGridder")
         self._proc_dir = Path(proc_dir)
 
     def _resolve_proc_dir(self, mooring_name: str) -> Path:

@@ -294,7 +294,7 @@ def _check_settings(data: Mapping) -> list[ValidationIssue]:
 # The one source for the commented ``init`` template: key -> inline description.
 # ``save`` writes these as end-of-line comments; keep in sync with KNOWN_KEYS.
 _FIELD_COMMENTS: dict[str, str] = {
-    "name": "mooring identifier (matches directory and filename)",
+    "name": "mooring identifier; every output file is named from it",
     "year": "deployment year, e.g. 2026",
     "waterdepth": "water depth at anchor in metres",
     "deployment_cruise": "cruise ID, e.g. MSM142",
@@ -414,7 +414,31 @@ def template(name: str, *, instruments: list[dict] | None = None) -> dict:
     return doc
 
 
-def save(mooring: Mapping, path: str | PathLike, *, overwrite: bool = False) -> Path:
+def _optional_blocks_text() -> str:
+    """Return the commented-out ``stack:`` and ``grid:`` blocks, with their defaults."""
+    from oceanarray.pipeline._run import DEFAULTS
+
+    st, gr = DEFAULTS["stack"], DEFAULTS["grid"]
+    return "\n".join(
+        [
+            "optional: uncomment to change the stack and grid settings",
+            "stack:",
+            f"  dt_seconds: {st['dt_seconds']:g}  # time step of the stack, seconds",
+            "grid:",
+            f"  p_start: {gr['p_start']:g}  # shallowest grid level, dbar",
+            f"  p_end: {gr['p_end']:g}  # deepest grid level, dbar",
+            f"  dp: {gr['dp']:g}  # grid spacing, dbar",
+        ]
+    )
+
+
+def save(
+    mooring: Mapping,
+    path: str | PathLike,
+    *,
+    overwrite: bool = False,
+    optional_blocks: bool = False,
+) -> Path:
     """Write a mooring description to a YAML file with field comments.
 
     Lenient by design — a description being drafted may be incomplete, so ``save``
@@ -431,6 +455,9 @@ def save(mooring: Mapping, path: str | PathLike, *, overwrite: bool = False) -> 
         Destination ``*.mooring.yaml`` path.
     overwrite : bool, default False
         Overwrite an existing file; otherwise a ``FileExistsError`` is raised.
+    optional_blocks : bool, default False
+        Also write the optional ``stack:`` and ``grid:`` blocks, commented out with
+        their default values, before ``clamp`` (``oceanarray init`` does).
 
     Returns
     -------
@@ -480,6 +507,10 @@ def save(mooring: Mapping, path: str | PathLike, *, overwrite: bool = False) -> 
         doc["clamp"] = CommentedSeq(
             _block(entry.items(), _INSTRUMENT_COMMENTS, seen) for entry in clamp
         )
+        if optional_blocks:
+            doc.yaml_set_comment_before_after_key(
+                "clamp", before=_optional_blocks_text(), indent=0
+            )
 
     path.parent.mkdir(parents=True, exist_ok=True)
     writer = YAML()

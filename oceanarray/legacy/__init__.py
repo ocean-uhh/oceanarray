@@ -21,6 +21,8 @@ __all__ = [
     # From process_rodb
     "process_instrument",
     "process_microcat",
+    "to_zscore",
+    "to_zscore_dataset",
     "normalize_dataset_by_middle_percent",
     "normalize_by_middle_percent",
     "middle_percent",

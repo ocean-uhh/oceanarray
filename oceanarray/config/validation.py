@@ -76,8 +76,8 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import NamedTuple
 
-from oceanarray import parameters as params
 from oceanarray import paths
+from oceanarray.config import parameters as params
 
 # Instrument-type validity is single-sourced from ``parameters.KNOWN_INSTRUMENT_TYPES``
 # (derived from ``INSTRUMENT_FILE_TYPES``).  This keeps ``oceanarray list`` and
@@ -234,8 +234,8 @@ def validate_mooring_yaml(yaml_path: str) -> list[ValidationIssue]:
 
     .. deprecated::
         Use :func:`oceanarray.mooring.check`, which reads the file once and adds
-        the unknown-key check. This wrapper delegates to it and will be removed in
-        a future release.
+        the unknown-key check. This wrapper delegates to it and is removed in
+        0.7.0.
 
     Parameters
     ----------
@@ -247,15 +247,10 @@ def validate_mooring_yaml(yaml_path: str) -> list[ValidationIssue]:
     list of ValidationIssue
         One issue per finding; an empty list means the file passed all checks.
     """
-    import warnings
-
+    from oceanarray import _deprecated
     from oceanarray import mooring as _mooring
 
-    warnings.warn(
-        "validate_mooring_yaml is deprecated; use oceanarray.mooring.check instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
+    _deprecated.warn("oceanarray.config.validation.validate_mooring_yaml")
     return _mooring.check(yaml_path)
 
 

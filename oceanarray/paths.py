@@ -279,6 +279,26 @@ def product_glob(product: str) -> str:
     return f"*_{product}.nc"
 
 
+def stale_file(path: _PathLike) -> Path:
+    """Return where a product that no longer matches its stage files is kept.
+
+    ``<name>_stack.nc`` becomes ``<name>_stack.stale.nc``; the stack and grid
+    search patterns (:func:`product_glob`) do not match it.
+
+    Parameters
+    ----------
+    path : str or Path
+        A product file.
+
+    Returns
+    -------
+    Path
+        The stale copy's path, beside the product.
+    """
+    path = Path(path)
+    return path.with_suffix(".stale" + path.suffix)
+
+
 def product_file(mooring_dir: _PathLike, name: str, product: str) -> Path:
     """Return the full path of a mooring-level product file.
 

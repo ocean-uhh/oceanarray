@@ -58,8 +58,8 @@ import numpy as np
 import xarray as xr
 
 from oceanarray import mooring as _mooring
-from oceanarray import parameters as params
 from oceanarray import paths
+from oceanarray.config import parameters as params
 from oceanarray.exceptions import MooringError
 from oceanarray.logger import log_info, log_warning, with_stage_handlers
 from oceanarray.paths import safe_serial
@@ -576,7 +576,11 @@ def _source_provenance(nc_path: Path) -> dict[str, str]:
 
 
 class Stage3Processor:
-    """Pressure interpolation + QARTOD QC for all mooring instruments."""
+    """Pressure interpolation + QARTOD QC for all mooring instruments.
+
+    .. deprecated:: 0.6.0
+        Removed in 0.7.0; see the migration page.
+    """
 
     def __init__(
         self,
@@ -599,6 +603,9 @@ class Stage3Processor:
             ``/{mooring}/`` internally (see :func:`oceanarray.paths.mooring_proc_dir`).
 
         """
+        from oceanarray import _deprecated
+
+        _deprecated.warn("oceanarray.pipeline.stage3.Stage3Processor")
         self._proc_dir = Path(proc_dir)
         self.log_file = None
 
@@ -710,6 +717,7 @@ def _stage3_files(
     serials: list[str] | None = None,
     force: bool = False,
     caldip_dir: str | Path | None = None,
+    exclude: set[str] | frozenset[str] = frozenset(),
     log: Callable[..., None] = print,
 ) -> _stage.StageRun:
     """Run stage 3 over one mooring's stage-2 files and write the stage-3 files.
@@ -719,7 +727,9 @@ def _stage3_files(
     *serials* (default: all) are written. An existing stage-3 file is kept unless
     *force* or *caldip_dir* is given. A target's pressure records the stage-2 files
     it was interpolated from (``pressure_source_files``); a kept target whose
-    sources have since changed is named in a WARNING.
+    sources have since changed is named in a WARNING. Serials in *exclude*
+    (failed earlier in the same run) are left out entirely: neither written nor
+    used as a pressure source.
 
     Raises
     ------
@@ -732,6 +742,9 @@ def _stage3_files(
     datasets = read_mooring(
         mooring, stage=2, allow_missing=True, mooring_dir=mooring_dir
     )
+    for serial in sorted(exclude & set(datasets)):
+        log(f"  SKIP {serial}: failed earlier in this run; not a pressure source")
+        datasets.pop(serial).close()
     if not datasets:
         raise MooringError("No _stage2 datasets found for this mooring")
 

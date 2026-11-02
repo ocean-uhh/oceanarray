@@ -135,7 +135,9 @@ def report(
             instruments=instruments or serial_list is not None,
             grid=grid,
             stack=stack,
-            cfg=cfg,
+            # A loaded description may differ from the file on disk, so it is
+            # passed on (and rebuilds the summary); a path is read from disk.
+            cfg=cfg if isinstance(mooring, Mapping) else None,
             mooring_dir=moor_dir,
             yaml_path=yaml_path,
         )
@@ -281,6 +283,16 @@ def _array_report(
     return Path(page)
 
 
+def _recovery_path(
+    name: str, moor_dir: Path, out_dir: PathLike | None, report_dir: PathLike | None
+) -> Path:
+    """Return the recovery table's path: in *out_dir*, else ``report_dir/<name>``, else the mooring directory."""
+    where = Path(
+        out_dir or (Path(report_dir) / name if report_dir is not None else moor_dir)
+    )
+    return where / f"{name}_recovery_table.html"
+
+
 def _recovery_table(
     name: str,
     moor_dir: Path,
@@ -293,14 +305,11 @@ def _recovery_table(
     """Build the recovery table: in *out_dir*, else ``report_dir/<name>``, else the mooring directory."""
     from oceanarray.reports._recovery_table import generate_recovery_table
 
-    where = Path(
-        out_dir or (Path(report_dir) / name if report_dir is not None else moor_dir)
-    )
     page = generate_recovery_table(
         mooring_name=name,
         proc_dir=moor_dir,
         yaml_path=yaml_path,
-        out_path=where / f"{name}_recovery_table.html",
+        out_path=_recovery_path(name, moor_dir, out_dir, report_dir),
         force=force,
     )
     if not page:

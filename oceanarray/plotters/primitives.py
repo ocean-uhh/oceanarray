@@ -23,9 +23,10 @@ import matplotlib.ticker as mticker
 import numpy as np
 from matplotlib.collections import LineCollection
 
+from oceanarray import _deprecated
 from oceanarray.reports._vendored import design_tokens as report_tokens
 
-from .. import parameters as params
+from ..config import parameters as params
 from ..utilities import _nice_colorbar_bounds, nice_colorbar_ticks
 from .helpers import grid_despine
 
@@ -462,7 +463,7 @@ def unit_colorbar(
     return cb
 
 
-def plot_trajectory(
+def draw_trajectory(
     x: np.ndarray,
     y: np.ndarray,
     color_data: np.ndarray | None = None,
@@ -725,3 +726,9 @@ def colorbar_norm(
     bounds = _nice_colorbar_bounds(float(vmin), float(vmax), n=n)
     norm = mcolors.BoundaryNorm(bounds, ncolors=256)
     return bounds, norm
+
+
+# Old names (0.5), removed in 0.7.0.
+plot_trajectory = _deprecated.alias(
+    "oceanarray.plotters.primitives.plot_trajectory", draw_trajectory
+)

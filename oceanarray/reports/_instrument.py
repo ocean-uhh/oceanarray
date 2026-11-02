@@ -9,7 +9,7 @@ from typing import Any
 
 from oceanarray import paths
 
-from .. import parameters as params
+from ..config import parameters as params
 from ._env import (
     render_history,
     render_nc_coords,

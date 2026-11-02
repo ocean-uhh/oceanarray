@@ -704,7 +704,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <p class="caption">Pseudo-Lagrangian particle trajectories integrated from each Aquadopp&#39;s east/north velocity. Start at the origin; coloured by time through the deployment.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="trajectories_aquadopp">
-</details><div class="fig-source">source: oceanarray/plotters/current.py:plot_multi_aquadopp_trajectories</div>
+</details><div class="fig-source">source: oceanarray/plotters/current.py:draw_multi_aquadopp_trajectories</div>
 </div>
 </div>
 
@@ -714,11 +714,11 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <p class="caption">Aquadopp current-speed profile: median and interquartile range of speed against height above bottom across the deployment.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig slot-half" src="data:image/png;base64,<PNG>" alt="speed_profile">
-</details><div class="fig-source">source: oceanarray/plotters/current.py:plot_aquadopp_speed_profile</div>
+</details><div class="fig-source">source: oceanarray/plotters/current.py:draw_aquadopp_speed_profile</div>
 
 <h2 id="ts_diagram">(7) T-S diagram</h2>
 
-<p class="caption">Left: scatter coloured by pressure. Middle: 2-D count heatmap. Right (when oxygen data present): scatter coloured by O₂ saturation (%). Bad (flag 4) and missing (flag 9) excluded; interpolated pressure (flag 8) retained.</p>
+<p class="caption">Left: scatter coloured by pressure. Middle: 2-D count heatmap. Right (when oxygen data present): scatter coloured by O₂ saturation (%). Values flagged 3, 4 or 9 (probably bad, bad, missing) left out; nominal and interpolated values (flags 7, 8) kept.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="ts_diagram">
 </details><div class="fig-source">source: oceanarray/plotters/ts.py:draw_stack_ts_diagram</div>
@@ -753,7 +753,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <p class="caption">One temperature trace per instrument, zoomed to the first and last 30 min of the deployment, to check clock alignment across instruments.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="clock_check">
-</details><div class="fig-source">source: oceanarray/plotters/diagnostic.py:plot_clock_offset_check</div>
+</details><div class="fig-source">source: oceanarray/plotters/diagnostic.py:draw_clock_offset_check</div>
 
 <h2 id="netcdf_variables">(A) NetCDF variables</h2>
 

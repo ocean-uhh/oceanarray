@@ -12,7 +12,9 @@ from .utilities import _status
 
 def _parse_dirs(
     args: "argparse.Namespace",
-) -> "tuple[Path | None, Path]":
+    *,
+    proc_required: bool = True,
+) -> "tuple[Path | None, Path | None]":
     """Resolve raw and proc directories from CLI args.
 
     Returns
@@ -20,14 +22,15 @@ def _parse_dirs(
     raw_dir : Path or None
         Cruise-level raw directory (``--raw-dir``). None when a command does not
         read raw files (stack, grid, report).
-    proc_root : Path
-        Cruise-level processed output directory.
+    proc_root : Path or None
+        Cruise-level processed output directory; None when not given and not
+        *proc_required*.
 
     Raises
     ------
     SystemExit
         If ``--basedir`` is supplied (removed; prints a migration message), or if
-        ``--proc-dir`` is not given.
+        ``--proc-dir`` is not given and *proc_required*.
 
     """
     basedir = getattr(args, "basedir", None)
@@ -43,33 +46,62 @@ def _parse_dirs(
         )
 
     if not proc_dir:
-        raise SystemExit("ERROR: --proc-dir is required (and --raw-dir for stage 1).")
+        if proc_required:
+            raise SystemExit(
+                "ERROR: --proc-dir is required (and --raw-dir for stage 1)."
+            )
+        return Path(raw_dir) if raw_dir else None, None
     return Path(raw_dir) if raw_dir else None, Path(proc_dir)
 
 
-def _parse_dirs_checked(
-    args: "argparse.Namespace",
-) -> "tuple[Path | None, Path]":
-    """Parse dirs and reject an old-layout ``--proc-dir`` for a mooring command.
+def _mooring_location(args: argparse.Namespace) -> Path:
+    """Return the mooring's folder or description from the positional argument.
 
-    Like :func:`_parse_dirs`, but also runs :func:`paths.require_current_layout`
-    on ``<proc-dir>/<args.mooring>`` so a legacy ``moor/proc`` (or ``proc``)
-    directory raises the migration error up front rather than failing later with
-    "no files found".  Use for every mooring-scoped subcommand; ``report --array``
-    is the exception (its positional is a YAML path, not a mooring name).
+    With ``--proc-dir`` the positional is a mooring name and the folder is
+    ``<proc-dir>/<name>``. Without it the positional is a path: a
+    ``*.mooring.yaml`` or the folder holding one, under any name.
+
+    Raises
+    ------
+    SystemExit
+        If ``--basedir`` is given, the old layout is found, or the path does not
+        exist.
     """
-    raw_dir, proc_root = _parse_dirs(args)
-    paths.require_current_layout(proc_root, args.mooring)
-    return raw_dir, proc_root
+    _parse_dirs(args, proc_required=False)
+    if getattr(args, "proc_dir", None):
+        proc_root = Path(args.proc_dir)
+        paths.require_current_layout(proc_root, args.mooring)
+        return paths.mooring_proc_dir(proc_root, args.mooring)
+    given = Path(args.mooring)
+    if not given.exists():
+        raise SystemExit(
+            f"ERROR: {args.mooring} is not a *.mooring.yaml or a mooring folder. Give "
+            "its path, or a mooring name with --proc-dir."
+        )
+    return given
+
+
+def _raw_dir(args: argparse.Namespace) -> Path | None:
+    """Return ``--raw-dir`` as a path, or None."""
+    raw = getattr(args, "raw_dir", None)
+    return Path(raw) if raw else None
+
+
+def _folder(location: Path) -> Path:
+    """Return the mooring folder for a location from :func:`_mooring_location`."""
+    return location if location.is_dir() else location.parent
 
 
 def cmd_process(args: argparse.Namespace) -> int:
-    """Convert raw instrument files to processed NetCDF for one mooring.
+    """Run stages 1-3 for one mooring through :func:`oceanarray.process`.
 
     By default runs stages 1 (raw → CF-NetCDF), 2 (trim to deployment window +
     clock-drift correction) and 3 (QC flags, pressure interpolation, beam → ENU
-    velocity rotation).  Pass ``--stage 1 2`` for the old stage-1-and-2-only
-    behaviour.
+    velocity rotation), carrying on past a failed instrument (``--strict``: stop
+    at the first failure and exit 1).
+
+    ``--stage stack`` / ``grid`` and ``--dry-run`` still run through the pre-0.6
+    stage classes (``oceanarray run`` builds the stack and grid).
 
     Optional side effects:
     - ``--report``: after processing, print a per-instrument record summary to
@@ -77,63 +109,96 @@ def cmd_process(args: argparse.Namespace) -> int:
     - ``--plot``: save a PNG overview plot for each instrument alongside the
       stage2 NetCDF file in the proc directory.
     """
-    from .pipeline import _process_legacy as _process
+    from .exceptions import MooringError
 
-    raw_dir, proc_root = _parse_dirs_checked(args)
-
-    # If --stage was not explicitly set and --report is the only action, skip processing
+    location = _mooring_location(args)
+    raw_dir = _raw_dir(args)
+    # --report alone (no --stage) only prints the summary.
     stages = args.stage if (args.stage is not None or not args.report) else []
     if stages is None:
         stages = [1, 2, 3]
+    if 1 in stages and raw_dir is None:
+        raise SystemExit("ERROR: --raw-dir is required for stage 1.")
 
-    serials = args.serial or None
-    overall_success = True
+    ok = True
+    products = [s for s in stages if s in ("stack", "grid")]
+    if products or getattr(args, "dry_run", False):
+        ok = _process_with_classes(args, stages, raw_dir)
+    elif stages:
+        from .pipeline import process
 
-    if stages:
-        if 1 in stages and raw_dir is None:
-            raise SystemExit("ERROR: --raw-dir is required for stage 1.")
-        overall_success = _process(
-            args.mooring,
-            stage=stages,
-            proc_dir=proc_root,
-            raw_dir=raw_dir,
-            force=args.force,
-            serials=serials,
-            dt_seconds=args.dt,
-            p_start=args.pmin,
-            p_end=args.pmax,
-            dp=args.dp,
-            dry_run=getattr(args, "dry_run", False),
-        )
+        try:
+            process(
+                location,
+                stages=stages,
+                serials=args.serials,
+                force=args.force,
+                keep_going=args.keep_going,
+                raw_dir=raw_dir,
+            )
+        except MooringError as e:
+            _status("error", str(e))
+            return 1
 
     if args.report:
         from .reports import summary
 
         _status("section", f"Record Summary: {args.mooring}")
-        print(summary(paths.mooring_proc_dir(proc_root, args.mooring)))
+        try:
+            print(summary(location))
+        except MooringError as e:
+            _status("error", str(e))
+            return 1
 
     if args.plot:
-        import matplotlib
+        _plot_stage2(_folder(location))
+    return 0 if ok else 1
 
-        matplotlib.use("Agg")
-        import xarray as xr
 
-        from .plotters import plot_aquadopp_raw, plot_microcat_raw
+def _process_with_classes(
+    args: argparse.Namespace, stages: list, raw_dir: Path | None
+) -> bool:
+    """Run *stages* the pre-0.6 way (by name under ``--proc-dir``), for stack/grid and --dry-run."""
+    from .pipeline import _process_legacy
 
-        _status("section", f"Plotting: {args.mooring}")
-        proc_dir = proc_root / args.mooring
+    if not getattr(args, "proc_dir", None):
+        raise SystemExit(
+            "ERROR: --stage stack/grid and --dry-run need a mooring name and "
+            "--proc-dir; or use 'oceanarray run PATH' for the stack and grid."
+        )
+    return _process_legacy(
+        args.mooring,
+        stage=stages,
+        proc_dir=Path(args.proc_dir),
+        raw_dir=raw_dir,
+        force=args.force,
+        serials=args.serials,
+        dt_seconds=args.dt,
+        p_start=args.pmin,
+        p_end=args.pmax,
+        dp=args.dp,
+        dry_run=getattr(args, "dry_run", False),
+    )
 
-        for nc in sorted((proc_dir / "microcat").glob(paths.stage_glob(2))):
-            ds = xr.open_dataset(nc, decode_timedelta=False)
-            plot_microcat_raw(ds, save_path=nc.with_suffix(".png"))
+
+def _plot_stage2(moor_dir: Path) -> None:
+    """Save a PNG quick-look beside each microcat and aquadopp stage-2 file."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import xarray as xr
+
+    from .plotters import draw_aquadopp_raw, draw_microcat_raw
+
+    _status("section", f"Plotting: {moor_dir.name}")
+    for kind, draw in (
+        ("microcat", draw_microcat_raw),
+        ("aquadopp", draw_aquadopp_raw),
+    ):
+        for nc in sorted((moor_dir / kind).glob(paths.stage_glob(2))):
+            with xr.open_dataset(nc, decode_timedelta=False) as ds:
+                draw(ds, save_path=nc.with_suffix(".png"))
             print(f"Saved: {nc.with_suffix('.png')}")
-
-        for nc in sorted((proc_dir / "aquadopp").glob(paths.stage_glob(2))):
-            ds = xr.open_dataset(nc, decode_timedelta=False)
-            plot_aquadopp_raw(ds, save_path=nc.with_suffix(".png"))
-            print(f"Saved: {nc.with_suffix('.png')}")
-
-    return 0 if overall_success else 1
 
 
 def cmd_plot(args: argparse.Namespace) -> int:
@@ -149,28 +214,24 @@ def cmd_plot(args: argparse.Namespace) -> int:
     """
     from pathlib import Path
 
-    from .config import parameters as params
-    from .plotters import plot_mooring_timeseries
+    from .plotters import draw_mooring_timeseries
 
-    _, proc_root = _parse_dirs_checked(args)
-
-    if args.colormap:
-        params.DEFAULT_COLORMAP = args.colormap
-    if args.downsample:
-        params.DOWNSAMPLE_SECONDS = args.downsample
+    folder = _folder(_mooring_location(args))
 
     save_path = None
     if args.output:
-        out_dir = Path(args.output_dir) if args.output_dir else proc_root / args.mooring
+        out_dir = Path(args.output_dir) if args.output_dir else folder
         save_path = out_dir / args.output
 
     try:
-        plot_mooring_timeseries(
-            proc_dir=proc_root,
-            mooring=args.mooring,
+        draw_mooring_timeseries(
+            proc_dir=folder.parent,
+            mooring=folder.name,
             var_y=args.var_y,
             var_color=args.var_color,
             markersize=args.markersize,
+            colormap=args.colormap,
+            downsample_seconds=args.downsample,
             save_path=save_path,
             show=args.show or save_path is None,
         )
@@ -197,7 +258,7 @@ def cmd_report(args: argparse.Namespace) -> int:
     from .exceptions import MooringError
     from .reports import report
 
-    raw_dir, proc_root = _parse_dirs(args)
+    raw_dir, proc_root = _parse_dirs(args, proc_required=False)
     report_dir = getattr(args, "report_dir", None)
     outdir = getattr(args, "outdir", None)
 
@@ -229,10 +290,9 @@ def cmd_report(args: argparse.Namespace) -> int:
 
     # Array mode treats the positional as a YAML path, not a mooring name, so the
     # per-mooring layout check applies only here.
-    paths.require_current_layout(proc_root, args.mooring)
-    moor_dir = paths.mooring_proc_dir(proc_root, args.mooring)
+    moor_dir = _mooring_location(args)
     all_reports = getattr(args, "all_reports", False)
-    serials = getattr(args, "serial", None) or None
+    serials = args.serials
     do_instruments = all_reports or getattr(args, "instruments", False) or bool(serials)
     do_stack = all_reports or getattr(args, "stack", False)
     do_grid = all_reports or getattr(args, "grid", False)
@@ -303,7 +363,11 @@ def _report_dry_run(
     """Print the pages a report run would write, at the paths it would write them to."""
     from oceanarray import mooring as _mooring
     from oceanarray.reports import report_paths
-    from oceanarray.reports._verb import _description_file, _name_and_dir
+    from oceanarray.reports._verb import (
+        _description_file,
+        _name_and_dir,
+        _recovery_path,
+    )
     from oceanarray.utilities import instrument_entries
 
     from .exceptions import MooringError
@@ -330,7 +394,7 @@ def _report_dry_run(
         print(f"Stack:    {where['stack']}  ({_state(where['stack'])})")
     if do_grid:
         print(f"Grid:     {where['grid']}  ({_state(where['grid'])})")
-    yaml_path = _description_file(moor_dir, moor_dir, name)
+    yaml_path = _description_file(moor_dir, _folder(moor_dir), name)
     if do_instruments and yaml_path.exists():
         # A dry run is a preview — never raise on a half-filled config. Show the
         # validation issues (as `validate` would), then list whatever the file
@@ -341,15 +405,21 @@ def _report_dry_run(
         else:
             for issue in _mooring.check(yaml_path):
                 print(f"  {issue.level.lower()}: {issue.message}")
+            only = {paths.safe_serial(s) for s in args.serials or []}
             for entry in instrument_entries(cfg):
                 if not isinstance(entry, dict):
                     continue
                 serial = paths.safe_serial(entry.get("serial", ""))
+                if only and serial not in only:
+                    continue
                 instr_type = entry.get("instrument", "unknown")
                 p = where["instrument_dir"] / f"{name}_{serial}_report.html"
                 print(
                     f"  Instrument {instr_type:12s} s/n {serial:8s}  {p}  ({_state(p)})"
                 )
+    if getattr(args, "cruise_table", False):
+        table = _recovery_path(name, _folder(moor_dir), outdir, report_dir)
+        print(f"Recovery: {table}  ({_state(table)})")
     if want_pdf:
         print(f"PDF:      {where['pdf']}  (combined from the HTML pages above)")
     return 0
@@ -373,17 +443,16 @@ def cmd_run(args: argparse.Namespace) -> int:
     from .exceptions import MooringError
     from .pipeline import run as _run
 
-    raw_dir, proc_root = _parse_dirs_checked(args)
-    stages = tuple(sorted(set(args.stage))) if args.stage else (1, 2, 3)
-    if 1 in stages and raw_dir is None:
+    yaml_path = _mooring_location(args)
+    raw_dir = _raw_dir(args)
+    stages = min(args.stage) if args.stage else 1
+    if stages == 1 and raw_dir is None:
         raise SystemExit(
-            "ERROR: --raw-dir is required for stage 1 (or pass --stage 2 3)."
+            "ERROR: --raw-dir is required for stage 1 (or pass --stage 2 to start "
+            "from the stage-1 files)."
         )
 
-    serials = args.serial or None
-    yaml_path = paths.mooring_proc_dir(proc_root, args.mooring) / (
-        f"{args.mooring}.mooring.yaml"
-    )
+    serials = args.serials
     try:
         _run(
             yaml_path,
@@ -392,6 +461,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             force=args.force,
             keep_going=args.keep_going,
             raw_dir=raw_dir,
+            stack_stage=args.stack_stage,
             dt_seconds=args.dt,
             p_start=args.pmin,
             p_end=args.pmax,
@@ -471,43 +541,46 @@ def cmd_animate(args: argparse.Namespace) -> int:
     matplotlib.use("Agg")
     import xarray as xr
 
+    from .exceptions import MooringError
+    from .pipeline import _resolve_mooring
     from .plotters import animate_hodograph
+    from .utilities import instrument_entries
 
-    _, proc_root = _parse_dirs_checked(args)
-    proc_dir = proc_root / args.mooring
-    serials = args.serial or []
+    location = _mooring_location(args)
+    try:
+        cfg, proc_dir = _resolve_mooring(location, None, "animate")
+    except MooringError as e:
+        _status("error", str(e))
+        return 1
+    wanted = {paths.safe_serial(s) for s in args.serials} if args.serials else None
 
-    # Build {stem: best_nc} — stage3 preferred over stage2
-    stage3_map = {
-        f.name.replace(paths.stage_suffix(3), ""): f
-        for f in sorted(proc_dir.rglob(paths.stage_glob(3)))
+    # Each listed instrument's stage-3 file, else its stage-2 file, from the description.
+    candidates: list[tuple[str, Path]] = []
+    for entry in instrument_entries(cfg):
+        if not isinstance(entry, dict) or entry.get("skip"):
+            continue
+        serial = paths.safe_serial(entry.get("serial", ""))
+        if wanted is not None and serial not in wanted:
+            continue
+        instr = entry.get("instrument", "unknown")
+        found = [
+            p
+            for n in (3, 2)
+            if (p := paths.stage_file(proc_dir, cfg["name"], instr, serial, n)).exists()
+        ]
+        if found:
+            candidates.append((f"{cfg['name']}_{serial}", found[0]))
+        elif wanted is not None:
+            print(
+                f"  WARNING: no stage-2 or stage-3 file for serial {serial} in {proc_dir}"
+            )
+    listed = {
+        paths.safe_serial(e.get("serial", ""))
+        for e in instrument_entries(cfg)
+        if isinstance(e, dict)
     }
-
-    if serials:
-        candidates: list[tuple[str, Path]] = []
-        for sn in serials:
-            matches = [stem for stem in stage3_map if str(sn) in stem]
-            if matches:
-                candidates.extend((m, stage3_map[m]) for m in matches)
-            else:
-                stage2 = sorted(proc_dir.rglob(f"*{sn}*{paths.stage_suffix(2)}"))
-                if stage2:
-                    stem = stage2[0].name.replace(paths.stage_suffix(2), "")
-                    candidates.append((stem, stage2[0]))
-                else:
-                    print(
-                        f"  WARNING: no stage2/3 NC found for serial {sn} under {proc_dir}"
-                    )
-    else:
-        # All stage3 files; fill in with stage2 where stage3 is absent
-        seen: set[str] = set(stage3_map)
-        candidates = list(stage3_map.items())
-        for nc in sorted(proc_dir.rglob(paths.stage_glob(2))):
-            stem = nc.name.replace(paths.stage_suffix(2), "")
-            if stem not in seen:
-                seen.add(stem)
-                candidates.append((stem, nc))
-
+    for serial in sorted((wanted or set()) - listed):
+        print(f"  WARNING: serial {serial} is not in {cfg['name']}'s description")
     if not candidates:
         print(f"  No processed files found under {proc_dir}")
         return 1
@@ -686,6 +759,53 @@ def _add_dir_args(p: "argparse.ArgumentParser", raw_needed: bool = True) -> None
     )
 
 
+class _OldFlag(argparse.Action):
+    """Accept a renamed flag for one release, saying what it is called now."""
+
+    def __init__(self, *args: object, new: str, **kwargs: object) -> None:
+        """Remember the new spelling."""
+        self.new = new
+        super().__init__(*args, **kwargs)
+
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,  # noqa: ARG002  — argparse.Action signature
+        namespace: argparse.Namespace,
+        values: object,
+        option_string: str | None = None,
+    ) -> None:
+        """Store the value and print the new spelling to stderr."""
+        print(
+            f"oceanarray: {option_string} is now {self.new} ({option_string} is "
+            "removed in 0.7.0).",
+            file=sys.stderr,
+        )
+        setattr(namespace, self.dest, values)
+
+
+def _add_only(p: argparse.ArgumentParser, text: str) -> None:
+    """Add ``--only SERIAL...`` (and the old ``--serial`` spelling, hidden).
+
+    Parameters
+    ----------
+    p : argparse.ArgumentParser
+        The subparser to add the flag to.
+    text : str
+        Its help text.
+    """
+    p.add_argument(
+        "--only", nargs="+", metavar="SERIAL", dest="serials", default=None, help=text
+    )
+    p.add_argument(
+        "--serial",
+        nargs="+",
+        dest="serials",
+        action=_OldFlag,
+        new="--only",
+        help=argparse.SUPPRESS,
+    )
+
+
 def _add_stack_grid_args(
     p: "argparse.ArgumentParser", *, from_description: bool = False
 ) -> None:
@@ -779,12 +899,18 @@ def cmd_init(args: argparse.Namespace) -> int:
         print("Rename or delete the existing file before generating a new stub.")
         return 1
 
-    _mooring.save(_mooring.template(args.mooring), out_path)
+    _mooring.save(_mooring.template(args.mooring), out_path, optional_blocks=True)
     print(f"Wrote stub: {out_path}")
     print(
         "Edit the file to fill in metadata and instrument details, then delete unused clamp entries."
     )
     return 0
+
+
+_MOORING_HELP = (
+    "The mooring: its <name>.mooring.yaml file or its folder (any name), or, with "
+    "--proc-dir, its name, e.g. dsG3_1_2026 (the folder <proc-dir>/<name>)"
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -813,7 +939,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--verbose",
         action="store_true",
         default=False,
-        help="Enable verbose output.",
+        help="Also print the processing stages' debug messages.",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -848,7 +974,7 @@ def build_parser() -> argparse.ArgumentParser:
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p_process.add_argument("mooring", help="Mooring name, e.g. dsG3_1_2026")
+    p_process.add_argument("mooring", help=_MOORING_HELP)
     _add_dir_args(p_process, raw_needed=True)
     p_process.add_argument(
         "--stage",
@@ -871,12 +997,16 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Print a summary of processed records per instrument and serial number",
     )
+    _add_only(
+        p_process,
+        "Process only instrument(s) with these serial number(s), e.g. --only 14321 400118",
+    )
     p_process.add_argument(
-        "--serial",
-        nargs="+",
-        metavar="SERIAL",
-        default=[],
-        help="Process only instrument(s) with these serial number(s), e.g. --serial 14321 400118",
+        "--strict",
+        action="store_false",
+        dest="keep_going",
+        help="Stop at the first failing instrument (exit 1). Without it, stages 1-3 "
+        "carry on past failed instruments, log them, and exit 0.",
     )
     p_process.add_argument(
         "--force",
@@ -896,7 +1026,7 @@ def build_parser() -> argparse.ArgumentParser:
         "report",
         help="Generate a mooring recovery HTML report.",
     )
-    p_report.add_argument("mooring", help="Mooring name, e.g. dsG3_1_2026")
+    p_report.add_argument("mooring", help=_MOORING_HELP)
     _add_dir_args(p_report, raw_needed=True)
     _add_shared_report_args(p_report)
     p_report.add_argument(
@@ -923,12 +1053,9 @@ def build_parser() -> argparse.ArgumentParser:
         default=False,
         help="Also generate the stacked-data report page with pressure and T time series (requires _stack.nc)",
     )
-    p_report.add_argument(
-        "--serial",
-        nargs="+",
-        metavar="SN",
-        default=None,
-        help="Generate per-instrument page(s) for these serial number(s) only "
+    _add_only(
+        p_report,
+        "Generate per-instrument page(s) for these serial number(s) only "
         "(implies --instruments for the listed serials)",
     )
     p_report.add_argument(
@@ -997,17 +1124,14 @@ def build_parser() -> argparse.ArgumentParser:
         "run",
         help="Full pipeline: stages 1-3, stack, grid, and all reports in one command.",
     )
-    p_run.add_argument("mooring", help="Mooring name, e.g. dsG3_1_2026")
+    p_run.add_argument("mooring", help=_MOORING_HELP)
     _add_dir_args(p_run, raw_needed=True)
     p_run.add_argument(
         "--force", action="store_true", help="Overwrite existing files at every stage"
     )
-    p_run.add_argument(
-        "--serial",
-        nargs="+",
-        metavar="SN",
-        default=[],
-        help="Restrict to these serial number(s) for processing and per-instrument reports",
+    _add_only(
+        p_run,
+        "Restrict to these serial number(s) for processing and per-instrument reports",
     )
     p_run.add_argument(
         "--stage",
@@ -1016,8 +1140,21 @@ def build_parser() -> argparse.ArgumentParser:
         choices=[1, 2, 3],
         default=None,
         metavar="N",
-        help="Run only these of stages 1-3 before the stack and grid (default: all); "
-        "--stage 2 3 restacks without reading the raw files",
+        help="Stage to start from (default 1); run always continues through stage 3 "
+        "(stage 2 with --stack-stage 2), so the stack never takes stage files older "
+        "than the ones just written. --stage 2 re-runs stages 2 and 3 without the "
+        "raw files. To run one stage on its own, use 'oceanarray process --stage N'.",
+    )
+    p_run.add_argument(
+        "--stack-stage",
+        type=int,
+        choices=[3, 2],
+        default=3,
+        dest="stack_stage",
+        metavar="N",
+        help="Build the stack and grid from the stage-N files (default 3). 2 is a "
+        "quick look at sea without stage 3: no QC flags, no interpolated pressure, "
+        "velocities without magnetic declination; the report says so.",
     )
     p_run.add_argument(
         "--strict",
@@ -1068,18 +1205,28 @@ def build_parser() -> argparse.ArgumentParser:
     p_stamp.set_defaults(func=cmd_stamp)
 
     p_plot = sub.add_parser("plot", help="Plot multi-instrument mooring overview.")
-    p_plot.add_argument("mooring", help="Mooring name, e.g. dsG3_1_2026")
+    p_plot.add_argument("mooring", help=_MOORING_HELP)
     _add_dir_args(p_plot, raw_needed=False)
     p_plot.add_argument(
-        "--var_y",
+        "--var-y",
+        dest="var_y",
         default="temperature",
         help="Variable on y-axis (default: temperature)",
     )
     p_plot.add_argument(
-        "--var_color",
+        "--var-color",
+        dest="var_color",
         default=None,
         help="Variable for scatter colour; omit for line plot",
     )
+    for old, new in (("--var_y", "--var-y"), ("--var_color", "--var-color")):
+        p_plot.add_argument(
+            old,
+            dest=new[2:].replace("-", "_"),
+            action=_OldFlag,
+            new=new,
+            help=argparse.SUPPRESS,
+        )
     p_plot.add_argument(
         "--colormap",
         default=None,
@@ -1124,14 +1271,11 @@ def build_parser() -> argparse.ArgumentParser:
         "animate",
         help="Write an animated hodograph GIF for Aquadopp instrument(s).",
     )
-    p_animate.add_argument("mooring", help="Mooring name, e.g. dsG2_1_2026")
+    p_animate.add_argument("mooring", help=_MOORING_HELP)
     _add_dir_args(p_animate, raw_needed=False)
-    p_animate.add_argument(
-        "--serial",
-        nargs="+",
-        metavar="SN",
-        default=[],
-        help="Serial number(s) to animate (default: all instruments with velocity data)",
+    _add_only(
+        p_animate,
+        "Serial number(s) to animate (default: all instruments with velocity data)",
     )
     p_animate.add_argument(
         "-o",
@@ -1241,6 +1385,10 @@ def main() -> None:
             )
         if _other_unknowns:
             parser.error(f"unrecognized arguments: {' '.join(_other_unknowns)}")
+    if args.verbose:
+        from . import logger
+
+        logger.CONSOLE_LEVEL = logger.logging.DEBUG
     try:
         sys.exit(args.func(args))
     except paths.LegacyLayoutError as e:

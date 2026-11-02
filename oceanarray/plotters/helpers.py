@@ -118,7 +118,7 @@ def level_line_styles(
     tuple of dict
         ``{serial: colour}`` and ``{serial: linestyle}``.
     """
-    from .. import parameters as params
+    from ..config import parameters as params
 
     cmap_name = (
         params.LINE_CMAPS_BY_VARIABLE.get(varname)

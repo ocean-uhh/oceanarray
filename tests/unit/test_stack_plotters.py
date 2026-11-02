@@ -16,7 +16,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from oceanarray import parameters as params
+from oceanarray.config import parameters as params
 from oceanarray.plotters.diagnostic import draw_instrument_spacing
 from oceanarray.plotters.timeseries import draw_stack_timeseries
 

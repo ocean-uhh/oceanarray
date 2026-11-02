@@ -47,8 +47,8 @@ import pandas as pd
 import xarray as xr
 
 from oceanarray import mooring as _mooring
-from oceanarray import parameters as params
 from oceanarray import paths
+from oceanarray.config import parameters as params
 from oceanarray.exceptions import MooringError
 from oceanarray.logger import log_info, with_stage_handlers
 from oceanarray.pipeline import _stage
@@ -676,7 +676,11 @@ def stage2(
 
 
 class Stage2Processor:
-    """Handles Stage 2 processing: clock correction and temporal trimming."""
+    """Handles Stage 2 processing: clock correction and temporal trimming.
+
+    .. deprecated:: 0.6.0
+        Removed in 0.7.0; see the migration page.
+    """
 
     def __init__(self, *, proc_dir: str) -> None:
         """Apply clock-drift correction and trim records to the deployment window.
@@ -693,6 +697,9 @@ class Stage2Processor:
             ``/{mooring}/`` internally (see :func:`oceanarray.paths.mooring_proc_dir`).
 
         """
+        from oceanarray import _deprecated
+
+        _deprecated.warn("oceanarray.pipeline.stage2.Stage2Processor")
         self._proc_dir = Path(proc_dir)
         self.log_file = None
 
@@ -785,6 +792,7 @@ def _stage2_files(
     *,
     serials: list[str] | None = None,
     force: bool = False,
+    exclude: set[str] | frozenset[str] = frozenset(),
     log: Callable[..., None] = print,
     rel: Callable[[Path], str] = lambda p: p.name,
 ) -> _stage.StageRun:
@@ -793,7 +801,9 @@ def _stage2_files(
     read_mooring joins the stage-1 file with the description (identity + facts +
     marker), stage2 is the pure transform, write_mooring lays the stage-2 file out
     from the dataset's stamped facts. One instrument's failure is logged and
-    recorded; the rest of the mooring is still written.
+    recorded; the rest of the mooring is still written. Serials in *exclude*
+    (failed earlier in the same run) are left out: their older stage-1 files are
+    not used.
     """
     wanted = {paths.safe_serial(s) for s in serials} if serials else None
     run = _stage.StageRun()
@@ -808,6 +818,9 @@ def _stage2_files(
         if entry.get("skip"):
             reason = entry.get("skip_reason", "marked skip:true in YAML")
             log(f"SKIP {instr_type} {serial}: {reason}")
+            continue
+        if serial in exclude:
+            log(f"SKIP {instr_type} {serial}: failed earlier in this run")
             continue
         out_path = paths.stage_file(mooring_dir, mooring["name"], instr_type, serial, 2)
         if out_path.exists() and not force:

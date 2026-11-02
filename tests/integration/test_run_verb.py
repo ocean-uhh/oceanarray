@@ -247,7 +247,7 @@ def test_cli_run_takes_stages_and_the_description_settings(ran, monkeypatch):
     yaml_path, _ = ran
     proc = str(yaml_path.parent.parent)
     assert _cli(["run", _NAME, "--proc-dir", proc, "--stage", "3", "2"]) == 0
-    assert seen["stages"] == (2, 3)
+    assert seen["stages"] == 2  # the stage to start from
     assert seen["keep_going"] is True
     assert _cli(["run", _NAME, "--proc-dir", proc, "--stage", "3", "--strict"]) == 0
     assert seen["keep_going"] is False
@@ -281,23 +281,35 @@ def test_keep_going_does_not_stack_stage3_files_older_than_a_failed_stage3(
 
 
 def test_keep_going_leaves_out_an_instrument_that_failed_this_run(ran, tmp_path):
-    """The aquadopp's raw file is gone: its older files are not stacked, and the grid says so."""
+    """The aquadopp's raw file is gone: none of its older files is used, by any stage.
+
+    Its old stage-1 file is not carried into stage 2, its old stage-2 file is not
+    the microcat's pressure source, and it is not stacked. The microcat has no
+    pressure sensor of its own, so with its only source gone the stack has no
+    pressure and is not gridded.
+    """
     yaml_path = _copy(ran, tmp_path)
     raw = _without_aquadopp_raw(tmp_path)
     files = oa.run(yaml_path, raw_dir=raw, force=True, dt_seconds=3600, keep_going=True)
-    with xr.open_dataset(files[-2]) as ds:
+    assert not [f for f in files if "9920" in f.name]
+    assert files[-1] == paths.product_file(yaml_path.parent, _NAME, "stack")
+    s3 = next(f for f in files if f.name.endswith(f"2941{paths.stage_suffix(3)}"))
+    with xr.open_dataset(s3) as ds:
+        assert "pressure" not in ds or "9920" not in ds["pressure"].attrs.get(
+            "pressure_source_serials", ""
+        )
+    with xr.open_dataset(files[-1]) as ds:
         assert ds["serial"].values.tolist() == ["2941"]
         assert "9920" in ds.attrs["instruments_omitted"]
         assert "failed in stage 1 this run" in ds.attrs["instruments_omitted"]
-    grid_attrs = _attrs(files[-1])
-    assert "9920" in grid_attrs["instruments_omitted"]
-    assert "stage 1:" in grid_attrs["keep_going_failures"]
+        assert "stage 1:" in ds.attrs["keep_going_failures"]
+    assert not paths.product_file(yaml_path.parent, _NAME, "grid").exists()
 
 
 def test_strict_run_removes_a_grid_the_new_stack_no_longer_matches(
     ran, tmp_path, monkeypatch
 ):
-    """A strict stack that left an instrument out is written, and the old grid is removed."""
+    """A strict stack that left an instrument out is written, and the old grid is set aside as stale."""
     import oceanarray.pipeline.stack as st
 
     real = st.stack
@@ -315,6 +327,21 @@ def test_strict_run_removes_a_grid_the_new_stack_no_longer_matches(
         oa.run(yaml_path, stages=3, dt_seconds=1800, keep_going=False)
     assert paths.product_file(yaml_path.parent, _NAME, "stack").exists()
     assert not grid.exists()
+    assert paths.stale_file(grid).exists()
+
+
+def test_a_stale_product_keeps_one_copy(tmp_path, capsys):
+    """Setting a product aside twice leaves one stale copy, the newer one."""
+    from oceanarray.pipeline._run import _remove_stale
+
+    grid = tmp_path / f"{_NAME}_grid.nc"
+    for text in ("first", "second"):
+        grid.write_text(text)
+        _remove_stale([grid], "a test")
+    assert sorted(p.name for p in tmp_path.iterdir()) == [f"{_NAME}_grid.stale.nc"]
+    assert paths.stale_file(grid).read_text() == "second"
+    assert f"to {_NAME}_grid.stale.nc" in capsys.readouterr().out
+    assert not list(tmp_path.glob(paths.product_glob("grid")))
 
 
 @pytest.mark.parametrize(
@@ -335,3 +362,50 @@ def test_run_refuses_bad_settings_before_processing(
     with pytest.raises(MooringError, match=message):
         oa.run(yaml_path, raw_dir=_RAW, **kwargs)
     assert not list(yaml_path.parent.rglob("*.nc"))
+
+
+def test_run_from_stage_2_continues_through_stage_3(ran, tmp_path):
+    """run(stages=2) rewrites stage 2 and then stage 3, so the stack is never older data."""
+    yaml_path = _copy(ran, tmp_path)
+    files = oa.run(yaml_path, stages=2, force=True, dt_seconds=3600)
+    s2 = [f for f in files if f.name.endswith(paths.stage_suffix(2))]
+    s3 = [f for f in files if f.name.endswith(paths.stage_suffix(3))]
+    assert len(s2) == len(s3) == 2
+    assert min(f.stat().st_mtime for f in s3) >= max(f.stat().st_mtime for f in s2)
+    with xr.open_dataset(files[-2]) as ds:
+        assert set(ds["source_stage"].values.tolist()) == {3}
+
+
+def test_stack_stage_2_is_a_quick_look_without_stage_3(ran, tmp_path):
+    """stack_stage=2 stacks the stage-2 files and does not run stage 3."""
+    yaml_path = _copy(ran, tmp_path)
+    s3_before = {
+        p: p.stat().st_mtime for p in yaml_path.parent.rglob(paths.stage_glob(3))
+    }
+    files = oa.run(yaml_path, stages=2, force=True, dt_seconds=3600, stack_stage=2)
+    assert not [f for f in files if f.name.endswith(paths.stage_suffix(3))]
+    assert {p: p.stat().st_mtime for p in s3_before} == s3_before
+    with xr.open_dataset(files[-2]) as ds:
+        assert set(ds["source_stage"].values.tolist()) == {2}
+        assert ds.attrs["stage2_instruments"].split() == ["2941", "9920"]
+    with pytest.raises(ValueError, match="stack_stage"):
+        oa.run(yaml_path, stages=3, stack_stage=2)
+
+
+def test_any_error_after_the_stage_files_change_sets_the_products_aside(
+    ran, tmp_path, monkeypatch
+):
+    """An unexpected error in the stack (not a MooringError) still marks the old products stale."""
+    import oceanarray.pipeline.stack as st
+
+    def _broken(*_a, **_k):
+        raise OSError("disk full")
+
+    yaml_path = _copy(ran, tmp_path)
+    grid = paths.product_file(yaml_path.parent, _NAME, "grid")
+    stack_nc = paths.product_file(yaml_path.parent, _NAME, "stack")
+    monkeypatch.setattr(st, "stack", _broken)
+    with pytest.raises(OSError, match="disk full"):
+        oa.run(yaml_path, stages=3, force=True, dt_seconds=3600)
+    assert not stack_nc.exists() and not grid.exists()
+    assert paths.stale_file(stack_nc).exists() and paths.stale_file(grid).exists()

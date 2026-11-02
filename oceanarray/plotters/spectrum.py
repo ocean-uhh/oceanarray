@@ -26,8 +26,8 @@ import numpy as np
 from oceanarray.reports._vendored import design_tokens as report_tokens
 from oceanarray.utilities import _nice_colorbar_bounds, period_axis_ticks
 
-from .. import parameters as params
 from ..analysis.spectral import gonella_rotary_spectrum
+from ..config import parameters as params
 from ..config.unit_tables import unit_label, warn_if_not_canonical
 from .helpers import grid_despine
 from .primitives import figure_title, plot_title, square_axes_grid

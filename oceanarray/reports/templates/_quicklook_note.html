@@ -1,0 +1,8 @@
+{# Amber note for a stack or grid holding instruments stacked from their stage-2
+   files — the `stage2_note` panel payload (kind="html"). States the rule that
+   chose the instruments: no stage-3 file in the run that built the product. #}
+<p style="font-size:0.82rem;background:var(--warn-bg);border-left:4px solid var(--warn);padding:0.5rem 0.8rem;margin-bottom:0.6rem;">
+  ⚠ Stacked from stage 2 (no stage-3 file when this product was built): s/n&nbsp;{{ serials | join(', ') }}.
+  Their data carry no QC flags, and an instrument without its own pressure sensor has no interpolated pressure.
+  {% if velocity %}Their velocities have no magnetic declination correction (applied in stage 3): they are referenced to magnetic north, not true north.{% elif current_meters %}The current meters among them (s/n&nbsp;{{ current_meters | join(', ') }}) recorded beam velocities, which are rotated to east/north in stage 3, so the stack has no velocities for them.{% endif %}
+</p>

@@ -16,6 +16,7 @@ Example usage::
 
 from __future__ import annotations
 
+import logging
 import warnings
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
@@ -32,6 +33,8 @@ __all__ = [
 ]
 
 Scope = Literal["instrument", "mooring"]
+
+_log = logging.getLogger("oceanarray")
 
 
 @dataclass(frozen=True)
@@ -349,7 +352,7 @@ def _process_legacy(
     else:
         stages_to_run = (resolve_stage(stage),)
 
-    from oceanarray import paths
+    from oceanarray import _deprecated, paths
 
     stack_file = paths.product_file(
         paths.mooring_proc_dir(proc_dir, mooring), mooring, "stack"
@@ -368,13 +371,15 @@ def _process_legacy(
             if s.name == "stack" and stack_file.exists()
             else None
         )
-        ok = s.run(
-            mooring,
-            proc_dir,
-            raw_dir=raw_dir_path,
-            force=force,
-            **kw,
-        )
+        # The legacy form already warned once; its stage classes stay quiet.
+        with _deprecated.internal():
+            ok = s.run(
+                mooring,
+                proc_dir,
+                raw_dir=raw_dir_path,
+                force=force,
+                **kw,
+            )
         if not ok:
             overall = False
             # A stack returns False either because it wrote nothing (true failure →
@@ -592,7 +597,12 @@ def _process_stages(
                     _detach_reader_logs(readers)
             elif n == 2:
                 run = _stage2_files(
-                    cfg, moor_dir, serials=serial_list, force=force, log=log
+                    cfg,
+                    moor_dir,
+                    serials=serial_list,
+                    force=force,
+                    exclude=set(outcome.failed_serials),
+                    log=log,
                 )
             else:
                 if caldip_dir is not None:
@@ -609,6 +619,7 @@ def _process_stages(
                         serials=serial_list,
                         force=force,
                         caldip_dir=caldip_dir,
+                        exclude=set(outcome.failed_serials),
                         log=log,
                     )
                 except Exception as e:
@@ -627,6 +638,12 @@ def _process_stages(
                     raise MooringError(
                         f"{name}: stage 3 failed (nothing written; see {log.file}): {e}"
                     ) from e
+            # One line per file, at DEBUG (shown by `oceanarray -v`).
+            written = set(run.written)
+            for path in run.files:
+                _log.debug(
+                    "  stage %d %s: %s", n, "wrote" if path in written else "kept", path
+                )
         log(
             f"Stage {n}: {len(run.written)} file(s) written, "
             f"{len(run.files) - len(run.written)} kept (already there; force=True "

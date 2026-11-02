@@ -29,8 +29,9 @@ import numpy as np
 import xarray as xr
 from matplotlib.collections import LineCollection
 
-from oceanarray import parameters as params
+from oceanarray import _deprecated
 from oceanarray.analysis.vector import progressive_vector, xyz_to_enu_2d
+from oceanarray.config import parameters as params
 from oceanarray.config.unit_tables import (
     unit_label,
     var_unit_label,
@@ -46,10 +47,10 @@ from oceanarray.plotters.primitives import (
     colorbar_norm,
     date_axis,
     date_offset_left,
+    draw_trajectory,
     figure_title,
     hodograph_panel,
     plot_title,
-    plot_trajectory,
     square_axes_grid,
     square_limits,
     unit_colorbar,
@@ -59,7 +60,7 @@ from oceanarray.reports._vendored import design_tokens as report_tokens
 from oceanarray.utilities import _nice_colorbar_bounds
 
 
-def plot_temperature_trajectory(
+def draw_temperature_trajectory(
     ds: xr.Dataset,
     u_var: str = "east_velocity",
     v_var: str = "north_velocity",
@@ -119,7 +120,7 @@ def plot_temperature_trajectory(
     if not title:
         title = ds.attrs.get("id", "")
 
-    return plot_trajectory(
+    return draw_trajectory(
         x,
         y,
         color_data=temp,
@@ -132,7 +133,7 @@ def plot_temperature_trajectory(
     )
 
 
-def plot_speed_boxplot(
+def draw_speed_boxplot(
     ds: xr.Dataset,
     speed_var: str = "current_speed",
     *,
@@ -191,7 +192,7 @@ def plot_speed_boxplot(
     return fig
 
 
-def plot_multi_aquadopp_trajectories(
+def draw_multi_aquadopp_trajectories(
     ds: xr.Dataset,
     u_var: str = "east_velocity",
     v_var: str = "north_velocity",
@@ -229,7 +230,8 @@ def plot_multi_aquadopp_trajectories(
     Returns
     -------
     matplotlib.figure.Figure or None
-        None if no Aquadopp instruments are found in the dataset.
+        None if no Aquadopp instruments, or no east/north velocities, are found in
+        the dataset.
 
     Notes
     -----
@@ -241,7 +243,8 @@ def plot_multi_aquadopp_trajectories(
     serials = ds[serial_var].values
     aqd_idx = [i for i, t in enumerate(instr_types) if str(t).lower() == "aquadopp"]
 
-    if not aqd_idx:
+    # A stack built from stage 2 holds beam velocities, which the stack drops.
+    if not aqd_idx or u_var not in ds or v_var not in ds:
         return None
 
     time = ds["time"].values
@@ -364,7 +367,7 @@ def plot_multi_aquadopp_trajectories(
     return fig
 
 
-def plot_hodograph(
+def draw_hodograph(
     ds: xr.Dataset,
     u_var: str = "east_velocity",
     v_var: str = "north_velocity",
@@ -499,7 +502,7 @@ def plot_hodograph(
     return fig
 
 
-def plot_aquadopp_speed_profile(
+def draw_aquadopp_speed_profile(
     ds: xr.Dataset,
     speed_var: str = "current_speed",
     u_var: str = "east_velocity",
@@ -616,7 +619,7 @@ def plot_aquadopp_speed_profile(
     return fig
 
 
-def plot_adcp_trajectories(
+def draw_adcp_trajectories(
     ds: xr.Dataset,
     u_var: str = "east_velocity",
     v_var: str = "north_velocity",
@@ -720,7 +723,7 @@ def plot_adcp_trajectories(
     norm: mcolors.BoundaryNorm = mcolors.BoundaryNorm(_bounds, ncolors=256)
 
     # Half width — shown in a 50% flex column beside the Aquadopp trajectory
-    # (see stack.html), matching plot_multi_aquadopp_trajectories.
+    # (see stack.html), matching draw_multi_aquadopp_trajectories.
     _all_x = np.concatenate([x for _, x, _ in trajs])
     _all_y = np.concatenate([y for _, _, y in trajs])
     fig, axes, cax = square_axes_grid(width_in, 1, 1, left_in=ytick_reserve_in(_all_y))
@@ -2000,3 +2003,27 @@ def draw_aquadopp_tilt_panels(
             fontsize=report_tokens.ANNOT_FS,
         )
     return fig
+
+
+# Old names (0.5), removed in 0.7.0.
+plot_temperature_trajectory = _deprecated.alias(
+    "oceanarray.plotters.current.plot_temperature_trajectory",
+    draw_temperature_trajectory,
+)
+plot_speed_boxplot = _deprecated.alias(
+    "oceanarray.plotters.current.plot_speed_boxplot", draw_speed_boxplot
+)
+plot_multi_aquadopp_trajectories = _deprecated.alias(
+    "oceanarray.plotters.current.plot_multi_aquadopp_trajectories",
+    draw_multi_aquadopp_trajectories,
+)
+plot_hodograph = _deprecated.alias(
+    "oceanarray.plotters.current.plot_hodograph", draw_hodograph
+)
+plot_aquadopp_speed_profile = _deprecated.alias(
+    "oceanarray.plotters.current.plot_aquadopp_speed_profile",
+    draw_aquadopp_speed_profile,
+)
+plot_adcp_trajectories = _deprecated.alias(
+    "oceanarray.plotters.current.plot_adcp_trajectories", draw_adcp_trajectories
+)

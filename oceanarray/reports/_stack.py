@@ -4,15 +4,16 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+import xarray as xr
 
 from oceanarray import paths
 
-from .. import parameters as params
+from ..config import parameters as params
 from ._env import (
     render_history,
     render_nc_coords,
@@ -117,9 +118,9 @@ STACK_CAPTIONS: dict[str, str] = {
     ),
     "ts_diagram": (
         "Left: scatter coloured by pressure. Middle: 2-D count heatmap. Right "
-        "(when oxygen data present): scatter coloured by O₂ saturation (%). Bad "
-        "(flag 4) and missing (flag 9) excluded; interpolated pressure (flag 8) "
-        "retained."
+        "(when oxygen data present): scatter coloured by O₂ saturation (%). Values "
+        "flagged 3, 4 or 9 (probably bad, bad, missing) left out; nominal and "
+        "interpolated values (flags 7, 8) kept."
     ),
     "roses": (
         "Direction the current flows toward (oceanographic convention, 0°=N). "
@@ -173,6 +174,14 @@ class StackContext:
         Whether an Aquadopp is missing its magnetic declination.
     rose_missing_serials : list
         Serials of Aquadopps missing declination (for the warning).
+    stage2_serials : list
+        Serials stacked from their stage-2 files (``stage2_instruments``).
+    stage2_velocity : bool
+        Whether any of them carries velocities (then without magnetic declination).
+    stage2_current_meters : list
+        Those of them that are Aquadopps or ADCPs.
+    stage2_magnetic_north : list
+        Those of them with east/north velocities, which lack magnetic declination.
 
     """
 
@@ -188,6 +197,22 @@ class StackContext:
     rose_note: str | None
     rose_warn: bool
     rose_missing_serials: list
+    stage2_serials: list = field(default_factory=list)
+    stage2_velocity: bool = False
+    stage2_current_meters: list = field(default_factory=list)
+    stage2_magnetic_north: list = field(default_factory=list)
+
+
+def _current_meter_serials(ds: xr.Dataset, serials: list[str]) -> list[str]:
+    """Return those of *serials* whose level is an Aquadopp or ADCP."""
+    svar = next((v for v in ("serial", "serial_number") if v in ds), None)
+    if svar is None or "instrument_type" not in ds:
+        return []
+    return [
+        str(s)
+        for s, t in zip(ds[svar].values, ds["instrument_type"].values, strict=True)
+        if str(s) in serials and str(t).lower() in ("aquadopp", "adcp")
+    ]
 
 
 def _fig(panel_id: str) -> Callable[[StackContext], str | None]:
@@ -249,6 +274,25 @@ STACK_PANELS: dict[str, Panel] = {
         render=lambda c: render_history(c.history_entries),
         kind="html",
         unavailable_if=_stack_history_unavailable,
+    ),
+    "stage2_note": Panel(
+        "stage2_note",
+        render=lambda c: render_template(
+            "_quicklook_note.html",
+            serials=c.stage2_serials,
+            velocity=c.stage2_velocity,
+            current_meters=c.stage2_current_meters,
+        ),
+        kind="html",
+        applies_to=lambda c: bool(c.stage2_serials),
+    ),
+    "stage2_velocity_note": Panel(
+        "stage2_velocity_note",
+        render=lambda c: render_template(
+            "_magnetic_north_note.html", serials=c.stage2_magnetic_north
+        ),
+        kind="html",
+        applies_to=lambda c: bool(c.stage2_magnetic_north),
     ),
     "instr_table": Panel(
         "instr_table",
@@ -338,7 +382,7 @@ STACK_SECTIONS: dict[str, Section] = {
     "instruments": Section(
         "instruments",
         "Instruments (deep-first)",
-        ("instr_table",),
+        ("stage2_note", "instr_table"),
         intro="HAB = height above bottom (m).",
     ),
     "hydrography": Section(
@@ -359,7 +403,11 @@ STACK_SECTIONS: dict[str, Section] = {
     ),
     "analog": Section("analog", "Analog channels", ("analog",)),
     "ts_diagram": Section("ts_diagram", "T-S diagram", ("ts_diagram",)),
-    "roses": Section("roses", "Current rose diagrams", ("roses_declination", "roses")),
+    "roses": Section(
+        "roses",
+        "Current rose diagrams",
+        ("roses_declination", "stage2_velocity_note", "roses"),
+    ),
     "tilt": Section(
         "tilt", "Aquadopp tilt (|pitch| / |roll| / pressure estimate)", ("tilt",)
     ),
@@ -528,7 +576,19 @@ def generate_stack_page(
             if _decl_vals
             else None
         )
-        rose_declination_warn = _decl_missing
+        # Instruments stacked from stage 2 lack declination for that reason, not
+        # for a missing position: the stage-2 note says so instead.
+        stage2_serials = ds.attrs.get("stage2_instruments", "").split()
+        stage2_velocity = bool(ds.attrs.get("stage2_magnetic_north"))
+        stage2_current_meters = _current_meter_serials(ds, stage2_serials)
+        _decl_missing_serials = [
+            s
+            for s in _decl_missing_serials
+            if paths.safe_serial(s) not in stage2_serials
+        ]
+        rose_declination_warn = _decl_missing and (
+            bool(_decl_missing_serials) or not stage2_serials
+        )
         rose_declination_missing_serials = _decl_missing_serials
 
         fig_spacing_b64 = _make_instrument_spacing_b64(ds)
@@ -608,6 +668,10 @@ def generate_stack_page(
                 rose_note=rose_declination_note,
                 rose_warn=rose_declination_warn,
                 rose_missing_serials=rose_declination_missing_serials,
+                stage2_serials=stage2_serials,
+                stage2_velocity=stage2_velocity,
+                stage2_current_meters=stage2_current_meters,
+                stage2_magnetic_north=ds.attrs.get("stage2_magnetic_north", "").split(),
             ),
             STACK_PANELS,
         )

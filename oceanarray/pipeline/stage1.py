@@ -16,8 +16,8 @@ import numpy as np
 import xarray as xr
 
 from oceanarray import mooring as _mooring
-from oceanarray import parameters as params
 from oceanarray import paths
+from oceanarray.config import parameters as params
 from oceanarray.exceptions import MooringError
 from oceanarray.logger import log_info, log_warning, with_stage_handlers
 from oceanarray.paths import safe_serial
@@ -691,7 +691,11 @@ def stage1(
 
 
 class MooringProcessor:
-    """Stage 1 for a mooring: read each raw file, apply :func:`stage1`, write."""
+    """Stage 1 for a mooring: read each raw file, apply :func:`stage1`, write.
+
+    .. deprecated:: 0.6.0
+        Removed in 0.7.0; see the migration page.
+    """
 
     # Supported format keys, single-sourced from ``parameters.ALL_FILE_TYPES`` so the
     # stage1 gate and the YAML validator cannot drift.
@@ -710,6 +714,9 @@ class MooringProcessor:
             ``/{mooring}/`` internally (see :func:`oceanarray.paths.mooring_proc_dir`).
 
         """
+        from oceanarray import _deprecated
+
+        _deprecated.warn("oceanarray.pipeline.stage1.MooringProcessor")
         self._raw_dir = Path(raw_dir)
         self._proc_dir = Path(proc_dir)
         self.log_file = None

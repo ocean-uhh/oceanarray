@@ -1,9 +1,9 @@
 """Tier-2 domain wrappers for hydrographic section and isopycnal plots.
 
 hydrography.py contains:
-  - ``draw_isopycnal_ts_fig``: isopycnal height-above-seabed time series.
+  - ``draw_isopycnal_ts``: isopycnal height-above-seabed time series.
   - ``draw_isopycnal_coverage``: three-panel isopycnal diagnostic.
-  - ``draw_overflow_temperature_fig``: temperature time series at ~100 m above seabed.
+  - ``draw_overflow_temperature``: temperature time series at ~100 m above seabed.
 
 Pairs with :mod:`oceanarray.analysis.hydrographic` for density computations.
 """
@@ -18,15 +18,16 @@ if TYPE_CHECKING:
     import matplotlib.pyplot as plt
     import xarray as xr
 
+from oceanarray import _deprecated
 from oceanarray.reports._vendored import design_tokens as report_tokens
 
-from .. import parameters as params
+from ..config import parameters as params
 from ..config.unit_tables import unit_label, warn_if_not_canonical
 from .helpers import grid_despine, ordered_line_colors
 from .primitives import colorbar_norm, date_axis, plot_title
 
 
-def draw_isopycnal_ts_fig(
+def draw_isopycnal_ts(
     ds_iso: xr.Dataset, *, width_in: float = report_tokens.W_FULL
 ) -> plt.Figure | None:
     """Isopycnal height-above-seabed time series; return a Figure.
@@ -347,7 +348,7 @@ def draw_isopycnal_coverage(
     return fig
 
 
-def draw_overflow_temperature_fig(
+def draw_overflow_temperature(
     ds: xr.Dataset, *, width_in: float = report_tokens.W_FULL
 ) -> plt.Figure | None:
     """Temperature time series at ~100 m above the seabed; return a Figure.
@@ -428,3 +429,13 @@ def draw_overflow_temperature_fig(
     date_axis(ax)
     ax.set_xlabel("Time")
     return fig
+
+
+# Old names (0.5), removed in 0.7.0.
+draw_isopycnal_ts_fig = _deprecated.alias(
+    "oceanarray.plotters.hydrography.draw_isopycnal_ts_fig", draw_isopycnal_ts
+)
+draw_overflow_temperature_fig = _deprecated.alias(
+    "oceanarray.plotters.hydrography.draw_overflow_temperature_fig",
+    draw_overflow_temperature,
+)

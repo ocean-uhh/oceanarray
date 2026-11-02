@@ -18,7 +18,7 @@ Generate reports with::
 
     # Regenerate one instrument without touching others
     oceanarray report MOORING --raw-dir $RAW --proc-dir $PROC \
-        --instruments --serial 16648
+        --instruments --only 16648
 
 Or generate all reports in one go with ``oceanarray run`` (see :doc:`cli_reference`).
 
@@ -95,7 +95,7 @@ Per-instrument report
 
 **File**: ``{proc_dir}/{mooring}/report/instrument/{mooring}_{serial}_report.html``
 
-Generated when ``--instruments`` is passed (or ``--serial SN``).  One page per
+Generated when ``--instruments`` is passed (or ``--only SN``).  One page per
 instrument.  Sections vary by instrument type:
 
 - **Files** — Raw, Stage 1, Stage 2, Stage 3 filenames with sizes and

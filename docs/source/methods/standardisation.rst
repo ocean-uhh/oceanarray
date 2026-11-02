@@ -33,7 +33,7 @@ The standardisation process is implemented in the :mod:`oceanarray.pipeline.stag
 3.1. Input Formats Supported
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The :class:`oceanarray.pipeline.stage1.MooringProcessor` class supports multiple instrument formats:
+Stage 1 (:func:`oceanarray.stage1`, run by :func:`oceanarray.process`) supports multiple instrument formats:
 
 - **Sea-Bird CNV files** (`sbe-cnv`): Standard SBE 37 MicroCAT output
 - **Sea-Bird ASCII files** (`sbe-ascii`): Alternative SBE ASCII format

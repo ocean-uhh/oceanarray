@@ -7,7 +7,7 @@ Pairs with :mod:`oceanarray.analysis.temporal` for time-series analysis.
 
 **Grid section panels** (data on a pressure × time grid):
 
-- :func:`draw_grid_fig` — generic pcolormesh / contourf wrapper for a single variable.
+- :func:`draw_grid` — generic pcolormesh / contourf wrapper for a single variable.
 - :func:`draw_grid_hydro` — stacked temperature / salinity (and optionally oxygen) panels.
 - :func:`draw_grid_velocity_stacked` — stacked east / north / up velocity panels.
 - :func:`draw_grid_sigma` — potential density (sigma) panels.
@@ -24,7 +24,7 @@ Pairs with :mod:`oceanarray.analysis.temporal` for time-series analysis.
 - :func:`draw_analog_timeseries` — full-record time series for analog channel variables.
 
 Post-OdB: migrate the following from plotter.py and report/_plots.py:
-  plot_microcat_raw, plot_aquadopp_raw, plot_mooring_timeseries (the three
+  draw_microcat_raw, draw_aquadopp_raw, draw_mooring_timeseries (the three
   kept plotter.py functions; §11), plot_aquadopp_quick,
   build_instrument_fig (was _build_fig_from_ds), plot_instrument_windows.
 """
@@ -42,9 +42,10 @@ if TYPE_CHECKING:
     import matplotlib.pyplot as plt
     import xarray as xr
 
+from oceanarray import _deprecated
 from oceanarray.reports._vendored import design_tokens as report_tokens
 
-from .. import parameters as params
+from ..config import parameters as params
 from ..config.unit_tables import unit_label
 from ..utilities import nice_colorbar_ticks
 from .helpers import OKABE_ITO, grid_despine, level_line_styles
@@ -59,7 +60,7 @@ from .primitives import (
 )
 
 
-def draw_grid_fig(
+def draw_grid(
     da: xr.DataArray,
     title: str,
     units: str,
@@ -398,7 +399,7 @@ def draw_grid_sigma(
     """
     import matplotlib.pyplot as plt
 
-    from .. import parameters as params
+    from ..config import parameters as params
 
     sigma_vars = [
         v for v in ds.data_vars if v.startswith("sigma") and "pressure" in ds[v].dims
@@ -819,3 +820,9 @@ def draw_stack_timeseries(
         framealpha=0.8,
     )
     return fig
+
+
+# Old names (0.5), removed in 0.7.0.
+draw_grid_fig = _deprecated.alias(
+    "oceanarray.plotters.timeseries.draw_grid_fig", draw_grid
+)

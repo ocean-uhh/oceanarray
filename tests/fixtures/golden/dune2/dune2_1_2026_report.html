@@ -1068,7 +1068,7 @@ recovery_time:   '2026-07-25T11:43'</textarea>
 <p class="caption">Clock alignment check. Overlaid temperature records zoomed to the first and last 30 minutes of the deployment. If instrument clocks are misaligned the temperature curves will appear shifted in time. Data are from stage 3 (or stage 2 if stage 3 is not yet available). Instruments with no temperature data are omitted.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="clock_check">
-</details><div class="fig-source">source: oceanarray/plotters/diagnostic.py:plot_clock_offset_check</div>
+</details><div class="fig-source">source: oceanarray/plotters/diagnostic.py:draw_clock_offset_check</div>
 
 <h2 id="calibration">(5) Sensor calibration</h2>
 
@@ -1689,19 +1689,19 @@ recovery_time:   '2026-07-25T11:43'</textarea>
 <p class="caption">Nominal HAB (x) vs. measured pressure (y). The dashed line shows expected pressure (water depth − HAB). Instruments below the line were knocked down. Interpolated pressure (QC flag 8) excluded.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="knockdown_hab">
-</details><div class="fig-source">source: oceanarray/plotters/diagnostic.py:plot_knockdown_hab</div>
+</details><div class="fig-source">source: oceanarray/plotters/diagnostic.py:draw_knockdown_hab</div>
 </div>
 <div class="fig-cell slot-half">
 <p class="caption">IQR of pressure anomaly (measured − nominal) per instrument. Positive = deeper than design depth. Green &lt; 100 dbar, yellow 100–200, amber 200–300, red &gt; 300 dbar.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="knockdown_anomaly">
-</details><div class="fig-source">source: oceanarray/plotters/diagnostic.py:plot_knockdown_anomaly</div>
+</details><div class="fig-source">source: oceanarray/plotters/diagnostic.py:draw_knockdown_anomaly</div>
 </div>
 <div class="fig-cell slot-full">
 <p class="caption">Estimated horizontal displacement (m) vs. measured pressure. Left: scatter per instrument; right: normalised 2-D density across all instruments. Displacement derived from the rigid-pendulum approximation: x = √(hab_nom² − hab_meas²).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="knockdown_displacement">
-</details><div class="fig-source">source: oceanarray/plotters/diagnostic.py:plot_knockdown_displacement</div>
+</details><div class="fig-source">source: oceanarray/plotters/diagnostic.py:draw_knockdown_displacement</div>
 </div>
 </div>
 
