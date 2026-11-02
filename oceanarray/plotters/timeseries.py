@@ -26,7 +26,7 @@ Pairs with :mod:`oceanarray.analysis.temporal` for time-series analysis.
 Post-OdB: migrate the following from plotter.py and report/_plots.py:
   draw_microcat_raw, draw_aquadopp_raw, draw_mooring_timeseries (the three
   kept plotter.py functions; §11), plot_aquadopp_quick,
-  build_instrument_fig (was _draw_instrument_panels), plot_instrument_windows.
+  build_instrument_fig (was _build_fig_from_ds), plot_instrument_windows.
 """
 
 from __future__ import annotations

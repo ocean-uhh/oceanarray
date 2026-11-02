@@ -24,9 +24,9 @@ Deployment window figures (moved from report._plots)
   velocity data.
 
 Post-OdB: migrate the following from report/_plots.py:
-  plot_ts_diagram (was _make_ts_diagram_b64), plot_stack_ts_diagram,
-  plot_grid_ts_diagram, plot_data_histogram (was _make_data_histogram_b64),
-  plot_spectrum (was _make_spectrum_b64).
+  plot_ts_diagram (was _make_ts_diagram), plot_stack_ts_diagram,
+  plot_grid_ts_diagram, plot_data_histogram (was _make_data_histogram),
+  plot_spectrum (was _make_spectrum_fig_b64).
 
 Tier-1 primitives: plot_vector_heatmap (for T-S, U-V, any pair),
 plot_spectrum (any 1D time series), plot_polar_histogram (current rose).
@@ -142,21 +142,9 @@ _QC_MARKER: dict[int, dict] = {
 
 
 def _instrument_panels(ds: xr.Dataset, combine_pitch_roll: bool = False) -> list[tuple]:
-    """Return panel list ``(varname, ylabel, line_color, invert_y)`` in canonical order.
-
-    Parameters
-    ----------
-    ds : xr.Dataset
-        Dataset whose ``data_vars`` are inspected.
-    combine_pitch_roll : bool
-        When True, replace separate pitch and roll rows with a single
-        ``_pitch_roll_combo`` panel.
-
-    Returns
-    -------
-    list of tuple
-
-    """
+    """Return ``(varname, ylabel, line_color, invert_y)`` panels in canonical order."""
+    # combine_pitch_roll swaps the pitch and roll rows for one synthetic
+    # _pitch_roll_combo panel.
     time_vars = {v for v in ds.data_vars if ds[v].dims == ("time",)}
 
     has_enu = any(
@@ -220,24 +208,9 @@ def _build_knockdown_records(
     ds: xr.Dataset,
     waterdepth: float,
 ) -> list:
-    """Extract per-instrument knockdown arrays from a stack dataset.
-
-    Returns a list of ``(p_nom, serial, actual_pressure_array)`` tuples,
-    one per non-ADCP instrument with at least 10 valid pressure samples.
-    Interpolated pressure (QC flag 8) is excluded.
-
-    Parameters
-    ----------
-    ds : xr.Dataset
-        Stack dataset with dimensions ``(time, N_LEVELS)``.
-    waterdepth : float
-        Water depth in metres (1 dbar ≈ 1 m seawater).
-
-    Returns
-    -------
-    list of tuple
-
-    """
+    """Extract per-instrument knockdown arrays from a stack dataset."""
+    # Returns (p_nom, serial, actual_pressure) per non-ADCP instrument with at
+    # least 10 valid pressure samples.
     serials = ds["serial"].values
     habs = ds["hab"].values
     instr_types = ds["instrument_type"].values
@@ -249,8 +222,10 @@ def _build_knockdown_records(
     for i in range(n_instr):
         if str(instr_types[i]).lower() == "adcp":
             continue
+        # Nominal pressure from depth in meters, taking 1 dbar ≈ 1 m in seawater.
         p_nom = waterdepth - float(habs[i])
         p_vals = pressure_arr[:, i].copy()
+        # Interpolated pressure (QC flag 8) is not a measurement: exclude it.
         if pqc_arr is not None:
             _qc = pqc_arr[:, i] if pqc_arr.ndim == 2 else pqc_arr
             p_vals[_qc == 8] = np.nan
@@ -1192,17 +1167,10 @@ def draw_windows(
             vname: str,
             mask: np.ndarray,
         ) -> None:
-            """Plot stage1 reference data as light-grey background trace.
-
-            Skipped when the physical units differ between stage1 and stage2/3
-            (e.g. conductivity in mS/cm in stage1 vs S/m after normalisation)
-            because the values would be on an incompatible scale.
-
-            ``_pitch_roll_combo`` is a synthetic panel name; pitch and roll are
-            read directly from ds1 by their real variable names.
-            """
+            """Plot stage1 reference data as a light-grey background trace."""
             if ds1 is None or time1 is None:
                 return
+            # _pitch_roll_combo is synthetic: read pitch and roll from ds1 by name.
             if vname == "_pitch_roll_combo":
                 for _v in ("pitch", "roll"):
                     if _v not in ds1.data_vars:
@@ -1218,6 +1186,8 @@ def draw_windows(
                 return
             _u1 = ds1[vname].attrs.get("units", "").strip()
             _u2 = ds[vname].attrs.get("units", "").strip()
+            # Skip when units differ (e.g. raw S/m conductivity in stage 1 vs canonical
+            # mS cm-1 later): the grey trace would be on an incompatible scale.
             if _u1 and _u2 and _u1 != _u2:
                 return
             data1 = ds1[vname].values.astype(float)

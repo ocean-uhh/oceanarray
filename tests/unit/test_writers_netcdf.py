@@ -18,7 +18,7 @@ from oceanarray.utilities import cast_output_dtypes
 from oceanarray.writers import write
 from oceanarray.writers.netcdf import (
     _DROP,
-    _canonical_attr_value,
+    _netcdf_safe_attr_value,
     _netcdf_safe_names,
     _prepare,
 )
@@ -222,13 +222,13 @@ def test_clean_attr_value_branches():
     """dict -> JSON, None -> _DROP, lists and tuples pass through, scalars unchanged."""
     import json
 
-    assert _canonical_attr_value({"a": 1}) == json.dumps({"a": 1})
-    assert _canonical_attr_value(None) is _DROP
-    assert _canonical_attr_value(["a", "b"]) == ["a", "b"]
-    assert _canonical_attr_value((1, 2)) == (1, 2)
-    assert _canonical_attr_value([]) == []
-    assert _canonical_attr_value("s") == "s"
-    assert _canonical_attr_value(3.5) == 3.5
+    assert _netcdf_safe_attr_value({"a": 1}) == json.dumps({"a": 1})
+    assert _netcdf_safe_attr_value(None) is _DROP
+    assert _netcdf_safe_attr_value(["a", "b"]) == ["a", "b"]
+    assert _netcdf_safe_attr_value((1, 2)) == (1, 2)
+    assert _netcdf_safe_attr_value([]) == []
+    assert _netcdf_safe_attr_value("s") == "s"
+    assert _netcdf_safe_attr_value(3.5) == 3.5
 
 
 def test_bool_attribute_is_stored_as_int8():
@@ -236,7 +236,7 @@ def test_bool_attribute_is_stored_as_int8():
     import numpy as np
 
     for value, expected in ((True, 1), (False, 0)):
-        out = _canonical_attr_value(value)
+        out = _netcdf_safe_attr_value(value)
         assert out == expected
         assert isinstance(out, np.int8)
 

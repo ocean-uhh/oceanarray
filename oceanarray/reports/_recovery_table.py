@@ -143,17 +143,7 @@ def _build_rows(
     mooring_name: str,
     cfg: dict[str, Any],
 ) -> tuple:
-    """Build table rows and notes list from a mooring YAML config.
-
-    Returns
-    -------
-    tuple
-        ``(rows, comments)`` where *rows* is a list of row dicts sorted
-        descending by HAB and *comments* is a list of
-        ``{serial, instrument, depth_str, comment}`` dicts for the Notes
-        section below the table.
-
-    """
+    """Build ``(rows, comments)`` for the recovery table and its Notes section."""
     from ..utilities import instrument_entries
 
     waterdepth = cfg.get("waterdepth")

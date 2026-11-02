@@ -238,13 +238,9 @@ def _figure_panel(
     applies_to: Callable | None = None,
     slot: str | None = None,
 ) -> Panel:
-    """Build a stack figure panel from the registry.
-
-    The stack figures are pre-built by the ad-hoc closures in
-    :func:`generate_stack_page`.  Most fill the content column (``slot=None`` →
-    bare ``.fig``); the trajectory panels carry ``slot="half"`` so the row-layout
-    section places them side-by-side.
-    """
+    """Build a stack figure panel from the registry."""
+    # slot=None fills the content column; trajectory panels pass "half" so the
+    # row-layout section places them side by side.
     kwargs: dict = {
         "render": _fig(pid),
         "caption": STACK_CAPTIONS[pid],
@@ -490,7 +486,7 @@ def generate_stack_page(
                 }
             )
 
-        _canonical_serials = list(serials)
+        _as_serial_list = list(serials)
 
         fig_hydro_pts_b64 = _make_stack_timeseries_b64(
             ds,
@@ -525,7 +521,7 @@ def generate_stack_page(
             dot_overlay=True,
         )
 
-        fig_rose_grid_b64, _n_rose = _make_rose_grid_b64(ds, _canonical_serials)
+        fig_rose_grid_b64, _n_rose = _make_rose_grid_b64(ds, _as_serial_list)
 
         _decl_vals: list = []
         _decl_missing = False

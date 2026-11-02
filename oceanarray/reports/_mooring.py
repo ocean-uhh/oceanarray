@@ -232,16 +232,8 @@ def _build_issues(
     instruments: list[dict[str, Any]],
     recover_dt: Any,
 ) -> dict[str, Any]:
-    """Build the issues dict for the 'Issues for cruise report' section.
-
-    Parameters
-    ----------
-    instruments : list of dict
-        Instrument dicts from ``_build_context`` (already computed).
-    recover_dt : datetime or None
-        YAML recovery time used to compute hours-short for stopped-early items.
-
-    """
+    """Build the issues dict for the 'Issues for cruise report' section."""
+    # recover_dt is the YAML recovery time, used for hours-short on stopped-early items.
     skipped_list = []
     stopped_list = []
     qc_list = []
@@ -313,16 +305,7 @@ def _build_issues(
 
 
 def _serials_in_nc(nc_path: Path) -> frozenset:
-    """Return the set of serial numbers present in a stack or grid NC file.
-
-    Reads the ``serial`` coordinate on the ``N_LEVELS`` dimension.  Returns an
-    empty frozenset if the file is missing, unreadable, or has no ``serial``
-    coordinate.
-
-    ADCP entries use suffixed serials (e.g. ``16430_hd``, ``16430_b03``).  The
-    returned set also includes the base serial (suffix stripped) so that the YAML
-    instrument serial matches correctly.
-    """
+    """Return the serials on the ``N_LEVELS`` dim of a stack/grid file, or empty."""
     import re
 
     try:
@@ -331,6 +314,8 @@ def _serials_in_nc(nc_path: Path) -> frozenset:
         ds = xr.open_dataset(nc_path, decode_timedelta=False)
         if "serial" in ds.coords:
             raw = frozenset(str(s) for s in ds["serial"].values)
+            # ADCP serials carry suffixes (16430_hd, 16430_b03); add the base serial
+            # so the YAML instrument serial matches.
             base = frozenset(re.sub(r"_(hd|b\d+)$", "", s) for s in raw)
             return raw | base
     except Exception:

@@ -116,10 +116,10 @@ def report(
             name, moor_dir, yaml_path, out_dir, report_dir, force=force
         )
 
-    from oceanarray.pipeline._run import _canonical_serials
+    from oceanarray.pipeline._run import _as_serial_list
     from oceanarray.reports import MooringReport
 
-    serial_list = _canonical_serials(serials)
+    serial_list = _as_serial_list(serials)
     with _sigma_grid(sig_level):
         _status("section", f"Report: {name}")
         page = MooringReport(

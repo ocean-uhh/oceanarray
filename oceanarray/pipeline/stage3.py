@@ -138,11 +138,7 @@ def _parse_hab_segments(entry: dict[str, Any], serial: str) -> list[tuple]:
 def _build_instrument_table(
     datasets: dict[str, xr.Dataset], mooring: dict[str, Any]
 ) -> list[dict[str, Any]]:
-    """Return one info dict per dataset, in description order, carrying its QC configuration.
-
-    Entries marked ``skip``, entries with no ``hab`` and entries with no dataset are
-    left out with a log line; each info dict holds the dataset itself under ``ds``.
-    """
+    """Return one info dict per dataset (description order) with its QC config."""
     lat, lon, latlon_source = parse_latlon_with_source(mooring)
     water_depth_m = float(mooring.get("waterdepth") or 0.0)
 
@@ -210,11 +206,7 @@ def _is_pressure_bad(info: dict[str, Any]) -> bool:
 def _split_pressure_sources(
     instruments: list[dict[str, Any]],
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Split a mooring's instruments into pressure sources and interpolation targets.
-
-    A source has a pressure variable the description does not flag bad; every other
-    instrument is a target whose pressure is interpolated from the sources.
-    """
+    """Split a mooring's instruments into pressure sources and interpolation targets."""
     sources = [i for i in instruments if i["has_pressure"] and not _is_pressure_bad(i)]
     targets = [i for i in instruments if not i["has_pressure"] or _is_pressure_bad(i)]
 
@@ -251,15 +243,10 @@ def _interpolate_if_stuck(
     target_time: np.ndarray,
     history_notes: list[str],
 ) -> xr.Dataset:
-    """Replace a source's pressure by interpolation when QC has flagged most of it bad.
-
-    Catches stuck-sensor faults that only become visible after the flat-line and
-    gross-range tests, which the pre-scan source/target split cannot see. An instrument
-    already used as a source for an earlier target will have passed it bad pressure; the
-    remedy is to re-run with ``pressure_qc: 4`` in its entry so it is excluded from the
-    start. Interpolation triggers above 70 % bad because the flat-line test leaves the
-    first ``fail_n`` samples unflagged.
-    """
+    """Interpolate a source's pressure when QC has flagged most of it bad."""
+    # Catches stuck-sensor faults visible only after the flat-line and gross-range
+    # tests, which the pre-scan source/target split cannot see. A source already used
+    # for an earlier target passed it bad pressure; the remedy is pressure_qc: 4.
     if "pressure_qc" not in ds.data_vars or "pressure" not in ds.data_vars:
         return ds
     serial = info["serial"]
@@ -267,6 +254,7 @@ def _interpolate_if_stuck(
     n_total = len(pqc)
     n_bad = int(np.sum(np.isin(pqc, [4, 9])))
     frac_bad = n_bad / n_total if n_total > 0 else 0.0
+    # 70 %, not 100 %: the flat-line test leaves the first fail_n samples unflagged.
     if frac_bad <= 0.70:
         return ds
     other_sources = [s for s in sources if s["serial"] != serial]
@@ -318,13 +306,7 @@ def _format_qc_summary(ds: xr.Dataset) -> list[str]:
 
 
 def _fill_cf_attrs(ds: xr.Dataset) -> None:
-    """Fill missing CF attributes from the variable registry and normalise QC attributes.
-
-    Only fills attributes the reader or a ``derive_*`` function did not set. Every
-    ``_qc`` variable except ``*_orig_qc`` (the pre-interpolation flag, kept distinct)
-    is put on the OceanSITES flag table after the CF pass, so each parent's
-    ``standard_name`` is available.
-    """
+    """Fill missing CF attributes from the registry and normalize QC attributes."""
     for vname, entry in params.VARIABLES.items():
         if vname not in ds.data_vars:
             continue
@@ -339,6 +321,8 @@ def _fill_cf_attrs(ds: xr.Dataset) -> None:
             vattrs["valid_min"] = entry["valid_min"]
         if "valid_max" not in vattrs and "valid_max" in entry:
             vattrs["valid_max"] = entry["valid_max"]
+    # After the CF pass, so each parent's standard_name is available. *_orig_qc (the
+    # pre-interpolation flag) is skipped here: interpolate_pressure sets its flag attrs.
     for qv in [
         v for v in ds.data_vars if v.endswith("_qc") and not v.endswith("_orig_qc")
     ]:
@@ -352,11 +336,8 @@ def _stage3_instrument(
     *,
     caldip_dir: str | None = None,
 ) -> xr.Dataset:
-    """Apply pressure interpolation, QC, coordinate rotation and derived variables to one instrument.
-
-    The body of the old per-instrument step with the file I/O removed; steps run in
-    the order listed in the module docstring.
-    """
+    """Run pressure interpolation, QC, rotation and derivations on one instrument."""
+    # Steps run in the order listed in the module docstring.
     is_target = any(t is info for t in targets)
     pressure_bad_flag = _is_pressure_bad(info)
     is_adcp = info.get("instrument", "").lower() == "adcp"
@@ -715,34 +696,22 @@ def _stage3_files(
     exclude: set[str] | frozenset[str] = frozenset(),
     log: Callable[..., None] = print,
 ) -> _stage.StageRun:
-    """Run stage 3 over one mooring's stage-2 files and write the stage-3 files.
-
-    Every stage-2 file is read, whatever *serials* asks for, because an instrument
-    without its own pressure takes it from the others; only the instruments in
-    *serials* (default: all) are written. An existing stage-3 file is kept unless
-    *force* or *caldip_dir* is given. A target's pressure records the stage-2 files
-    it was interpolated from (``pressure_source_files``); a kept target whose
-    sources have since changed is named in a WARNING. Serials in *exclude*
-    (failed earlier in the same run) are left out entirely: neither written nor
-    used as a pressure source.
-
-    Raises
-    ------
-    oceanarray.exceptions.MooringError
-        If no stage-2 file is found, or none of them has a height above bottom; any
-        failure of the transform also propagates — stage 3 runs over the whole
-        mooring.
-    """
+    """Run stage 3 over one mooring's stage-2 files and write the stage-3 files."""
     run = _stage.StageRun()
+    # Every stage-2 file is read, whatever *serials* asks for, because an instrument
+    # without its own pressure takes it from the others; only *serials* are written.
     datasets = read_mooring(
         mooring, stage=2, allow_missing=True, mooring_dir=mooring_dir
     )
+    # Failed earlier in this run: neither written nor used as a pressure source.
     for serial in sorted(exclude & set(datasets)):
         log(f"  SKIP {serial}: failed earlier in this run; not a pressure source")
         datasets.pop(serial).close()
     if not datasets:
         raise MooringError("No _stage2 datasets found for this mooring")
 
+    # No per-instrument catch: stage 3 runs over the whole mooring, so any failure of
+    # the transform propagates.
     results = stage3(datasets, mooring, caldip_dir=caldip_dir)
     if not results:
         raise MooringError("No stage-2 datasets with hab values")
@@ -763,6 +732,8 @@ def _stage3_files(
         out_path = paths.stage_file(
             mooring_dir, name, ds.attrs["instrument"], serial, 3
         )
+        # Provenance: a target records the stage-2 files its pressure came from; a
+        # kept output whose sources have since changed gets a WARNING.
         sources = _pressure_source_files(ds, _stage2_path)
         if serial not in wanted:
             _warn_if_sources_changed(out_path, sources, log)
@@ -789,11 +760,7 @@ def _stage3_files(
 
 
 def _pressure_source_files(ds: xr.Dataset, stage2_path: Callable[[str], Path]) -> str:
-    """Return the stage-2 files *ds*'s pressure was interpolated from, with their hashes.
-
-    One ``"<file> sha256=<hash> mtime=<time>"`` entry per source, joined by ``"; "``;
-    empty when the pressure is the instrument's own.
-    """
+    """Return the stage-2 files *ds*'s pressure was interpolated from, with hashes."""
     if "pressure" not in ds:
         return ""
     serials = ds["pressure"].attrs.get("pressure_source_serials", "").split()

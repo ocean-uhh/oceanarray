@@ -12,7 +12,7 @@ spectrum.py contains:
 Pairs with :mod:`oceanarray.analysis.spectral` for spectral computations.
 
 Post-OdB remaining migrations from report/_plots.py:
-  plot_grid_fig (was _make_grid_section_b64), plot_grid_n2 (was _make_grid_n2_b64).
+  plot_grid_fig (was _make_grid_fig_b64), plot_grid_n2 (was _make_grid_n2_b64).
 """
 
 from __future__ import annotations
@@ -34,22 +34,9 @@ from .primitives import figure_title, plot_title, square_axes_grid
 
 
 def _mark_frequency_line(ax: plt.Axes, period: float, color: str) -> None:
-    """Draw a marked-frequency reference line (tidal/inertial) on a spectrum.
-
-    Uniform style across the temperature and rotary spectra: a thin dotted
-    vertical line (``pen("thinner")``), so both figures mark frequencies the
-    same way.
-
-    Parameters
-    ----------
-    ax : matplotlib.axes.Axes
-        Spectrum axes (period on the x-axis).
-    period : float
-        Period at which to draw the line (same x-units as the axes).
-    color : str
-        Line colour.
-
-    """
+    """Draw a marked-frequency reference line (tidal/inertial) on a spectrum."""
+    # One thin dotted style so the temperature and rotary spectra mark frequencies
+    # the same way; period is in the axes' x-units.
     ax.axvline(period, color=color, lw=report_tokens.pen("thin"), ls=":", alpha=0.65)
 
 

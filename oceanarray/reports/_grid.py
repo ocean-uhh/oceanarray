@@ -271,14 +271,10 @@ def build_grid_context(ds: Any, grid_path: Path) -> GridContext:
 
 
 def _has_temperature(ctx: GridContext) -> bool:
-    """Return True when the dataset carries a ``temperature`` variable.
-
-    Gates Hydrography and the temperature spectra.  Hydrography needs only
-    temperature — ``draw_grid_hydro`` renders whichever of T / S / O₂ is present
-    and returns ``None`` only when none are — so a temperature-only mooring still
-    gets a (temperature-only) Hydrography panel.  The T-S *diagram* is stricter
-    (it needs both T and S): see :func:`_has_hydro`.
-    """
+    """Return True when the dataset carries a ``temperature`` variable."""
+    # Gates Hydrography and temperature spectra: draw_grid_hydro renders whichever of
+    # T/S/O2 is present, so temperature alone suffices. The T-S diagram needs both
+    # T and S (see _has_hydro).
     return "temperature" in ctx.ds
 
 
@@ -292,23 +288,16 @@ def _sigma_vars(ctx: GridContext) -> list:
 
 
 def _has_velocity(ctx: GridContext) -> bool:
-    """Return True when eastward or northward velocity is present (velocity sections gate).
-
-    "Could this exist for this deployment?" — a mooring with no horizontal
-    velocity variables has no Velocity or Velocity-structure section, and it is
-    named in the not-applicable footer (design §9, Eleanor 2026-08-16).
-    """
+    """Return True when eastward or northward velocity is present."""
+    # Without horizontal velocity the Velocity sections are named in the
+    # not-applicable footer.
     return "east_velocity" in ctx.ds.data_vars or "north_velocity" in ctx.ds.data_vars
 
 
 def _has_hydro(ctx: GridContext) -> bool:
-    """Return True when temperature and salinity (or conductivity) are present.
-
-    Salinity is derivable from conductivity + temperature (``gsw.SP_from_C``), so
-    a deployment carrying conductivity but not stored salinity still *could* show
-    Hydrography and the T-S diagram — hence the ``or``.
-    """
+    """Return True when temperature and salinity (or conductivity) are present."""
     dv = ctx.ds.data_vars
+    # Conductivity counts: salinity is derivable via gsw.SP_from_C.
     return "temperature" in dv and ("salinity" in dv or "conductivity" in dv)
 
 
@@ -318,15 +307,10 @@ def _has_sigma(ctx: GridContext) -> bool:
 
 
 def _history_unavailable(ctx: GridContext) -> str | None:
-    """Reason the processing-history panel cannot render, or ``None`` to proceed.
-
-    Processing history is a provenance section that *always* belongs on a
-    processing report — it is not conditional on the deployment — so it is
-    surfaced through ``unavailable_if`` (a visible stub) rather than
-    ``applies_to`` (which would drop it into the "not applicable to this
-    deployment" footer, misstating a missing-metadata gap as a deployment
-    characteristic).
-    """
+    """Reason the processing-history panel cannot render, or ``None`` to proceed."""
+    # Provenance always belongs on the report, so missing history is a visible stub
+    # (unavailable_if), not a not-applicable footer entry (applies_to), which would
+    # misstate a missing-metadata gap as a deployment characteristic.
     if ctx.history_entries:
         return None
     return "No processing history recorded in the file attributes."

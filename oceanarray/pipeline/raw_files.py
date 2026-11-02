@@ -453,13 +453,9 @@ def _add_sensor_var(
 def _add_sbe_ascii_sensor_vars(
     dataset: xr.Dataset, file_path: Path, instrument_config: dict[str, Any]
 ) -> xr.Dataset:
-    """Parse calibration coefficients from an SBE ASCII header and add SENSOR_* vars.
-
-    seasenselib's sbe-ascii reader discards the ``* TA0 = …`` header lines. This
-    re-reads the raw file, extracts the same coefficients the CNV reader would
-    produce, and creates matching SENSOR_* scalar variables so the report
-    calibration table is populated for ASCII-format instruments.
-    """
+    """Parse calibration coefficients from an SBE ASCII header and add SENSOR_* vars."""
+    # seasenselib's sbe-ascii reader discards the "* TA0 = ..." header lines, so
+    # re-read the raw file to populate the report calibration table.
     try:
         text = file_path.read_text(errors="ignore")
     except OSError:
@@ -520,12 +516,7 @@ def _add_sbe_ascii_sensor_vars(
 def _add_sbe_hex_sensor_vars(
     dataset: xr.Dataset, file_path: Path, instrument_config: dict[str, Any]
 ) -> xr.Dataset:
-    """Parse calibration coefficients from an SBE hex header and add SENSOR_* vars.
-
-    Uses seasenselib's ``parse_hex_header_sensors``, which extracts the calibration
-    XML embedded in the hex file header, and creates the same SENSOR_* variables as
-    the ASCII header.
-    """
+    """Parse calibration coefficients from an SBE hex header and add SENSOR_* vars."""
     try:
         from seasenselib.readers.sbe_hex_reader import parse_hex_header_sensors
 

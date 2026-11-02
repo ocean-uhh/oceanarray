@@ -65,15 +65,10 @@ def _log(message: str) -> None:
 
 
 def _rename_conductivity(dataset: xr.Dataset) -> xr.Dataset:
-    """Rename the raw SBE CNV conductivity column to ``conductivity``.
-
-    The raw column name encodes the unit (``cond0S/m`` or ``cond0mS/cm``);
-    both are NetCDF-illegal.  This fixes only the name and records the unit
-    in ``units`` (``S/m`` or ``mS/cm``) — the S/m → mS cm-1 ×10 conversion and
-    the canonical spelling are applied later by
-    :func:`oceanarray.pipeline.units.to_canonical_units`, the one place units
-    are normalised.
-    """
+    """Rename the raw SBE CNV conductivity column to ``conductivity``."""
+    # The raw names encode the unit and are NetCDF-illegal; only the name changes
+    # here, the unit going to ``units``. The S/m -> mS cm-1 (x10) conversion is left
+    # to to_canonical_units, the one place units are normalized.
     for raw_name, raw_units in (("cond0S/m", "S/m"), ("cond0mS/cm", "mS/cm")):
         if raw_name in dataset:
             data = dataset[raw_name]
@@ -134,13 +129,9 @@ def _rename_slash_vars(dataset: xr.Dataset) -> xr.Dataset:
 def _rename_sensor_vars(
     dataset: xr.Dataset, instrument_config: dict[str, Any]
 ) -> xr.Dataset:
-    """Rename SENSOR_PRES_{sensor_serial} to SENSOR_PRES_{instrument_serial}.
-
-    seasenselib names the pressure sensor variable after the pressure sensor's
-    own serial number (e.g. SENSOR_PRES_2075203), which differs from the
-    instrument serial (e.g. 7507).  Rename so all three SENSOR_* variables
-    for one instrument share the same serial suffix.
-    """
+    """Rename SENSOR_PRES_{sensor_serial} to SENSOR_PRES_{instrument_serial}."""
+    # seasenselib names it after the pressure sensor's own serial (e.g. 2075203, not
+    # the instrument's 7507); rename so all SENSOR_* variables share one suffix.
     instr_serial = safe_serial(instrument_config.get("serial", ""))
     if not instr_serial:
         return dataset
@@ -158,30 +149,9 @@ def _rename_sensor_vars(
 def _apply_units_override(
     dataset: xr.Dataset, instrument_config: dict[str, Any]
 ) -> xr.Dataset:
-    """Replace a variable's units attribute with the one given in the mooring YAML.
-
-    For a file whose ``units`` attribute is known to be wrong (e.g. conductivity
-    labelled ``S/m`` with values in mS/cm).  The YAML key is
-    ``units_override: {variable: units}`` on the instrument; the stated value is
-    kept in ``units_override_from`` so the correction is visible in the output.
-
-    Parameters
-    ----------
-    dataset : xarray.Dataset
-        The dataset as read.
-    instrument_config : dict
-        The instrument's entry from the mooring YAML.
-
-    Returns
-    -------
-    xarray.Dataset
-        *dataset*, with the overridden units.
-
-    Raises
-    ------
-    ValueError
-        If ``units_override`` names a variable the file does not hold.
-    """
+    """Replace a variable's units attribute with the one given in the mooring YAML."""
+    # For a file whose units attribute is known to be wrong (e.g. conductivity
+    # labelled S/m with values in mS/cm).
     overrides = instrument_config.get("units_override") or {}
     for var, units in overrides.items():
         if var not in dataset.data_vars:
@@ -190,6 +160,7 @@ def _apply_units_override(
                 f"(variables: {sorted(dataset.data_vars)})"
             )
         attrs = dict(dataset[var].attrs)
+        # Keep the stated value so the correction is visible in the output.
         attrs["units_override_from"] = str(attrs.get("units", ""))
         attrs["units"] = str(units)
         dataset[var].attrs = attrs
@@ -200,26 +171,9 @@ def _apply_units_override(
     return dataset
 
 
-def _warn_out_of_range(dataset: xr.Dataset, stated_units: dict[str, Any]) -> None:
-    """Refuse a variable whose values contradict its units.
-
-    After the units pass, the median of each registered variable with a
-    ``valid_min`` / ``valid_max`` in :data:`parameters.VARIABLES` must fall in
-    that range.  A median outside it means the stated units are wrong (a file
-    that says ``S/m`` but holds mS/cm becomes ten times too large).
-
-    Parameters
-    ----------
-    dataset : xarray.Dataset
-        The dataset after :func:`to_canonical_units`.
-    stated_units : dict
-        Each variable's units attribute as it was before the units pass.
-
-    Raises
-    ------
-    UnitsError
-        Naming the variable, its stated units and the remedy.
-    """
+def _refuse_out_of_range(dataset: xr.Dataset, stated_units: dict[str, Any]) -> None:
+    """Refuse a variable whose values contradict its units."""
+    # Runs after the units pass; *stated_units* are the attributes from before it.
     for var in dataset.data_vars:
         entry = params.VARIABLES.get(var, {})
         lo, hi = entry.get("valid_min"), entry.get("valid_max")
@@ -229,6 +183,8 @@ def _warn_out_of_range(dataset: xr.Dataset, stated_units: dict[str, Any]) -> Non
         if not np.isfinite(values).any():
             continue
         median = float(np.nanmedian(values))
+        # A median outside the valid range means the stated units are wrong (a file
+        # that says S/m but holds mS/cm becomes ten times too large).
         if not lo <= median <= hi:
             raise UnitsError(
                 f"{var!r}: median {median:g} {dataset[var].attrs.get('units')} is "
@@ -239,12 +195,7 @@ def _warn_out_of_range(dataset: xr.Dataset, stated_units: dict[str, Any]) -> Non
 
 
 def _drop_file_type_variables(dataset: xr.Dataset, file_type: str) -> xr.Dataset:
-    """Remove unwanted variables and coordinates for specific file types.
-
-    Removals are driven by ``VARS_TO_REMOVE`` and ``COORDS_TO_REMOVE``, which
-    are only populated for SBE file types (``sbe-cnv``, ``sbe-ascii``).
-    For Nortek, RBR, and RDI ADCP file types this method is a no-op.
-    """
+    """Remove unwanted variables and coordinates for specific file types."""
     # Remove variables
     vars_to_remove = VARS_TO_REMOVE.get(file_type, [])
     for var in vars_to_remove:
@@ -318,57 +269,19 @@ def _to_canonical_rdi(
     dataset: xr.Dataset,
     instrument_config: dict[str, Any],
 ) -> xr.Dataset:
-    """Normalise the dataset produced by the ``rdi-raw`` seasenselib reader.
-
-    The rdi-raw reader (via mhkit/dolfyn) returns:
-
-    - ``vel(dir, range, time)`` with ``dir=['E','N','U','err']`` — already in
-      Earth frame because ``coord_sys=earth`` was set in the RDI configuration.
-      However, ``magnetic_var_deg=0.0`` is common, meaning **no magnetic
-      declination was applied**; stage3 must apply the ppigrf correction.
-    - ``amp``, ``corr``, ``prcnt_gd`` with dims ``(beam, range, time)``.
-    - ``beam2inst_orientmat(x1, x2)`` — static beam→instrument rotation matrix.
-
-    Steps applied:
-
-    1. Rename the ``range`` spatial dimension to ``ADCP_BIN_DIM`` (``"N_BINS"``).
-       The ``range`` coordinate (metres above transducer) is preserved under the
-       new dimension name.
-    2. Split ``vel`` into ``east_velocity``, ``north_velocity``, ``up_velocity``,
-       and ``error_velocity``, each with dims ``(time, N_BINS)``.  Drops ``vel``
-       and the ``dir`` coordinate.
-    3. Transpose quality variables to ``(time, N_BINS, beam)``.
-    4. Flatten ``beam2inst_orientmat`` to global attrs ``beam2inst_M{i}{j}``
-       and drop the variable and its ``x1``/``x2`` dimension coordinates.
-    5. Transpose ``orientmat`` to ``(time, earth, inst)`` (time-first).
-    6. Extract instrument metadata from the ``raw_metadata`` JSON blob:
-       cell size, blanking distance, beam angle, pings per ensemble, and
-       ``instrument_magnetic_variation_deg``.
-    7. Set ``coordinate_system = "ENU"``.
-    8. Store ``orientation_instrument`` from the raw file and
-       ``orientation_yaml`` from the YAML ``orientation`` key (if present);
-       emit a WARNING if they disagree — a correction will be needed in stage3.
-
-    This method is faithful to the raw data: no values are modified or removed.
-    Pressure overflow values and other sensor artefacts are preserved as-is;
-    flagging is deferred to stage3.
-
-    Args:
-        dataset: Dataset as returned by ``seasenselib.read(..., file_type="rdi-raw")``.
-        instrument_config: Per-instrument YAML configuration dict.
-
-    Returns
-    -------
-        Normalised dataset ready for metadata attachment and NetCDF writing.
-
-    """
+    """Normalize the dataset produced by the ``rdi-raw`` seasenselib reader."""
+    # Faithful to the raw data: no values are modified or removed. Pressure overflow
+    # and other sensor artefacts are kept as-is; flagging is deferred to stage 3.
     import json
 
     # 1. Rename the spatial bin dimension: range → N_BINS
+    #    (the range coordinate, meters above transducer, is kept under the new name)
     if "range" in dataset.dims:
         dataset = dataset.rename_dims({"range": ADCP_BIN_DIM})
 
-    # 2. Split vel(dir, N_BINS, time) into named components (time, N_BINS)
+    # 2. Split vel(dir, N_BINS, time) into named components (time, N_BINS).
+    #    vel is already Earth frame (coord_sys=earth in the RDI setup), but
+    #    magnetic_var_deg=0.0 is common, i.e. no declination applied: stage 3 does it.
     _DIR_MAP = {
         "E": (
             "east_velocity",
@@ -493,13 +406,7 @@ def _to_canonical_rdi(
 
 
 def _apply_nortek_xyz(dataset: xr.Dataset) -> xr.Dataset:
-    """Rotate Nortek BEAM velocities to the instrument XYZ frame with the header's T matrix.
-
-    Applies when the raw read recorded a transformation matrix (``nortek_T_M11`` …)
-    and the instrument reports in BEAM coordinates. ``velocity_x/y/z`` are added and
-    the beam velocities kept for verification; stage 3 then skips BEAM→XYZ. A
-    downward-pointing instrument (``nortek_pointing_down``) flips rows 2 and 3.
-    """
+    """Rotate Nortek BEAM velocities to instrument XYZ with the header's T matrix."""
     keys = [f"nortek_T_M{r}{c}" for r in range(1, 4) for c in range(1, 4)]
     if not all(k in dataset.attrs for k in keys):
         return dataset
@@ -538,6 +445,7 @@ def _apply_nortek_xyz(dataset: xr.Dataset) -> xr.Dataset:
     dataset["velocity_z"] = xr.Variable(
         tdim, vz, {**vel_attrs, "long_name": "Z velocity (instrument XYZ frame)"}
     )
+    # Beam velocities are kept for verification; stage 3 then skips BEAM->XYZ.
     dataset.attrs["coordinate_system"] = "XYZ"
     return dataset
 
@@ -630,7 +538,7 @@ def _stage1_instrument(
     dataset = to_canonical_units(dataset, log_fn=_log, stage=1)
     # An imported file's units are the originator's word; check the values agree.
     if file_type in ("oceansites", "rodb"):
-        _warn_out_of_range(dataset, stated_units)
+        _refuse_out_of_range(dataset, stated_units)
     return dataset
 
 
@@ -809,11 +717,9 @@ _ReaderLogState = tuple[logging.Logger, int, bool, logging.Handler | None]
 
 
 def _attach_reader_logs(log_file: Path) -> list[_ReaderLogState]:
-    """Send the raw readers' library logs (seasenselib, pycnv) to *log_file* only.
-
-    Returns each logger's previous level and propagation and the handler added
-    (None when one was already there), for :func:`_detach_reader_logs`.
-    """
+    """Send the raw readers' library logs (seasenselib, pycnv) to *log_file* only."""
+    # Each state is the logger's previous level and propagation plus the handler
+    # added, which _detach_reader_logs uses to undo this.
     added: list[_ReaderLogState] = []
     for lib_logger_name in ("seasenselib", "pycnv"):
         lib_log = logging.getLogger(lib_logger_name)
@@ -829,6 +735,7 @@ def _attach_reader_logs(log_file: Path) -> list[_ReaderLogState]:
             lib_log.addHandler(fh)
             added.append((*state, fh))
         else:
+            # Handler already there: None, so detaching leaves it in place.
             added.append((*state, None))
     return added
 
@@ -854,13 +761,9 @@ def _stage1_file(
     log: Callable[..., None],
     rel: Callable[[Path], str],
 ) -> tuple[str, Any]:
-    """Read, transform and write one instrument; return ``(status, detail)``.
-
-    *status* is ``"written"`` or ``"kept"`` (detail: the path; kept means it was
-    already there and newer than its raw file), ``"skipped"`` (marked ``skip``) or
-    ``"failed"`` (detail: the message). One failed instrument is logged and does not abort the
-    mooring; a ``RuntimeError`` (a registry inconsistency, a package bug) does.
-    """
+    """Read, transform and write one instrument; return ``(status, detail)``."""
+    # One failed instrument is logged and does not abort the mooring; a
+    # RuntimeError (a registry inconsistency, a package bug) does.
     instrument = entry.get("instrument", "unknown")
     serial = entry.get("serial", "unknown")
     if entry.get("skip"):
@@ -921,16 +824,7 @@ def _stage1_files(
     log: Callable[..., None] = print,
     rel: Callable[[Path], str] = lambda p: p.name,
 ) -> _stage.StageRun:
-    """Run stage 1 over one mooring's raw files, writing each instrument's stage-1 file.
-
-    One instrument's failure is logged and recorded; the rest are still written.
-    *folder* is the mooring's folder under *raw_dir*.
-
-    Raises
-    ------
-    oceanarray.exceptions.MooringError
-        If the raw-data directory is not found.
-    """
+    """Run stage 1 over one mooring's raw files, writing each instrument's file."""
     # Raw root: {raw_dir}/{folder}/; an absolute YAML 'directory:' overrides it.
     override = mooring.get("directory")
     if override and Path(override).is_absolute():

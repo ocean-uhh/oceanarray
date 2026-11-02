@@ -43,14 +43,7 @@ _log = logging.getLogger(__name__)
 
 
 def _parse_decdeg(val: Any) -> float | None:
-    """Parse a latitude or longitude value to decimal degrees.
-
-    Handles:
-    - Numeric types (float / int): returned as-is.
-    - ``"65.567"`` or ``"-27.5"`` — plain decimal-degree strings.
-    - ``"65 43.913"`` — degrees + decimal-minutes, sign for hemisphere.
-    - ``"65 34.004 N"`` / ``"029 25.878 W"`` — DM with hemisphere letter.
-    """
+    """Parse a latitude or longitude value to decimal degrees."""
     if val is None:
         return None
     if isinstance(val, (int, float)):
@@ -60,6 +53,8 @@ def _parse_decdeg(val: Any) -> float | None:
         return float(s)
     except ValueError:
         pass
+    # Degrees + decimal minutes: "65 43.913" (sign gives hemisphere) or
+    # "029 25.878 W" (hemisphere letter).
     parts = s.split()
     if len(parts) >= 2:
         try:
@@ -115,15 +110,11 @@ def _count_instruments(cfg: dict[str, Any]) -> int:
 def _square_map_limits(
     yl0: float, yl1: float, xl0: float, xl1: float, cos_lat: float
 ) -> tuple[float, float, float, float]:
-    """Widen longitude so the extent is roughly square in Mercator proportion.
-
-    Mercator-square widening, as ctdcast's cruise maps: the Mercator-equivalent
-    width is ``lon_span * cos(lat)``; when the extent would plot taller than wide,
-    longitude is expanded symmetrically about the centre so moorings strung out
-    along a line do not render as a sliver.
-    """
+    """Widen longitude so the extent is roughly square in Mercator proportion."""
     lon_span = xl1 - xl0
     lat_span = yl1 - yl0
+    # Mercator-equivalent width (as ctdcast's cruise maps); widen symmetrically
+    # so moorings strung along a line do not render as a sliver.
     x_width = lon_span * cos_lat
     if lat_span > x_width:
         lon_span_sq = lat_span / cos_lat
@@ -150,12 +141,8 @@ def _build_array_masthead(
     recover_dt_arr: datetime | None,
     array_yaml_path: Path,
 ) -> dict[str, str]:
-    """Return the array masthead metadata, derived from the YAMLs (missing → em-dash).
-
-    Everything here is already in the ``*.array.yaml`` / ``*.mooring.yaml`` or computed
-    from the per-mooring rows; nothing is invented and a missing value renders as an
-    em-dash.  Derived values (extent, duration, totals) are computed at render.
-    """
+    """Return the array masthead metadata from the YAMLs (missing → em-dash)."""
+    # Nothing is invented: values come from the YAMLs or the per-mooring rows.
     lats = [r["lat"] for r in rows if r["lat"] is not None]
     lons = [r["lon"] for r in rows if r["lon"] is not None]
     wds = [float(r["waterdepth"]) for r in rows if r["waterdepth"] is not None]
@@ -225,12 +212,7 @@ def _build_array_masthead(
 
 
 def _make_array_map_b64(rows: list[dict[str, Any]]) -> str | None:
-    """Return a base64-encoded PNG of mooring positions, or None on failure.
-
-    Drawn at half width with a Mercator-square framed extent; marker colours come
-    from the family ``TRACK_COLORS`` so they match the Leaflet markers, and there is
-    no in-figure title (the section heading names the map).
-    """
+    """Return a base64-encoded PNG of mooring positions, or None on failure."""
     import math
 
     import matplotlib.pyplot as plt
@@ -258,6 +240,8 @@ def _make_array_map_b64(rows: list[dict[str, Any]]) -> str | None:
     lon_span, lat_span = (xl1 - xl0), (yl1 - yl0)
     height_in = width_in * lat_span / (lon_span * cos_lat) if lon_span > 0 else 5.0
     height_in = min(8.0, max(2.5, height_in))
+    # Family TRACK_COLORS so markers match the Leaflet map; no in-figure title
+    # (the section heading names the map).
     colors = report_tokens.TRACK_COLORS
 
     def _draw() -> plt.Figure:
@@ -312,20 +296,8 @@ def _build_mooring_instruments(
     mcfg: dict[str, Any],
     recover_dt: Any,
 ) -> list[dict[str, Any]]:
-    """Return a lightweight instrument status list for array-level tables.
-
-    Parameters
-    ----------
-    proc_dir : Path
-        Cruise-level processed directory (mooring dir is ``proc_dir/mooring_id``).
-    mooring_id : str
-        Mooring identifier.
-    mcfg : dict
-        Parsed mooring YAML.
-    recover_dt : datetime or None
-        YAML recovery time used for stopped-early detection.
-
-    """
+    """Return a lightweight instrument status list for array-level tables."""
+    # proc_dir is the cruise-level processed dir; recover_dt is the YAML recovery time.
     from ..utilities import instrument_entries
 
     mooring_proc = proc_dir / mooring_id
@@ -397,15 +369,7 @@ def _build_mooring_instruments(
 def _build_type_summary(
     mooring_instruments: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    """Aggregate per-instrument records into a per-type summary table.
-
-    Parameters
-    ----------
-    mooring_instruments : list of dict
-        Flat list of instrument dicts from :func:`_build_mooring_instruments`
-        across all moorings.
-
-    """
+    """Aggregate per-instrument records into a per-type summary table."""
     from collections import defaultdict
 
     counts: dict[str, dict[str, int]] = defaultdict(
@@ -442,28 +406,11 @@ def _build_type_summary(
 
 
 def _array_map_payload(rows: list[dict[str, Any]]) -> tuple[str, str, str]:
-    """Return ``(payload_json, coastline_json, bounds_json)`` for the Leaflet array map.
-
-    One marker per mooring that has a position; the per-marker ``info`` HTML is
-    pre-escaped and embedded through :func:`safe_json`.  When no mooring has a
-    position the payload is ``"[]"`` and the coastline/bounds are ``"null"``.
-
-    Parameters
-    ----------
-    rows : list of dict
-        The per-mooring rows built by :func:`generate_array_report` (``mooring``,
-        ``lat``, ``lon``, ``color_hex``, ``waterdepth``, ``deploy_time``,
-        ``recover_time``, ``n_instruments``, ``report_exists``, ``report_href``).
-
-    Returns
-    -------
-    tuple of str
-        ``(payload_json, coastline_json, bounds_json)`` — all JSON strings ready to
-        embed in a ``<script>`` block.
-    """
+    """Return (payload, coastline, bounds) JSON strings for the Leaflet array map."""
     marks = [r for r in rows if r.get("lat") is not None and r.get("lon") is not None]
     payload = []
     for r in marks:
+        # Per-marker info HTML is pre-escaped here, then embedded via safe_json.
         info = [
             f"<strong>{escape(r['mooring'])}</strong>",
             f"{r['lat']:.4f}, {r['lon']:.4f}",
@@ -485,6 +432,7 @@ def _array_map_payload(rows: list[dict[str, Any]]) -> tuple[str, str, str]:
                 "info": "<br>".join(info),
             }
         )
+    # No positioned mooring: payload "[]", coastline and bounds "null".
     if not marks:
         return safe_json([]), "null", "null"
     lats = [r["lat"] for r in marks]

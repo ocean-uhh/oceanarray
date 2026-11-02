@@ -122,7 +122,7 @@ def run(
     if stack_stage not in (2, 3):
         raise ValueError(f"stack_stage={stack_stage!r}: expected 3 or 2")
     wanted = _resolve_stages(stages, from_stage, stack_stage)
-    serial_list = _canonical_serials(serials)
+    serial_list = _as_serial_list(serials)
     cfg, moor_dir = _resolve_mooring(mooring, mooring_dir, "run")
     settings = _resolve_settings(
         cfg, dt_seconds=dt_seconds, pmin=pmin, pmax=pmax, dp=dp
@@ -219,31 +219,7 @@ def _resolve_stages(
     *,
     cli: bool = False,
 ) -> list[int]:
-    """Return the stages ``run`` runs, refusing a set that would leave older files under the stack.
-
-    Parameters
-    ----------
-    stages : int, str, iterable of int or None
-        The stages asked for; None or ``"all"`` is stages 1 through *stack_stage*.
-    from_stage : int or None
-        Start at this stage and run through *stack_stage*.
-    stack_stage : int
-        The stage the stack is built from (2 or 3).
-    cli : bool, optional
-        Word the error messages with the command-line flags (``--stage``,
-        ``--from``, ``--stack-stage``) instead of the Python keywords.
-
-    Returns
-    -------
-    list of int
-        The stages to run, in order.
-
-    Raises
-    ------
-    ValueError
-        If both *stages* and *from_stage* are given, or the stages do not run from
-        the first one given through *stack_stage* without a gap.
-    """
+    """Return the stages ``run`` runs, refusing any that would stack older files."""
     from oceanarray.pipeline import _canonical_stages
 
     if cli:
@@ -294,7 +270,7 @@ def _resolve_stages(
     return wanted
 
 
-def _canonical_serials(serials: Iterable[str] | None) -> list[str] | None:
+def _as_serial_list(serials: Iterable[str] | None) -> list[str] | None:
     """Return *serials* as a list read once; a bare string is one serial."""
     if serials is None:
         return None
@@ -302,13 +278,11 @@ def _canonical_serials(serials: Iterable[str] | None) -> list[str] | None:
 
 
 def _set_aside_stale(paths_: list[Path], why: str) -> None:
-    """Rename product files that no longer match the stage files to ``*.stale.nc``, saying so.
-
-    Each product keeps one stale copy: a later rename replaces it.
-    """
+    """Rename product files that no longer match the stage files to ``*.stale.nc``."""
     for path in paths_:
         if path.exists():
             stale = paths.stale_file(path)
+            # One stale copy per product: a later rename replaces it.
             path.replace(stale)
             print(
                 f"  renamed {path.name} to {stale.name}: {why}, so it no longer matched."
@@ -318,14 +292,7 @@ def _set_aside_stale(paths_: list[Path], why: str) -> None:
 def _resolve_settings(
     cfg: Mapping[str, Any], **given: float | None
 ) -> dict[str, float]:
-    """Return the checked stack and grid settings: the call's, else the description's, else :data:`DEFAULTS`.
-
-    Raises
-    ------
-    oceanarray.exceptions.MooringError
-        If a setting is not a finite number (``dt_seconds``: a whole number), is
-        not positive (``dt_seconds``, ``dp``), or ``pmax`` is not above ``pmin``.
-    """
+    """Return checked stack/grid settings: call, else description, else DEFAULTS."""
     from oceanarray.exceptions import MooringError
 
     out: dict[str, float] = {}

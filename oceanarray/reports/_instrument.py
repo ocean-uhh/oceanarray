@@ -135,13 +135,9 @@ def _history_unavailable(c: dict) -> str | None:
 
 
 def _empty_note(pid: str, reason: str, when_empty: Callable) -> Panel:
-    """Build a panel that shows *reason* as a stub only when *when_empty(ctx)* is True.
-
-    Used so a PanelGroup section (paginated time-series, start/end windows) keeps
-    its specific "nothing to show" message — e.g. "No plottable variables found."
-    — instead of falling to the resolver's generic empty-section stub.  It applies
-    only when the run is empty, so it adds nothing when there are figures.
-    """
+    """Build a panel showing *reason* as a stub only when *when_empty(ctx)* is True."""
+    # Keeps a PanelGroup section's specific "nothing to show" message instead of the
+    # resolver's generic empty-section stub; adds nothing when there are figures.
     return Panel(
         pid,
         render=lambda _c: None,
