@@ -1,13 +1,12 @@
 """Internal helper functions for mooring-level stack and grid operations."""
 
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import xarray as xr
 
 from oceanarray.config import parameters as params
-from oceanarray.paths import safe_serial, stage_file
+from oceanarray.paths import stage_file
 
 STACK_VARS = [
     "temperature",
@@ -75,11 +74,6 @@ _STACK_RAW: frozenset = frozenset(
 )
 
 
-def _safe_serial(serial: Any) -> str:
-    """Return a filename-safe serial token (see :func:`oceanarray.paths.safe_serial`)."""
-    return safe_serial(serial)
-
-
 def _apply_qc_mask(src_v: np.ndarray, ds: "xr.Dataset", vname: str) -> np.ndarray:
     """Return src_v with flagged values replaced by NaN.
 
@@ -126,7 +120,7 @@ def _times_to_float(t: np.ndarray) -> np.ndarray:
     return t.astype("datetime64[ns]").astype(np.float64)
 
 
-def _best_nc(
+def _best_stage_file(
     proc_dir: Path, instr_type: str, mooring_name: str, serial: str
 ) -> Path | None:
     """Return best available stage3 or stage2 file for one instrument; None if only stage1."""
@@ -137,7 +131,7 @@ def _best_nc(
     return None
 
 
-def _detect_interval_s(time_vals: np.ndarray) -> float:
+def _sample_interval_s(time_vals: np.ndarray) -> float:
     if len(time_vals) < 2:
         return 60.0
     dt = np.diff(time_vals.astype("datetime64[s]").astype(np.float64))
@@ -161,7 +155,7 @@ _ADCP_HEAD_VARS: frozenset = frozenset(
 )
 
 
-def _make_adcp_head_ds(ds_parent: xr.Dataset) -> xr.Dataset:
+def _build_adcp_head_ds(ds_parent: xr.Dataset) -> xr.Dataset:
     """Create a 1-D (time-only) view of the ADCP transducer head for stack insertion.
 
     The ADCP transducer head is treated as a distinct instrument position in the mooring
@@ -175,7 +169,7 @@ def _make_adcp_head_ds(ds_parent: xr.Dataset) -> xr.Dataset:
 
     Per-bin velocity and ``bin_pressure`` are deliberately excluded.  Each velocity bin
     gets its own stack entry at the pressure appropriate to that bin
-    (see ``_make_adcp_bin_ds``), rather than the transducer pressure.
+    (see ``_build_adcp_bin_ds``), rather than the transducer pressure.
 
     Parameters
     ----------
@@ -205,7 +199,7 @@ def _make_adcp_head_ds(ds_parent: xr.Dataset) -> xr.Dataset:
     return ds_parent[keep]
 
 
-def _make_adcp_bin_ds(ds_parent: xr.Dataset, bin_idx: int) -> xr.Dataset:
+def _build_adcp_bin_ds(ds_parent: xr.Dataset, bin_idx: int) -> xr.Dataset:
     """Create a 1-D (time-only) point-instrument view of one ADCP range bin.
 
     Slices the parent dataset at *bin_idx* along ``params.ADCP_BIN_DIM`` and replaces the

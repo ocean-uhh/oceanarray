@@ -24,9 +24,9 @@ Deployment window figures (moved from report._plots)
   velocity data.
 
 Post-OdB: migrate the following from report/_plots.py:
-  plot_ts_diagram (was _make_ts_diagram), plot_stack_ts_diagram,
-  plot_grid_ts_diagram, plot_data_histogram (was _make_data_histogram),
-  plot_spectrum (was _make_spectrum_fig_b64).
+  plot_ts_diagram (was _make_ts_diagram_b64), plot_stack_ts_diagram,
+  plot_grid_ts_diagram, plot_data_histogram (was _make_data_histogram_b64),
+  plot_spectrum (was _make_spectrum_b64).
 
 Tier-1 primitives: plot_vector_heatmap (for T-S, U-V, any pair),
 plot_spectrum (any 1D time series), plot_polar_histogram (current rose).
@@ -103,7 +103,7 @@ _CANONICAL_PANELS: list[tuple] = [
 _COMPACT_PANEL_VARS: frozenset = frozenset({"battery_voltage", "speed_of_sound"})
 _COMPACT_PANEL_HEIGHT: float = 1.5
 #: Height (relative units) of a normal, non-compact instrument panel row.  Shared
-#: by ``draw_windows`` here and ``_build_fig_from_ds`` in ``report/_plots.py`` so
+#: by ``draw_windows`` here and ``_draw_instrument_panels`` in ``report/_plots.py`` so
 #: the full time-series and start/end-window figures use the same row height.
 _PANEL_HEIGHT: float = 2.0
 
@@ -211,12 +211,12 @@ _KD_COLORS = [
 ]
 
 
-def _kd_color(magnitude_dbar: float) -> str:
+def _knockdown_color(magnitude_dbar: float) -> str:
     """Return a colour string for the given knockdown magnitude in dbar."""
     return next(c for thresh, c in _KD_COLORS if magnitude_dbar < thresh)
 
 
-def _collect_knockdown_records(
+def _build_knockdown_records(
     ds: xr.Dataset,
     waterdepth: float,
 ) -> list:
@@ -310,7 +310,7 @@ def draw_knockdown_pressure(
     if waterdepth <= 0:
         return None
 
-    records = _collect_knockdown_records(ds, waterdepth)
+    records = _build_knockdown_records(ds, waterdepth)
     if not records:
         return None
 
@@ -421,7 +421,7 @@ def draw_knockdown_hab(
     if waterdepth <= 0:
         return None
 
-    records = _collect_knockdown_records(ds, waterdepth)
+    records = _build_knockdown_records(ds, waterdepth)
     if not records:
         return None
 
@@ -542,7 +542,7 @@ def draw_knockdown_anomaly(
     if waterdepth <= 0:
         return None
 
-    records = _collect_knockdown_records(ds, waterdepth)
+    records = _build_knockdown_records(ds, waterdepth)
     if not records:
         return None
 
@@ -557,7 +557,7 @@ def draw_knockdown_anomaly(
         for p_nom, _serial, actual_p in records:
             anomaly = actual_p - p_nom  # positive = knocked down deeper
             median_anom = float(np.median(anomaly))
-            color = _kd_color(abs(median_anom))
+            color = _knockdown_color(abs(median_anom))
 
             bp = ax.boxplot(
                 anomaly,
@@ -647,7 +647,7 @@ def draw_knockdown_displacement(
     if waterdepth <= 0:
         return None
 
-    records = _collect_knockdown_records(ds, waterdepth)
+    records = _build_knockdown_records(ds, waterdepth)
     if not records:
         return None
 

@@ -97,7 +97,7 @@ if os.environ.get("OCEANARRAY_RAISE_ON_PLOT_ERROR", "").lower() in ("1", "true",
 # ---------------------------------------------------------------------------
 
 
-def _plot_aquadopp_quick(ds: xr.Dataset) -> plt.Figure:
+def _draw_aquadopp_quick(ds: xr.Dataset) -> plt.Figure:
     """Quick-look figure for Aquadopp; handles beam and ENU naming, lowercase attitude."""
     import matplotlib.pyplot as plt
 
@@ -184,7 +184,7 @@ _DOT_LINE_VARS: frozenset = frozenset({"turbidity"})
 _MAX_TS_PANELS = 5
 
 
-def _augment_tilt(ds: xr.Dataset) -> xr.Dataset:
+def _add_tilt(ds: xr.Dataset) -> xr.Dataset:
     """Return *ds* with a derived ``tilt`` variable added from pitch/roll.
 
     ``tilt = arccos(cos(pitch)·cos(roll))`` in degrees from vertical.  A no-op
@@ -217,7 +217,7 @@ def _augment_tilt(ds: xr.Dataset) -> xr.Dataset:
     )
 
 
-def _build_fig_from_ds(
+def _draw_instrument_panels(
     ds: xr.Dataset,
     instr_type: str,
     show_qc: bool = True,
@@ -234,7 +234,7 @@ def _build_fig_from_ds(
 
     from ..config import parameters as params
 
-    ds = _augment_tilt(ds)
+    ds = _add_tilt(ds)
     if panels is None:
         panels = _instrument_panels(ds, combine_pitch_roll=True)
     if not panels:
@@ -382,7 +382,7 @@ def _build_fig_from_ds(
         return fig
 
 
-def _make_instrument_fig(
+def _make_instrument_b64s(
     nc_path: Path, instr_type: str, show_qc: bool = True
 ) -> list[str]:
     """Instrument data time series with optional QC markers, paginated.
@@ -396,7 +396,7 @@ def _make_instrument_fig(
 
     ds = xr.open_dataset(nc_path, decode_timedelta=False).load()
     try:
-        ds = _augment_tilt(ds)
+        ds = _add_tilt(ds)
         panels = _instrument_panels(ds, combine_pitch_roll=True)
         if not panels:
             return []
@@ -404,11 +404,11 @@ def _make_instrument_fig(
         for i in range(0, len(panels), _MAX_TS_PANELS):
             chunk = panels[i : i + _MAX_TS_PANELS]
             b64 = render_b64(
-                lambda c=chunk: _build_fig_from_ds(
+                lambda c=chunk: _draw_instrument_panels(
                     ds, instr_type, show_qc=show_qc, panels=c
                 ),
                 optional=True,
-                source=source_for(_build_fig_from_ds),
+                source=source_for(_draw_instrument_panels),
             )
             if b64:
                 images.append(b64)
@@ -417,7 +417,7 @@ def _make_instrument_fig(
         ds.close()
 
 
-def _make_windows_fig(
+def _make_windows_b64s(
     nc_path: Path,
     instr_type: str,
     hours: int = 6,
@@ -461,17 +461,17 @@ def _make_windows_fig(
     return images
 
 
-def _make_data_histogram(nc_path: Path) -> str | None:
+def _make_data_histogram_b64(nc_path: Path) -> str | None:
     """Return base64 PNG: histogram of data values with QC range threshold lines."""
     return render_b64(draw_data_histogram, nc_path, optional=True)
 
 
-def _make_ts_diagram(nc_path: Path) -> str | None:
+def _make_ts_diagram_b64(nc_path: Path) -> str | None:
     """Return base64 PNG: T-S diagram (scatter by pressure, heatmap, optional O2 panel)."""
     return render_b64(draw_ts_diagram, nc_path, optional=True)
 
 
-def _make_grid_fig_b64(
+def _make_grid_section_b64(
     da: xr.DataArray,
     title: str,
     units: str,
@@ -515,7 +515,7 @@ def _make_grid_velocity_stacked_b64(ds: xr.Dataset) -> str | None:
     return render_slot(draw_grid_velocity_stacked, ds, optional=True)
 
 
-def _make_spectrum_fig_b64(
+def _make_spectrum_b64(
     da_temp: xr.DataArray,
     dt_seconds: float,
     lat: float = 0.0,
@@ -534,7 +534,7 @@ def _make_spectrum_fig_b64(
     )
 
 
-def _make_wavelet_fig_b64(
+def _make_wavelet_b64(
     da_temp: xr.DataArray,
     dt_seconds: float,
     wavelet: str = "morlet",
@@ -551,7 +551,7 @@ def _make_grid_rotary_spectrum_b64(
     return render_b64(draw_grid_rotary_spectrum, ds, lat, optional=True)
 
 
-def _make_stack_ts_diagram(ds: xr.Dataset) -> str | None:
+def _make_stack_ts_diagram_b64(ds: xr.Dataset) -> str | None:
     """Return base64 PNG: T-S diagram for a stacked dataset."""
     return render_b64(draw_stack_ts_diagram, ds, optional=True)
 
@@ -566,7 +566,9 @@ def _make_instrument_rose_b64(nc_path: Path) -> str | None:
     return render_b64(draw_instrument_rose, nc_path, optional=True)
 
 
-def _make_grid_ts_diagram(ds: xr.Dataset, n_bins: int = 60) -> tuple[str | None, dict]:
+def _make_grid_ts_diagram_b64(
+    ds: xr.Dataset, n_bins: int = 60
+) -> tuple[str | None, dict]:
     """Return (b64_str_or_None, bounds_dict): T-S diagram for gridded mooring data."""
     ts_bounds: dict = {}
 
@@ -632,17 +634,17 @@ def _make_grid_timeseries_b64(ds: xr.Dataset) -> str | None:
     return render_b64(draw_grid_timeseries, ds, optional=True)
 
 
-def _make_isopycnal_ts_fig_b64(ds_iso: xr.Dataset) -> str | None:
+def _make_isopycnal_ts_b64(ds_iso: xr.Dataset) -> str | None:
     """Return base64 PNG: isopycnal height-above-seabed time series."""
     return render_b64(draw_isopycnal_ts, ds_iso, optional=True)
 
 
-def _make_isopycnal_coverage_fig_b64(ds: xr.Dataset) -> str | None:
+def _make_isopycnal_coverage_b64(ds: xr.Dataset) -> str | None:
     """Return base64 PNG: three-panel isopycnal diagnostic."""
     return render_b64(draw_isopycnal_coverage, ds, optional=True)
 
 
-def _make_overflow_temperature_fig_b64(ds: xr.Dataset) -> str | None:
+def _make_overflow_temperature_b64(ds: xr.Dataset) -> str | None:
     """Return base64 PNG: temperature time series at ~100 m above the seabed."""
     return render_b64(draw_overflow_temperature, ds, optional=True)
 
@@ -653,7 +655,7 @@ def _make_overflow_temperature_fig_b64(ds: xr.Dataset) -> str | None:
 # ---------------------------------------------------------------------------
 
 
-def _make_temperature_trajectory(nc_path: str) -> str | None:
+def _make_temperature_trajectory_b64(nc_path: str) -> str | None:
     """Lagrangian trajectory coloured by temperature, for Aquadopp instrument page."""
     import xarray as xr
 
@@ -668,7 +670,7 @@ def _make_temperature_trajectory(nc_path: str) -> str | None:
     )
 
 
-def _make_speed_boxplot(nc_path: str) -> str | None:
+def _make_speed_boxplot_b64(nc_path: str) -> str | None:
     """Speed boxplot with percentile statistics, for Aquadopp instrument page."""
     import xarray as xr
 
@@ -701,7 +703,7 @@ def _make_hodograph_b64(nc_path: str) -> str | None:
     return render_b64(_draw, source=source_for(draw_hodograph))
 
 
-def _make_multi_aquadopp_trajectories(ds: xr.Dataset) -> str | None:
+def _make_multi_aquadopp_trajectories_b64(ds: xr.Dataset) -> str | None:
     """Multi-instrument Aquadopp trajectory plot coloured by temperature, for stack page.
 
     Takes an already-loaded xarray.Dataset (not a path) since the stack report
@@ -730,7 +732,7 @@ def _make_stack_timeseries_b64(
     )
 
 
-def _make_aquadopp_tilt_panels(ds: xr.Dataset, step: int = 1) -> str | None:
+def _make_aquadopp_tilt_panels_b64(ds: xr.Dataset, step: int = 1) -> str | None:
     """|pitch|, |roll| and pressure tilt per Aquadopp, full width, for the stack page."""
     from oceanarray.plotters.current import draw_aquadopp_tilt_panels
 
@@ -742,7 +744,7 @@ def _make_instrument_spacing_b64(ds: xr.Dataset) -> str | None:
     return render_slot(draw_instrument_spacing, ds, slot="third", optional=True)
 
 
-def _make_aquadopp_speed_profile(ds: xr.Dataset) -> str | None:
+def _make_aquadopp_speed_profile_b64(ds: xr.Dataset) -> str | None:
     """Horizontal speed boxplots per Aquadopp positioned by HAB, for stack page.
 
     Takes an already-loaded xarray.Dataset (not a path).
@@ -876,7 +878,7 @@ def _make_grid_hodograph_b64(ds: xr.Dataset, smooth_hours: float = 24.0) -> str 
     return render_b64(draw_grid_hodograph, ds, smooth_hours, optional=True)
 
 
-def _make_analog_timeseries(nc_path: Path, analog_vars: list[str]) -> str | None:
+def _make_analog_timeseries_b64(nc_path: Path, analog_vars: list[str]) -> str | None:
     """Full-record time series for analog channel variables, one panel per variable.
 
     Only generates a plot when *analog_vars* is non-empty (caller should check

@@ -49,7 +49,7 @@ _INSTRUMENT_ATTRS = (
 )
 
 
-def _resolve(
+def _resolve_description(
     mooring: Mapping[str, Any] | str | Path,
     mooring_dir: str | Path | None,
     stage: int | None,
@@ -191,7 +191,7 @@ def read_mooring(
     oceanarray.pipeline._stage.StageError
         If an opened stage file carries the wrong ``processing_stage`` marker.
     """
-    cfg, mooring_dir = _resolve(mooring, mooring_dir, stage)
+    cfg, mooring_dir = _resolve_description(mooring, mooring_dir, stage)
     if stage is None and raw_dir is None:
         raise ValueError("read_mooring(stage=None) needs raw_dir= to find raw files.")
 

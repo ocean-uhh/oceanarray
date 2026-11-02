@@ -223,7 +223,7 @@ def detect_deployment_window(
     return time[start_idx], time[end_idx], "pressure_pmin10dbar"
 
 
-def _find_nonnull_bounds(
+def _nonnull_time_bounds(
     dataset: xr.Dataset,
 ) -> tuple[np.datetime64, np.datetime64]:
     """Return (first_nonnull_time, last_nonnull_time) using a variable priority hierarchy.
@@ -285,7 +285,7 @@ def _find_nonnull_bounds(
     return time[first_idx], time[last_idx]
 
 
-def _read_yaml_time(data: dict[str, Any], key: str) -> np.datetime64:
+def _parse_yaml_time(data: dict[str, Any], key: str) -> np.datetime64:
     """Return ``datetime64[ns]`` for *key*, ``NaT`` if absent, raising if unparseable."""
     val = data.get(key)
     if val is None or (isinstance(val, str) and not val.strip()):
@@ -531,7 +531,7 @@ def _add_missing_metadata(
     return dataset
 
 
-def _clean_unnecessary_variables(dataset: xr.Dataset) -> xr.Dataset:
+def _drop_redundant_sbe_vars(dataset: xr.Dataset) -> xr.Dataset:
     """Drop redundant SeaBird CNV columns (timeS/timeQ; flag when all-zero)."""
     for var in ("timeS", "timeQ"):
         if var in dataset.variables:
@@ -577,7 +577,7 @@ def _stage2_instrument(
     drift_ramp = (drift_s - clock_offset) if drift_s != 0 else 0
 
     sug_start, sug_end, sug_source = detect_deployment_window(dataset)
-    _nonnull_start, _nonnull_end = _find_nonnull_bounds(dataset)
+    _nonnull_start, _nonnull_end = _nonnull_time_bounds(dataset)
 
     serial = paths.safe_serial(entry.get("serial", "unknown"))
     instrument_type = entry.get("instrument", "unknown")
@@ -594,7 +594,7 @@ def _stage2_instrument(
         )
 
     dataset = _add_missing_metadata(dataset, entry)
-    dataset = _clean_unnecessary_variables(dataset)
+    dataset = _drop_redundant_sbe_vars(dataset)
 
     if clock_offset != 0 or drift_ramp != 0:
         dataset = _preserve_time_orig(dataset)
@@ -659,8 +659,8 @@ def stage2(
     dict of str to xarray.Dataset
         Stage-2 datasets keyed by serial.
     """
-    deploy_time = _read_yaml_time(mooring, "deployment_time")
-    recover_time = _read_yaml_time(mooring, "recovery_time")
+    deploy_time = _parse_yaml_time(mooring, "deployment_time")
+    recover_time = _parse_yaml_time(mooring, "recovery_time")
     mooring_name = mooring["name"]
     by_serial = {
         paths.safe_serial(e.get("serial", "")): e

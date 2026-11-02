@@ -78,13 +78,13 @@ _TIME_ENCODING = {
 }
 
 
-#: Sentinel returned by :func:`_clean_attr_value` for a ``None`` value; the caller
+#: Sentinel returned by :func:`_canonical_attr_value` for a ``None`` value; the caller
 #: drops the attribute instead of writing it.  None-valued attributes are dropped
 #: with a warning; nothing here verifies that required globals are present.
 _DROP = object()
 
 
-def _clean_attr_value(value: object) -> object:
+def _canonical_attr_value(value: object) -> object:
     """Return an attribute value in a form netCDF4 can store, or :data:`_DROP`.
 
     A ``dict`` becomes a JSON string, a non-empty list or tuple is kept when it
@@ -120,7 +120,7 @@ def _clean_attr_value(value: object) -> object:
     return value
 
 
-def _clean_attr_dict(attrs: dict, scope: str, *, stacklevel: int) -> dict:
+def _canonical_attr_dict(attrs: dict, scope: str, *, stacklevel: int) -> dict:
     """Clean an attribute mapping, dropping ``None``-valued keys with a warning.
 
     Parameters
@@ -140,7 +140,7 @@ def _clean_attr_dict(attrs: dict, scope: str, *, stacklevel: int) -> dict:
     """
     cleaned: dict = {}
     for key, value in attrs.items():
-        result = _clean_attr_value(value)
+        result = _canonical_attr_value(value)
         if result is _DROP:
             warnings.warn(
                 f"{scope}: dropping attribute {key!r} because its value is None",
@@ -151,7 +151,7 @@ def _clean_attr_dict(attrs: dict, scope: str, *, stacklevel: int) -> dict:
     return cleaned
 
 
-def _sanitize_names(ds: xr.Dataset) -> xr.Dataset:
+def _netcdf_safe_names(ds: xr.Dataset) -> xr.Dataset:
     """Replace ``/`` in dimension, coordinate and variable names with ``_``.
 
     NetCDF/HDF5 treats ``/`` as a group separator, so a name containing one
@@ -206,10 +206,10 @@ def _sanitize_names(ds: xr.Dataset) -> xr.Dataset:
     return renamed
 
 
-def _clean_attrs(ds: xr.Dataset) -> xr.Dataset:
+def _canonical_attrs(ds: xr.Dataset) -> xr.Dataset:
     """Return a shallow copy of *ds* with netCDF-safe attributes and encoding.
 
-    Cleans global and per-variable attributes with :func:`_clean_attr_dict`
+    Cleans global and per-variable attributes with :func:`_canonical_attr_dict`
     (``None``-valued attributes are dropped with a warning), and moves
     ``units``/``calendar`` from attributes to encoding on datetime variables (so a
     decoded time coordinate that still carries a ``units`` attribute does not
@@ -226,11 +226,11 @@ def _clean_attrs(ds: xr.Dataset) -> xr.Dataset:
         Shallow copy with cleaned attributes; the input is not modified.
     """
 
-    # stacklevel to the user's write() call: warn -> _clean_attr_dict ->
-    # (clean_variable ->) _clean_attrs -> _prepare -> write -> caller. The
+    # stacklevel to the user's write() call: warn -> _canonical_attr_dict ->
+    # (clean_variable ->) _canonical_attrs -> _prepare -> write -> caller. The
     # per-variable path is one frame deeper than the global path.
     def clean_variable(name: str, var: xr.DataArray) -> tuple[dict, dict]:
-        attrs = _clean_attr_dict(var.attrs, f"variable {name!r}", stacklevel=6)
+        attrs = _canonical_attr_dict(var.attrs, f"variable {name!r}", stacklevel=6)
         encoding = dict(var.encoding)
         if _is_datetime(var):
             for attr in _DATETIME_ENCODING_ATTRS:
@@ -239,7 +239,7 @@ def _clean_attrs(ds: xr.Dataset) -> xr.Dataset:
         return attrs, encoding
 
     safe = ds.copy(deep=False)
-    safe.attrs = _clean_attr_dict(ds.attrs, "global", stacklevel=5)
+    safe.attrs = _canonical_attr_dict(ds.attrs, "global", stacklevel=5)
     for name, var in ds.variables.items():
         attrs, encoding = clean_variable(name, var)
         safe[name].attrs = attrs
@@ -309,7 +309,7 @@ def _prepare(ds: xr.Dataset, *, compress: bool = True) -> xr.Dataset:
     xarray.Dataset
         Prepared copy; the input is not modified.
     """
-    safe = _clean_attrs(_sanitize_names(cast_output_dtypes(ds)))
+    safe = _canonical_attrs(_netcdf_safe_names(cast_output_dtypes(ds)))
     for name, var in safe.variables.items():
         if _is_datetime(var):
             # Pin datetime variables; do not inherit xarray's per-file guess.

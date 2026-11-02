@@ -64,7 +64,7 @@ def _log(message: str) -> None:
         log_info("%s", message)
 
 
-def _normalize_conductivity(dataset: xr.Dataset) -> xr.Dataset:
+def _rename_conductivity(dataset: xr.Dataset) -> xr.Dataset:
     """Rename the raw SBE CNV conductivity column to ``conductivity``.
 
     The raw column name encodes the unit (``cond0S/m`` or ``cond0mS/cm``);
@@ -85,7 +85,7 @@ def _normalize_conductivity(dataset: xr.Dataset) -> xr.Dataset:
 
 
 # Known SBE CNV variable names containing '/' and their CF-compatible replacements.
-# Keys that are already handled by _normalize_conductivity are excluded.
+# Keys that are already handled by _rename_conductivity are excluded.
 # SBE's ``Mm/Kg`` suffix is *micro*moles per kg (umol kg-1), not millimoles — so
 # the ``Mm/Kg`` columns map to the per-mass ``dissolved_oxygen`` (canonical
 # umol kg-1) with no scaling, and the ``ML/L`` columns (mL/L, per volume) map to
@@ -103,7 +103,7 @@ _CNV_SLASH_RENAMES: dict[str, str] = {
 }
 
 
-def _sanitize_slash_vars(dataset: xr.Dataset) -> xr.Dataset:
+def _rename_slash_vars(dataset: xr.Dataset) -> xr.Dataset:
     """Rename known SBE slash-named variables and warn about any remaining ones."""
     rename_map: dict[str, str] = {}
     for old, new in _CNV_SLASH_RENAMES.items():
@@ -131,7 +131,7 @@ def _sanitize_slash_vars(dataset: xr.Dataset) -> xr.Dataset:
     return dataset
 
 
-def _normalize_sensor_var_names(
+def _rename_sensor_vars(
     dataset: xr.Dataset, instrument_config: dict[str, Any]
 ) -> xr.Dataset:
     """Rename SENSOR_PRES_{sensor_serial} to SENSOR_PRES_{instrument_serial}.
@@ -200,7 +200,7 @@ def _apply_units_override(
     return dataset
 
 
-def _check_value_ranges(dataset: xr.Dataset, stated_units: dict[str, Any]) -> None:
+def _warn_out_of_range(dataset: xr.Dataset, stated_units: dict[str, Any]) -> None:
     """Refuse a variable whose values contradict its units.
 
     After the units pass, the median of each registered variable with a
@@ -238,7 +238,7 @@ def _check_value_ranges(dataset: xr.Dataset, stated_units: dict[str, Any]) -> No
             )
 
 
-def _clean_dataset_variables(dataset: xr.Dataset, file_type: str) -> xr.Dataset:
+def _drop_file_type_variables(dataset: xr.Dataset, file_type: str) -> xr.Dataset:
     """Remove unwanted variables and coordinates for specific file types.
 
     Removals are driven by ``VARS_TO_REMOVE`` and ``COORDS_TO_REMOVE``, which
@@ -314,7 +314,7 @@ def _add_instrument_metadata(
     return dataset
 
 
-def _normalize_rdi_raw(
+def _to_canonical_rdi(
     dataset: xr.Dataset,
     instrument_config: dict[str, Any],
 ) -> xr.Dataset:
@@ -465,7 +465,7 @@ def _normalize_rdi_raw(
     else:
         dataset.attrs["coordinate_system"] = "UNK"
         _log(
-            f"  WARNING: _normalize_rdi_raw extracted no ENU velocity components "
+            f"  WARNING: _to_canonical_rdi extracted no ENU velocity components "
             f"for {instrument_config.get('serial', 'UNKNOWN')}.  "
             f"The RDI file may use beam or instrument coordinates rather than "
             f"earth frame.  'coordinate_system' set to 'UNK'; stage3 will not "
@@ -600,12 +600,12 @@ def _stage1_instrument(
     file_type = dataset.attrs.get("file_type") or entry.get("file_type", "")
 
     if file_type == "rdi-raw":
-        dataset = _normalize_rdi_raw(dataset, entry)
+        dataset = _to_canonical_rdi(dataset, entry)
     if file_type in _NORTEK_TYPES:
         dataset = _apply_nortek_xyz(dataset)
 
-    dataset = _normalize_conductivity(dataset)
-    dataset = _sanitize_slash_vars(dataset)
+    dataset = _rename_conductivity(dataset)
+    dataset = _rename_slash_vars(dataset)
     # The SBE hex reader outputs ODO oxygen as 'oxygen' (umol/L) and 'oxygen_ml_l'
     # (mL/L); rename to the canonical names used by every file type.
     if "oxygen" in dataset.data_vars:
@@ -616,8 +616,8 @@ def _stage1_instrument(
     if file_type in ("sbe-ascii", "sbe-hex") and "temperature" in dataset.data_vars:
         dataset["temperature"].attrs.setdefault("scale", "ITS-90")
 
-    dataset = _normalize_sensor_var_names(dataset, entry)
-    dataset = _clean_dataset_variables(dataset, file_type)
+    dataset = _rename_sensor_vars(dataset, entry)
+    dataset = _drop_file_type_variables(dataset, file_type)
     dataset = _add_global_attributes(dataset, mooring)
     dataset = _add_instrument_metadata(dataset, entry, mooring)
     dataset = _apply_analog_and_unit_hygiene(dataset, entry)
@@ -630,7 +630,7 @@ def _stage1_instrument(
     dataset = to_canonical_units(dataset, log_fn=_log, stage=1)
     # An imported file's units are the originator's word; check the values agree.
     if file_type in ("oceansites", "rodb"):
-        _check_value_ranges(dataset, stated_units)
+        _warn_out_of_range(dataset, stated_units)
     return dataset
 
 

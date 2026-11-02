@@ -410,7 +410,7 @@ _SBE_SENSORS = {
 }
 
 
-def _iso_date(raw: str, formats: tuple[str, ...]) -> str:
+def _format_date_iso(raw: str, formats: tuple[str, ...]) -> str:
     """Return *raw* as ``YYYY-MM-DD`` when it parses with one of *formats*, else unchanged."""
     import datetime
 
@@ -490,7 +490,7 @@ def _add_sbe_ascii_sensor_vars(
 
     def _date(pat: str) -> str:
         m = re.search(pat, text, re.IGNORECASE)
-        return _iso_date(m.group(1).strip(), ("%d-%b-%y",)) if m else "—"
+        return _format_date_iso(m.group(1).strip(), ("%d-%b-%y",)) if m else "—"
 
     # Pressure header line: "* pressure S/N 2385215, range = 2900 psia: 10-nov-08".
     sn_match = re.search(r"pressure\s+S/N\s+(\d+)", text, re.IGNORECASE)
@@ -547,7 +547,7 @@ def _add_sbe_hex_sensor_vars(
             sensor,
             instr_serial,
             coeffs.get("serialnum", instr_serial),
-            _iso_date(coeffs.get("caldate", "—"), ("%d-%b-%y", "%d-%b-%Y")),
+            _format_date_iso(coeffs.get("caldate", "—"), ("%d-%b-%y", "%d-%b-%Y")),
             ", ".join(
                 f"{k}={v}"
                 for k, v in coeffs.items()

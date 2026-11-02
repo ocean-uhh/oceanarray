@@ -10,14 +10,14 @@ from oceanarray import mooring as _mooring
 from oceanarray import paths
 from oceanarray.config import parameters as params
 from oceanarray.exceptions import MooringError
+from oceanarray.paths import safe_serial
 from oceanarray.pipeline.helpers import (
     STACK_VARS,
-    _detect_interval_s,
+    _build_adcp_bin_ds,
+    _build_adcp_head_ds,
     _linear_interp,
-    _make_adcp_bin_ds,
-    _make_adcp_head_ds,
     _nearest_subsample,
-    _safe_serial,
+    _sample_interval_s,
     _worst_flag,
 )
 from oceanarray.pipeline.read_mooring import read_mooring
@@ -149,7 +149,7 @@ def stack(
     for entry in instrument_list:
         if not isinstance(entry, dict):
             continue
-        serial = _safe_serial(entry.get("serial", ""))
+        serial = safe_serial(entry.get("serial", ""))
         instr_type = entry.get("instrument", "unknown")
         if instr_type not in KNOWN_INSTRUMENT_TYPES:
             print(
@@ -198,7 +198,7 @@ def stack(
     # Each ADCP bin becomes a separate row in the stack, with its own
     # bin_pressure, velocity, and QC time series sliced from the 2-D
     # (time, N_BINS) arrays in the parent stage3 file.
-    # The parent file is loaded once and cached; _make_adcp_bin_ds slices it.
+    # The parent file is loaded once and cached; _build_adcp_bin_ds slices it.
     _adcp_parent_datasets: dict[str, xr.Dataset] = {}
     expanded: list[dict] = []
     for info in instruments:
@@ -317,10 +317,10 @@ def stack(
         try:
             if "_adcp_bin_idx" in info:
                 ds_parent = _adcp_parent_datasets[info["_adcp_nc_key"]]
-                ds = _make_adcp_bin_ds(ds_parent, info["_adcp_bin_idx"])
+                ds = _build_adcp_bin_ds(ds_parent, info["_adcp_bin_idx"])
             elif "_adcp_head" in info:
                 ds_parent = _adcp_parent_datasets[info["_adcp_nc_key"]]
-                ds = _make_adcp_head_ds(ds_parent)
+                ds = _build_adcp_head_ds(ds_parent)
             else:
                 ds = info["ds"]
             # Canonicalise each instrument's units before stacking, so a
@@ -351,7 +351,7 @@ def stack(
                 lst.append(None)
             continue
 
-        interval_s = _detect_interval_s(ds["time"].values)
+        interval_s = _sample_interval_s(ds["time"].values)
         print(
             f"  [{i:2d}] {info['instrument']:10s} s/n {info['serial']:<8}  "
             f"hab={info['hab']:6.1f} m  dt={interval_s:.0f}s  "
@@ -801,7 +801,7 @@ def _read_best_stage(
             continue
         if entry.get("stack", True) is False or entry.get("hab") is None:
             continue
-        serial = _safe_serial(entry.get("serial", ""))
+        serial = safe_serial(entry.get("serial", ""))
         instr_type = entry.get("instrument", "unknown")
         for stage_n in (3, 2):
             path = paths.stage_file(proc_dir, name, instr_type, serial, stage_n)
@@ -889,7 +889,7 @@ def _stack_file(
             continue
         if entry.get("stack", True) is False or entry.get("hab") is None:
             continue
-        serial = _safe_serial(entry.get("serial", ""))
+        serial = safe_serial(entry.get("serial", ""))
         instr_type = entry.get("instrument", "unknown")
         if serial in failed:
             omitted.append(

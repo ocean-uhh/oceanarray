@@ -502,7 +502,7 @@ def process(
             **legacy_kw,
         )
 
-    wanted = _stage_numbers(stages)
+    wanted = _canonical_stages(stages)
     cfg, moor_dir = _resolve_mooring(mooring, mooring_dir, "process")
     outcome = _Outcome()
     _process_stages(
@@ -538,7 +538,7 @@ def _resolve_mooring(
     """Return the loaded, validated description and the mooring's directory."""
     from oceanarray import mooring as _mooring
     from oceanarray.exceptions import MooringError
-    from oceanarray.pipeline.read_mooring import _resolve
+    from oceanarray.pipeline.read_mooring import _resolve_description
 
     if isinstance(mooring, Mapping):
         if mooring_dir is None:
@@ -548,7 +548,7 @@ def _resolve_mooring(
             )
         cfg, moor_dir = _mooring.load(mooring), Path(mooring_dir)
     else:
-        cfg, moor_dir = _resolve(mooring, mooring_dir, 1, caller=caller)
+        cfg, moor_dir = _resolve_description(mooring, mooring_dir, 1, caller=caller)
     if not moor_dir.is_dir():
         raise MooringError(f"Mooring directory not found: {moor_dir}")
     return cfg, moor_dir
@@ -676,7 +676,7 @@ def _process_stages(
         )
 
 
-def _stage_numbers(stages: int | str | Iterable[int]) -> list[int]:
+def _canonical_stages(stages: int | str | Iterable[int]) -> list[int]:
     """Return *stages* as a sorted list drawn from 1, 2, 3, or raise ValueError."""
     if isinstance(stages, str):
         if stages.lower() != "all":

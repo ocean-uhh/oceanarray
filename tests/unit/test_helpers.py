@@ -31,7 +31,7 @@ def _ds(varname: str, values, times, qc=None) -> xr.Dataset:
 
 
 # ---------------------------------------------------------------------------
-# _times_to_float / _detect_interval_s
+# _times_to_float / _sample_interval_s
 # ---------------------------------------------------------------------------
 
 
@@ -42,14 +42,14 @@ def test_times_to_float_nanoseconds():
 
 def test_detect_interval_s_median():
     """Median spacing in seconds; irregular gaps take the median."""
-    assert H._detect_interval_s(_dt([0.0, 60.0, 120.0, 180.0])) == 60.0
+    assert H._sample_interval_s(_dt([0.0, 60.0, 120.0, 180.0])) == 60.0
     # gaps 10, 10, 100 -> median 10
-    assert H._detect_interval_s(_dt([0.0, 10.0, 20.0, 120.0])) == 10.0
+    assert H._sample_interval_s(_dt([0.0, 10.0, 20.0, 120.0])) == 10.0
 
 
 def test_detect_interval_s_default_when_too_few():
     """Fewer than 2 samples falls back to 60 s."""
-    assert H._detect_interval_s(_dt([5.0])) == 60.0
+    assert H._sample_interval_s(_dt([5.0])) == 60.0
 
 
 # ---------------------------------------------------------------------------
@@ -206,7 +206,7 @@ def _adcp_parent(n_bins: int = 2) -> xr.Dataset:
 
 
 def test_make_adcp_head_ds_keeps_head_vars_drops_bins():
-    head = H._make_adcp_head_ds(_adcp_parent())
+    head = H._build_adcp_head_ds(_adcp_parent())
     assert "temperature" in head.data_vars
     assert "pressure" in head.data_vars
     assert "east_velocity" not in head.data_vars  # 2-D bin var excluded
@@ -214,7 +214,7 @@ def test_make_adcp_head_ds_keeps_head_vars_drops_bins():
 
 def test_make_adcp_bin_ds_derives_speed_direction_and_pressure():
     """Bin 0: pressure←bin_pressure, speed=hypot, direction=atan2(E,N) oceanographic."""
-    ds_bin = H._make_adcp_bin_ds(_adcp_parent(), bin_idx=0)
+    ds_bin = H._build_adcp_bin_ds(_adcp_parent(), bin_idx=0)
     # bin 0 has east=1, north=0 -> speed 1, direction 90° (eastward flow)
     np.testing.assert_allclose(ds_bin["pressure"].values, [490.0, 490.0])
     np.testing.assert_allclose(ds_bin["current_speed"].values, [1.0, 1.0], atol=1e-5)
@@ -227,14 +227,14 @@ def test_make_adcp_bin_ds_derives_speed_direction_and_pressure():
 
 def test_make_adcp_bin_ds_direction_northward_is_zero():
     """Bin 1 has east=0, north=1 -> direction 0° (northward flow)."""
-    ds_bin = H._make_adcp_bin_ds(_adcp_parent(), bin_idx=1)
+    ds_bin = H._build_adcp_bin_ds(_adcp_parent(), bin_idx=1)
     np.testing.assert_allclose(
         ds_bin["current_direction"].values, [0.0, 0.0], atol=1e-4
     )
 
 
 # ---------------------------------------------------------------------------
-# _best_nc / _safe_serial
+# _best_stage_file
 # ---------------------------------------------------------------------------
 
 
@@ -244,17 +244,17 @@ def test_best_nc_prefers_stage3_then_stage2(tmp_path):
     base = proc / "microcat" / "M1_2941"
     # only stage2 present
     (proc / "microcat" / "M1_2941_stage2.nc").touch()
-    assert H._best_nc(proc, "microcat", "M1", "2941").name.endswith("_stage2.nc")
+    assert H._best_stage_file(proc, "microcat", "M1", "2941").name.endswith(
+        "_stage2.nc"
+    )
     # stage3 present -> preferred
     (proc / "microcat" / "M1_2941_stage3.nc").touch()
-    assert H._best_nc(proc, "microcat", "M1", "2941").name.endswith("_stage3.nc")
+    assert H._best_stage_file(proc, "microcat", "M1", "2941").name.endswith(
+        "_stage3.nc"
+    )
     _ = base  # documents the naming pattern under test
 
 
 def test_best_nc_none_when_only_stage1(tmp_path):
     (tmp_path / "microcat").mkdir()
-    assert H._best_nc(tmp_path, "microcat", "M1", "9999") is None
-
-
-def test_safe_serial_returns_string():
-    assert isinstance(H._safe_serial("16430, R01-024"), str)
+    assert H._best_stage_file(tmp_path, "microcat", "M1", "9999") is None

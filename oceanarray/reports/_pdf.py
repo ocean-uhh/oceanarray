@@ -293,7 +293,7 @@ def _rewrite_interpage_hrefs(body: str, target_anchors: dict[str, str]) -> str:
     return body
 
 
-def _build_combined_html(pages: list[tuple[str, str, str]]) -> str:
+def _render_combined_html(pages: list[tuple[str, str, str]]) -> str:
     """Assemble one HTML document from ordered ``(slug, filename, html)`` pages.
 
     Each page's ids are namespaced by slug, inter-page links are rewritten to
@@ -405,7 +405,7 @@ def combine_mooring_pdf(
         (_slug_for(f, mooring_name), f.name, f.read_text(encoding="utf-8"))
         for f in sources
     ]
-    combined_html = _build_combined_html(pages)
+    combined_html = _render_combined_html(pages)
 
     if output_path is None:
         output_path = report_dir / f"{mooring_name}_report.pdf"

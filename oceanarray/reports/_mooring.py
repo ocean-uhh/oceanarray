@@ -13,25 +13,25 @@ import numpy as np
 from oceanarray import mooring as _mooring
 from oceanarray import paths
 
+from ..paths import safe_serial
 from ..utilities import instrument_entries
 from . import _figdebug
 from ._env import render_template
 from ._grid import generate_grid_page
 from ._html_helpers import (
     _check_readable,
-    _duration_str,
-    _find_array_report_href,
-    _fmt_dt,
+    _format_dt,
+    _format_duration,
     _instrument_report_exists,
-    _load_pdf_b64,
     _parse_dt,
     _read_instrument_info,
+    _read_pdf_b64,
     _read_qc_summary,
     _read_sensor_info,
     _read_timing_info,
+    _resolve_array_report_href,
     _resolve_clock,
     _resolve_diagram_pdf,
-    _safe_serial,
     _should_skip,
     _stage_files,
     _status,
@@ -595,7 +595,7 @@ class MooringReport:
         for entry in instrument_list:
             if not isinstance(entry, dict):
                 continue
-            serial = _safe_serial(entry.get("serial", ""))
+            serial = safe_serial(entry.get("serial", ""))
             instr_type = entry.get("instrument", "unknown")
             hab = entry.get("hab")
             if hab is None:
@@ -874,9 +874,9 @@ class MooringReport:
             "mooring_name": mooring_name,
             "cruise": _combined("deployment_cruise", "recovery_cruise", "cruise"),
             "ship": _combined("deployment_ship", "recovery_ship", "ship"),
-            "deploy_time": _fmt_dt(deploy_dt),
-            "recover_time": _fmt_dt(recover_dt),
-            "duration": _duration_str(deploy_dt, recover_dt),
+            "deploy_time": _format_dt(deploy_dt),
+            "recover_time": _format_dt(recover_dt),
+            "duration": _format_duration(deploy_dt, recover_dt),
             "waterdepth": waterdepth if waterdepth is not None else "—",
             "latitude": (
                 cfg.get("seabed_latitude")
@@ -920,11 +920,11 @@ class MooringReport:
                 stack_exists=stack_exists,
                 grid_exists=grid_exists,
                 current="summary",
-                array_href=_find_array_report_href(out_dir),
+                array_href=_resolve_array_report_href(out_dir),
             ),
             "generated": datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
             "yaml_path": self._rel(yaml_path),
-            "diagram_b64": _load_pdf_b64(_resolve_diagram_pdf(proc_dir, mooring_name)),
+            "diagram_b64": _read_pdf_b64(_resolve_diagram_pdf(proc_dir, mooring_name)),
             "issues": _build_issues(instruments, recover_dt),
         }
 

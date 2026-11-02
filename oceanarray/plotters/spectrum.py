@@ -12,7 +12,7 @@ spectrum.py contains:
 Pairs with :mod:`oceanarray.analysis.spectral` for spectral computations.
 
 Post-OdB remaining migrations from report/_plots.py:
-  plot_grid_fig (was _make_grid_fig_b64), plot_grid_n2 (was _make_grid_n2_b64).
+  plot_grid_fig (was _make_grid_section_b64), plot_grid_n2 (was _make_grid_n2_b64).
 """
 
 from __future__ import annotations

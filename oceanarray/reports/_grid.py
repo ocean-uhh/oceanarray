@@ -23,10 +23,10 @@ from ._env import (
 )
 from ._figdebug import as_panel
 from ._html_helpers import (
-    _find_array_report_href,
+    _format_rel_path,
     _parse_history,
     _read_nc_metadata,
-    _safe_rel,
+    _resolve_array_report_href,
     _should_skip,
     _status,
 )
@@ -40,14 +40,14 @@ from ._plots import (
     _make_grid_sigma_b64,
     _make_grid_timeseries_b64,
     _make_grid_trajectory_b64,
-    _make_grid_ts_diagram,
+    _make_grid_ts_diagram_b64,
     _make_grid_velocity_stacked_b64,
-    _make_isopycnal_coverage_fig_b64,
-    _make_isopycnal_ts_fig_b64,
-    _make_overflow_temperature_fig_b64,
-    _make_spectrum_fig_b64,
+    _make_isopycnal_coverage_b64,
+    _make_isopycnal_ts_b64,
+    _make_overflow_temperature_b64,
+    _make_spectrum_b64,
     _make_velocity_iqr_profile_b64,
-    _make_wavelet_fig_b64,
+    _make_wavelet_b64,
 )
 from ._vendored.page_model import Panel, PanelGroup, Profile, Section, resolve
 
@@ -157,7 +157,7 @@ GRID_CAPTIONS: dict[str, str] = {
         "hours. LF markers: M2, 1.8 d, 4 d, f. HF markers: M2 (12.4 h), f "
         "(inertial). Dashed black line: −2 spectral slope. Colour encodes "
         "pressure (light blue = shallow, dark blue = deep). Window length "
-        "controllable via hf_segment_days in _make_spectrum_fig_b64."
+        "controllable via hf_segment_days in _make_spectrum_b64."
     ),
     "wavelet": (
         "Temperature wavelet scalogram. Continuous wavelet transform (Morlet, "
@@ -202,7 +202,7 @@ class GridContext:
         defect: the N² panel stubs on it (via ``unavailable_if``), while the
         spectra still compute at ``lat=0`` as before.
     ts_bounds : dict
-        Shared T-S axis limits, from :func:`_make_grid_ts_diagram`.
+        Shared T-S axis limits, from :func:`_make_grid_ts_diagram_b64`.
     ts_b64 : str or None
         The rendered T-S diagram (base64 PNG), or ``None`` if it could not be
         drawn.  Cached here so the figure is drawn once, not once for the bounds
@@ -255,7 +255,7 @@ def build_grid_context(ds: Any, grid_path: Path) -> GridContext:
             stacklevel=2,
         )
         lat_v = 0.0
-    ts_b64, ts_bounds = _make_grid_ts_diagram(ds)
+    ts_b64, ts_bounds = _make_grid_ts_diagram_b64(ds)
     dt_s = float(ds.attrs.get("dt_seconds", 3600))
     return GridContext(
         ds=ds,
@@ -352,7 +352,7 @@ def _isopycnal_ts_panel(sigma_var: str) -> Panel:
             ds_iso = _iso_ds(
                 ctx.ds, sigma_var=_sv, sigma_grid=getattr(params, "SIGMA_GRID", None)
             )
-            return _make_isopycnal_ts_fig_b64(ds_iso)
+            return _make_isopycnal_ts_b64(ds_iso)
         except Exception as exc:
             # Report stays partial, but say why instead of swallowing silently.
             warnings.warn(
@@ -511,13 +511,13 @@ GRID_PANELS: dict[str, Panel] = {
     # overflow
     "isopycnal_coverage": Panel(
         "isopycnal_coverage",
-        render=lambda c: as_panel(lambda: _make_isopycnal_coverage_fig_b64(c.ds)),
+        render=lambda c: as_panel(lambda: _make_isopycnal_coverage_b64(c.ds)),
         caption=GRID_CAPTIONS["isopycnal_coverage"],
         applies_to=_has_sigma,
     ),
     "overflow_temp": Panel(
         "overflow_temp",
-        render=lambda c: as_panel(lambda: _make_overflow_temperature_fig_b64(c.ds)),
+        render=lambda c: as_panel(lambda: _make_overflow_temperature_b64(c.ds)),
         caption=GRID_CAPTIONS["overflow_temp"],
         applies_to=_has_sigma,
     ),
@@ -525,7 +525,7 @@ GRID_PANELS: dict[str, Panel] = {
     "temp_spectrum": Panel(
         "temp_spectrum",
         render=lambda c: as_panel(
-            lambda: _make_spectrum_fig_b64(c.ds["temperature"], c.dt_s, lat=c.lat)
+            lambda: _make_spectrum_b64(c.ds["temperature"], c.dt_s, lat=c.lat)
         ),
         caption=GRID_CAPTIONS["temp_spectrum"],
         applies_to=_has_temperature,
@@ -533,7 +533,7 @@ GRID_PANELS: dict[str, Panel] = {
     "wavelet": Panel(
         "wavelet",
         render=lambda c: as_panel(
-            lambda: _make_wavelet_fig_b64(c.ds["temperature"], c.dt_s)
+            lambda: _make_wavelet_b64(c.ds["temperature"], c.dt_s)
         ),
         caption=GRID_CAPTIONS["wavelet"],
         applies_to=_has_temperature,
@@ -627,7 +627,7 @@ def generate_grid_page(
     """Generate a grid report HTML page with T/S pcolormesh figures."""
     out_path = out_dir / f"{mooring_name}_grid_report.html"
     if _should_skip(out_path, force, skip_existing, grid_path):
-        _status("skip", _safe_rel(out_path, display_root))
+        _status("skip", _format_rel_path(out_path, display_root))
         return
 
     try:
@@ -671,7 +671,7 @@ def generate_grid_page(
                 stack_exists=stack_exists,
                 grid_exists=True,
                 current="grid",
-                array_href=_find_array_report_href(out_dir),
+                array_href=_resolve_array_report_href(out_dir),
             ),
             report=report,
             cruise=ctx.get("cruise", "—"),
@@ -692,6 +692,6 @@ def generate_grid_page(
             generated=ctx["generated"],
         )
         out_path.write_text(html, encoding="utf-8")
-        _status("file", _safe_rel(out_path, display_root))
+        _status("file", _format_rel_path(out_path, display_root))
     except Exception as exc:
         print(f"  ERROR generating grid report: {exc}")

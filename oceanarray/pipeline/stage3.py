@@ -100,11 +100,6 @@ from oceanarray.writers.netcdf import as_stored
 _ENU_KEYS = {"east_velocity", "north_velocity", "up_velocity"}
 
 
-def _safe_serial(serial: Any) -> str:
-    """Return a filename-safe serial token (see :func:`oceanarray.paths.safe_serial`)."""
-    return safe_serial(serial)
-
-
 def _log(message: str) -> None:
     """Log a stage-3 message, as a warning when it starts with ``WARNING``."""
     text = message.strip()
@@ -114,7 +109,7 @@ def _log(message: str) -> None:
         log_info("%s", text)
 
 
-def _find_pressure_var(data_vars: set) -> str | None:
+def _resolve_pressure_var(data_vars: set) -> str | None:
     """Return the dataset's pressure variable name, or None if it has none."""
     if "pressure" in data_vars:
         return "pressure"
@@ -140,7 +135,7 @@ def _parse_hab_segments(entry: dict[str, Any], serial: str) -> list[tuple]:
     return hab_segments
 
 
-def _instrument_table(
+def _build_instrument_table(
     datasets: dict[str, xr.Dataset], mooring: dict[str, Any]
 ) -> list[dict[str, Any]]:
     """Return one info dict per dataset, in description order, carrying its QC configuration.
@@ -155,7 +150,7 @@ def _instrument_table(
     for entry in instrument_entries(mooring):
         if not isinstance(entry, dict):
             continue
-        serial = _safe_serial(entry.get("serial", ""))
+        serial = safe_serial(entry.get("serial", ""))
         if serial not in datasets:
             continue
         instr_type = entry.get("instrument", "unknown")
@@ -175,7 +170,7 @@ def _instrument_table(
         }
         gr_cfg, sp_cfg, tilt_cfg, fl_cfg = load_qc_config(mooring, entry)
         data_vars = set(ds.data_vars)
-        pressure_var = _find_pressure_var(data_vars)
+        pressure_var = _resolve_pressure_var(data_vars)
         for varname, qc_val in qc_flags.items():
             if varname not in data_vars:
                 _log(
@@ -207,7 +202,7 @@ def _instrument_table(
     return instruments
 
 
-def _pressure_bad(info: dict[str, Any]) -> bool:
+def _is_pressure_bad(info: dict[str, Any]) -> bool:
     """Return True when the description flags the instrument's own pressure as bad."""
     return info["qc_flags"].get("pressure", 0) >= 3
 
@@ -220,8 +215,8 @@ def _split_pressure_sources(
     A source has a pressure variable the description does not flag bad; every other
     instrument is a target whose pressure is interpolated from the sources.
     """
-    sources = [i for i in instruments if i["has_pressure"] and not _pressure_bad(i)]
-    targets = [i for i in instruments if not i["has_pressure"] or _pressure_bad(i)]
+    sources = [i for i in instruments if i["has_pressure"] and not _is_pressure_bad(i)]
+    targets = [i for i in instruments if not i["has_pressure"] or _is_pressure_bad(i)]
 
     if not sources and targets:
         _log(
@@ -240,7 +235,7 @@ def _split_pressure_sources(
                 f"{t['instrument']} {t['serial']} hab={t['hab']:.1f}m"
                 + (
                     f" [pressure_qc={t['qc_flags']['pressure']}→replace]"
-                    if _pressure_bad(t)
+                    if _is_pressure_bad(t)
                     else " [no pressure]"
                 )
                 for t in targets
@@ -301,7 +296,7 @@ def _interpolate_if_stuck(
     return ds
 
 
-def _qc_summary(ds: xr.Dataset) -> list[str]:
+def _format_qc_summary(ds: xr.Dataset) -> list[str]:
     """Return one ``var=[good=…, suspect=…]`` count line per QC variable."""
     summary = []
     for v in sorted(ds.data_vars):
@@ -322,7 +317,7 @@ def _qc_summary(ds: xr.Dataset) -> list[str]:
     return summary
 
 
-def _normalize_cf_attrs(ds: xr.Dataset) -> None:
+def _fill_cf_attrs(ds: xr.Dataset) -> None:
     """Fill missing CF attributes from the variable registry and normalise QC attributes.
 
     Only fills attributes the reader or a ``derive_*`` function did not set. Every
@@ -363,7 +358,7 @@ def _stage3_instrument(
     the order listed in the module docstring.
     """
     is_target = any(t is info for t in targets)
-    pressure_bad_flag = _pressure_bad(info)
+    pressure_bad_flag = _is_pressure_bad(info)
     is_adcp = info.get("instrument", "").lower() == "adcp"
     _log(f"-->   Processing {info.get('instrument', 'unknown')} {info['serial']}")
 
@@ -475,7 +470,7 @@ def _stage3_instrument(
             f"({'ppigrf IGRF' if 'magnetic_declination' in ds.attrs else 'assumed 0'})"
         )
 
-    qc_summary = _qc_summary(ds)
+    qc_summary = _format_qc_summary(ds)
     if qc_summary:
         history_notes.append("QARTOD gross-range+spike: " + "; ".join(qc_summary))
     _stage.append_history(ds, " | ".join(history_notes))
@@ -495,7 +490,7 @@ def _stage3_instrument(
     )
 
     ds = derive_oxygen_saturation(ds)
-    _normalize_cf_attrs(ds)
+    _fill_cf_attrs(ds)
 
     # caldip stub provenance: a machine-readable marker beside the dated history note.
     if caldip_dir is not None:
@@ -546,7 +541,7 @@ def stage3(
         If any dataset is not at stage 2.
     """
     _stage.require(datasets, 2, 3)
-    instruments = _instrument_table(datasets, mooring)
+    instruments = _build_instrument_table(datasets, mooring)
     # The caldip correction, when implemented, applies here — before the split — so a
     # sensorless target interpolates from already-corrected neighbours.
     sources, targets = _split_pressure_sources(instruments)
@@ -682,7 +677,7 @@ class Stage3Processor:
                         return True
                     self._log("ERROR: No _stage2 datasets found for this mooring")
                     return False
-                instruments = _instrument_table(datasets, mooring_config)
+                instruments = _build_instrument_table(datasets, mooring_config)
                 _, targets = _split_pressure_sources(instruments)
                 for info in instruments:
                     action = (

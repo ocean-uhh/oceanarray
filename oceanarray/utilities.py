@@ -457,7 +457,7 @@ def _status(kind: str, msg: str, *, char: str = "=") -> None:
         print(f"ERROR: {msg}")
 
 
-def _safe_rel(path: Path, root: Path) -> str:
+def _format_rel_path(path: Path, root: Path) -> str:
     """Return *path* relative to *root* as a string, or its bare name if unrelated.
 
     A display helper for status lines.  Report output written outside the
@@ -708,7 +708,7 @@ def cast_output_dtypes(ds: xr.Dataset) -> xr.Dataset:
 # ---------------------------------------------------------------------------
 
 
-def _dms_to_deg(s: str) -> float:
+def _parse_dms(s: str) -> float:
     """Parse 'DD MM.mmm N/S/E/W', signed 'DD MM.mmm', or a plain float to decimal degrees.
 
     The sign of a coordinate applies to the whole magnitude, not just the degrees
@@ -818,9 +818,9 @@ def parse_latlon_with_source(cfg: dict) -> tuple[float, float, str]:
         lon_s = cfg.get(lon_key)
         if lat_s is not None and lon_s is not None:
             try:
-                lat_v = _dms_to_deg(str(lat_s))
-                lon_v = _dms_to_deg(str(lon_s))
-            except Exception:  # noqa: BLE001  — _dms_to_deg parse failure; try next key
+                lat_v = _parse_dms(str(lat_s))
+                lon_v = _parse_dms(str(lon_s))
+            except Exception:  # noqa: BLE001  — _parse_dms parse failure; try next key
                 continue
             if lat_v == 0.0 and lon_v == 0.0:
                 continue  # treat (0, 0) as an unfilled placeholder

@@ -20,13 +20,13 @@ import yaml
 from markupsafe import escape
 
 from ..config.unit_tables import unit_label
+from ..paths import safe_serial
 from ..plotters.helpers import grid_despine
 from ._env import render_template
 from ._html_helpers import (
-    _duration_str,
+    _format_duration,
     _parse_dt,
     _read_instrument_info,
-    _safe_serial,
     _stage_files,
     _status,
 )
@@ -84,7 +84,7 @@ def _parse_decdeg(val: Any) -> float | None:
 # ---------------------------------------------------------------------------
 
 
-def _lat_lon_from_cfg(cfg: dict[str, Any]) -> tuple:
+def _resolve_lat_lon(cfg: dict[str, Any]) -> tuple:
     """Return (lat_dd, lon_dd) decimal degrees from a mooring YAML dict."""
     lat_raw = (
         cfg.get("seabed_latitude")
@@ -132,7 +132,7 @@ def _square_map_limits(
     return yl0, yl1, xl0, xl1
 
 
-def _fmt_dm(dd: float | None, *, is_lat: bool) -> str:
+def _format_deg_min(dd: float | None, *, is_lat: bool) -> str:
     """Format decimal degrees as degrees + decimal minutes with a hemisphere letter."""
     if dd is None:
         return "—"
@@ -142,7 +142,7 @@ def _fmt_dm(dd: float | None, *, is_lat: bool) -> str:
     return f"{deg:0{2 if is_lat else 3}d}° {(a - deg) * 60:05.2f}′ {hemi}"
 
 
-def _array_masthead(
+def _build_array_masthead(
     array_cfg: dict[str, Any],
     rows: list[dict[str, Any]],
     type_summary: list[dict[str, Any]],
@@ -193,15 +193,15 @@ def _array_masthead(
     return {
         "deployed": dep_dt.strftime("%Y-%m-%d") if dep_dt else "—",
         "recovered": rec_dt.strftime("%Y-%m-%d") if rec_dt else "—",
-        "duration": _duration_str(dep_dt, rec_dt),
+        "duration": _format_duration(dep_dt, rec_dt),
         "position": (
-            f"{_fmt_dm(lat_dd, is_lat=True)} / {_fmt_dm(lon_dd, is_lat=False)}"
+            f"{_format_deg_min(lat_dd, is_lat=True)} / {_format_deg_min(lon_dd, is_lat=False)}"
             if lat_dd is not None and lon_dd is not None
             else "—"
         ),
         "extent": (
-            f"{_fmt_dm(min(lats), is_lat=True)}–{_fmt_dm(max(lats), is_lat=True)} / "
-            f"{_fmt_dm(min(lons), is_lat=False)}–{_fmt_dm(max(lons), is_lat=False)}"
+            f"{_format_deg_min(min(lats), is_lat=True)}–{_format_deg_min(max(lats), is_lat=True)} / "
+            f"{_format_deg_min(min(lons), is_lat=False)}–{_format_deg_min(max(lons), is_lat=False)}"
             if lats and lons
             else "—"
         ),
@@ -306,7 +306,7 @@ _TYPE_ORDER = [
 ]
 
 
-def _collect_mooring_instruments(
+def _build_mooring_instruments(
     proc_dir: Path,
     mooring_id: str,
     mcfg: dict[str, Any],
@@ -336,7 +336,7 @@ def _collect_mooring_instruments(
     for entry in entries:
         if not isinstance(entry, dict):
             continue
-        serial = _safe_serial(entry.get("serial", ""))
+        serial = safe_serial(entry.get("serial", ""))
         itype = entry.get("instrument", "unknown")
         hab = entry.get("hab") or entry.get("hab_bottom") or entry.get("hab_top")
         try:
@@ -402,7 +402,7 @@ def _build_type_summary(
     Parameters
     ----------
     mooring_instruments : list of dict
-        Flat list of instrument dicts from :func:`_collect_mooring_instruments`
+        Flat list of instrument dicts from :func:`_build_mooring_instruments`
         across all moorings.
 
     """
@@ -592,7 +592,7 @@ def generate_array_report(
         else:
             warnings.warn(f"mooring YAML not found: {mooring_yaml}", stacklevel=2)
 
-        lat, lon = _lat_lon_from_cfg(mcfg)
+        lat, lon = _resolve_lat_lon(mcfg)
         deploy_dt = _parse_dt(mcfg.get("deployment_time"))
         recover_dt = _parse_dt(mcfg.get("recovery_time"))
 
@@ -619,7 +619,7 @@ def generate_array_report(
                 "recover_time": recover_dt.strftime("%Y-%m-%d %H:%M")
                 if recover_dt
                 else "—",
-                "duration": _duration_str(deploy_dt, recover_dt),
+                "duration": _format_duration(deploy_dt, recover_dt),
                 "_deploy_dt": deploy_dt,
                 "_recover_dt": recover_dt,
                 "n_instruments": _count_instruments(mcfg),
@@ -639,7 +639,7 @@ def generate_array_report(
         )
 
         # Collect per-instrument status for summary tables
-        instrs = _collect_mooring_instruments(proc_dir, mooring_id, mcfg, recover_dt)
+        instrs = _build_mooring_instruments(proc_dir, mooring_id, mcfg, recover_dt)
         all_instruments.extend(instrs)
         n_deployed = len(instrs)
         n_complete = sum(1 for i in instrs if i["complete"])
@@ -659,7 +659,7 @@ def generate_array_report(
                 "recover_time": recover_dt.strftime("%Y-%m-%d %H:%M")
                 if recover_dt
                 else "—",
-                "duration": _duration_str(deploy_dt, recover_dt),
+                "duration": _format_duration(deploy_dt, recover_dt),
             }
         )
 
@@ -678,7 +678,7 @@ def generate_array_report(
     deploy_dt_arr = _parse_dt(array_cfg.get("deployment_time"))
     recover_dt_arr = _parse_dt(array_cfg.get("recovery_time"))
     type_summary = _build_type_summary(all_instruments)
-    masthead = _array_masthead(
+    masthead = _build_array_masthead(
         array_cfg, rows, type_summary, deploy_dt_arr, recover_dt_arr, array_yaml_path
     )
 

@@ -43,7 +43,7 @@ def _merge_flags(*flag_arrays: np.ndarray) -> np.ndarray:
     return result
 
 
-def _ingest_qartod(result: Any) -> np.ndarray:
+def _qartod_flags(result: Any) -> np.ndarray:
     """Normalise one ioos_qc test result onto the OceanSITES flag table.
 
     Folds the three steps every QARTOD test needs into one place: fill missing
@@ -467,7 +467,7 @@ def apply_qc_tests(
         if varname in gross_range:
             cfg = gross_range[varname]
             flags_list.append(
-                _ingest_qartod(
+                _qartod_flags(
                     qartod.gross_range_test(
                         inp=data,
                         fail_span=tuple(cfg["fail_span"]),
@@ -479,7 +479,7 @@ def apply_qc_tests(
         if varname in spike:
             cfg = spike[varname]
             flags_list.append(
-                _ingest_qartod(
+                _qartod_flags(
                     qartod.spike_test(
                         inp=data,
                         suspect_threshold=cfg.get("suspect_threshold"),
@@ -525,7 +525,7 @@ def apply_qc_tests(
                     stacklevel=2,
                 )
                 continue
-            flags_list.append(_ingest_qartod(_fl_result))
+            flags_list.append(_qartod_flags(_fl_result))
 
         new_flags = _merge_flags(*flags_list)
 

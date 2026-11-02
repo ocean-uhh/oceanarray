@@ -19,10 +19,9 @@ import numpy as np
 from oceanarray import paths
 
 from ..config import parameters as params
-from ..paths import safe_serial
 from ..utilities import (  # noqa: F401  (re-exported)
+    _format_rel_path,
     _nice_colorbar_bounds,
-    _safe_rel,
     _status,
     should_skip_regeneration,
 )
@@ -59,11 +58,6 @@ def make_fig_panel(
     return fig_panel
 
 
-def _safe_serial(serial: Any) -> str:
-    """Return a filename-safe serial token (see :func:`oceanarray.paths.safe_serial`)."""
-    return safe_serial(serial)
-
-
 def _parse_dt(s: str | None) -> datetime | None:
     """Parse clock timestamp: HH:MM:SS, YYYYMMDDTHH:MM:SS, or standard ISO."""
     if not s:
@@ -80,11 +74,11 @@ def _parse_dt(s: str | None) -> datetime | None:
         return None
 
 
-def _fmt_dt(dt: datetime | None, fmt: str = "%Y-%m-%d %H:%M UTC") -> str:
+def _format_dt(dt: datetime | None, fmt: str = "%Y-%m-%d %H:%M UTC") -> str:
     return dt.strftime(fmt) if dt else "—"
 
 
-def _duration_str(start: datetime | None, end: datetime | None) -> str:
+def _format_duration(start: datetime | None, end: datetime | None) -> str:
     if start is None or end is None:
         return "—"
     delta = end - start
@@ -93,7 +87,7 @@ def _duration_str(start: datetime | None, end: datetime | None) -> str:
     return f"{days}d {hours}h"
 
 
-def _fmt_clock_str(s: str | None) -> str | None:
+def _format_clock(s: str | None) -> str | None:
     """Reformat an ISO-8601 timestamp to 'YYYY-MM-DD HH:MM' (minute precision).
 
     Handles both compact ISO (``20260710T21:03:00``) and spaced ISO
@@ -137,8 +131,8 @@ def _resolve_clock(entry: dict[str, Any]) -> dict[str, Any]:
         "offset_s": offset_s,
         "drift_s": drift_s,
         "method": method,
-        "computer_time": _fmt_clock_str(str(comp_str)) if comp_str else None,
-        "instrument_time": _fmt_clock_str(str(inst_str)) if inst_str else None,
+        "computer_time": _format_clock(str(comp_str)) if comp_str else None,
+        "instrument_time": _format_clock(str(inst_str)) if inst_str else None,
         "has_correction": offset_s != 0 or (drift_s is not None and drift_s != 0),
     }
 
@@ -221,7 +215,7 @@ def _should_skip(
     return should_skip_regeneration(output, force, skip_existing, *sources)
 
 
-def _load_pdf_b64(path: Path | None) -> str | None:
+def _read_pdf_b64(path: Path | None) -> str | None:
     """Return base64-encoded PDF bytes if *path* exists, else None."""
     if path is not None and path.is_file():
         return base64.b64encode(path.read_bytes()).decode("ascii")
@@ -281,7 +275,7 @@ _HISTORY_TS_RE = re.compile(r"^\d{4}-\d\d-\d\d")
 _HISTORY_HEADER_KEYS = ("Reader", "Format", "Source file", "Stages")
 
 
-def _history_tables(
+def _build_history_tables(
     entries: list[dict[str, str]],
 ) -> tuple[list[tuple[str, str, str]], list[tuple[int, str, str]]]:
     """Split parsed history entries into a header key/value list and dated events.
@@ -807,7 +801,7 @@ def _stage_files(
     }
 
 
-def _fmt_size(n_bytes: int) -> str:
+def _format_size(n_bytes: int) -> str:
     """Return a human-readable file size string."""
     for unit in ("B", "KB", "MB", "GB"):
         if n_bytes < 1024:
@@ -827,7 +821,7 @@ def _file_info(path: Path) -> dict[str, str]:
     return {
         "exists": True,
         "name": path.name,
-        "size": _fmt_size(st.st_size),
+        "size": _format_size(st.st_size),
         "mtime": mtime.strftime("%Y-%m-%d %H:%M UTC"),
     }
 
@@ -899,7 +893,7 @@ def _instrument_report_exists(out_dir: Path, mooring_name: str, serial: str) -> 
     return (out_dir / "instrument" / f"{mooring_name}_{serial}_report.html").exists()
 
 
-def _find_array_report_href(
+def _resolve_array_report_href(
     out_dir: Path, in_instrument_subdir: bool = False
 ) -> str | None:
     """Return a relative href to the array report if one exists in the top-level proc dir.

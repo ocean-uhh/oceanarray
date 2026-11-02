@@ -10,7 +10,7 @@ from oceanarray import paths
 from oceanarray.pipeline import resolve_stage
 
 
-def _parse_dirs(
+def _resolve_dirs(
     args: argparse.Namespace,
     *,
     proc_required: bool = True,
@@ -67,7 +67,7 @@ def _mooring_location(args: argparse.Namespace) -> Path:
         If ``--basedir`` is given, the old layout is found, or the path does not
         exist.
     """
-    _parse_dirs(args, proc_required=False)
+    _resolve_dirs(args, proc_required=False)
     if getattr(args, "proc_dir", None):
         proc_root = Path(args.proc_dir)
         paths.require_current_layout(proc_root, args.mooring)
@@ -92,7 +92,7 @@ def _folder(location: Path) -> Path:
     return location if location.is_dir() else location.parent
 
 
-def _stage_token(value: str) -> int | str:
+def _parse_stage_token(value: str) -> int | str:
     """Convert a ``--stage`` CLI token to ``int`` or canonical ``str`` via :func:`resolve_stage`.
 
     Parameters
@@ -123,7 +123,7 @@ def _add_dir_args(p: argparse.ArgumentParser, raw_needed: bool = True) -> None:
     """Add directory arguments to a subparser.
 
     Adds ``--raw-dir`` / ``--proc-dir``, plus a hidden ``--basedir`` flag that
-    only exists to emit a migration message (see :func:`_parse_dirs`).  When
+    only exists to emit a migration message (see :func:`_resolve_dirs`).  When
     *raw_needed* is False (e.g. for ``plot``, ``animate`` which operate on
     already-processed NetCDF files) ``--raw-dir`` is silently omitted and the
     argument defaults to None.  Stage 1 processing requires raw instrument files
@@ -140,7 +140,7 @@ def _add_dir_args(p: argparse.ArgumentParser, raw_needed: bool = True) -> None:
     """
     # --basedir is removed: it is accepted (undiscoverable in --help) only so we
     # can print a migration message instead of an argparse "unrecognized argument"
-    # error.  See _parse_dirs.  It is a plain suppressed argument -- a
+    # error.  See _resolve_dirs.  It is a plain suppressed argument -- a
     # single-member mutually-exclusive group added nothing and tripped a
     # usage-formatting assertion in the Python 3.11 argparse.
     p.add_argument(
@@ -337,15 +337,21 @@ def _print_stage_plan(
     """
     from oceanarray import mooring as _mooring
     from oceanarray.exceptions import MooringError
-    from oceanarray.reports._verb import _description_file, _name_and_dir
+    from oceanarray.reports._verb import (
+        _resolve_description_file,
+        _resolve_name_and_dir,
+    )
     from oceanarray.utilities import _status, instrument_entries
 
     try:
-        name, moor_dir = _name_and_dir(location, None)
+        name, moor_dir = _resolve_name_and_dir(location, None)
     except MooringError as e:
         _status("error", str(e))
         return None
-    cfg = _mooring._parse(_description_file(location, _folder(location), name)) or {}
+    cfg = (
+        _mooring._parse(_resolve_description_file(location, _folder(location), name))
+        or {}
+    )
     only = {paths.safe_serial(s) for s in getattr(args, "serials", None) or []}
 
     def _state(path: Path, n: int) -> str:
@@ -377,11 +383,14 @@ def _print_stage_plan(
 def _pressure_targets(cfg: dict, moor_dir: Path) -> set[str]:
     """Return the serials stage 3 would give interpolated pressure, from the stage-2 files on disk."""
     from oceanarray.pipeline.read_mooring import read_mooring
-    from oceanarray.pipeline.stage3 import _instrument_table, _split_pressure_sources
+    from oceanarray.pipeline.stage3 import (
+        _build_instrument_table,
+        _split_pressure_sources,
+    )
 
     try:
         datasets = read_mooring(cfg, stage=2, allow_missing=True, mooring_dir=moor_dir)
-        _, targets = _split_pressure_sources(_instrument_table(datasets, cfg))
+        _, targets = _split_pressure_sources(_build_instrument_table(datasets, cfg))
     except Exception:  # noqa: BLE001  — a preview: no stage-2 files, or unreadable ones
         return set()
     return {str(t["serial"]) for t in targets}

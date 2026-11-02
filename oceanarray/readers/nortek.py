@@ -355,7 +355,7 @@ def to_canonical_nortek(dataset: xr.Dataset, coord_system: str = "ENU") -> xr.Da
     return dataset
 
 
-def _clean_nortek_var_name(col: str) -> str:
+def _canonical_nortek_var_name(col: str) -> str:
     """Convert a raw Nortek CSV column name to a valid NetCDF variable name."""
     name = col.lower().strip()
     name = re.sub(r"[^\w\s]", " ", name)  # special chars → spaces
@@ -442,7 +442,7 @@ def _parse_nortek_csv_columns(df: pd.DataFrame) -> dict:
             continue
         if df_col.lower().strip() in drop_cols or df_col in drop_cols:
             continue
-        var_name = _clean_nortek_var_name(df_col)
+        var_name = _canonical_nortek_var_name(df_col)
         if var_name and var_name not in data_vars:
             data_vars[var_name] = (["time"], df[df_col].values)
 
