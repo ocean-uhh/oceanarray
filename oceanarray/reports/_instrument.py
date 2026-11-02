@@ -11,6 +11,7 @@ from oceanarray import paths
 
 from ..config import parameters as params
 from ..paths import safe_serial
+from ..utilities import should_skip_regeneration
 from ._env import (
     render_history,
     render_nc_coords,
@@ -29,7 +30,6 @@ from ._html_helpers import (
     _read_qc_summary,
     _read_qc_thresholds,
     _resolve_array_report_href,
-    _should_skip,
     _stage_file_details,
     make_fig_panel,
 )
@@ -422,7 +422,7 @@ def generate_instrument_pages(
             ),
             None,
         )
-        if _should_skip(
+        if should_skip_regeneration(
             out_path, force, skip_existing, *([_source_nc] if _source_nc else [])
         ):
             print(f"{prefix}  {out_path.name}  [skip]")

@@ -202,14 +202,6 @@ def test_grid_figure_functions(grid_ds, fn_name):
     assert result is not None
 
 
-def test_grid_fig_b64_temperature(grid_ds):
-    """``_make_grid_section_b64`` builds a temperature pcolormesh panel."""
-    result = _plots._make_grid_section_b64(
-        grid_ds["temperature"], "Temperature", "°C", "RdBu_r", symmetric=True
-    )
-    assert result is not None
-
-
 def test_grid_n2_b64(grid_ds):
     """``_make_grid_n2_b64`` builds the N² profile figure."""
     result = _plots._make_grid_n2_b64(grid_ds, lat=57.0)

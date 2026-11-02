@@ -13,7 +13,6 @@ if TYPE_CHECKING:
 
 import numpy as np
 
-from ..config.unit_tables import var_unit_label
 from ..plotters.current import (
     draw_adcp_hodograph,
     draw_adcp_rose,
@@ -56,7 +55,6 @@ from ..plotters.spectrum import (
 )
 from ..plotters.timeseries import (
     draw_analog_timeseries,
-    draw_grid,
     draw_grid_hydro,
     draw_grid_n2,
     draw_grid_sigma,
@@ -95,73 +93,6 @@ if os.environ.get("OCEANARRAY_RAISE_ON_PLOT_ERROR", "").lower() in ("1", "true",
 # ---------------------------------------------------------------------------
 # Aquadopp quick-look
 # ---------------------------------------------------------------------------
-
-
-def _draw_aquadopp_quick(ds: xr.Dataset) -> plt.Figure:
-    """Quick-look figure for Aquadopp; handles beam and ENU naming, lowercase attitude."""
-    import matplotlib.pyplot as plt
-
-    from ..config import parameters as params
-
-    panels: list[tuple] = []
-
-    enu = [
-        v
-        for v in ("east_velocity", "north_velocity", "up_velocity")
-        if v in ds.data_vars
-    ]
-    if enu:
-        for vname, color in zip(
-            enu, ["tab:blue", "tab:orange", "tab:cyan"], strict=False
-        ):
-            label = vname.replace("_velocity", " vel.").replace("_", " ").title()
-            panels.append((vname, label, color, False))
-    else:
-        for i, color in enumerate(["tab:blue", "tab:orange", "tab:cyan"], 1):
-            vname = f"velocity_beam{i}"
-            if vname in ds.data_vars:
-                panels.append((vname, f"Beam {i} vel.", color, False))
-
-    pvar = next((v for v in ("pressure", "pressure_1") if v in ds.data_vars), None)
-    if pvar:
-        panels.append((pvar, "Pressure", "tab:green", True))
-
-    for vname, label in (("pitch", "Pitch"), ("roll", "Roll")):
-        if vname in ds.data_vars:
-            panels.append((vname, label, "tab:purple", False))
-
-    nrows = max(len(panels), 1)
-    with plt.style.context(str(params.MPLSTYLE)):
-        fig, axs = plt.subplots(
-            nrows, 1, figsize=(report_tokens.W_FULL, 3 * nrows), sharex=True
-        )
-        if nrows == 1:
-            axs = [axs]
-
-        for ax, (vname, label, color, invert) in zip(axs, panels, strict=False):
-            ax.plot(ds["time"], ds[vname], color=color, linewidth=0.5)
-            if "velocity" in vname:
-                ax.axhline(0, color="k", linewidth=0.5, linestyle="--")
-            u = var_unit_label(ds[vname])
-            ax.set_ylabel(f"{label} ({u})" if u else label)
-            grid_despine(ax)
-            if invert:
-                vmin = float(ds[vname].min())
-                vmax = float(ds[vname].max())
-                pad = max((vmax - vmin) * 0.1, 0.5)
-                ax.set_ylim(vmax + pad, vmin - pad)
-
-        serial = (
-            ds["serial_number"].item()
-            if "serial_number" in ds
-            else ds.attrs.get("serial_number", "?")
-        )
-        depth = f"{ds['InstrDepth'].item():.0f} m" if "InstrDepth" in ds else "?"
-        axs[0].set_title(f"Aquadopp s/n: {serial}  |  Target depth: {depth}")
-        axs[-1].set_xlabel("Date")
-        date_axis(axs[-1])
-        plt.tight_layout()
-        return fig
 
 
 # Variables plotted with both a line and individual dots so that sparse or
@@ -452,32 +383,6 @@ def _make_data_histogram_b64(nc_path: Path) -> str | None:
 def _make_ts_diagram_b64(nc_path: Path) -> str | None:
     """Return base64 PNG: T-S diagram (scatter by pressure, heatmap, optional O2 panel)."""
     return render_b64(draw_ts_diagram, nc_path, optional=True)
-
-
-def _make_grid_section_b64(
-    da: xr.DataArray,
-    title: str,
-    units: str,
-    cmap: str,
-    style: str = "pcolormesh",
-    contour_levels: list | None = None,
-    symmetric: bool = False,
-    vmin: float | None = None,
-    vmax: float | None = None,
-) -> str | None:
-    """Render a grid figure from *da* (dims time × pressure); return base64 PNG or None."""
-    return render_slot(
-        draw_grid,
-        da,
-        title,
-        units,
-        cmap,
-        style=style,
-        contour_levels=contour_levels,
-        symmetric=symmetric,
-        vmin=vmin,
-        vmax=vmax,
-    )
 
 
 def _make_grid_sigma_b64(ds: xr.Dataset) -> str | None:
@@ -823,13 +728,6 @@ def _make_analog_timeseries_b64(nc_path: Path, analog_vars: list[str]) -> str | 
     if not analog_vars:
         return None
     return render_b64(draw_analog_timeseries, nc_path, analog_vars, optional=True)
-
-
-def _make_knockdown_pressure_b64(ds: xr.Dataset) -> str | None:
-    """IQR of measured pressure vs. nominal pressure, for the stack report."""
-    from oceanarray.plotters.diagnostic import draw_knockdown_pressure
-
-    return render_b64(draw_knockdown_pressure, ds, optional=True)
 
 
 def _make_knockdown_hab_b64(ds: xr.Dataset) -> str | None:

@@ -13,6 +13,7 @@ import numpy as np
 from oceanarray import paths
 
 from ..config import parameters as params
+from ..utilities import should_skip_regeneration
 from ._env import (
     render_history,
     render_nc_coords,
@@ -30,7 +31,6 @@ from ._html_helpers import (
     _parse_history,
     _read_nc_metadata,
     _resolve_array_report_href,
-    _should_skip,
     _status,
 )
 from ._navs import mooring_nav
@@ -449,7 +449,7 @@ def generate_stack_page(
 ) -> None:
     """Generate the stack report HTML page: lay out the figures and tables; the figures are drawn in ``plotters``."""
     out_path = out_dir / f"{mooring_name}_stack_report.html"
-    if _should_skip(out_path, force, skip_existing, stack_path):
+    if should_skip_regeneration(out_path, force, skip_existing, stack_path):
         _status("skip", _format_rel_path(out_path, display_root))
         return
 

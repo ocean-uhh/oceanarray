@@ -61,7 +61,7 @@ from oceanarray import mooring as _mooring
 from oceanarray import paths
 from oceanarray.config import parameters as params
 from oceanarray.exceptions import MooringError
-from oceanarray.logger import log_info, log_warning, with_stage_handlers
+from oceanarray.logger import log_message, with_stage_handlers
 from oceanarray.paths import safe_serial
 from oceanarray.pipeline import _stage
 from oceanarray.pipeline.caldip import CALDIP_STUB_APPLIED
@@ -100,15 +100,6 @@ from oceanarray.writers.netcdf import as_stored
 _ENU_KEYS = {"east_velocity", "north_velocity", "up_velocity"}
 
 
-def _log(message: str) -> None:
-    """Log a stage-3 message, as a warning when it starts with ``WARNING``."""
-    text = message.strip()
-    if text.startswith("WARNING"):
-        log_warning("%s", text)
-    else:
-        log_info("%s", text)
-
-
 def _resolve_pressure_var(data_vars: set) -> str | None:
     """Return the dataset's pressure variable name, or None if it has none."""
     if "pressure" in data_vars:
@@ -128,7 +119,7 @@ def _parse_hab_segments(entry: dict[str, Any], serial: str) -> list[tuple]:
             bp = np.datetime64(seg["from"], "ns")
             hab_segments.append((bp, float(seg["hab"])))
         except (KeyError, ValueError) as e:
-            _log(
+            log_message(
                 f"WARNING: serial {serial} hab_segments entry invalid ({seg}): {e} — skipped"
             )
     hab_segments.sort(key=lambda x: x[0])
@@ -152,11 +143,11 @@ def _build_instrument_table(
         instr_type = entry.get("instrument", "unknown")
         if entry.get("skip"):
             reason = entry.get("skip_reason", "marked skip:true in YAML")
-            _log(f"SKIP {instr_type} {serial}: {reason}")
+            log_message(f"SKIP {instr_type} {serial}: {reason}")
             continue
         hab = entry.get("hab")
         if hab is None:
-            _log(f"WARNING: serial {serial} has no 'hab' — skipping")
+            log_message(f"WARNING: serial {serial} has no 'hab' — skipping")
             continue
         ds = datasets[serial]
         qc_flags = {
@@ -169,7 +160,7 @@ def _build_instrument_table(
         pressure_var = _resolve_pressure_var(data_vars)
         for varname, qc_val in qc_flags.items():
             if varname not in data_vars:
-                _log(
+                log_message(
                     f"WARNING: serial {serial}: '{varname}_qc: {qc_val}' in YAML but "
                     f"'{varname}' not found in its stage-2 dataset — ignored"
                 )
@@ -211,17 +202,17 @@ def _split_pressure_sources(
     targets = [i for i in instruments if not i["has_pressure"] or _is_pressure_bad(i)]
 
     if not sources and targets:
-        _log(
+        log_message(
             "WARNING: No reliable pressure sources found — pressure interpolation skipped"
         )
-    _log(
+    log_message(
         f"Pressure sources ({len(sources)}): "
         + ", ".join(
             f"{s['instrument']} {s['serial']} hab={s['hab']:.1f}m" for s in sources
         )
     )
     if targets:
-        _log(
+        log_message(
             f"Pressure targets ({len(targets)}): "
             + ", ".join(
                 f"{t['instrument']} {t['serial']} hab={t['hab']:.1f}m"
@@ -259,12 +250,12 @@ def _interpolate_if_stuck(
         return ds
     other_sources = [s for s in sources if s["serial"] != serial]
     if not other_sources:
-        _log(
+        log_message(
             f"WARNING: {serial} — {frac_bad:.0%} of pressure flagged bad but no other "
             f"pressure sources on this mooring; pressure remains bad-flagged."
         )
         return ds
-    _log(
+    log_message(
         f"WARNING: {serial} — {frac_bad:.0%} of pressure values flagged bad by QC "
         f"(flat-line or gross-range); replacing entire pressure record with "
         f"interpolation from {len(other_sources)} source(s). Re-run stage 3 on the full "
@@ -275,7 +266,7 @@ def _interpolate_if_stuck(
     # actual QC reason (4), not the description's default of 0.
     info["qc_flags"]["pressure"] = 4
     ds, method = interpolate_pressure(
-        ds, info, other_sources, target_time, pressure_bad_flag=True, log_fn=_log
+        ds, info, other_sources, target_time, pressure_bad_flag=True, log_fn=log_message
     )
     history_notes.append(
         f"stage3 pressure interpolated post-QC "
@@ -341,12 +332,14 @@ def _stage3_instrument(
     is_target = any(t is info for t in targets)
     pressure_bad_flag = _is_pressure_bad(info)
     is_adcp = info.get("instrument", "").lower() == "adcp"
-    _log(f"-->   Processing {info.get('instrument', 'unknown')} {info['serial']}")
+    log_message(
+        f"-->   Processing {info.get('instrument', 'unknown')} {info['serial']}"
+    )
 
     # Canonicalise units on the way in: a pre-0.5.0 stage-2 file carries the reader's
     # spellings (degC, S/m, …); this rewrites them to the canonical (and converts S/m
     # conductivity ×10) so QC thresholds and salinity see one unit.
-    ds = to_canonical_units(info["ds"].copy(deep=True), log_fn=_log, stage=3)
+    ds = to_canonical_units(info["ds"].copy(deep=True), log_fn=log_message, stage=3)
 
     target_time = ds["time"].values
     history_notes: list[str] = []
@@ -360,12 +353,12 @@ def _stage3_instrument(
 
     if is_target and sources:
         ds, method = interpolate_pressure(
-            ds, info, sources, target_time, pressure_bad_flag, log_fn=_log
+            ds, info, sources, target_time, pressure_bad_flag, log_fn=log_message
         )
         history_notes.append(f"stage3 pressure interpolated (pressure_qc=8) — {method}")
 
     # Salinity before QC so it gets range-tested.
-    ds = compute_salinity_data(ds, log_fn=_log)
+    ds = compute_salinity_data(ds, log_fn=log_message)
 
     gr_cfg = info["gross_range"]
     # ADCP velocity is 2-D; gross_range_test expects 1-D, so the ENU keys are left to
@@ -389,12 +382,16 @@ def _stage3_instrument(
         info["lat"],
         info["lon"],
         latlon_source=latlon_source,
-        log_fn=_log,
+        log_fn=log_message,
     )
     if coord_sys_before == "ENU":
         # Already ENU (configured internally): still apply the declination rotation.
         ds = apply_declination_to_enu(
-            ds, info["lat"], info["lon"], latlon_source=latlon_source, log_fn=_log
+            ds,
+            info["lat"],
+            info["lon"],
+            latlon_source=latlon_source,
+            log_fn=log_message,
         )
 
     if ds.attrs.get("coordinate_system") == "ENU":
@@ -406,16 +403,16 @@ def _stage3_instrument(
                 prcnt_gd_bad=adcp_qc["percent_good_bad"],
                 prcnt_gd_suspect=adcp_qc["percent_good_suspect"],
                 error_vel_threshold=adcp_qc["error_velocity_threshold"],
-                log_fn=_log,
+                log_fn=log_message,
             )
-            ds = compute_adcp_bin_pressure(ds, info["lat"], log_fn=_log)
+            ds = compute_adcp_bin_pressure(ds, info["lat"], log_fn=log_message)
             ds = apply_adcp_seabed_qc(
                 ds,
                 water_depth_m=info.get("water_depth_m", 0.0),
                 lat=info["lat"],
-                log_fn=_log,
+                log_fn=log_message,
             )
-            ds = apply_adcp_surface_qc(ds, lat=info["lat"], log_fn=_log)
+            ds = apply_adcp_surface_qc(ds, lat=info["lat"], log_fn=log_message)
         else:
             ds = apply_enu_velocity_qc(ds, gr_cfg)
 
@@ -482,8 +479,8 @@ def _stage3_instrument(
     ds.attrs["data_mode"] = "P"
     ds = drop_all_zero_vars(ds, ["amplitude_beam", "analog_input_"])
     # Canonical units on everything stage 3 derived (salinity, ENU velocities, oxygen).
-    ds = to_canonical_units(ds, log_fn=_log, stage=3)
-    _log(f"{info['serial']}: {'; '.join(qc_summary)}")
+    ds = to_canonical_units(ds, log_fn=log_message, stage=3)
+    log_message(f"{info['serial']}: {'; '.join(qc_summary)}")
     return ds
 
 

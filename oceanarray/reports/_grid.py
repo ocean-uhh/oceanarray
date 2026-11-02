@@ -12,7 +12,11 @@ import numpy as np
 from oceanarray import paths
 
 from ..config import parameters as params
-from ..utilities import is_unknown_latlon_source, parse_latlon_with_source
+from ..utilities import (
+    is_unknown_latlon_source,
+    parse_latlon_with_source,
+    should_skip_regeneration,
+)
 from ._env import (
     render_history,
     render_nc_coords,
@@ -27,7 +31,6 @@ from ._html_helpers import (
     _parse_history,
     _read_nc_metadata,
     _resolve_array_report_href,
-    _should_skip,
     _status,
 )
 from ._navs import mooring_nav
@@ -316,11 +319,6 @@ def _history_unavailable(ctx: GridContext) -> str | None:
     return "No processing history recorded in the file attributes."
 
 
-def _has_scalar_vars(ctx: GridContext) -> bool:
-    """Return True when the NetCDF file exposes scalar-metadata variables."""
-    return bool(ctx.nc_meta.get("scalar_rows"))
-
-
 def _has_global_attrs(ctx: GridContext) -> bool:
     """Return True when the NetCDF file exposes global attributes."""
     return bool(ctx.nc_meta.get("global_groups"))
@@ -410,7 +408,7 @@ GRID_PANELS: dict[str, Panel] = {
         "nc_scalars",
         render=lambda c: render_nc_scalars(c.nc_meta),
         kind="table",
-        applies_to=_has_scalar_vars,
+        applies_to=lambda c: bool(c.nc_meta.get("scalar_rows")),
     ),
     "nc_globals": Panel(
         "nc_globals",
@@ -610,7 +608,7 @@ def generate_grid_page(
 ) -> None:
     """Generate a grid report HTML page with T/S pcolormesh figures."""
     out_path = out_dir / f"{mooring_name}_grid_report.html"
-    if _should_skip(out_path, force, skip_existing, grid_path):
+    if should_skip_regeneration(out_path, force, skip_existing, grid_path):
         _status("skip", _format_rel_path(out_path, display_root))
         return
 

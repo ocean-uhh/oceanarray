@@ -199,11 +199,6 @@ _KD_COLORS = [
 ]
 
 
-def _knockdown_color(magnitude_dbar: float) -> str:
-    """Return a colour string for the given knockdown magnitude in dbar."""
-    return next(c for thresh, c in _KD_COLORS if magnitude_dbar < thresh)
-
-
 def _build_knockdown_records(
     ds: xr.Dataset,
     waterdepth: float,
@@ -532,7 +527,7 @@ def draw_knockdown_anomaly(
         for p_nom, _serial, actual_p in records:
             anomaly = actual_p - p_nom  # positive = knocked down deeper
             median_anom = float(np.median(anomaly))
-            color = _knockdown_color(abs(median_anom))
+            color = next(c for thresh, c in _KD_COLORS if abs(median_anom) < thresh)
 
             bp = ax.boxplot(
                 anomaly,

@@ -31,13 +31,8 @@ def _ds(varname: str, values, times, qc=None) -> xr.Dataset:
 
 
 # ---------------------------------------------------------------------------
-# _times_to_float / _sample_interval_s
+# _sample_interval_s
 # ---------------------------------------------------------------------------
-
-
-def test_times_to_float_nanoseconds():
-    t = np.array(["1970-01-01T00:00:00", "1970-01-01T00:00:01"], dtype="datetime64[ns]")
-    np.testing.assert_array_equal(H._times_to_float(t), [0.0, 1e9])
 
 
 def test_detect_interval_s_median():
@@ -231,30 +226,3 @@ def test_make_adcp_bin_ds_direction_northward_is_zero():
     np.testing.assert_allclose(
         ds_bin["current_direction"].values, [0.0, 0.0], atol=1e-4
     )
-
-
-# ---------------------------------------------------------------------------
-# _best_stage_file
-# ---------------------------------------------------------------------------
-
-
-def test_best_nc_prefers_stage3_then_stage2(tmp_path):
-    proc = tmp_path
-    (proc / "microcat").mkdir()
-    base = proc / "microcat" / "M1_2941"
-    # only stage2 present
-    (proc / "microcat" / "M1_2941_stage2.nc").touch()
-    assert H._best_stage_file(proc, "microcat", "M1", "2941").name.endswith(
-        "_stage2.nc"
-    )
-    # stage3 present -> preferred
-    (proc / "microcat" / "M1_2941_stage3.nc").touch()
-    assert H._best_stage_file(proc, "microcat", "M1", "2941").name.endswith(
-        "_stage3.nc"
-    )
-    _ = base  # documents the naming pattern under test
-
-
-def test_best_nc_none_when_only_stage1(tmp_path):
-    (tmp_path / "microcat").mkdir()
-    assert H._best_stage_file(tmp_path, "microcat", "M1", "9999") is None

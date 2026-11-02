@@ -1,12 +1,10 @@
 """Internal helper functions for mooring-level stack and grid operations."""
 
-from pathlib import Path
-
 import numpy as np
 import xarray as xr
 
 from oceanarray.config import parameters as params
-from oceanarray.paths import stage_file
+from oceanarray.pipeline.pressure import _times_to_float
 
 STACK_VARS = [
     "temperature",
@@ -104,21 +102,6 @@ def _worst_flag(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     out = ai.copy()
     out[take_b] = bi[take_b]
     return out
-
-
-def _times_to_float(t: np.ndarray) -> np.ndarray:
-    return t.astype("datetime64[ns]").astype(np.float64)
-
-
-def _best_stage_file(
-    proc_dir: Path, instr_type: str, mooring_name: str, serial: str
-) -> Path | None:
-    """Return best available stage3 or stage2 file for one instrument; None if only stage1."""
-    for stage in (3, 2):
-        p = stage_file(proc_dir, mooring_name, instr_type, serial, stage)
-        if p.exists():
-            return p
-    return None
 
 
 def _sample_interval_s(time_vals: np.ndarray) -> float:

@@ -19,7 +19,7 @@ from oceanarray import mooring as _mooring
 from oceanarray import paths
 from oceanarray.config import parameters as params
 from oceanarray.exceptions import MooringError
-from oceanarray.logger import log_info, log_warning, with_stage_handlers
+from oceanarray.logger import log_message, with_stage_handlers
 from oceanarray.paths import safe_serial
 from oceanarray.pipeline import _stage
 from oceanarray.pipeline.raw_files import read_raw_file, resolve_raw_file
@@ -54,14 +54,6 @@ COORDS_TO_REMOVE = {
 }
 
 _NORTEK_TYPES = ("nortek-raw", "nortek-ascii", "nortek-csv")
-
-
-def _log(message: str) -> None:
-    """Log a stage-1 message, as a warning when it starts with ``WARNING``."""
-    if str(message).lstrip().startswith("WARNING"):
-        log_warning("%s", message)
-    else:
-        log_info("%s", message)
 
 
 def _rename_conductivity(dataset: xr.Dataset) -> xr.Dataset:
@@ -116,7 +108,7 @@ def _rename_slash_vars(dataset: xr.Dataset) -> xr.Dataset:
     remaining = [v for v in dataset.data_vars if "/" in v]
     if remaining:
         fallback = {v: v.replace("/", "_per_") for v in remaining}
-        _log(
+        log_message(
             f"WARNING: Unrecognised variable name(s) containing '/': "
             f"{', '.join(remaining)} — sanitising to: "
             f"{', '.join(fallback.values())}"
@@ -164,7 +156,7 @@ def _apply_units_override(
         attrs["units_override_from"] = str(attrs.get("units", ""))
         attrs["units"] = str(units)
         dataset[var].attrs = attrs
-        _log(
+        log_message(
             f"  {var}: units overridden {attrs['units_override_from']!r} -> "
             f"{units!r} (mooring YAML units_override)"
         )
@@ -200,14 +192,14 @@ def _drop_file_type_variables(dataset: xr.Dataset, file_type: str) -> xr.Dataset
     vars_to_remove = VARS_TO_REMOVE.get(file_type, [])
     for var in vars_to_remove:
         if var in dataset.variables:
-            _log(f"Removing variable: {var}")
+            log_message(f"Removing variable: {var}")
             dataset = dataset.drop_vars(var)
 
     # Remove coordinates
     coords_to_remove = COORDS_TO_REMOVE.get(file_type, [])
     for coord in coords_to_remove:
         if coord in dataset.coords:
-            _log(f"Removing coordinate: {coord}")
+            log_message(f"Removing coordinate: {coord}")
             dataset = dataset.drop_vars(coord)
 
     return dataset
@@ -377,7 +369,7 @@ def _to_canonical_rdi(
         dataset.attrs["coordinate_system"] = "ENU"
     else:
         dataset.attrs["coordinate_system"] = "UNK"
-        _log(
+        log_message(
             f"  WARNING: _to_canonical_rdi extracted no ENU velocity components "
             f"for {instrument_config.get('serial', 'UNKNOWN')}.  "
             f"The RDI file may use beam or instrument coordinates rather than "
@@ -395,7 +387,7 @@ def _to_canonical_rdi(
         and _orient_instrument
         and orientation_yaml.lower() != _orient_instrument.lower()
     ):
-        _log(
+        log_message(
             f"WARNING: ADCP orientation mismatch — raw file says "
             f"'{_orient_instrument}' but YAML says '{orientation_yaml}'. "
             f"Velocity signs and beam geometry may be incorrect. "
@@ -535,7 +527,7 @@ def _stage1_instrument(
     dataset = _apply_units_override(dataset, entry)
     stated_units = {v: dataset[v].attrs.get("units") for v in dataset.data_vars}
     # Raises UnitsError on an unknown or missing unit for a registered variable.
-    dataset = to_canonical_units(dataset, log_fn=_log, stage=1)
+    dataset = to_canonical_units(dataset, log_fn=log_message, stage=1)
     # An imported file's units are the originator's word; check the values agree.
     if file_type in ("oceansites", "rodb"):
         _refuse_out_of_range(dataset, stated_units)

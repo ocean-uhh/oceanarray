@@ -14,7 +14,7 @@ from oceanarray import mooring as _mooring
 from oceanarray import paths
 
 from ..paths import safe_serial
-from ..utilities import instrument_entries
+from ..utilities import instrument_entries, should_skip_regeneration
 from . import _figdebug
 from ._env import render_template
 from ._grid import generate_grid_page
@@ -32,7 +32,6 @@ from ._html_helpers import (
     _resolve_array_report_href,
     _resolve_clock,
     _resolve_diagram_pdf,
-    _should_skip,
     _stage_files,
     _status,
     make_fig_panel,
@@ -356,10 +355,6 @@ class MooringReport:
         self._raw_dir = Path(raw_dir) if raw_dir else None
         self._report_dir: Path | None = Path(report_dir) if report_dir else None
 
-    def _resolve_proc_dir(self, mooring_name: str) -> Path:
-        """Return the mooring-level proc directory."""
-        return paths.mooring_proc_dir(self._proc_dir, mooring_name)
-
     def _rel(self, path: Path) -> str:
         """Return a short display path relative to proc_dir."""
         if self._proc_dir:
@@ -424,7 +419,7 @@ class MooringReport:
         proc_dir = (
             Path(mooring_dir)
             if mooring_dir is not None
-            else self._resolve_proc_dir(mooring_name)
+            else paths.mooring_proc_dir(self._proc_dir, mooring_name)
         )
         if not proc_dir.exists():
             print(f"ERROR: Processing directory not found: {proc_dir}")
@@ -475,7 +470,7 @@ class MooringReport:
         ]
         # A description passed in may differ from the file on disk, whose time is
         # all the freshness check can see: the summary is always rebuilt from it.
-        summary_fresh = given_cfg is None and _should_skip(
+        summary_fresh = given_cfg is None and should_skip_regeneration(
             output_path, force, skip_existing, yaml_path, *source_ncs, *products
         )
         if summary_fresh and not (instruments or grid or stack):

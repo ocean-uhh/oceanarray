@@ -197,16 +197,6 @@ _QC_LABELS: dict[int, str] = {
 }
 
 
-def _should_skip(
-    output: Path,
-    force: bool,
-    skip_existing: bool,
-    *sources: Path,
-) -> bool:
-    """Decide whether to skip regenerating *output* (see :func:`should_skip_regeneration`)."""
-    return should_skip_regeneration(output, force, skip_existing, *sources)
-
-
 def _read_pdf_b64(path: Path | None) -> str | None:
     """Return base64-encoded PDF bytes if *path* exists, else None."""
     if path is not None and path.is_file():
