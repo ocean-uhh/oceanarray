@@ -124,7 +124,7 @@ def _has_fig(key: str) -> Callable:
 _fig_panel = make_fig_panel(INSTRUMENT_CAPTIONS)
 
 
-def _figure_panel(pid: str, b64: str) -> Panel:
+def _image_panel(pid: str, b64: str) -> Panel:
     """Build a bare-``.fig`` panel rendering a fixed base64 image (paginated runs)."""
     return Panel(pid, render=lambda _c, _b=b64: _b, slot=None)
 
@@ -249,12 +249,12 @@ INSTRUMENT_PANELS: dict[str, Panel] = {
 #: Paginated time-series images — one bare-``.fig`` panel per PNG in the list.
 _TIMESERIES_IMGS = PanelGroup(
     over=lambda c: list(enumerate(c.get("fig_ts_b64") or [])),
-    panel=lambda pair: _figure_panel(f"timeseries_{pair[0]}", pair[1]),
+    panel=lambda pair: _image_panel(f"timeseries_{pair[0]}", pair[1]),
 )
 #: Paginated start/end-window images.
 _WINDOWS_IMGS = PanelGroup(
     over=lambda c: list(enumerate(c.get("fig_windows_b64") or [])),
-    panel=lambda pair: _figure_panel(f"windows_{pair[0]}", pair[1]),
+    panel=lambda pair: _image_panel(f"windows_{pair[0]}", pair[1]),
 )
 
 
