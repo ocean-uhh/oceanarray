@@ -14,14 +14,15 @@ from oceanarray import paths
 #: ``stack:`` / ``grid:`` block gives one.
 DEFAULTS: dict[str, dict[str, float]] = {
     "stack": {"dt_seconds": 60},
-    "grid": {"p_start": 200.0, "p_end": 1000.0, "dp": 20.0},
+    "grid": {"pmin": 200.0, "pmax": 1000.0, "dp": 20.0},
 }
 
 
 def run(
     mooring: str | PathLike | Mapping[str, Any],
     *,
-    stages: int | str | Iterable[int] = (1, 2, 3),
+    stages: int | str | Iterable[int] | None = None,
+    from_stage: int | None = None,
     serials: Iterable[str] | None = None,
     force: bool = False,
     keep_going: bool = True,
@@ -29,8 +30,8 @@ def run(
     raw_dir: PathLike | None = None,
     caldip_dir: PathLike | None = None,
     dt_seconds: int | None = None,
-    p_start: float | None = None,
-    p_end: float | None = None,
+    pmin: float | None = None,
+    pmax: float | None = None,
     dp: float | None = None,
     stack_stage: int = 3,
     report: bool = False,
@@ -47,13 +48,17 @@ def run(
     mooring : str or os.PathLike or Mapping
         A ``*.mooring.yaml`` path, a directory holding exactly one, or a loaded
         description (then *mooring_dir* is required).
-    stages : int or "all" or iterable of int, optional
-        The stage to start from: ``run`` always continues through stage 3 (through
-        stage 2 with ``stack_stage=2``), so the stack never meets stage files older
-        than the ones just written. ``stages=2`` (or ``(2, 3)``) re-runs stages 2
-        and 3 from the stage-1 files without needing *raw_dir*; ``stages=3``
-        re-runs stage 3 only. To run one stage on its own, use
-        :func:`oceanarray.process`. Default: from stage 1.
+    stages : int or "all" or iterable of int or None, optional
+        The stages to run before the stack. The stack is built from the stage-3
+        files (stage 2 with ``stack_stage=2``), so the stages must run from the
+        first one given through that stage: ``(2, 3)`` re-runs stages 2 and 3 from
+        the stage-1 files without needing *raw_dir*; ``3`` re-runs stage 3 only;
+        ``2`` alone is refused (the stack would take stage-3 files older than the
+        stage-2 files just written). To run one stage on its own, use
+        :func:`oceanarray.process`. Default: all.
+    from_stage : int or None, optional
+        The stage to start from instead of listing *stages*: ``from_stage=2`` is
+        ``stages=(2, 3)``.
     serials : iterable of str or None, optional
         Run stages 1–3 for these instruments only; the stack still takes every
         instrument's stage-3 file.
@@ -72,7 +77,7 @@ def run(
     dt_seconds : int or None, optional
         Spacing of the stack's time axis. ``None`` takes ``stack: dt_seconds`` from
         the description, else 60.
-    p_start, p_end, dp : float or None, optional
+    pmin, pmax, dp : float or None, optional
         The grid's pressure levels, in dbar. ``None`` takes the description's
         ``grid:`` block, else 200, 1000 and 20.
     stack_stage : {3, 2}, optional
@@ -103,31 +108,23 @@ def run(
     >>> oa.run("proc/dune2_1_2026/dune2_1_2026.mooring.yaml", raw_dir="raw/")
     >>> oa.run(yaml_path, raw_dir="raw/", keep_going=False)  # stop on any failure
     >>> oa.run(yaml_path, stages=3, dp=10)                    # re-QC, regrid finer
+    >>> oa.run(yaml_path, from_stage=2)                        # stages 2 and 3
     """
     from oceanarray.exceptions import MooringError
     from oceanarray.pipeline import (
         _Outcome,
         _process_stages,
         _resolve_mooring,
-        _stage_numbers,
     )
     from oceanarray.pipeline.grid import _grid_file
     from oceanarray.pipeline.stack import _stack_file
 
     if stack_stage not in (2, 3):
         raise ValueError(f"stack_stage={stack_stage!r}: expected 3 or 2")
-    start = min(_stage_numbers(stages))
-    if start > stack_stage:
-        raise ValueError(
-            f"stages={stages!r} with stack_stage=2: the stage-2 files would not be "
-            "rewritten; start at stage 1 or 2"
-        )
-    wanted = list(range(start, stack_stage + 1))
+    wanted = _run_stages(stages, from_stage, stack_stage)
     serial_list = _serial_list(serials)
     cfg, moor_dir = _resolve_mooring(mooring, mooring_dir, "run")
-    settings = _settings(
-        cfg, dt_seconds=dt_seconds, p_start=p_start, p_end=p_end, dp=dp
-    )
+    settings = _settings(cfg, dt_seconds=dt_seconds, pmin=pmin, pmax=pmax, dp=dp)
     name = cfg["name"]
     products = [paths.product_file(moor_dir, name, p) for p in ("stack", "grid")]
     outcome = _Outcome()
@@ -167,16 +164,16 @@ def run(
             "written but not gridded. Fix them, or use keep_going=True."
         )
     print(
-        f"Grid for mooring {name} ({settings['p_start']:g}–"
-        f"{settings['p_end']:g} dbar every {settings['dp']:g} dbar)"
+        f"Grid for mooring {name} ({settings['pmin']:g}–"
+        f"{settings['pmax']:g} dbar every {settings['dp']:g} dbar)"
     )
     try:
         grid_path = _grid_file(
             ds_stack,
             cfg,
             moor_dir,
-            p_start=settings["p_start"],
-            p_end=settings["p_end"],
+            pmin=settings["pmin"],
+            pmax=settings["pmax"],
             dp=settings["dp"],
         )
     except ValueError as e:
@@ -204,6 +201,49 @@ def run(
             )
         )
     return files
+
+
+def _run_stages(
+    stages: int | str | Iterable[int] | None, from_stage: int | None, stack_stage: int
+) -> list[int]:
+    """Return the stages ``run`` runs, refusing a set that would leave older files under the stack.
+
+    Raises
+    ------
+    ValueError
+        If both *stages* and *from_stage* are given, or the stages do not run from
+        the first one given through *stack_stage* without a gap.
+    """
+    from oceanarray.pipeline import _stage_numbers
+
+    if stages is not None and from_stage is not None:
+        raise ValueError("give stages= or from_stage=, not both")
+    if from_stage is not None:
+        if from_stage not in range(1, stack_stage + 1):
+            raise ValueError(
+                f"from_stage={from_stage!r}: expected 1–{stack_stage} with "
+                f"stack_stage={stack_stage}"
+            )
+        return list(range(from_stage, stack_stage + 1))
+    if stages is None:
+        return list(range(1, stack_stage + 1))
+    wanted = _stage_numbers(stages)
+    if wanted[0] > stack_stage:
+        raise ValueError(
+            f"stages={stages!r} with stack_stage={stack_stage}: the stack is built "
+            f"from the stage-{stack_stage} files, so start at stage {stack_stage} "
+            "or earlier"
+        )
+    through = list(range(wanted[0], stack_stage + 1))
+    if wanted != through:
+        raise ValueError(
+            f"stages={stages!r}: the stack is built from the stage-{stack_stage} "
+            f"files, so the stages must run from stage {wanted[0]} through "
+            f"{stack_stage} (stages={tuple(through)}, or from_stage={wanted[0]}); "
+            "otherwise it would take files older than the ones just written. "
+            "To run one stage on its own, use oceanarray.process."
+        )
+    return wanted
 
 
 def _serial_list(serials: Iterable[str] | None) -> list[str] | None:
@@ -234,7 +274,7 @@ def _settings(cfg: Mapping[str, Any], **given: float | None) -> dict[str, float]
     ------
     oceanarray.exceptions.MooringError
         If a setting is not a finite number (``dt_seconds``: a whole number), is
-        not positive (``dt_seconds``, ``dp``), or ``p_end`` is not above ``p_start``.
+        not positive (``dt_seconds``, ``dp``), or ``pmax`` is not above ``pmin``.
     """
     from oceanarray.exceptions import MooringError
 
@@ -260,10 +300,8 @@ def _settings(cfg: Mapping[str, Any], **given: float | None) -> dict[str, float]
             problems.append(f"dt_seconds={out['dt_seconds']} must be > 0")
         if out["dp"] <= 0:
             problems.append(f"dp={out['dp']} must be > 0")
-        if out["p_end"] <= out["p_start"]:
-            problems.append(
-                f"p_end={out['p_end']} must be above p_start={out['p_start']}"
-            )
+        if out["pmax"] <= out["pmin"]:
+            problems.append(f"pmax={out['pmax']} must be above pmin={out['pmin']}")
     if problems:
         raise MooringError(
             "stack/grid settings (from the call, else the description's stack:/grid: "

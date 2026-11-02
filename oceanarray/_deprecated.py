@@ -49,26 +49,6 @@ RENAMED: dict[str, str] = {
     "oceanarray.legacy.process_rodb.normalize_dataset_by_middle_percent": (
         "oceanarray.legacy.process_rodb.to_zscore_dataset"
     ),
-    "oceanarray.plotters.plot_microcat_raw": "oceanarray.plotters.draw_microcat_raw",
-    "oceanarray.plotters.plot_aquadopp_raw": "oceanarray.plotters.draw_aquadopp_raw",
-    "oceanarray.plotters.plot_mooring_timeseries": (
-        "oceanarray.plotters.draw_mooring_timeseries"
-    ),
-    "oceanarray.plotters.diagnostic.plot_knockdown_pressure": "oceanarray.plotters.diagnostic.draw_knockdown_pressure",
-    "oceanarray.plotters.diagnostic.plot_knockdown_hab": "oceanarray.plotters.diagnostic.draw_knockdown_hab",
-    "oceanarray.plotters.diagnostic.plot_knockdown_anomaly": "oceanarray.plotters.diagnostic.draw_knockdown_anomaly",
-    "oceanarray.plotters.diagnostic.plot_knockdown_displacement": "oceanarray.plotters.diagnostic.draw_knockdown_displacement",
-    "oceanarray.plotters.diagnostic.plot_clock_offset_check": "oceanarray.plotters.diagnostic.draw_clock_offset_check",
-    "oceanarray.plotters.current.plot_temperature_trajectory": "oceanarray.plotters.current.draw_temperature_trajectory",
-    "oceanarray.plotters.current.plot_speed_boxplot": "oceanarray.plotters.current.draw_speed_boxplot",
-    "oceanarray.plotters.current.plot_multi_aquadopp_trajectories": "oceanarray.plotters.current.draw_multi_aquadopp_trajectories",
-    "oceanarray.plotters.current.plot_hodograph": "oceanarray.plotters.current.draw_hodograph",
-    "oceanarray.plotters.current.plot_aquadopp_speed_profile": "oceanarray.plotters.current.draw_aquadopp_speed_profile",
-    "oceanarray.plotters.current.plot_adcp_trajectories": "oceanarray.plotters.current.draw_adcp_trajectories",
-    "oceanarray.plotters.primitives.plot_trajectory": "oceanarray.plotters.primitives.draw_trajectory",
-    "oceanarray.plotters.hydrography.draw_isopycnal_ts_fig": "oceanarray.plotters.hydrography.draw_isopycnal_ts",
-    "oceanarray.plotters.hydrography.draw_overflow_temperature_fig": "oceanarray.plotters.hydrography.draw_overflow_temperature",
-    "oceanarray.plotters.timeseries.draw_grid_fig": "oceanarray.plotters.timeseries.draw_grid",
 }
 
 _F = TypeVar("_F", bound=Callable[..., Any])

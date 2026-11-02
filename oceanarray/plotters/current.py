@@ -29,7 +29,6 @@ import numpy as np
 import xarray as xr
 from matplotlib.collections import LineCollection
 
-from oceanarray import _deprecated
 from oceanarray.analysis.vector import progressive_vector, xyz_to_enu_2d
 from oceanarray.config import parameters as params
 from oceanarray.config.unit_tables import (
@@ -2003,27 +2002,3 @@ def draw_aquadopp_tilt_panels(
             fontsize=report_tokens.ANNOT_FS,
         )
     return fig
-
-
-# Old names (0.5), removed in 0.7.0.
-plot_temperature_trajectory = _deprecated.alias(
-    "oceanarray.plotters.current.plot_temperature_trajectory",
-    draw_temperature_trajectory,
-)
-plot_speed_boxplot = _deprecated.alias(
-    "oceanarray.plotters.current.plot_speed_boxplot", draw_speed_boxplot
-)
-plot_multi_aquadopp_trajectories = _deprecated.alias(
-    "oceanarray.plotters.current.plot_multi_aquadopp_trajectories",
-    draw_multi_aquadopp_trajectories,
-)
-plot_hodograph = _deprecated.alias(
-    "oceanarray.plotters.current.plot_hodograph", draw_hodograph
-)
-plot_aquadopp_speed_profile = _deprecated.alias(
-    "oceanarray.plotters.current.plot_aquadopp_speed_profile",
-    draw_aquadopp_speed_profile,
-)
-plot_adcp_trajectories = _deprecated.alias(
-    "oceanarray.plotters.current.plot_adcp_trajectories", draw_adcp_trajectories
-)

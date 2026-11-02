@@ -28,10 +28,10 @@ Python API
    import oceanarray as oa
 
    # stage 3 (kept where it exists), then the stack and grid
-   oa.run(yaml_path, stages=3, p_start=200.0, p_end=1000.0, dp=20.0)
+   oa.run(yaml_path, stages=3, pmin=200.0, pmax=1000.0, dp=20.0)
 
    # or on a stack dataset: the grid itself, no files written
-   gridded = oa.grid(stacked, p_start=200.0, p_end=1000.0, dp=20.0)
+   gridded = oa.grid(stacked, pmin=200.0, pmax=1000.0, dp=20.0)
 
 Purpose
 -------
@@ -71,7 +71,7 @@ Pressure grid axis
 
 .. code-block:: python
 
-   p_grid = numpy.arange(p_start, p_end + dp / 2, dp)   # dbar
+   p_grid = numpy.arange(pmin, pmax + dp / 2, dp)   # dbar
 
 Default: 200 to 1000 dbar in 20 dbar steps.
 

@@ -10,7 +10,7 @@ Command
 
 .. code-block:: bash
 
-   oceanarray run {mooring} --proc-dir /data/proc --stage 3 [--dt 60]
+   oceanarray run {mooring} --proc-dir /data/proc --stage 3 [--dt-seconds 60]
 
 Python API
 ----------

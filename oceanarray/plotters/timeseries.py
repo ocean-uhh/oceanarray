@@ -42,7 +42,6 @@ if TYPE_CHECKING:
     import matplotlib.pyplot as plt
     import xarray as xr
 
-from oceanarray import _deprecated
 from oceanarray.reports._vendored import design_tokens as report_tokens
 
 from ..config import parameters as params
@@ -820,9 +819,3 @@ def draw_stack_timeseries(
         framealpha=0.8,
     )
     return fig
-
-
-# Old names (0.5), removed in 0.7.0.
-draw_grid_fig = _deprecated.alias(
-    "oceanarray.plotters.timeseries.draw_grid_fig", draw_grid
-)

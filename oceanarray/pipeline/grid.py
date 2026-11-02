@@ -15,15 +15,15 @@ from oceanarray.writers.netcdf import as_stored
 def grid(
     ds_stack: xr.Dataset,
     *,
-    p_start: float = 200.0,
-    p_end: float = 1000.0,
+    pmin: float = 200.0,
+    pmax: float = 1000.0,
     dp: float = 20.0,
 ) -> xr.Dataset:
     """Interpolate a mooring stack onto a regular pressure grid.
 
     Pure function: no file I/O. At each time step every variable is interpolated
     linearly in pressure from the instruments with valid pressure and values onto
-    ``p_start:dp:p_end`` dbar, with no extrapolation. Velocity flagged suspect or
+    ``pmin:dp:pmax`` dbar, with no extrapolation. Velocity flagged suspect or
     worse (``velocity_flag`` and the ADCP seabed, percent-good and error-velocity
     flags) is masked first.
 
@@ -31,7 +31,7 @@ def grid(
     ----------
     ds_stack : xarray.Dataset
         The stack, as :func:`oceanarray.pipeline.stack.stack` returns it.
-    p_start, p_end, dp : float, optional
+    pmin, pmax, dp : float, optional
         The pressure grid, in dbar.
 
     Returns
@@ -44,7 +44,7 @@ def grid(
     ValueError
         If the stack has no ``pressure`` variable.
     """
-    p_grid = np.arange(p_start, p_end + dp * 0.5, dp)
+    p_grid = np.arange(pmin, pmax + dp * 0.5, dp)
     n_p = len(p_grid)
 
     # Canonicalise the stack's units (idempotent on a 0.5.0 stack; rewrites a
@@ -55,7 +55,7 @@ def grid(
 
     print(
         f"Gridding {n_instr} instruments → {n_p} pressure levels "
-        f"({p_start:.0f}:{dp:.0f}:{p_end:.0f} dbar) × {n_time} time steps"
+        f"({pmin:.0f}:{dp:.0f}:{pmax:.0f} dbar) × {n_time} time steps"
     )
 
     if "pressure" not in ds.data_vars:
@@ -183,7 +183,7 @@ def grid(
         if not np.all(np.isnan(stacked[vname])):
             a = dict(ds[vname].attrs)
             a["vertical_interpolation"] = (
-                f"linear in pressure; no extrapolation outside {p_start:.0f}–{p_end:.0f} dbar"
+                f"linear in pressure; no extrapolation outside {pmin:.0f}–{pmax:.0f} dbar"
             )
             data_vars[vname] = xr.Variable(
                 ("time", "pressure"), stacked[vname].T, attrs=a
@@ -212,13 +212,13 @@ def grid(
         {
             **{k: v for k, v in ds.attrs.items() if k not in ("history",)},
             "data_mode": "P",
-            "p_start_dbar": p_start,
-            "p_end_dbar": p_end,
+            "p_start_dbar": pmin,
+            "p_end_dbar": pmax,
             "dp_dbar": dp,
             "history": (
                 prior_history
                 + f"; Step 2 grid: linear interpolation in pressure onto {dp:.0f} dbar pressure grid "
-                f"({p_start:.0f}–{p_end:.0f} dbar); no extrapolation"
+                f"({pmin:.0f}–{pmax:.0f} dbar); no extrapolation"
             ),
         }
     )
@@ -231,12 +231,12 @@ def _grid_file(
     mooring: dict,
     mooring_dir: Path,
     *,
-    p_start: float,
-    p_end: float,
+    pmin: float,
+    pmax: float,
     dp: float,
 ) -> Path:
     """Grid *ds_stack* and write ``<name>_grid.nc``; return its path."""
-    ds = grid(ds_stack, p_start=p_start, p_end=p_end, dp=dp)
+    ds = grid(ds_stack, pmin=pmin, pmax=pmax, dp=dp)
     return write(
         ds, paths.product_file(mooring_dir, mooring["name"], "grid"), overwrite=True
     )
@@ -335,7 +335,7 @@ class MooringGridder:
             return False
 
         try:
-            ds_out = grid(ds_stack, p_start=p_start, p_end=p_end, dp=dp)
+            ds_out = grid(ds_stack, pmin=p_start, pmax=p_end, dp=dp)
         except ValueError as exc:
             print(f"ERROR: {exc}")
             return False

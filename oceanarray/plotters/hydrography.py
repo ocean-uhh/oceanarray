@@ -18,7 +18,6 @@ if TYPE_CHECKING:
     import matplotlib.pyplot as plt
     import xarray as xr
 
-from oceanarray import _deprecated
 from oceanarray.reports._vendored import design_tokens as report_tokens
 
 from ..config import parameters as params
@@ -429,13 +428,3 @@ def draw_overflow_temperature(
     date_axis(ax)
     ax.set_xlabel("Time")
     return fig
-
-
-# Old names (0.5), removed in 0.7.0.
-draw_isopycnal_ts_fig = _deprecated.alias(
-    "oceanarray.plotters.hydrography.draw_isopycnal_ts_fig", draw_isopycnal_ts
-)
-draw_overflow_temperature_fig = _deprecated.alias(
-    "oceanarray.plotters.hydrography.draw_overflow_temperature_fig",
-    draw_overflow_temperature,
-)

@@ -91,7 +91,7 @@ KNOWN_KEYS: frozenset[str] = frozenset(
 #: an integer.
 _SETTINGS_KEYS: dict[str, dict[str, bool]] = {
     "stack": {"dt_seconds": True},
-    "grid": {"p_start": False, "p_end": False, "dp": False},
+    "grid": {"pmin": False, "pmax": False, "dp": False},
 }
 
 REQUIRED_KEYS: list[str] = validation.REQUIRED_MOORING_KEYS
@@ -279,13 +279,13 @@ def _check_settings(data: Mapping) -> list[ValidationIssue]:
         if block == "stack" and value.get("dt_seconds") == 0:
             issues.append(ValidationIssue("ERROR", "'stack: dt_seconds' must be > 0."))
         if block == "grid":
-            p0, p1, step = (value.get(k) for k in ("p_start", "p_end", "dp"))
+            p0, p1, step = (value.get(k) for k in ("pmin", "pmax", "dp"))
             if step == 0:
                 issues.append(ValidationIssue("ERROR", "'grid: dp' must be > 0."))
             if isinstance(p0, int | float) and isinstance(p1, int | float) and p1 <= p0:
                 issues.append(
                     ValidationIssue(
-                        "ERROR", f"'grid: p_end' ({p1}) must be above p_start ({p0})."
+                        "ERROR", f"'grid: pmax' ({p1}) must be above pmin ({p0})."
                     )
                 )
     return issues
@@ -425,8 +425,8 @@ def _optional_blocks_text() -> str:
             "stack:",
             f"  dt_seconds: {st['dt_seconds']:g}  # time step of the stack, seconds",
             "grid:",
-            f"  p_start: {gr['p_start']:g}  # shallowest grid level, dbar",
-            f"  p_end: {gr['p_end']:g}  # deepest grid level, dbar",
+            f"  pmin: {gr['pmin']:g}  # shallowest grid level, dbar",
+            f"  pmax: {gr['pmax']:g}  # deepest grid level, dbar",
             f"  dp: {gr['dp']:g}  # grid spacing, dbar",
         ]
     )

@@ -147,11 +147,11 @@ The recommended sequence for a new mooring is:
   Aquadopp velocities to earth coordinates, and applies magnetic declination
   correction.  Writes ``{mooring}_{serial}_stage3.nc``.
 - **stack**: interpolates all instruments onto a common time axis and writes
-  ``{mooring}_stack.nc``.  Instruments sampling faster than ``--dt`` are
+  ``{mooring}_stack.nc``.  Instruments sampling faster than ``--dt-seconds`` are
   subsampled by nearest-neighbour; slower instruments are interpolated linearly.
   The 60-second default suits most mooring data; for high-frequency analysis
   (e.g. internal waves from fast thermistors) work from the ``_stage3.nc`` files
-  or build a finer stack with ``--dt``.
+  or build a finer stack with ``--dt-seconds``.
 - **grid**: interpolates the stack onto a regular pressure grid and writes
   ``{mooring}_grid.nc``.  Values outside the instrument depth range at each time
   step are set to NaN.  QC flags from stage 3 are not consulted — data flagged

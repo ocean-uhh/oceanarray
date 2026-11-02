@@ -185,3 +185,42 @@ def test_process_report_on_a_broken_description_is_an_error_line(tmp_path, capsy
     (moor / "m.mooring.yaml").write_text("name: m\nclamp: []\n")
     assert _cli(["process", str(moor), "--report"]) == 1
     assert "ERROR" in capsys.readouterr().out
+
+
+def test_animate_output_dir_and_the_old_minus_o_file(
+    folder, tmp_path, monkeypatch, capsys
+):
+    """-o is the GIF directory (as on report/run/plot); an old `-o x.gif` still names the file."""
+    import oceanarray.plotters as plotters
+
+    seen = []
+
+    def _fake(_ds, out, **_k):
+        seen.append(out)
+        return out
+
+    monkeypatch.setattr(plotters, "animate_hodograph", _fake)
+    gifs = tmp_path / "gifs"
+    assert _cli(["animate", str(folder), "--only", "9920", "-o", str(gifs)]) == 0
+    assert seen == [gifs / f"{_NAME}_9920_hodograph.gif"]
+    seen.clear()
+    one = tmp_path / "one.gif"
+    assert _cli(["animate", str(folder), "--only", "9920", "-o", str(one)]) == 0
+    assert seen == [one]
+    assert "now --output" in capsys.readouterr().err
+
+
+def test_report_short_flags_are_old_spellings(folder, capsys):
+    """-i/-s/-g/-A still switch their pages on for a release, with the long name on stderr."""
+    ns = build_parser().parse_args(["report", str(folder), "-i", "-s", "-g", "-A"])
+    assert (ns.instruments, ns.stack, ns.grid, ns.all_reports) == (True,) * 4
+    err = capsys.readouterr().err
+    for new in ("--instruments", "--stack", "--grid", "--all"):
+        assert f"is now {new}" in err
+
+
+def test_dt_is_the_old_spelling_of_dt_seconds(capsys):
+    """--dt still sets the stack time step, and says --dt-seconds."""
+    ns = build_parser().parse_args(["run", "m", "--proc-dir", ".", "--dt", "600"])
+    assert ns.dt_seconds == 600
+    assert "--dt is now --dt-seconds" in capsys.readouterr().err

@@ -145,13 +145,13 @@ mooring as a whole.
      - mapping
      - Optional
      - ``dt_seconds``: the stack's time step in whole seconds (default 60).
-       ``--dt`` / ``dt_seconds=`` override it.
+       ``--dt-seconds`` / ``dt_seconds=`` override it.
    * - ``grid``
      - mapping
      - Optional
-     - ``p_start``, ``p_end``, ``dp``: the grid's pressure levels in dbar
+     - ``pmin``, ``pmax``, ``dp``: the grid's pressure levels in dbar
        (default 200, 1000, 20). ``--pmin`` / ``--pmax`` / ``--dp`` override them.
-       ``p_end`` must be above ``p_start``.
+       ``pmax`` must be above ``pmin``.
 
 The ``stack:`` and ``grid:`` blocks configure ``oceanarray run`` (and
 ``oceanarray.run``); the per-instrument ``stack: false`` flag one level down is a

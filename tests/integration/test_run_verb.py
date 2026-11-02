@@ -109,7 +109,7 @@ def test_grid_settings_come_from_the_description_unless_given(tmp_path):
     """A grid: block sets the levels; a keyword overrides it."""
     yaml_path = _fresh_tree(
         tmp_path,
-        "stack:\n  dt_seconds: 3600\ngrid:\n  p_start: 100\n  p_end: 300\n  dp: 50\n",
+        "stack:\n  dt_seconds: 3600\ngrid:\n  pmin: 100\n  pmax: 300\n  dp: 50\n",
     )
     files = oa.run(yaml_path, raw_dir=_RAW)
     with xr.open_dataset(files[-1]) as ds:
@@ -127,7 +127,7 @@ def test_grid_settings_come_from_the_description_unless_given(tmp_path):
         ("stack: 60\n", "must be a mapping"),
         ("stack:\n  dt: 60\n", "not a stack setting"),
         ("stack:\n  dt_seconds: 1.5\n", "non-negative integer"),
-        ("grid:\n  p_start: 500\n  p_end: 100\n", "must be above p_start"),
+        ("grid:\n  pmin: 500\n  pmax: 100\n", "must be above pmin"),
         ("grid:\n  dp: 0\n", "must be > 0"),
     ],
 )
@@ -225,7 +225,16 @@ def test_cli_run_keep_going_stacks_what_exists(tmp_path, capsys, monkeypatch):
     raw = _without_aquadopp_raw(tmp_path)
     yaml_path = _fresh_tree(tmp_path)
     proc = str(yaml_path.parent.parent)
-    base = ["run", _NAME, "--proc-dir", proc, "--raw-dir", str(raw), "--dt", "3600"]
+    base = [
+        "run",
+        _NAME,
+        "--proc-dir",
+        proc,
+        "--raw-dir",
+        str(raw),
+        "--dt-seconds",
+        "3600",
+    ]
     assert _cli([*base, "--strict"]) == 1
     assert "stage 1 failed" in capsys.readouterr().out
     assert not paths.product_file(yaml_path.parent, _NAME, "stack").exists()
@@ -247,11 +256,11 @@ def test_cli_run_takes_stages_and_the_description_settings(ran, monkeypatch):
     yaml_path, _ = ran
     proc = str(yaml_path.parent.parent)
     assert _cli(["run", _NAME, "--proc-dir", proc, "--stage", "3", "2"]) == 0
-    assert seen["stages"] == 2  # the stage to start from
+    assert seen["stages"] == [2, 3]
     assert seen["keep_going"] is True
     assert _cli(["run", _NAME, "--proc-dir", proc, "--stage", "3", "--strict"]) == 0
     assert seen["keep_going"] is False
-    assert [seen[k] for k in ("dt_seconds", "p_start", "p_end", "dp")] == [None] * 4
+    assert [seen[k] for k in ("dt_seconds", "pmin", "pmax", "dp")] == [None] * 4
 
 
 def _copy(ran, tmp_path) -> Path:
@@ -350,8 +359,8 @@ def test_a_stale_product_keeps_one_copy(tmp_path, capsys):
         ({"dt_seconds": 0}, "", "dt_seconds=0 must be > 0"),
         ({"dt_seconds": 1.5}, "", "not a whole number"),
         ({"dp": True}, "", "dp=True is not a number"),
-        ({}, "grid:\n  p_end: 150\n", "must be above p_start=200"),
-        ({"p_start": 500, "p_end": 100}, "", "must be above p_start=500"),
+        ({}, "grid:\n  pmax: 150\n", "must be above pmin=200"),
+        ({"pmin": 500, "pmax": 100}, "", "must be above pmin=500"),
     ],
 )
 def test_run_refuses_bad_settings_before_processing(
@@ -365,15 +374,39 @@ def test_run_refuses_bad_settings_before_processing(
 
 
 def test_run_from_stage_2_continues_through_stage_3(ran, tmp_path):
-    """run(stages=2) rewrites stage 2 and then stage 3, so the stack is never older data."""
+    """from_stage=2 rewrites stage 2 and then stage 3, so the stack is never older data."""
     yaml_path = _copy(ran, tmp_path)
-    files = oa.run(yaml_path, stages=2, force=True, dt_seconds=3600)
+    files = oa.run(yaml_path, from_stage=2, force=True, dt_seconds=3600)
     s2 = [f for f in files if f.name.endswith(paths.stage_suffix(2))]
     s3 = [f for f in files if f.name.endswith(paths.stage_suffix(3))]
     assert len(s2) == len(s3) == 2
     assert min(f.stat().st_mtime for f in s3) >= max(f.stat().st_mtime for f in s2)
     with xr.open_dataset(files[-2]) as ds:
         assert set(ds["source_stage"].values.tolist()) == {3}
+
+
+def test_run_refuses_stages_that_leave_older_files_under_the_stack(ran, tmp_path):
+    """stages=2 (or a gap) would stack stage-3 files older than the new stage 2: refused, nothing run."""
+    yaml_path = _copy(ran, tmp_path)
+    before = {p: p.stat().st_mtime for p in yaml_path.parent.rglob("*.nc")}
+    for stages in (2, (1, 3)):
+        with pytest.raises(ValueError, match="must run from stage"):
+            oa.run(yaml_path, stages=stages, force=True)
+    with pytest.raises(ValueError, match="not both"):
+        oa.run(yaml_path, stages=(2, 3), from_stage=2)
+    assert {p: p.stat().st_mtime for p in before} == before
+
+
+def test_cli_run_from_and_stage_list(ran, tmp_path, capsys):
+    """run --stage 2 is refused with the --from hint; --from 2 runs; --dry-run writes nothing."""
+    yaml_path = _copy(ran, tmp_path)
+    assert _cli(["run", str(yaml_path), "--stage", "2"]) == 1
+    assert "--from 2" in capsys.readouterr().out
+    before = {p: p.stat().st_mtime for p in yaml_path.parent.rglob("*.nc")}
+    assert _cli(["run", str(yaml_path), "--from", "2", "--force", "--dry-run"]) == 0
+    out = capsys.readouterr().out
+    assert "Stage 2:" in out and "Stage 3:" in out and "(rewrite)" in out
+    assert {p: p.stat().st_mtime for p in before} == before
 
 
 def test_stack_stage_2_is_a_quick_look_without_stage_3(ran, tmp_path):

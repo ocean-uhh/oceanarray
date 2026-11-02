@@ -23,7 +23,6 @@ import matplotlib.ticker as mticker
 import numpy as np
 from matplotlib.collections import LineCollection
 
-from oceanarray import _deprecated
 from oceanarray.reports._vendored import design_tokens as report_tokens
 
 from ..config import parameters as params
@@ -726,9 +725,3 @@ def colorbar_norm(
     bounds = _nice_colorbar_bounds(float(vmin), float(vmax), n=n)
     norm = mcolors.BoundaryNorm(bounds, ncolors=256)
     return bounds, norm
-
-
-# Old names (0.5), removed in 0.7.0.
-plot_trajectory = _deprecated.alias(
-    "oceanarray.plotters.primitives.plot_trajectory", draw_trajectory
-)

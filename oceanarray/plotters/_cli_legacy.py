@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
-from oceanarray import _deprecated, paths
+from oceanarray import paths
 
 
 def draw_microcat_raw(ds, save_path=None):
@@ -320,15 +320,3 @@ def draw_mooring_timeseries(
         plt.close(fig)
 
     return fig
-
-
-# Old names (0.5), removed in 0.7.0.
-plot_microcat_raw = _deprecated.alias(
-    "oceanarray.plotters.plot_microcat_raw", draw_microcat_raw
-)
-plot_aquadopp_raw = _deprecated.alias(
-    "oceanarray.plotters.plot_aquadopp_raw", draw_aquadopp_raw
-)
-plot_mooring_timeseries = _deprecated.alias(
-    "oceanarray.plotters.plot_mooring_timeseries", draw_mooring_timeseries
-)

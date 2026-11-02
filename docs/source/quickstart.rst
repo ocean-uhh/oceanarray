@@ -253,14 +253,15 @@ out is recorded in the stack and grid (``instruments_omitted``,
 provisional (``data_mode = "P"``).  Add ``--strict`` to stop at the first
 failure instead.
 
-``--stage N`` starts at stage N and continues through stage 3 (``--stage 2``
-re-runs stages 2 and 3 without the raw files); to run one stage on its own, use
-``oceanarray process --stage N``.  For a quick look at sea before stage 3 is
+``--from 2`` re-runs stages 2 and 3 without the raw files (``--stage 2 3`` is the
+same); ``run`` always runs through stage 3, because it rebuilds the stack from
+those files.  To run one stage on its own, use ``oceanarray process --stage N``.
+``--dry-run`` lists what a run would write.  For a quick look at sea before stage 3 is
 trusted, ``--stack-stage 2`` stacks and grids the stage-2 files instead; the
 report marks those instruments in amber (no QC flags, no interpolated pressure,
 velocities referenced to magnetic north).
 
-The stack's time step and the grid's pressure levels come from ``--dt``,
+The stack's time step and the grid's pressure levels come from ``--dt-seconds``,
 ``--pmin``, ``--pmax`` and ``--dp``, else from optional ``stack:`` and ``grid:``
 blocks in the YAML (``oceanarray init`` writes them commented out), else 60 s
 and 200–1000 dbar every 20 dbar:
@@ -270,8 +271,8 @@ and 200–1000 dbar every 20 dbar:
    stack:
      dt_seconds: 600
    grid:
-     p_start: 200
-     p_end: 1000
+     pmin: 200
+     pmax: 1000
      dp: 20
 
 The mooring can also be given by path, with no ``--proc-dir``; the folder can

@@ -14,14 +14,14 @@ animation.py    Animated GIF output via matplotlib.animation + pillow.
 
 Public API
 ----------
-High-level ``plot_*`` functions (pre-OdB, retained for compatibility):
+Current-meter figures (current.py, animation.py):
 
   draw_temperature_trajectory  Lagrangian trajectory coloured by temperature
   draw_speed_boxplot           Current speed boxplot with percentile statistics
   draw_hodograph               Two-panel hodograph coloured by time
   animate_hodograph            Animated GIF hodograph (requires pillow)
 
-Domain ``draw_*`` functions (new public API):
+Domain ``draw_*`` functions:
 
   Timeseries (timeseries.py):
     draw_grid, draw_grid_hydro, draw_grid_velocity_stacked,
@@ -46,35 +46,22 @@ Domain ``draw_*`` functions (new public API):
     draw_isopycnal_ts, draw_isopycnal_coverage,
     draw_overflow_temperature
 
-Legacy functions (from plotter.py — available via backward-compat shim):
+CLI quick-look functions (_cli_legacy.py):
 
   draw_microcat_raw, draw_aquadopp_raw, draw_mooring_timeseries
 
-These three are the only remaining plotter.py entries — kept alive for the
-CLI (``oceanarray plot`` / ``process --plot``) pending their redesign as a
-file-oriented ``oceanarray plot <file>`` (§11).
-
-Future
-------
-Post-OdB: implement remaining Tier-1 primitives; delete plotter.py once empty.
-May eventually be split into a separate oceanvis package.
+kept for ``oceanarray plot`` and ``process --plot`` until those become a
+file-oriented ``oceanarray plot <file>``.
 """
 
 # ---------------------------------------------------------------------------
-# High-level plot_* functions (pre-OdB, retained for compatibility)
+# CLI quick-look functions — stay until the file-oriented `oceanarray plot <file>`
+# replaces them; _cli_legacy.py is deleted then. Do not add entries.
 # ---------------------------------------------------------------------------
-# ---------------------------------------------------------------------------
-# Legacy CLI plot functions — stay until the file-oriented `oceanarray plot <file>`
-# redesign (§11) replaces them; _cli_legacy.py is deleted then. Do not add entries.
-# ---------------------------------------------------------------------------
-# Names the package exported in 0.5: each warns when called and is removed in 0.7.0.
 from oceanarray.plotters._cli_legacy import (
     draw_aquadopp_raw,
     draw_microcat_raw,
     draw_mooring_timeseries,
-    plot_aquadopp_raw,
-    plot_microcat_raw,
-    plot_mooring_timeseries,
 )
 from oceanarray.plotters.animation import animate_hodograph
 
@@ -95,11 +82,6 @@ from oceanarray.plotters.current import (
     draw_rose_grid,
     draw_speed_boxplot,
     draw_temperature_trajectory,
-    plot_aquadopp_speed_profile,
-    plot_hodograph,
-    plot_multi_aquadopp_trajectories,
-    plot_speed_boxplot,
-    plot_temperature_trajectory,
 )
 
 # ---------------------------------------------------------------------------
@@ -117,9 +99,7 @@ from oceanarray.plotters.diagnostic import (
 from oceanarray.plotters.hydrography import (
     draw_isopycnal_coverage,
     draw_isopycnal_ts,
-    draw_isopycnal_ts_fig,
     draw_overflow_temperature,
-    draw_overflow_temperature_fig,
 )
 
 # ---------------------------------------------------------------------------
@@ -137,7 +117,6 @@ from oceanarray.plotters.spectrum import (
 from oceanarray.plotters.timeseries import (
     draw_analog_timeseries,
     draw_grid,
-    draw_grid_fig,
     draw_grid_hydro,
     draw_grid_n2,
     draw_grid_sigma,

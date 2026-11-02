@@ -40,7 +40,6 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from oceanarray import _deprecated
 from oceanarray.reports._vendored import design_tokens as report_tokens
 
 from ..config import parameters as params
@@ -1775,22 +1774,3 @@ def draw_instrument_spacing(
     ax.set_ylabel("Count (instrument pair × time step)")
     plot_title(ax, "Instrument spacing")
     return fig
-
-
-# Old names (0.5), removed in 0.7.0.
-plot_knockdown_pressure = _deprecated.alias(
-    "oceanarray.plotters.diagnostic.plot_knockdown_pressure", draw_knockdown_pressure
-)
-plot_knockdown_hab = _deprecated.alias(
-    "oceanarray.plotters.diagnostic.plot_knockdown_hab", draw_knockdown_hab
-)
-plot_knockdown_anomaly = _deprecated.alias(
-    "oceanarray.plotters.diagnostic.plot_knockdown_anomaly", draw_knockdown_anomaly
-)
-plot_knockdown_displacement = _deprecated.alias(
-    "oceanarray.plotters.diagnostic.plot_knockdown_displacement",
-    draw_knockdown_displacement,
-)
-plot_clock_offset_check = _deprecated.alias(
-    "oceanarray.plotters.diagnostic.plot_clock_offset_check", draw_clock_offset_check
-)
