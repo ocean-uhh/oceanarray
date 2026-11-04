@@ -42,11 +42,27 @@ Products
 - ``<interval>`` is the time step in ISO 8601 (``PT10M``); ``<step>`` the pressure step in
   dbar.
 
+An ADCP is one file with its bins on ``DEPTH``: the nominal transducer depth plus (down-looking)
+or minus (up-looking) the distance to each bin, from the orientation in the mooring
+description or, without one, the instrument header; with neither, the export refuses.
+``PRES`` holds the pressure at each bin, computed from the transducer's measured
+pressure, which the file also carries as ``TRANSDUCER_PRES(TIME)`` (its nominal depth in
+``sensor_depth``): ``DEPTH`` is nominal, and the pressures show the knock-down.  The below-seabed flag that stage 3 keeps
+apart (``seabed_qc``) is merged into each velocity's ``_QC``, the worse flag winning.
+
 A file with several instruments needs one time axis (``<PARAM>(TIME, DEPTH)``), so the
 only multi-instrument products are the stack and the grid.  Each ``DEPTH`` level of the
 stack states how it reached the common time base: nearest-neighbour subsample (an
 instrument sampling at least as fast as the time step; no averaging) or linear
 interpolation in time.
+
+The grid stays on its pressure levels: ``PRES(DEPTH)`` holds the levels, and ``DEPTH`` is
+each level converted with ``gsw.z_from_p`` at the mooring latitude, so nothing is
+re-interpolated.  Its ``history`` names the grid and the stage files the stack was built
+from (manual §4.2.1).  A gridded file carries no ``_QC`` variables (§4.2.1: only good
+source data went into it).  A grid records no per-input data modes, so only a
+provisional (``P``) grid is exported; until a grid can record them, any other mode is
+refused.
 
 Data mode
 ---------

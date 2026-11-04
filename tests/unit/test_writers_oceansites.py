@@ -169,3 +169,108 @@ def test_type_codes_follow_the_variables() -> None:
     assert type_code(ds) == "CTD"
     assert type_code(ds.drop_vars(["pressure", "pressure_qc"])) == "CT"
     assert type_code(ds[["temperature"]]) == "T"
+
+
+# The ADCP fixture is a real dsG2 record cut for the knockdown tests; it lacks the
+# instrument's serial and height above bottom, so those are supplied here. Its
+# orientation is the file's own: the YAML says down, the instrument header up, and
+# the YAML wins, as in the stack.
+_ADCP = Path("tests/fixtures/adcp/dsG2_adcp_stage3_knockdown.nc")
+_ADCP_DESCRIPTION = {
+    "name": "dsG2_1_2026",
+    "platform_code": "DSG2",
+    "waterdepth": 985,
+    "deployment_time": "2026-05-07T11:10:00",
+    "latitude": "65 33.5 N",
+    "longitude": "29 30.0 W",
+}
+
+
+def _adcp(**attrs: object) -> xr.Dataset:
+    """The ADCP fixture with its instrument metadata set."""
+    ds = xr.open_dataset(_ADCP)
+    ds.attrs.update({"serial": "1234", "hab": 400, **attrs})
+    return ds
+
+
+def test_adcp_bins_are_the_depth_axis(tmp_path: Path) -> None:
+    """One file per ADCP: DEPTH = transducer depth + range (down-looking), values unchanged."""
+    ds = _adcp()
+    out = to_oceansites(ds, _ADCP_DESCRIPTION)
+    assert oceansites_filename(out) == "OS_DSG2_202605_P_ADCP-1234-585m.nc"
+    expected = 985 - 400 + ds["range"].values
+    np.testing.assert_allclose(out["DEPTH"].values, expected, rtol=1e-6)
+    assert out["UCUR"].attrs["sensor_orientation"] == "downward"
+    back = xr.open_dataset(writers.write(out, tmp_path / oceansites_filename(out)))
+    np.testing.assert_array_equal(back["UCUR"].values, ds["east_velocity"].values)
+    np.testing.assert_array_equal(back["PRES"].values, ds["bin_pressure"].values)
+
+
+def test_upward_adcp_bins_decrease_in_depth() -> None:
+    """An upward-looking ADCP's bins are shallower than its transducer."""
+    out = to_oceansites(_adcp(orientation_yaml="up"), _ADCP_DESCRIPTION)
+    assert out["DEPTH"].values[-1] < out["DEPTH"].values[0] < 585
+    assert out["VCUR"].attrs["sensor_orientation"] == "upward"
+
+
+def test_adcp_without_orientation_is_refused() -> None:
+    """The orientation decides the bin depths, so it is never assumed."""
+    ds = _adcp()
+    del ds.attrs["orientation_yaml"], ds.attrs["orientation_instrument"]
+    with pytest.raises(OceanSitesError, match="orientation"):
+        to_oceansites(ds, _ADCP_DESCRIPTION)
+
+
+_GRID = _PROC / "dune2_1_2026_grid.nc"
+_STACK = _PROC / "dune2_1_2026_stack.nc"
+
+
+def test_grid_is_a_gridded_file_on_its_pressure_levels(
+    description: dict, tmp_path: Path
+) -> None:
+    """The grid keeps its values; DEPTH is gsw.z_from_p of its levels, PRES the levels."""
+    import gsw
+
+    grid = xr.open_dataset(_GRID)
+    out = to_oceansites(grid, description, stack=xr.open_dataset(_STACK))
+    assert (
+        oceansites_filename(out) == "OS_DUNE2-202607_20260711-20260725_GRD_PT1H-DP50.nc"
+    )
+    lat = out["LATITUDE"].values[0]
+    np.testing.assert_allclose(
+        out["DEPTH"].values, -gsw.z_from_p(grid["pressure"].values, lat), rtol=1e-6
+    )
+    np.testing.assert_array_equal(out["PRES"].values, grid["pressure"].values)
+    back = xr.open_dataset(writers.write(out, tmp_path / oceansites_filename(out)))
+    np.testing.assert_array_equal(back["TEMP"].values, grid["temperature"].values)
+    assert out["TEMP"].attrs["cell_methods"] == "TIME: point DEPTH: point"
+    assert out.attrs["time_coverage_resolution"] == "PT1H"
+
+
+def test_grid_history_lists_the_source_files(description: dict) -> None:
+    """§4.2.1: a gridded file names the lower-level files it was made from."""
+    out = to_oceansites(
+        xr.open_dataset(_GRID), description, stack=xr.open_dataset(_STACK)
+    )
+    last = out.attrs["history"].splitlines()[-1]
+    assert "dune2_1_2026_grid.nc" in last
+    assert "dune2_1_2026_2941_stage3.nc" in last
+
+
+def test_adcp_keeps_the_transducer_pressure() -> None:
+    """The transducer's measured pressure (the knock-down record) is on TIME, with its depth."""
+    ds = _adcp()
+    out = to_oceansites(ds, _ADCP_DESCRIPTION)
+    assert out["TRANSDUCER_PRES"].dims == ("TIME",)
+    np.testing.assert_array_equal(out["TRANSDUCER_PRES"].values, ds["pressure"].values)
+    assert out["TRANSDUCER_PRES"].attrs["sensor_depth"] == 585.0
+    assert out["TRANSDUCER_PRES"].attrs["sensor_orientation"] == "downward"
+    assert out["TRANSDUCER_PRES_QC"].dims == ("TIME",)
+
+
+def test_grid_other_than_provisional_is_refused(description: dict) -> None:
+    """A grid records no per-input modes, so a non-P grid cannot be exported."""
+    grid = xr.open_dataset(_GRID)
+    grid.attrs["data_mode"] = "D"
+    with pytest.raises(OceanSitesError, match="provisional"):
+        to_oceansites(grid, description)

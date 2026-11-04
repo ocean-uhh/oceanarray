@@ -22,6 +22,7 @@ import pandas as pd
 import xarray as xr
 
 from oceanarray import location
+from oceanarray.config import parameters as params
 from oceanarray.instruments import instrument_entries
 from oceanarray.paths import safe_serial
 from oceanarray.pipeline.qc.calibration import CALDIP_STUB_APPLIED
@@ -92,19 +93,16 @@ def type_code(ds: xr.Dataset) -> str:
     ``CM`` current meter; ``CTDO`` conductivity, temperature, pressure and
     oxygen; ``CTD`` conductivity, temperature and pressure (measured, or
     interpolated from neighbouring instruments); ``CT`` no pressure at all;
-    ``O`` oxygen only; ``T`` temperature only.
+    ``O`` oxygen only; ``T`` temperature only; ``ADCP`` a profiler with bins.
 
     Raises
     ------
     OceanSitesError
-        For a profiling instrument (written as its own product) or a set of
-        variables none of the codes describes.
+        For a set of variables none of the codes describes.
     """
     names = set(ds.data_vars)
     if ADCP_BIN_DIM in ds.dims:
-        raise OceanSitesError(
-            "profiling instruments (ADCP bins) are not deployment files yet"
-        )
+        return "ADCP"
     if {"east_velocity", "north_velocity"} <= names:
         return "CM"
     oxygen = "dissolved_oxygen" in names
@@ -131,6 +129,23 @@ def _nominal_depth(ds: xr.Dataset) -> float:
         return float(ds.attrs["waterdepth"]) - float(ds.attrs["hab"])
     except KeyError as e:
         raise OceanSitesError(f"no nominal depth: stage-3 file lacks {e}") from None
+
+
+def _bin_depths(ds: xr.Dataset, head: float) -> np.ndarray:
+    """Return an ADCP's nominal bin depths: transducer depth ± ``range``, by orientation.
+
+    The orientation is never assumed: without ``orientation_yaml`` or
+    ``orientation_instrument`` the export refuses.
+    """
+    orientation = ds.attrs.get("orientation_yaml") or ds.attrs.get(
+        "orientation_instrument"
+    )
+    if str(orientation).lower() not in ("up", "down"):
+        raise OceanSitesError(f"ADCP orientation {orientation!r} is not 'up' or 'down'")
+    if "range" not in ds.variables:
+        raise OceanSitesError("ADCP stage-3 file has no 'range' (distance to each bin)")
+    sign = 1.0 if str(orientation).lower() == "down" else -1.0
+    return head + sign * np.asarray(ds["range"].values, dtype="float64")
 
 
 def _entry(mooring: Mapping, serial: str) -> Mapping:
@@ -193,15 +208,42 @@ def _sensor_attrs(ds: xr.Dataset, name: str, start: str, end: str) -> dict[str, 
     return attrs
 
 
-def _qc_variable(ds: xr.Dataset, name: str, long_name: str) -> xr.DataArray:
-    """Return the ``<PARAM>_QC`` flags on ``(TIME, DEPTH)`` from stage-3 ``<name>_qc``."""
+def _worst(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """Return the element-wise worse of two reference-table-2 flag arrays."""
+    rank = params.QC_MERGE_PRIORITY_LUT
+    a = np.asarray(a, dtype="int8").clip(0, 9)
+    b = np.broadcast_to(np.asarray(b, dtype="int8").clip(0, 9), a.shape)
+    return np.where(rank[b] > rank[a], b, a).astype("int8")
+
+
+def _as_levels(da: xr.DataArray) -> np.ndarray:
+    """Return a stage-3 variable as a ``(time, level)`` array (one level for a point)."""
+    values = np.asarray(da.values)
+    return values[:, None] if values.ndim == 1 else values
+
+
+def _flags(ds: xr.Dataset, name: str, values: np.ndarray) -> np.ndarray:
+    """Return the ``(time, level)`` flags of *name*: its stage-3 flags, 9 where missing.
+
+    An ADCP's seabed flag is kept apart from the velocity flags in stage 3
+    (``seabed_qc``); OceanSITES has one flag per value, so the worse of the two is
+    written.
+    """
     if f"{name}_qc" in ds:
-        flags = np.asarray(ds[f"{name}_qc"].values).astype("int8")
+        flags = np.broadcast_to(_as_levels(ds[f"{name}_qc"]), values.shape).astype(
+            "int8"
+        )
     else:
-        flags = np.zeros(ds.sizes["time"], dtype="int8")
-    flags = np.where(np.isfinite(ds[name].values), flags, 9).astype("int8")
+        flags = np.zeros(values.shape, dtype="int8")
+    if "seabed_qc" in ds and ADCP_BIN_DIM in ds[name].dims:
+        flags = _worst(flags, _as_levels(ds["seabed_qc"]))
+    return np.where(np.isfinite(values), flags, 9).astype("int8")
+
+
+def _qc_variable(flags: np.ndarray, long_name: str) -> xr.DataArray:
+    """Return a ``<PARAM>_QC`` variable on ``(TIME, DEPTH)``."""
     return xr.DataArray(
-        flags[:, None],
+        flags,
         dims=("TIME", "DEPTH"),
         attrs={
             "long_name": f"quality flag of {long_name}",
@@ -249,64 +291,11 @@ def platform_code(mooring: Mapping) -> str:
     return code
 
 
-def to_oceansites(
-    ds: xr.Dataset,
-    mooring: Mapping,
-    *,
-    array: Mapping | None = None,
-    source_file: str | None = None,
+def _coordinates(
+    times: np.ndarray, levels: np.ndarray, level_comment: str, lat: float, lon: float
 ) -> xr.Dataset:
-    """Return one instrument's stage-3 dataset as an OceanSITES 1.4 deployment file.
-
-    Parameters
-    ----------
-    ds : xarray.Dataset
-        A stage-3 dataset for one non-profiling instrument (``time`` dimension).
-    mooring : Mapping
-        The loaded mooring description; supplies ``platform_code``,
-        ``deployment_code`` (default: ``YYYYMM`` of ``deployment_time``), the
-        position, the ships and cruises, and each variable's data mode.
-    array : Mapping or None, optional
-        The array description; ``site_code`` and ``project`` are taken from it
-        when present.  Without ``site_code`` the attribute is left out.
-    source_file : str or None, optional
-        Name of the stage-3 file, recorded in ``history``; defaults to the file
-        the dataset was opened from.
-
-    Returns
-    -------
-    xarray.Dataset
-        Dimensions ``TIME``, ``DEPTH``, ``LATITUDE``, ``LONGITUDE`` (the last
-        three of length 1); each parameter on ``(TIME, DEPTH)`` with a
-        ``<PARAM>_QC`` companion; ``id`` is the file name without ``.nc``.
-
-    Raises
-    ------
-    OceanSitesError
-        If ``platform_code`` is missing or holds ``_``, the deployment code is
-        not ``YYYYMM``, a data mode is invalid or unearned, or the instrument has
-        no type code.
-    """
-    array = array or {}
-    platform = platform_code(mooring)
-    deployment = deployment_code(mooring)
-    kind = type_code(ds)
-    serial = safe_serial(ds.attrs.get("serial", ""))
-    if not serial or "_" in serial:
-        raise OceanSitesError(f"serial {serial!r} cannot form a file-name field")
-    depth = _nominal_depth(ds)
-    lat, lon = location.parse_latlon(dict(mooring))
-
-    names = [
-        n for n in PARAMETER_CODES if n in ds.data_vars and ds[n].dims == ("time",)
-    ]
-    modes = _data_modes(ds, _entry(mooring, serial), names)
-    distinct = sorted(set(modes.values()))
-    data_mode = distinct[0] if len(distinct) == 1 else "M"
-
-    times = ds["time"].values.astype("datetime64[ns]")
-    start, end = _iso(times[0]), _iso(times[-1])
-    days = (times - _EPOCH) / np.timedelta64(1, "D")
+    """Return the four OceanSITES coordinate variables (manual §2.4) as a dataset."""
+    days = (times.astype("datetime64[ns]") - _EPOCH) / np.timedelta64(1, "D")
     out = xr.Dataset(
         coords={
             "TIME": (
@@ -322,7 +311,7 @@ def to_oceansites(
             ),
             "DEPTH": (
                 "DEPTH",
-                np.array([depth], dtype="float32"),
+                np.asarray(levels).astype("float32"),
                 {
                     "standard_name": "depth",
                     "units": "m",
@@ -331,10 +320,7 @@ def to_oceansites(
                     "reference": "sea_level",
                     "coordinate_reference_frame": "urn:ogc:def:crs:EPSG::5831",
                     "long_name": "Depth of measurement",
-                    "comment": (
-                        "nominal instrument depth: water depth minus height above "
-                        "bottom, from the mooring description"
-                    ),
+                    "comment": level_comment,
                 },
             ),
             "LATITUDE": (
@@ -366,47 +352,30 @@ def to_oceansites(
     # TIME is stored as numbers already in the manual's units, so xarray must not
     # re-encode it as datetime.
     out["TIME"].encoding = {"dtype": "float64"}
+    return out
 
-    for name in names:
-        code = PARAMETER_CODES[name]
-        src = ds[name]
-        attrs = {k: src.attrs[k] for k in _KEPT_ATTRS if k in src.attrs}
-        long_name = str(attrs.get("long_name", name))
-        attrs.update(
-            {
-                "coordinates": "TIME DEPTH LATITUDE LONGITUDE",
-                "ancillary_variables": f"{code}_QC",
-                "DM_indicator": modes[name],
-                "processing_level": "Ranges applied, bad data flagged",
-            }
-        )
-        attrs.update(_sensor_attrs(ds, name, start, end))
-        if name == "pressure" and "pressure_source" in src.attrs:
-            attrs["comment"] = f"pressure source: {src.attrs['pressure_source']}"
-        out[code] = xr.DataArray(
-            np.asarray(src.values, dtype="float64")[:, None],
-            dims=("TIME", "DEPTH"),
-            attrs=attrs,
-        )
-        out[f"{code}_QC"] = _qc_variable(ds, name, long_name)
 
-    file_id = f"OS_{platform}_{deployment}_{data_mode}_{kind}-{serial}-{round(depth)}m"
-    source = (
-        source_file
-        or Path(str(ds.encoding.get("source", ""))).name
-        or "stage-3 dataset"
-    )
+def _globals(
+    out: xr.Dataset,
+    mooring: Mapping,
+    array: Mapping,
+    *,
+    file_id: str,
+    title: str,
+    data_mode: str,
+    lat: float,
+    lon: float,
+    history: str,
+    note: str,
+) -> dict[str, Any]:
+    """Return the §2.2 global attributes shared by every file this module writes."""
     now = dt.datetime.now(dt.UTC)
-    history = str(ds.attrs.get("history", "")).rstrip()
-    history += (
-        ("\n" if history else "")
-        + f"{_iso(now)} OceanSITES {FORMAT_VERSION} deployment file written by "
-        f"oceanarray from {source}"
-    )
-
+    history = history.rstrip()
+    history += ("\n" if history else "") + f"{_iso(now)} {note}"
+    times = out["TIME"].values
     attrs: dict[str, Any] = {
-        "title": f"{platform} deployment {deployment}: {kind} {serial} at {round(depth)} m",
-        "platform_code": platform,
+        "title": title,
+        "platform_code": platform_code(mooring),
         "data_mode": data_mode,
         "id": file_id,
         "naming_authority": "OceanSITES",
@@ -420,19 +389,19 @@ def to_oceansites(
         "geospatial_lat_max": lat,
         "geospatial_lon_min": lon,
         "geospatial_lon_max": lon,
-        "geospatial_vertical_min": depth,
-        "geospatial_vertical_max": depth,
+        "geospatial_vertical_min": float(out["DEPTH"].values.min()),
+        "geospatial_vertical_max": float(out["DEPTH"].values.max()),
         "geospatial_vertical_positive": "down",
         "geospatial_vertical_units": "meter",
-        "time_coverage_start": start,
-        "time_coverage_end": end,
+        "time_coverage_start": _iso(
+            _EPOCH + np.timedelta64(int(round(times[0] * 864e11)), "ns")
+        ),
+        "time_coverage_end": _iso(
+            _EPOCH + np.timedelta64(int(round(times[-1] * 864e11)), "ns")
+        ),
         "date_created": _iso(now),
         "history": history,
     }
-    if "sample_interval_seconds" in ds.attrs:
-        attrs["time_coverage_resolution"] = _iso_duration(
-            ds.attrs["sample_interval_seconds"]
-        )
     if mooring.get("waterdepth") is not None:
         attrs["sea_floor_depth_below_sea_surface"] = float(mooring["waterdepth"])
     if array.get("site_code"):
@@ -452,7 +421,302 @@ def to_oceansites(
             attrs[f"platform_{when}_ship_name"] = ship
         if cruise:
             attrs[f"platform_{when}_cruise_name"] = cruise
-    out.attrs = attrs
+    return attrs
+
+
+def _source_name(ds: xr.Dataset, given: str | None, fallback: str) -> str:
+    """Return the name of the file *ds* came from, for ``history``."""
+    return given or Path(str(ds.encoding.get("source", ""))).name or fallback
+
+
+def to_oceansites(
+    ds: xr.Dataset,
+    mooring: Mapping,
+    *,
+    array: Mapping | None = None,
+    stack: xr.Dataset | None = None,
+    source_file: str | None = None,
+) -> xr.Dataset:
+    """Return a stage-3 or grid dataset as an OceanSITES 1.4 file.
+
+    A stage-3 dataset (one instrument, a ``time`` dimension) becomes a deployment
+    data file (manual §4.1); a grid (``time`` × ``pressure``) becomes a gridded
+    file (§4.2, content type ``GRD``).
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        A stage-3 dataset for one instrument, or a mooring's grid.
+    mooring : Mapping
+        The loaded mooring description; supplies ``platform_code``,
+        ``deployment_code`` (default: ``YYYYMM`` of ``deployment_time``), the
+        position, the ships and cruises, and each variable's data mode.
+    array : Mapping or None, optional
+        The array description; ``site_code`` and ``project`` are taken from it
+        when present.  Without ``site_code`` the attribute is left out.
+    stack : xarray.Dataset or None, optional
+        For a grid: the stack it was made from, whose instruments are listed in
+        ``history`` as the grid's source files (§4.2.1).
+    source_file : str or None, optional
+        Name of the input file, recorded in ``history``; defaults to the file the
+        dataset was opened from.
+
+    Returns
+    -------
+    xarray.Dataset
+        Dimensions ``TIME``, ``DEPTH``, ``LATITUDE``, ``LONGITUDE``; each
+        parameter on ``(TIME, DEPTH)``; ``id`` is the file name without ``.nc``.
+        A deployment file carries ``<PARAM>_QC`` and a data mode per variable.
+
+    Raises
+    ------
+    OceanSitesError
+        If ``platform_code`` is missing or holds ``_``, the deployment code is
+        not ``YYYYMM``, a data mode is invalid or unearned, or the instrument has
+        no type code.
+    """
+    if "pressure" in ds.dims:
+        return _grid_file(ds, mooring, array or {}, stack, source_file)
+    return _deployment_file(ds, mooring, array or {}, source_file)
+
+
+def _deployment_file(
+    ds: xr.Dataset, mooring: Mapping, array: Mapping, source_file: str | None
+) -> xr.Dataset:
+    """Return one instrument's stage-3 dataset as a deployment data file (§4.1)."""
+    platform = platform_code(mooring)
+    deployment = deployment_code(mooring)
+    kind = type_code(ds)
+    serial = safe_serial(ds.attrs.get("serial", ""))
+    if not serial or "_" in serial:
+        raise OceanSitesError(f"serial {serial!r} cannot form a file-name field")
+    depth = _nominal_depth(ds)
+    lat, lon = location.parse_latlon(dict(mooring))
+    profiler = kind == "ADCP"
+    if profiler:
+        levels = _bin_depths(ds, depth)
+        level_dims = ("time", ADCP_BIN_DIM)
+        level_comment = (
+            "nominal bin depth: nominal transducer depth (water depth minus height above "
+            f"bottom, from the mooring description) {'plus' if levels[-1] > depth else 'minus'} "
+            "the distance from the transducer to each bin; PRES gives the pressure at "
+            "each bin in time, including knock-down"
+        )
+        # The bin pressure is the ADCP's pressure on the bins; the transducer's own
+        # pressure and temperature are not on DEPTH and stay in the stage-3 file.
+        sources = {"bin_pressure": "pressure"}
+    else:
+        levels = np.array([depth])
+        level_dims = ("time",)
+        level_comment = (
+            "nominal instrument depth: water depth minus height above bottom, from the "
+            "mooring description; PRES gives the measured (or interpolated) pressure "
+            "in time, including knock-down"
+        )
+        sources = {}
+    exported = {
+        sources.get(v, v): v
+        for v in ds.data_vars
+        if sources.get(v, v) in PARAMETER_CODES and ds[v].dims == level_dims
+    }
+    names = [n for n in PARAMETER_CODES if n in exported]
+    modes = _data_modes(ds, _entry(mooring, serial), names)
+    distinct = sorted(set(modes.values()))
+    data_mode = distinct[0] if len(distinct) == 1 else "M"
+
+    times = ds["time"].values.astype("datetime64[ns]")
+    start, end = _iso(times[0]), _iso(times[-1])
+    out = _coordinates(times, levels, level_comment, lat, lon)
+
+    for name in names:
+        code = PARAMETER_CODES[name]
+        src = ds[exported[name]]
+        attrs = {k: src.attrs[k] for k in _KEPT_ATTRS if k in src.attrs}
+        long_name = str(attrs.get("long_name", name))
+        attrs.update(
+            {
+                "coordinates": "TIME DEPTH LATITUDE LONGITUDE",
+                "ancillary_variables": f"{code}_QC",
+                "DM_indicator": modes[name],
+                "processing_level": "Ranges applied, bad data flagged",
+            }
+        )
+        attrs.update(_sensor_attrs(ds, name, start, end))
+        if name == "pressure" and "pressure_source" in src.attrs:
+            attrs["comment"] = f"pressure source: {src.attrs['pressure_source']}"
+        elif src.name == "bin_pressure":
+            attrs.setdefault("standard_name", "sea_water_pressure")
+            attrs["comment"] = (
+                f"pressure at each bin: {src.attrs.get('comment', '')}".rstrip(": ")
+            )
+        if profiler:
+            attrs["sensor_orientation"] = "downward" if levels[-1] > depth else "upward"
+        values = _as_levels(src).astype("float64")
+        out[code] = xr.DataArray(values, dims=("TIME", "DEPTH"), attrs=attrs)
+        out[f"{code}_QC"] = _qc_variable(_flags(ds, exported[name], values), long_name)
+
+    if profiler and "pressure" in ds.data_vars and ds["pressure"].dims == ("time",):
+        # The transducer's measured pressure: the record of knock-down that the bin
+        # pressures are computed from.  It is at no bin, so it is on TIME only, with
+        # the transducer's nominal depth as sensor_depth (as GDAC files carry it).
+        src = ds["pressure"]
+        values = np.asarray(src.values, dtype="float64")
+        out["TRANSDUCER_PRES"] = xr.DataArray(
+            values,
+            dims=("TIME",),
+            attrs={
+                "standard_name": "sea_water_pressure",
+                "units": "dbar",
+                "long_name": "sea water pressure at the ADCP transducer",
+                "coordinates": "TIME LATITUDE LONGITUDE",
+                "sensor_depth": depth,
+                "sensor_orientation": "downward" if levels[-1] > depth else "upward",
+                "ancillary_variables": "TRANSDUCER_PRES_QC",
+                "DM_indicator": modes.get("pressure", "P"),
+                "comment": (
+                    "measured at the transducer; PRES (per bin) is computed from it"
+                ),
+            },
+        )
+        flags = _flags(ds, "pressure", values[:, None])[:, 0]
+        qc = _qc_variable(flags[:, None], "sea water pressure at the ADCP transducer")
+        out["TRANSDUCER_PRES_QC"] = xr.DataArray(
+            flags,
+            dims=("TIME",),
+            attrs={**qc.attrs, "coordinates": "TIME LATITUDE LONGITUDE"},
+        )
+
+    file_id = f"OS_{platform}_{deployment}_{data_mode}_{kind}-{serial}-{round(depth)}m"
+    source = _source_name(ds, source_file, "stage-3 dataset")
+    out.attrs = _globals(
+        out,
+        mooring,
+        array,
+        file_id=file_id,
+        title=f"{platform} deployment {deployment}: {kind} {serial} at {round(depth)} m",
+        data_mode=data_mode,
+        lat=lat,
+        lon=lon,
+        history=str(ds.attrs.get("history", "")),
+        note=f"OceanSITES {FORMAT_VERSION} deployment file written by oceanarray from {source}",
+    )
+    if "sample_interval_seconds" in ds.attrs:
+        out.attrs["time_coverage_resolution"] = _iso_duration(
+            ds.attrs["sample_interval_seconds"]
+        )
+    return out
+
+
+def _stack_sources(stack: xr.Dataset | None, mooring: Mapping) -> str:
+    """Return the stage files a stack was built from, for a gridded file's ``history``."""
+    if stack is None or "serial" not in stack.variables:
+        return "the mooring's stack (source files not given)"
+    name = mooring.get("name", "")
+    stages = (
+        [str(s) for s in stack["source_stage"].values]
+        if "source_stage" in stack.variables
+        else ["3"] * stack.sizes.get("N_LEVELS", 0)
+    )
+    files = sorted(
+        {
+            f"{name}_{safe_serial(str(s).split('_')[0])}_stage{stage}.nc"
+            for s, stage in zip(stack["serial"].values, stages, strict=False)
+        }
+    )
+    return ", ".join(files)
+
+
+def _grid_file(
+    ds: xr.Dataset,
+    mooring: Mapping,
+    array: Mapping,
+    stack: xr.Dataset | None,
+    source_file: str | None,
+) -> xr.Dataset:
+    """Return a mooring's grid as a gridded file (§4.2, ``GRD``)."""
+    import gsw
+
+    platform = platform_code(mooring)
+    deployment = deployment_code(mooring)
+    lat, lon = location.parse_latlon(dict(mooring))
+    pressure = np.asarray(ds["pressure"].values, dtype="float64")
+    # The data stay on the pressure levels; DEPTH is those levels as depths, not a
+    # re-interpolation.
+    levels = -gsw.z_from_p(pressure, lat)
+    level_comment = (
+        f"depth of each grid pressure level, gsw.z_from_p at latitude {lat:.4f}; the "
+        "data are on the pressure levels (PRES), not re-interpolated onto depth"
+    )
+    times = ds["time"].values.astype("datetime64[ns]")
+    out = _coordinates(times, levels, level_comment, lat, lon)
+    out["PRES"] = xr.DataArray(
+        pressure.astype("float32"),
+        dims=("DEPTH",),
+        attrs={
+            "standard_name": "sea_water_pressure",
+            "units": "dbar",
+            "long_name": "pressure of the grid level",
+            "comment": "the pressure levels the grid is interpolated onto",
+        },
+    )
+    # A grid value is built from several instruments; it is P while any of them is
+    # (no stage-3 file can be D before the calibration-dip correction exists).
+    data_mode = str(ds.attrs.get("data_mode", "P"))
+    if data_mode != "P":
+        # The grid does not record its inputs' data modes, so it cannot apply the
+        # least-final-mode rule; until it does, only an all-P grid is exported.
+        raise OceanSitesError(
+            f"grid data_mode {data_mode!r}: a grid records no per-input data modes, "
+            "so only a provisional (P) grid can be exported"
+        )
+    for name in PARAMETER_CODES:
+        if name not in ds.data_vars or ds[name].dims != ("time", "pressure"):
+            continue
+        code = PARAMETER_CODES[name]
+        attrs = {k: ds[name].attrs[k] for k in _KEPT_ATTRS if k in ds[name].attrs}
+        attrs.update(
+            {
+                "coordinates": "TIME DEPTH LATITUDE LONGITUDE",
+                "DM_indicator": data_mode,
+                "cell_methods": "TIME: point DEPTH: point",
+                "processing_level": "Data interpolated",
+            }
+        )
+        out[code] = xr.DataArray(
+            np.asarray(ds[name].values, dtype="float64"),
+            dims=("TIME", "DEPTH"),
+            attrs=attrs,
+        )
+
+    interval = (
+        _iso_duration(float(ds.attrs.get("dt_seconds", np.nan)))
+        if "dt_seconds" in ds.attrs
+        else None
+    )
+    step = ds.attrs.get("dp_dbar")
+    partx = "-".join(
+        p for p in (interval, f"DP{float(step):g}" if step is not None else None) if p
+    )
+    span = f"{pd.Timestamp(times[0]):%Y%m%d}-{pd.Timestamp(times[-1]):%Y%m%d}"
+    file_id = f"OS_{platform}-{deployment}_{span}_GRD" + (f"_{partx}" if partx else "")
+    source = _source_name(ds, source_file, "grid dataset")
+    out.attrs = _globals(
+        out,
+        mooring,
+        array,
+        file_id=file_id,
+        title=f"{platform} deployment {deployment}: gridded in time and pressure",
+        data_mode=data_mode,
+        lat=lat,
+        lon=lon,
+        history=str(ds.attrs.get("history", "")),
+        note=(
+            f"OceanSITES {FORMAT_VERSION} gridded file written by oceanarray from "
+            f"{source}; source files: {_stack_sources(stack, mooring)}"
+        ),
+    )
+    if interval:
+        out.attrs["time_coverage_resolution"] = interval
     return out
 
 
