@@ -1,11 +1,12 @@
-"""OceanSITES 1.4 deployment data files from stage-3 datasets.
+"""Converting stage-3 datasets and grids to OceanSITES 1.4 datasets.
 
-:func:`to_oceansites` converts one instrument's stage-3 dataset into an OceanSITES
-deployment data file (OceanSITES Data Format Reference Manual 1.4, §4.1): one
-instrument at its native sampling, variables on ``(TIME, DEPTH)``, ``<PARAM>_QC``
-flags from reference table 2, a data mode per variable (reference table 4) and the
-global attributes of §2.2.  It is pure: the caller writes the result with
-:func:`oceanarray.writers.write` under :func:`oceansites_filename`.
+:func:`to_oceansites` returns one instrument's stage-3 dataset as an OceanSITES
+deployment data file (OceanSITES Data Format Reference Manual 1.4, §4.1) and a
+mooring's grid as a gridded file (§4.2): variables on ``(TIME, DEPTH)``,
+``<PARAM>_QC`` flags from reference table 2, a data mode per variable (reference
+table 4) and the global attributes of §2.2.  It writes nothing; the
+:func:`oceanarray.export` verb finds a mooring's files, converts them and writes
+each under :func:`oceansites_filename`.
 """
 
 from __future__ import annotations
@@ -148,6 +149,16 @@ def _bin_depths(ds: xr.Dataset, head: float) -> np.ndarray:
     return head + sign * np.asarray(ds["range"].values, dtype="float64")
 
 
+def _position(mooring: Mapping) -> tuple[float, float]:
+    """Return the mooring's position; refused when the description has none (no 0, 0)."""
+    lat, lon, source = location.parse_latlon_with_source(dict(mooring))
+    if location.is_unknown_latlon_source(source):
+        raise OceanSitesError(
+            "the mooring description has no position (latitude/longitude)"
+        )
+    return lat, lon
+
+
 def _entry(mooring: Mapping, serial: str) -> Mapping:
     """Return the mooring description's entry for instrument *serial* ({} if absent)."""
     for entry in instrument_entries(dict(mooring)):
@@ -236,7 +247,10 @@ def _flags(ds: xr.Dataset, name: str, values: np.ndarray) -> np.ndarray:
     else:
         flags = np.zeros(values.shape, dtype="int8")
     if "seabed_qc" in ds and ADCP_BIN_DIM in ds[name].dims:
-        flags = _worst(flags, _as_levels(ds["seabed_qc"]))
+        # Only a failed or suspect seabed test is merged in: a passed one must not
+        # promote an unchecked (0) value to good.
+        seabed = np.broadcast_to(_as_levels(ds["seabed_qc"]), flags.shape)
+        flags = np.where(seabed >= 3, _worst(flags, seabed), flags).astype("int8")
     return np.where(np.isfinite(values), flags, 9).astype("int8")
 
 
@@ -350,8 +364,10 @@ def _coordinates(
         }
     )
     # TIME is stored as numbers already in the manual's units, so xarray must not
-    # re-encode it as datetime.
-    out["TIME"].encoding = {"dtype": "float64"}
+    # re-encode it as datetime; no coordinate may carry a fill value (manual §2.4).
+    for name in ("TIME", "DEPTH", "LATITUDE", "LONGITUDE"):
+        out[name].encoding = {"_FillValue": None}
+    out["TIME"].encoding["dtype"] = "float64"
     return out
 
 
@@ -491,7 +507,7 @@ def _deployment_file(
     if not serial or "_" in serial:
         raise OceanSitesError(f"serial {serial!r} cannot form a file-name field")
     depth = _nominal_depth(ds)
-    lat, lon = location.parse_latlon(dict(mooring))
+    lat, lon = _position(mooring)
     profiler = kind == "ADCP"
     if profiler:
         levels = _bin_depths(ds, depth)
@@ -638,7 +654,7 @@ def _grid_file(
 
     platform = platform_code(mooring)
     deployment = deployment_code(mooring)
-    lat, lon = location.parse_latlon(dict(mooring))
+    lat, lon = _position(mooring)
     pressure = np.asarray(ds["pressure"].values, dtype="float64")
     # The data stay on the pressure levels; DEPTH is those levels as depths, not a
     # re-interpolation.

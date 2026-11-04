@@ -12,7 +12,7 @@ def cmd_export(args: argparse.Namespace) -> int:
     """Write the OceanSITES files through :func:`oceanarray.export`; 1 if nothing was written."""
     from oceanarray.exceptions import MooringError
     from oceanarray.pipeline.export import export
-    from oceanarray.writers.oceansites import OceanSitesError
+    from oceanarray.pipeline.oceansites import OceanSitesError
 
     location = _mooring_location(args)
     try:

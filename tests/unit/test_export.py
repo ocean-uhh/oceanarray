@@ -10,7 +10,7 @@ import pytest
 import xarray as xr
 
 import oceanarray as oa
-from oceanarray.writers.oceansites import OceanSitesError
+from oceanarray.pipeline.oceansites import OceanSitesError
 
 _FIXTURE = Path("tests/fixtures/proc/dune2_1_2026")
 _EXPECTED = {
@@ -59,7 +59,8 @@ def test_export_no_grid_and_refuses_to_overwrite(tmp_path: Path) -> None:
     yaml_path = _copy(tmp_path)
     written = oa.export(yaml_path, grid=False)
     assert len(written) == 2
-    with pytest.raises(FileExistsError):
+    # Existing files are left out, not replaced; with every file there, nothing is written.
+    with pytest.raises(oa.MooringError, match="nothing exported"):
         oa.export(yaml_path, grid=False)
     assert len(oa.export(yaml_path, grid=False, overwrite=True)) == 2
 
@@ -77,3 +78,13 @@ def test_cli_export(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         main()
     assert exit_info.value.code == 0
     assert {p.name for p in out.iterdir()} == _EXPECTED
+
+
+def test_export_written_coordinates_have_no_fill_value(tmp_path: Path) -> None:
+    """Manual §2.4: no fill value on TIME, DEPTH, LATITUDE or LONGITUDE in the file."""
+    import netCDF4
+
+    for path in oa.export(_copy(tmp_path)):
+        with netCDF4.Dataset(path) as nc:
+            for name in ("TIME", "DEPTH", "LATITUDE", "LONGITUDE"):
+                assert "_FillValue" not in nc[name].ncattrs(), (path.name, name)

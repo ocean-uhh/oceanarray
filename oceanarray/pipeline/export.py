@@ -14,14 +14,19 @@ import yaml
 from oceanarray import paths
 from oceanarray.exceptions import MooringError
 from oceanarray.instruments import instrument_entries
-from oceanarray.writers import write
-from oceanarray.writers.oceansites import (
+from oceanarray.pipeline.oceansites import (
     OceanSitesError,
     oceansites_filename,
     to_oceansites,
 )
+from oceanarray.writers import write
 
 logger = logging.getLogger(__name__)
+
+#: Errors that leave one file out rather than stopping the export: a dataset that
+#: cannot be converted, a file that exists (without ``overwrite``), a file that
+#: cannot be read, or a value in it that cannot be parsed.
+_SKIPPABLE = (OceanSitesError, FileExistsError, OSError, KeyError, ValueError)
 
 
 def _array_description(array: str | PathLike | Mapping | None) -> Mapping:
@@ -49,7 +54,7 @@ def export(
     """Write a mooring's stage-3 files and grid as OceanSITES 1.4 files.
 
     Each instrument's stage-3 file becomes a deployment data file and the grid a
-    gridded file (see :func:`oceanarray.writers.oceansites.to_oceansites`).  An
+    gridded file (see :func:`oceanarray.pipeline.oceansites.to_oceansites`).  An
     instrument whose stage-3 file is missing or cannot be converted is reported
     and left out; the others are written.
 
@@ -79,7 +84,7 @@ def export(
     ------
     oceanarray.exceptions.MooringError
         If the description cannot be loaded or nothing could be exported.
-    oceanarray.writers.oceansites.OceanSitesError
+    oceanarray.pipeline.oceansites.OceanSitesError
         If the description has no usable ``platform_code`` or deployment code.
 
     Examples
@@ -87,7 +92,7 @@ def export(
     >>> oa.export("proc/dune2_1_2026/dune2_1_2026.mooring.yaml", array="proc/MIXSED2026.array.yaml")
     """
     from oceanarray.pipeline import resolve_mooring
-    from oceanarray.writers.oceansites import deployment_code, platform_code
+    from oceanarray.pipeline.oceansites import deployment_code, platform_code
 
     cfg, folder = resolve_mooring(mooring, mooring_dir, caller="export")
     # Fail before any file is opened if the description cannot name the files.
@@ -107,17 +112,17 @@ def export(
         if not path.exists():
             left_out.append(f"{serial}: no stage-3 file ({path.name})")
             continue
-        with xr.open_dataset(path) as ds:
-            try:
+        try:
+            with xr.open_dataset(path) as ds:
                 out = to_oceansites(
                     ds.load(), cfg, array=array_cfg, source_file=path.name
                 )
-            except OceanSitesError as e:
-                left_out.append(f"{serial}: {e}")
-                continue
-        written.append(
-            write(out, target / oceansites_filename(out), overwrite=overwrite)
-        )
+            written.append(
+                write(out, target / oceansites_filename(out), overwrite=overwrite)
+            )
+        except _SKIPPABLE as e:
+            # One instrument that cannot be exported does not stop the others.
+            left_out.append(f"{serial}: {e}")
 
     grid_path = paths.product_file(folder, name, "grid")
     if grid and grid_path.exists():
@@ -135,7 +140,7 @@ def export(
             written.append(
                 write(out, target / oceansites_filename(out), overwrite=overwrite)
             )
-        except OceanSitesError as e:
+        except _SKIPPABLE as e:
             left_out.append(f"grid: {e}")
         finally:
             if stack is not None:

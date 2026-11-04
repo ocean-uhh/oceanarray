@@ -185,13 +185,6 @@ The smallest dtype that holds each variable when a file is written.
    :members:
    :undoc-members:
 
-OceanSITES export
-^^^^^^^^^^^^^^^^^
-One instrument's stage-3 dataset as an OceanSITES 1.4 deployment data file; see
-:doc:`methods/oceansites_export`.
-
-.. automodule:: oceanarray.writers.oceansites
-   :members:
 
 logger
 ^^^^^^
@@ -317,6 +310,19 @@ Interpolate stacked mooring data onto a regular pressure grid
 .. automodule:: oceanarray.pipeline.grid
    :members:
    :undoc-members:
+
+OceanSITES export
+^^^^^^^^^^^^^^^^^
+``oceanarray.export(mooring)`` (``oceanarray export``) writes a mooring's stage-3 files
+and grid as OceanSITES 1.4 files; see :doc:`methods/oceansites_export`.
+``to_oceansites`` is the conversion it uses, for a dataset already in hand; it writes
+nothing.
+
+.. automodule:: oceanarray.pipeline.export
+   :members:
+
+.. automodule:: oceanarray.pipeline.oceansites
+   :members:
 
 dataset
 ^^^^^^^

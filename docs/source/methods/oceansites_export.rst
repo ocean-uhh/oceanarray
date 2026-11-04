@@ -24,9 +24,6 @@ Products
    * - ``{mooring}_{serial}_stage3.nc``
      - deployment data file (manual §4.1), one instrument, native sampling
      - ``OS_<platform>_<YYYYMM>_<mode>_<type>-<serial>-<depth>m.nc``
-   * - ``{mooring}_stack.nc``
-     - gridded file (§4.2), instruments on one time base
-     - ``OS_<platform>-<YYYYMM>_<start>-<end>_GRD_<interval>.nc``
    * - ``{mooring}_grid.nc``
      - gridded file (§4.2), time and pressure grid
      - ``OS_<platform>-<YYYYMM>_<start>-<end>_GRD_<interval>-DP<step>.nc``
@@ -48,13 +45,12 @@ description or, without one, the instrument header; with neither, the export ref
 ``PRES`` holds the pressure at each bin, computed from the transducer's measured
 pressure, which the file also carries as ``TRANSDUCER_PRES(TIME)`` (its nominal depth in
 ``sensor_depth``): ``DEPTH`` is nominal, and the pressures show the knock-down.  The below-seabed flag that stage 3 keeps
-apart (``seabed_qc``) is merged into each velocity's ``_QC``, the worse flag winning.
+apart (``seabed_qc``) is merged into each bin variable's ``_QC`` where it failed or was
+suspect, the worse flag winning; a passed seabed test leaves the flag as it was.
 
-A file with several instruments needs one time axis (``<PARAM>(TIME, DEPTH)``), so the
-only multi-instrument products are the stack and the grid.  Each ``DEPTH`` level of the
-stack states how it reached the common time base: nearest-neighbour subsample (an
-instrument sampling at least as fast as the time step; no averaging) or linear
-interpolation in time.
+The stack (instruments on one time base) is not exported yet; it will be a gridded file
+whose ``DEPTH`` levels each say how they reached the time base (nearest-neighbour
+subsample or linear interpolation).
 
 The grid stays on its pressure levels: ``PRES(DEPTH)`` holds the levels, and ``DEPTH`` is
 each level converted with ``gsw.z_from_p`` at the mooring latitude, so nothing is

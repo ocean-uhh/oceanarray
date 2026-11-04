@@ -1,4 +1,4 @@
-"""OceanSITES 1.4 deployment files from the dune2 stage-3 fixtures."""
+"""OceanSITES 1.4 files from the dune2 stage-3, grid and ADCP fixtures."""
 
 from __future__ import annotations
 
@@ -9,13 +9,13 @@ import pytest
 import xarray as xr
 
 from oceanarray import mooring, writers
-from oceanarray.readers.oceansites import read_oceansites
-from oceanarray.writers.oceansites import (
+from oceanarray.pipeline.oceansites import (
     OceanSitesError,
     oceansites_filename,
     to_oceansites,
     type_code,
 )
+from oceanarray.readers.oceansites import read_oceansites
 
 _PROC = Path("tests/fixtures/proc/dune2_1_2026")
 _MICROCAT = _PROC / "microcat" / "dune2_1_2026_2941_stage3.nc"
@@ -153,6 +153,7 @@ def test_delayed_mode_needs_the_calibration_dip(description: dict) -> None:
         ({"platform_code": None}, "no platform_code"),
         ({"platform_code": "DUNE2_1"}, "file-name separator"),
         ({"deployment_code": "2026-07"}, "not YYYYMM"),
+        ({"latitude": None, "longitude": None}, "no position"),
     ],
 )
 def test_description_codes_refused(
