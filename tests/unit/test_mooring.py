@@ -86,7 +86,13 @@ def test_platform_code_with_separator_or_not_text_warns(code: object) -> None:
 
 
 @pytest.mark.parametrize(
-    ("code", "fragment"), [("2026-07", "not YYYYMM"), (202608, "does not match")]
+    ("code", "fragment"),
+    [
+        ("2026-07", "not YYYYMM"),
+        (202600, "not YYYYMM"),
+        (202613, "not YYYYMM"),
+        (202608, "does not match"),
+    ],
 )
 def test_deployment_code_off_pattern_or_month_warns(
     code: object, fragment: str

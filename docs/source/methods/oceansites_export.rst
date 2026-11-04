@@ -45,7 +45,7 @@ description or, without one, the instrument header; with neither, the export ref
 ``PRES`` holds the pressure at each bin, computed from the transducer's measured
 pressure, which the file also carries as ``TRANSDUCER_PRES(TIME)`` (its nominal depth in
 ``sensor_depth``): ``DEPTH`` is nominal, and the pressures show the knock-down.  The below-seabed flag that stage 3 keeps
-apart (``seabed_qc``) is merged into each bin variable's ``_QC`` where it failed or was
+apart (``seabed_qc``) is merged into each velocity's ``_QC`` where it failed or was
 suspect, the worse flag winning; a passed seabed test leaves the flag as it was.
 
 The stack (instruments on one time base) is not exported yet; it will be a gridded file
@@ -64,7 +64,12 @@ Data mode
 ---------
 
 ``P`` (provisional) until the calibration-dip correction is applied.  ``D`` (delayed
-mode) is set per variable after a manual review, and only where the calibration applies.
-Each variable carries ``<PARAM>:DM_indicator``; a variable that mixes modes (a stack or grid
-built from instruments in different modes) carries ``<PARAM>_DM(TIME, DEPTH)``, and the
-global ``data_mode`` is the single mode or ``M``.
+mode) is set per variable after a manual review, recorded as ``data_mode`` on the
+instrument entry (one letter, or a mapping from variable name to letter), and is refused
+unless the stage-3 file records the calibration-dip correction.  In a deployment file
+each variable carries ``<PARAM>:DM_indicator`` and the global ``data_mode`` is the
+single mode, or ``M`` when the variables differ.
+
+A grid records no per-input data modes, so only a provisional (``P``) grid is exported;
+any other grid is refused.  ``<PARAM>_DM`` arrays, which a gridded file would need when
+its levels mixed modes, are not written.

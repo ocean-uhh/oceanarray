@@ -25,6 +25,7 @@ import xarray as xr
 from oceanarray import location
 from oceanarray.config import parameters as params
 from oceanarray.instruments import instrument_entries
+from oceanarray.mooring import DEPLOYMENT_CODE_PATTERN
 from oceanarray.paths import safe_serial
 from oceanarray.pipeline.qc.calibration import CALDIP_STUB_APPLIED
 from oceanarray.pipeline.stage1 import ADCP_BIN_DIM
@@ -64,6 +65,12 @@ _SENSOR_VARIABLES = {
     "PRESSURE": "pressure",
     "OXYGEN": "dissolved_oxygen",
 }
+
+
+#: The ADCP variables the below-seabed flag applies to: a bin below the seabed sees
+#: the bottom, so its velocity is not water velocity; its computed pressure is
+#: still a pressure.
+_SEABED_VARIABLES = frozenset({"east_velocity", "north_velocity", "up_velocity"})
 
 
 class OceanSitesError(ValueError):
@@ -237,8 +244,8 @@ def _flags(ds: xr.Dataset, name: str, values: np.ndarray) -> np.ndarray:
     """Return the ``(time, level)`` flags of *name*: its stage-3 flags, 9 where missing.
 
     An ADCP's seabed flag is kept apart from the velocity flags in stage 3
-    (``seabed_qc``); OceanSITES has one flag per value, so the worse of the two is
-    written.
+    (``seabed_qc``); OceanSITES has one flag per value, so for the velocities the
+    worse of the two is written.
     """
     if f"{name}_qc" in ds:
         flags = np.broadcast_to(_as_levels(ds[f"{name}_qc"]), values.shape).astype(
@@ -246,7 +253,7 @@ def _flags(ds: xr.Dataset, name: str, values: np.ndarray) -> np.ndarray:
         )
     else:
         flags = np.zeros(values.shape, dtype="int8")
-    if "seabed_qc" in ds and ADCP_BIN_DIM in ds[name].dims:
+    if "seabed_qc" in ds and name in _SEABED_VARIABLES:
         # Only a failed or suspect seabed test is merged in: a passed one must not
         # promote an unchecked (0) value to good.
         seabed = np.broadcast_to(_as_levels(ds["seabed_qc"]), flags.shape)
@@ -287,7 +294,7 @@ def deployment_code(mooring: Mapping) -> str:
             )
         code = pd.Timestamp(str(mooring["deployment_time"])).strftime("%Y%m")
     code = str(code)
-    if not re.fullmatch(r"\d{6}", code):
+    if not re.fullmatch(DEPLOYMENT_CODE_PATTERN, code):
         raise OceanSitesError(f"deployment_code {code!r} is not YYYYMM")
     return code
 
@@ -295,9 +302,14 @@ def deployment_code(mooring: Mapping) -> str:
 def platform_code(mooring: Mapping) -> str:
     """Return ``platform_code``; refused if absent or holding ``_`` (the file-name separator)."""
     code = mooring.get("platform_code")
-    if not code:
+    if code is None or code == "":
         raise OceanSitesError("the mooring description has no platform_code")
-    code = str(code)
+    if not isinstance(code, str):
+        # YAML reads an unquoted 12 as a number; the validator warns, and a number
+        # is not taken as a code.
+        raise OceanSitesError(
+            f"platform_code {code!r} is not text; quote it in the YAML"
+        )
     if "_" in code:
         raise OceanSitesError(
             f"platform_code {code!r} contains '_', the file-name separator"
@@ -569,7 +581,10 @@ def _deployment_file(
             attrs["sensor_orientation"] = "downward" if levels[-1] > depth else "upward"
         values = _as_levels(src).astype("float64")
         out[code] = xr.DataArray(values, dims=("TIME", "DEPTH"), attrs=attrs)
-        out[f"{code}_QC"] = _qc_variable(_flags(ds, exported[name], values), long_name)
+        # The bin pressure is computed from the transducer pressure, so it carries
+        # the transducer's flags (stage 3 keeps no bin_pressure_qc).
+        flag_source = "pressure" if src.name == "bin_pressure" else exported[name]
+        out[f"{code}_QC"] = _qc_variable(_flags(ds, flag_source, values), long_name)
 
     if profiler and "pressure" in ds.data_vars and ds["pressure"].dims == ("time",):
         # The transducer's measured pressure: the record of knock-down that the bin
@@ -583,6 +598,7 @@ def _deployment_file(
             attrs={
                 "standard_name": "sea_water_pressure",
                 "units": "dbar",
+                **_sensor_attrs(ds, "pressure", start, end),
                 "long_name": "sea water pressure at the ADCP transducer",
                 "coordinates": "TIME LATITUDE LONGITUDE",
                 "sensor_depth": depth,

@@ -152,7 +152,9 @@ def test_delayed_mode_needs_the_calibration_dip(description: dict) -> None:
     [
         ({"platform_code": None}, "no platform_code"),
         ({"platform_code": "DUNE2_1"}, "file-name separator"),
+        ({"platform_code": 12}, "not text"),
         ({"deployment_code": "2026-07"}, "not YYYYMM"),
+        ({"deployment_code": "202613"}, "not YYYYMM"),
         ({"latitude": None, "longitude": None}, "no position"),
     ],
 )
@@ -266,6 +268,8 @@ def test_adcp_keeps_the_transducer_pressure() -> None:
     np.testing.assert_array_equal(out["TRANSDUCER_PRES"].values, ds["pressure"].values)
     assert out["TRANSDUCER_PRES"].attrs["sensor_depth"] == 585.0
     assert out["TRANSDUCER_PRES"].attrs["sensor_orientation"] == "downward"
+    assert out["TRANSDUCER_PRES"].attrs["sensor_serial_number"] == "1234"
+    assert out["TRANSDUCER_PRES"].attrs["sensor_mount"] == "mounted_on_mooring_line"
     assert out["TRANSDUCER_PRES_QC"].dims == ("TIME",)
 
 
@@ -275,3 +279,29 @@ def test_grid_other_than_provisional_is_refused(description: dict) -> None:
     grid.attrs["data_mode"] = "D"
     with pytest.raises(OceanSitesError, match="provisional"):
         to_oceansites(grid, description)
+
+
+def test_adcp_flags_bin_pressure_from_the_transducer_and_seabed_on_velocity() -> None:
+    """PRES_QC takes the transducer's pressure flags; the seabed flag reaches only velocity.
+
+    The fixture carries no flags, so stage-3-style ones are laid on the real record:
+    transducer pressure interpolated (8) for the first ten records, and the deepest
+    bin below the seabed (4) throughout.
+    """
+    ds = _adcp()
+    n_time, n_bins = ds.sizes["time"], ds.sizes["N_BINS"]
+    pressure_qc = np.ones(n_time, dtype="int8")
+    pressure_qc[:10] = 8
+    seabed_qc = np.ones((n_time, n_bins), dtype="int8")
+    seabed_qc[:, -1] = 4
+    ds["pressure_qc"] = ("time", pressure_qc)
+    ds["seabed_qc"] = (("time", "N_BINS"), seabed_qc)
+    out = to_oceansites(ds, _ADCP_DESCRIPTION)
+    finite = np.isfinite(out["PRES"].values)
+    expected = np.where(finite, np.broadcast_to(pressure_qc[:, None], finite.shape), 9)
+    np.testing.assert_array_equal(out["PRES_QC"].values, expected)
+    ucur_qc = out["UCUR_QC"].values
+    has_value = np.isfinite(out["UCUR"].values[:, -1])
+    assert (ucur_qc[has_value, -1] == 4).all()
+    # A passed seabed test leaves the (unchecked, 0) velocity flags as they were.
+    assert set(np.unique(ucur_qc[:, 0])) <= {0, 9}

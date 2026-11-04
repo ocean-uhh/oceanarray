@@ -90,8 +90,8 @@ Quality control
 Manual §2.6 and reference table 2.  oceanarray's flags already use table 2, so a
 deployment file's ``<PARAM>_QC`` holds them unchanged (byte, ``conventions = "OceanSITES
 QC Flags"``), with 9 wherever the value is missing.  An ADCP's below-seabed flag, kept
-apart in stage 3, is merged into each bin variable's flag where it failed or was suspect
-(the worse flag is kept).  Gridded
+apart in stage 3, is merged into each velocity flag where it failed or was suspect (the
+worse flag is kept).  Gridded
 files carry no ``_QC`` variables (§4.2.1).
 
 .. list-table::

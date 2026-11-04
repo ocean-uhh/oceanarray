@@ -92,6 +92,9 @@ KNOWN_KEYS: frozenset[str] = frozenset(
     }
 )
 
+#: A deployment code: ``YYYYMM`` with a calendar month (01–12).
+DEPLOYMENT_CODE_PATTERN = r"\d{4}(0[1-9]|1[0-2])"
+
 #: The keys each optional settings block may hold, and whether the value must be
 #: an integer.
 _SETTINGS_KEYS: dict[str, dict[str, bool]] = {
@@ -250,7 +253,7 @@ def _check_export_codes(data: Mapping) -> list[ValidationIssue]:
     code = data.get("deployment_code")
     if code is not None:
         expected = _deployment_month(data.get("deployment_time"))
-        if not re.fullmatch(r"\d{6}", str(code)):
+        if not re.fullmatch(DEPLOYMENT_CODE_PATTERN, str(code)):
             issues.append(
                 ValidationIssue(
                     "WARNING",
