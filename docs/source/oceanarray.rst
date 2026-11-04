@@ -185,6 +185,14 @@ The smallest dtype that holds each variable when a file is written.
    :members:
    :undoc-members:
 
+OceanSITES export
+^^^^^^^^^^^^^^^^^
+One instrument's stage-3 dataset as an OceanSITES 1.4 deployment data file; see
+:doc:`methods/oceansites_export`.
+
+.. automodule:: oceanarray.writers.oceansites
+   :members:
+
 logger
 ^^^^^^
 Logging set-up, the stage log files and the console status lines.
