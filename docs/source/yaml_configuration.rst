@@ -842,7 +842,8 @@ the defaults):
 - a threshold that is not a number of 0 or more;
 - a sample count that is not a whole number of 1 or more;
 - a block that is not a mapping;
-- a ``qc_ranges`` variable without a default and without a ``fail_span``.
+- a ``qc_ranges`` variable without a default and without a ``fail_span`` (an
+  instrument entry may take the ``fail_span`` from the mooring-level block).
 
 A variable that is not in the registry is only a WARNING (most often a typo):
 its thresholds apply if a file has that variable.

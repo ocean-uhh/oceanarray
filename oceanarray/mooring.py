@@ -308,7 +308,9 @@ def _qc_field_issue(field: str, value: object) -> str | None:
     return None
 
 
-def _check_qc_block(block: str, value: object, where: str) -> list[ValidationIssue]:
+def _check_qc_block(
+    block: str, value: object, where: str, inherited: object = None
+) -> list[ValidationIssue]:
     """Check one QC override block's shape; unknown variables are only a WARNING."""
     from oceanarray.config import parameters as params
 
@@ -343,6 +345,13 @@ def _check_qc_block(block: str, value: object, where: str) -> list[ValidationIss
                 and var not in params.QC_GROSS_RANGE
                 and var != "tilt"
                 and "fail_span" not in entry
+                # An instrument entry inherits the mooring-level spans (the two
+                # are merged before QC runs).
+                and not (
+                    isinstance(inherited, Mapping)
+                    and isinstance(inherited.get(var), Mapping)
+                    and "fail_span" in inherited[var]
+                )
             ):
                 issues.append(
                     ValidationIssue(
@@ -388,7 +397,9 @@ def _check_qc_overrides(data: Mapping) -> list[ValidationIssue]:
             where = f"instrument {entry.get('serial', f'index {i}')}: "
             for block in _QC_BLOCKS:
                 if block in entry:
-                    issues += _check_qc_block(block, entry[block], where)
+                    issues += _check_qc_block(
+                        block, entry[block], where, data.get(block)
+                    )
     return issues
 
 

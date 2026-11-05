@@ -277,6 +277,21 @@ def test_instrument_level_qc_overrides_are_checked() -> None:
     assert any(f"instrument {serial}: qc_ranges.temperature" in m for m in messages)
 
 
+def test_instrument_qc_ranges_inherit_the_mooring_fail_span() -> None:
+    """A fail_span set at mooring level counts for an instrument that adds only a suspect_span."""
+    cfg = mooring.load(FIXTURE)
+    cfg["qc_ranges"] = {"sigma0": {"fail_span": [20.0, 30.0]}}
+    cfg["clamp"][0] = {
+        **cfg["clamp"][0],
+        "qc_ranges": {"sigma0": {"suspect_span": [25.0, 28.0]}},
+    }
+    messages = [i.message for i in mooring.check(cfg, dir_name="dune2_1_2026")]
+    assert not [m for m in messages if "needs a fail_span" in m], messages
+    del cfg["qc_ranges"]
+    messages = [i.message for i in mooring.check(cfg, dir_name="dune2_1_2026")]
+    assert any("needs a fail_span" in m for m in messages)
+
+
 def test_mooring_level_qc_blocks_are_known_keys() -> None:
     """qc_spike, tilt_qc and qc_flat_line are read by the QC pass, so not 'unknown'."""
     cfg = {
