@@ -114,11 +114,19 @@ def test_a_cast_without_required_provenance_is_refused(tmp_path, missing):
         caldip.read_caldip_cast(path)
 
 
-def test_a_cast_from_another_schema_is_refused(tmp_path):
-    """schema_version 2 is refused, not read as if it were 1."""
-    path = _copy_with(tmp_path, lambda ds: ds.attrs.update(schema_version=2))
+@pytest.mark.parametrize("schema", [2, 1.5, "2", "one"])
+def test_a_cast_from_another_schema_is_refused(tmp_path, schema):
+    """Any schema_version other than 1 is refused — 1.5 is not truncated to 1."""
+    path = _copy_with(tmp_path, lambda ds: ds.attrs.update(schema_version=schema))
     with pytest.raises(caldip.CaldipError, match="schema_version"):
         caldip.read_caldip_cast(path)
+
+
+@pytest.mark.parametrize("schema", [1.0, "1"])
+def test_schema_1_written_as_a_float_or_text_is_read(tmp_path, schema):
+    """1.0 and "1" are version 1."""
+    path = _copy_with(tmp_path, lambda ds: ds.attrs.update(schema_version=schema))
+    assert caldip.read_caldip_cast(path).sizes["instrument"] == 23
 
 
 def test_a_unit_conversion_is_converted_and_recorded(tmp_path):

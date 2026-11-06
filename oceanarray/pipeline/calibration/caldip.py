@@ -213,11 +213,14 @@ def _check_provenance(ds: xr.Dataset, path: Path) -> None:
 def _check_schema(ds: xr.Dataset, path: Path) -> None:
     """Refuse a cast written to a schema this reader does not know."""
     schema = ds.attrs["schema_version"]
+    # Equal in value, not truncated: 1, 1.0 and "1" are version 1; 1.5 and True are not.
     try:
-        version = int(schema)
+        supported = not isinstance(schema, (bool, np.bool_)) and (
+            float(schema) == SUPPORTED_SCHEMA_VERSION
+        )
     except (TypeError, ValueError):
-        version = None
-    if version != SUPPORTED_SCHEMA_VERSION:
+        supported = False
+    if not supported:
         msg = (
             f"{path.name}: schema_version {schema!r}, but this reader understands "
             f"{SUPPORTED_SCHEMA_VERSION}; update oceanarray or re-run caldip"
