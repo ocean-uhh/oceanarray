@@ -121,6 +121,27 @@ def test_a_cast_from_another_schema_is_refused(tmp_path):
         caldip.read_caldip_cast(path)
 
 
+def test_a_unit_conversion_is_converted_and_recorded(tmp_path):
+    """Conductivity in S/m is converted ×10 to mS cm-1, and the conversion is recorded."""
+    names = ("cond_diff", "cond_std", "inst_cond", "ctd_cond")
+
+    def edit(ds):
+        for name in names:
+            ds[name] = ds[name] / 10.0
+            ds[name].attrs["units"] = "S/m"
+
+    original = caldip.read_caldip_cast(FIXTURE)
+    converted = caldip.read_caldip_cast(_copy_with(tmp_path, edit))
+    for name in names:
+        np.testing.assert_allclose(converted[name].values, original[name].values)
+        attrs = converted[name].attrs
+        assert attrs["units"] == "mS cm-1"
+        assert attrs["units_converted_from"] == "S/m"
+        assert attrs["units_conversion_factor"] == 10.0
+    # a pure spelling rewrite records nothing
+    assert "units_converted_from" not in original["temp_diff"].attrs
+
+
 def test_an_unknown_units_string_is_refused(tmp_path):
     """A conductivity unit oceanarray cannot resolve stops the read."""
 

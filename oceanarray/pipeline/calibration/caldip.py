@@ -124,9 +124,10 @@ def read_caldip_cast(path: str | Path) -> xr.Dataset:
 
     The file is loaded into memory and closed. The ``serial`` coordinate is replaced by its
     join key (:func:`canonical_serial`), and the units of every temperature, conductivity and
-    pressure variable are rewritten to oceanarray's canonical spelling (values multiplied by
-    the conversion factor when one applies). The source path is recorded in
-    ``attrs["source_path"]``.
+    pressure variable are rewritten to oceanarray's canonical spelling. A genuine conversion
+    (factor ≠ 1) multiplies the values and records ``units_converted_from`` and
+    ``units_conversion_factor`` on the variable, as the stage writers do. The source path is
+    recorded in ``attrs["source_path"]``.
 
     Parameters
     ----------
@@ -243,6 +244,8 @@ def _canonical_units(ds: xr.Dataset, path: Path) -> xr.Dataset:
                 raise CaldipError(msg) from e
             if factor != 1.0:
                 ds[name].data = ds[name].data * factor
+                ds[name].attrs["units_converted_from"] = units
+                ds[name].attrs["units_conversion_factor"] = factor
             ds[name].attrs["units"] = spelling
     return ds
 
