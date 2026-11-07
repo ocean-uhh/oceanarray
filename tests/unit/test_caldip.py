@@ -220,6 +220,16 @@ def test_caldip_file_ambiguous_is_an_error(tmp_path):
         caldip.caldip_file(tmp_path, "msm142_2026", "castM4")
 
 
+@pytest.mark.parametrize(
+    ("cruise", "cast"),
+    [("/tmp", "castM4"), ("..", "castM4"), ("msm142_2026", "../castM4"), ("a\\b", "c")],
+)
+def test_caldip_file_refuses_names_that_leave_the_root(tmp_path, cruise, cast):
+    """A cruise or cast that is not one folder or file name cannot reach outside the root."""
+    with pytest.raises(caldip.CaldipError, match="single folder or file name"):
+        caldip.caldip_file(tmp_path, cruise, cast)
+
+
 def test_caldip_root_precedence(tmp_path):
     """caldip_dir= wins over the YAML root; a relative root is from the YAML's folder."""
     block = {**_BLOCK, "root": "../caldip_out"}
@@ -258,6 +268,16 @@ def test_cast_time_is_the_middle_of_the_stops():
 def test_assign_dip_role(when, role):
     """Before deployment is pre, after recovery is post, during or unknown is neither."""
     assert caldip.assign_dip_role(when, "2026-05-07T17:06", "2027-07-10T17:45Z") == role
+
+
+def test_assign_dip_role_converts_timezones_to_utc():
+    """20:00 UTC is before a deployment at 17:06-05 (22:06 UTC), so the dip is pre."""
+    assert (
+        caldip.assign_dip_role(
+            "2026-05-07T20:00Z", "2026-05-07T17:06-05:00", "2027-07-10T17:45Z"
+        )
+        == "pre"
+    )
 
 
 # ── interface: the correction functions are still stubs ──────────────────────

@@ -883,7 +883,8 @@ checked now so it can be written ahead.
   or ``post``.
 
 Every shape mistake is an ERROR: an unknown key or field, an end that is not
-``{cruise, cast}``, no end at all, an unknown scheme, method or ``use``, a ``slope`` on
+``{cruise, cast}``, a cruise or cast that is not a single folder or file name
+(``../x``, ``/tmp``), no end at all, an unknown scheme, method or ``use``, a ``slope`` on
 temperature or pressure, or a ``use`` naming a dip the block lacks.
 
 ----

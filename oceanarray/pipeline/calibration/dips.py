@@ -21,6 +21,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+from oceanarray.paths import is_path_component
 from oceanarray.pipeline.calibration.caldip import CALDIP_SUFFIX, CaldipError
 
 #: The two ends of a deployment, as the YAML names them, and the role each dip plays.
@@ -87,9 +88,14 @@ def caldip_file(root: str | PathLike, cruise: str, cast: str) -> Path | None:
     Raises
     ------
     CaldipError
-        If more than one file matches.
+        If ``cruise`` or ``cast`` is not a single folder or file name, or more than one
+        file matches.
 
     """
+    for label, value in (("cruise", cruise), ("cast", cast)):
+        if not is_path_component(value):
+            msg = f"caldip {label} {value!r} must be a single folder or file name"
+            raise CaldipError(msg)
     root = Path(root)
     name = f"{cast}{CALDIP_SUFFIX}"
     direct = root / cruise / name
@@ -198,7 +204,11 @@ def assign_dip_role(
         return None
     if any(pd.isna(x) for x in (t, start, end)):
         return None
-    t, start, end = (x.tz_localize(None) if x.tzinfo else x for x in (t, start, end))
+    # A time without a timezone is UTC; one with a timezone is converted to UTC, not relabelled.
+    t, start, end = (
+        x.tz_convert("UTC").tz_localize(None) if x.tzinfo else x
+        for x in (t, start, end)
+    )
     if t < start:
         return "pre"
     if t > end:

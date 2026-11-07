@@ -343,6 +343,11 @@ def test_one_end_alone_passes() -> None:
         ({"scheme": "standard"}, "names no cast"),
         ({"deployment": {"cast": "castM4"}}, "deployment must be"),
         ({"deployment": {"cruise": "msm142_2026", "cast": ""}}, "non-empty"),
+        ({"deployment": {"cruise": "/tmp", "cast": "castM4"}}, "one folder or file"),
+        (
+            {"deployment": {"cruise": "msm142_2026", "cast": "../x"}},
+            "one folder or file",
+        ),
         ({**_CALDIP_OK, "scheme": "kanzow"}, "scheme 'kanzow'"),
         ({**_CALDIP_OK, "override": {"salinity": {}}}, "'salinity' is not one of"),
         ({**_CALDIP_OK, "override": {"temperature": {"mthod": "ramp"}}}, "'mthod'"),

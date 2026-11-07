@@ -36,6 +36,7 @@ import yaml
 from oceanarray.config import validation
 from oceanarray.config.validation import ValidationIssue
 from oceanarray.exceptions import MooringError
+from oceanarray.paths import is_path_component
 
 logger = logging.getLogger(__name__)
 
@@ -442,6 +443,10 @@ def _check_caldip(data: Mapping) -> list[ValidationIssue]:
             issues.append(err(f"{end} must be {{cruise: <cruise>, cast: <cast>}}"))
         elif not all(isinstance(value[k], str) and value[k] for k in _CALDIP_END_KEYS):
             issues.append(err(f"{end}: cruise and cast must be non-empty text"))
+        elif not all(is_path_component(value[k]) for k in _CALDIP_END_KEYS):
+            issues.append(
+                err(f"{end}: cruise and cast must each be one folder or file name")
+            )
     if "root" in block and not (isinstance(block["root"], str) and block["root"]):
         issues.append(err("root must be a path"))
     scheme = block.get("scheme", "standard")
