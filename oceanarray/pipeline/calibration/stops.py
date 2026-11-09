@@ -507,8 +507,12 @@ def rapid_depth_average(
             "the stops do not reach the interval",
             _tid(record),
         )
-    used = (press >= p_lo - RAPID_GRID_DBAR) & (press <= p_hi + RAPID_EXTEND_DBAR)
-    n = int(used.sum())
+    # The stops the interpolation draws from: the ones bracketing the grid span, i.e. from the
+    # stop at or below grid[0] through the stop at or above grid[-1] (held deepest aside).
+    lo = max(int(np.searchsorted(press, grid[0], side="right")) - 1, 0)
+    hi = min(int(np.searchsorted(press, grid[-1], side="left")), press.size - 1)
+    used = press[lo : hi + 1]
+    n = used.size
     rule = (
         f"RAPID average over {grid[0]:g}–{grid[-1]:g} dbar on a "
         f"{RAPID_GRID_DBAR:g}-dbar grid ({n} stop{'s' if n != 1 else ''})"
@@ -518,7 +522,7 @@ def rapid_depth_average(
         "offset",
         float(np.mean(np.interp(grid, xp, fp))),
         rule,
-        stop_pressures=tuple(float(p) for p in press[used]),
+        stop_pressures=tuple(float(p) for p in used),
         n=n,
         source_tracking_id=_tid(record),
     )
@@ -567,7 +571,9 @@ def rapid_pressure_at_depth(
     if deployment_pressure > limit:
         degree = min(3, press.size - 1)
         would = float(np.polyval(np.polyfit(press, diff, degree), deployment_pressure))
-        reason = f"deeper than the cast; a degree-{degree} fit would give {would:+.1f} dbar"
+        reason = (
+            f"deeper than the cast; a degree-{degree} fit would give {would:+.1f} dbar"
+        )
         return _unavailable("pressure", "offset", rule, reason, _tid(record))
     xp, fp = np.append(press, limit), np.append(diff, diff[-1])
     value = float(np.interp(deployment_pressure, xp, fp))

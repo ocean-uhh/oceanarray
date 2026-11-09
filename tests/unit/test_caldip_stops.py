@@ -215,6 +215,19 @@ def test_rapid_depth_average_rule_names_the_range_averaged(cast):
     assert one.value == pytest.approx(float(rec["temp_diff"].values[deep]))
 
 
+def test_rapid_average_reports_the_bracketing_stops(cast):
+    """stop_pressures are the stops the interpolation brackets, including one below the grid."""
+    rec = _record(cast, "13840")
+    # Leave 52, 355 and 2029 usable: the average over 1529–2029 dbar interpolates between the
+    # 355 and 2029 stops, so 355 is used even though it is far below the interval.
+    flags = rec["temp_flag"].values
+    for p in (909, 1522):
+        flags[_at(rec, p)] = 2  # no_data
+    red = cal.reduce_dip(rec, "temperature", scheme="rapid")
+    assert sorted(round(p) for p in red.stop_pressures) == [355, 2029]
+    assert red.n == 2
+
+
 def test_rapid_pressure_at_depth(cast):
     """rapid P: at a stop it is that stop's offset; far below the cast, a fit in pressure."""
     rec = _record(cast, "13840")
