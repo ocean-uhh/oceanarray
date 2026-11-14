@@ -129,7 +129,11 @@ def _image_panel(pid: str, b64: str) -> Panel:
 
 def _history_unavailable(c: dict) -> str | None:
     """Reason the history panel cannot render, or None."""
-    return None if c.get("history_entries") else "No history attribute found."
+    return (
+        None
+        if c.get("history_entries")
+        else "No processing history recorded in the file attributes."
+    )
 
 
 def _empty_note(pid: str, reason: str, when_empty: Callable) -> Panel:

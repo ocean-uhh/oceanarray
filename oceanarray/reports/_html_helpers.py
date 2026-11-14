@@ -251,11 +251,9 @@ def _build_history_tables(
 def _stage_files(
     proc_dir: Path, instr_type: str, mooring: str, serial: str
 ) -> dict[str, bool]:
-    base = proc_dir / instr_type / f"{mooring}_{serial}"
     return {
-        "stage1": Path(str(base) + paths.stage_suffix(1)).exists(),
-        "stage2": Path(str(base) + paths.stage_suffix(2)).exists(),
-        "stage3": Path(str(base) + paths.stage_suffix(3)).exists(),
+        f"stage{n}": paths.stage_file(proc_dir, mooring, instr_type, serial, n).exists()
+        for n in (1, 2, 3)
     }
 
 

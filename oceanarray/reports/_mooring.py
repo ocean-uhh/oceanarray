@@ -688,6 +688,10 @@ class MooringReport:
                     "stopped_early": stopped_early,
                     "skipped": bool(entry.get("skip")),
                     "skip_reason": entry.get("skip_reason", ""),
+                    # Where stage files are looked for; named in the table when none is
+                    # found, so the reader sees what was searched rather than a guess at
+                    # why (not processed yet, wrong proc_dir, in-memory run).
+                    "stage_dir": f"{mooring_name}/{instr_type}/",
                     "report_exists": (
                         out_dir is not None
                         and (
