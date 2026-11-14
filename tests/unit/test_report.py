@@ -780,10 +780,20 @@ def test_timing_table_mixed_marks_only_imported_rows():
         "stage1_end": "2026-02-01T00:00",
         "stage1_end_early": True,
     }
-    raw = {"instr_type": "microcat", "serial": "1", "file_type": "sbe-cnv",
-           "imported": False, "timing": dict(tm)}
-    imported = {"instr_type": "currentmeter", "serial": "2", "file_type": "rodb",
-                "imported": True, "timing": dict(tm)}
+    raw = {
+        "instr_type": "microcat",
+        "serial": "1",
+        "file_type": "sbe-cnv",
+        "imported": False,
+        "timing": dict(tm),
+    }
+    imported = {
+        "instr_type": "currentmeter",
+        "serial": "2",
+        "file_type": "rodb",
+        "imported": True,
+        "timing": dict(tm),
+    }
     instruments = [raw, imported]
     assert _timing_mode(instruments) == "mixed"
 
@@ -828,7 +838,9 @@ def test_grid_page_overflow_off_by_default_and_on_by_config(tmp_path):
     html_off = (off / grid).read_text()
     assert "Overflow</h2>" not in html_off  # the section is absent
     # ...and it is not named in the not-applicable footer (it was not asked for).
-    footer = html_off.split("Not applicable", 1)[1] if "Not applicable" in html_off else ""
+    footer = (
+        html_off.split("Not applicable", 1)[1] if "Not applicable" in html_off else ""
+    )
     assert "Overflow" not in footer
 
     on = tmp_path / "on"

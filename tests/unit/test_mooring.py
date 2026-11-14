@@ -407,6 +407,7 @@ def test_resolve_report_sections_reads_the_mooring_description() -> None:
         "grid", {"report_sections": {"grid": ["overflow"]}}
     ) == ["overflow"]
     # a page the description does not list is empty (off)
-    assert mooring.resolve_report_sections(
-        "grid", {"report_sections": {"stack": ["x"]}}
-    ) == []
+    assert (
+        mooring.resolve_report_sections("grid", {"report_sections": {"stack": ["x"]}})
+        == []
+    )
