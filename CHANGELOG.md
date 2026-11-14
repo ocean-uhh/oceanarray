@@ -70,6 +70,7 @@ All notable changes to oceanarray are documented here.
 - `oceanarray report --dry-run` previews a half-filled config without raising: it prints the validation issues and lists what parses, and only stops on a file that is not YAML at all.
 - `oceanarray init` builds its stub through `mooring.template` + `mooring.save`; the written file is byte-identical to before.
 - `mooring.KNOWN_KEYS` (the vocabulary the unknown-key warning checks against) gains the position tiers `seabed_*` / `deployment_*` / `planned_*`, `qc_ranges` and `directory`, confirmed against real mooring descriptions.
+- A stacked instrument with no `hab` is now named in the stack's `instruments_omitted` ("no hab in the mooring YAML; set hab, or stack: false") instead of being left out silently, and `oceanarray validate` warns about it. With `keep_going=False` such an omission stops `run` before the grid.
 
 ### Deprecated
 
@@ -150,6 +151,12 @@ Every old name below still works, warns (`DeprecationWarning`, naming its replac
 - An extrapolated pressure's `pressure_source` says what it is out of range of: the target's height above bottom against the range the pressure sources span.
 - The netCDF writer stores `bool` attributes as `int8` (0/1) instead of failing: netCDF has no boolean attribute type.
 - A Nortek header whose coordinate system cannot be read is now marked `coordinate_system = "UNK"` instead of being assumed `"ENU"`, and stage 3 refuses to rotate `UNK` velocities (with a WARNING) rather than passing them through as if geographic. Previously a BEAM/XYZ instrument with an unrecognised header was silently labelled ENU, skipping the BEAM→ENU transform and magnetic-declination correction — a silent physical error in the velocity output.
+- Every reader drops records with no time (`NaT`, e.g. an originator's padding of a record that ended early), with a warning naming the file and the count; stage 1 records the count in a new `n_records_without_time` global attribute and a `history` line. A file with no timed record raises `ValueError`. (Before, only the OceanSITES reader dropped them, without a record in the file.)
+- A RODB record with a fill (`-9999`) in `YY`, `MM`, `DD` or `HH` is dropped as having no time; a fill in `HH` could be read as midnight of that day.
+- A RODB file with no data rows after its header raises `ValueError` "no data rows after the RODB header" instead of numpy's column-count error.
+- Stage 2 refuses a stage-1 file with records that have no time (`MooringError` naming the instrument and the count; re-run stage 1), instead of failing in the deployment-window trim.
+- Stage 3 no longer fails on a BEAM/XYZ Aquadopp in a mooring with no position: its `history` says "declination not applied (position unknown)".
+- The stack no longer fails on an instrument whose `magnetic_declination` is `"UNK"`: its level is NaN in the per-level `magnetic_declination`, whose `comment` names the levels with an unknown declination.
 
 ## [0.5.1] — 2026-10-23
 

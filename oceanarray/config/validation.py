@@ -237,6 +237,8 @@ def validate_mooring(
     - Each instrument entry with a ``file_type`` uses a recognised value
     - Instruments with ``filename`` also have ``file_type``
     - Instruments without ``filename`` are flagged as warnings (not yet staged)
+    - Stacked instruments with a ``filename`` (not ``skip``, not ``stack: false``)
+      and no ``hab`` are flagged as warnings (the stack omits them)
 
     Parameters
     ----------
@@ -452,6 +454,24 @@ def validate_mooring(
                 ValidationIssue(
                     "ERROR",
                     f"{prefix} stack={entry['stack']!r} must be true or false",
+                )
+            )
+
+        # A stacked entry needs a height above bottom to be placed as a level;
+        # without one the stack omits it (and a strict run stops before the grid).
+        # An entry with no filename is already flagged above as not yet staged.
+        if (
+            filename
+            and not entry.get("skip")
+            and entry.get("stack", True) is not False
+            and entry.get("hab") is None
+            and entry.get("hab_bottom") is None
+        ):
+            issues.append(
+                ValidationIssue(
+                    "WARNING",
+                    f"{prefix} instrument='{instrument}' has no 'hab' — the stack "
+                    f"will omit it; set hab, or stack: false",
                 )
             )
 
