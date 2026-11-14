@@ -5,6 +5,7 @@ parameter codes (:data:`OCEANSITES_VARIABLES`) are renamed to oceanarray names;
 ``<CODE>_QC`` companions are kept as ``<name>_qc_originator``.
 """
 
+import warnings
 from pathlib import Path
 
 import numpy as np
@@ -55,6 +56,42 @@ def _originator_flags(da: xr.DataArray) -> xr.DataArray:
     return xr.DataArray(flags, dims=da.dims, attrs=attrs)
 
 
+def _drop_missing_time(dataset: xr.Dataset, source: str) -> xr.Dataset:
+    """Drop records whose ``time`` coordinate is ``NaT``, warning with the count.
+
+    Some originators pad a record that ended early with missing timestamps.  Left in,
+    the ``NaT`` entries leave the ``time`` index non-monotonic, which later breaks the
+    deployment-window ``sel(time=slice(...))`` in stage 2, so they are removed here.
+
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        A dataset on a ``time`` dimension.
+    source : str
+        File name, named in the warning so the operator sees which file was padded.
+
+    Returns
+    -------
+    xarray.Dataset
+        The input unchanged when every timestamp is valid, otherwise the subset of
+        records with a valid timestamp.
+    """
+    time = dataset["time"].values
+    if not np.issubdtype(time.dtype, np.datetime64):
+        # A non-standard calendar decodes to cftime objects (object dtype), which
+        # np.isnat cannot take and which cannot hold NaT; nothing to drop.
+        return dataset
+    missing = np.isnat(time)
+    n = int(missing.sum())
+    if not n:
+        return dataset
+    warnings.warn(
+        f"{source}: dropped {n} record(s) with no timestamp (missing time).",
+        stacklevel=2,
+    )
+    return dataset.isel(time=np.where(~missing)[0])
+
+
 def read_oceansites(path: str | Path) -> xr.Dataset:
     """Read a single-instrument OceanSITES-style netCDF time series.
 
@@ -68,7 +105,9 @@ def read_oceansites(path: str | Path) -> xr.Dataset:
     ``eastward``/``northward_sea_water_velocity`` are geographic, a file with
     velocities is marked ``coordinate_system = "ENU"`` with
     ``originator_magnetic_declination`` recorded so the declination is not applied
-    again.
+    again.  Records whose ``TIME`` is ``NaT`` (originator padding of a record that
+    ended early) are dropped with a warning that states how many, so the remaining
+    ``time`` index stays monotonic for stage-2 trimming.
 
     Parameters
     ----------
@@ -134,4 +173,4 @@ def read_oceansites(path: str | Path) -> xr.Dataset:
             "velocity); value not recorded"
         )
     src.close()
-    return out
+    return _drop_missing_time(out, path.name)
