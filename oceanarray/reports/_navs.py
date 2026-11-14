@@ -33,6 +33,7 @@ _TYPE_LABELS: dict[str, str] = {
     "aquadopp": "Aquadopp",
     "nortek": "Nortek",
     "microcat": "MicroCAT",
+    "currentmeter": "Current meter",
     "rbr": "RBR",
     "rbrduet": "RBRduet",
     "rbrsolo": "RBRsolo",

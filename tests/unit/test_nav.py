@@ -79,6 +79,7 @@ def test_type_labels_never_capitalize():
     assert _type_label("adcp") == "ADCP"
     assert _type_label("sbe37") == "SBE37"
     assert _type_label("aquadopp") == "Aquadopp"
+    assert _type_label("currentmeter") == "Current meter"
     assert _type_label("unknownthing") == "UNKNOWNTHING"
 
 
