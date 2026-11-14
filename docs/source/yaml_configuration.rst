@@ -361,6 +361,12 @@ Optional fields
        attribute.  For ``oceansites`` and ``rodb`` files Stage 1 checks each
        variable's median against the registry's valid range and refuses the
        instrument, naming this key, when the stated units look wrong.
+       An entry can also be ``{units: <units>, reason: <text>}``, e.g.
+       ``{pressure: {units: kPa, reason: "ERDDAP labels decibars; values are
+       ten times the deployed depth"}}``; the reason is kept in the variable's
+       ``units_override_reason`` attribute.  When the corrected units are not the
+       canonical ones (``kPa`` for pressure), the units pass converts the values
+       and records ``units_converted_from`` and ``units_conversion_factor``.
 
 Additional fields
 ~~~~~~~~~~~~~~~~~

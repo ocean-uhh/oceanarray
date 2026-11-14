@@ -167,6 +167,35 @@ def test_variable_scoped_ntu_and_psu():
     )
 
 
+@pytest.mark.parametrize(
+    ("name", "spelling", "canonical", "standard_name"),
+    [
+        ("pressure", "decibars", "dbar", None),
+        ("east_velocity", "m.s-1", "m s-1", None),
+        ("conductivity", "mS.cm-1", "mS cm-1", None),
+        ("salinity", "1e-3", "1", "sea_water_practical_salinity"),
+    ],
+)
+def test_erddap_spellings_rewrite_without_changing_values(
+    name, spelling, canonical, standard_name
+):
+    """The OOI ERDDAP spellings are spellings: rewritten, values unchanged."""
+    spec = ([35.0], spelling, standard_name) if standard_name else ([35.0], spelling)
+    out = pu.to_canonical_units(_ds(**{name: spec}))
+    assert out[name].attrs["units"] == canonical
+    assert "units_converted_from" not in out[name].attrs
+    np.testing.assert_array_equal(out[name].values, [35.0])
+
+
+def test_pressure_kpa_converts_to_dbar():
+    """kPa is a conversion: dbar = kPa / 10, with the provenance stamped."""
+    out = pu.to_canonical_units(_ds(pressure=([17180.0], "kPa")))
+    assert out["pressure"].attrs["units"] == "dbar"
+    assert out["pressure"].attrs["units_converted_from"] == "kPa"
+    assert out["pressure"].attrs["units_conversion_factor"] == pytest.approx(0.1)
+    np.testing.assert_allclose(out["pressure"].values, [1718.0])
+
+
 def test_cross_variable_dimensionless_label_is_refused():
     # ...but a salinity file saying NTU (or turbidity saying PSU) must raise, not be
     # silently relabelled — the scoping keeps one quantity from borrowing another's.

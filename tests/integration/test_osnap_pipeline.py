@@ -119,6 +119,34 @@ def test_mislabelled_units_refused_then_fixed_by_override(tmp_path):
     assert 25 < float(np.nanmedian(s1["conductivity"].values)) < 45
 
 
+def test_units_override_with_reason_converts_kpa(tmp_path):
+    """A pressure overridden to kPa is converted to dbar, and the reason is kept."""
+    inst = {
+        "serial": 500,
+        "instrument": "currentmeter",
+        "file_type": "oceansites",
+        "filename": "OS_OSNAP_WHOI_CF7_202007_CM_500m.nc",
+        "hab": 1401,
+    }
+    raw, proc = _mooring(tmp_path / "a", "cf7", CF7, [dict(inst)])
+    assert process("cf7", [1], proc_dir=proc, raw_dir=raw, force=True)
+    stated = _open(proc, "cf7", "currentmeter", 500, 1)["pressure"]
+
+    reason = "values are ten times the deployed depth"
+    override = {"pressure": {"units": "kPa", "reason": reason}}
+    raw, proc = _mooring(
+        tmp_path / "b", "cf7", CF7, [{**inst, "units_override": override}]
+    )
+    assert process("cf7", [1], proc_dir=proc, raw_dir=raw, force=True)
+    p = _open(proc, "cf7", "currentmeter", 500, 1)["pressure"]
+    assert p.attrs["units"] == "dbar"
+    assert p.attrs["units_override_from"] == "decibar"
+    assert p.attrs["units_override_reason"] == reason
+    assert p.attrs["units_converted_from"] == "kPa"
+    assert p.attrs["units_conversion_factor"] == pytest.approx(0.1)
+    np.testing.assert_allclose(p.values, stated.values * 0.1, rtol=1e-6)
+
+
 def test_oceansites_current_meter_to_stage3(tmp_path):
     raw, proc = _mooring(
         tmp_path,

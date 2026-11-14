@@ -138,24 +138,42 @@ def _apply_units_override(
 ) -> xr.Dataset:
     """Replace a variable's units attribute with the one given in the mooring YAML."""
     # For a file whose units attribute is known to be wrong (e.g. conductivity
-    # labelled S/m with values in mS/cm).
+    # labelled S/m with values in mS/cm). Each entry is a units string, or a mapping
+    # {units, reason} whose free-text reason is carried into the variable's attributes.
     overrides = instrument_config.get("units_override") or {}
-    for var, units in overrides.items():
+    for var, given in overrides.items():
         if var not in dataset.data_vars:
             raise ValueError(
                 f"units_override names {var!r}, which the file does not hold "
                 f"(variables: {sorted(dataset.data_vars)})"
             )
+        units, reason = _override_units_and_reason(var, given)
         attrs = dict(dataset[var].attrs)
         # Keep the stated value so the correction is visible in the output.
         attrs["units_override_from"] = str(attrs.get("units", ""))
-        attrs["units"] = str(units)
+        attrs["units"] = units
+        if reason:
+            attrs["units_override_reason"] = reason
         dataset[var].attrs = attrs
         log_message(
             f"  {var}: units overridden {attrs['units_override_from']!r} -> "
             f"{units!r} (mooring YAML units_override)"
+            + (f": {reason}" if reason else "")
         )
     return dataset
+
+
+def _override_units_and_reason(var: str, given: Any) -> tuple[str, str]:
+    """Return the units and the reason (``""`` when none) of one override entry."""
+    if isinstance(given, dict):
+        unknown = sorted(set(given) - {"units", "reason"})
+        if unknown or not given.get("units"):
+            raise ValueError(
+                f"units_override.{var} must be a units string or "
+                f"{{units: <units>, reason: <text>}}; got {given!r}"
+            )
+        return str(given["units"]).strip(), str(given.get("reason") or "").strip()
+    return str(given).strip(), ""
 
 
 def _refuse_out_of_range(dataset: xr.Dataset, stated_units: dict[str, Any]) -> None:
