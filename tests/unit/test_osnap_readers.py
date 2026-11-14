@@ -86,6 +86,65 @@ def test_oceansites_one_record_file_keeps_its_time_axis(tmp_path):
     assert ds["temperature_qc_originator"].dims == ("time",)
 
 
+def test_oceansites_drops_records_with_missing_time(tmp_path):
+    """NaT padding at the tail of TIME is dropped at read time with a count.
+
+    Some originators pad a record that ended early with missing timestamps; left in,
+    the NaT entries make the time index non-monotonic and break stage-2 trimming.
+    """
+    path = tmp_path / "padded.nc"
+    times = np.array(
+        ["2020-01-01", "2020-01-02", "2020-01-03", "NaT", "NaT"],
+        dtype="datetime64[ns]",
+    )
+    xr.Dataset(
+        {
+            "TEMP": (
+                "TIME",
+                np.array([4.0, 4.1, 4.2, np.nan, np.nan], dtype="float32"),
+                {"units": "degree_Celsius", "standard_name": "sea_water_temperature"},
+            ),
+        },
+        coords={"TIME": times},
+    ).to_netcdf(path)
+
+    with pytest.warns(UserWarning, match="dropped 2 record"):
+        ds = read_oceansites(path)
+    assert ds.sizes == {"time": 3}
+    assert not np.isnat(ds["time"].values).any()
+
+
+def test_oceansites_non_datetime_calendar_is_not_dropped(tmp_path):
+    """A non-standard calendar decodes to cftime objects; the drop must not crash.
+
+    `np.isnat` only accepts datetime64; the reader guards on dtype and returns such a
+    file unchanged rather than raising.
+    """
+    path = tmp_path / "cftime.nc"
+    ds = xr.Dataset(
+        {
+            "TEMP": (
+                "TIME",
+                np.array([4.0, 4.1, 4.2], dtype="float32"),
+                {"units": "degree_Celsius", "standard_name": "sea_water_temperature"},
+            ),
+        },
+        coords={"TIME": np.array([0.0, 1.0, 2.0])},
+    )
+    ds["TIME"].attrs = {"units": "days since 2020-01-01", "calendar": "360_day"}
+    ds.to_netcdf(path)
+
+    out = read_oceansites(path)
+    assert out.sizes == {"time": 3}
+
+
+def test_oceansites_keeps_all_records_when_time_is_complete():
+    """A file with no NaT padding is returned unchanged (480 records)."""
+    ds = read_oceansites(WHOI_CM)
+    assert ds.sizes == {"time": 480}
+    assert not np.isnat(ds["time"].values).any()
+
+
 def test_rodb_microcat_names_units_fill_and_time():
     ds = read_rodb(RODB_MICROCAT)
     assert list(ds.data_vars) == ["temperature", "conductivity", "pressure"]
