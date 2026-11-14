@@ -205,6 +205,13 @@ def test_speed_boxplot_none_when_all_speed_is_nan():
     assert draw_speed_boxplot(ds) is None
 
 
+def test_speed_boxplot_none_when_all_speed_is_inf():
+    """A current_speed of only ±inf (imported fill) also yields None, not bogus stats."""
+    ds = _velocity_only_ds()
+    ds["current_speed"] = ("time", np.full(ds.sizes["time"], np.inf))
+    assert draw_speed_boxplot(ds) is None
+
+
 def test_multi_aquadopp_trajectories_survives_all_nan_temperature():
     """All-NaN temperature across the Aquadopps must not reduce a zero-size array."""
     n, m = 8, 2

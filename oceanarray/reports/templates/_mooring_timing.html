@@ -66,12 +66,12 @@
         {# Sugg. start (raw) — only present for pressure instruments; time only when same date #}
         {% set v = tm.get("sugg_start") or "" %}
         <td{% if tm.get("sugg_start_differs") and not instr.imported %} style="background:var(--hl-amber)"{% endif %}>
-          {{- v[11:] if (v and v[:10] == d_start) else (v or "—") -}}
+          {{- "—" if instr.imported else (v[11:] if (v and v[:10] == d_start) else (v or "—")) -}}
         </td>
         {# Sugg. start (UTC) #}
         {% set v = tm.get("sugg_start_utc") or "" %}
         <td{% if tm.get("sugg_start_differs") and not instr.imported %} style="background:var(--hl-amber)"{% endif %}>
-          {{- v[11:] if (v and v[:10] == d_start) else (v or "—") -}}
+          {{- "—" if instr.imported else (v[11:] if (v and v[:10] == d_start) else (v or "—")) -}}
         </td>
         {# Stage1 last — orange-amber when instrument stopped early (not for imported rows:
            an originator-trimmed record almost always ends before the recovery time) #}

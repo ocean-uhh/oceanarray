@@ -634,7 +634,9 @@ def _check_report_sections(data: Mapping) -> list[ValidationIssue]:
             continue
         allowed = OPTIONAL_REPORT_SECTIONS[page]
         for name in sections:
-            if name not in allowed:
+            # A non-string name (e.g. a nested list) is unhashable; guard before the
+            # membership test so check() reports an ERROR rather than raising.
+            if not isinstance(name, str) or name not in allowed:
                 issues.append(
                     ValidationIssue(
                         "ERROR",

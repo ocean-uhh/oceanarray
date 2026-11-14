@@ -398,6 +398,9 @@ def test_report_sections_check_rejects_unknown_page_and_section() -> None:
     assert any(
         i.level == "ERROR" and "list of section names" in i.message for i in bad_shape
     )
+    # a non-string (unhashable) section name is an ERROR, not a raise — check() never raises
+    bad_type = mooring.check({"name": "m", "report_sections": {"grid": [["overflow"]]}})
+    assert any(i.level == "ERROR" for i in bad_type)
 
 
 def test_resolve_report_sections_reads_the_mooring_description() -> None:

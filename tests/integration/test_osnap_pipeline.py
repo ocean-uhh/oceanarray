@@ -121,7 +121,7 @@ def test_imported_aquadopp_report_builds_without_panel_crash(tmp_path):
     assert Path(summary).exists()
     instr_page = mooring_dir / "report" / "instrument" / "cf7_500_report.html"
     assert instr_page.exists()
-    html = instr_page.read_text()
+    html = instr_page.read_text(encoding="utf-8")
     # The velocity-only page names the panels it cannot draw rather than crashing.
     assert "Not applicable" in html
 
@@ -146,7 +146,7 @@ def test_imported_rodb_report_labels_current_meter(tmp_path):
     assert process("rtwb1_01_2014", [1, 2, 3], proc_dir=proc, raw_dir=raw, force=True)
     mooring_dir = proc / "rtwb1_01_2014"
     summary = report(mooring_dir, instruments=True, stack=False, grid=False)
-    html = Path(summary).read_text()
+    html = Path(summary).read_text(encoding="utf-8")
     assert "Current meter" in html
     assert "CURRENTMETER" not in html
     # All-imported mooring: the timing table is the trimmed "Record first/last" form,
@@ -167,7 +167,7 @@ def test_mislabelled_units_refused_then_fixed_by_override(tmp_path):
     raw, proc = _mooring(tmp_path / "a", "cf7", CF7, [dict(inst)])
     process("cf7", [1], proc_dir=proc, raw_dir=raw, force=True)
     assert not (proc / "cf7" / "microcat" / "cf7_22225_stage1.nc").exists()
-    log = "".join(p.read_text() for p in (proc / "cf7").rglob("*.log"))
+    log = "".join(p.read_text(encoding="utf-8") for p in (proc / "cf7").rglob("*.log"))
     assert "units_override" in log
 
     raw, proc = _mooring(

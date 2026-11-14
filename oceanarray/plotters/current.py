@@ -220,7 +220,7 @@ def draw_speed_boxplot(
     if speed_var not in ds.data_vars:
         return None
     speed = ds[speed_var].values.ravel()
-    speed_clean = speed[~np.isnan(speed)]
+    speed_clean = speed[np.isfinite(speed)]  # drops NaN and ±inf (imported fills)
     if speed_clean.size == 0:
         return None
 

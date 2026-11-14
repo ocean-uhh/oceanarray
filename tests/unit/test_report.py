@@ -792,7 +792,13 @@ def test_timing_table_mixed_marks_only_imported_rows():
         "serial": "2",
         "file_type": "rodb",
         "imported": True,
-        "timing": dict(tm),
+        # A pressure-derived suggestion present on the imported row must still be hidden
+        # (an originator-trimmed record has no raw clock to suggest against).
+        "timing": {
+            **tm,
+            "sugg_start_utc": "2020-06-15T09:09",
+            "sugg_start_differs": True,
+        },
     }
     instruments = [raw, imported]
     assert _timing_mode(instruments) == "mixed"
@@ -816,6 +822,8 @@ def test_timing_table_mixed_marks_only_imported_rows():
     # count is 2: the intro legend's "orange" span plus the one raw data cell; without
     # the imported-row suppression it would be 3.
     assert html.count("hl-orange") == 2
+    # the imported row's pressure-derived suggestion is hidden (shown as "—"), not the time
+    assert "09:09" not in html
 
 
 def test_grid_page_overflow_off_by_default_and_on_by_config(tmp_path):
@@ -832,10 +840,17 @@ def test_grid_page_overflow_off_by_default_and_on_by_config(tmp_path):
     shutil.copytree(src, off)
     yml = off / "dune2_1_2026.mooring.yaml"
     # strip the fixture's report_sections so overflow is at its default (off)
-    lines = [ln for ln in yml.read_text().splitlines() if "overflow" not in ln]
-    yml.write_text("\n".join(ln for ln in lines if "report_sections" not in ln) + "\n")
+    lines = [
+        ln
+        for ln in yml.read_text(encoding="utf-8").splitlines()
+        if "overflow" not in ln
+    ]
+    yml.write_text(
+        "\n".join(ln for ln in lines if "report_sections" not in ln) + "\n",
+        encoding="utf-8",
+    )
     report(off, instruments=False, stack=False, grid=True, force=True)
-    html_off = (off / grid).read_text()
+    html_off = (off / grid).read_text(encoding="utf-8")
     assert "Overflow</h2>" not in html_off  # the section is absent
     # ...and it is not named in the not-applicable footer (it was not asked for).
     footer = (
@@ -846,4 +861,4 @@ def test_grid_page_overflow_off_by_default_and_on_by_config(tmp_path):
     on = tmp_path / "on"
     shutil.copytree(src, on)  # fixture already has report_sections: {grid: [overflow]}
     report(on, instruments=False, stack=False, grid=True, force=True)
-    assert "Overflow</h2>" in (on / grid).read_text()
+    assert "Overflow</h2>" in (on / grid).read_text(encoding="utf-8")
