@@ -20,6 +20,8 @@ import yaml
 from markupsafe import escape
 
 from oceanarray import logger
+from oceanarray import mooring as _mooring
+from oceanarray.exceptions import MooringError
 
 from ..config.unit_tables import unit_label
 from ..paths import safe_serial
@@ -525,17 +527,35 @@ def generate_array_report(
     for pos_idx, entry in enumerate(mooring_entries, start=1):
         mooring_id = entry.get("mooring", "")
         config_name = entry.get("config", f"{mooring_id}.mooring.yaml")
-        mooring_yaml = proc_dir / mooring_id / config_name
+        # A config path is resolved relative to the array YAML (or absolute), so a
+        # mooring description kept outside proc/ can be used; the per-mooring proc-dir
+        # convention is the fallback, so existing arrays are unchanged.
+        config_path = Path(config_name)
+        if not config_path.is_absolute():
+            _rel = array_yaml_path.parent / config_path
+            config_path = _rel if _rel.exists() else proc_dir / mooring_id / config_name
 
         mcfg: dict[str, Any] = {}
-        if mooring_yaml.exists():
+        if config_path.exists():
             try:
-                with mooring_yaml.open() as fh:
-                    mcfg = yaml.safe_load(fh) or {}
+                mcfg = _mooring.load(config_path)
+            except MooringError as exc:
+                # The array report shows what it can: a validation ERROR should not blank
+                # the row, so fall back to the raw parse (the mooring's own report
+                # surfaces the error).
+                warnings.warn(
+                    f"{config_path} has validation errors ({exc}); shown unvalidated.",
+                    stacklevel=2,
+                )
+                try:
+                    with config_path.open() as fh:
+                        mcfg = yaml.safe_load(fh) or {}
+                except Exception as exc2:  # noqa: BLE001
+                    warnings.warn(f"could not read {config_path}: {exc2}", stacklevel=2)
             except Exception as exc:  # noqa: BLE001
-                warnings.warn(f"could not read {mooring_yaml}: {exc}", stacklevel=2)
+                warnings.warn(f"could not read {config_path}: {exc}", stacklevel=2)
         else:
-            warnings.warn(f"mooring YAML not found: {mooring_yaml}", stacklevel=2)
+            warnings.warn(f"mooring YAML not found: {config_path}", stacklevel=2)
 
         lat, lon = _resolve_lat_lon(mcfg)
         deploy_dt = _parse_dt(mcfg.get("deployment_time"))

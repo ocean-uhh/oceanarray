@@ -749,3 +749,116 @@ def test_seam_history_excluded_and_stdname_column_drops(tmp_path):
     # optional includes "stdname": with no standard_name/long_name on any scalar, the
     # Standard / long name column drops rather than rendering empty.
     assert "Standard / long name" not in scalars_html
+
+
+# ---------------------------------------------------------------------------
+# Deployment-timing table: imported (oceansites/rodb) rows (B5)
+# ---------------------------------------------------------------------------
+
+
+def test_timing_mode_classifies_by_file_type():
+    """raw / imported / mixed from the instruments' file_type (imported = oceansites/rodb)."""
+    from oceanarray.reports._mooring import _timing_mode
+
+    raw = {"file_type": "sbe-cnv"}
+    imp = {"file_type": "rodb"}
+    assert _timing_mode([raw, raw]) == "raw"
+    assert _timing_mode([imp, {"file_type": "oceansites"}]) == "imported"
+    assert _timing_mode([raw, imp]) == "mixed"
+    # a skipped instrument does not set the mode
+    assert _timing_mode([raw, {"file_type": "rodb", "skipped": True}]) == "raw"
+
+
+def test_timing_table_mixed_marks_only_imported_rows():
+    """In a mixed mooring the imported row gets a †, and the orange stopped-early
+    highlight fires on the raw row only (the imported record is expected to end early)."""
+    from oceanarray.reports._env import render_template
+    from oceanarray.reports._mooring import _timing_mode
+
+    tm = {
+        "stage1_start": "2026-01-01T00:00",
+        "stage1_end": "2026-02-01T00:00",
+        "stage1_end_early": True,
+    }
+    raw = {
+        "instr_type": "microcat",
+        "serial": "1",
+        "file_type": "sbe-cnv",
+        "imported": False,
+        "timing": dict(tm),
+    }
+    imported = {
+        "instr_type": "currentmeter",
+        "serial": "2",
+        "file_type": "rodb",
+        "imported": True,
+        # A pressure-derived suggestion present on the imported row must still be hidden
+        # (an originator-trimmed record has no raw clock to suggest against).
+        "timing": {
+            **tm,
+            "sugg_start_utc": "2020-06-15T09:09",
+            "sugg_start_differs": True,
+        },
+    }
+    instruments = [raw, imported]
+    assert _timing_mode(instruments) == "mixed"
+
+    html = render_template(
+        "_mooring_timing.html",
+        instruments=instruments,
+        timing_mode="mixed",
+        mooring_name="m",
+        rec_deploy=None,
+        rec_recover=None,
+        rec_deploy_sec=None,
+        rec_recover_sec=None,
+        rec_differs=False,
+        yaml_deploy_time=None,
+        yaml_recover_time=None,
+    )
+    assert "†" in html  # marker on the imported row and the footnote
+    # stage1_end_early is True on both rows, but the orange highlight fires only on the
+    # raw row — an originator-trimmed record is expected to end before recovery. The
+    # count is 2: the intro legend's "orange" span plus the one raw data cell; without
+    # the imported-row suppression it would be 3.
+    assert html.count("hl-orange") == 2
+    # the imported row's pressure-derived suggestion is hidden (shown as "—"), not the time
+    assert "09:09" not in html
+
+
+def test_grid_page_overflow_off_by_default_and_on_by_config(tmp_path):
+    """Overflow is absent (and not named in the not-applicable footer) unless the
+    mooring YAML's report_sections turns it on; turning it on restores the section."""
+    import shutil
+
+    from oceanarray.reports import report
+
+    src = Path("tests/fixtures/proc/dune2_1_2026")
+    grid = "report/dune2_1_2026_grid_report.html"
+
+    off = tmp_path / "off"
+    shutil.copytree(src, off)
+    yml = off / "dune2_1_2026.mooring.yaml"
+    # strip the fixture's report_sections so overflow is at its default (off)
+    lines = [
+        ln
+        for ln in yml.read_text(encoding="utf-8").splitlines()
+        if "overflow" not in ln
+    ]
+    yml.write_text(
+        "\n".join(ln for ln in lines if "report_sections" not in ln) + "\n",
+        encoding="utf-8",
+    )
+    report(off, instruments=False, stack=False, grid=True, force=True)
+    html_off = (off / grid).read_text(encoding="utf-8")
+    assert "Overflow</h2>" not in html_off  # the section is absent
+    # ...and it is not named in the not-applicable footer (it was not asked for).
+    footer = (
+        html_off.split("Not applicable", 1)[1] if "Not applicable" in html_off else ""
+    )
+    assert "Overflow" not in footer
+
+    on = tmp_path / "on"
+    shutil.copytree(src, on)  # fixture already has report_sections: {grid: [overflow]}
+    report(on, instruments=False, stack=False, grid=True, force=True)
+    assert "Overflow</h2>" in (on / grid).read_text(encoding="utf-8")

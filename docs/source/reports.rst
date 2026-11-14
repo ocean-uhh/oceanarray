@@ -22,6 +22,11 @@ Generate reports with::
 
 Or generate all reports in one go with ``oceanarray run`` (see :doc:`cli_reference`).
 
+The report reads the written stage, stack and grid files from disk; it does not
+take in-memory datasets.  Run ``process`` or ``run`` first so the files exist —
+a report built against a mooring with no stage files has empty processing,
+timing and QC sections, and each instrument row names the directory it searched.
+
 ----
 
 Live example

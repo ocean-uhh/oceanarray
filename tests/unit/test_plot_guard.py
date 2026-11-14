@@ -9,8 +9,15 @@ microcat (serial 2941), velocity functions on the aquadopp (serial 9920).
 """
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pytest
+import xarray as xr
 
+from oceanarray.plotters.current import (
+    draw_multi_aquadopp_trajectories,
+    draw_speed_boxplot,
+    draw_temperature_trajectory,
+)
 from oceanarray.reports import _plots
 from oceanarray.reports._vendored import design_tokens as report_tokens
 
@@ -149,6 +156,79 @@ def test_windows_fig_microcat(microcat_stage3_path):
     """``_make_windows_b64s`` builds a (paginated) deployment-window figure list."""
     imgs = _plots._make_windows_b64s(microcat_stage3_path, "microcat")
     assert isinstance(imgs, list) and len(imgs) >= 1
+
+
+# ---------------------------------------------------------------------------
+# Imported current meters: panels not-applicable instead of KeyError (B1)
+# ---------------------------------------------------------------------------
+
+
+def _velocity_only_ds() -> xr.Dataset:
+    """A current meter carrying only time, pressure and east/north velocity.
+
+    The shape of an imported OceanSITES/RODB current meter (no temperature, no
+    derived current_speed) — the case behind OSNAP note 8's KeyError.
+    """
+    n = 10
+    t = np.arange("2026-01-01", "2026-01-11", dtype="datetime64[D]")
+    return xr.Dataset(
+        {
+            "pressure": ("time", np.linspace(500, 505, n)),
+            "east_velocity": ("time", np.full(n, 0.1)),
+            "north_velocity": ("time", np.full(n, 0.05)),
+        },
+        coords={"time": t},
+    )
+
+
+def test_temperature_trajectory_none_without_temperature():
+    """No temperature -> the trajectory panel is not applicable (None), not a KeyError."""
+    assert draw_temperature_trajectory(_velocity_only_ds()) is None
+
+
+def test_temperature_trajectory_none_when_temperature_all_nan():
+    """Temperature present but all-NaN -> None, not a NaN-to-int colour-scale crash."""
+    ds = _velocity_only_ds()
+    ds["temperature"] = ("time", np.full(ds.sizes["time"], np.nan))
+    assert draw_temperature_trajectory(ds) is None
+
+
+def test_speed_boxplot_none_without_current_speed():
+    """No current_speed -> the speed panel is not applicable (None), not a KeyError."""
+    assert draw_speed_boxplot(_velocity_only_ds()) is None
+
+
+def test_speed_boxplot_none_when_all_speed_is_nan():
+    """A current_speed that is entirely NaN yields None (np.percentile would raise)."""
+    ds = _velocity_only_ds()
+    ds["current_speed"] = ("time", np.full(ds.sizes["time"], np.nan))
+    assert draw_speed_boxplot(ds) is None
+
+
+def test_speed_boxplot_none_when_all_speed_is_inf():
+    """A current_speed of only ±inf (imported fill) also yields None, not bogus stats."""
+    ds = _velocity_only_ds()
+    ds["current_speed"] = ("time", np.full(ds.sizes["time"], np.inf))
+    assert draw_speed_boxplot(ds) is None
+
+
+def test_multi_aquadopp_trajectories_survives_all_nan_temperature():
+    """All-NaN temperature across the Aquadopps must not reduce a zero-size array."""
+    n, m = 8, 2
+    t = np.arange("2026-01-01", "2026-01-09", dtype="datetime64[D]")
+    ds = xr.Dataset(
+        {
+            "east_velocity": (("time", "instrument"), np.full((n, m), 0.1)),
+            "north_velocity": (("time", "instrument"), np.full((n, m), 0.05)),
+            "temperature": (("time", "instrument"), np.full((n, m), np.nan)),
+            "instrument_type": ("instrument", np.array(["aquadopp", "aquadopp"])),
+            "serial": ("instrument", np.array(["111", "222"])),
+        },
+        coords={"time": t},
+    )
+    fig = draw_multi_aquadopp_trajectories(ds)
+    assert fig is not None  # plain (uncoloured) trajectories, no crash
+    plt.close(fig)
 
 
 # ---------------------------------------------------------------------------

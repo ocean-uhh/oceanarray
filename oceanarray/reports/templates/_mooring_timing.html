@@ -59,30 +59,33 @@
         {# Anchor dates for deduplication: show only time when on the same day #}
         {% set d_start = (tm.get("stage1_start") or "")[:10] %}
         {% set d_end   = (tm.get("stage1_end")   or "")[:10] %}
-        {# Stage1 first — always full date+time; anchors deduplication for start columns #}
-        <td>{{ tm.get("stage1_start") or "—" }}</td>
+        {# Stage1 first — always full date+time; anchors deduplication for start columns.
+           An imported (oceansites/rodb) row is the originator's record bound, marked †,
+           not a raw instrument clock; its suggestion cells and highlights are suppressed. #}
+        <td>{{ tm.get("stage1_start") or "—" }}{% if instr.imported %} †{% endif %}</td>
         {# Sugg. start (raw) — only present for pressure instruments; time only when same date #}
         {% set v = tm.get("sugg_start") or "" %}
-        <td{% if tm.get("sugg_start_differs") %} style="background:var(--hl-amber)"{% endif %}>
-          {{- v[11:] if (v and v[:10] == d_start) else (v or "—") -}}
+        <td{% if tm.get("sugg_start_differs") and not instr.imported %} style="background:var(--hl-amber)"{% endif %}>
+          {{- "—" if instr.imported else (v[11:] if (v and v[:10] == d_start) else (v or "—")) -}}
         </td>
         {# Sugg. start (UTC) #}
         {% set v = tm.get("sugg_start_utc") or "" %}
-        <td{% if tm.get("sugg_start_differs") %} style="background:var(--hl-amber)"{% endif %}>
-          {{- v[11:] if (v and v[:10] == d_start) else (v or "—") -}}
+        <td{% if tm.get("sugg_start_differs") and not instr.imported %} style="background:var(--hl-amber)"{% endif %}>
+          {{- "—" if instr.imported else (v[11:] if (v and v[:10] == d_start) else (v or "—")) -}}
         </td>
-        {# Stage1 last — orange-amber when instrument stopped early #}
-        <td{% if tm.get("stage1_end_early") %} style="background:var(--hl-orange)"{% endif %}>
+        {# Stage1 last — orange-amber when instrument stopped early (not for imported rows:
+           an originator-trimmed record almost always ends before the recovery time) #}
+        <td{% if tm.get("stage1_end_early") and not instr.imported %} style="background:var(--hl-orange)"{% endif %}>
           {{- tm.get("stage1_end") or "—" -}}
         </td>
         {# Sugg. end (raw) #}
         {% set v = tm.get("sugg_end") or "" %}
-        <td{% if tm.get("sugg_end_differs") %} style="background:var(--hl-amber)"{% endif %}>
+        <td{% if tm.get("sugg_end_differs") and not instr.imported %} style="background:var(--hl-amber)"{% endif %}>
           {{- v[11:] if (v and v[:10] == d_end) else (v or "—") -}}
         </td>
         {# Sugg. end (UTC) #}
         {% set v = tm.get("sugg_end_utc") or "" %}
-        <td{% if tm.get("sugg_end_differs") %} style="background:var(--hl-amber)"{% endif %}>
+        <td{% if tm.get("sugg_end_differs") and not instr.imported %} style="background:var(--hl-amber)"{% endif %}>
           {{- v[11:] if (v and v[:10] == d_end) else (v or "—") -}}
         </td>
       {% elif instr.skipped %}
@@ -109,6 +112,13 @@
   {% endif %}
 </table>
 </div>
+{%- if timing_mode == 'mixed' %}
+<p style="font-size:0.78rem;color:var(--gray-5);margin:0.4rem 0 0">
+  † Imported (OceanSITES/RODB) rows: the Stage&nbsp;1 columns are the originator's
+  trimmed record, not a raw instrument clock, so no pressure-derived suggestion or
+  stopped-early highlight applies; stage&nbsp;2 trims to the deployment window regardless.
+</p>
+{%- endif %}
 
 {% if yaml_deploy_time or yaml_recover_time or rec_deploy or rec_recover %}
 <div style="margin:1.2rem 0 0.5rem">

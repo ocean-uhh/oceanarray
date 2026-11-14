@@ -175,6 +175,12 @@ mooring as a whole.
      - ``pmin``, ``pmax``, ``dp``: the grid's pressure levels in dbar
        (default 200, 1000, 20). ``--pmin`` / ``--pmax`` / ``--dp`` override them.
        ``pmax`` must be above ``pmin``.
+   * - ``report_sections``
+     - mapping
+     - Optional
+     - Optional report sections to turn on, keyed by page. Only ``grid: [overflow]``
+       exists today (the grid report's Overflow section, off by default). Set it in the
+       mooring YAML.
 
 The ``stack:`` and ``grid:`` blocks configure ``oceanarray run`` (and
 ``oceanarray.run``); the per-instrument ``stack: false`` flag one level down is a

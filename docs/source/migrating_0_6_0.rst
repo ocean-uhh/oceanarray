@@ -44,6 +44,10 @@ folder can have any name, and every file is named from ``name:``.
 - The stack and grid settings can live in the description, in ``stack:``
   (``dt_seconds``) and ``grid:`` (``pmin``, ``pmax``, ``dp``) blocks.
 - Every stage-3, stack and grid file carries ``data_mode = "P"`` (provisional).
+- The grid report's **Overflow** section is now off by default; turn it on with a
+  ``report_sections`` block (``report_sections: {grid: [overflow]}``) in the mooring
+  YAML. An overflow mooring whose YAML does not set it loses the section — add the
+  block to each overflow mooring's YAML to keep it.
 
 Renamed names (removed in 0.7.0)
 --------------------------------

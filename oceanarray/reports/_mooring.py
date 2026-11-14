@@ -97,6 +97,27 @@ MOORING_CAPTIONS: dict[str, str] = {
 _fig_panel = make_fig_panel(MOORING_CAPTIONS)
 
 
+#: File types whose records the originator already trimmed (no raw instrument clock).
+_IMPORTED_FILE_TYPES = frozenset({"oceansites", "rodb"})
+
+
+def _timing_mode(instruments: list[dict]) -> str:
+    """Return ``"raw"``, ``"imported"`` or ``"mixed"`` for the deployment-timing table.
+
+    ``imported`` rows (``oceansites``/``rodb``) carry the originator's trimmed record, not
+    a raw instrument clock, so the timing table's header and suggestion columns differ
+    from a raw mooring's.  The mode drives which header the one shared ``<th>`` row shows.
+    """
+    kinds = {
+        "imported" if i.get("file_type") in _IMPORTED_FILE_TYPES else "raw"
+        for i in instruments
+        if not i.get("skipped")
+    }
+    if kinds == {"imported"}:
+        return "imported"
+    return "mixed" if "imported" in kinds else "raw"
+
+
 #: Mooring panel registry (dict-context: panels read ctx by key).
 MOORING_PANELS: dict[str, Panel] = {
     "pipeline": Panel(
@@ -122,8 +143,14 @@ MOORING_PANELS: dict[str, Panel] = {
     "timing": Panel(
         "timing",
         render=lambda c: render_template(
-            "_mooring_timing.html",
+            # All-imported moorings get a trimmed table (no raw-clock suggestion
+            # columns); raw and mixed moorings keep the full table. ``timing_mode`` is
+            # computed once in the context.
+            "_mooring_timing_imported.html"
+            if c["timing_mode"] == "imported"
+            else "_mooring_timing.html",
             instruments=c["instruments"],
+            timing_mode=c["timing_mode"],
             mooring_name=c["mooring_name"],
             rec_deploy=c["rec_deploy"],
             rec_recover=c["rec_recover"],
@@ -671,6 +698,7 @@ class MooringReport:
                     "depth": depth,
                     "filename": filename,
                     "file_type": file_type,
+                    "imported": file_type in _IMPORTED_FILE_TYPES,
                     "raw_path": raw_path_str,
                     "raw_exists": raw_exists,
                     "readable": readable,
@@ -688,6 +716,10 @@ class MooringReport:
                     "stopped_early": stopped_early,
                     "skipped": bool(entry.get("skip")),
                     "skip_reason": entry.get("skip_reason", ""),
+                    # Where stage files are looked for; named in the table when none is
+                    # found, so the reader sees what was searched rather than a guess at
+                    # why (not processed yet, wrong proc_dir, in-memory run).
+                    "stage_dir": f"{mooring_name}/{instr_type}/",
                     "report_exists": (
                         out_dir is not None
                         and (
@@ -876,6 +908,10 @@ class MooringReport:
             ),
             "n_instruments": len(instruments),
             "instruments": instruments,
+            "timing_mode": _timing_mode(instruments),
+            # Optional report sections turned on in the config. A standalone mooring
+            # report resolves from the mooring YAML (the strongest level reachable here).
+            "report_sections_grid": _mooring.resolve_report_sections("grid", cfg),
             "rec_deploy": rec_deploy,
             "rec_recover": rec_recover,
             "rec_deploy_sec": rec_deploy_sec,

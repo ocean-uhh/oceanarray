@@ -73,7 +73,7 @@
       {% elif instr.skipped %}
         <td colspan="10" class="none-note">skipped{% if instr.skip_reason %} — {{ instr.skip_reason }}{% endif %}</td>
       {% else %}
-        <td colspan="10" class="none-note">no processed file</td>
+        <td colspan="10" class="none-note">no stage files in <code>{{ instr.stage_dir }}</code></td>
       {% endif %}
     </tr>
     {% endfor %}

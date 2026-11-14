@@ -142,9 +142,17 @@ def draw_temperature_trajectory(
 
     Returns
     -------
-    matplotlib.figure.Figure
+    matplotlib.figure.Figure, or None when east/north velocity or temperature is absent.
 
     """
+    # An imported current meter may hold only pressure and velocity (no temperature) or
+    # only a subset; the panel is then not applicable rather than an error.
+    if any(v not in ds.data_vars for v in (u_var, v_var, temp_var)):
+        return None
+    # Temperature present but all-NaN (imported fill) would make the colour scale reduce
+    # a zero-size array; not applicable rather than an error.
+    if not np.isfinite(ds[temp_var].values).any():
+        return None
     # The km label assumes both velocity components in m/s integrated over dt in seconds.
     warn_if_not_canonical(ds[u_var], "m s-1", quantity="trajectory displacement (km)")
     warn_if_not_canonical(ds[v_var], "m s-1", quantity="trajectory displacement (km)")
@@ -203,13 +211,18 @@ def draw_speed_boxplot(
 
     Returns
     -------
-    matplotlib.figure.Figure
+    matplotlib.figure.Figure, or None when the speed variable is absent or has no
+    finite values (e.g. an imported current meter carrying only pressure and velocity).
 
     """
     import matplotlib.pyplot as plt
 
+    if speed_var not in ds.data_vars:
+        return None
     speed = ds[speed_var].values.ravel()
-    speed_clean = speed[~np.isnan(speed)]
+    speed_clean = speed[np.isfinite(speed)]  # drops NaN and ±inf (imported fills)
+    if speed_clean.size == 0:
+        return None
 
     units = params.vunit("speed") or ds[speed_var].attrs.get("units", "")
     long_name = ds[speed_var].attrs.get("long_name", speed_var)
@@ -300,7 +313,12 @@ def draw_multi_aquadopp_trajectories(
         dtype=float,
     )
 
-    has_temp = temp_var in ds.data_vars
+    # Colour by temperature only when at least one finite value exists among the
+    # Aquadopps; an imported current meter's temperature may be absent or all-NaN, which
+    # would otherwise make np.nanmin below reduce a zero-size array.
+    has_temp = temp_var in ds.data_vars and bool(
+        np.isfinite(ds[temp_var].values[:, aqd_idx]).any()
+    )
 
     # The km label assumes both velocity components in m/s integrated over dt in seconds.
     warn_if_not_canonical(ds[u_var], "m s-1", quantity="trajectory displacement (km)")
