@@ -516,7 +516,9 @@ Valid ``file_type`` values
      - RAPID/BODC ``.microcat``, ``.edt`` and ``.lowedt`` files.  Units are
        those documented for each column code (``U``/``V``/``W`` in cm/s,
        converted to m s-1).  An ``.edt`` header's ``MagDeviation`` is recorded
-       as ``originator_magnetic_declination`` and not applied again.
+       as ``originator_magnetic_declination`` and not applied again.  A row
+       with a fill (``-9999``) in ``YY``, ``MM``, ``DD`` or ``HH`` has no time
+       and is dropped (see below).
    * - ``rbr-rsk``
      - RBR Ruskin SQLite
      - RBR Solo, Duet, etc.
@@ -541,6 +543,12 @@ Valid ``file_type`` values
      - ADCP MATLAB export
      - RDI WorkHorse
      -
+
+Whatever the format, a record with no time (an originator's padding of a
+record that ended early, or a fill in a time column) is dropped when the file
+is read, with a warning naming the file and the count.  Stage 1 records the
+count in the ``n_records_without_time`` global attribute and a ``history``
+line; a file in which no record has a time is refused.
 
 ----
 
@@ -738,7 +746,11 @@ If ``hab`` is absent from an instrument entry:
 - Stage 3 will skip pressure interpolation for that instrument if it has
   no native pressure sensor.  A warning is logged identifying the
   instrument by serial number.  The instrument will not contribute to the
-  vertically resolved stack and grid.
+  vertically resolved stack and grid: the stack names it in
+  ``instruments_omitted`` ("no hab in the mooring YAML"), so a strict run
+  (``keep_going=False``) stops before the grid.  ``oceanarray validate``
+  warns about such an entry; set ``hab``, or ``stack: false`` to keep it
+  out of the stack on purpose.
 
 ----
 

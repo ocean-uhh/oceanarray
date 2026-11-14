@@ -158,3 +158,62 @@ def test_stage3_processor_names_files_from_the_description(tmp_path):
     assert Stage3Processor(proc_dir=str(tmp_path)).process_mooring("dune2_copy")
     assert (moor / "microcat" / "dune2_1_2026_2941_stage3.nc").exists()
     assert (moor / "aquadopp" / "dune2_1_2026_9920_stage3.nc").exists()
+
+
+@pytest.fixture(scope="module")
+def no_position(tmp_path_factory) -> tuple[dict, dict[str, xr.Dataset]]:
+    """Stage 3 on the committed stage-2 fixtures with the mooring position removed."""
+    moor = tmp_path_factory.mktemp("no_position") / "dune2_1_2026"
+    shutil.copytree(_FIX, moor, ignore=shutil.ignore_patterns("*_stage3.nc", "*.nc.*"))
+    cfg = _mooring.load(moor / _YAML.name)
+    for key in ("latitude", "longitude"):
+        cfg.pop(key, None)
+    datasets = {
+        s: ds.load() for s, ds in read_mooring(cfg, stage=2, mooring_dir=moor).items()
+    }
+    return cfg, stage3(datasets, cfg)
+
+
+def test_stage3_without_position_records_declination_not_applied(no_position):
+    """A BEAM/XYZ Aquadopp with no mooring position runs; history says why."""
+    _, out = no_position
+    assert out["9920"].attrs["magnetic_declination"] == "UNK"
+    assert "declination not applied (position unknown)" in out["9920"].attrs["history"]
+    assert "ppigrf IGRF" not in out["9920"].attrs["history"]
+
+
+def test_stack_without_position_names_the_unknown_declination(no_position):
+    """The stack builds; the unknown level's declination is NaN and named."""
+    from oceanarray.pipeline.stack import stack
+
+    cfg, out = no_position
+    ds = stack(out, cfg)
+    decl = ds["magnetic_declination"]
+    assert decl.dims == ("N_LEVELS",)
+    level = [str(s) for s in ds["serial"].values].index("9920")
+    assert np.isnan(decl.values[level])
+    assert "aquadopp s/n 9920" in decl.attrs["comment"]
+    assert "microcat" not in decl.attrs["comment"]
+
+
+def test_instrument_report_warns_when_declination_unknown(no_position, tmp_path):
+    """The no-position aquadopp's instrument page shows the declination-not-applied banner.
+
+    Regression: stage 3 writes ``magnetic_declination="UNK"``; the report's warning keys
+    on that value, not merely on the attribute being present, so the banner must still show.
+    """
+    import yaml
+
+    from oceanarray import report, write_mooring
+
+    cfg, out = no_position
+    mdir = tmp_path / "dune2_1_2026"
+    write_mooring(out, mdir)
+    (mdir / "dune2_1_2026.mooring.yaml").write_text(
+        yaml.safe_dump(cfg), encoding="utf-8"
+    )
+    report(mdir, instruments=True, stack=False, grid=False)
+    html = (mdir / "report" / "instrument" / "dune2_1_2026_9920_report.html").read_text(
+        encoding="utf-8"
+    )
+    assert "Magnetic declination could not be applied" in html
