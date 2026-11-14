@@ -749,3 +749,60 @@ def test_seam_history_excluded_and_stdname_column_drops(tmp_path):
     # optional includes "stdname": with no standard_name/long_name on any scalar, the
     # Standard / long name column drops rather than rendering empty.
     assert "Standard / long name" not in scalars_html
+
+
+# ---------------------------------------------------------------------------
+# Deployment-timing table: imported (oceansites/rodb) rows (B5)
+# ---------------------------------------------------------------------------
+
+
+def test_timing_mode_classifies_by_file_type():
+    """raw / imported / mixed from the instruments' file_type (imported = oceansites/rodb)."""
+    from oceanarray.reports._mooring import _timing_mode
+
+    raw = {"file_type": "sbe-cnv"}
+    imp = {"file_type": "rodb"}
+    assert _timing_mode([raw, raw]) == "raw"
+    assert _timing_mode([imp, {"file_type": "oceansites"}]) == "imported"
+    assert _timing_mode([raw, imp]) == "mixed"
+    # a skipped instrument does not set the mode
+    assert _timing_mode([raw, {"file_type": "rodb", "skipped": True}]) == "raw"
+
+
+def test_timing_table_mixed_marks_only_imported_rows():
+    """In a mixed mooring the imported row gets a †, and the orange stopped-early
+    highlight fires on the raw row only (the imported record is expected to end early)."""
+    from oceanarray.reports._env import render_template
+    from oceanarray.reports._mooring import _timing_mode
+
+    tm = {
+        "stage1_start": "2026-01-01T00:00",
+        "stage1_end": "2026-02-01T00:00",
+        "stage1_end_early": True,
+    }
+    raw = {"instr_type": "microcat", "serial": "1", "file_type": "sbe-cnv",
+           "imported": False, "timing": dict(tm)}
+    imported = {"instr_type": "currentmeter", "serial": "2", "file_type": "rodb",
+                "imported": True, "timing": dict(tm)}
+    instruments = [raw, imported]
+    assert _timing_mode(instruments) == "mixed"
+
+    html = render_template(
+        "_mooring_timing.html",
+        instruments=instruments,
+        timing_mode="mixed",
+        mooring_name="m",
+        rec_deploy=None,
+        rec_recover=None,
+        rec_deploy_sec=None,
+        rec_recover_sec=None,
+        rec_differs=False,
+        yaml_deploy_time=None,
+        yaml_recover_time=None,
+    )
+    assert "†" in html  # marker on the imported row and the footnote
+    # stage1_end_early is True on both rows, but the orange highlight fires only on the
+    # raw row — an originator-trimmed record is expected to end before recovery. The
+    # count is 2: the intro legend's "orange" span plus the one raw data cell; without
+    # the imported-row suppression it would be 3.
+    assert html.count("hl-orange") == 2

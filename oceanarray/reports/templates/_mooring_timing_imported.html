@@ -1,0 +1,43 @@
+{# Deployment-timing table for an all-imported mooring (oceansites/rodb).  The
+   records were trimmed by the originator, so there is no raw instrument clock and
+   no pressure-derived suggestion: show only the record bounds, nothing highlighted. #}
+<p style="font-size:0.82rem;color:var(--gray-5);margin-top:-0.5rem;">
+  Records were trimmed by the originator; stage&nbsp;2 trims to the deployment
+  window regardless.  <em>Record first/last</em> are the start and end of the
+  originator's record, not a raw instrument clock.  Serial numbers link to the
+  per-instrument report.
+</p>
+<div style="overflow-x:auto">
+<table style="font-size:0.8rem;white-space:nowrap">
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Type</th>
+      <th>S/N</th>
+      <th>Record first</th>
+      <th>Record last</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for instr in instruments %}
+    {% set tm = instr.timing %}
+    <tr>
+      <td class="num">{{ loop.index }}</td>
+      <td>{{ instr.instr_type }}</td>
+      <td>
+        <a href="instrument/{{ mooring_name }}_{{ instr.serial }}_report.html"
+           title="Per-instrument report"><code>{{ instr.serial }}</code></a>
+      </td>
+      {% if tm %}
+        <td>{{ tm.get("stage1_start") or "—" }}</td>
+        <td>{{ tm.get("stage1_end") or "—" }}</td>
+      {% elif instr.skipped %}
+        <td colspan="2" class="none-note">skipped</td>
+      {% else %}
+        <td colspan="2" class="none-note">no stage 2 file</td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>

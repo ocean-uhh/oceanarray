@@ -97,6 +97,27 @@ MOORING_CAPTIONS: dict[str, str] = {
 _fig_panel = make_fig_panel(MOORING_CAPTIONS)
 
 
+#: File types whose records the originator already trimmed (no raw instrument clock).
+_IMPORTED_FILE_TYPES = frozenset({"oceansites", "rodb"})
+
+
+def _timing_mode(instruments: list[dict]) -> str:
+    """Return ``"raw"``, ``"imported"`` or ``"mixed"`` for the deployment-timing table.
+
+    ``imported`` rows (``oceansites``/``rodb``) carry the originator's trimmed record, not
+    a raw instrument clock, so the timing table's header and suggestion columns differ
+    from a raw mooring's.  The mode drives which header the one shared ``<th>`` row shows.
+    """
+    kinds = {
+        "imported" if i.get("file_type") in _IMPORTED_FILE_TYPES else "raw"
+        for i in instruments
+        if not i.get("skipped")
+    }
+    if kinds == {"imported"}:
+        return "imported"
+    return "mixed" if "imported" in kinds else "raw"
+
+
 #: Mooring panel registry (dict-context: panels read ctx by key).
 MOORING_PANELS: dict[str, Panel] = {
     "pipeline": Panel(
@@ -122,8 +143,13 @@ MOORING_PANELS: dict[str, Panel] = {
     "timing": Panel(
         "timing",
         render=lambda c: render_template(
-            "_mooring_timing.html",
+            # All-imported moorings get a trimmed table (no raw-clock suggestion
+            # columns); raw and mixed moorings keep the full table.
+            "_mooring_timing_imported.html"
+            if _timing_mode(c["instruments"]) == "imported"
+            else "_mooring_timing.html",
             instruments=c["instruments"],
+            timing_mode=_timing_mode(c["instruments"]),
             mooring_name=c["mooring_name"],
             rec_deploy=c["rec_deploy"],
             rec_recover=c["rec_recover"],
@@ -671,6 +697,7 @@ class MooringReport:
                     "depth": depth,
                     "filename": filename,
                     "file_type": file_type,
+                    "imported": file_type in _IMPORTED_FILE_TYPES,
                     "raw_path": raw_path_str,
                     "raw_exists": raw_exists,
                     "readable": readable,
