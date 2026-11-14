@@ -95,8 +95,14 @@ KNOWN_KEYS: frozenset[str] = frozenset(
         # optional stack / grid settings for oceanarray.run (``_check_settings``)
         "stack",
         "grid",
+        # optional report sections to turn on, keyed by page (``_check_report_sections``)
+        "report_sections",
     }
 )
+
+#: Optional report sections that ``report_sections`` may turn on, keyed by page.
+#: A page or section not listed here is rejected by ``_check_report_sections``.
+OPTIONAL_REPORT_SECTIONS: dict[str, frozenset[str]] = {"grid": frozenset({"overflow"})}
 
 #: A deployment code: ``YYYYMM`` with a calendar month (01–12).
 DEPLOYMENT_CODE_PATTERN = r"\d{4}(0[1-9]|1[0-2])"
@@ -229,6 +235,7 @@ def check(
 
     if isinstance(data, Mapping):
         issues += _check_settings(data)
+        issues += _check_report_sections(data)
         issues += _check_export_codes(data)
         issues += _check_qc_overrides(data)
         issues += _check_caldip(data)
@@ -584,6 +591,86 @@ def _check_settings(data: Mapping) -> list[ValidationIssue]:
                     )
                 )
     return issues
+
+
+def _check_report_sections(data: Mapping) -> list[ValidationIssue]:
+    """Return ERRORs for a malformed ``report_sections`` block (optional).
+
+    A mapping of page -> list of optional section names.  A page with no optional
+    sections, or a section name that is not optional for that page, is an ERROR naming
+    the sections the page does have (today only ``overflow`` on ``grid``).
+    """
+    issues: list[ValidationIssue] = []
+    block = data.get("report_sections")
+    if block is None:
+        return issues
+    if not isinstance(block, Mapping):
+        return [
+            ValidationIssue(
+                "ERROR",
+                f"'report_sections:' must be a mapping of page -> [section, ...]; "
+                f"got {block!r}.",
+            )
+        ]
+    for page, sections in block.items():
+        if page not in OPTIONAL_REPORT_SECTIONS:
+            pages = ", ".join(sorted(OPTIONAL_REPORT_SECTIONS))
+            issues.append(
+                ValidationIssue(
+                    "ERROR",
+                    f"'report_sections: {page}' has no optional sections; pages with "
+                    f"optional sections: {pages}.",
+                )
+            )
+            continue
+        if not isinstance(sections, (list, tuple)):
+            issues.append(
+                ValidationIssue(
+                    "ERROR",
+                    f"'report_sections: {page}' must be a list of section names; "
+                    f"got {sections!r}.",
+                )
+            )
+            continue
+        allowed = OPTIONAL_REPORT_SECTIONS[page]
+        for name in sections:
+            if name not in allowed:
+                issues.append(
+                    ValidationIssue(
+                        "ERROR",
+                        f"'report_sections: {page}' has no optional section "
+                        f"{name!r}; optional sections for {page}: "
+                        f"{', '.join(sorted(allowed))}.",
+                    )
+                )
+    return issues
+
+
+def resolve_report_sections(page: str, description: Mapping) -> list[str]:
+    """Return the optional sections turned on for a report *page*, from *description*.
+
+    Reads ``report_sections.<page>`` from the mooring description and defaults to ``[]``
+    (every optional section off).  Every report setting is read from the mooring YAML —
+    the one complete description of how a mooring was processed — and this is the single
+    place this key is resolved.
+
+    Parameters
+    ----------
+    page : str
+        The report page, e.g. ``"grid"``.
+    description : Mapping
+        The mooring description.
+
+    Returns
+    -------
+    list of str
+        The optional section names turned on for *page* (empty when none).
+    """
+    block = description.get("report_sections")
+    if not isinstance(block, Mapping):
+        return []
+    val = block.get(page)
+    return list(val) if isinstance(val, (list, tuple)) else []
 
 
 # The one source for the commented ``init`` template: key -> inline description.

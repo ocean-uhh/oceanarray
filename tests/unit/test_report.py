@@ -806,3 +806,32 @@ def test_timing_table_mixed_marks_only_imported_rows():
     # count is 2: the intro legend's "orange" span plus the one raw data cell; without
     # the imported-row suppression it would be 3.
     assert html.count("hl-orange") == 2
+
+
+def test_grid_page_overflow_off_by_default_and_on_by_config(tmp_path):
+    """Overflow is absent (and not named in the not-applicable footer) unless the
+    mooring YAML's report_sections turns it on; turning it on restores the section."""
+    import shutil
+
+    from oceanarray.reports import report
+
+    src = Path("tests/fixtures/proc/dune2_1_2026")
+    grid = "report/dune2_1_2026_grid_report.html"
+
+    off = tmp_path / "off"
+    shutil.copytree(src, off)
+    yml = off / "dune2_1_2026.mooring.yaml"
+    # strip the fixture's report_sections so overflow is at its default (off)
+    lines = [ln for ln in yml.read_text().splitlines() if "overflow" not in ln]
+    yml.write_text("\n".join(ln for ln in lines if "report_sections" not in ln) + "\n")
+    report(off, instruments=False, stack=False, grid=True, force=True)
+    html_off = (off / grid).read_text()
+    assert "Overflow</h2>" not in html_off  # the section is absent
+    # ...and it is not named in the not-applicable footer (it was not asked for).
+    footer = html_off.split("Not applicable", 1)[1] if "Not applicable" in html_off else ""
+    assert "Overflow" not in footer
+
+    on = tmp_path / "on"
+    shutil.copytree(src, on)  # fixture already has report_sections: {grid: [overflow]}
+    report(on, instruments=False, stack=False, grid=True, force=True)
+    assert "Overflow</h2>" in (on / grid).read_text()

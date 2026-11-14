@@ -186,6 +186,13 @@ def test_temperature_trajectory_none_without_temperature():
     assert draw_temperature_trajectory(_velocity_only_ds()) is None
 
 
+def test_temperature_trajectory_none_when_temperature_all_nan():
+    """Temperature present but all-NaN -> None, not a NaN-to-int colour-scale crash."""
+    ds = _velocity_only_ds()
+    ds["temperature"] = ("time", np.full(ds.sizes["time"], np.nan))
+    assert draw_temperature_trajectory(ds) is None
+
+
 def test_speed_boxplot_none_without_current_speed():
     """No current_speed -> the speed panel is not applicable (None), not a KeyError."""
     assert draw_speed_boxplot(_velocity_only_ds()) is None

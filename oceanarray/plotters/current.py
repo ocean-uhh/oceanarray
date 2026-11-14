@@ -149,6 +149,10 @@ def draw_temperature_trajectory(
     # only a subset; the panel is then not applicable rather than an error.
     if any(v not in ds.data_vars for v in (u_var, v_var, temp_var)):
         return None
+    # Temperature present but all-NaN (imported fill) would make the colour scale reduce
+    # a zero-size array; not applicable rather than an error.
+    if not np.isfinite(ds[temp_var].values).any():
+        return None
     # The km label assumes both velocity components in m/s integrated over dt in seconds.
     warn_if_not_canonical(ds[u_var], "m s-1", quantity="trajectory displacement (km)")
     warn_if_not_canonical(ds[v_var], "m s-1", quantity="trajectory displacement (km)")

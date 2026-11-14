@@ -371,3 +371,42 @@ def test_caldip_shape_mistakes_are_errors(block: object, match: str) -> None:
     issues = _caldip_issues(block)
     assert issues and all(level == "ERROR" for level, _ in issues), issues
     assert any(match in message for _, message in issues), issues
+
+
+# ---------------------------------------------------------------------------
+# report_sections — optional report sections (B4)
+# ---------------------------------------------------------------------------
+
+
+def test_report_sections_check_accepts_a_valid_block() -> None:
+    """``grid: [overflow]`` is the one valid optional section today; no ERROR."""
+    issues = mooring.check({"name": "m", "report_sections": {"grid": ["overflow"]}})
+    assert not [
+        i for i in issues if i.level == "ERROR" and "report_sections" in i.message
+    ]
+
+
+def test_report_sections_check_rejects_unknown_page_and_section() -> None:
+    """A page with no optional sections, an unknown section, and a non-list each ERROR."""
+    bad_page = mooring.check({"name": "m", "report_sections": {"stack": ["x"]}})
+    assert any(
+        i.level == "ERROR" and "no optional sections" in i.message for i in bad_page
+    )
+    bad_section = mooring.check({"name": "m", "report_sections": {"grid": ["nope"]}})
+    assert any(i.level == "ERROR" and "nope" in i.message for i in bad_section)
+    bad_shape = mooring.check({"name": "m", "report_sections": {"grid": "overflow"}})
+    assert any(
+        i.level == "ERROR" and "list of section names" in i.message for i in bad_shape
+    )
+
+
+def test_resolve_report_sections_reads_the_mooring_description() -> None:
+    """The optional sections come from the description's report_sections, else []."""
+    assert mooring.resolve_report_sections("grid", {}) == []
+    assert mooring.resolve_report_sections(
+        "grid", {"report_sections": {"grid": ["overflow"]}}
+    ) == ["overflow"]
+    # a page the description does not list is empty (off)
+    assert mooring.resolve_report_sections(
+        "grid", {"report_sections": {"stack": ["x"]}}
+    ) == []

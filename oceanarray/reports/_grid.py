@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 
 from oceanarray import logger, paths
+from oceanarray import mooring as _mooring
 from oceanarray.location import is_unknown_latlon_source, parse_latlon_with_source
 from oceanarray.paths import should_skip_regeneration
 
@@ -584,6 +585,13 @@ GRID_DEFAULT = Profile(
 )
 
 
+#: Grid sections that are off by default and turned on via ``report_sections`` — read
+#: from the config validator's registry (one source), not restated here.
+_OPTIONAL_GRID_SECTIONS: tuple[str, ...] = tuple(
+    sorted(_mooring.OPTIONAL_REPORT_SECTIONS.get("grid", ()))
+)
+
+
 # ---------------------------------------------------------------------------
 # Page generator
 # ---------------------------------------------------------------------------
@@ -629,7 +637,24 @@ def generate_grid_page(
         # then resolve the profile against it.  ``resolve`` renders every panel
         # from the open dataset, so it must run before ``ds.close()``.
         gctx = build_grid_context(ds, grid_path)
-        report = resolve(GRID_DEFAULT, gctx, GRID_PANELS)
+        # Optional sections are off unless the config turns them on: drop them from the
+        # profile entirely (not via applies_to, which would name them in the
+        # not-applicable footer — they were simply not asked for).
+        report_sections = ctx.get("report_sections_grid", ())
+        drop = [
+            GRID_SECTIONS[name]
+            for name in _OPTIONAL_GRID_SECTIONS
+            if name not in report_sections
+        ]
+        profile = GRID_DEFAULT
+        if drop:
+            profile = replace(
+                GRID_DEFAULT,
+                entries=tuple(
+                    e for e in GRID_DEFAULT.entries if not any(e is d for d in drop)
+                ),
+            )
+        report = resolve(profile, gctx, GRID_PANELS)
         ds.close()
 
         stack_exists = paths.product_file(

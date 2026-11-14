@@ -21,6 +21,7 @@ from markupsafe import escape
 
 from oceanarray import logger
 from oceanarray import mooring as _mooring
+from oceanarray.exceptions import MooringError
 
 from ..config.unit_tables import unit_label
 from ..paths import safe_serial
@@ -538,6 +539,19 @@ def generate_array_report(
         if config_path.exists():
             try:
                 mcfg = _mooring.load(config_path)
+            except MooringError as exc:
+                # The array report shows what it can: a validation ERROR should not blank
+                # the row, so fall back to the raw parse (the mooring's own report
+                # surfaces the error).
+                warnings.warn(
+                    f"{config_path} has validation errors ({exc}); shown unvalidated.",
+                    stacklevel=2,
+                )
+                try:
+                    with config_path.open() as fh:
+                        mcfg = yaml.safe_load(fh) or {}
+                except Exception as exc2:  # noqa: BLE001
+                    warnings.warn(f"could not read {config_path}: {exc2}", stacklevel=2)
             except Exception as exc:  # noqa: BLE001
                 warnings.warn(f"could not read {config_path}: {exc}", stacklevel=2)
         else:

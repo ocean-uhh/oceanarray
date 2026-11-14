@@ -144,12 +144,13 @@ MOORING_PANELS: dict[str, Panel] = {
         "timing",
         render=lambda c: render_template(
             # All-imported moorings get a trimmed table (no raw-clock suggestion
-            # columns); raw and mixed moorings keep the full table.
+            # columns); raw and mixed moorings keep the full table. ``timing_mode`` is
+            # computed once in the context.
             "_mooring_timing_imported.html"
-            if _timing_mode(c["instruments"]) == "imported"
+            if c["timing_mode"] == "imported"
             else "_mooring_timing.html",
             instruments=c["instruments"],
-            timing_mode=_timing_mode(c["instruments"]),
+            timing_mode=c["timing_mode"],
             mooring_name=c["mooring_name"],
             rec_deploy=c["rec_deploy"],
             rec_recover=c["rec_recover"],
@@ -907,6 +908,10 @@ class MooringReport:
             ),
             "n_instruments": len(instruments),
             "instruments": instruments,
+            "timing_mode": _timing_mode(instruments),
+            # Optional report sections turned on in the config. A standalone mooring
+            # report resolves from the mooring YAML (the strongest level reachable here).
+            "report_sections_grid": _mooring.resolve_report_sections("grid", cfg),
             "rec_deploy": rec_deploy,
             "rec_recover": rec_recover,
             "rec_deploy_sec": rec_deploy_sec,
