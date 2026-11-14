@@ -70,7 +70,7 @@ All notable changes to oceanarray are documented here.
 - `oceanarray report --dry-run` previews a half-filled config without raising: it prints the validation issues and lists what parses, and only stops on a file that is not YAML at all.
 - `oceanarray init` builds its stub through `mooring.template` + `mooring.save`; the written file is byte-identical to before.
 - `mooring.KNOWN_KEYS` (the vocabulary the unknown-key warning checks against) gains the position tiers `seabed_*` / `deployment_*` / `planned_*`, `qc_ranges` and `directory`, confirmed against real mooring descriptions.
-- A stacked instrument with no `hab` is now named in the stack's `instruments_omitted` ("no hab in the mooring YAML; set hab, or stack: false") instead of being left out silently, and `oceanarray validate` warns about it. With `keep_going=False` such an omission stops `run` before the grid.
+- An instrument's `hab` is filled from `hab_bottom` (downward) or `hab_top` (upward) by its `orientation`, for `clamp` and `inline` entries alike (before: `inline` only, `hab_bottom` only); explicit `hab` wins. `validate` ERRORs when an `orientation` lacks its hab key, and names a stacked instrument with no resolvable `hab` in `instruments_omitted` (a strict run stops before the grid) rather than omitting it silently.
 
 ### Deprecated
 
@@ -88,6 +88,7 @@ Every old name below still works, warns (`DeprecationWarning`, naming its replac
 
 ### Breaking changes
 
+- A `clamp` ADCP whose HAB was given only as `hab_bottom`/`hab_top` is now placed in the stack instead of being silently omitted — the `stack`/`grid` files for any such mooring change on rebuild.
 - The grid report's **Overflow** section is off by default; turn it on with a `report_sections` block (`report_sections: {grid: [overflow]}`) in the mooring YAML. An overflow mooring whose YAML does not set it loses the section.
 - A mooring description whose QC override blocks (`qc_ranges`, `qc_spike`, `tilt_qc`, `qc_flat_line`, at mooring or instrument level) hold an unknown field, a span that is not two increasing numbers, a threshold that is not a number, or a new variable without a `fail_span` is now refused by `load` and reported as an ERROR by `oceanarray validate`; before, the mistake was dropped and QC ran with the defaults. A variable outside the registry is a WARNING. `qc_spike`, `tilt_qc` and `qc_flat_line` are no longer reported as unknown top-level keys.
 - `current_direction` is written with `standard_name = "sea_water_velocity_to_direction"`; CF deprecated `direction_of_sea_water_velocity`. Files written before keep the old name.

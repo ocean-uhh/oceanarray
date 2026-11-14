@@ -456,6 +456,10 @@ def _stage3_instrument(
             f"({'ASSUMED DEFAULT — not from datasheet' if assumed else 'from YAML'}), "
             + _declination_clause(ds.attrs.get("magnetic_declination"))
         )
+    elif ds.attrs.get("magnetic_declination") == "UNK":
+        # No rotation happened (native ENU, or a BEAM dataset that stayed BEAM), but
+        # declination was not applied — record it so the history matches the "UNK" attr.
+        history_notes.append(_declination_clause("UNK"))
 
     qc_summary = _format_qc_summary(ds)
     if qc_summary:

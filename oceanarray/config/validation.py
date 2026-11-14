@@ -84,6 +84,7 @@ from typing import NamedTuple
 
 from oceanarray import paths
 from oceanarray.config import parameters as params
+from oceanarray.instruments import hab_for
 
 # Instrument-type validity is single-sourced from ``parameters.KNOWN_INSTRUMENT_TYPES``
 # (derived from ``INSTRUMENT_FILE_TYPES``).  This keeps ``oceanarray list`` and
@@ -457,23 +458,34 @@ def validate_mooring(
                 )
             )
 
-        # A stacked entry needs a height above bottom to be placed as a level;
-        # without one the stack omits it (and a strict run stops before the grid).
-        # An entry with no filename is already flagged above as not yet staged.
+        # A stacked entry needs a height above bottom to be placed as a level. hab is
+        # filled from hab_bottom (down) / hab_top (up) by orientation; if that resolves
+        # to nothing the stack omits the instrument. An entry with no filename is already
+        # flagged above as not yet staged.
         if (
             filename
             and not entry.get("skip")
             and entry.get("stack", True) is not False
-            and entry.get("hab") is None
-            and entry.get("hab_bottom") is None
+            and hab_for(entry) is None
         ):
-            issues.append(
-                ValidationIssue(
-                    "WARNING",
-                    f"{prefix} instrument='{instrument}' has no 'hab' — the stack "
-                    f"will omit it; set hab, or stack: false",
+            orientation = str(entry.get("orientation", "") or "").lower()
+            if orientation:
+                needed = "hab_top" if orientation in ("up", "upward") else "hab_bottom"
+                issues.append(
+                    ValidationIssue(
+                        "ERROR",
+                        f"{prefix} instrument='{instrument}' is '{orientation}'-looking "
+                        f"but has no '{needed}' (nor 'hab') — the stack cannot place it.",
+                    )
                 )
-            )
+            else:
+                issues.append(
+                    ValidationIssue(
+                        "WARNING",
+                        f"{prefix} instrument='{instrument}' has no 'hab' — the stack "
+                        f"will omit it; set hab, or stack: false",
+                    )
+                )
 
         # Clock correction field checks
         has_comp = "computer_clock_at_recovery" in entry

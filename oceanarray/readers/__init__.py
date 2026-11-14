@@ -78,6 +78,8 @@ def _drop_missing_time(dataset: xr.Dataset, source: str) -> xr.Dataset:
         # A non-standard calendar decodes to cftime objects (object dtype), which
         # np.isnat cannot take and which cannot hold NaT; nothing to drop.
         return dataset
+    if not time.size:
+        raise ValueError(f"{source}: no record has a timestamp (file has no records).")
     missing = np.isnat(time)
     n = int(missing.sum())
     if not n:

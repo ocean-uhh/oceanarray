@@ -217,3 +217,40 @@ def test_instrument_report_warns_when_declination_unknown(no_position, tmp_path)
         encoding="utf-8"
     )
     assert "Magnetic declination could not be applied" in html
+
+
+def test_stage3_native_enu_without_position_records_declination_not_applied():
+    """A native-ENU instrument with no position records the note too (no BEAM→ENU rotation).
+
+    The history clause used to be reached only inside the BEAM→ENU block, so a native-ENU
+    instrument got `magnetic_declination="UNK"` with no matching history line.
+    """
+    import pandas as pd
+
+    t = pd.date_range("2020-01-01", periods=50, freq="h").values
+    ds = xr.Dataset(
+        {
+            "east_velocity": ("time", np.full(50, 0.1), {"units": "m s-1"}),
+            "north_velocity": ("time", np.full(50, 0.05), {"units": "m s-1"}),
+            "up_velocity": ("time", np.zeros(50), {"units": "m s-1"}),
+            "pressure": ("time", np.linspace(100, 101, 50), {"units": "dbar"}),
+            "temperature": ("time", np.full(50, 5.0), {"units": "degree_Celsius"}),
+        },
+        coords={"time": t},
+        attrs={
+            "coordinate_system": "ENU",
+            "instrument": "aquadopp",
+            "serial": "X1",
+            "mooring_name": "m",
+            "processing_stage": 2,
+        },
+    )
+    cfg = {
+        "name": "m",
+        "waterdepth": 1000,
+        "clamp": [{"serial": "X1", "instrument": "aquadopp", "hab": 500}],
+    }
+    out = stage3({"X1": ds}, cfg)["X1"]
+    assert out.attrs["magnetic_declination"] == "UNK"
+    assert "declination not applied (position unknown)" in out.attrs["history"]
+    assert "BEAM→ENU rotation applied" not in out.attrs["history"]

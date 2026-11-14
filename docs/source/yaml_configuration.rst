@@ -740,7 +740,10 @@ It is used for:
 - **Vertical ordering in stack and grid**: instruments are sorted by depth
   (derived from ``hab`` and ``waterdepth``) when building the stack file.
 
-If ``hab`` is absent from an instrument entry:
+``hab`` is filled from ``hab_bottom`` (downward) or ``hab_top`` (upward) by the
+entry's ``orientation`` when it is not given directly; ``oceanarray validate``
+raises an ERROR if an instrument states an ``orientation`` but omits the matching
+key.  If no ``hab`` can be resolved at all:
 
 - Stages 1 and 2 complete normally.
 - Stage 3 will skip pressure interpolation for that instrument if it has

@@ -181,6 +181,23 @@ def test_all_missing_time_raises(tmp_path):
         readers.read(path)
 
 
+def test_zero_length_time_raises(tmp_path):
+    """A file with a zero-length time dimension raises, not returns an empty dataset."""
+    path = tmp_path / "empty.nc"
+    xr.Dataset(
+        {
+            "TEMP": (
+                "TIME",
+                np.array([], dtype="float32"),
+                {"units": "degree_Celsius", "standard_name": "sea_water_temperature"},
+            ),
+        },
+        coords={"TIME": np.array([], dtype="datetime64[ns]")},
+    ).to_netcdf(path)
+    with pytest.raises(ValueError, match="no record has a timestamp"):
+        readers.read(path)
+
+
 def test_non_standard_calendar_on_a_real_file_is_returned_whole(tmp_path):
     """cftime time cannot hold NaT; the guard returns the dataset unchanged."""
     path = tmp_path / WHOI_CM.name
