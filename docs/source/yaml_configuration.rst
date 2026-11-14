@@ -117,11 +117,13 @@ mooring as a whole.
    * - ``recovery_cruise``
      - string
      - Optional
-     - Cruise identifier for the recovery leg.
+     - Cruise identifier for the recovery leg. Shown as ``UNK`` in the report
+       masthead when neither this key nor ``cruise`` is given.
    * - ``recovery_ship``
      - string
      - Optional
-     - Vessel name for the recovery.
+     - Vessel name for the recovery. Shown as ``UNK`` in the report masthead
+       when neither this key nor ``ship`` is given.
    * - ``seabed_latitude`` / ``seabed_longitude``
      - string
      - Optional

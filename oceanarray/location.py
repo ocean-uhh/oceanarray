@@ -49,6 +49,35 @@ def format_latlon(lat: float, lon: float, *, ndp: int = 4) -> tuple[str, str]:
     )
 
 
+def format_ddm(value: float, *, is_lat: bool) -> str:
+    """Return a position as degrees and decimal minutes with a hemisphere letter.
+
+    The value is rounded once, to the nearest hundredth of a minute, and only then
+    split into degrees and minutes, so the minutes never read ``60.00′`` (64.99992
+    gives ``65° 00.00′ N``, not ``64° 60.00′ N``). A value that rounds to zero takes
+    the positive hemisphere (``N`` or ``E``), never ``S`` or ``W``.
+
+    Parameters
+    ----------
+    value : float
+        Latitude or longitude in signed decimal degrees.
+    is_lat : bool
+        True for a latitude (two-digit degrees, ``N``/``S``); False for a
+        longitude (three-digit degrees, ``E``/``W``).
+
+    Returns
+    -------
+    str
+        For example ``"65° 43.91′ N"`` or ``"027° 48.00′ W"``.
+
+    """
+    hundredths = round(abs(value) * 6000)  # whole hundredths of a minute
+    deg, hundredths = divmod(hundredths, 6000)
+    pos, neg = ("N", "S") if is_lat else ("E", "W")
+    hemi = neg if value < 0 and (deg or hundredths) else pos
+    return f"{deg:0{2 if is_lat else 3}d}° {hundredths / 100:05.2f}′ {hemi}"
+
+
 LATLON_UNKNOWN_SOURCE = "unknown (defaulting to 0, 0)"
 
 

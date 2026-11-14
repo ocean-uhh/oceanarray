@@ -16,7 +16,7 @@ from oceanarray.instruments import instrument_entries
 from oceanarray.paths import should_skip_regeneration
 
 from ..paths import safe_serial
-from . import _figdebug
+from . import _figdebug, _masthead
 from ._env import render_template
 from ._grid import generate_grid_page
 from ._html_helpers import (
@@ -879,34 +879,16 @@ class MooringReport:
             except Exception:
                 pass
 
-        def _combined(deploy_key: str, recover_key: str, legacy_key: str) -> str:
-            d = cfg.get(deploy_key) or cfg.get(legacy_key, "—")
-            r = cfg.get(recover_key) or cfg.get(legacy_key) or d
-            return d if d == r else f"{d} / {r}"
-
+        common = _masthead.common_facts(cfg, instrument_list)
         return {
             "mooring_name": mooring_name,
-            "cruise": _combined("deployment_cruise", "recovery_cruise", "cruise"),
-            "ship": _combined("deployment_ship", "recovery_ship", "ship"),
+            "cruise": _masthead.cruise_label(cfg),
+            "masthead_common": common,
+            "meta_facts": _masthead.masthead_facts("mooring", common),
             "deploy_time": _format_dt(deploy_dt),
             "recover_time": _format_dt(recover_dt),
             "duration": _format_duration(deploy_dt, recover_dt),
             "waterdepth": waterdepth if waterdepth is not None else "—",
-            "latitude": (
-                cfg.get("seabed_latitude")
-                or cfg.get("deployment_latitude")
-                or cfg.get("planned_latitude")
-                or cfg.get("latitude")
-                or "—"
-            ),
-            "longitude": (
-                cfg.get("seabed_longitude")
-                or cfg.get("deployment_longitude")
-                or cfg.get("planned_longitude")
-                or cfg.get("longitude")
-                or "—"
-            ),
-            "n_instruments": len(instruments),
             "instruments": instruments,
             "timing_mode": _timing_mode(instruments),
             # Optional report sections turned on in the config. A standalone mooring

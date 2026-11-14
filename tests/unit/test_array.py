@@ -1,6 +1,6 @@
 """Unit tests for pure helper functions in oceanarray.reports._array.
 
-Tests cover _parse_decdeg, _resolve_lat_lon, _count_instruments, and
+Tests cover _parse_coordinate, _resolve_lat_lon, _count_instruments, and
 _build_type_summary — all functions with no I/O dependencies that can be
 exercised without fixtures or seasenselib.
 """
@@ -13,57 +13,57 @@ from oceanarray.reports._array import (
     _build_array_masthead,
     _build_type_summary,
     _count_instruments,
-    _parse_decdeg,
+    _parse_coordinate,
     _resolve_lat_lon,
 )
 
 # ---------------------------------------------------------------------------
-# _parse_decdeg
+# _parse_coordinate
 # ---------------------------------------------------------------------------
 
 
-class TestParseDecdeg:
+class TestParseCoordinate:
     """Tests for decimal-degree parsing."""
 
     def test_none_returns_none(self):
-        assert _parse_decdeg(None) is None
+        assert _parse_coordinate(None) is None
 
     def test_float_passthrough(self):
-        assert _parse_decdeg(65.0) == pytest.approx(65.0)
+        assert _parse_coordinate(65.0) == pytest.approx(65.0)
 
     def test_int_passthrough(self):
-        assert _parse_decdeg(-27) == pytest.approx(-27.0)
+        assert _parse_coordinate(-27) == pytest.approx(-27.0)
 
     def test_plain_decimal_string(self):
-        assert _parse_decdeg("65.567") == pytest.approx(65.567)
+        assert _parse_coordinate("65.567") == pytest.approx(65.567)
 
     def test_negative_decimal_string(self):
-        assert _parse_decdeg("-27.5") == pytest.approx(-27.5)
+        assert _parse_coordinate("-27.5") == pytest.approx(-27.5)
 
     def test_degrees_minutes_positive(self):
         # "65 43.913" → 65 + 43.913/60
         expected = 65.0 + 43.913 / 60.0
-        assert _parse_decdeg("65 43.913") == pytest.approx(expected, rel=1e-6)
+        assert _parse_coordinate("65 43.913") == pytest.approx(expected, rel=1e-6)
 
     def test_degrees_minutes_negative(self):
         # "-27 48.000" → -(27 + 48/60)
         expected = -(27.0 + 48.0 / 60.0)
-        assert _parse_decdeg("-27 48.000") == pytest.approx(expected, rel=1e-6)
+        assert _parse_coordinate("-27 48.000") == pytest.approx(expected, rel=1e-6)
 
     def test_degrees_minutes_north_hemisphere(self):
         expected = 65.0 + 34.004 / 60.0
-        assert _parse_decdeg("65 34.004 N") == pytest.approx(expected, rel=1e-6)
+        assert _parse_coordinate("65 34.004 N") == pytest.approx(expected, rel=1e-6)
 
     def test_degrees_minutes_west_hemisphere(self):
         expected = -(29.0 + 25.878 / 60.0)
-        assert _parse_decdeg("029 25.878 W") == pytest.approx(expected, rel=1e-6)
+        assert _parse_coordinate("029 25.878 W") == pytest.approx(expected, rel=1e-6)
 
     def test_degrees_minutes_south_hemisphere(self):
         expected = -(65.0 + 43.913 / 60.0)
-        assert _parse_decdeg("65 43.913 S") == pytest.approx(expected, rel=1e-6)
+        assert _parse_coordinate("65 43.913 S") == pytest.approx(expected, rel=1e-6)
 
     def test_unparseable_returns_none(self):
-        assert _parse_decdeg("not a number") is None
+        assert _parse_coordinate("not a number") is None
 
 
 # ---------------------------------------------------------------------------
@@ -86,23 +86,46 @@ class TestLatLonFromCfg:
         assert lat == pytest.approx(65.0 + 43.913 / 60.0, rel=1e-6)
         assert lon == pytest.approx(-(27.0 + 48.0 / 60.0), rel=1e-6)
 
-    def test_seabed_latitude_takes_priority_over_latitude(self):
+    def test_seabed_pair_takes_priority_over_latitude(self):
         cfg = {
             "latitude": 10.0,
-            "seabed_latitude": "65 43.913",
             "longitude": -27.0,
+            "seabed_latitude": "65 43.913",
+            "seabed_longitude": "-27 48.000",
         }
         lat, lon = _resolve_lat_lon(cfg)
         assert lat == pytest.approx(65.0 + 43.913 / 60.0, rel=1e-6)
+        assert lon == pytest.approx(-(27.0 + 48.0 / 60.0), rel=1e-6)
 
-    def test_deployment_latitude_takes_priority_over_planned(self):
+    def test_lat_and_lon_come_from_one_key_pair(self):
+        # A seabed latitude without a seabed longitude is not paired with the
+        # plain longitude: the plain pair is used whole.
+        cfg = {
+            "latitude": 10.0,
+            "longitude": -27.0,
+            "seabed_latitude": "65 43.913",
+        }
+        assert _resolve_lat_lon(cfg) == (pytest.approx(10.0), pytest.approx(-27.0))
+
+    def test_deployment_pair_takes_priority_over_planned(self):
         cfg = {
             "planned_latitude": 10.0,
+            "planned_longitude": -20.0,
             "deployment_latitude": "65 34.004 N",
-            "longitude": -27.0,
+            "deployment_longitude": "029 25.878 W",
         }
         lat, _ = _resolve_lat_lon(cfg)
         assert lat == pytest.approx(65.0 + 34.004 / 60.0, rel=1e-6)
+
+    def test_zero_placeholder_is_skipped(self):
+        cfg = {
+            "seabed_latitude": 0,
+            "seabed_longitude": 0,
+            "latitude": "57 28.240 N",
+            "longitude": "012 42.300 W",
+        }
+        lat, _ = _resolve_lat_lon(cfg)
+        assert lat == pytest.approx(57.0 + 28.240 / 60.0, rel=1e-6)
 
     def test_missing_lat_lon_returns_none(self):
         lat, lon = _resolve_lat_lon({})
@@ -146,6 +169,16 @@ class TestCountInstruments:
             ]
         }
         assert _count_instruments(cfg) == 1
+
+    def test_inline_instruments_counted(self):
+        cfg = {
+            "clamp": [{"instrument": "microcat", "serial": "2941"}],
+            "inline": [
+                {"name": "shackle"},
+                {"instrument": "adcp", "serial": "16430, R01-024", "filename": "a.000"},
+            ],
+        }
+        assert _count_instruments(cfg) == 2
 
     def test_non_dict_entries_ignored(self):
         # YAML inline sections sometimes have non-dict entries
@@ -288,7 +321,7 @@ class TestArrayMastheadExtent:
 
     Regression guard: the extent once hard-coded ``°N``/``°E``, so a western
     longitude (MIXSED sits at ~29 °W) rendered as east.  It must read the
-    hemisphere from the sign, as ``position`` already does via ``_format_deg_min``.
+    hemisphere from the sign, as ``position`` does via ``location.format_ddm``.
     """
 
     @staticmethod

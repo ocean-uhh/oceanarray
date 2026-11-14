@@ -285,7 +285,7 @@ def generate_recovery_table(
     from datetime import datetime
 
     from oceanarray.location import (
-        format_latlon,
+        format_ddm,
         is_unknown_latlon_source,
         parse_latlon_with_source,
     )
@@ -315,13 +315,15 @@ def generate_recovery_table(
 
     # Latitude/longitude for the canonical meta fields, if available.  Route through
     # the shared parser (DMS-aware, pairs lat/lon from one key set, skips the (0, 0)
-    # placeholder) then format with the hemisphere derived from the sign — never a
-    # hardcoded suffix, which produced the malformed "-27.8 W" for signed inputs.
+    # placeholder) then format in degrees and decimal minutes with the hemisphere
+    # derived from the sign — never a hardcoded suffix, which produced the malformed
+    # "-27.8 W" for signed inputs.
     lat_v, lon_v, source = parse_latlon_with_source(cfg)
     if is_unknown_latlon_source(source):
         latitude = longitude = ""
     else:
-        latitude, longitude = format_latlon(lat_v, lon_v)
+        latitude = format_ddm(lat_v, is_lat=True)
+        longitude = format_ddm(lon_v, is_lat=False)
 
     rows, comments = _build_rows(proc_dir, mooring_name, cfg)
 
