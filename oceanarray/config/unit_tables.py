@@ -55,9 +55,21 @@ UNIT_ALIAS_EXTRAS: dict[str, dict[str, float]] = {
     # spell units in words.  Evidence: OS_OSNAP_WHOI_CF7_202007_CM_500m.nc,
     # os_osnap-ic2_201807_cm_611m.nc, OS_OSNAP-UMD2_201407_*.nc,
     # OS_OSNAP-10633_KPO_1111_K7_201408_D_MCTD_OSNAPstyleOceanSITES.nc.  Factor 1.
-    "dbar": {"decibar": 1.0},
+    "dbar": {
+        "decibar": 1.0,
+        # The OOI Data Explorer ERDDAP spells units ERDDAP-style. Evidence:
+        # ooi-gi03flma-ri000-00-velptb000.nc (pressure 'decibars'). Factor 1.
+        "decibars": 1.0,
+        # The same ERDDAP serves the FLMA/FLMB single-point current-meter (VELPT)
+        # pressure labelled 'decibars' but holding kPa (ten times the deployed depth at
+        # every level); the instrument entry sets units_override: {pressure: kPa}.
+        # A conversion, not a spelling: belongs in the vendored family table once
+        # ctdcast reviews it (raised there); held here until then.
+        "kPa": 0.1,
+    },
     "m s-1": {
         "meter/second": 1.0,
+        "m.s-1": 1.0,  # OOI ERDDAP (ooi-gi03flma-ri000-00-velptb000.nc). Factor 1.
         # RODB files (RAPID/BODC) carry velocities in cm/s, as documented for the
         # U/V/W codes in config/legacy/rodb_keys.yaml; evidence rtwb1_01_2014_11021.edt.
         # A conversion, not a spelling: belongs in the vendored family table once
@@ -65,15 +77,19 @@ UNIT_ALIAS_EXTRAS: dict[str, dict[str, float]] = {
         "cm s-1": 0.01,
     },
     "m": {"meter": 1.0},
+    "mS cm-1": {"mS.cm-1": 1.0},  # OOI ERDDAP CTD conductivity. Factor 1.
     # caldip writes temperatures and temperature differences as 'degree_C' (UDUNITS).
     # Evidence: castM4_caldip.nc temp_diff / inst_temp / ctd_temp.  Factor 1.
     "degree_Celsius": {"degree_C": 1.0},
 }
 
 #: Extra spellings meaningful for one quantity only, keyed by CF ``standard_name``.
-#: Evidence: the OSNAP OceanSITES files above write practical salinity as 'psu'.
+#: Evidence: the OSNAP OceanSITES files above write practical salinity as 'psu'; the OOI
+#: ERDDAP writes '1e-3'.
 UNIT_SCOPED_EXTRAS: dict[str, dict[str, float]] = {
-    "sea_water_practical_salinity": {"psu": 1.0},
+    # OOI ERDDAP writes practical salinity as '1e-3' (the old parts-per-thousand
+    # spelling); the values are practical salinity. Factor 1.
+    "sea_water_practical_salinity": {"psu": 1.0, "1e-3": 1.0},
 }
 
 #: Spellings the storage pass keeps as the file has them, keyed by CF ``standard_name``.
