@@ -83,6 +83,14 @@ mooring as a whole.
      - number
      - Required
      - Water depth at the anchor position in metres.
+   * - ``<field>_source``
+     - string
+     - Optional
+     - Where ``waterdepth``, ``deployment_time``, ``recovery_time``, ``latitude``
+       or ``longitude`` came from, or why it was corrected (e.g.
+       ``waterdepth_source: corrected from the originator's 3047 m ...``).
+       Written beside the field in every file, with a stage-1 history line; the
+       value used is the field's, as without it.
    * - ``deployment_time``
      - ISO-8601 string
      - Recommended
@@ -183,7 +191,13 @@ mooring as a whole.
      - Optional
      - ``pmin``, ``pmax``, ``dp``: the grid's pressure levels in dbar
        (default 200, 1000, 20). ``--pmin`` / ``--pmax`` / ``--dp`` override them.
-       ``pmax`` must be above ``pmin``.
+       ``pmax`` must be above ``pmin``.  ``mask_flags``: the QC flags left out
+       before gridding, a list for every variable (``[4, 9]``, the default) or a
+       mapping with a ``default`` and exceptions by variable name or
+       ``velocity`` (``{default: [4, 9], velocity: [3, 4, 9]}``);
+       ``--mask-flags`` / ``mask_flags=`` override it.  The stack has already
+       left out the non-velocity values flagged 3, 4 or 9, so for those the
+       setting can only leave out more.
    * - ``report_sections``
      - mapping
      - Optional

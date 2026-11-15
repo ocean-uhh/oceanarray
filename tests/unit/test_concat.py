@@ -569,3 +569,44 @@ def test_the_people_of_the_imported_files_are_joined(joined):
     assert joined.attrs["principal_investigator"] == "Amy Bower, Fiamma Straneo"
     assert "creator_name" not in joined.attrs
     assert joined["deployment_contributor_name"].values[0] == ""
+
+
+def test_a_waterdepth_source_reaches_the_stack_and_the_deployment_record(
+    site, tmp_path
+):
+    """egM2 2018 given a waterdepth_source: its stack carries it, and the site stack
+    lists it for 2018 and an empty string for 2016, which says nothing."""
+    text = "corrected from the originator's value; agrees with the measured pressures"
+    root = tmp_path / "osnap"
+    for n in _NAMES:
+        shutil.copytree(site / n, root / n)
+    yaml_path = root / "egM2_2018" / "egM2_2018.mooring.yaml"
+    cfg = mooring.load(yaml_path)
+    cfg["waterdepth_source"] = text
+    yaml_path.write_text(yaml.safe_dump(dict(cfg), sort_keys=False), encoding="utf-8")
+    cfg = mooring.load(yaml_path)
+    stack = _stack(cfg, root / "egM2_2018")
+    assert stack.attrs["waterdepth_source"] == text
+    oa.write(
+        stack,
+        paths.product_file(root / "egM2_2018", "egM2_2018", "stack"),
+        overwrite=True,
+    )
+    yamls = [root / n / f"{n}.mooring.yaml" for n in _NAMES]
+    with contextlib.redirect_stdout(io.StringIO()):
+        out = concat_moorings(yamls, name="egM2")
+    with xr.open_dataset(out, engine="netcdf4") as ds:
+        assert list(ds["deployment_waterdepth_source"].values) == ["", text]
+        assert "waterdepth_source" not in ds.attrs
+        assert "deployment_time_source" not in ds
+
+
+def test_validate_wants_a_source_as_text():
+    cfg = mooring.load(_FIX / "egM2_2018" / "egM2_2018.mooring.yaml")
+    cfg["waterdepth_source"] = "from the cruise report"
+    assert not [i for i in mooring.check(cfg) if "_source" in i.message]
+    cfg["waterdepth_source"] = 3125
+    assert any(
+        i.level == "ERROR" and "'waterdepth_source' must be text" in i.message
+        for i in mooring.check(cfg)
+    )

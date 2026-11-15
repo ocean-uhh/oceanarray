@@ -13,6 +13,14 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 - Stage 1 writes an imported file's principal investigators and contributors as OceanSITES lists; the stack and Stack cat join them (#135).
 - `writers.write(chunks=)` sets the chunk length along a dimension (#135).
 - Every file names the oceanarray that wrote it (`oceanarray_version`, `oceanarray_commit`, `stage<n>_oceanarray_version`); units changes are recorded in `units_converted` (#135).
+- `oceanarray concat` also grids the Stack cat, one mooring per profile, into `<site>_gridcat.nc` with a Grid cat report page; `--no-grid` skips it.
+- `mask_flags` (API, `grid: mask_flags` in the YAML, `--mask-flags` on `run` and `concat`): the QC flags left out before gridding, recorded as `grid_mask_flags`.
+- `<field>_source` in the mooring YAML (waterdepth, deployment/recovery time, latitude, longitude) is written beside the field in every file and in the Stack cat's deployment record.
+
+### Changed
+
+- Deployment grids keep velocity flagged 3 (suspect) unless `mask_flags` says otherwise; the default leaves out 4 and 9.
+- Deployments on the Stack cat page are colored red to purple in time order; their start lines are dotted.
 
 ### Fixed
 

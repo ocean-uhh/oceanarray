@@ -149,6 +149,11 @@ QC_FLAG_VALUES_I8 = np.array(QC_FLAG_VALUES, dtype="int8")
 # is the instrument's pressure, and dropping it hides a sensorless instrument.
 QC_BAD_FLAGS = (3, 4, 9)
 
+#: Flags whose values the grid leaves out before interpolating, unless the call,
+#: the CLI or the description's ``grid: mask_flags`` says otherwise: bad (4) and
+#: missing (9). Suspect (3) is kept unless asked for.
+GRID_MASK_FLAGS: tuple[int, ...] = (4, 9)
+
 # ---------------------------------------------------------------------------
 # QARTOD gross-range test thresholds (global ocean defaults).
 #
@@ -367,6 +372,11 @@ INSTRUMENT_FAMILIES: dict[str, str] = {
     "currentmeter": "point_velocity",
     "adcp": "adcp",
 }
+
+#: Isopycnals contoured over the site grid's sections and T-S diagram, each
+#: over the whole depth (kg m⁻³): σ0 for the upper water column, σ2 for the deep.
+SITE_SIGMA0_LEVELS: tuple[float, ...] = (27.6, 27.7, 27.75)
+SITE_SIGMA2_LEVELS: tuple[float, ...] = (36.9, 37.0, 37.1)
 
 #: Default slot rule for ``concat``: match levels by depth (water depth − hab)
 #: within this many metres. Both can be set per mooring in ``stack:``.
@@ -654,6 +664,16 @@ VARIABLES: dict[str, dict] = {
 #: the two cannot drift.  Excludes entries where ``cmap`` is ``None``.
 CMAPS_BY_VARIABLE: dict[str, str] = {
     k: v["cmap"] for k, v in VARIABLES.items() if v.get("cmap") is not None
+}
+
+#: Colormaps of the gridded pressure × time sections (the mooring grid page and
+#: the site grid page), and of their anomalies from the whole-record median.
+SECTION_CMAPS: dict[str, str] = {
+    "temperature": "RdYlBu_r",
+    "salinity": "YlGnBu_r",
+    "oxygen_saturation_pct": "BrBG",
+    "temperature_anomaly": "RdBu_r",
+    "salinity_anomaly": "BrBG_r",
 }
 
 #: Colormaps for colouring *lines* (one per instrument, deep-first) — distinct

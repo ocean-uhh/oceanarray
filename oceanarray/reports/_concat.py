@@ -15,6 +15,7 @@ import numpy as np
 from markupsafe import Markup
 
 from oceanarray import location, logger, paths
+from oceanarray.pipeline.concat import cell_deployment
 
 from ..config import parameters as params
 from . import _masthead
@@ -510,11 +511,26 @@ def _slot_rows(
     return rows
 
 
-def _nav(rows: list[dict]) -> dict:
-    """Return the masthead nav: this page, then each deployment's stack report."""
-    pills = [
-        {"label": "Stack cat", "href": "#top", "role": "landing", "state": "current"}
-    ]
+def _nav(
+    rows: list[dict], *, current: str = "stackcat", other: str | None = None
+) -> dict:
+    """Return the masthead nav: the site pages, then each deployment's stack report.
+
+    *current* is this page (``"stackcat"`` or ``"gridcat"``); *other* the
+    other site page's link, None when it is not there.
+    """
+    # The roles of a mooring's Stack and Grid pills (blue, purple).
+    pills = []
+    for page, label, role in (
+        ("stackcat", "Stack cat", "landing"),
+        ("gridcat", "Grid cat", "aggregate-a"),
+    ):
+        if page == current:
+            pills.append(
+                {"label": label, "href": "#top", "role": role, "state": "current"}
+            )
+        elif other is not None:
+            pills.append({"label": label, "href": other, "role": role, "state": "link"})
     dep_pills = [
         {
             "label": row["years"],
@@ -601,10 +617,7 @@ def _report_view(ds: Any) -> Any:
         types.append(kinds.most_common(1)[0][0] if kinds else "")
         hab = ds["hab"].values.astype(float)[members]
         habs.append(float(np.nanmean(hab)) if np.isfinite(hab).any() else np.nan)
-    index = ds["level_index"].values
-    cell = np.where(
-        index >= 0, ds["deployment"].values[np.clip(index, 0, None)], -1
-    ).astype(np.int16)
+    cell = cell_deployment(ds).astype(np.int16)
     data = {
         v: (("time", "N_LEVELS"), ds[v].values, dict(ds[v].attrs))
         for v in ds.data_vars
@@ -822,7 +835,14 @@ def generate_concat_page(
         html = render_template(
             "concat.html",
             mooring_name=name,
-            nav=_nav(deployment_rows),
+            nav=_nav(
+                deployment_rows,
+                other=(
+                    f"{name}_gridcat_report.html"
+                    if paths.product_file(stack_path.parent, name, "gridcat").exists()
+                    else None
+                ),
+            ),
             report=report,
             meta_facts=_masthead_facts(ds, stack_path),
             generated=generated or datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),

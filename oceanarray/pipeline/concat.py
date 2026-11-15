@@ -393,6 +393,14 @@ def _same_value(a: object, b: object) -> bool:
         return str(a).strip() == str(b).strip()
 
 
+#: The DEPLOYMENT record variable of each field in ``mooring.SOURCE_FIELDS``
+#: whose name differs from the field's: its source is ``<record variable>_source``.
+_SOURCE_RECORD: dict[str, str] = {
+    "waterdepth": "deployment_waterdepth",
+    "latitude": "deployment_latitude",
+    "longitude": "deployment_longitude",
+}
+
 #: Global attributes concat writes itself (or as its own DEPLOYMENT variables);
 #: any other stack attribute is kept once when every deployment agrees, else it
 #: becomes a ``deployment_<name>`` variable.
@@ -409,6 +417,7 @@ _OWN_ATTRS = frozenset(
         "deployment_settings",
         "history",
         "Conventions",
+        *(f"{field}_source" for field in _mooring.SOURCE_FIELDS),
         "featureType",
         "data_mode",
         "oceanarray_version",
@@ -776,6 +785,15 @@ def concat(
         listed = [attribution.to_attrs(p).get(attr, "") for p in people]
         if any(listed):
             data_vars[f"deployment_{attr}"] = _deployment_var(listed)
+    # Where each deployment's mooring-level value came from, beside its record
+    # variable (empty for a deployment that does not say).
+    for field in _mooring.SOURCE_FIELDS:
+        key = f"{field}_source"
+        if any(ds.attrs.get(key) for ds in stacks):
+            record = _SOURCE_RECORD.get(field, field)
+            data_vars[f"{record}_source"] = _deployment_var(
+                [str(ds.attrs.get(key) or "") for ds in stacks]
+            )
     # Any other stack attribute: once when every deployment agrees, else one
     # value per deployment.
     shared: dict[str, object] = {}
@@ -878,7 +896,51 @@ def concat(
     return out
 
 
-def _sha256(path: Path) -> str:
+def is_site_stack(ds: xr.Dataset) -> bool:
+    """Return whether *ds* is a site stack (:func:`concat` output) rather than a deployment's."""
+    return "SLOT" in ds.dims and "level_index" in ds and "deployment_index" in ds
+
+
+def cell_deployment(ds: xr.Dataset) -> np.ndarray:
+    """Return, on ``(time, SLOT)``, the deployment behind each value of a site stack (-1 none).
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        A site stack.
+
+    Returns
+    -------
+    numpy.ndarray of int
+        ``deployment`` of the level ``level_index`` names, -1 where the slot is empty.
+    """
+    level = ds["level_index"].values.astype(np.int64)
+    deployment = ds["deployment"].values.astype(np.int64)
+    return np.where(level >= 0, deployment[np.clip(level, 0, None)], -1)
+
+
+def own_levels(ds: xr.Dataset) -> np.ndarray:
+    """Return, on ``(time, SLOT)``, where a site stack's value is from the deployment that counts.
+
+    At each step only the levels of the deployment ``deployment_index`` names are
+    kept, so a profile is never made of two moorings; a turnaround (index -1)
+    keeps nothing.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        A site stack.
+
+    Returns
+    -------
+    numpy.ndarray of bool
+        True where the value counts.
+    """
+    counts = ds["deployment_index"].values.astype(np.int64)[:, None]
+    return (counts >= 0) & (cell_deployment(ds) == counts)
+
+
+def sha256(path: Path) -> str:
     """Return the SHA-256 of a file."""
     digest = hashlib.sha256()
     with Path(path).open("rb") as fh:
@@ -982,7 +1044,7 @@ def concat_moorings(
             )
             # Relative to the site folder, so the site report can link each deployment.
             rel = os.path.relpath(stack_path.resolve(), target_dir.resolve())
-            sources.append((Path(rel).as_posix(), _sha256(stack_path)))
+            sources.append((Path(rel).as_posix(), sha256(stack_path)))
             cfgs.append(cfg)
         _check_people_cleaned(stacks, [c["name"] for c in cfgs])
         ds = concat(stacks, name=name, sources=sources, descriptions=cfgs)

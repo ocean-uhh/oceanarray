@@ -95,6 +95,34 @@ The links look for each deployment's reports in the ``report`` folder beside its
 stack, or in ``<DIR>/<deployment>`` with ``--report-dir DIR`` (``report_dir=`` in
 Python).
 
+The site grid
+-------------
+
+``oceanarray concat`` then grids the Stack cat onto pressure levels with the same
+gridder as a deployment's grid (``oceanarray.grid``), one mooring per profile: at
+each step only the levels of the deployment ``deployment_index`` names are
+interpolated, so a profile never mixes two moorings; the overlap block is not
+gridded and turnarounds stay empty. The file, ``<site>_gridcat.nc``, keeps the
+stack's time step, ``deployment_index`` and the ``DEPLOYMENT`` record. The
+settings come from the call (``--pmin``, ``--pmax``, ``--dp``, ``--mask-flags``,
+``--slope-angle``), not from the deployments' YAMLs, and are recorded in the file.
+
+Before gridding, values whose QC flag is in ``mask_flags`` are left out (default 4
+and 9 for every variable; ``velocity=3,4,9`` adds suspect velocity). The
+along-slope direction is ``--slope-angle``, else the principal axis of the
+depth-mean velocity over the record.
+
+Its page, ``<site>_gridcat_report.html`` (the "Grid cat" pill beside "Stack cat"),
+shows pressure × time sections of temperature and salinity with σ0 and σ2
+isopycnals, their anomalies from the whole-record median at each level, the median
+profile of each deployment, the velocity sections (east, north, along- and
+across-slope, cropped to the pressures with velocity data at the same dbar per inch
+as the T and S sections) and a T-S diagram of the median profiles. The sections are
+averaged for display (daily for a record under a year, weekly under 3, 2-weekly
+under 20, monthly beyond), in bins that restart at each deployment's start, so no
+bin spans two deployments and a step between them shows as a sharp edge; the file
+itself is not averaged.
+
 Legacy Context (RAPID)
 ----------------------
 

@@ -1,14 +1,132 @@
 """Grid a mooring's stack onto regular pressure levels: the pure :func:`grid` and MooringGridder."""
 
+import json
+import warnings
+from collections.abc import Iterable, Mapping
 from pathlib import Path
 
 import numpy as np
 import xarray as xr
 
 from oceanarray import logger, paths
+from oceanarray.config import parameters as params
+from oceanarray.pipeline._run import DEFAULTS
+from oceanarray.pipeline.concat import chunks, is_site_stack, own_levels, sha256
 from oceanarray.pipeline.units import to_canonical_units
 from oceanarray.writers import write
 from oceanarray.writers.netcdf import as_stored
+
+#: The velocity variables: one ``mask_flags`` key, ``velocity``, sets the flags
+#: masked in all of them (by ``velocity_flag`` and the ADCP seabed, percent-good and
+#: error-velocity flags).
+VELOCITY_GROUP: frozenset[str] = frozenset(
+    {
+        "east_velocity",
+        "north_velocity",
+        "up_velocity",
+        "current_speed",
+        "current_direction",
+    }
+)
+
+#: The ADCP flags that mask the velocity group, as well as ``velocity_flag``.
+_ADCP_VELOCITY_QC: tuple[str, ...] = (
+    "seabed_qc",
+    "percent_good_qc",
+    "error_velocity_qc",
+)
+
+#: Variables on the levels that are not gridded. Instrument-frame and beam
+#: velocities are excluded because the rotation to east/north/up is already
+#: applied; diagnostics (amplitude, correlation, battery, orientation) have no
+#: meaning between instruments; ``velocity_flag`` is a flag, not physics.
+_GRID_EXCLUDE: frozenset[str] = frozenset(
+    {
+        "velocity_x",
+        "velocity_y",
+        "velocity_z",
+        "velocity_beam1",
+        "velocity_beam2",
+        "velocity_beam3",
+        "amplitude",
+        "correlation",
+        "battery_voltage",
+        "velocity_flag",
+        "tilt_from_pressure",
+        "tilt_pressure_ref_hab",
+        "heading",
+        "pitch",
+        "roll",
+    }
+)
+
+
+def _flag_list(key: str, flags: object) -> tuple[int, ...]:
+    """Return *flags* as a sorted tuple of OceanSITES flag values, or raise ValueError."""
+    if isinstance(flags, int) and not isinstance(flags, bool):
+        flags = (flags,)
+    if isinstance(flags, str) or not isinstance(flags, Iterable):
+        raise ValueError(
+            f"mask_flags {key!r}: expected a list of flag values, got {flags!r}"
+        )
+    out = []
+    for flag in flags:
+        if (
+            isinstance(flag, bool)
+            or not isinstance(flag, int | np.integer)
+            or int(flag) not in params.QC_FLAG_VALUES
+        ):
+            raise ValueError(
+                f"mask_flags {key!r}: {flag!r} is not an OceanSITES flag value "
+                f"({', '.join(map(str, params.QC_FLAG_VALUES))})"
+            )
+        out.append(int(flag))
+    return tuple(sorted(set(out)))
+
+
+def resolve_mask_flags(
+    mask_flags: Iterable[int] | Mapping[str, Iterable[int]] | None = None,
+) -> dict[str, tuple[int, ...]]:
+    """Return the flags masked before gridding: a default and per-variable exceptions.
+
+    Parameters
+    ----------
+    mask_flags : iterable of int, or Mapping of str to iterable of int, or None
+        ``None`` for the default (``parameters.GRID_MASK_FLAGS``: 4 and 9); a list
+        of flags for every variable; or a mapping with an optional ``"default"``
+        and one key per exception: a variable name (masked by its ``<var>_qc``) or
+        ``"velocity"`` for the velocity group (:data:`VELOCITY_GROUP`).
+
+    Returns
+    -------
+    dict of str to tuple of int
+        Always holds ``"default"``; the other keys as given.
+
+    Raises
+    ------
+    ValueError
+        An unknown key (or a member of the velocity group named on its own), or a
+        value that is not a list of OceanSITES flag values.
+    """
+    out = {"default": tuple(params.GRID_MASK_FLAGS)}
+    if mask_flags is None:
+        return out
+    given = (
+        dict(mask_flags) if isinstance(mask_flags, Mapping) else {"default": mask_flags}
+    )
+    known = (set(params.VARIABLES) - VELOCITY_GROUP) | {"default", "velocity"}
+    for key, flags in given.items():
+        if key in VELOCITY_GROUP:
+            raise ValueError(
+                f"mask_flags {key!r}: the velocity variables share one key, 'velocity'"
+            )
+        if key not in known:
+            raise ValueError(
+                f"mask_flags {key!r} is not a variable; expected 'default', "
+                "'velocity' or a variable name (e.g. 'temperature', 'dissolved_oxygen')"
+            )
+        out[key] = _flag_list(key, flags)
+    return out
 
 
 def grid(
@@ -17,21 +135,41 @@ def grid(
     pmin: float = 200.0,
     pmax: float = 1000.0,
     dp: float = 20.0,
+    mask_flags: Iterable[int] | Mapping[str, Iterable[int]] | None = None,
+    slope_angle: float | None = None,
 ) -> xr.Dataset:
-    """Interpolate a mooring stack onto a regular pressure grid.
+    """Interpolate a mooring stack, or a site stack, onto a regular pressure grid.
 
     Pure function: no file I/O. At each time step every variable is interpolated
     linearly in pressure from the instruments with valid pressure and values onto
-    ``pmin:dp:pmax`` dbar, with no extrapolation. Velocity flagged suspect or
-    worse (``velocity_flag`` and the ADCP seabed, percent-good and error-velocity
-    flags) is masked first.
+    ``pmin:dp:pmax`` dbar, with no extrapolation. Values whose QC flag is in
+    *mask_flags* are left out first: each variable by its ``<var>_qc``, the
+    velocity group by ``velocity_flag`` and the ADCP seabed, percent-good and
+    error-velocity flags. The stack has already left out temperature, salinity,
+    pressure and the other non-velocity variables flagged 3, 4 or 9, so for those
+    *mask_flags* can only leave out more (a 9 beside one of their values marks a
+    level with no QC variable, and is not masked).
+
+    A site stack (:func:`oceanarray.pipeline.concat.concat` output) is gridded one
+    mooring per profile: at each step only the levels of the deployment
+    ``deployment_index`` names; the overlap block is not gridded, and turnarounds
+    stay empty. Its grid also carries ``deployment_index``, the ``DEPLOYMENT``
+    record, and the along-slope angle.
 
     Parameters
     ----------
     ds_stack : xarray.Dataset
-        The stack, as :func:`oceanarray.pipeline.stack.stack` returns it.
+        The stack, as :func:`oceanarray.pipeline.stack.stack` returns it, or a site
+        stack.
     pmin, pmax, dp : float, optional
         The pressure grid, in dbar.
+    mask_flags : iterable of int, or Mapping of str to iterable of int, optional
+        The flags left out before gridding (see :func:`resolve_mask_flags`);
+        default 4 and 9 for every variable. Recorded as ``grid_mask_flags``.
+    slope_angle : float, optional
+        Site stack only: the along-slope direction, in degrees clockwise from
+        north. Default: the principal axis of the depth-mean velocity over the
+        record. Recorded as ``slope_angle_deg`` with ``slope_angle_source``.
 
     Returns
     -------
@@ -41,20 +179,25 @@ def grid(
     Raises
     ------
     ValueError
-        If the stack has no ``pressure`` variable.
+        If the stack has no ``pressure`` variable, or *mask_flags* is invalid.
     """
+    flags = resolve_mask_flags(mask_flags)
+    if slope_angle is not None and not np.isfinite(float(slope_angle)):
+        raise ValueError(f"slope_angle={slope_angle!r} is not a finite number")
     p_grid = np.arange(pmin, pmax + dp * 0.5, dp)
     n_p = len(p_grid)
 
     # Canonicalise the stack's units (idempotent on a 0.5.0 stack; rewrites a
     # pre-0.5.0 one) so the grid inherits one spelling per quantity.
     ds = to_canonical_units(ds_stack, log_fn=print, stage="grid")
+    site = is_site_stack(ds)
+    level_dim = "SLOT" if site else "N_LEVELS"
     n_time = ds.sizes["time"]
-    n_instr = ds.sizes["N_LEVELS"]
+    n_instr = ds.sizes[level_dim]
 
     print(
-        f"Gridding {n_instr} instruments → {n_p} pressure levels "
-        f"({pmin:.0f}:{dp:.0f}:{pmax:.0f} dbar) × {n_time} time steps"
+        f"Gridding {n_instr} {'slots' if site else 'instruments'} → {n_p} pressure "
+        f"levels ({pmin:.0f}:{dp:.0f}:{pmax:.0f} dbar) × {n_time} time steps"
     )
 
     _warn_slow_instruments(ds)
@@ -62,99 +205,59 @@ def grid(
     if "pressure" not in ds.data_vars:
         raise ValueError("'pressure' not found in the stack — cannot grid vertically")
 
-    pressure = ds["pressure"].values.astype(np.float64)  # (time, N_LEVELS)
-    # Variables that are meaningful at the stacked per-instrument level but
-    # should not be interpolated onto the pressure grid.  Instrument-frame
-    # and beam-frame velocities are excluded because the XYZ→ENU rotation
-    # has already been applied; gridding the pre-rotation components would
-    # be misleading.  Diagnostic quantities (amplitude, correlation,
-    # battery) are per-sensor and do not have a physical meaning on a
-    # spatially-interpolated grid.
-    _GRID_EXCLUDE: frozenset = frozenset(
-        {
-            "velocity_x",
-            "velocity_y",
-            "velocity_z",
-            "velocity_beam1",
-            "velocity_beam2",
-            "velocity_beam3",
-            "amplitude",
-            "correlation",
-            "battery_voltage",
-            "velocity_flag",  # flag array, not a gridded physics variable
-            "tilt_from_pressure",  # per-instrument diagnostic, not gridded
-            "tilt_pressure_ref_hab",
-            "heading",  # instrument-frame orientation — not meaningful on a pressure grid
-            "pitch",
-            "roll",
-        }
-    )
-    # Variables eligible for gridding: physics vars on the (time, N_LEVELS)
-    # grid, excluding pressure and QC flags.  Compute once, then split into
-    # kept vs excluded so the two lists cannot drift (D2).
-    _grid_candidates = [
+    own = own_levels(ds) if site else None
+
+    def _values(name: str) -> np.ndarray:
+        values = ds[name].values.astype(np.float64)
+        if own is not None:
+            values[~own] = np.nan
+        return values
+
+    def _bad(name: str) -> np.ndarray:
+        # A non-velocity value the stack kept is not flagged 9 (the stack left
+        # those out), so a 9 beside one marks a level with no QC variable, as
+        # the stack and concat write it: keep the value.
+        qc = ds[f"{name}_qc"].values
+        return np.isin(qc, flags.get(name, flags["default"])) & (qc != 9)
+
+    pressure = _values("pressure")  # (time, levels)
+    if "pressure_qc" in ds.data_vars:
+        pressure[_bad("pressure")] = np.nan
+
+    # Physics variables on the (time, levels) grid, excluding pressure and QC
+    # flags; the excluded ones present are named, not dropped silently.
+    candidates = [
         v
         for v in ds.data_vars
-        if v != "pressure"
-        and ds[v].dims == ("time", "N_LEVELS")
+        if v not in ("pressure", "level_index")
+        and ds[v].dims == ("time", level_dim)
         and not v.endswith("_qc")
     ]
-    grid_vars = [v for v in _grid_candidates if v not in _GRID_EXCLUDE]
-
-    # Tell the operator which present physics variables were excluded from the
-    # grid rather than dropping them silently (D2).
-    _excluded = sorted(v for v in _grid_candidates if v in _GRID_EXCLUDE)
-    if _excluded:
+    grid_vars = [v for v in candidates if v not in _GRID_EXCLUDE]
+    excluded = sorted(v for v in candidates if v in _GRID_EXCLUDE)
+    if excluded:
         print(
-            f"  NOTE: {len(_excluded)} variable(s) excluded from gridding "
-            f"(listed in _GRID_EXCLUDE): {', '.join(_excluded)}"
+            f"  NOTE: {len(excluded)} variable(s) not gridded (instrument-frame, "
+            f"diagnostic or flag): {', '.join(excluded)}"
         )
 
     stacked: dict[str, np.ndarray] = {
         v: np.full((n_p, n_time), np.nan) for v in grid_vars
     }
-    var_data = {v: ds[v].values.astype(np.float64) for v in grid_vars}
+    var_data = {v: _values(v) for v in grid_vars}
 
-    # QC masking before vertical interpolation.
-    # T/S/P: NaN any non-finite values (already masked at stack time).
-    # Velocity: use velocity_flag from the stack to NaN suspect/bad samples.
-    #   Flag 3 (suspect), 4 (bad), 9 (missing) → NaN before interpolation.
-    _GRIDDER_TSQC = {"temperature", "conductivity", "salinity"}
-    for _v in grid_vars:
-        if _v in _GRIDDER_TSQC:
-            var_data[_v][~np.isfinite(var_data[_v])] = np.nan
-
-    _vel_vars = {
-        "east_velocity",
-        "north_velocity",
-        "up_velocity",
-        "current_speed",
-        "current_direction",
-    }
-    if "velocity_flag" in ds.data_vars:
-        _vflag = ds["velocity_flag"].values.astype(np.float64)
-        _bad_vel = np.isin(np.round(_vflag).astype(np.int8), [3, 4, 9])
-        for _v in _vel_vars:
-            if _v in var_data:
-                var_data[_v][_bad_vel] = np.nan
-    else:
-        for _v in _vel_vars:
-            if _v in var_data:
-                var_data[_v][~np.isfinite(var_data[_v])] = np.nan
-
-    # ADCP standalone QC variables — mask velocity before gridding.
-    # seabed_qc removes bins at/below the seafloor; percent_good_qc and
-    # error_velocity_qc remove poor-quality pings.  All three use flag >= 3
-    # (suspect or worse) as the NaN threshold, consistent with how the
-    # rose diagram and stack report mask these variables.
-    for _adcp_qc in ("seabed_qc", "percent_good_qc", "error_velocity_qc"):
-        if _adcp_qc not in ds.data_vars:
-            continue
-        _qc = ds[_adcp_qc].values  # (time, N_LEVELS) after stack transpose
-        _bad = np.isin(np.round(_qc).astype(np.int8), [3, 4, 9])
-        for _v in _vel_vars:
-            if _v in var_data:
-                var_data[_v][_bad] = np.nan
+    # Flags masked before vertical interpolation: each variable by its own QC
+    # flag, the velocity group by velocity_flag and the ADCP flags.
+    velocity_flags = flags.get("velocity", flags["default"])
+    bad_velocity = np.zeros((n_time, n_instr), dtype=bool)
+    for q in ("velocity_flag", *_ADCP_VELOCITY_QC):
+        if q in ds.data_vars:
+            bad_velocity |= np.isin(ds[q].values, velocity_flags)
+    for v in grid_vars:
+        if v in VELOCITY_GROUP:
+            var_data[v][bad_velocity] = np.nan
+        elif f"{v}_qc" in ds.data_vars:
+            var_data[v][_bad(v)] = np.nan
 
     for t in range(n_time):
         p_col = pressure[t, :]
@@ -189,6 +292,11 @@ def grid(
             data_vars[vname] = xr.Variable(
                 ("time", "pressure"), stacked[vname].T, attrs=a
             )
+    if site:
+        data_vars["deployment_index"] = ds["deployment_index"].variable
+        data_vars.update(
+            {v: ds[v].variable for v in ds.data_vars if ds[v].dims == ("DEPLOYMENT",)}
+        )
 
     ds_out = xr.Dataset(
         data_vars,
@@ -208,6 +316,9 @@ def grid(
         },
     )
 
+    masked = ", ".join(
+        f"{k} {'/'.join(map(str, v)) or 'none'}" for k, v in flags.items()
+    )
     prior_history = ds.attrs.get("history", "")
     ds_out.attrs.update(
         {
@@ -216,15 +327,87 @@ def grid(
             "p_start_dbar": pmin,
             "p_end_dbar": pmax,
             "dp_dbar": dp,
+            "grid_mask_flags": json.dumps({k: list(v) for k, v in flags.items()}),
             "history": (
                 prior_history
-                + f"; Step 2 grid: linear interpolation in pressure onto {dp:.0f} dbar pressure grid "
-                f"({pmin:.0f}–{pmax:.0f} dbar); no extrapolation"
+                + f"; grid: flags {masked} masked first, then linear interpolation "
+                f"in pressure onto {dp:g} dbar levels ({pmin:g}–{pmax:g} dbar), no "
+                "extrapolation"
+                + (
+                    ", one mooring per profile (the deployment deployment_index "
+                    "names), the overlap block not gridded, turnarounds empty"
+                    if site
+                    else ""
+                )
             ),
         }
     )
+    if site:
+        ds_out.attrs.update(_slope_attrs(ds_out, slope_angle))
 
     return as_stored(to_canonical_units(ds_out, log_fn=print, stage="grid"))
+
+
+def principal_axis(east: np.ndarray, north: np.ndarray) -> float:
+    """Return the principal axis of a velocity record, pointing along its mean flow.
+
+    Parameters
+    ----------
+    east, north : numpy.ndarray
+        Velocity components, of one shape; NaN where missing.
+
+    Returns
+    -------
+    float
+        The direction of largest variance, in degrees clockwise from north, in
+        [0, 360): of the two opposite directions, the one the mean flow has a
+        positive component along. NaN with fewer than two finite pairs.
+    """
+    ok = np.isfinite(east) & np.isfinite(north)
+    if ok.sum() < 2:
+        return float("nan")
+    cov = np.cov(np.vstack([east[ok], north[ok]]))
+    w, e = np.linalg.eigh(cov)
+    axis = e[:, np.argmax(w)]
+    if axis @ np.array([east[ok].mean(), north[ok].mean()]) < 0:
+        axis = -axis
+    return float(np.degrees(np.arctan2(axis[0], axis[1])) % 360.0)
+
+
+#: What the along-slope direction is when no angle is given.
+SLOPE_ANGLE_RULE = (
+    "the principal axis of the daily-mean, depth-mean velocity over the record, "
+    "pointing along the mean flow"
+)
+
+
+def _slope_attrs(ds: xr.Dataset, slope_angle: float | None) -> dict[str, object]:
+    """Return the along-slope angle attributes of a site grid.
+
+    Without a given angle, the depth-mean velocity is averaged by day first, so
+    the tides (whose ellipse can dominate the hourly variance) do not set it.
+    """
+    if slope_angle is not None:
+        return {
+            "slope_angle_deg": float(slope_angle) % 360.0,
+            "slope_angle_source": "given",
+        }
+    if "east_velocity" not in ds or "north_velocity" not in ds:
+        return {}
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)  # an empty step's mean
+        daily = (
+            ds[["east_velocity", "north_velocity"]]
+            .mean("pressure", skipna=True)
+            .resample(time="1D")
+            .mean()
+        )
+    angle = principal_axis(
+        daily["east_velocity"].values, daily["north_velocity"].values
+    )
+    if not np.isfinite(angle):
+        return {}
+    return {"slope_angle_deg": round(angle, 1), "slope_angle_source": SLOPE_ANGLE_RULE}
 
 
 def _grid_file(
@@ -235,12 +418,121 @@ def _grid_file(
     pmin: float,
     pmax: float,
     dp: float,
+    mask_flags: Mapping[str, Iterable[int]] | None = None,
 ) -> Path:
     """Grid *ds_stack* and write ``<name>_grid.nc``; return its path."""
-    ds = grid(ds_stack, pmin=pmin, pmax=pmax, dp=dp)
+    ds = grid(ds_stack, pmin=pmin, pmax=pmax, dp=dp, mask_flags=mask_flags)
     return write(
         ds, paths.product_file(mooring_dir, mooring["name"], "grid"), overwrite=True
     )
+
+
+def site_levels(ds: xr.Dataset, dp: float) -> tuple[float, float]:
+    """Return the default pressure range of a site grid: its instruments' span, to whole *dp*.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        A site stack.
+    dp : float
+        The grid spacing, in dbar.
+
+    Returns
+    -------
+    tuple of float
+        ``(pmin, pmax)``: the shallowest and deepest slot's median pressure,
+        rounded outward to a multiple of *dp* (``pmin`` not below 0).
+
+    Raises
+    ------
+    ValueError
+        No slot has a finite pressure.
+    """
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)  # an empty slot's median
+        median = np.nanmedian(ds["pressure"].values, axis=0)
+    if not np.isfinite(median).any():
+        raise ValueError("the site stack has no finite pressure")
+    lo, hi = float(np.nanmin(median)), float(np.nanmax(median))
+    return max(0.0, np.floor(lo / dp) * dp), float(np.ceil(hi / dp) * dp)
+
+
+def grid_site(
+    stackcat: str | Path,
+    *,
+    pmin: float | None = None,
+    pmax: float | None = None,
+    dp: float | None = None,
+    mask_flags: Iterable[int] | Mapping[str, Iterable[int]] | None = None,
+    slope_angle: float | None = None,
+    overwrite: bool = False,
+) -> Path:
+    """Grid a site stack and write ``<site>_gridcat.nc`` beside it.
+
+    Parameters
+    ----------
+    stackcat : str or Path
+        The site stack, ``<site>_stackcat.nc``.
+    pmin, pmax : float, optional
+        The pressure range, in dbar. Default: the shallowest and deepest slot's
+        median pressure, rounded outward to *dp* (:func:`site_levels`).
+    dp : float, optional
+        The grid spacing, in dbar; default 20.
+    mask_flags : iterable of int, or Mapping of str to iterable of int, optional
+        As for :func:`grid`.
+    slope_angle : float, optional
+        As for :func:`grid`.
+    overwrite : bool, optional
+        Replace an existing site grid.
+
+    Returns
+    -------
+    Path
+        The site grid's path.
+
+    Raises
+    ------
+    oceanarray.exceptions.MooringError
+        The file is not a site stack, the output exists without *overwrite*, or a
+        setting is invalid.
+    """
+    from oceanarray.exceptions import MooringError
+
+    stackcat = Path(stackcat)
+    with xr.open_dataset(stackcat, engine="netcdf4") as opened:
+        ds = opened.load()
+    if not is_site_stack(ds):
+        raise MooringError(
+            f"{stackcat} is not a site stack (oceanarray concat output)."
+        )
+    site = str(ds.attrs.get("site_name") or stackcat.name.removesuffix("_stackcat.nc"))
+    out_path = paths.product_file(stackcat.parent, site, "gridcat")
+    if out_path.exists() and not overwrite:
+        raise MooringError(f"{out_path} exists; pass overwrite=True (CLI --force).")
+    step = float(dp) if dp is not None else DEFAULTS["grid"]["dp"]
+    try:
+        if not step > 0:
+            raise ValueError(f"dp={step:g} must be > 0")
+        lo, hi = site_levels(ds, step)
+        top = float(pmin) if pmin is not None else lo
+        bottom = float(pmax) if pmax is not None else hi
+        if bottom <= top:
+            raise ValueError(f"pmax={bottom:g} must be above pmin={top:g}")
+        out = grid(
+            ds,
+            pmin=top,
+            pmax=bottom,
+            dp=step,
+            mask_flags=resolve_mask_flags(mask_flags),
+            slope_angle=slope_angle,
+        )
+    except ValueError as exc:
+        raise MooringError(f"{site}: cannot grid the site stack: {exc}") from exc
+    out.attrs["stackcat_file"] = stackcat.name
+    out.attrs["stackcat_sha256"] = sha256(stackcat)
+    write(out, out_path, overwrite=overwrite, chunks=chunks(out))
+    print(f"wrote {out_path}")
+    return out_path
 
 
 class MooringGridder:

@@ -211,6 +211,21 @@ the stage-2 file.
 
 Every units change (a new spelling or a conversion) is recorded in the file's
 ``units_converted`` attribute, JSON ``{variable: {"from", "to", "factor"}}``,
-written at stage 1 and carried forward. The rest
+written at stage 1 and carried forward.
+
+Where a mooring-level value came from, or why it was corrected, is written beside
+it when the mooring YAML says so: ``waterdepth_source``, ``deployment_time_source``,
+``recovery_time_source``, ``latitude_source``, ``longitude_source`` (stage 1 adds a
+history line, e.g. ``waterdepth 3125.0 m from the mooring YAML: <source>``). The
+stack carries them, and the Stack cat lists them per deployment beside the record
+variable (``deployment_waterdepth_source``, ``deployment_time_source``, ...; an
+empty string for a deployment that gives none). The values themselves are the
+YAML's, as without a source.
+
+Every grid records the QC flags it left out before gridding in ``grid_mask_flags``
+(JSON, ``{"default": [4, 9], "velocity": [3, 4, 9]}``). A site grid
+(``<site>_gridcat.nc``) also records its site stack (``stackcat_file``,
+``stackcat_sha256``) and the along-slope direction (``slope_angle_deg``, degrees
+clockwise from north, with ``slope_angle_source``). The rest
 of the attribution (``creator_*``, ``institution``, ``citation``, ``license``,
 ``references``) is not written yet; it will come from the array description.
