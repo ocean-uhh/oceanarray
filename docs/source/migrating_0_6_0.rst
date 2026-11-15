@@ -47,6 +47,9 @@ folder can have any name, and every file is named from ``name:``.
   before (MIXSED, ``odb2026``) sets ``stack: {dt_seconds: 60}`` in its mooring YAML.
   Every instrument is now placed by its nearest sample within ±dt/2 (a slow one is no
   longer interpolated in time), and the time axis starts on a whole multiple of the step.
+  A sample exactly half a step from two steps now fills the later one only (before:
+  both), so a sparse or phase-offset instrument can show an empty boundary step where
+  an older stack had a value.
 - Every stage-3, stack and grid file carries ``data_mode = "P"`` (provisional).
 - The grid report's **Overflow** section is now off by default; turn it on with a
   ``report_sections`` block (``report_sections: {grid: [overflow]}``) in the mooring

@@ -278,13 +278,14 @@ def test_a_slower_instrument_warns_and_leaves_its_gaps(stage3, cfg, capsys):
 
 
 def test_the_grid_warns_on_a_level_sampled_every_other_step(stage3, cfg, capsys):
-    """Gridding the 60 s stack names the 120 s Aquadopp, not the MicroCAT."""
+    """Gridding the 60 s stack names the 120 s Aquadopp the stack recorded, not the MicroCAT."""
     ds = st.stack(stage3, cfg, dt_seconds=60)
     capsys.readouterr()
     oa.grid(ds, pmin=400, pmax=440, dp=20)
     out = capsys.readouterr().out
-    assert out.count("level s/n 9920 has a sample every ~2 steps") == 1
-    assert "level s/n 2941" not in out
+    assert out.count("aquadopp s/n 9920 (120 s)") == 1
+    assert "2941" not in out
+    assert ds.attrs["instruments_slower_than_step"] == "aquadopp s/n 9920 (120 s)"
 
 
 def test_no_whole_step_message_does_not_name_the_yaml_key(cfg):
@@ -334,3 +335,10 @@ def test_readers_take_the_step_from_the_file_else_the_median():
     assert build_grid_context(bare, grid_nc).dt_s == 3600.0
     assert draw_grid_rotary_spectrum(bare, 50.0) is not None
     assert draw_grid_rotary_spectrum(bare.isel(time=slice(0, 1)), 50.0) is None
+
+
+def test_a_non_numeric_dt_attr_falls_back_to_the_time_axis(stage3, cfg):
+    """A hand-edited ``dt_seconds: "1h"`` reads as the median step, not a crash."""
+    ds = st.stack(stage3, cfg, dt_seconds=3600)
+    ds.attrs["dt_seconds"] = "1h"
+    assert time_step_seconds(ds) == 3600.0

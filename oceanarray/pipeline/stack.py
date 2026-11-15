@@ -550,6 +550,7 @@ def stack(
     omitted_idx: list[int] = []  # enumerate positions of omitted instruments
     decl_unknown: list[str] = []  # levels whose stage-3 declination is "UNK"
     slow_warned: set[str] = set()  # instruments already warned as slower than dt
+    slow: list[str] = []  # recorded in instruments_slower_than_step
 
     for i, info in enumerate(instruments):
         serials.append(info["serial"])
@@ -607,6 +608,7 @@ def stack(
         if interval_s > dt_seconds and base not in slow_warned:
             # An ADCP warns once, not once per bin.
             slow_warned.add(base)
+            slow.append(f"{info['instrument']} s/n {base} ({interval_s:.0f} s)")
             print(
                 f"  WARNING: {info['instrument']} s/n {base} samples every "
                 f"{interval_s:.0f} s, slower than the {dt_seconds} s step: the steps "
@@ -1044,6 +1046,10 @@ def stack(
         )
     if excluded:
         ds_out.attrs["instruments_excluded"] = "; ".join(excluded)
+    if slow:
+        # Recorded once here, so the grid (which reads this file) names the same
+        # instruments without re-detecting them.
+        ds_out.attrs["instruments_slower_than_step"] = "; ".join(slow)
     if omitted:
         # Record the omission in the file so the stack report and the grid
         # (which reads this file) inherit it, and summarise it loudly.

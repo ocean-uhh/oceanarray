@@ -1,6 +1,5 @@
 """Grid a mooring's stack onto regular pressure levels: the pure :func:`grid` and MooringGridder."""
 
-import re
 from pathlib import Path
 
 import numpy as np
@@ -58,7 +57,7 @@ def grid(
         f"({pmin:.0f}:{dp:.0f}:{pmax:.0f} dbar) × {n_time} time steps"
     )
 
-    _warn_sparse_levels(ds)
+    _warn_slow_instruments(ds)
 
     if "pressure" not in ds.data_vars:
         raise ValueError("'pressure' not found in the stack — cannot grid vertically")
@@ -348,22 +347,11 @@ class MooringGridder:
         return True
 
 
-def _warn_sparse_levels(ds: xr.Dataset) -> None:
-    """Warn for each level whose samples sit more than one stack step apart."""
-    if "pressure" not in ds.data_vars or ds.sizes.get("time", 0) < 3:
-        return
-    pressure = ds["pressure"].values
-    serials = ds["serial"].values if "serial" in ds else range(ds.sizes["N_LEVELS"])
-    warned: set[str] = set()
-    for j, serial in enumerate(serials):
-        idx = np.flatnonzero(np.isfinite(pressure[:, j]))
-        if idx.size < 3:
-            continue
-        stride = float(np.median(np.diff(idx)))
-        base = re.sub(r"_(hd|b\d+)$", "", str(serial))
-        if stride > 1.5 and base not in warned:
-            warned.add(base)
-            print(
-                f"  WARNING: level s/n {serial} has a sample every ~{stride:.0f} steps; "
-                "the grid leaves the steps between them empty."
-            )
+def _warn_slow_instruments(ds: xr.Dataset) -> None:
+    """Warn for the instruments the stack recorded as sampling slower than its step."""
+    slow = ds.attrs.get("instruments_slower_than_step")
+    if slow:
+        print(
+            f"  WARNING: sampled slower than the stack step: {slow}; the grid leaves "
+            "the steps between their samples empty."
+        )

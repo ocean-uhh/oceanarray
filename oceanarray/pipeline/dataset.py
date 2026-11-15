@@ -46,11 +46,13 @@ def time_step_seconds(ds: xr.Dataset) -> float:
     Returns
     -------
     float
-        The ``dt_seconds`` attribute when the file has one, else the median step
+        The ``dt_seconds`` attribute when the file has a numeric one, else the median step
         of its time axis; NaN when it has neither (fewer than two times).
     """
-    if "dt_seconds" in ds.attrs:
+    try:
         return float(ds.attrs["dt_seconds"])
+    except (KeyError, TypeError, ValueError):
+        pass  # absent or not a number: use the time axis
     if "time" not in ds or ds.sizes.get("time", 0) < 2:
         return float("nan")
     steps = np.diff(ds["time"].values) / np.timedelta64(1, "s")
