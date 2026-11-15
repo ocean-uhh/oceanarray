@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 
 from oceanarray.reports._array import (
+    _array_map_payload,
     _build_array_masthead,
     _build_type_summary,
     _count_instruments,
@@ -354,3 +355,42 @@ class TestArrayMastheadExtent:
         assert "W" in extent
         assert "E" not in extent
         assert "N" in extent
+
+
+class TestNanPosition:
+    """A YAML position of nan is unknown: no crash, no map marker."""
+
+    _DUNE2 = (
+        Path(__file__).resolve().parents[1]
+        / "fixtures"
+        / "proc"
+        / "dune2_1_2026"
+        / "dune2_1_2026.mooring.yaml"
+    )
+
+    def test_nan_coordinate_is_none(self):
+        assert _parse_coordinate("nan") is None
+        assert _parse_coordinate(float("nan")) is None
+        assert _parse_coordinate("inf") is None
+
+    def test_nan_latitude_resolves_to_unknown_and_is_not_mapped(self, tmp_path):
+        import yaml
+
+        text = self._DUNE2.read_text().replace("latitude: 65 43.913", "latitude: nan")
+        edited = tmp_path / "dune2_1_2026.mooring.yaml"
+        edited.write_text(text)
+        cfg = yaml.safe_load(edited.read_text())
+        lat, lon = _resolve_lat_lon(cfg)
+        assert (lat, lon) == (None, None)
+        row = {
+            "mooring": "dune2_1_2026",
+            "lat": lat,
+            "lon": lon,
+            "waterdepth": cfg["waterdepth"],
+            "deploy_time": "2026-07-11",
+            "recover_time": "2026-07-25",
+            "n_instruments": 2,
+            "report_exists": False,
+            "report_href": "",
+        }
+        assert _array_map_payload([row]) == ("[]", "null", "null")

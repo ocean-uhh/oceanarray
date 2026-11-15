@@ -5,6 +5,7 @@ from pathlib import Path
 import yaml
 
 from oceanarray.instruments import instrument_entries
+from oceanarray.reports import _masthead
 from oceanarray.reports._masthead import (
     common_facts,
     cruise_label,
@@ -120,9 +121,13 @@ def test_mooring_stack_grid_share_the_common_facts():
     common = common_facts(cfg, instrument_entries(cfg))
     mooring = masthead_facts("mooring", common)
     stack = masthead_facts(
-        "stack", common, {"dt_seconds": 120, "n_time": 9, "nc_file": "s.nc"}
+        "stack",
+        common,
+        {_masthead.DT_S: 120, _masthead.N_TIME: 9, _masthead.NC_FILE: "s.nc"},
     )
-    grid = masthead_facts("grid", common, {"n_time": 9, "nc_file": "g.nc"})
+    grid = masthead_facts(
+        "grid", common, {_masthead.N_TIME: 9, _masthead.NC_FILE: "g.nc"}
+    )
     n = len(common)
     assert mooring == common
     assert stack[:n] == common
@@ -135,3 +140,36 @@ def test_mooring_stack_grid_share_the_common_facts():
     assert str(stack[n][1]) == "120&thinsp;s"
     # A grid fact not given reads as missing.
     assert _as_dict(grid)["Grid&nbsp;&Delta;P"] == ("—", True)
+
+
+def test_nan_position_reads_missing_not_a_crash():
+    cfg = {**_dune2(), "latitude": "nan"}
+    assert format_position(cfg) == ("—", "—")
+    d = _as_dict(common_facts(cfg, instrument_entries(cfg)))
+    assert d["Latitude"] == ("—", True)
+    assert d["Longitude"] == ("—", True)
+
+
+def test_page_extra_keys_match_the_keys_masthead_facts_reads(tmp_path, monkeypatch):
+    """The keys the stack and grid pages pass are exactly the ones their facts read."""
+    from oceanarray.reports import MooringReport
+
+    passed: dict[str, set] = {}
+    real = _masthead.masthead_facts
+
+    def spy(page, common, extra=None):
+        passed[page] = set(extra or {})
+        return real(page, common, extra)
+
+    monkeypatch.setattr(_masthead, "masthead_facts", spy)
+    MooringReport(proc_dir=str(_DUNE2.parents[1])).generate(
+        "dune2_1_2026",
+        force=True,
+        outdir=str(tmp_path),
+        instruments=False,
+        grid=True,
+        stack=True,
+    )
+    assert set(passed) == {"mooring", "stack", "grid"}
+    for page, keys in passed.items():
+        assert keys == _masthead.page_fact_keys(page), page

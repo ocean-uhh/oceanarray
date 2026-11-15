@@ -45,12 +45,7 @@ _log = logging.getLogger(__name__)
 
 def _parse_coordinate(val: Any) -> float | None:
     """Parse one latitude or longitude value to decimal degrees, None if absent or unparseable."""
-    if val is None or val == "":
-        return None
-    try:
-        return location._parse_dms(str(val))
-    except (ValueError, IndexError):
-        return None
+    return location.parse_coordinate(val)
 
 
 # ---------------------------------------------------------------------------

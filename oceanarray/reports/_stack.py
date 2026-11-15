@@ -683,9 +683,9 @@ def generate_stack_page(
                 "stack",
                 ctx.get("masthead_common", []),
                 {
-                    "dt_seconds": dt_seconds,
-                    "n_time": n_time,
-                    "nc_file": stack_path.name,
+                    _masthead.DT_S: dt_seconds,
+                    _masthead.N_TIME: n_time,
+                    _masthead.NC_FILE: stack_path.name,
                 },
             ),
             grid_exists=grid_exists,

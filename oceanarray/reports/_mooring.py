@@ -97,6 +97,9 @@ MOORING_CAPTIONS: dict[str, str] = {
 _fig_panel = make_fig_panel(MOORING_CAPTIONS)
 
 
+#: Table note for an entry without a hab; the stack omits it for the same reason.
+NO_HAB_NOTE = "not stacked: no hab in the mooring YAML"
+
 #: File types whose records the originator already trimmed (no raw instrument clock).
 _IMPORTED_FILE_TYPES = frozenset({"oceansites", "rodb"})
 
@@ -606,15 +609,21 @@ class MooringReport:
                 continue
             serial = safe_serial(entry.get("serial", ""))
             instr_type = entry.get("instrument", "unknown")
+            # An entry without a hab stays in the table with a note, as the masthead
+            # counts it (the stack omits it); a skipped one without a hab is left out.
             hab = entry.get("hab")
-            if hab is None:
+            if hab is None and entry.get("skip"):
                 continue
-            hab = float(hab)
+            hab = float(hab) if hab is not None else None
 
             depth = (
                 float(entry["depth"])
                 if "depth" in entry
-                else (float(waterdepth) - hab if waterdepth is not None else None)
+                else (
+                    float(waterdepth) - hab
+                    if waterdepth is not None and hab is not None
+                    else None
+                )
             )
 
             filename = entry.get("filename", "")
@@ -695,6 +704,7 @@ class MooringReport:
                     "serial": serial,
                     "instr_type": instr_type,
                     "hab": hab,
+                    "no_hab_note": NO_HAB_NOTE if hab is None else "",
                     "depth": depth,
                     "filename": filename,
                     "file_type": file_type,
@@ -743,7 +753,8 @@ class MooringReport:
                 }
             )
 
-        instruments.sort(key=lambda x: x["hab"])
+        # Entries without a hab sort last.
+        instruments.sort(key=lambda x: (x["hab"] is None, x["hab"] or 0.0))
 
         # Compute recommended --pmin / --pmax for `oceanarray run`.
         # Collect finite min/max pressure values from instruments that have real

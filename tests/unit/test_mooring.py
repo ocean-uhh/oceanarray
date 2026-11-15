@@ -414,3 +414,42 @@ def test_resolve_report_sections_reads_the_mooring_description() -> None:
         mooring.resolve_report_sections("grid", {"report_sections": {"stack": ["x"]}})
         == []
     )
+
+
+def _dune2_text() -> str:
+    return (
+        Path(__file__).resolve().parents[1]
+        / "fixtures"
+        / "proc"
+        / "dune2_1_2026"
+        / "dune2_1_2026.mooring.yaml"
+    ).read_text()
+
+
+def _position_warnings(path: Path) -> list[str]:
+    return [
+        i.message
+        for i in mooring.check(path)
+        if i.level == "WARNING" and "Position keys" in i.message
+    ]
+
+
+def test_check_warns_on_position_keys_from_different_pairs(tmp_path):
+    """seabed_latitude with a plain longitude: lat and lon are read from one pair only."""
+    folder = tmp_path / "dune2_1_2026"
+    folder.mkdir()
+    path = folder / "dune2_1_2026.mooring.yaml"
+    path.write_text(
+        _dune2_text().replace("latitude: 65 43.913", "seabed_latitude: 65 43.913")
+    )
+    (message,) = _position_warnings(path)
+    assert "seabed_latitude" in message
+    assert "longitude" in message
+
+
+def test_check_is_quiet_on_complete_position_pairs(tmp_path):
+    folder = tmp_path / "dune2_1_2026"
+    folder.mkdir()
+    path = folder / "dune2_1_2026.mooring.yaml"
+    path.write_text(_dune2_text())
+    assert _position_warnings(path) == []

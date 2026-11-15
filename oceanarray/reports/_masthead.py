@@ -27,23 +27,49 @@ UNKNOWN = "UNK"
 #: One masthead fact: ``(label, value, missing)``.
 Fact = tuple[str, str, bool]
 
+#: Keys of a page's own values, passed as ``extra`` to :func:`masthead_facts`.
+#: Pages and the fact lists below use these names, never bare strings.
+DT_S = "dt_s"
+N_TIME = "n_time"
+NC_FILE = "nc_file"
+GRID_DP = "grid_dp"
+N_LEVELS = "n_levels"
+P_RANGE = "p_range"
+
 #: Per-page product facts, appended after the common facts: ``(key, label, unit)``.
 _PAGE_FACTS: dict[str, tuple[tuple[str, str, str], ...]] = {
     "mooring": (),
     "stack": (
-        ("dt_seconds", Markup("Samp.&nbsp;&Delta;t"), "s"),
-        ("n_time", "Records", ""),
-        ("nc_file", Markup("Source&nbsp;file"), ""),
+        (DT_S, Markup("Samp.&nbsp;&Delta;t"), "s"),
+        (N_TIME, "Records", ""),
+        (NC_FILE, Markup("Source&nbsp;file"), ""),
     ),
     "grid": (
-        ("grid_dt_s", Markup("Samp.&nbsp;&Delta;t"), "s"),
-        ("n_time", "Records", ""),
-        ("grid_dp", Markup("Grid&nbsp;&Delta;P"), ""),
-        ("n_levels", Markup("Pressure&nbsp;levels"), ""),
-        ("p_range", Markup("Pressure&nbsp;range"), ""),
-        ("nc_file", Markup("Source&nbsp;file"), ""),
+        (DT_S, Markup("Samp.&nbsp;&Delta;t"), "s"),
+        (N_TIME, "Records", ""),
+        (GRID_DP, Markup("Grid&nbsp;&Delta;P"), ""),
+        (N_LEVELS, Markup("Pressure&nbsp;levels"), ""),
+        (P_RANGE, Markup("Pressure&nbsp;range"), ""),
+        (NC_FILE, Markup("Source&nbsp;file"), ""),
     ),
 }
+
+
+def page_fact_keys(page: str) -> frozenset[str]:
+    """Return the ``extra`` keys a page's masthead reads.
+
+    Parameters
+    ----------
+    page : {"mooring", "stack", "grid"}
+        The report page.
+
+    Returns
+    -------
+    frozenset of str
+        The keys of the page's own facts (empty for the mooring page).
+
+    """
+    return frozenset(key for key, _, _ in _PAGE_FACTS[page])
 
 
 def _first(cfg: Mapping[str, Any], *keys: str) -> Any:
@@ -202,8 +228,9 @@ def masthead_facts(
     common : list of tuple
         The facts from :func:`common_facts`.
     extra : Mapping, optional
-        The page's own values, keyed as in the page's fact list (for example
-        ``n_time`` and ``nc_file``); a key absent here reads ``—``.
+        The page's own values, keyed by this module's key constants
+        (:data:`N_TIME`, :data:`NC_FILE`, ...; see :func:`page_fact_keys`); a key
+        absent here reads ``—``.
 
     Returns
     -------

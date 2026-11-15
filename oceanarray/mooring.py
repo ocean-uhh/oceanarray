@@ -36,6 +36,7 @@ import yaml
 from oceanarray.config import validation
 from oceanarray.config.validation import ValidationIssue
 from oceanarray.exceptions import MooringError
+from oceanarray.location import LATLON_KEY_PAIRS
 from oceanarray.paths import is_path_component
 
 logger = logging.getLogger(__name__)
@@ -239,6 +240,7 @@ def check(
         issues += _check_export_codes(data)
         issues += _check_qc_overrides(data)
         issues += _check_caldip(data)
+        issues += _check_position_pairs(data)
         for key in data:
             if key not in KNOWN_KEYS:
                 issues.append(
@@ -250,6 +252,26 @@ def check(
                     )
                 )
     return issues
+
+
+def _check_position_pairs(data: Mapping) -> list[ValidationIssue]:
+    """WARN when a position key has no partner in its own pair (lat and lon come from one pair)."""
+    half = [
+        lat_key if data.get(lat_key) not in (None, "") else lon_key
+        for lat_key, lon_key in LATLON_KEY_PAIRS
+        if (data.get(lat_key) in (None, "")) != (data.get(lon_key) in (None, ""))
+    ]
+    if not half:
+        return []
+    pairs = ", ".join(f"{a}/{b}" for a, b in LATLON_KEY_PAIRS)
+    return [
+        ValidationIssue(
+            "WARNING",
+            f"Position keys {', '.join(half)} have no partner in their own pair; "
+            f"latitude and longitude are read from one pair only ({pairs}), so "
+            f"{'this key is' if len(half) == 1 else 'these keys are'} ignored.",
+        )
+    ]
 
 
 def _check_export_codes(data: Mapping) -> list[ValidationIssue]:
