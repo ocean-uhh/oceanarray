@@ -45,8 +45,10 @@ and attributes in the files can still change between releases; the `changelog
 - **How it works** — the :doc:`processing_framework` and the :doc:`files`.
 - **Methods** — one page per step, from :doc:`methods/standardisation` to the
   :doc:`methods/oceansites_export`.
-- **Reference** — the :doc:`cli_reference`, :doc:`yaml_configuration`, the
-  :doc:`Python API <oceanarray>` and the :doc:`oceanarray_format`.
+- **Inputs and outputs** — :doc:`yaml_configuration`, :doc:`array_configuration`,
+  and the :doc:`oceanarray_format` of what oceanarray writes.
+- **Interfaces** — every :doc:`command <cli_reference>` and the
+  :doc:`Python API <oceanarray>`.
 
 .. toctree::
    :maxdepth: 1
@@ -57,6 +59,7 @@ and attributes in the files can still change between releases; the `changelog
    quickstart
    reports
    Example report <https://ocean-uhh.github.io/oceanarray/_static/demo/dune2/dune2_1_2026_report.html>
+   troubleshooting
 
 .. toctree::
    :maxdepth: 1
@@ -84,26 +87,44 @@ and attributes in the files can still change between releases; the `changelog
 .. toctree::
    :maxdepth: 1
    :hidden:
-   :caption: Reference
+   :caption: Inputs and outputs
+
+   yaml_configuration
+   array_configuration
+   oceanarray_format
+   OceanSITES manual <oceanSITES_manual>
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+   :caption: Interfaces
 
    cli_reference
-   yaml_configuration
    Python API <oceanarray>
-   oceanarray_format
-   troubleshooting
-   OceanSITES manual <oceanSITES_manual>
-   GitHub repository <https://github.com/ocean-uhh/oceanarray>
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+   :caption: Upgrading
+
+   From 0.5 to 0.6 <migrating_0_6_0>
+   Older versions <migration>
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+   :caption: Background
+
+   rapid_heritage
+   Legacy modules <legacy>
 
 .. toctree::
    :maxdepth: 1
    :hidden:
    :caption: Development
 
-   migrating_0_6_0
-   migration
    roadmap
    project_structure
    style_guide
    Calibration correction (design) <methods/calibration>
-   rapid_heritage
-   Legacy modules <legacy>
+   GitHub repository <https://github.com/ocean-uhh/oceanarray>

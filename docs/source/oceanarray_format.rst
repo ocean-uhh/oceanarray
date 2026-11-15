@@ -1,6 +1,6 @@
-===========
-File format
-===========
+============
+Output files
+============
 
 oceanarray's shareable output is `OceanSITES 1.4
 <https://www.ocean-ops.org/oceansites/docs/oceansites_data_format_reference_manual.pdf>`_

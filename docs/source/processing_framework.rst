@@ -67,7 +67,7 @@ Each site
 ---------
 
 Several deployments at one place are joined end to end into the **Stack cat**,
-by depth slot, filling nothing across a turnaround, and gridded one mooring per
+by depth, filling nothing across a turnaround, and gridded one mooring per
 profile into the **Grid cat** (``oceanarray concat``). See
 :doc:`methods/concatenation`.
 
