@@ -55,7 +55,9 @@ class _CallbackHandler(logging.Handler):
             self._in_callback = False
 
 
-def deprecated_log_fn(log_fn: Callable[[str], None] | None) -> contextlib.AbstractContextManager:
+def deprecated_log_fn(
+    log_fn: Callable[[str], None] | None,
+) -> contextlib.AbstractContextManager:
     """Warn on a legacy ``log_fn`` and forward the package's records to it in the block.
 
     The public transform functions (``to_canonical_units``, ``interpolate_pressure``,
@@ -91,6 +93,7 @@ def _forward_to_callback(log_fn: Callable[[str], None] | None) -> Iterator[None]
         yield
     finally:
         log.removeHandler(handler)
+
 
 def enable_logging() -> None:
     """Re-enable the ``oceanarray`` logger.
@@ -144,7 +147,9 @@ def configure_console(level: int | None = None) -> logging.Handler:
     logging.Handler
         The console handler attached.
     """
-    for handler in [h for h in log.handlers if getattr(h, "_oceanarray_console", False)]:
+    for handler in [
+        h for h in log.handlers if getattr(h, "_oceanarray_console", False)
+    ]:
         log.removeHandler(handler)
     console = logging.StreamHandler(sys.stderr)
     console.setLevel(CONSOLE_LEVEL if level is None else level)

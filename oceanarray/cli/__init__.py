@@ -150,7 +150,11 @@ def main() -> None:
     # One console (stderr) for the whole command: -v → DEBUG, -q → WARNING, else INFO.
     # captureWarnings routes stray warnings.warn through the same handlers.
     logger.CONSOLE_LEVEL = (
-        logging.DEBUG if args.verbose else logging.WARNING if args.quiet else logging.INFO
+        logging.DEBUG
+        if args.verbose
+        else logging.WARNING
+        if args.quiet
+        else logging.INFO
     )
     logging.captureWarnings(True)
     logger.configure_console(logger.CONSOLE_LEVEL)

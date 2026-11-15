@@ -180,7 +180,9 @@ def run(
             # Whatever stopped the run, a product built from the old stage files no
             # longer matches the ones it rewrote.
             if outcome.written:
-                _set_aside_stale(products, "the stage files changed but the run stopped")
+                _set_aside_stale(
+                    products, "the stage files changed but the run stopped"
+                )
             raise
         if not keep_going and "instruments_omitted" in ds_stack.attrs:
             _set_aside_stale(products[1:], "the new stack left instruments out")

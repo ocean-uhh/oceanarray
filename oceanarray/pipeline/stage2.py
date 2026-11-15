@@ -577,7 +577,9 @@ def _drop_redundant_sbe_vars(dataset: xr.Dataset) -> xr.Dataset:
     if "flag" in dataset.variables:
         flag_vals = np.asarray(dataset["flag"].values, dtype="float64")
         if np.all((flag_vals == 0) | np.isnan(flag_vals)):
-            log.debug("Removing 'flag': all values are zero (no SeaBird scan flags set)")
+            log.debug(
+                "Removing 'flag': all values are zero (no SeaBird scan flags set)"
+            )
             dataset = dataset.drop_vars("flag")
             _append_history(
                 dataset, "dropped SeaBird 'flag' column: all values were 0 (good data)"
