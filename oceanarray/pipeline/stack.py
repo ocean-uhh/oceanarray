@@ -372,7 +372,7 @@ def stack(
             continue
         serial = safe_serial(entry.get("serial", ""))
         instr_type = entry.get("instrument", "unknown")
-        if instr_type not in KNOWN_INSTRUMENT_TYPES:
+        if not params.is_known_instrument_type(instr_type):
             print(
                 f"  WARNING: instrument '{instr_type}' (s/n {serial}) is not in "
                 f"KNOWN_INSTRUMENT_TYPES {sorted(KNOWN_INSTRUMENT_TYPES)}; "

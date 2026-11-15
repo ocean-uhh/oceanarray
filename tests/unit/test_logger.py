@@ -1,6 +1,8 @@
 import logging
 import time
 
+import numpy as np
+
 from oceanarray import logger
 
 
@@ -55,3 +57,13 @@ def test_log_warning_creates_entry(tmp_path):
     logger.log.handlers.clear()
     logging.shutdown()
     log_file.unlink()
+
+
+def test_format_time_rounds_to_whole_seconds():
+    # Instrument clocks carry sub-second float noise; the log shows whole seconds.
+    noisy = np.datetime64("2016-08-11T09:59:59.999996672")
+    assert logger.format_time(noisy) == "2016-08-11T10:00:00"
+
+
+def test_format_time_handles_nat():
+    assert logger.format_time(np.datetime64("NaT")) == "NaT"

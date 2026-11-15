@@ -128,3 +128,19 @@ class TestVlabel:
     def test_return_type_is_str(self):
         assert isinstance(params.vlabel("temperature"), str)
         assert isinstance(params.vlabel("unknown_key"), str)
+
+
+class TestIsKnownInstrumentType:
+    def test_known_lower_case_type(self):
+        assert params.is_known_instrument_type("microcat")
+
+    def test_adcp_matches_either_case(self):
+        # The YAML spelling is upper-case; matching ignores case so neither warns.
+        assert params.is_known_instrument_type("ADCP")
+        assert params.is_known_instrument_type("adcp")
+
+    def test_other_type_matches_regardless_of_case(self):
+        assert params.is_known_instrument_type("AQUADOPP")
+
+    def test_unknown_type_is_rejected(self):
+        assert not params.is_known_instrument_type("thermistor")

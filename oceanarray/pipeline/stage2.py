@@ -51,13 +51,18 @@ from oceanarray import paths
 from oceanarray.config import parameters as params
 from oceanarray.exceptions import MooringError
 from oceanarray.instruments import instrument_entries
-from oceanarray.logger import log_info, with_stage_handlers
+from oceanarray.logger import format_time, log_info, with_stage_handlers
 from oceanarray.pipeline import _stage
 from oceanarray.pipeline.dataset import drop_all_zero_vars
 from oceanarray.pipeline.read_mooring import read_mooring
 from oceanarray.pipeline.units import to_canonical_units
 from oceanarray.pipeline.write_mooring import write_mooring
 from oceanarray.writers.netcdf import as_stored
+
+#: A record that starts late or ends early by more than this fraction of the
+#: planned deployment window is a short record (WARNING): usually an instrument
+#: that failed before recovery, not a processing error.
+_SHORT_RECORD_FRACTION = 0.05
 
 
 def _parse_clock_str(s: str) -> pd.Timestamp | None:
@@ -466,11 +471,11 @@ def _trim_to_deployment_window(
         dataset = dataset.isel(time=np.where(mask)[0])
 
     if np.isfinite(deploy_time):
-        log_info("Trimming start to deployment time: %s", deploy_time)
+        log_info("Trimming start to deployment time: %s", format_time(deploy_time))
         dataset = dataset.sel(time=slice(deploy_time, None))
 
     if np.isfinite(recover_time):
-        log_info("Trimming end to recovery time: %s", recover_time)
+        log_info("Trimming end to recovery time: %s", format_time(recover_time))
         dataset = dataset.sel(time=slice(None, recover_time))
 
     final_size = len(dataset.time)
@@ -478,6 +483,68 @@ def _trim_to_deployment_window(
     if final_size == 0:
         log_info("WARNING: No data remains after trimming!")
     return dataset
+
+
+def _gap_text(seconds: float) -> str:
+    """Render a gap of *seconds* as whole days, adding approximate months when large."""
+    days = seconds / 86400
+    if days >= 60:
+        return f"{days:.0f} d (~{days / 30.44:.0f} months)"
+    return f"{days:.0f} d"
+
+
+def _warn_short_record(
+    serial: str,
+    instrument_type: str,
+    deploy_time: np.datetime64,
+    recover_time: np.datetime64,
+    start: np.datetime64,
+    end: np.datetime64,
+) -> None:
+    """Warn when the trimmed record misses more than 5 % of the planned window.
+
+    The planned window is the mooring YAML's ``deployment_time`` → ``recovery_time``
+    span. A record that begins well after deployment or ends well before recovery
+    is usually an instrument that failed early, not a processing error, so it earns
+    a WARNING naming the end, the gap, and where the window came from. Applies to
+    imported (originator-trimmed) records too — that is how an instrument that
+    stopped mid-deployment shows up.
+
+    Parameters
+    ----------
+    serial : str
+        The instrument serial, for the message.
+    instrument_type : str
+        The instrument type, for the message.
+    deploy_time, recover_time : numpy.datetime64
+        The planned window from the YAML; ``NaT`` (unset) skips the check.
+    start, end : numpy.datetime64
+        The first and last time of the trimmed record.
+    """
+    if not (np.isfinite(deploy_time) and np.isfinite(recover_time)):
+        return
+    window_s = (recover_time - deploy_time) / np.timedelta64(1, "s")
+    if window_s <= 0:
+        return
+    threshold_s = _SHORT_RECORD_FRACTION * window_s
+    start_gap_s = (np.datetime64(start) - deploy_time) / np.timedelta64(1, "s")
+    end_gap_s = (recover_time - np.datetime64(end)) / np.timedelta64(1, "s")
+    if start_gap_s > threshold_s:
+        log_info(
+            "WARNING: %s %s starts %s after deployment (%s, from the mooring YAML)",
+            instrument_type,
+            serial,
+            _gap_text(start_gap_s),
+            format_time(deploy_time),
+        )
+    if end_gap_s > threshold_s:
+        log_info(
+            "WARNING: %s %s ends %s before recovery (%s, from the mooring YAML)",
+            instrument_type,
+            serial,
+            _gap_text(end_gap_s),
+            format_time(recover_time),
+        )
 
 
 def _add_missing_metadata(
@@ -588,7 +655,14 @@ def _stage2_instrument(
 
     start_time = dataset["time"].values.min()
     end_time = dataset["time"].values.max()
-    log_info("Final time range: %s to %s", start_time, end_time)
+    log_info(
+        "Final time range: %s to %s",
+        format_time(start_time),
+        format_time(end_time),
+    )
+    _warn_short_record(
+        serial, instrument_type, deploy_time, recover_time, start_time, end_time
+    )
 
     dataset.attrs.setdefault("qc_convention", params.QC_CONVENTION)
 

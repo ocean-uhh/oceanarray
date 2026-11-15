@@ -8,6 +8,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
+
 # Global logger instance (will be configured by setup_logger)
 log = logging.getLogger("oceanarray")
 log.setLevel(logging.DEBUG)  # capture everything; handlers filter later
@@ -380,3 +382,32 @@ def format_rel_path(path: Path, root: Path) -> str:
         return str(path.relative_to(root))
     except ValueError:
         return path.name
+
+
+def format_time(value: Any) -> str:
+    """Return *value* as an ISO-8601 timestamp to whole seconds, for log messages.
+
+    Instrument clocks carry sub-second float noise (``…:59.999996672``); the log
+    rounds to the nearest second. Display only — stored times are unchanged.
+
+    Parameters
+    ----------
+    value : Any
+        A timestamp (``numpy.datetime64``, :class:`pandas.Timestamp`, a string,
+        ...), as accepted by :class:`pandas.Timestamp`.
+
+    Returns
+    -------
+    str
+        ISO-8601 to seconds, or ``"NaT"`` for a missing time.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> format_time(np.datetime64("2016-08-11T09:59:59.999996672"))
+    '2016-08-11T10:00:00'
+    """
+    ts = pd.Timestamp(value)
+    if pd.isna(ts):
+        return "NaT"
+    return ts.round("s").isoformat()
