@@ -37,6 +37,7 @@ All clock values are the amounts **added** to instrument time to obtain correcte
   - Negative value → instrument was *fast* (ahead of real time); times shifted earlier.
 """
 
+import logging
 import re
 from collections.abc import Callable
 from pathlib import Path
@@ -51,13 +52,15 @@ from oceanarray import paths
 from oceanarray.config import parameters as params
 from oceanarray.exceptions import MooringError
 from oceanarray.instruments import instrument_entries
-from oceanarray.logger import format_time, log_info, with_stage_handlers
+from oceanarray.logger import format_time, with_stage_handlers
 from oceanarray.pipeline import _stage
 from oceanarray.pipeline.dataset import drop_all_zero_vars
 from oceanarray.pipeline.read_mooring import read_mooring
 from oceanarray.pipeline.units import to_canonical_units
 from oceanarray.pipeline.write_mooring import write_mooring
 from oceanarray.writers.netcdf import as_stored
+
+log = logging.getLogger(__name__)
 
 #: A record that starts late or ends early by more than this fraction of the
 #: planned deployment window is a short record (WARNING): usually an instrument
@@ -290,7 +293,7 @@ def _apply_clock_offset(dataset: xr.Dataset, clock_offset: float) -> xr.Dataset:
     if clock_offset == 0:
         return dataset
 
-    log_info("Applying clock offset: %+.1f s", clock_offset)
+    log.debug("Applying clock offset: %+.1f s", clock_offset)
     result = dataset.copy()
     result["clock_offset"] = clock_offset
     result["clock_offset"].attrs = {
@@ -342,11 +345,11 @@ def _apply_clock_drift(
     if clock_drift_seconds == 0:
         return dataset
 
-    log_info("Applying clock drift: %+.1f s over deployment", clock_drift_seconds)
+    log.debug("Applying clock drift: %+.1f s over deployment", clock_drift_seconds)
 
     total_duration_s = (recover_time - deploy_time) / np.timedelta64(1, "s")
     if total_duration_s <= 0:
-        log_info("WARNING: deploy_time >= recover_time; skipping clock drift ramp")
+        log.warning("deploy_time >= recover_time; skipping clock drift ramp")
         return dataset
     time_since_deploy_s = np.clip(
         (dataset["time"].values - deploy_time) / np.timedelta64(1, "s"),
@@ -427,7 +430,7 @@ def _warn_missing_deployment_window(
         "",
     ]
     for line in lines:
-        log_info(line)
+        log.info(line)
 
 
 def _trim_to_deployment_window(
@@ -447,8 +450,8 @@ def _trim_to_deployment_window(
         early_cutoff = deploy_time - _one_month
         n_early = int(np.sum(t_vals < early_cutoff))
         if n_early:
-            log_info(
-                "WARNING: dropping %d record(s) with timestamps more than 31 days "
+            log.warning(
+                "dropping %d record(s) with timestamps more than 31 days "
                 "before deployment (%s): %s",
                 n_early,
                 early_cutoff,
@@ -459,8 +462,8 @@ def _trim_to_deployment_window(
         late_cutoff = recover_time + _one_month
         n_late = int(np.sum(t_vals > late_cutoff))
         if n_late:
-            log_info(
-                "WARNING: dropping %d record(s) with timestamps more than 31 days "
+            log.warning(
+                "dropping %d record(s) with timestamps more than 31 days "
                 "after recovery (%s): %s",
                 n_late,
                 late_cutoff,
@@ -471,17 +474,17 @@ def _trim_to_deployment_window(
         dataset = dataset.isel(time=np.where(mask)[0])
 
     if np.isfinite(deploy_time):
-        log_info("Trimming start to deployment time: %s", format_time(deploy_time))
+        log.debug("Trimming start to deployment time: %s", format_time(deploy_time))
         dataset = dataset.sel(time=slice(deploy_time, None))
 
     if np.isfinite(recover_time):
-        log_info("Trimming end to recovery time: %s", format_time(recover_time))
+        log.debug("Trimming end to recovery time: %s", format_time(recover_time))
         dataset = dataset.sel(time=slice(None, recover_time))
 
     final_size = len(dataset.time)
-    log_info("Trimmed from %d to %d records", original_size, final_size)
+    log.debug("Trimmed from %d to %d records", original_size, final_size)
     if final_size == 0:
-        log_info("WARNING: No data remains after trimming!")
+        log.warning("No data remains after trimming!")
     return dataset
 
 
@@ -530,16 +533,16 @@ def _warn_short_record(
     start_gap_s = (np.datetime64(start) - deploy_time) / np.timedelta64(1, "s")
     end_gap_s = (recover_time - np.datetime64(end)) / np.timedelta64(1, "s")
     if start_gap_s > threshold_s:
-        log_info(
-            "WARNING: %s %s starts %s after deployment (%s, from the mooring YAML)",
+        log.warning(
+            "%s %s starts %s after deployment (%s, from the mooring YAML)",
             instrument_type,
             serial,
             _gap_text(start_gap_s),
             format_time(deploy_time),
         )
     if end_gap_s > threshold_s:
-        log_info(
-            "WARNING: %s %s ends %s before recovery (%s, from the mooring YAML)",
+        log.warning(
+            "%s %s ends %s before recovery (%s, from the mooring YAML)",
             instrument_type,
             serial,
             _gap_text(end_gap_s),
@@ -568,20 +571,20 @@ def _drop_redundant_sbe_vars(dataset: xr.Dataset) -> xr.Dataset:
     """Drop redundant SeaBird CNV columns (timeS/timeQ; flag when all-zero)."""
     for var in ("timeS", "timeQ"):
         if var in dataset.variables:
-            log_info("Removing redundant SeaBird time variable: %s", var)
+            log.debug("Removing redundant SeaBird time variable: %s", var)
             dataset = dataset.drop_vars(var)
 
     if "flag" in dataset.variables:
         flag_vals = np.asarray(dataset["flag"].values, dtype="float64")
         if np.all((flag_vals == 0) | np.isnan(flag_vals)):
-            log_info("Removing 'flag': all values are zero (no SeaBird scan flags set)")
+            log.debug("Removing 'flag': all values are zero (no SeaBird scan flags set)")
             dataset = dataset.drop_vars("flag")
             _append_history(
                 dataset, "dropped SeaBird 'flag' column: all values were 0 (good data)"
             )
         else:
             n_flagged = int(np.sum(np.isfinite(flag_vals) & (flag_vals != 0)))
-            log_info(
+            log.debug(
                 "Keeping 'flag': %d non-zero scan flag(s) from SeaBird CNV", n_flagged
             )
     return dataset
@@ -611,7 +614,7 @@ def _stage2_instrument(
 ) -> xr.Dataset:
     """Apply clock corrections and deployment trimming to one instrument dataset."""
     _refuse_missing_time(ds, entry)
-    dataset = to_canonical_units(ds.copy(deep=True), log_fn=log_info, stage=2)
+    dataset = to_canonical_units(ds.copy(deep=True), stage=2)
 
     _stage1_t0 = dataset["time"].values[0]
     _stage1_t1 = dataset["time"].values[-1]
@@ -655,7 +658,7 @@ def _stage2_instrument(
 
     start_time = dataset["time"].values.min()
     end_time = dataset["time"].values.max()
-    log_info(
+    log.debug(
         "Final time range: %s to %s",
         format_time(start_time),
         format_time(end_time),

@@ -343,6 +343,11 @@ INSTRUMENT_FILE_TYPES: dict = {
     # east/north), e.g. an Aanderaa RCM from an OceanSITES or RODB archive.  Read by
     # oceanarray's own readers (oceanarray.readers), not seasenselib.
     "currentmeter": ["oceansites", "rodb"],
+    # A temperature-only logger delivered already processed as an OceanSITES "MT"
+    # file (e.g. OS_OSNAP-CF1_201408_MT_60m.nc) — WHOI / NIOZ thermistors on the
+    # OSNAP moorings.  Read by oceanarray's own readers, not seasenselib.  Add raw
+    # readers here when a real raw thermistor file needs them.
+    "thermistor": ["oceansites"],
     "tr1050": ["rbr-hex"],  # RBR TR-1050 thermistor chain
     "rbrsolo": ["rbr-rsk"],  # RBR soloT — single-channel temperature
     "rbrduet": ["rbr-rsk"],  # RBR duet — temperature + pressure or T+C
@@ -390,6 +395,7 @@ INSTRUMENT_FAMILIES: dict[str, str] = {
     "microcat": "hydrography",
     "sbe56": "hydrography",
     "sbe16": "hydrography",
+    "thermistor": "hydrography",
     "tr1050": "hydrography",
     "rbrsolo": "hydrography",
     "rbrduet": "hydrography",

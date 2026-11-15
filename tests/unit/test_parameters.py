@@ -142,5 +142,11 @@ class TestIsKnownInstrumentType:
     def test_other_type_matches_regardless_of_case(self):
         assert params.is_known_instrument_type("AQUADOPP")
 
+    def test_thermistor_is_known(self):
+        # OSNAP WHOI/NIOZ thermistors, delivered as OceanSITES "MT" files.
+        assert params.is_known_instrument_type("thermistor")
+        assert params.INSTRUMENT_FILE_TYPES["thermistor"] == ["oceansites"]
+        assert params.INSTRUMENT_FAMILIES["thermistor"] == "hydrography"
+
     def test_unknown_type_is_rejected(self):
-        assert not params.is_known_instrument_type("thermistor")
+        assert not params.is_known_instrument_type("xbt")
