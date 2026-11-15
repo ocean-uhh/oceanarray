@@ -62,10 +62,11 @@ def test_dune2_common_facts_in_order():
         "Instruments",
     ]
     d = _as_dict(facts)
-    # The legacy single cruise/ship keys stand for both sides.
+    # The legacy single cruise/ship keys are the deployment values only.
     assert d["Deployment cruise"] == ("OdB", False)
-    assert d["Recovery cruise"] == ("OdB", False)
-    assert d["Recovery ship"] == ("Odon de Buen", False)
+    assert d["Deployment ship"] == ("Odon de Buen", False)
+    assert d["Recovery cruise"] == ("UNK", True)
+    assert d["Recovery ship"] == ("UNK", True)
     assert d["Latitude"] == ("65° 43.91′ N", False)
     assert d["Longitude"] == ("027° 48.00′ W", False)
     assert d["Water depth"] == ("745&thinsp;m", False)

@@ -106,7 +106,7 @@ def cruise_label(cfg: Mapping[str, Any]) -> str:
 
     """
     deploy = _first(cfg, "deployment_cruise", "cruise") or MISSING
-    recover = _first(cfg, "recovery_cruise", "cruise") or deploy
+    recover = _first(cfg, "recovery_cruise") or deploy
     return str(deploy) if deploy == recover else f"{deploy} / {recover}"
 
 
@@ -195,7 +195,7 @@ def common_facts(cfg: Mapping[str, Any], entries: Iterable[Any]) -> list[Fact]:
         Recovery cruise, Recovery ship, Latitude, Longitude, Water depth,
         Deployment, Recovery, Duration, Instruments. A recovery cruise or ship
         absent from the description reads ``UNK``; the legacy single ``cruise``
-        and ``ship`` keys stand for both sides.
+        and ``ship`` keys are the deployment values only.
 
     """
     deploy_dt = _parse_dt(cfg.get("deployment_time"))
@@ -204,8 +204,8 @@ def common_facts(cfg: Mapping[str, Any], entries: Iterable[Any]) -> list[Fact]:
     return [
         _fact("Deployment cruise", _first(cfg, "deployment_cruise", "cruise")),
         _fact("Deployment ship", _first(cfg, "deployment_ship", "ship")),
-        _fact("Recovery cruise", _first(cfg, "recovery_cruise", "cruise") or UNKNOWN),
-        _fact("Recovery ship", _first(cfg, "recovery_ship", "ship") or UNKNOWN),
+        _fact("Recovery cruise", _first(cfg, "recovery_cruise") or UNKNOWN),
+        _fact("Recovery ship", _first(cfg, "recovery_ship") or UNKNOWN),
         _fact("Latitude", latitude),
         _fact("Longitude", longitude),
         _fact("Water depth", cfg.get("waterdepth"), "m"),

@@ -453,3 +453,32 @@ def test_check_is_quiet_on_complete_position_pairs(tmp_path):
     path = folder / "dune2_1_2026.mooring.yaml"
     path.write_text(_dune2_text())
     assert _position_warnings(path) == []
+
+
+def _cruise_warnings(path: Path) -> list[str]:
+    return [
+        i.message
+        for i in mooring.check(path)
+        if i.level == "WARNING" and "Legacy key" in i.message
+    ]
+
+
+def test_check_warns_on_legacy_cruise_and_ship_of_a_recovered_mooring(tmp_path):
+    """dune2 is recovered and gives only ``cruise`` / ``ship``: recovery reads UNK."""
+    folder = tmp_path / "dune2_1_2026"
+    folder.mkdir()
+    path = folder / "dune2_1_2026.mooring.yaml"
+    path.write_text(_dune2_text())
+    (message,) = _cruise_warnings(path)
+    assert "cruise and ship" in message
+    assert "recovery_cruise and recovery_ship" in message
+
+
+def test_check_is_quiet_when_the_recovery_cruise_and_ship_are_given(tmp_path):
+    folder = tmp_path / "dune2_1_2026"
+    folder.mkdir()
+    path = folder / "dune2_1_2026.mooring.yaml"
+    path.write_text(
+        _dune2_text() + "recovery_cruise: OdB\nrecovery_ship: Odon de Buen\n"
+    )
+    assert _cruise_warnings(path) == []

@@ -241,6 +241,7 @@ def check(
         issues += _check_qc_overrides(data)
         issues += _check_caldip(data)
         issues += _check_position_pairs(data)
+        issues += _check_legacy_cruise_keys(data)
         for key in data:
             if key not in KNOWN_KEYS:
                 issues.append(
@@ -270,6 +271,32 @@ def _check_position_pairs(data: Mapping) -> list[ValidationIssue]:
             f"Position keys {', '.join(half)} have no partner in their own pair; "
             f"latitude and longitude are read from one pair only ({pairs}), so "
             f"{'this key is' if len(half) == 1 else 'these keys are'} ignored.",
+        )
+    ]
+
+
+def _check_legacy_cruise_keys(data: Mapping) -> list[ValidationIssue]:
+    """WARN when a recovered mooring gives its cruise or ship only with the legacy single key."""
+    if data.get("recovery_time") in (None, ""):
+        return []
+    legacy = [
+        key
+        for key in ("cruise", "ship")
+        if data.get(key) not in (None, "") and data.get(f"recovery_{key}") in (None, "")
+    ]
+    if not legacy:
+        return []
+    names = " and ".join(legacy)
+    one = len(legacy) == 1
+    return [
+        ValidationIssue(
+            "WARNING",
+            f"Legacy {'key' if one else 'keys'} {names} {'is' if one else 'are'} read as "
+            f"the deployment {'value' if one else 'values'} only, so the report shows "
+            f"the recovery {names} as UNK. Add "
+            f"{' and '.join('recovery_' + k for k in legacy)} (and prefer "
+            f"{' and '.join('deployment_' + k for k in legacy)} to the legacy "
+            f"{'key' if one else 'keys'}).",
         )
     ]
 
