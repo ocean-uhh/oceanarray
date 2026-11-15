@@ -356,6 +356,31 @@ INSTRUMENT_FILE_TYPES: dict = {
 # Derived: set of allowed ``instrument:`` values in mooring YAML files.
 KNOWN_INSTRUMENT_TYPES: frozenset = frozenset(INSTRUMENT_FILE_TYPES.keys())
 
+_KNOWN_INSTRUMENT_TYPES_LOWER: frozenset = frozenset(
+    t.lower() for t in KNOWN_INSTRUMENT_TYPES
+)
+
+
+def is_known_instrument_type(instrument: str) -> bool:
+    """Return whether *instrument* names a known instrument class.
+
+    The match ignores case: the YAML spelling of an ADCP is upper-case
+    (``ADCP``) and every other type is lower-case, so ``adcp`` and ``ADCP`` are
+    one type.
+
+    Parameters
+    ----------
+    instrument : str
+        The ``instrument:`` value from a mooring YAML.
+
+    Returns
+    -------
+    bool
+        True if *instrument* is one of :data:`KNOWN_INSTRUMENT_TYPES`.
+    """
+    return instrument.lower() in _KNOWN_INSTRUMENT_TYPES_LOWER
+
+
 #: Which instruments may share a depth across deployments in a
 #: concatenated stack. A temperature-only logger is hydrography, so it can sit in
 #: one depth with a CTD of another year. ADCP bins (and the ADCP head) are their
