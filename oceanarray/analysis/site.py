@@ -289,7 +289,7 @@ def density_fields(
 def instrument_pressures(
     stackcat: xr.Dataset, var: str, bins: DisplayBins
 ) -> np.ndarray:
-    """Return, per slot, the pressure of the instruments measuring *var*, in display bins.
+    """Return, per depth, the pressure of the instruments measuring *var*, in display bins.
 
     Only the levels of the deployment counted at each step (as gridded), and only
     where that level has a finite *var*.
@@ -306,7 +306,7 @@ def instrument_pressures(
     Returns
     -------
     numpy.ndarray
-        The pressure on ``(bin, SLOT)``; NaN where the slot does not measure *var*.
+        The pressure on ``(bin, N_DEPTHS)``; NaN where the depth does not measure *var*.
     """
     from oceanarray.pipeline.concat import own_levels
 

@@ -25,7 +25,7 @@ from oceanarray import mooring, paths
 from oceanarray.cli import build_parser
 from oceanarray.exceptions import MooringError
 from oceanarray.pipeline.concat import (
-    _assign_slots,
+    _assign_depths,
     _tolerances,
     concat,
     concat_moorings,
@@ -44,7 +44,7 @@ _ADCP = (
 def _level_values(out: xr.Dataset, level: int, own: xr.Dataset, var: str) -> np.ndarray:
     """Rebuild one level's series on its own stack's steps from the grid and the overlap block."""
     steps = np.searchsorted(out["time"].values, own["time"].values)
-    s = int(out["slot"].values[level])
+    s = int(out["depth_index"].values[level])
     values = np.full(steps.size, np.nan)
     mine = out["level_index"].values[steps, s] == level
     values[mine] = out[var].values[steps[mine], s]
@@ -123,7 +123,7 @@ def test_every_level_of_every_deployment_is_kept(stacks, joined):
     assert joined.sizes["N_LEVELS"] == sum(s.sizes["N_LEVELS"] for s in stacks) == 6
     assert list(joined["deployment_name"].values) == list(_NAMES)
     assert joined.attrs["dt_seconds"] == 3600
-    assert joined["temperature"].dims == ("time", "SLOT")
+    assert joined["temperature"].dims == ("time", "N_DEPTHS")
 
 
 def test_nothing_is_lost(stacks, joined):
@@ -131,7 +131,7 @@ def test_nothing_is_lost(stacks, joined):
 
 
 def test_a_slot_is_empty_outside_its_levels_deployments(joined):
-    """A slot holds a level only on its deployment's steps; elsewhere NaN, flag 9."""
+    """A depth holds a level only on its deployment's steps; elsewhere NaN, flag 9."""
     empty = joined["level_index"].values == -1
     assert empty.any()
     assert np.isnan(joined["temperature"].values[empty]).all()
@@ -148,11 +148,11 @@ def test_the_turnaround_is_a_gap(joined):
 
 
 def test_a_level_alone_in_its_slot(joined):
-    """The 2016 current meter has a slot of its own: empty through all of 2018."""
+    """The 2016 current meter has a depth of its own: empty through all of 2018."""
     ids = list(joined["level_id"].values)
     level = ids.index("egM2_2016/8364")
-    s = int(joined["slot"].values[level])
-    assert (joined["slot"].values == s).sum() == 1
+    s = int(joined["depth_index"].values[level])
+    assert (joined["depth_index"].values == s).sum() == 1
     col = joined["level_index"].values[:, s]
     in_2016 = joined["deployment_index"].values == 0
     assert (col[in_2016] == level).all() and (col[~in_2016] == -1).all()
@@ -165,7 +165,8 @@ def test_the_segment_table(joined):
     for k in range(joined.sizes["N_SEGMENTS"]):
         level = int(joined["segment_level_index"].values[k])
         steps = joined["time"].values[
-            joined["level_index"].values[:, joined["segment_slot"].values[k]] == level
+            joined["level_index"].values[:, joined["segment_depth_index"].values[k]]
+            == level
         ]
         assert joined["segment_start"].values[k] == steps[0]
         assert joined["segment_end"].values[k] == steps[-1]
@@ -173,9 +174,9 @@ def test_the_segment_table(joined):
 
 def test_slots_pair_the_same_depth_across_years(joined):
     """Two MicroCAT depths are in both deployments: 6 levels in 4 slots, numbered deep-first."""
-    slot = joined["slot"].values
-    assert joined.sizes["SLOT"] == 4
-    ref = joined["slot_reference_value"].values
+    slot = joined["depth_index"].values
+    assert joined.sizes["N_DEPTHS"] == 4
+    ref = joined["depth_match_value"].values
     assert (np.diff(ref) <= 0).all()
     ids = list(joined["level_id"].values)
     assert slot[ids.index("egM2_2016/13020")] == slot[ids.index("egM2_2018/11514")]
@@ -185,17 +186,17 @@ def test_slots_pair_the_same_depth_across_years(joined):
 
 
 def test_a_wider_tolerance_pairs_the_current_meters(stacks):
-    """``stack: slot_tolerance_m: 100`` puts the two velocity instruments in one slot."""
+    """``stack: depth_tolerance_m: 100`` puts the two velocity instruments in one depth."""
     wide = []
     for s in stacks:
         s = s.copy()
         settings = yaml.safe_load(s.attrs["deployment_settings"])
-        settings["stack"]["slot_tolerance_m"] = 100
+        settings["stack"]["depth_tolerance_m"] = 100
         s.attrs["deployment_settings"] = yaml.safe_dump(settings)
         wide.append(s)
     out = concat(wide, name="egM2")
     ids = list(out["level_id"].values)
-    slot = out["slot"].values
+    slot = out["depth_index"].values
     assert slot[ids.index("egM2_2016/8364")] == slot[ids.index("egM2_2018/CM2000")]
 
 
@@ -224,9 +225,9 @@ def test_one_stack_is_refused(stacks):
 def test_different_slot_rules_are_refused(stacks):
     other = stacks[1].copy()
     settings = yaml.safe_load(other.attrs["deployment_settings"])
-    settings["stack"]["slot_tolerance_m"] = 100
+    settings["stack"]["depth_tolerance_m"] = 100
     other.attrs["deployment_settings"] = yaml.safe_dump(settings)
-    with pytest.raises(MooringError, match="different slot rules"):
+    with pytest.raises(MooringError, match="different depth-matching rules"):
         concat([stacks[0], other], name="egM2")
 
 
@@ -294,7 +295,7 @@ def test_the_report_page(site):
     assert "Instruments (avg)" in html and "3 (MicroCAT 2" in html
     for section in (
         "Deployments",
-        "Instruments by depth slot",
+        "Instruments by depth",
         "Hydrography",
         "T-S diagram",
     ):
@@ -355,14 +356,14 @@ def test_validate_knows_the_slot_keys():
     good = copy.deepcopy(cfg)
     good["stack"] = {
         "dt_seconds": 3600,
-        "slot_reference": "hab",
-        "slot_tolerance_m": 75,
+        "depth_match": "hab",
+        "depth_tolerance_m": 75,
     }
     assert not [i for i in mooring.check(good) if i.level == "ERROR"]
     bad = copy.deepcopy(cfg)
-    bad["stack"] = {"dt_seconds": 3600, "slot_reference": "pressure"}
+    bad["stack"] = {"dt_seconds": 3600, "depth_match": "pressure"}
     assert any(
-        "slot_reference" in i.message for i in mooring.check(bad) if i.level == "ERROR"
+        "depth_match" in i.message for i in mooring.check(bad) if i.level == "ERROR"
     )
 
 
@@ -391,12 +392,12 @@ def test_a_blank_deployment_time_still_builds_the_page(stacks, tmp_path):
 
 
 def test_slots_by_hab_are_still_listed_deep_first(stacks, tmp_path):
-    """With ``slot_reference: hab`` the table and labels still run by depth."""
+    """With ``depth_match: hab`` the table and labels still run by depth."""
     by_hab = []
     for s in stacks:
         s = s.copy()
         settings = yaml.safe_load(s.attrs["deployment_settings"])
-        settings["stack"]["slot_reference"] = "hab"
+        settings["stack"]["depth_match"] = "hab"
         s.attrs["deployment_settings"] = yaml.safe_dump(settings)
         by_hab.append(s)
     out = tmp_path / "egM2_stackcat.nc"
@@ -409,9 +410,9 @@ def test_slots_by_hab_are_still_listed_deep_first(stacks, tmp_path):
 
 
 def test_an_overlap_goes_to_the_overlap_block(flmb):
-    """FLMB 2016 and 2017 overlap for 93 hours: 2017 fills the slots, 2016 is kept aside."""
+    """FLMB 2016 and 2017 overlap for 93 hours: 2017 fills the depths, 2016 is kept aside."""
     out = concat(flmb, name="FLMB")
-    assert out.sizes["SLOT"] == 20 and out.sizes["N_LEVELS"] == 40
+    assert out.sizes["N_DEPTHS"] == 20 and out.sizes["N_LEVELS"] == 40
     assert out.sizes["N_OVERLAP"] == 93 * 20
     both = np.isin(out["time"].values, flmb[0]["time"].values) & np.isin(
         out["time"].values, flmb[1]["time"].values
@@ -514,7 +515,7 @@ def test_adcp_bins_match_within_half_their_bin_size():
     bin_size = float(np.median(np.diff(ranges)))
     assert bin_size == pytest.approx(16.0)
     np.testing.assert_allclose(_tolerances(levels, 50.0), 8.0)
-    slot, slots = _assign_slots(levels, "depth", 50.0)
+    slot, slots = _assign_depths(levels, "depth", 50.0)
     assert len(slots) == ranges.size
     assert {s["family"] for s in slots} == {"adcp"}
     n = ranges.size
@@ -546,7 +547,7 @@ def test_an_adcp_head_never_shares_a_slot_with_a_bin():
             }
             for i, r in enumerate(ranges)
         ]
-    slot, slots = _assign_slots(levels, "hab", 50.0)
+    slot, slots = _assign_depths(levels, "hab", 50.0)
     for k in set(slot.tolist()):
         members = [levels[i]["serial"] for i in np.flatnonzero(slot == k)]
         kinds = {m.endswith("_hd") for m in members}

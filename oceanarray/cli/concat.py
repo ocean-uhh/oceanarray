@@ -61,10 +61,10 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
         help="Join one site's deployment stacks end to end in time.",
         description=(
             "Read each named mooring's stack (<name>_stack.nc beside its description)\n"
-            "and join them on one time axis by depth slot: every level of every\n"
-            "deployment, each slot empty outside its levels' deployments; nothing is\n"
+            "and join them on one time axis by depth: every level of every\n"
+            "deployment, each depth empty outside its levels' deployments; nothing is\n"
             "filled across a turnaround, and where two deployments overlap the newer\n"
-            "fills the slot and the older is kept in the overlap block. The\n"
+            "fills the depth and the older is kept in the overlap block. The\n"
             "stacks must share stack: dt_seconds. Writes <NAME>_stackcat.nc, then grids\n"
             "it onto pressure levels, one mooring per profile, as <NAME>_gridcat.nc;\n"
             "and the two report pages (report/<NAME>_stackcat_report.html and\n"
@@ -120,7 +120,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
             default=None,
             metavar="DBAR",
             help=(
-                f"{text} (default: the 5th percentile of the shallowest slot's "
+                f"{text} (default: the 5th percentile of the shallowest depth's "
                 "pressure and the 95th of the deepest's, to whole --dp)"
             ),
         )

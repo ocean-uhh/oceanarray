@@ -547,7 +547,7 @@ def _add_people(dataset: xr.Dataset) -> xr.Dataset:
         _stage.append_history(
             dataset,
             f"people: cleaned per OceanSITES 1.4 from originator_* ({n_pi} PI, "
-            f"{n_c} contributor slots; {len(caught)} warning"
+            f"{n_c} contributor entries; {len(caught)} warning"
             f"{'' if len(caught) == 1 else 's'})",
         )
     return dataset

@@ -45,7 +45,7 @@ _TURNAROUND = (
 
 #: Added to the captions of the figures drawn per deployment.
 _OVERLAP_NOTE = (
-    " Where two deployments overlap, only the one filling the slot is drawn; the "
+    " Where two deployments overlap, only the one filling the depth is drawn; the "
     "other's values are in the file's overlap block."
 )
 
@@ -63,27 +63,27 @@ CONCAT_CAPTIONS: dict[str, str] = {
         + _OVERLAP_NOTE
     ),
     "ts_medians": (
-        "Draft. Median salinity and temperature of each depth slot in each "
+        "Draft. Median salinity and temperature of each depth in each "
         "deployment, with interquartile whiskers, one color per deployment. Values "
         "flagged 3, 4 or 9 left out; the scatter below carries the pressure."
         + _OVERLAP_NOTE
     ),
     "roses": (
-        "One rose per depth slot, one outline per "
+        "One rose per depth, one outline per "
         "deployment: the share of that deployment's samples flowing toward each "
         "direction (oceanographic convention, 0° = N). Values flagged 3, 4 or 9 "
         "left out." + _OVERLAP_NOTE
     ),
     "speed_profile": (
-        "Current speed per depth slot, one box per deployment in its color "
+        "Current speed per depth, one box per deployment in its color "
         "(median, interquartile range, whiskers to 1.5 × IQR), overlaid at the "
-        "slot's nominal depth. Values flagged 3, 4 or 9 left out." + _OVERLAP_NOTE
+        "depth's nominal depth. Values flagged 3, 4 or 9 left out." + _OVERLAP_NOTE
     ),
     "trajectories_aquadopp": (
         "Pseudo-Lagrangian trajectories integrated from east/north velocity, one per "
-        "depth slot, running through every deployment in the slot (a turnaround "
+        "depth, running through every deployment in the depth (a turnaround "
         "adds no displacement; where two deployments overlap, the one filling the "
-        "slot counts). Start at the origin; the label marks the end."
+        "depth counts). Start at the origin; the label marks the end."
     ),
 }
 
@@ -98,8 +98,8 @@ class ConcatContext(StackContext):
         One row per deployment for the Deployments table.
     deployment_names : list of str
         Deployment names in time order (the instrument table's columns).
-    slot_rows : list of dict
-        One row per depth slot (and per unslotted level) for the Instruments table.
+    depth_rows : list of dict
+        One row per depth (and per level without a depth) for the Instruments table.
     concat_history : list
         Parsed history entries of the concat step.
     n_overlap : int
@@ -110,7 +110,7 @@ class ConcatContext(StackContext):
 
     deployment_rows: list = field(default_factory=list)
     deployment_names: list = field(default_factory=list)
-    slot_rows: list = field(default_factory=list)
+    depth_rows: list = field(default_factory=list)
     concat_history: list = field(default_factory=list)
     deployment_histories: list = field(default_factory=list)
     n_overlap: int = 0
@@ -178,7 +178,7 @@ CONCAT_PANELS: dict[str, Panel] = {
         "instr_table",
         render=lambda c: render_template(
             "_concat_instr_table.html",
-            rows=c.slot_rows,
+            rows=c.depth_rows,
             deployments=c.deployment_names,
         ),
         kind="table",
@@ -224,18 +224,18 @@ CONCAT_SECTIONS: dict[str, Section] = {
     "processing_history": STACK_SECTIONS["processing_history"],
     "instruments": Section(
         "instruments",
-        "Instruments by depth slot (deep-first)",
+        "Instruments by depth (deep-first)",
         ("instr_table",),
         intro=(
-            "A slot holds the instruments of one family (hydrography, point "
+            "A depth holds the instruments of one family (hydrography, point "
             "velocity, or ADCP bins) whose nominal depth (water depth − HAB) is "
-            "within the slot tolerance (half the bin size for ADCP bins), one per "
-            "deployment. Slots are named by their depth: their numbers change when "
+            "within the depth tolerance (half the bin size for ADCP bins), one per "
+            "deployment. Depths are named by their depth: their numbers change when "
             "a deployment is added."
         ),
     ),
     "speed_profile": Section(
-        "speed_profile", "Current speed by depth slot", ("speed_profile",)
+        "speed_profile", "Current speed by depth", ("speed_profile",)
     ),
     "ts_diagram": Section(
         "ts_diagram",
@@ -475,16 +475,16 @@ def _instrument_href(
     return Path(os.path.relpath(page.resolve(), out_dir.resolve())).as_posix()
 
 
-def _slot_rows(
+def _depth_rows(
     ds: Any, stack_path: Path, out_dir: Path, report_dir: Path | None = None
 ) -> list[dict]:
-    """Return the site inventory: one row per depth slot, deep-first by depth.
+    """Return the site inventory: one row per depth, deep-first by depth.
 
-    Each cell lists that deployment's instruments in the slot, each linked to its
+    Each cell lists that deployment's instruments in the depth, each linked to its
     own instrument page in that deployment's report when the page exists.
     """
     names = [str(n) for n in ds["deployment_name"].values]
-    slot = ds["slot"].values
+    slot = ds["depth_index"].values
     dep = ds["deployment"].values
 
     def entry(i: int) -> dict:
@@ -496,11 +496,11 @@ def _slot_rows(
         }
 
     rows = []
-    depths = slot_depths(ds)
-    for k in _slot_order(ds):
+    depths = nominal_depths(ds)
+    for k in _depth_order(ds):
         rows.append(
             {
-                "family": str(ds["slot_family"].values[k]).replace("_", " "),
+                "family": str(ds["depth_family"].values[k]).replace("_", " "),
                 "depth": f"{depths[k]:.0f}" if np.isfinite(depths[k]) else "—",
                 "cells": [
                     [entry(i) for i in np.flatnonzero((slot == k) & (dep == d))]
@@ -552,7 +552,7 @@ def _nav(
     return nav
 
 
-#: Short family names for the slot labels in figure legends.
+#: Short family names for the depth labels in figure legends.
 _FAMILY_SHORT = {
     "hydrography": "T/S",
     "point_velocity": "vel",
@@ -561,36 +561,36 @@ _FAMILY_SHORT = {
 }
 
 
-def slot_depths(ds: Any) -> np.ndarray:
-    """Return each slot's depth: the mean nominal depth of its levels (``slot_depth``).
+def nominal_depths(ds: Any) -> np.ndarray:
+    """Return each depth's value: the mean nominal depth of its levels (``nominal_depth``).
 
-    Whatever the slot reference (depth or hab), the page orders and labels slots by
+    Whatever the depth reference (depth or hab), the page orders and labels depths by
     depth, never by their number.
     """
-    return ds["slot_depth"].values.astype(float)
+    return ds["nominal_depth"].values.astype(float)
 
 
-def _slot_order(ds: Any) -> np.ndarray:
-    """Return the slots deep-first by depth; a slot with no known depth goes last."""
-    depths = slot_depths(ds)
+def _depth_order(ds: Any) -> np.ndarray:
+    """Return the depths deep-first by depth; a depth with no known depth goes last."""
+    depths = nominal_depths(ds)
     return np.argsort(np.where(np.isfinite(depths), -depths, np.inf), kind="stable")
 
 
-def _slot_names(ds: Any) -> list[str]:
-    """Return each slot's label, ``≈1500 m T/S``; two slots that round alike are told apart.
+def _depth_names(ds: Any) -> list[str]:
+    """Return each depth's label, ``≈1500 m T/S``; two depths that round alike are told apart.
 
     The second and later of a clash get ``(2)``, ``(3)`` in depth order, so the
-    label never carries the slot's number.
+    label never carries the depth index.
     """
-    depths = slot_depths(ds)
+    depths = nominal_depths(ds)
     base = [
         (f"≈{round(d, -1):.0f} m" if np.isfinite(d) else "depth ?")
-        + f" {_FAMILY_SHORT.get(str(ds['slot_family'].values[k]), str(ds['slot_family'].values[k]))}"
+        + f" {_FAMILY_SHORT.get(str(ds['depth_family'].values[k]), str(ds['depth_family'].values[k]))}"
         for k, d in enumerate(depths)
     ]
     seen: Counter = Counter()
     out = []
-    for k in _slot_order(ds):
+    for k in _depth_order(ds):
         seen[base[k]] += 1
         out.append(
             (k, base[k] if seen[base[k]] == 1 else f"{base[k]} ({seen[base[k]]})")
@@ -599,20 +599,20 @@ def _slot_names(ds: Any) -> list[str]:
 
 
 def _report_view(ds: Any) -> Any:
-    """Return the site stack with one column per slot, named by depth, deep-first.
+    """Return the site stack with one column per depth, named by depth, deep-first.
 
-    The figures read it like a stack (``time, N_LEVELS``): ``serial`` is the slot's
+    The figures read it like a stack (``time, N_LEVELS``): ``serial`` is the depth's
     label, ``instrument_type`` its most common type, ``hab`` and ``depth`` its
     members' means, and ``cell_deployment`` the deployment behind each value (-1
     none), so a figure can color by deployment.
     """
     import xarray as xr
 
-    labels = _slot_names(ds)
-    level_slot = ds["slot"].values
+    labels = _depth_names(ds)
+    level_depth_index = ds["depth_index"].values
     types, habs = [], []
-    for k in range(ds.sizes["SLOT"]):
-        members = np.flatnonzero(level_slot == k)
+    for k in range(ds.sizes["N_DEPTHS"]):
+        members = np.flatnonzero(level_depth_index == k)
         kinds = Counter(str(x) for x in ds["instrument_type"].values[members])
         types.append(kinds.most_common(1)[0][0] if kinds else "")
         hab = ds["hab"].values.astype(float)[members]
@@ -621,13 +621,13 @@ def _report_view(ds: Any) -> Any:
     data = {
         v: (("time", "N_LEVELS"), ds[v].values, dict(ds[v].attrs))
         for v in ds.data_vars
-        if ds[v].dims == ("time", "SLOT") and v != "level_index"
+        if ds[v].dims == ("time", "N_DEPTHS") and v != "level_index"
     }
     data["cell_deployment"] = (("time", "N_LEVELS"), cell)
     for v in ds.data_vars:
         if ds[v].dims in (("DEPLOYMENT",), ("time",)):
             data[v] = ds[v].variable
-    depths = slot_depths(ds)
+    depths = nominal_depths(ds)
     view = xr.Dataset(
         data,
         coords={
@@ -640,13 +640,13 @@ def _report_view(ds: Any) -> Any:
         },
         attrs=dict(ds.attrs),
     )
-    return view.isel(N_LEVELS=_slot_order(ds))
+    return view.isel(N_LEVELS=_depth_order(ds))
 
 
-def _slot_view(view: Any) -> Any:
-    """Return the point-velocity slots of the report view, for the trajectories.
+def _depth_view(view: Any) -> Any:
+    """Return the point-velocity depths of the report view, for the trajectories.
 
-    One path per slot runs through every deployment in it; ADCP bins have their own
+    One path per depth runs through every deployment in it; ADCP bins have their own
     trajectory panel.
     """
     if "east_velocity" not in view or "north_velocity" not in view:
@@ -661,12 +661,32 @@ def _slot_view(view: Any) -> Any:
     keep = np.flatnonzero(np.isfinite(u).any(axis=0) & point)
     if not keep.size:
         return None
-    # Temperature is left out: a slot whose instruments have none would draw an
+    # Temperature is left out: a depth whose instruments have none would draw an
     # invisible path when the others are colored by it.
     out = view[["east_velocity", "north_velocity"]].isel(N_LEVELS=keep)
     return out.assign_coords(
         instrument_type=("N_LEVELS", np.array(["aquadopp"] * keep.size))
     )
+
+
+def _gridcat_matches(stack_path: Path, name: str) -> bool:
+    """Return whether the site grid beside *stack_path* was made from this site stack.
+
+    By its ``stackcat_sha256``: a grid left from an earlier stack is not linked.
+    """
+    import xarray as xr
+
+    from oceanarray.pipeline.concat import sha256
+
+    gridcat = paths.product_file(stack_path.parent, name, "gridcat")
+    if not gridcat.exists():
+        return False
+    try:
+        with xr.open_dataset(gridcat, engine="netcdf4") as ds:
+            recorded = str(ds.attrs.get("stackcat_sha256", ""))
+    except (OSError, ValueError):
+        return False
+    return recorded == sha256(stack_path)
 
 
 def _deployment_windows(ds: Any) -> list[tuple[np.datetime64, np.datetime64, str]]:
@@ -729,7 +749,7 @@ def generate_concat_page(
         name = str(ds.attrs.get("site_name", stack_path.stem))
         out_path = out_dir / f"{name}_stackcat_report.html"
         view = _report_view(ds)
-        slot_view = _slot_view(view)
+        depth_view = _depth_view(view)
         names = [str(n) for n in ds["deployment_name"].values]
         windows = _deployment_windows(ds)
         figs = {
@@ -779,8 +799,8 @@ def generate_concat_page(
             "ts_medians": as_panel(lambda: _make_ts_medians_b64(view)),
             "trajectories_aquadopp": as_panel(
                 lambda: (
-                    _make_multi_aquadopp_trajectories_b64(slot_view)
-                    if slot_view is not None
+                    _make_multi_aquadopp_trajectories_b64(depth_view)
+                    if depth_view is not None
                     else None
                 )
             ),
@@ -823,7 +843,7 @@ def generate_concat_page(
             rose_missing_serials=[],
             deployment_rows=deployment_rows,
             deployment_names=names,
-            slot_rows=_slot_rows(ds, stack_path, out_dir, report_dir),
+            depth_rows=_depth_rows(ds, stack_path, out_dir, report_dir),
             concat_history=_parse_history(ds.attrs.get("history", "")),
             n_overlap=n_overlap,
             deployment_histories=[
@@ -839,7 +859,7 @@ def generate_concat_page(
                 deployment_rows,
                 other=(
                     f"{name}_gridcat_report.html"
-                    if paths.product_file(stack_path.parent, name, "gridcat").exists()
+                    if _gridcat_matches(stack_path, name)
                     else None
                 ),
             ),

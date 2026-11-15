@@ -9,7 +9,7 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Added
 
-- `oceanarray concat` / `oa.concat` join one site's deployment stacks by depth slot into `<site>_stackcat.nc`, with a Stack cat report page (#135).
+- `oceanarray concat` / `oa.concat` join one site's deployment stacks by depth into `<site>_stackcat.nc`, with a Stack cat report page (#135).
 - Stage 1 writes an imported file's principal investigators and contributors as OceanSITES lists; the stack and Stack cat join them (#135).
 - `writers.write(chunks=)` sets the chunk length along a dimension (#135).
 - Every file names the oceanarray that wrote it (`oceanarray_version`, `oceanarray_commit`, `stage<n>_oceanarray_version`); units changes are recorded in `units_converted` (#135).
@@ -20,6 +20,7 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 ### Changed
 
 - Deployments on the Stack cat page are colored red to purple in time order; their start lines are dotted.
+- The Stack cat's depth columns are named for what they are: dimension `N_DEPTHS`, `depth_index`, `nominal_depth`, `depth_family`, `depth_match_value`, `depth_tolerance`, `overlap_depth_index`, `segment_depth_index`; the YAML keys are `stack: depth_match` / `depth_tolerance_m`.
 
 ### Breaking changes
 

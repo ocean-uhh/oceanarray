@@ -1,8 +1,8 @@
 .. _cli_reference:
 
-===================
-CLI Reference
-===================
+============
+Command line
+============
 
 The typical workflow is: ``oceanarray init`` a mooring description and fill it
 in, ``oceanarray validate`` it, run ``oceanarray process`` stage by stage and look
@@ -296,12 +296,12 @@ reports.
 ``oceanarray concat``
 ---------------------
 
-Join one site's deployment stacks end to end in time, by depth slot, and grid them
+Join one site's deployment stacks end to end in time, by depth, and grid them
 onto pressure levels, one mooring per profile (see :doc:`methods/concatenation`).
 Writes ``<NAME>_stackcat.nc`` and ``<NAME>_gridcat.nc`` in their own folder, and
 their pages ``report/<NAME>_stackcat_report.html`` and
 ``report/<NAME>_gridcat_report.html`` (``--no-grid`` writes the Stack cat only).
-``--pmin`` / ``--pmax`` default to the 5th percentile of the shallowest slot's
+``--pmin`` / ``--pmax`` default to the 5th percentile of the shallowest depth's
 pressure and the 95th of the deepest's, rounded outward to ``--dp`` (default 20); ``--mask-flags`` takes ``4,9`` for every variable and
 ``VAR=3,4,9`` exceptions.  ``--report-dir`` says where
 the deployments' own reports already are (``<DIR>/<deployment>``), for the page's

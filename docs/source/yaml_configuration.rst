@@ -1,12 +1,12 @@
 .. _yaml_configuration:
 
-==============================
-YAML Configuration Reference
-==============================
+=====================
+The mooring YAML file
+=====================
 
 Each mooring is configured with a single YAML file named
 ``{mooring_name}.mooring.yaml``, placed in the processed directory for that
-mooring (see :doc:`directory_structure`).  This file tells ``oceanarray``
+mooring (see :doc:`files`).  This file tells ``oceanarray``
 everything it needs to know: where the raw data files are, what instruments
 were deployed, when the mooring was in the water, and how to quality-control
 the data.
@@ -182,9 +182,9 @@ mooring as a whole.
      - ``dt_seconds``: the stack's time step in whole seconds (default 3600).
        ``--dt-seconds`` / ``dt_seconds=`` override it.  Each step takes every
        instrument's nearest sample within ±dt/2; nothing is interpolated in time.
-       ``slot_reference`` (``depth`` or ``hab``) and ``slot_tolerance_m`` (default
+       ``depth_match`` (``depth`` or ``hab``) and ``depth_tolerance_m`` (default
        ``depth``, 50): how ``oceanarray concat`` groups the same depth across
-       deployments into one slot (see *Concatenate Deployments*); ADCP bins use
+       deployments into one depth (see *Several deployments of a site*); ADCP bins use
        half their bin size instead.
    * - ``grid``
      - mapping

@@ -1,6 +1,6 @@
-==============================
-OceanArray Data Format
-==============================
+===========
+File format
+===========
 
 oceanarray's shareable output is `OceanSITES 1.4
 <https://www.ocean-ops.org/oceansites/docs/oceansites_data_format_reference_manual.pdf>`_
@@ -169,8 +169,8 @@ Stage 1 cleans the people an imported file names (its ``originator_*``
 attributes stay as given) and writes them as OceanSITES 1.4 lists:
 ``principal_investigator``, ``_email``, ``_url``, ``_id`` separated by commas, and
 ``contributor_name``, ``_role``, ``_email`` separated by semicolons. Every parallel
-attribute has one entry per slot (empty entries kept), and a contributor with two
-roles takes two slots. Reading an originator's lists:
+attribute has one entry per person and role (empty entries kept), and a contributor with two
+roles takes two entries. Reading an originator's lists:
 
 - each field is split on its own separator (``;`` when it has one, else ``,``);
 - titles before or after a name are dropped (``"Dr. Fiamma Straneo, Professor"``
@@ -178,15 +178,15 @@ roles takes two slots. Reading an originator's lists:
   Surname"``;
 - a role, email, url or id without one entry per name is left out, with a
   warning (never guessed); a role joined by "and" is two roles, each its own
-  slot (``"data processing and interpretation"``), and a principal-investigator
+  entry (``"data processing and interpretation"``), and a principal-investigator
   role reads ``PI``;
 - the file's creator and publisher join the contributors (roles ``originator`` and
   ``publisher``); a file with no ``principal_investigator`` takes its PIs from the
   contributors whose role says principal investigator or PI;
 - across files, two entries are one person when they share an id, or a name
   (titles, initials, case, dots and spaces aside), so a changed or mistyped email
-  does not split a person; the newest email is kept; a blank-role slot merges
-  into the same person's other slot.
+  does not split a person; the newest email is kept; a blank-role entry merges
+  into the same person's other entry.
 
 ``contributor_name``, ``_role`` and ``_email`` are written whenever there is a
 contributor, an empty field as empty entries (``"; ; "``), so the three always

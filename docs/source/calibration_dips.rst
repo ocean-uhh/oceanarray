@@ -1,6 +1,6 @@
 
-Calibration dips or "caldips"
-=============================
+Calibration dips
+================
 
 To identify biases in microCAT data, we use calibration dips where microCAT instruments are attached to the CTD rosette and then sent on a CTD cast.  During the upcast, instead of normal 30-second bottle stops, the bottle stops are extended to 5 or 10 minutes, during which time the microCATs are sampling at 10 second intervals, while the shipboard CTD 911 is sampling at 24 Hz.  Roughly the last 3 minutes of the bottle stop are used to perform a comparison between the microCAT- and 911- measured conductivity, temperature and (if available) pressure.
 

@@ -819,7 +819,7 @@ def draw_stack_timeseries(
     date_axis(axs[-1, 0])
     axs[-1, 0].set_xlabel("Time")
     fig.align_ylabels(axs[:, 0])
-    # Levels that share a name (a slot across deployments) share one legend entry.
+    # Levels that share a name (a depth across deployments) share one legend entry.
     ordered = [s for s in dict.fromkeys(serials) if s in handles]
     if legend_shallow_first:
         ordered.reverse()

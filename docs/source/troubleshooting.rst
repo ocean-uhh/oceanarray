@@ -1,8 +1,7 @@
 Troubleshooting
 ===============
 
-This page collects common installation and runtime problems and their solutions.
-It was assembled from real installation notes on macOS (Python 3.11, Homebrew).
+Common installation and runtime problems, and what fixes them.
 
 .. contents:: On this page
    :local:

@@ -385,3 +385,33 @@ def test_a_one_level_section_draws(flmb_site):
         bins.owner,
     )
     assert fig is not None
+
+
+def test_a_grid_from_an_older_stack_is_not_linked(egm2, tmp_path):
+    """The Stack cat page links the Grid cat only when it was made from this Stack cat."""
+    from oceanarray.reports._concat import generate_concat_page
+
+    yamls = [egm2 / n / f"{n}.mooring.yaml" for n in _EGM2]
+    with contextlib.redirect_stdout(io.StringIO()):
+        stackcat = concat_moorings(yamls, name="egM2", overwrite=True)
+        grid_site(stackcat, dp=50, overwrite=True)
+        linked = generate_concat_page(stackcat, tmp_path / "a")
+        # The stack changes (rebuilt with the other overlap rule's history): the old
+        # grid no longer matches it.
+        with xr.open_dataset(stackcat, engine="netcdf4") as ds:
+            changed = ds.load()
+        changed.attrs["history"] += "; rebuilt"
+        oa.write(changed, stackcat, overwrite=True)
+        stale = generate_concat_page(stackcat, tmp_path / "b")
+    assert 'href="egM2_gridcat_report.html"' in linked.read_text(encoding="utf-8")
+    assert 'href="egM2_gridcat_report.html"' not in stale.read_text(encoding="utf-8")
+
+
+def test_still_water_has_no_along_slope_direction(flmb_site):
+    """FLMB with its velocities set to zero: no direction, not 0°."""
+    still = flmb_site.copy()
+    for v in ("east_velocity", "north_velocity"):
+        still[v] = still[v] * 0.0
+    out = _quiet(grid, still, pmin=200, pmax=2600, dp=50)
+    assert "slope_angle_deg" not in out.attrs
+    assert out.attrs["slope_angle_source"].startswith("none: steadiness 0.00")

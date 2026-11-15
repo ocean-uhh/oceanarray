@@ -197,12 +197,12 @@ def grid(
     # pre-0.5.0 one) so the grid inherits one spelling per quantity.
     ds = to_canonical_units(ds_stack, log_fn=print, stage="grid")
     site = is_site_stack(ds)
-    level_dim = "SLOT" if site else "N_LEVELS"
+    level_dim = "N_DEPTHS" if site else "N_LEVELS"
     n_time = ds.sizes["time"]
     n_instr = ds.sizes[level_dim]
 
     print(
-        f"Gridding {n_instr} {'slots' if site else 'instruments'} → {n_p} pressure "
+        f"Gridding {n_instr} {'depths' if site else 'instruments'} → {n_p} pressure "
         f"levels ({pmin:.0f}:{dp:.0f}:{pmax:.0f} dbar) × {n_time} time steps"
     )
 
@@ -423,10 +423,12 @@ def _slope_attrs(ds: xr.Dataset, slope_angle: float | None) -> dict[str, object]
     if not ok.any():
         return {}
     mean_east, mean_north = east[ok].mean(), north[ok].mean()
-    steadiness = float(
-        np.hypot(mean_east, mean_north) / np.hypot(east[ok], north[ok]).mean()
+    mean_speed = float(np.hypot(east[ok], north[ok]).mean())
+    # No flow at all has no direction (and would divide by zero).
+    steadiness = (
+        float(np.hypot(mean_east, mean_north)) / mean_speed if mean_speed > 0 else 0.0
     )
-    if steadiness < params.SLOPE_STEADINESS_MIN:
+    if not steadiness >= params.SLOPE_STEADINESS_MIN:
         print(
             f"  WARNING: no along-slope direction: the mean flow is weak against its "
             f"variability (steadiness {steadiness:.2f} < "
@@ -478,8 +480,8 @@ def site_levels(ds: xr.Dataset, dp: float) -> tuple[float, float]:
     Returns
     -------
     tuple of float
-        ``(pmin, pmax)``: a low percentile of the shallowest slot's pressure and a
-        high percentile of the deepest slot's (``parameters.SITE_GRID_PERCENTILES``,
+        ``(pmin, pmax)``: a low percentile of the shallowest depth's pressure and a
+        high percentile of the deepest depth's (``parameters.SITE_GRID_PERCENTILES``,
         5 and 95), so the times an instrument rides above or below its usual
         depth stay on the grid; rounded outward to a multiple of *dp*, ``pmin``
         not below 0.
@@ -487,11 +489,11 @@ def site_levels(ds: xr.Dataset, dp: float) -> tuple[float, float]:
     Raises
     ------
     ValueError
-        No slot has a finite pressure.
+        No depth has a finite pressure.
     """
     pressure = ds["pressure"].values.astype(float)
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore", RuntimeWarning)  # an empty slot's median
+        warnings.simplefilter("ignore", RuntimeWarning)  # an empty depth's median
         median = np.nanmedian(pressure, axis=0)
     if not np.isfinite(median).any():
         raise ValueError("the site stack has no finite pressure")

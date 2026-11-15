@@ -127,8 +127,8 @@ DEPLOYMENT_CODE_PATTERN = r"\d{4}(0[1-9]|1[0-2])"
 _SETTINGS_KEYS: dict[str, dict[str, bool | tuple[str, ...] | None]] = {
     "stack": {
         "dt_seconds": True,
-        "slot_reference": ("depth", "hab"),
-        "slot_tolerance_m": False,
+        "depth_match": ("depth", "hab"),
+        "depth_tolerance_m": False,
     },
     "grid": {"pmin": False, "pmax": False, "dp": False, "mask_flags": None},
 }

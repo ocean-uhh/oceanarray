@@ -356,9 +356,9 @@ INSTRUMENT_FILE_TYPES: dict = {
 # Derived: set of allowed ``instrument:`` values in mooring YAML files.
 KNOWN_INSTRUMENT_TYPES: frozenset = frozenset(INSTRUMENT_FILE_TYPES.keys())
 
-#: Which instruments may share a depth slot across deployments in a
+#: Which instruments may share a depth across deployments in a
 #: concatenated stack. A temperature-only logger is hydrography, so it can sit in
-#: one slot with a CTD of another year. ADCP bins (and the ADCP head) are their
+#: one depth with a CTD of another year. ADCP bins (and the ADCP head) are their
 #: own family, matched within half the bin size; an unlisted type is a family of
 #: its own. Keys are lower-case instrument types.
 INSTRUMENT_FAMILIES: dict[str, str] = {
@@ -385,13 +385,13 @@ SITE_SIGMA2_LEVELS: tuple[float, ...] = (36.9, 37.0, 37.1)
 SLOPE_STEADINESS_MIN: float = 0.3
 
 #: The default pressure range of a site grid: from this low percentile of the
-#: shallowest slot's pressure to this high percentile of the deepest slot's.
+#: shallowest depth's pressure to this high percentile of the deepest depth's.
 SITE_GRID_PERCENTILES: tuple[float, float] = (5.0, 95.0)
 
-#: Default slot rule for ``concat``: match levels by depth (water depth − hab)
+#: Default depth-matching rule for ``concat``: match levels by depth (water depth − hab)
 #: within this many metres. Both can be set per mooring in ``stack:``.
-CONCAT_SLOT_REFERENCE: str = "depth"
-CONCAT_SLOT_TOLERANCE_M: float = 50.0
+CONCAT_DEPTH_MATCH: str = "depth"
+CONCAT_DEPTH_TOLERANCE_M: float = 50.0
 
 # File types that seasenselib accepts but are deprecated, experimental, or
 # not tied to a primary ``instrument:`` value above.  These remain valid in a
