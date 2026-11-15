@@ -33,9 +33,6 @@ What it does
   newer one fills the depth (``overlap="older"`` for the other way round) and the
   other's values go to the *overlap block* on ``N_OVERLAP``: ``overlap_time``,
   ``overlap_depth_index``, ``overlap_level_index`` and ``overlap_<variable>``.
-- **Segments.** ``segment_depth_index``, ``segment_level_index``, ``segment_start`` and
-  ``segment_end`` (on ``N_SEGMENTS``) list each run of one level at one depth, so a
-  reader can find a level's values without scanning ``level_index``.
 - **One time step.** The stacks must share ``stack: dt_seconds`` and sit on whole
   steps (any stack made by oceanarray 0.6 or later); otherwise ``concat`` refuses.
 - **A record per deployment** on the ``DEPLOYMENT`` dimension: name, deployment

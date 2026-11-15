@@ -20,7 +20,7 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 ### Changed
 
 - Deployments on the Stack cat page are colored red to purple in time order; their start lines are dotted.
-- The Stack cat's depth columns are named for what they are: dimension `N_DEPTHS`, `depth_index`, `nominal_depth`, `depth_family`, `depth_match_value`, `depth_tolerance`, `overlap_depth_index`, `segment_depth_index`; the YAML keys are `stack: depth_match` / `depth_tolerance_m`.
+- The Stack cat's depth columns are named for what they are: dimension `N_DEPTHS`, `depth_index`, `nominal_depth`, `depth_family`, `depth_match_value`, `depth_tolerance`, `overlap_depth_index`; the YAML keys are `stack: depth_match` / `depth_tolerance_m`.
 
 ### Breaking changes
 

@@ -220,7 +220,7 @@ def _assign_depths(
         Each level's depth index, and each depth's ``family``, ``center``,
         ``tolerance``, ``values`` and ``deployments``.
     """
-    slots: list[dict] = []
+    depth_groups: list[dict] = []
     tolerances = _tolerances(levels, tolerance)
     out = np.full(len(levels), -1, dtype=np.int32)
     for i, lev in enumerate(levels):
@@ -229,16 +229,19 @@ def _assign_depths(
         tol = float(tolerances[i])
         best, best_dist = None, None
         if np.isfinite(value):
-            for k, slot in enumerate(slots):
-                if slot["family"] != family or lev["deployment"] in slot["deployments"]:
+            for k, depth_group in enumerate(depth_groups):
+                if (
+                    depth_group["family"] != family
+                    or lev["deployment"] in depth_group["deployments"]
+                ):
                     continue
-                dist = abs(slot["center"] - value)
-                if dist <= max(tol, slot["tolerance"]) and (
+                dist = abs(depth_group["center"] - value)
+                if dist <= max(tol, depth_group["tolerance"]) and (
                     best_dist is None or dist < best_dist
                 ):
                     best, best_dist = k, dist
         if best is None:
-            slots.append(
+            depth_groups.append(
                 {
                     "family": family,
                     "center": value,
@@ -247,31 +250,32 @@ def _assign_depths(
                     "deployments": {lev["deployment"]},
                 }
             )
-            best = len(slots) - 1
+            best = len(depth_groups) - 1
         else:
-            slot = slots[best]
-            slot["deployments"].add(lev["deployment"])
-            slot["values"].append(value)
-            slot["tolerance"] = max(slot["tolerance"], tol)
+            depth_group = depth_groups[best]
+            depth_group["deployments"].add(lev["deployment"])
+            depth_group["values"].append(value)
+            depth_group["tolerance"] = max(depth_group["tolerance"], tol)
             # The center follows its members, so an instrument re-hung a little
             # deeper each deployment stays in one depth.
-            slot["center"] = float(np.mean(slot["values"]))
+            depth_group["center"] = float(np.mean(depth_group["values"]))
         out[i] = best
-    for slot in slots:
+    for depth_group in depth_groups:
         far = [
             v
-            for v in slot["values"]
-            if np.isfinite(v) and abs(v - slot["center"]) > slot["tolerance"]
+            for v in depth_group["values"]
+            if np.isfinite(v)
+            and abs(v - depth_group["center"]) > depth_group["tolerance"]
         ]
         if far:
             warnings.warn(
-                f"a {slot['family']} depth (center {slot['center']:.0f} m) has "
-                f"levels more than {slot['tolerance']:g} m from its center: "
+                f"a {depth_group['family']} depth (center {depth_group['center']:.0f} m) has "
+                f"levels more than {depth_group['tolerance']:g} m from its center: "
                 f"{', '.join(f'{v:.0f}' for v in far)} m; check the grouping in the "
                 "report's instrument table.",
                 stacklevel=2,
             )
-    return out, slots
+    return out, depth_groups
 
 
 def _per_level(ds: xr.Dataset, name: str) -> np.ndarray | None:
@@ -344,49 +348,12 @@ def _place(
             ov_levels.append(np.full(taken.sum(), lvl))
             level_index[rows[~taken], s] = lvl
     rows = np.concatenate(ov_rows) if ov_rows else np.array([], dtype=np.int64)
-    slots = np.concatenate(ov_depths) if ov_depths else np.array([], dtype=np.int64)
+    overlap_depth_index = (
+        np.concatenate(ov_depths) if ov_depths else np.array([], dtype=np.int64)
+    )
     levels = np.concatenate(ov_levels) if ov_levels else np.array([], dtype=np.int64)
-    order = np.lexsort((slots, rows))
-    return level_index, rows[order], slots[order], levels[order]
-
-
-def _segments(level_index: np.ndarray, time: np.ndarray) -> dict[str, xr.Variable]:
-    """Return the segment table: one row per run of one level in one depth."""
-    seg_depth, seg_level, seg_start, seg_end = [], [], [], []
-    for s in range(level_index.shape[1]):
-        col = level_index[:, s]
-        change = np.flatnonzero(np.diff(col)) + 1
-        starts = np.r_[0, change]
-        ends = np.r_[change, col.size] - 1
-        for a, b in zip(starts, ends, strict=True):
-            if col[a] >= 0:
-                seg_depth.append(s)
-                seg_level.append(int(col[a]))
-                seg_start.append(time[a])
-                seg_end.append(time[b])
-    dims = ("N_SEGMENTS",)
-    return {
-        "segment_depth_index": xr.Variable(
-            dims,
-            np.array(seg_depth, dtype=np.int32),
-            {"long_name": "depth index of the run"},
-        ),
-        "segment_level_index": xr.Variable(
-            dims,
-            np.array(seg_level, dtype=np.int32),
-            {"long_name": "index into N_LEVELS of the level filling the run"},
-        ),
-        "segment_start": xr.Variable(
-            dims,
-            np.array(seg_start, dtype="datetime64[ns]"),
-            {"long_name": "first step of the run"},
-        ),
-        "segment_end": xr.Variable(
-            dims,
-            np.array(seg_end, dtype="datetime64[ns]"),
-            {"long_name": "last step of the run"},
-        ),
-    }
+    order = np.lexsort((overlap_depth_index, rows))
+    return level_index, rows[order], overlap_depth_index[order], levels[order]
 
 
 def _same_value(a: object, b: object) -> bool:
@@ -478,8 +445,8 @@ def concat(
     -------
     xarray.Dataset
         Time series on ``(time, N_DEPTHS)`` with ``level_index``; the level table on
-        ``N_LEVELS``; the depth table on ``N_DEPTHS``; the ``DEPLOYMENT`` record; the
-        overlap block on ``N_OVERLAP`` and the segment table on ``N_SEGMENTS``.
+        ``N_LEVELS``; the depth table on ``N_DEPTHS``; the ``DEPLOYMENT`` record and the
+        overlap block on ``N_OVERLAP``.
 
     Raises
     ------
@@ -544,7 +511,7 @@ def concat(
             deployment, serial, instrument_type, depth, hab, strict=True
         )
     ]
-    slot, depth_list = _assign_depths(levels, reference, tolerance)
+    depth_index, depth_list = _assign_depths(levels, reference, tolerance)
     # Number the depths deep-first (largest depth, or smallest hab, first); a depth
     # with no known reference value goes last.
     depth_order = sorted(
@@ -557,12 +524,12 @@ def concat(
         ),
     )
     renumber = {old: new for new, old in enumerate(depth_order)}
-    slot = np.array([renumber[int(s)] for s in slot], dtype=np.int32)
+    depth_index = np.array([renumber[int(s)] for s in depth_index], dtype=np.int32)
     depth_list = [depth_list[k] for k in depth_order]
     n_depths = len(depth_list)
 
     level_index, ov_rows, ov_depths, ov_levels = _place(
-        starts, lengths, slot, deployment, n_time, n_depths, overlap
+        starts, lengths, depth_index, deployment, n_time, n_depths, overlap
     )
 
     # ── The time series, one stack variable at a time ─────────────────
@@ -607,7 +574,7 @@ def concat(
             values = ds[v].transpose("time", "N_LEVELS").values
             for j in range(sizes[k]):
                 lvl = level_offset[k] + j
-                s = slot[lvl]
+                s = depth_index[lvl]
                 mine = np.flatnonzero(level_index[rows, s] == lvl)
                 grid[v][a + mine, s] = values[mine, j]
                 spill = np.flatnonzero(ov_levels == lvl)
@@ -660,7 +627,7 @@ def concat(
     )
     data_vars["depth_index"] = xr.Variable(
         ("N_LEVELS",),
-        slot,
+        depth_index,
         {
             "long_name": "index into N_DEPTHS of the level: its depth, shared across deployments",
             "comment": (
@@ -674,8 +641,8 @@ def concat(
     # ── The depth table ────────────────────────────────────────────────
     nominal_depth = np.array(
         [
-            float(np.nanmean(depth[slot == k]))
-            if np.isfinite(depth[slot == k]).any()
+            float(np.nanmean(depth[depth_index == k]))
+            if np.isfinite(depth[depth_index == k]).any()
             else np.nan
             for k in range(n_depths)
         ]
@@ -721,7 +688,6 @@ def concat(
         data_vars[f"overlap_{v}"] = xr.Variable(
             ("N_OVERLAP",), over[v], attrs=dict(first_of[v].attrs)
         )
-    data_vars.update(_segments(level_index, time))
 
     # Which deployment counts at each step: -1 in gaps; the overlap rule decides
     # where two are in the water.

@@ -130,7 +130,7 @@ def test_nothing_is_lost(stacks, joined):
     _assert_nothing_lost(joined, stacks)
 
 
-def test_a_slot_is_empty_outside_its_levels_deployments(joined):
+def test_a_depth_is_empty_outside_its_levels_deployments(joined):
     """A depth holds a level only on its deployment's steps; elsewhere NaN, flag 9."""
     empty = joined["level_index"].values == -1
     assert empty.any()
@@ -147,7 +147,7 @@ def test_the_turnaround_is_a_gap(joined):
     assert (joined["temperature_qc"].values[gap] == 9).all()
 
 
-def test_a_level_alone_in_its_slot(joined):
+def test_a_level_alone_at_its_depth(joined):
     """The 2016 current meter has a depth of its own: empty through all of 2018."""
     ids = list(joined["level_id"].values)
     level = ids.index("egM2_2016/8364")
@@ -158,31 +158,26 @@ def test_a_level_alone_in_its_slot(joined):
     assert (col[in_2016] == level).all() and (col[~in_2016] == -1).all()
 
 
-def test_the_segment_table(joined):
-    """One run per level here (no overlap), each over its own deployment's steps."""
-    assert joined.sizes["N_SEGMENTS"] == 6
-    assert sorted(joined["segment_level_index"].values.tolist()) == list(range(6))
-    for k in range(joined.sizes["N_SEGMENTS"]):
-        level = int(joined["segment_level_index"].values[k])
-        steps = joined["time"].values[
-            joined["level_index"].values[:, joined["segment_depth_index"].values[k]]
-            == level
-        ]
-        assert joined["segment_start"].values[k] == steps[0]
-        assert joined["segment_end"].values[k] == steps[-1]
-
-
-def test_slots_pair_the_same_depth_across_years(joined):
-    """Two MicroCAT depths are in both deployments: 6 levels in 4 slots, numbered deep-first."""
-    slot = joined["depth_index"].values
+def test_depths_pair_across_years(joined):
+    """Two MicroCAT depths are in both deployments: 6 levels at 4 depths, numbered deep-first."""
+    depth_index = joined["depth_index"].values
     assert joined.sizes["N_DEPTHS"] == 4
     ref = joined["depth_match_value"].values
     assert (np.diff(ref) <= 0).all()
     ids = list(joined["level_id"].values)
-    assert slot[ids.index("egM2_2016/13020")] == slot[ids.index("egM2_2018/11514")]
-    assert slot[ids.index("egM2_2016/11331")] == slot[ids.index("egM2_2018/13220")]
-    # The 1926 m current meter and the 2000 m Aquadopp are 74 m apart: two slots.
-    assert slot[ids.index("egM2_2016/8364")] != slot[ids.index("egM2_2018/CM2000")]
+    assert (
+        depth_index[ids.index("egM2_2016/13020")]
+        == depth_index[ids.index("egM2_2018/11514")]
+    )
+    assert (
+        depth_index[ids.index("egM2_2016/11331")]
+        == depth_index[ids.index("egM2_2018/13220")]
+    )
+    # The 1926 m current meter and the 2000 m Aquadopp are 74 m apart: two depths.
+    assert (
+        depth_index[ids.index("egM2_2016/8364")]
+        != depth_index[ids.index("egM2_2018/CM2000")]
+    )
 
 
 def test_a_wider_tolerance_pairs_the_current_meters(stacks):
@@ -196,8 +191,11 @@ def test_a_wider_tolerance_pairs_the_current_meters(stacks):
         wide.append(s)
     out = concat(wide, name="egM2")
     ids = list(out["level_id"].values)
-    slot = out["depth_index"].values
-    assert slot[ids.index("egM2_2016/8364")] == slot[ids.index("egM2_2018/CM2000")]
+    depth_index = out["depth_index"].values
+    assert (
+        depth_index[ids.index("egM2_2016/8364")]
+        == depth_index[ids.index("egM2_2018/CM2000")]
+    )
 
 
 def test_the_deployment_record(joined):
@@ -222,7 +220,7 @@ def test_one_stack_is_refused(stacks):
         concat(stacks[:1], name="egM2")
 
 
-def test_different_slot_rules_are_refused(stacks):
+def test_different_depth_rules_are_refused(stacks):
     other = stacks[1].copy()
     settings = yaml.safe_load(other.attrs["deployment_settings"])
     settings["stack"]["depth_tolerance_m"] = 100
@@ -323,7 +321,7 @@ def test_the_page_links_reports_kept_elsewhere(site, tmp_path):
         'href="../../outputs/report/egM2_2016/instrument/egM2_2016_13020_report.html"'
         in html
     )
-    # The page names slots by depth, never by number.
+    # The page names depths by their depth, never by number.
     assert "<th>Slot</th>" not in html
 
 
@@ -351,7 +349,7 @@ def test_the_command(site):
     assert "at least two" in out.getvalue()
 
 
-def test_validate_knows_the_slot_keys():
+def test_validate_knows_the_depth_keys():
     cfg = mooring.load(_FIX / "egM2_2016" / "egM2_2016.mooring.yaml")
     good = copy.deepcopy(cfg)
     good["stack"] = {
@@ -391,7 +389,7 @@ def test_a_blank_deployment_time_still_builds_the_page(stacks, tmp_path):
     assert page is not None and page.exists()
 
 
-def test_slots_by_hab_are_still_listed_deep_first(stacks, tmp_path):
+def test_depths_by_hab_are_still_listed_deep_first(stacks, tmp_path):
     """With ``depth_match: hab`` the table and labels still run by depth."""
     by_hab = []
     for s in stacks:
@@ -425,19 +423,11 @@ def test_an_overlap_goes_to_the_overlap_block(flmb):
     _assert_nothing_lost(out, flmb)
 
 
-def test_the_older_rule_keeps_the_older_in_the_slots(flmb):
+def test_the_older_rule_keeps_the_older_at_each_depth(flmb):
     out = concat(flmb, name="FLMB", overlap="older")
     level_dep = out["deployment"].values
     assert (level_dep[out["overlap_level_index"].values] == 1).all()
     _assert_nothing_lost(out, flmb)
-
-
-def test_the_overlap_runs_are_segments(flmb):
-    """Each FLMB slot is two runs: 2016 up to the overlap, then 2017."""
-    out = concat(flmb, name="FLMB")
-    assert out.sizes["N_SEGMENTS"] == 40
-    first = out["segment_level_index"].values[::2]
-    assert (out["deployment"].values[first] == 0).all()
 
 
 def test_three_deployments_in_the_water_at_once(flmb):
@@ -449,7 +439,7 @@ def test_three_deployments_in_the_water_at_once(flmb):
     level_dep = out["deployment"].values
     filled = out["level_index"].values >= 0
     index = np.broadcast_to(out["deployment_index"].values[:, None], filled.shape)
-    # Every slot here has a level of each deployment: the newest one fills it.
+    # Every depth here has a level of each deployment: the newest one fills it.
     assert (level_dep[out["level_index"].values[filled]] == index[filled]).all()
 
 
@@ -515,15 +505,15 @@ def test_adcp_bins_match_within_half_their_bin_size():
     bin_size = float(np.median(np.diff(ranges)))
     assert bin_size == pytest.approx(16.0)
     np.testing.assert_allclose(_tolerances(levels, 50.0), 8.0)
-    slot, slots = _assign_depths(levels, "depth", 50.0)
-    assert len(slots) == ranges.size
-    assert {s["family"] for s in slots} == {"adcp"}
+    depth_index, depth_groups = _assign_depths(levels, "depth", 50.0)
+    assert len(depth_groups) == ranges.size
+    assert {s["family"] for s in depth_groups} == {"adcp"}
     n = ranges.size
-    assert (slot[:n] == slot[n:]).all()
+    assert (depth_index[:n] == depth_index[n:]).all()
 
 
-def test_an_adcp_head_never_shares_a_slot_with_a_bin():
-    """dsG2 re-hung by two bins (32 m): the 2nd head lands on the 1st's bin 2, but keeps its own slot."""
+def test_an_adcp_head_never_shares_a_depth_with_a_bin():
+    """dsG2 re-hung by two bins (32 m): the 2nd head lands on the 1st's bin 2, but keeps its own depth."""
     with xr.open_dataset(_ADCP, engine="netcdf4") as ds:
         ranges = ds["range"].values.astype(float)
     levels = []
@@ -547,12 +537,12 @@ def test_an_adcp_head_never_shares_a_slot_with_a_bin():
             }
             for i, r in enumerate(ranges)
         ]
-    slot, slots = _assign_depths(levels, "hab", 50.0)
-    for k in set(slot.tolist()):
-        members = [levels[i]["serial"] for i in np.flatnonzero(slot == k)]
+    depth_index, depth_groups = _assign_depths(levels, "hab", 50.0)
+    for k in set(depth_index.tolist()):
+        members = [levels[i]["serial"] for i in np.flatnonzero(depth_index == k)]
         kinds = {m.endswith("_hd") for m in members}
         assert len(kinds) == 1, members
-        assert slots[k]["family"] == ("adcp_head" if kinds == {True} else "adcp")
+        assert depth_groups[k]["family"] == ("adcp_head" if kinds == {True} else "adcp")
 
 
 def test_the_people_of_the_imported_files_are_joined(joined):

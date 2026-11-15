@@ -484,7 +484,7 @@ def _depth_rows(
     own instrument page in that deployment's report when the page exists.
     """
     names = [str(n) for n in ds["deployment_name"].values]
-    slot = ds["depth_index"].values
+    depth_index = ds["depth_index"].values
     dep = ds["deployment"].values
 
     def entry(i: int) -> dict:
@@ -503,7 +503,7 @@ def _depth_rows(
                 "family": str(ds["depth_family"].values[k]).replace("_", " "),
                 "depth": f"{depths[k]:.0f}" if np.isfinite(depths[k]) else "—",
                 "cells": [
-                    [entry(i) for i in np.flatnonzero((slot == k) & (dep == d))]
+                    [entry(i) for i in np.flatnonzero((depth_index == k) & (dep == d))]
                     for d in range(len(names))
                 ],
             }
