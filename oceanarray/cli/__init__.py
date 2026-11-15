@@ -148,7 +148,9 @@ def main() -> None:
     from oceanarray import logger
 
     # One console (stderr) for the whole command: -v → DEBUG, -q → WARNING, else INFO.
-    # captureWarnings routes stray warnings.warn through the same handlers.
+    # captureWarnings sends a stray warnings.warn to the root logger (so it reaches
+    # stderr once, not as a raw source line); those go through the root, not this
+    # package handler, so they are not re-formatted or counted in the run summary.
     logger.CONSOLE_LEVEL = (
         logging.DEBUG
         if args.verbose

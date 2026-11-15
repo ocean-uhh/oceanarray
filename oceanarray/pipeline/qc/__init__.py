@@ -368,7 +368,7 @@ def _compute_salinity_data(
     try:
         import gsw
     except ImportError:
-        log.warning("  WARNING: gsw not installed — salinity not computed")
+        log.warning("gsw not installed — salinity not computed")
         return ds
 
     C = ds["conductivity"].values.astype(float)  # mS/cm

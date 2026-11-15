@@ -208,7 +208,7 @@ def _interp_pressure_for_hab(
                 f"source (hab {habs.min():.1f}–{habs.max():.1f} m): not bracketed; the "
                 "offset takes 1 m of hab as 1 dbar and assumes the line stays upright"
             )
-            log.warning(f"  WARNING: {serial} (hab={hab_t:.1f}m): {method}")
+            log.warning(f"{serial} (hab={hab_t:.1f}m): {method}")
 
     return p, method
 
@@ -601,7 +601,7 @@ def _compute_adcp_bin_pressure(
     if not orientation:
         orientation = "down"
         log.warning(
-            "  WARNING: ADCP orientation unknown (no orientation_yaml or "
+            "ADCP orientation unknown (no orientation_yaml or "
             "orientation_instrument attr) — assuming downward-looking. "
             "bin_pressure signs may be wrong for upward-looking instruments."
         )
@@ -636,7 +636,7 @@ def _compute_adcp_bin_pressure(
     if not firmware_known:
         tilt_correction = "none (firmware config unknown)"
         _warn = (
-            "  WARNING: ADCP bin_pressure: firmware coordinate/bin-mapping config unknown "
+            "ADCP bin_pressure: firmware coordinate/bin-mapping config unknown "
             "(not an RDI raw file, or attrs lost) — cos(tilt) NOT applied; bins at nominal "
             "depth."
         )
@@ -661,7 +661,7 @@ def _compute_adcp_bin_pressure(
         tilt_source = "pitch,roll"
         _n_nan = int(np.isnan(tilt).sum())
         _warn = (
-            f"  WARNING: ADCP bin_pressure: {_n_nan} of {tilt.size} timesteps have missing "
+            f"ADCP bin_pressure: {_n_nan} of {tilt.size} timesteps have missing "
             "pitch/roll — bin_pressure is NaN there (tilt could not be computed)."
             if _n_nan
             else ""
@@ -669,7 +669,7 @@ def _compute_adcp_bin_pressure(
     else:
         tilt_correction = "none (pitch/roll unavailable)"
         _warn = (
-            "  WARNING: ADCP bin_pressure: coordinates are not firmware-mapped but pitch/"
+            "ADCP bin_pressure: coordinates are not firmware-mapped but pitch/"
             "roll are absent — cos(tilt) NOT applied; knocked-down bins sit at nominal depth."
         )
     if _warn:

@@ -156,7 +156,7 @@ def _beam_to_enu(
     coord_sys = ds.attrs.get("coordinate_system", "ENU")
     if coord_sys == "UNK":
         log.warning(
-            f"  WARNING: coordinate_system is UNK for serial "
+            f"coordinate_system is UNK for serial "
             f"{entry.get('serial', '?')} — the Nortek header did not declare "
             "BEAM/XYZ/ENU, so the velocities are in an undetermined frame and are "
             "NOT rotated to ENU. Do not treat east/north/up as geographic; re-run "
@@ -173,7 +173,7 @@ def _beam_to_enu(
     for vname in ("heading", "pitch", "roll"):
         if vname not in ds.data_vars:
             log.warning(
-                f"  WARNING: BEAM→ENU skipped — '{vname}' not in dataset. "
+                f"BEAM→ENU skipped — '{vname}' not in dataset. "
                 "Re-run stage1 to get normalized variable names."
             )
             return ds
@@ -186,7 +186,7 @@ def _beam_to_enu(
     declination = 0.0
     if lat == 0.0 and lon == 0.0 and "unknown" in latlon_source.lower():
         log.warning(
-            f"  WARNING: BEAM→ENU — lat/lon unknown for serial {entry.get('serial', '?')}. "
+            f"BEAM→ENU — lat/lon unknown for serial {entry.get('serial', '?')}. "
             "Skipping magnetic declination to avoid silently applying the Gulf of Guinea value. "
             "Set lat/lon in the mooring YAML to get a correct declination correction."
         )
@@ -225,7 +225,7 @@ def _beam_to_enu(
             )
             log.info(f"  BEAM→ENU: magnetic declination = {declination:.2f}°")
         except Exception as e:  # noqa: BLE001  — ppigrf optional; proceed with 0° declination
-            log.warning(f"  WARNING: magnetic declination unavailable ({e}) — using 0°")
+            log.warning(f"magnetic declination unavailable ({e}) — using 0°")
 
     if coord_sys == "BEAM":
         # Stage1 could not apply the T matrix (header file missing or unparseable).
@@ -442,7 +442,7 @@ def _declination_to_enu(
 
     if lat == 0.0 and lon == 0.0 and "unknown" in latlon_source.lower():
         log.warning(
-            "  WARNING: ENU declination correction skipped — lat/lon unknown. "
+            "ENU declination correction skipped — lat/lon unknown. "
             "Applying declination from (0°N, 0°E) would silently rotate velocities by "
             "the Gulf of Guinea value. Set lat/lon in the mooring YAML."
         )
@@ -493,8 +493,6 @@ def _declination_to_enu(
             "east_velocity / north_velocity"
         )
     except Exception as e:  # noqa: BLE001  — ppigrf optional
-        log.warning(
-            f"  WARNING: declination correction unavailable ({e}) — ENU unchanged"
-        )
+        log.warning(f"declination correction unavailable ({e}) — ENU unchanged")
 
     return ds

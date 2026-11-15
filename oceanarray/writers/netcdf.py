@@ -310,8 +310,9 @@ def write(
     if path.exists():
         if not overwrite:
             raise FileExistsError(f"{path} exists; pass overwrite=True to replace it.")
-        # Re-running a stage is routine, but never silent: a replaced file is logged
-        # so a re-run is visible in the log and the report's run summary.
+        # Re-running a stage is routine; the overwrite is recorded at DEBUG, so it
+        # shows in the stage log file and under ``-v`` (not at the default level —
+        # a full run overwrites many files).
         log.debug("overwriting %s", path)
     path.parent.mkdir(parents=True, exist_ok=True)
 

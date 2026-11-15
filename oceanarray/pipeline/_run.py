@@ -237,7 +237,12 @@ def run(
         return files
     finally:
         logging.getLogger("oceanarray").removeHandler(summary)
-        summary.finish(name, moor_dir)
+        # A summary-write failure (e.g. a read-only processing_logs) must not mask
+        # the run's own outcome — whether it returned files or is raising.
+        try:
+            summary.finish(name, moor_dir)
+        except OSError as exc:
+            log.warning("could not write the run summary for %s: %s", name, exc)
 
 
 def _resolve_stages(

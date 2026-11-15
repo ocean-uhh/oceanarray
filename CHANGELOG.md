@@ -24,7 +24,7 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 - Deployments on the Stack cat page are colored red to purple in time order; their start lines are dotted.
 - The Stack cat's depth columns are named for what they are: dimension `N_DEPTHS`, `depth_index`, `nominal_depth`, `depth_family`, `depth_match_value`, `depth_tolerance`, `overlap_depth_index`; the YAML keys are `stack: depth_match` / `depth_tolerance_m`.
-- Pipeline console output goes through standard logging on stderr, tagged by level and module, so a default run prints about one line per step; per-instrument detail is at `-v`, and a command's result still goes to stdout.
+- Pipeline progress goes to stderr via standard logging (one line per step; `-v` for per-instrument detail); a command's result still goes to stdout.
 
 ### Deprecated
 

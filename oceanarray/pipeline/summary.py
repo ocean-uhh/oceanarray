@@ -22,8 +22,9 @@ class RunSummary(logging.Handler):
 
     Attach to the ``oceanarray`` logger with :meth:`logging.Logger.addHandler` for
     the length of the run, then :meth:`finish` to log the deduplicated list and write
-    the JSON. Each distinct ``(level, message)`` is counted, so a warning that fires
-    once per instrument is listed once with its count.
+    the JSON. Each distinct ``(level, message)`` is counted, so an identical warning
+    repeated (e.g. the same config gap across instruments) is listed once with its
+    count; a warning that embeds an instrument serial stays a distinct entry.
     """
 
     def __init__(self) -> None:
@@ -53,7 +54,9 @@ class RunSummary(logging.Handler):
         if not entries:
             log.info("Run summary %s: no warnings.", name)
             return
-        log.info("Run summary %s: %d warning(s) to check:", name, self.total)
+        # The heading is WARNING so it survives ``-q`` (and points at the JSON);
+        # the per-warning detail is INFO (the warnings themselves already showed).
+        log.warning("Run summary %s: %d warning(s) to check:", name, self.total)
         for entry in entries:
             times = f" (x{entry['count']})" if entry["count"] > 1 else ""
             log.info("  %s: %s%s", entry["level"], entry["message"], times)
