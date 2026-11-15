@@ -1,5 +1,6 @@
 """Grid a mooring's stack onto regular pressure levels: the pure :func:`grid` and MooringGridder."""
 
+import re
 from pathlib import Path
 
 import numpy as np
@@ -56,6 +57,8 @@ def grid(
         f"Gridding {n_instr} instruments → {n_p} pressure levels "
         f"({pmin:.0f}:{dp:.0f}:{pmax:.0f} dbar) × {n_time} time steps"
     )
+
+    _warn_sparse_levels(ds)
 
     if "pressure" not in ds.data_vars:
         raise ValueError("'pressure' not found in the stack — cannot grid vertically")
@@ -343,3 +346,24 @@ class MooringGridder:
         write(ds_out, output_path, overwrite=True)
         logger.status("file", self._rel(output_path))
         return True
+
+
+def _warn_sparse_levels(ds: xr.Dataset) -> None:
+    """Warn for each level whose samples sit more than one stack step apart."""
+    if "pressure" not in ds.data_vars or ds.sizes.get("time", 0) < 3:
+        return
+    pressure = ds["pressure"].values
+    serials = ds["serial"].values if "serial" in ds else range(ds.sizes["N_LEVELS"])
+    warned: set[str] = set()
+    for j, serial in enumerate(serials):
+        idx = np.flatnonzero(np.isfinite(pressure[:, j]))
+        if idx.size < 3:
+            continue
+        stride = float(np.median(np.diff(idx)))
+        base = re.sub(r"_(hd|b\d+)$", "", str(serial))
+        if stride > 1.5 and base not in warned:
+            warned.add(base)
+            print(
+                f"  WARNING: level s/n {serial} has a sample every ~{stride:.0f} steps; "
+                "the grid leaves the steps between them empty."
+            )

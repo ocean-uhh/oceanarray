@@ -33,3 +33,25 @@ def drop_all_zero_vars(ds: xr.Dataset, prefixes: list[str]) -> xr.Dataset:
         if finite.size == 0 or np.all(finite == 0):
             to_drop.append(vname)
     return ds.drop_vars(to_drop) if to_drop else ds
+
+
+def time_step_seconds(ds: xr.Dataset) -> float:
+    """Return a stack or grid file's time step in seconds.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        A stack or grid dataset with a ``time`` axis.
+
+    Returns
+    -------
+    float
+        The ``dt_seconds`` attribute when the file has one, else the median step
+        of its time axis; NaN when it has neither (fewer than two times).
+    """
+    if "dt_seconds" in ds.attrs:
+        return float(ds.attrs["dt_seconds"])
+    if "time" not in ds or ds.sizes.get("time", 0) < 2:
+        return float("nan")
+    steps = np.diff(ds["time"].values) / np.timedelta64(1, "s")
+    return float(np.median(steps))
