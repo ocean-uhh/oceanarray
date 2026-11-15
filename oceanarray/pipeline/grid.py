@@ -346,8 +346,8 @@ def grid(
                 f"in pressure onto {dp:g} dbar levels ({pmin:g}–{pmax:g} dbar), no "
                 "extrapolation"
                 + (
-                    ", one mooring per profile (the deployment deployment_index "
-                    "names), the overlap block not gridded, turnarounds empty"
+                    ", one mooring per profile (the one `deployment_index` names), "
+                    "the overlap block not gridded, turnarounds empty"
                     if site
                     else ""
                 )

@@ -362,7 +362,7 @@ def union(
                         # A blank-role entry of this person takes the role.
                         blank["role"] = entry["role"]
                         continue
-                    # The same person in a new role: a entry of its own, with the
+                    # The same person in a new role: an entry of its own, with the
                     # name and email of their first entry.
                     entry = {
                         **entry,
