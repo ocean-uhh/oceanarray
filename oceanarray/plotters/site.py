@@ -60,10 +60,10 @@ def symmetric_limit(*fields: np.ndarray) -> float:
 
 def _edges(centers: np.ndarray) -> np.ndarray:
     """Return cell edges for regularly spaced pressure *centers*: midway between, half a step beyond."""
+    if len(centers) == 1:  # one level: a cell 1 dbar thick
+        return np.array([centers[0] - 0.5, centers[0] + 0.5])
     step = np.diff(centers)
-    half = (
-        np.concatenate([[step[0]], step, [step[-1]]]) / 2 if len(centers) > 1 else [0.5]
-    )
+    half = np.concatenate([[step[0]], step, [step[-1]]]) / 2
     return np.concatenate([[centers[0] - half[0]], centers + half[1:]])
 
 
@@ -280,8 +280,8 @@ def draw_site_ts(
     theta: np.ndarray,
     salinity: np.ndarray,
     names: Sequence[str],
-    longitude: float,
-    latitude: float,
+    longitude: float | None,
+    latitude: float | None,
     *,
     sigma0_levels: Sequence[float] = (),
     sigma2_levels: Sequence[float] = (),
@@ -300,8 +300,9 @@ def draw_site_ts(
         and level, ``(deployment, pressure)``.
     names : sequence of str
         The deployments' names, in time order.
-    longitude, latitude : float
-        The site's position, for Absolute Salinity.
+    longitude, latitude : float or None
+        The site's position, for Absolute Salinity. None when unknown: *theta* is
+        then in-situ temperature, labeled so, and no isopycnals are drawn.
     sigma0_levels, sigma2_levels : sequence of float, optional
         The isopycnals to draw (kg m⁻³).
     width_in : float, optional
@@ -335,13 +336,14 @@ def draw_site_ts(
     s_lim = (s_lo - s_pad, s_hi + s_pad)
     t_lim = (t_lo - t_pad, t_hi + t_pad)
     sg, tg = np.meshgrid(np.linspace(*s_lim, 100), np.linspace(*t_lim, 100))
-    sa = gsw.SA_from_SP(sg, 0.0, longitude, latitude)
-    ct = gsw.CT_from_pt(sa, tg)
+    known = longitude is not None and latitude is not None
+    sa = gsw.SA_from_SP(sg, 0.0, longitude, latitude) if known else None
+    ct = gsw.CT_from_pt(sa, tg) if known else None
     for levels, sigma, fmt in (
         (sigma2_levels, gsw.sigma2, "σ2 %g"),
         (sigma0_levels, gsw.sigma0, "σ0 %g"),
     ):
-        if levels:
+        if levels and known:
             cs = ax.contour(
                 sg, tg, sigma(sa, ct), levels=list(levels), colors="0.4", linewidths=0.6
             )
@@ -349,6 +351,6 @@ def draw_site_ts(
     ax.set_xlim(*s_lim)
     ax.set_ylim(*t_lim)
     ax.set_xlabel(params.vlabel("salinity"))
-    ax.set_ylabel(params.vlabel("potential_temperature"))
+    ax.set_ylabel(params.vlabel("potential_temperature" if known else "temperature"))
     ax.legend(fontsize=report_tokens.ANNOT_FS, ncols=2)
     return fig

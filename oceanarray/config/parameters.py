@@ -378,6 +378,16 @@ INSTRUMENT_FAMILIES: dict[str, str] = {
 SITE_SIGMA0_LEVELS: tuple[float, ...] = (27.6, 27.7, 27.75)
 SITE_SIGMA2_LEVELS: tuple[float, ...] = (36.9, 37.0, 37.1)
 
+#: The along-slope direction of a site grid, when none is given, is the direction
+#: of its mean flow, used only when the flow is steady enough: the speed of the
+#: mean of the daily-mean, depth-mean velocity over the mean of their speeds (0 for
+#: flow that reverses evenly, 1 for flow that never turns) must reach this.
+SLOPE_STEADINESS_MIN: float = 0.3
+
+#: The default pressure range of a site grid: from this low percentile of the
+#: shallowest slot's pressure to this high percentile of the deepest slot's.
+SITE_GRID_PERCENTILES: tuple[float, float] = (5.0, 95.0)
+
 #: Default slot rule for ``concat``: match levels by depth (water depth − hab)
 #: within this many metres. Both can be set per mooring in ``stack:``.
 CONCAT_SLOT_REFERENCE: str = "depth"

@@ -119,7 +119,10 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
             type=float,
             default=None,
             metavar="DBAR",
-            help=f"{text} (default: the slots' median pressures, to whole --dp)",
+            help=(
+                f"{text} (default: the 5th percentile of the shallowest slot's "
+                "pressure and the 95th of the deepest's, to whole --dp)"
+            ),
         )
     p.add_argument(
         "--dp",
@@ -136,7 +139,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
         metavar="DEG",
         help=(
             "Along-slope direction, degrees clockwise from north (default: the "
-            "principal axis of the depth-mean velocity)"
+            "direction of the mean flow, when it is steady enough)"
         ),
     )
     p.add_argument(

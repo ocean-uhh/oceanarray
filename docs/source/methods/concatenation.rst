@@ -109,8 +109,15 @@ settings come from the call (``--pmin``, ``--pmax``, ``--dp``, ``--mask-flags``,
 
 Before gridding, values whose QC flag is in ``mask_flags`` are left out (default 4
 and 9 for every variable; ``velocity=3,4,9`` adds suspect velocity). The
-along-slope direction is ``--slope-angle``, else the principal axis of the
-depth-mean velocity over the record.
+along-slope direction is ``--slope-angle``, else the direction of the record-mean,
+depth-mean velocity, used only when the flow is steady enough to have one (the
+speed of the mean daily velocity over the mean daily speed at least 0.3; otherwise
+no along- and across-slope panels, and a warning). The pressure range is
+``--pmin`` / ``--pmax``, else from the 5th percentile of the shallowest slot's
+pressure to the 95th of the deepest's, so an instrument riding above or below its
+usual depth stays on the grid. Each deployment's own ``grid:`` settings are not
+used; a deployment whose settings differ is named in a warning. Current speed and
+direction are computed from the gridded east and north velocity.
 
 Its page, ``<site>_gridcat_report.html`` (the "Grid cat" pill beside "Stack cat"),
 shows pressure × time sections of temperature and salinity with σ0 and σ2

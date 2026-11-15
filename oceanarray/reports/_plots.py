@@ -684,7 +684,7 @@ def _make_site_ts_b64(
     theta: np.ndarray,
     salinity: np.ndarray,
     names: list[str],
-    position: tuple[float, float],
+    position: tuple[float, float] | None,
     sigma0_levels: tuple,
     sigma2_levels: tuple,
 ) -> str | None:
@@ -696,7 +696,7 @@ def _make_site_ts_b64(
         theta,
         salinity,
         names,
-        *position,
+        *(position or (None, None)),
         sigma0_levels=sigma0_levels,
         sigma2_levels=sigma2_levels,
         slot="half",

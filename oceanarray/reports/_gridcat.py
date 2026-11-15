@@ -65,7 +65,9 @@ def _flags_text(ds: Any) -> str:
     return "; ".join(words).capitalize() + "."
 
 
-def _captions(ds: Any, words: str, angle_source: str) -> dict[str, str]:
+def _captions(
+    ds: Any, words: str, angle_source: str, positioned: bool
+) -> dict[str, str]:
     """Return the panel captions, which name the averaging, references and rules."""
     s0 = ", ".join(f"{v:g}" for v in params.SITE_SIGMA0_LEVELS)
     s2 = ", ".join(f"{v:g}" for v in params.SITE_SIGMA2_LEVELS)
@@ -81,6 +83,8 @@ def _captions(ds: Any, words: str, angle_source: str) -> dict[str, str]:
     isopycnals = (
         f"Black contours: σ0 {s0} and σ2 {s2} {density}, each over the whole "
         "depth, drawn within each deployment. "
+        if positioned
+        else "No isopycnals: no deployment has a position. "
     )
     flags = _flags_text(ds)
     return {
@@ -115,6 +119,10 @@ def _captions(ds: Any, words: str, angle_source: str) -> dict[str, str]:
             "salinity at each grid level, one line per deployment; a median is not "
             "moved by a spike. Axes span the 1–99 % range of the medians. Gray "
             f"contours: σ0 {s0} and σ2 {s2} {density}."
+            if positioned
+            else "Median in-situ temperature and salinity at each grid level, one "
+            "line per deployment. No deployment has a position, so no potential "
+            "temperature and no isopycnals."
         ),
     }
 
@@ -188,10 +196,11 @@ def _figures(grid: Any, stackcat: Any) -> tuple[dict, str, str]:
     shown = site.display_means(grid, bins)
     angle = grid.attrs.get("slope_angle_deg")
     angle = float(angle) if angle not in (None, "") else None
+    source = str(grid.attrs.get("slope_angle_source", ""))
     angle_source = (
-        f"{angle:.0f}° clockwise from north, {grid.attrs.get('slope_angle_source', '')}"
+        f"{angle:.0f}° clockwise from north, {source}"
         if angle is not None
-        else "none (no velocity)"
+        else source or "none (no velocity)"
     )
     hourly = {
         v: grid[v] for v in grid.data_vars if grid[v].dims == ("time", "pressure")
@@ -216,11 +225,15 @@ def _figures(grid: Any, stackcat: Any) -> tuple[dict, str, str]:
             measured[source] = site.instrument_pressures(stackcat, source, bins)
         return measured[source]
 
-    lat = float(np.nanmedian(grid["deployment_latitude"].values))
-    lon = float(np.nanmedian(grid["deployment_longitude"].values))
-    position = (lon if np.isfinite(lon) else 0.0, lat if np.isfinite(lat) else 0.0)
+    # Absolute salinity needs the position; without one, no density is drawn
+    # (rather than one computed at 0° N, 0° E).
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)  # no deployment has one
+        lat = float(np.nanmedian(grid["deployment_latitude"].values))
+        lon = float(np.nanmedian(grid["deployment_longitude"].values))
+    position = (lon, lat) if np.isfinite(lat) and np.isfinite(lon) else None
     isopycnals = []
-    if "temperature" in shown and "salinity" in shown:
+    if position is not None and "temperature" in shown and "salinity" in shown:
         s0, s2 = site.density_fields(
             shown["temperature"].values, shown["salinity"].values, pressure, *position
         )
@@ -298,6 +311,10 @@ def _figures(grid: Any, stackcat: Any) -> tuple[dict, str, str]:
         if "temperature" not in hourly or "salinity" not in hourly:
             return None
         salinity = medians("salinity")
+        if position is None:
+            return _make_site_ts_b64(
+                medians("temperature"), salinity, names, None, (), ()
+            )
         theta = site.potential_temperature(
             medians("temperature"), salinity, pressure, *position
         )
@@ -339,7 +356,12 @@ def _figures(grid: Any, stackcat: Any) -> tuple[dict, str, str]:
         ),
         "site_ts": as_panel(site_ts),
     }
-    return figs, words, angle_source
+    if position is None:
+        print(
+            "  WARNING: no deployment has a position: no isopycnals, and the T-S "
+            "diagram is in in-situ temperature."
+        )
+    return figs, words, angle_source, position is not None
 
 
 def generate_gridcat_page(
@@ -383,7 +405,7 @@ def generate_gridcat_page(
         with xr.open_dataset(stack_path, engine="netcdf4") as opened:
             stackcat = opened.load()
         out_path = out_dir / f"{name}_gridcat_report.html"
-        figs, words, angle_source = _figures(grid, stackcat)
+        figs, words, angle_source, positioned = _figures(grid, stackcat)
         names = [str(n) for n in grid["deployment_name"].values]
         deployment_rows = _deployment_rows(stackcat, stack_path, out_dir, report_dir)
         history = _parse_history(grid.attrs.get("history", ""))
@@ -410,10 +432,14 @@ def generate_gridcat_page(
             if "deployment_history" in grid
             else [],
         )
-        panels = _panels(_captions(grid, words, angle_source))
+        panels = _panels(_captions(grid, words, angle_source, positioned))
         report = resolve(GRIDCAT_DEFAULT, context, panels)
         f = _masthead._fact
-        facts = _masthead_facts(stackcat, stack_path)[:-1] + [
+        facts = [
+            fact
+            for fact in _masthead_facts(stackcat, stack_path)
+            if not str(fact[0]).startswith("Source")
+        ] + [
             f(
                 "Grid",
                 f"{float(grid.attrs['p_start_dbar']):g}–"

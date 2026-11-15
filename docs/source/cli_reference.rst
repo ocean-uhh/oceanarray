@@ -301,8 +301,8 @@ onto pressure levels, one mooring per profile (see :doc:`methods/concatenation`)
 Writes ``<NAME>_stackcat.nc`` and ``<NAME>_gridcat.nc`` in their own folder, and
 their pages ``report/<NAME>_stackcat_report.html`` and
 ``report/<NAME>_gridcat_report.html`` (``--no-grid`` writes the Stack cat only).
-``--pmin`` / ``--pmax`` default to the slots' median pressures, rounded outward to
-``--dp`` (default 20); ``--mask-flags`` takes ``4,9`` for every variable and
+``--pmin`` / ``--pmax`` default to the 5th percentile of the shallowest slot's
+pressure and the 95th of the deepest's, rounded outward to ``--dp`` (default 20); ``--mask-flags`` takes ``4,9`` for every variable and
 ``VAR=3,4,9`` exceptions.  ``--report-dir`` says where
 the deployments' own reports already are (``<DIR>/<deployment>``), for the page's
 links; it does not move where the page is written.

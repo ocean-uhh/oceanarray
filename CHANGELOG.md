@@ -19,10 +19,15 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Changed
 
-- Deployment grids keep velocity flagged 3 (suspect) unless `mask_flags` says otherwise; the default leaves out 4 and 9.
 - Deployments on the Stack cat page are colored red to purple in time order; their start lines are dotted.
 
+### Breaking changes
+
+- Grids change: velocity flagged 3 (suspect) is kept unless `mask_flags` says otherwise (the default leaves out 4 and 9), and current speed and direction come from the gridded east and north velocity.
+
 ### Fixed
+
+- A grid's current direction is no longer interpolated across 0/360° (it pointed the wrong way between a 355° and a 5° instrument).
 
 - `stage2_source_sha256` is the full SHA-256, not its first 8 digits (#135).
 - The stack time axis keeps a last step that falls exactly on the recovery time (#135).

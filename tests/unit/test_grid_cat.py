@@ -188,7 +188,7 @@ def test_a_site_grid_carries_the_deployment_record(flmb_site):
         out["deployment_index"], flmb_site["deployment_index"]
     )
     assert 0 <= out.attrs["slope_angle_deg"] < 360
-    assert "principal axis" in out.attrs["slope_angle_source"]
+    assert "direction of the record-mean" in out.attrs["slope_angle_source"]
     given = _quiet(grid, flmb_site, pmin=200, pmax=2600, dp=50, slope_angle=-30)
     assert given.attrs["slope_angle_deg"] == 330
     assert given.attrs["slope_angle_source"] == "given"
@@ -305,3 +305,83 @@ def test_a_zero_grid_spacing_is_an_error_not_a_crash(egm2):
         path = concat_moorings(yamls, name="egM2", overwrite=True)
     with pytest.raises(MooringError, match="dp=0 must be > 0"):
         grid_site(path, dp=0, overwrite=True)
+
+
+@pytest.fixture(scope="module")
+def dune2() -> xr.Dataset:
+    """dune2 1 2026's stack: Aquadopps with velocity flagged 3 (tilt)."""
+    with xr.open_dataset(
+        _FIX / "dune2_1_2026" / "dune2_1_2026_stack.nc", engine="netcdf4"
+    ) as ds:
+        return ds.load()
+
+
+def test_suspect_velocity_is_kept_by_default_and_left_out_when_asked(dune2):
+    assert (dune2["velocity_flag"].values == 3).any()
+    kept = _quiet(grid, dune2, pmin=100, pmax=800, dp=10)
+    strict = _quiet(
+        grid, dune2, pmin=100, pmax=800, dp=10, mask_flags={"velocity": [3, 4, 9]}
+    )
+    n_kept = np.isfinite(kept["east_velocity"].values).sum()
+    n_strict = np.isfinite(strict["east_velocity"].values).sum()
+    assert n_strict < n_kept
+    # Temperature is not velocity: the same either way.
+    np.testing.assert_array_equal(kept["temperature"], strict["temperature"])
+
+
+def test_speed_and_direction_come_from_the_gridded_components(dune2):
+    out = _quiet(grid, dune2, pmin=100, pmax=800, dp=10)
+    east, north = out["east_velocity"].values, out["north_velocity"].values
+    # Stored as float32: equal to its precision.
+    np.testing.assert_allclose(out["current_speed"], np.hypot(east, north), rtol=1e-5)
+    direction = np.degrees(np.arctan2(east, north)) % 360.0
+    gap = np.abs(out["current_direction"].values - direction)
+    assert np.nanmax(np.minimum(gap, 360.0 - gap)) < 1e-3
+
+
+def test_a_deployment_whose_grid_settings_differ_is_named(egm2, capsys):
+    """egM2 2018's YAML grids 1000–2450 dbar: a site grid on its own range says so."""
+    yamls = [egm2 / n / f"{n}.mooring.yaml" for n in _EGM2]
+    with contextlib.redirect_stdout(io.StringIO()):
+        path = concat_moorings(yamls, name="egM2", overwrite=True)
+    grid_site(path, dp=25, overwrite=True)
+    assert "egM2_2018's own grid: settings (" in capsys.readouterr().out
+
+
+def test_without_a_position_no_isopycnals_are_drawn(egm2, tmp_path):
+    from oceanarray.reports._gridcat import generate_gridcat_page
+
+    yamls = [egm2 / n / f"{n}.mooring.yaml" for n in _EGM2]
+    with contextlib.redirect_stdout(io.StringIO()):
+        stackcat = concat_moorings(yamls, name="egM2", overwrite=True)
+        gridcat = grid_site(stackcat, dp=50, overwrite=True)
+    folder = tmp_path / "egM2"
+    folder.mkdir()
+    shutil.copy(stackcat, folder / stackcat.name)
+    with xr.open_dataset(gridcat, engine="netcdf4") as ds:
+        nowhere = ds.load()
+    nowhere["deployment_latitude"][:] = np.nan
+    nowhere["deployment_longitude"][:] = np.nan
+    oa.write(nowhere, folder / gridcat.name)
+    with contextlib.redirect_stdout(io.StringIO()) as out:
+        page = generate_gridcat_page(folder / gridcat.name, folder / "report")
+    assert "no deployment has a position" in out.getvalue()
+    assert "No isopycnals: no deployment has a position" in page.read_text(
+        encoding="utf-8"
+    )
+
+
+def test_a_one_level_section_draws(flmb_site):
+    from oceanarray.plotters.site import draw_site_sections
+
+    out = _quiet(grid, flmb_site, pmin=1000, pmax=1000, dp=50)
+    bins = site.display_bins(out["time"].values, out["deployment_index"].values, "7D")
+    shown = site.display_means(out, bins)
+    fig = draw_site_sections(
+        [{"data": shown["temperature"].values, "title": "T", "cmap": "viridis"}],
+        bins.centers,
+        out["pressure"].values,
+        bins.edges,
+        bins.owner,
+    )
+    assert fig is not None
