@@ -1,0 +1,21 @@
+{# Originator flag translation — the `qc_translation` panel (kind="table"). #}
+<p class="caption">Originator flags are translated to oceanarray's flag table by
+meaning, into the nearest severity bucket; the originator's wording is not kept in
+the flag (e.g. <code>appears_probably_bad</code> &rarr; 3
+<code>potentially_correctable_bad_data</code>), it is listed here. A word with no known
+meaning becomes 0 (unknown). Only the numbers found on the data are listed.</p>
+<table class="instr-table">
+  <thead><tr>{% if site %}<th>Deployment</th>{% endif %}<th>Level</th><th>Variable</th><th>Originator flag</th><th>&rarr; ours</th><th>Samples</th></tr></thead>
+  <tbody>
+  {% for row in rows %}
+  <tr>
+    {% if site %}<td>{{ row.deployment }}</td>{% endif %}
+    <td>{{ row.level }}</td><td>{{ row.variable }}</td>
+    <td>{{ row.number }} {{ row.word }}</td>
+    <td>{% if row.ours is none %}{{ row.meaning }}{% else %}{{ row.ours }} {{ row.meaning }}{% endif %}</td>
+    <td>{{ row.samples }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% if without %}<p>No originator flags: {{ without | join(", ") }}.</p>{% endif %}

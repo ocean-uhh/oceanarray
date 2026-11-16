@@ -1,0 +1,23 @@
+{# Quality-flag counts per level and variable — the `qc_counts` panel (kind="table"). #}
+<p class="caption">Values flagged per level and variable: oceanarray's flags
+(<code>&lt;var&gt;_qc</code>: 3 suspect, 4 bad, 8 interpolated) and the originator's,
+translated to our table (3, 4, 5 value changed). <strong>Hidden</strong>: values this
+page does not show and the grid leaves out, by the rule <code>mask_flags</code> =
+{{ rule }} (ours or the originator's flag in the rule). Flagged values stay in the file.</p>
+{% if rows %}
+<table class="instr-table">
+  <thead><tr><th>Level</th><th>Variable</th><th>Ours 3</th><th>Ours 4</th><th>Ours 8</th><th>Originator 3</th><th>Originator 4</th><th>Originator 5</th><th>Hidden</th><th>Values</th></tr></thead>
+  <tbody>
+  {% for row in rows %}
+  <tr>
+    <td>{{ row.level }}</td><td>{{ row.variable }}</td>
+    <td>{{ row.ours_3 }}</td><td>{{ row.ours_4 }}</td><td>{{ row.ours_8 }}</td>
+    <td>{{ row.orig_3 }}</td><td>{{ row.orig_4 }}</td><td>{{ row.orig_5 }}</td>
+    <td>{{ row.hidden }}</td><td>{{ row.n }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No value is flagged 3, 4, 5 or 8.</p>
+{% endif %}
