@@ -66,22 +66,7 @@ STACK_VARS = [
 
 #: The originator's flags, translated to our table at stage 3, carried for each
 #: variable an originator file can hold (``<var>_qc_originator_mapped``).
-STACK_VARS += [
-    f"{v}{MAPPED_SUFFIX}"
-    for v in (
-        "temperature",
-        "salinity",
-        "conductivity",
-        "pressure",
-        "east_velocity",
-        "north_velocity",
-        "up_velocity",
-        "current_speed",
-        "current_direction",
-        "dissolved_oxygen",
-        "turbidity",
-    )
-]
+STACK_VARS += [f"{v}{MAPPED_SUFFIX}" for v in masking.FLAGGED_VARIABLES]
 
 
 def _is_flag(name: str) -> bool:
@@ -772,12 +757,20 @@ def stack(
                 continue  # the variable itself is not written
             present = np.isfinite(parent) if parent is not None else np.isfinite(values)
             values = np.where(
-                np.isfinite(values), values, np.where(present, 0, 9)
+                np.isfinite(values),
+                values,
+                np.where(present, params.QC_NOT_EVALUATED, params.QC_MISSING),
             ).astype(np.int8)
             if parent is not None:
-                values[~present] = 9
+                values[~present] = params.QC_MISSING
                 # 9 means missing: a value that is there is at most unknown.
-                values[present & (values == 9)] = 0
+                wrong = present & (values == params.QC_MISSING)
+                if wrong.any():
+                    log.warning(
+                        f"  {mooring_name}: {int(wrong.sum())} {vname} values that "
+                        "are there were flagged missing (9); written 0 (unknown)"
+                    )
+                    values[wrong] = params.QC_NOT_EVALUATED
         data_vars[vname] = xr.Variable(
             ("N_LEVELS", "time"), values, attrs=var_attrs[vname]
         )

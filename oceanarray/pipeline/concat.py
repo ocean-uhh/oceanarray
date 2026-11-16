@@ -34,7 +34,7 @@ log = logging.getLogger(__name__)
 #: Per-level coordinates every stack carries (``N_LEVELS``).
 _LEVEL_COORDS = ("serial", "hab", "instrument_type", "source_stage")
 #: Flag written outside a deployment's own steps (OceanSITES "missing value").
-_QC_MISSING = 9
+_QC_MISSING = params.QC_MISSING
 
 
 def _stack_settings(ds: xr.Dataset) -> dict:
@@ -609,20 +609,23 @@ def concat(
         rows = slice(a, a + n)
         for v in ts_names:
             if v not in ds.data_vars:
-                parent = (
-                    "east_velocity"
+                parents = (
+                    ["east_velocity", "north_velocity", "up_velocity"]
                     if v == "velocity_flag"
-                    else v.removesuffix(MAPPED_SUFFIX).removesuffix("_qc")
+                    else [v.removesuffix(MAPPED_SUFFIX).removesuffix("_qc")]
                 )
-                if v not in flags or parent not in ds.data_vars:
+                parents = [p for p in parents if p in ds.data_vars]
+                if v not in flags or not parents:
                     continue
                 # A deployment without this flag variable: 0 (not QC'd) where it
-                # has a value, 9 where it has none.
-                values = np.where(
-                    np.isfinite(ds[parent].transpose("time", "N_LEVELS").values),
-                    0,
-                    _QC_MISSING,
-                ).astype(first_of[v].dtype)
+                # has a value (any velocity component, for velocity_flag), 9 where
+                # it has none.
+                present = np.zeros((ds.sizes["time"], ds.sizes["N_LEVELS"]), dtype=bool)
+                for p in parents:
+                    present |= np.isfinite(ds[p].transpose("time", "N_LEVELS").values)
+                values = np.where(present, params.QC_NOT_EVALUATED, _QC_MISSING).astype(
+                    first_of[v].dtype
+                )
             else:
                 values = ds[v].transpose("time", "N_LEVELS").values
             for j in range(sizes[k]):

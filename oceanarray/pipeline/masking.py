@@ -31,6 +31,22 @@ VELOCITY_GROUP: frozenset[str] = frozenset(
     }
 )
 
+#: The variables whose flags the stack carries, the pages count and the flag strip
+#: draws: one list, so a flag the stack carries is never left off the page.
+FLAGGED_VARIABLES: tuple[str, ...] = (
+    "temperature",
+    "salinity",
+    "conductivity",
+    "pressure",
+    "east_velocity",
+    "north_velocity",
+    "up_velocity",
+    "current_speed",
+    "current_direction",
+    "dissolved_oxygen",
+    "turbidity",
+)
+
 #: The ADCP flags that mask the velocity group, as well as ``velocity_flag``.
 ADCP_VELOCITY_QC: tuple[str, ...] = (
     "seabed_qc",

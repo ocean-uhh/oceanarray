@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from oceanarray.config import parameters as params
+from oceanarray.pipeline.masking import FLAGGED_VARIABLES
 from oceanarray.pipeline.qc.originator import MAPPED_SUFFIX
 from oceanarray.reports._vendored import design_tokens as report_tokens
 
@@ -16,25 +17,14 @@ if TYPE_CHECKING:
     import matplotlib.pyplot as plt
     import xarray as xr
 
-#: The variables whose flags the strip shows, worst first per level.
-FLAG_VARIABLES: tuple[str, ...] = (
-    "temperature",
-    "salinity",
-    "conductivity",
-    "pressure",
-    "east_velocity",
-    "north_velocity",
-    "dissolved_oxygen",
-    "turbidity",
-)
 
-
-def _level_dim(ds: xr.Dataset) -> str:
+def level_dim(ds: xr.Dataset) -> str:
+    """Return the level dimension: ``N_DEPTHS`` (a Stack cat) or ``N_LEVELS``."""
     return "N_DEPTHS" if "N_DEPTHS" in ds.dims else "N_LEVELS"
 
 
 def worst_flags(ds: xr.Dataset, suffix: str) -> np.ndarray | None:
-    """Return the worst flag per (level, time) over :data:`FLAG_VARIABLES`.
+    """Return the worst flag per (level, time) over the flagged variables.
 
     Parameters
     ----------
@@ -51,32 +41,46 @@ def worst_flags(ds: xr.Dataset, suffix: str) -> np.ndarray | None:
     """
     from oceanarray.pipeline.qc import _worst_flag
 
-    dim = _level_dim(ds)
+    dim = level_dim(ds)
     out = None
     present = None
-    for var in FLAG_VARIABLES:
+    for var in FLAGGED_VARIABLES:
         name = f"{var}{suffix}"
         if name not in ds.data_vars or var not in ds.data_vars:
             continue
         here = np.isfinite(ds[var].transpose(dim, "time").values)
         # A variable a level does not have (its 9s) says nothing about the others.
-        flags = np.where(here, ds[name].transpose(dim, "time").values, 0)
+        flags = np.where(
+            here, ds[name].transpose(dim, "time").values, params.QC_NOT_EVALUATED
+        )
         out = flags.astype(np.int8) if out is None else _worst_flag(out, flags)
         present = here if present is None else present | here
     if out is None:
         return None
-    out[~present] = 9
+    out[~present] = params.QC_MISSING
     return out
 
 
-def _labels(ds: xr.Dataset) -> list[str]:
-    """Return one label per level: instrument and serial, or a site depth."""
+def level_labels(ds: xr.Dataset) -> list[str]:
+    """Return one label per level: instrument and serial, or a site depth.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        A stack (``N_LEVELS``) or Stack cat (``N_DEPTHS``).
+
+    Returns
+    -------
+    list of str
+        ``"microcat 2941"`` per level, or ``"microcat 1500 m"`` per depth.
+    """
     if "N_DEPTHS" in ds.dims:
         depth = ds["nominal_depth"].values if "nominal_depth" in ds else None
+        family = ds["depth_family"].values if "depth_family" in ds else None
         return [
-            f"{depth[k]:.0f} m"
+            f"{family[k] if family is not None else ''} {depth[k]:.0f} m".strip()
             if depth is not None and np.isfinite(depth[k])
-            else str(k)
+            else f"depth {k}"
             for k in range(ds.sizes["N_DEPTHS"])
         ]
     types = ds["instrument_type"].values if "instrument_type" in ds else None
@@ -139,7 +143,7 @@ def draw_flag_strip(
         len(rows) - 0.5,
         -0.5,
     ]
-    labels = _labels(ds)
+    labels = level_labels(ds)
     fig, axs = plt.subplots(
         len(levels),
         1,
@@ -172,9 +176,7 @@ def draw_flag_strip(
     axs[-1].xaxis.set_major_locator(locator)
     axs[-1].xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
     present = sorted({int(f) for _, flags in rows for f in np.unique(flags[levels])})
-    meanings = dict(
-        zip(params.QC_FLAG_VALUES, params.QC_FLAG_MEANINGS.split(), strict=True)
-    )
+    meanings = params.QC_FLAG_MEANING
     fig.legend(
         handles=[
             Patch(color=QC_COLORS[f], label=f"{f} {meanings[f]}")

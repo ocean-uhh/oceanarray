@@ -23,6 +23,9 @@ What changes for you:
 - **Read values through the rule** when you use a stack yourself:
   ``oceanarray.pipeline.masking.masked(ds, "salinity")`` returns the values with
   the hidden ones as NaN.
+- ``--mask-flags`` on ``run`` now sets the **stack's** rule (what the pages hide and
+  what the grid leaves out); before, it set the grid's only. A ``grid: mask_flags`` in
+  the YAML adds to it.
 - ``grid: mask_flags`` now only **adds** to the stack's rule; one that drops a flag
   the stack hides is refused. The default changed from ``[4, 9]`` to the stack's.
 - ``concat`` refuses deployments whose rules differ unless ``--mask-flags`` gives the

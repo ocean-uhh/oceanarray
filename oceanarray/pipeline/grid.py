@@ -109,6 +109,14 @@ def grid(
         If the stack has no ``pressure`` variable, or *mask_flags* is invalid or
         drops a flag the stack's rule hides.
     """
+    if masking.STACK_ATTR not in ds_stack.attrs:
+        # A stack written before the rule was recorded (its values are already
+        # masked with 3, 4 and 9): say which rule the grid uses.
+        log.warning(
+            f"  {ds_stack.attrs.get('mooring_name', 'stack')}: the stack records no "
+            f"{masking.STACK_ATTR}; the grid uses the default "
+            f"{list(params.MASK_FLAGS)}"
+        )
     flags = masking.combine(
         masking.from_attrs(ds_stack.attrs),
         None if mask_flags is None else resolve_mask_flags(mask_flags),
@@ -455,7 +463,14 @@ def _grid_file(
         if reason is None:
             log.info("%s: grid current (%s)", mooring["name"], out_path.name)
             return out_path
-    ds = grid(ds_stack, pmin=pmin, pmax=pmax, dp=dp, mask_flags=mask_flags)
+    try:
+        ds = grid(ds_stack, pmin=pmin, pmax=pmax, dp=dp, mask_flags=mask_flags)
+    except ValueError as exc:
+        # A rule that drops a flag the stack hides, or bad levels: the existing
+        # grid stays as it is.
+        from oceanarray.exceptions import MooringError
+
+        raise MooringError(f"{mooring.get('name', 'mooring')}: {exc}") from exc
     if stack_path is not None:
         ds.attrs["stack_file"] = Path(stack_path).name
         ds.attrs["stack_sha256"] = provenance.sha256(stack_path)

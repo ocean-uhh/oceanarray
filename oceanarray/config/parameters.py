@@ -124,6 +124,15 @@ QC_FLAG_MEANINGS = (
     "unknown good_data probably_good_data potentially_correctable_bad_data "
     "bad_data value_changed nominal_value interpolated_value missing_value"
 )
+#: Each flag's meaning word, by flag value.
+QC_FLAG_MEANING: dict[int, str] = dict(
+    zip(QC_FLAG_VALUES, QC_FLAG_MEANINGS.split(), strict=True)
+)
+
+#: A value that is there but carries no flag (not QC'd), and a step with no value.
+QC_NOT_EVALUATED = 0
+QC_MISSING = 9
+
 #: The one place oceanarray's flag table departs from OceanSITES 1.4, said in the
 #: ``comment`` of every flag variable that can hold it.
 QC_FLAG_5_COMMENT = (

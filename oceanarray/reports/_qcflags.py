@@ -17,33 +17,10 @@ import xarray as xr
 from oceanarray.config import parameters as params
 from oceanarray.pipeline import masking
 from oceanarray.pipeline.qc.originator import MAPPED_SUFFIX
-from oceanarray.plotters.flags import FLAG_VARIABLES
+from oceanarray.plotters.flags import level_dim as _level_dim
+from oceanarray.plotters.flags import level_labels as _labels
 
-_MEANINGS = dict(
-    zip(params.QC_FLAG_VALUES, params.QC_FLAG_MEANINGS.split(), strict=True)
-)
-
-
-def _level_dim(ds: xr.Dataset) -> str:
-    return "N_DEPTHS" if "N_DEPTHS" in ds.dims else "N_LEVELS"
-
-
-def _labels(ds: xr.Dataset) -> list[str]:
-    """Return one label per row of the time series: instrument and serial, or depth."""
-    if "N_DEPTHS" in ds.dims:
-        depth = ds["nominal_depth"].values if "nominal_depth" in ds else None
-        family = ds["depth_family"].values if "depth_family" in ds else None
-        return [
-            f"{family[k] if family is not None else ''} {depth[k]:.0f} m".strip()
-            if depth is not None and np.isfinite(depth[k])
-            else f"depth {k}"
-            for k in range(ds.sizes["N_DEPTHS"])
-        ]
-    types = ds["instrument_type"].values if "instrument_type" in ds else None
-    return [
-        f"{types[k] if types is not None else ''} {s}".strip()
-        for k, s in enumerate(ds["serial"].values)
-    ]
+_MEANINGS = params.QC_FLAG_MEANING
 
 
 def rule_text(ds: xr.Dataset) -> str:
@@ -83,7 +60,7 @@ def count_rows(ds: xr.Dataset) -> list[dict[str, Any]]:
     rule = masking.from_attrs(ds.attrs)
     labels = _labels(ds)
     rows = []
-    for var in FLAG_VARIABLES:
+    for var in masking.FLAGGED_VARIABLES:
         if var not in ds.data_vars:
             continue
         values = ds[var].transpose(dim, "time").values
@@ -150,7 +127,7 @@ def translation_rows(ds: xr.Dataset) -> tuple[list[dict[str, Any]], list[str]]:
     rows: list[dict[str, Any]] = []
     flagged_levels: set[int] = set()
     any_translation = False
-    for var in FLAG_VARIABLES:
+    for var in masking.FLAGGED_VARIABLES:
         name = f"{var}_flag_translation"
         if name not in ds:
             continue

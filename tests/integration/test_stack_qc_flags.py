@@ -413,3 +413,70 @@ def test_the_caption_names_where_the_description_changes_thresholds(cf7):
     cfg["qc_spike"] = {"salinity": {"suspect_threshold": 0.02}}
     cfg["clamp"][0]["qc_ranges"] = {"temperature": {"fail_span": [-2, 30]}}
     assert threshold_note(cfg) == "the mooring (qc_spike); 22225 (qc_ranges)"
+
+
+def test_a_stack_without_a_rule_is_gridded_with_the_default_and_says_so(cf7, caplog):
+    _, _, files = cf7
+    with xr.open_dataset(files[-2], engine="netcdf4") as ds:
+        st = ds.load()
+    del st.attrs["stack_mask_flags"]
+    with caplog.at_level(logging.WARNING, logger="oceanarray"):
+        out = oa.grid(st, pmin=40, pmax=520, dp=40)
+    assert "the stack records no stack_mask_flags; the grid uses the default [4]" in (
+        caplog.text
+    )
+    assert json.loads(out.attrs["grid_mask_flags"]) == {"default": [4]}
+
+
+def test_a_grid_rule_that_drops_a_flag_stops_with_the_mooring_named(cf7):
+    from oceanarray import mooring
+    from oceanarray.pipeline.grid import _grid_file
+
+    yaml_path, proc, files = cf7
+    cfg = mooring.load(yaml_path)
+    with xr.open_dataset(files[-2], engine="netcdf4") as ds:
+        st = ds.load()
+    st.attrs["stack_mask_flags"] = '{"default": [3, 4]}'
+    before = (proc / "cf7_2020_grid.nc").read_bytes()
+    with pytest.raises(MooringError, match="cf7_2020: .*the grid can only add flags"):
+        _grid_file(st, cfg, proc, pmin=40, pmax=520, dp=40, mask_flags=[4])
+    assert (proc / "cf7_2020_grid.nc").read_bytes() == before  # the grid is kept
+
+
+def test_a_present_value_flagged_missing_is_reported(cf7, caplog):
+    from oceanarray import mooring
+
+    yaml_path, proc, _ = cf7
+    cfg = mooring.load(yaml_path)
+    data = {}
+    for serial, inst in (("22225", "microcat"), ("500", "currentmeter")):
+        with xr.open_dataset(
+            proc / inst / f"cf7_2020_{serial}_stage3.nc", engine="netcdf4"
+        ) as ds:
+            data[serial] = ds.load()
+    data["22225"]["salinity_qc_originator_mapped"].values[:5] = 9
+    with caplog.at_level(logging.WARNING, logger="oceanarray"):
+        oa.stack(data, cfg)
+    assert (
+        "salinity_qc_originator_mapped values that are there were flagged missing"
+        in (caplog.text)
+    )
+
+
+def test_concat_fills_velocity_flag_from_any_velocity_component(cf7):
+    """A deployment with north velocity but no east velocity or velocity_flag."""
+    from oceanarray.pipeline.concat import concat
+
+    _, _, files = cf7
+    with xr.open_dataset(files[-2], engine="netcdf4") as ds:
+        a = ds.load()
+    b = a.copy()
+    b["time"] = a["time"].values + np.timedelta64(10, "D")
+    b.attrs = {**a.attrs, "mooring_name": "cf7_2020b"}
+    b = b.drop_vars(["velocity_flag", "east_velocity"])
+    site = concat([a, b], name="CF7")
+    second = site["time"].values >= b["time"].values[0]
+    north = site["north_velocity"].values[second]
+    flag = site["velocity_flag"].values[second]
+    assert np.isfinite(north).any()
+    assert not ((flag == 9) & np.isfinite(north)).any()
