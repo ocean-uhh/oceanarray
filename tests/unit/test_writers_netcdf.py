@@ -461,3 +461,18 @@ def test_cast_drops_stale_packing_encoding(tmp_path):
         assert "scale_factor" not in raw["temperature"].attrs
     finally:
         raw.close()
+
+
+def test_global_attributes_are_written_at_storage_precision(tmp_path):
+    """Numbers in the global attributes are cast as variables are; positions are not."""
+    with xr.open_dataset(_FIXTURES["grid"], engine="netcdf4") as ds:
+        grid = ds.load()
+    grid.attrs.update(
+        {"dp_dbar": 0.1, "dt_seconds": 3600, "geospatial_lat_min": 65.123456789}
+    )
+    out = tmp_path / "grid.nc"
+    write(grid, out)
+    with xr.open_dataset(out, engine="netcdf4") as back:
+        assert back.attrs["dp_dbar"].dtype == np.float32
+        assert back.attrs["dt_seconds"].dtype == np.int32
+        assert back.attrs["geospatial_lat_min"] == 65.123456789
