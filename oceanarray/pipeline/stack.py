@@ -1489,7 +1489,8 @@ def _stack_file(
     )
     if digest := people_source_sha256(mooring):
         ds.attrs[PEOPLE_SOURCE_ATTR] = digest
-    _stage.append_history(ds, f"stack rebuilt: {reason or ('stage processing failed' if failures else 'unknown')}")
+    why = reason or ("stage processing failed" if failures else "unknown")
+    _stage.append_history(ds, f"stack rebuilt: {why}")
     if failures:
         # The grid inherits this attribute from the stack.
         ds.attrs["keep_going_failures"] = "; ".join(failures)
