@@ -106,6 +106,7 @@ def count_rows(ds: xr.Dataset) -> list[dict[str, Any]]:
                 continue
             row = {
                 "level": labels[k],
+                "serial": str(ds["serial"].values[k]) if dim == "N_LEVELS" else "",
                 "variable": var,
                 "ours_3": _count(ours, k, 3, here),
                 "ours_4": _count(ours, k, 4, here),
@@ -192,3 +193,35 @@ def translation_rows(ds: xr.Dataset) -> tuple[list[dict[str, Any]], list[str]]:
         if k not in flagged_levels
     ]
     return rows, without
+
+
+#: The mooring-YAML keys that change a QC test's thresholds (mooring or instrument
+#: level; see :func:`oceanarray.pipeline.qc.resolve_qc_config`).
+QC_OVERRIDE_KEYS: tuple[str, ...] = ("qc_ranges", "qc_spike", "tilt_qc", "qc_flat_line")
+
+
+def threshold_note(mooring: dict[str, Any]) -> str:
+    """Return where the description changes the QC thresholds, in words, or ``""``.
+
+    Parameters
+    ----------
+    mooring : dict
+        The loaded mooring description.
+
+    Returns
+    -------
+    str
+        ``"the mooring (qc_spike); 2941 (qc_ranges)"``, or ``""`` when every
+        instrument ran with the defaults.
+    """
+    from oceanarray.instruments import instrument_entries
+
+    parts = []
+    own = [k for k in QC_OVERRIDE_KEYS if k in mooring]
+    if own:
+        parts.append(f"the mooring ({', '.join(own)})")
+    for entry in instrument_entries(mooring):
+        keys = [k for k in QC_OVERRIDE_KEYS if k in entry]
+        if keys:
+            parts.append(f"{entry.get('serial', '?')} ({', '.join(keys)})")
+    return "; ".join(parts)

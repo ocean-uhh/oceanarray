@@ -30,8 +30,8 @@ QC flag values
      <td><span style="background:#2980b9;color:#fff;border-radius:4px;padding:2px 8px;font-weight:bold">2</span></td>
      <td>probably_good_data</td>
      <td>Not evaluated</td>
-     <td><strong>Not used</strong> — conflict between OceanSITES and QARTOD meanings;
-         see note below</td>
+     <td><strong>Not set by oceanarray's QC</strong> — QARTOD's 2 (not evaluated)
+         becomes 0; an originator's "probably good" word gives 2; see note below</td>
    </tr>
    <tr>
      <td><span style="background:#e67e22;color:#fff;border-radius:4px;padding:2px 8px;font-weight:bold">3</span></td>
@@ -75,11 +75,14 @@ QC flag values
 
 .. note::
 
-   **Flag 2 is not used.**  OceanSITES flag 2 means "probably_good_data"
-   (a positive quality judgement), while QARTOD flag 2 means "test not evaluated"
-   (no information).  To avoid this ambiguity, ``oceanarray`` assigns only flags
-   1, 3, 4, 8, and 9.  Data that pass all tests receive flag 1; data that fail the
-   suspect threshold receive flag 3; data that fail the hard threshold receive flag 4.
+   **oceanarray's QC never sets flag 2.**  OceanSITES flag 2 means
+   "probably_good_data" (a positive quality judgement), while QARTOD flag 2 means
+   "test not evaluated" (no information, e.g. the spike test at a record edge or
+   beside a gap). A QARTOD 2 is therefore written 0 (unknown), never 2. Data that
+   pass all tests receive flag 1; data that fail the suspect threshold receive flag
+   3; data that fail the hard threshold receive flag 4. A 2 in an oceanarray file
+   comes only from an originator's flags translated by meaning (e.g.
+   ``appears_probably_good``), in ``<var>_qc_originator_mapped``.
 
 See :doc:`../yaml_configuration` for the ``qc_ranges`` configuration block.
 
@@ -420,8 +423,8 @@ What QC does not do
 -------------------
 
 - It never changes a value; it only adds flags.
-- It does not use flag 2 (probably good), so the OceanSITES and QARTOD meanings
-  cannot be confused.
+- It never sets flag 2 (probably good): QARTOD's "not evaluated" 2 becomes 0, so
+  the OceanSITES and QARTOD meanings cannot be confused.
 
 The thresholds used are stored on each ``*_qc`` variable.
 

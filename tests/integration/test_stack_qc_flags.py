@@ -401,3 +401,15 @@ def test_mask_flags_from_the_call_adds_to_the_yaml_grid_rule():
     rule = masking.union({"default": (3, 4)}, {"default": (4, 9)})
     assert rule == {"default": (3, 4, 9)}
     assert masking.union({"default": (4,)}, {"velocity": (3,)})["velocity"] == (3, 4)
+
+
+def test_the_caption_names_where_the_description_changes_thresholds(cf7):
+    from oceanarray import mooring
+    from oceanarray.reports._qcflags import threshold_note
+
+    yaml_path, _, _ = cf7
+    cfg = mooring.load(yaml_path)
+    assert threshold_note(cfg) == ""
+    cfg["qc_spike"] = {"salinity": {"suspect_threshold": 0.02}}
+    cfg["clamp"][0]["qc_ranges"] = {"temperature": {"fail_span": [-2, 30]}}
+    assert threshold_note(cfg) == "the mooring (qc_spike); 22225 (qc_ranges)"
