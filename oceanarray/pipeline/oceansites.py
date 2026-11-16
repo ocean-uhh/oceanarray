@@ -214,8 +214,8 @@ def _sensor_attrs(ds: xr.Dataset, name: str, start: str, end: str) -> dict[str, 
     date of the sensor that measured *name* (else the record's latest). The model is
     ``UNK`` when nothing states it.
     """
-    record_name = str(ds[name].attrs.get("sensor", "")) if name in ds else ""
-    record = dict(ds[record_name].attrs) if record_name in ds.variables else {}
+    # Its own record, or the file's one record for a variable derived at stage 3.
+    record = sensors.record_of(ds, name)
     if not record:
         # A file written before sensor records: its per-sensor variables.
         for var in ds.variables.values():

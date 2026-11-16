@@ -151,7 +151,17 @@ def build_record(
     xarray.Dataset
         *ds* with one ``SENSOR_<type>_<serial>`` variable, the per-sensor variables
         removed, and ``sensor`` on every data variable on ``time``.
+
+    Raises
+    ------
+    ValueError
+        When *serial* is empty: two such instruments would share one record name.
     """
+    if not str(serial or "").strip():
+        raise ValueError(
+            f"{entry.get('instrument', 'an instrument')}: no serial; a sensor record "
+            "is named by the instrument's serial"
+        )
     name = record_name(entry.get("instrument", ""), serial)
     attrs: dict[str, str] = {
         "long_name": "",
@@ -171,11 +181,13 @@ def build_record(
         if date and date != "—":
             # Kept as written when it is not an ISO date (only ISO dates are compared).
             dates[sensor] = date
+        # The coefficients named for this sensor (TEMPERATURE_calibration_...),
+        # never another sensor's that the variable might also carry.
         coefficients = next(
             (
                 v
                 for k, v in meta.items()
-                if k.lower().endswith("_calibration_coefficients")
+                if k.lower() == f"{sensor}_calibration_coefficients"
             ),
             "",
         )
@@ -233,9 +245,7 @@ def build_record(
         (), np.int8(0), attrs={k: v for k, v in attrs.items() if v != ""}
     )
     for var in ds.data_vars.values():
-        if "time" in var.dims and not var.name.endswith(
-            ("_qc", "_qc_originator", "_flag")
-        ):
+        if _links(var):
             var.attrs["sensor"] = name
     return ds
 
@@ -260,7 +270,72 @@ def records(ds: xr.Dataset) -> dict[str, dict[str, Any]]:
     }
 
 
-def instrument_record(ds: xr.Dataset, instrument: str, serial: str) -> tuple[str, dict]:
+def _links(var: xr.DataArray) -> bool:
+    """Return whether *var* is a data variable that names its sensor record."""
+    return "time" in var.dims and not str(var.name).endswith(
+        ("_qc", "_qc_originator", "_flag")
+    )
+
+
+def _borrowed(var: xr.DataArray) -> bool:
+    """Return whether *var* came from other instruments (``*_source_serials``)."""
+    return any(str(k).endswith("_source_serials") for k in var.attrs)
+
+
+def record_of(ds: xr.Dataset, name: str) -> dict[str, Any]:
+    """Return the attributes of the sensor record that measured variable *name*.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        A single-instrument file (stage 1-3).
+    name : str
+        A data variable.
+
+    Returns
+    -------
+    dict
+        The record its ``sensor`` attribute names; else, when the file holds exactly
+        one record and the variable was not taken from other instruments, that
+        record (a variable derived after stage 1); else ``{}``.
+    """
+    own = records(ds)
+    linked = str(ds[name].attrs.get("sensor", "")) if name in ds else ""
+    if linked in own:
+        return own[linked]
+    if len(own) != 1 or (name in ds and _borrowed(ds[name])):
+        return {}
+    return next(iter(own.values()))
+
+
+def link_derived(ds: xr.Dataset) -> xr.Dataset:
+    """Name the file's one sensor record on data variables derived after stage 1.
+
+    Salinity, ENU velocities and the other variables stage 3 makes come from the
+    instrument's own measurements. A variable taken from other instruments (pressure
+    interpolated from its neighbors, marked by a ``*_source_serials`` attribute) is
+    not linked, and a file with several records is left as it is.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        A single-instrument file.
+
+    Returns
+    -------
+    xarray.Dataset
+        *ds*, with ``sensor`` on every time-series data variable that lacked it.
+    """
+    own = list(records(ds))
+    if len(own) != 1:
+        return ds
+    for var in ds.data_vars.values():
+        if _links(var) and "sensor" not in var.attrs and not _borrowed(var):
+            var.attrs["sensor"] = own[0]
+    return ds
+
+
+def sensor_record(ds: xr.Dataset, instrument: str, serial: str) -> tuple[str, dict]:
     """Return the name and attributes of an instrument's one sensor record.
 
     A stage file written with sensor records names its record in its data

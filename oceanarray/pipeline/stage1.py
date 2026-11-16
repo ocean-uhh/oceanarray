@@ -604,11 +604,11 @@ def _add_source(dataset: xr.Dataset, mooring: Mapping[str, Any]) -> xr.Dataset:
     dataset.attrs.update(out)
     own = [
         f
-        for f in attribution.SOURCE_FIELDS
+        for f in attribution.CITATION_FIELDS
         if f"source_{f}" in out and dataset.attrs.get(f"originator_{f}")
     ]
     given = [
-        f for f in attribution.SOURCE_FIELDS if f"source_{f}" in out and f not in own
+        f for f in attribution.CITATION_FIELDS if f"source_{f}" in out and f not in own
     ]
     parts = []
     if own:

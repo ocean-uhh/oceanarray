@@ -42,6 +42,8 @@ the same levels and ``mask_flags``; otherwise it rebuilds them, and the history 
 why.  ``--force`` rebuilds them too.  A new oceanarray release rebuilds them, but a
 code change without a new version does not: after updating oceanarray from a git
 checkout (an editable install), run with ``--force`` to rebuild the stack and grid.
+The ``people:`` and ``source:`` blocks are applied at stage 1, so after editing
+them run with ``--force``; ``run`` warns when they changed since the stack was built.
 
 **Exit status**: 0 when the command did its work (``process`` and ``run`` also
 when instruments were left out, unless ``--strict``); 1 when it failed, or

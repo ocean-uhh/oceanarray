@@ -24,9 +24,12 @@ several sources cites them all (:func:`product_citation`).
 
 from __future__ import annotations
 
+import logging
 import re
 import warnings
 from collections.abc import Iterable, Mapping, Sequence
+
+log = logging.getLogger(__name__)
 
 #: Fields of one principal investigator, and of one contributor entry.
 PI_FIELDS = ("name", "email", "url", "id")
@@ -565,7 +568,7 @@ PEOPLE_BLOCK_KEYS: tuple[str, ...] = (
 
 #: What a ``source:`` block (and a file) can say about where the data came from;
 #: each is written as ``source_<field>``.
-SOURCE_FIELDS: tuple[str, ...] = (
+CITATION_FIELDS: tuple[str, ...] = (
     "doi",
     "citation",
     "license",
@@ -574,7 +577,13 @@ SOURCE_FIELDS: tuple[str, ...] = (
 )
 
 #: The fields a description's ``source:`` block may hold.
-SOURCE_BLOCK_KEYS: tuple[str, ...] = (*SOURCE_FIELDS, "source_note")
+SOURCE_BLOCK_KEYS: tuple[str, ...] = (*CITATION_FIELDS, "source_note")
+
+#: The ``source_*`` attributes a product carries: one per citation field, and the note.
+SOURCE_ATTRS: tuple[str, ...] = (
+    *(f"source_{f}" for f in CITATION_FIELDS),
+    "source_note",
+)
 
 #: A DOI: the ``10.`` prefix, a registrant code, a slash and a suffix.
 _DOI = re.compile(r"^10\.\d{4,9}/\S+$")
@@ -767,7 +776,7 @@ def source_attrs(
     block = block or {}
     out: dict[str, str] = {}
     both: list[str] = []
-    for field in SOURCE_FIELDS:
+    for field in CITATION_FIELDS:
         own = str(attrs.get(f"originator_{field}") or "").strip()
         given = str(block.get(field) or "").strip()
         if own and given and own != given:
@@ -865,7 +874,7 @@ def deployment_sources(
         One ``{"source_<field>": value}`` per deployment, or the product's own
         ``source_*`` as a single source; empty when nothing is recorded.
     """
-    keys = [f"source_{f}" for f in SOURCE_FIELDS]
+    keys = [f"source_{f}" for f in CITATION_FIELDS]
     if record:
         n = max((len(v) for v in record.values()), default=0)
         return [
@@ -878,3 +887,50 @@ def deployment_sources(
         ]
     own = {key: str(attrs[key]) for key in keys if attrs.get(key)}
     return [own] if own else []
+
+
+def join_sources(
+    attrs_seq: Sequence[Mapping[str, object]],
+    *,
+    what: str,
+    warn: Sequence[str] = SOURCE_ATTRS,
+) -> dict[str, str]:
+    """Return the ``source_*`` attributes of several files, one joined value each.
+
+    Each value is kept whole (a citation may itself hold ``"; "``), once, in order;
+    values that differ are joined with ``"; "``.
+
+    Parameters
+    ----------
+    attrs_seq : Sequence of Mapping
+        The global attributes of each file (stage files of a mooring, stacks of a
+        site), in order.
+    what : str
+        What the files are, for the warning (``"the stage files"``,
+        ``"egM4: the deployments"``).
+    warn : Sequence of str, optional
+        The attributes for which a second value draws a warning. A mooring comes
+        from one data package, so the stack warns on every field; the deployments of
+        a site may come from different packages, so concat warns only on the
+        license, which a user must follow for each.
+
+    Returns
+    -------
+    dict of str to str
+        ``{source_<field>: joined value}`` for every field any file gives.
+    """
+    out: dict[str, str] = {}
+    for key in SOURCE_ATTRS:
+        values: list[str] = []
+        for attrs in attrs_seq:
+            value = str(attrs.get(key) or "").strip()
+            if value and value not in values:
+                values.append(value)
+        if len(values) > 1 and key in warn:
+            log.warning(
+                f"  {what} give {len(values)} values of {key}; all are kept"
+                + (", and a user must follow each" if key == "source_license" else "")
+            )
+        if values:
+            out[key] = "; ".join(values)
+    return out

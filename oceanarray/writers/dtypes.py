@@ -2,16 +2,36 @@
 
 from __future__ import annotations
 
-import re
 from typing import Any
 
 import numpy as np
 import xarray as xr
 
-#: Attribute names kept at double precision: positions (degrees need it).
-_POSITION = re.compile(r"(^|_)(lat|lon|latitude|longitude)(_|$)|latitude|longitude")
-
 _INT32 = np.iinfo(np.int32)
+
+
+def is_position(name: str) -> bool:
+    """Return whether *name* holds a position, kept at double precision.
+
+    One rule for variables and attributes: ``latitude`` / ``longitude`` anywhere in
+    the name, or ACDD's ``geospatial_lat_*`` / ``geospatial_lon_*``.
+
+    Parameters
+    ----------
+    name : str
+        A variable or attribute name.
+
+    Returns
+    -------
+    bool
+        True for a position.
+    """
+    low = name.lower()
+    return (
+        "latitude" in low
+        or "longitude" in low
+        or low.startswith(("geospatial_lat", "geospatial_lon"))
+    )
 
 
 def find_best_dtype(var_name: str, da: xr.DataArray) -> type:
@@ -52,7 +72,7 @@ def find_best_dtype(var_name: str, da: xr.DataArray) -> type:
         return np.int8
     if var_name in ("serial_number", "serial"):
         return np.int32
-    if "latitude" in var_name.lower() or "longitude" in var_name.lower():
+    if is_position(var_name):
         return np.float64
     if da.dtype.kind in ("i", "u") and da.dtype.itemsize == 8:
         return np.int32
@@ -122,7 +142,7 @@ def cast_attr(name: str, value: Any) -> Any:  # any attribute value
     Any
         The value cast, or *value* itself when no cast applies.
     """
-    if isinstance(value, (bool, np.bool_)) or _POSITION.search(name.lower()):
+    if isinstance(value, (bool, np.bool_)) or is_position(name):
         return value
     if "time" in name.lower():
         return value
@@ -178,6 +198,9 @@ def same_attr(name: str, stored: Any, expected: Any) -> bool:
         return stored is None and expected is None
     want = cast_attr(name, expected)
     try:
-        return bool(np.array_equal(np.asarray(stored), np.asarray(want)))
+        # equal_nan: a NaN position or depth recorded as NaN is unchanged.
+        if np.array_equal(np.asarray(stored), np.asarray(want), equal_nan=True):
+            return True
     except (TypeError, ValueError):
-        return str(stored) == str(want)
+        pass  # text: compared as written below
+    return str(stored) == str(want)

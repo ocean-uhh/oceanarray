@@ -13,10 +13,9 @@ from oceanarray import logger, paths, provenance
 from oceanarray.config import parameters as params
 from oceanarray.pipeline import _stage, attribution
 from oceanarray.pipeline._run import DEFAULTS
-from oceanarray.pipeline.concat import chunks, is_site_stack, own_levels, sha256
+from oceanarray.pipeline.concat import chunks, is_site_stack, own_levels
 from oceanarray.pipeline.units import to_canonical_units
 from oceanarray.writers import write
-from oceanarray.writers.dtypes import same_attr
 from oceanarray.writers.netcdf import as_stored
 
 log = logging.getLogger(__name__)
@@ -503,15 +502,16 @@ def grid_stale_reason(
         return "no grid yet"
     with xr.open_dataset(grid_path, engine="netcdf4") as old:
         attrs = dict(old.attrs)
-    was = provenance.public_version(attrs.get(provenance.VERSION_ATTR))
-    now = provenance.public_version(provenance.version_attrs()[provenance.VERSION_ATTR])
-    if was != now:
-        return f"oceanarray {was or 'unknown'} wrote it, this is {now}"
+    if (reason := provenance.release_change_reason(attrs)) is not None:
+        return reason
     if attrs.get("stack_sha256") != provenance.sha256(stack_path):
         return f"{stack_path.name} changed"
-    for key, value in (("p_start_dbar", pmin), ("p_end_dbar", pmax), ("dp_dbar", dp)):
-        if not same_attr(key, attrs.get(key), float(value)):
-            return f"{key} changed"
+    key = provenance.changed_attr(
+        attrs,
+        {"p_start_dbar": float(pmin), "p_end_dbar": float(pmax), "dp_dbar": float(dp)},
+    )
+    if key is not None:
+        return f"{key} changed"
     flags = resolve_mask_flags(mask_flags)
     if attrs.get("grid_mask_flags") != json.dumps(
         {k: list(v) for k, v in flags.items()}
@@ -701,7 +701,7 @@ def grid_site(
     except ValueError as exc:
         raise MooringError(f"{site}: cannot grid the site stack: {exc}") from exc
     out.attrs["stackcat_file"] = stackcat.name
-    out.attrs["stackcat_sha256"] = sha256(stackcat)
+    out.attrs["stackcat_sha256"] = provenance.sha256(stackcat)
     write(out, out_path, overwrite=overwrite, chunks=chunks(out))
     log.info(f"wrote {out_path}")
     return out_path

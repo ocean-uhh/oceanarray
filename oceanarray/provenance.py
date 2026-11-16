@@ -156,3 +156,58 @@ def sha256(path: str | Path) -> str:
         for chunk in iter(lambda: fh.read(1 << 20), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def release_change_reason(attrs: Mapping[str, object]) -> str | None:
+    """Return why a product's oceanarray release differs from this one, or None.
+
+    Only the public version counts: a commit hash or ``.dirty`` added in a git
+    checkout does not make a product stale (rebuild with ``force`` after changing
+    the code without a new version).
+
+    Parameters
+    ----------
+    attrs : Mapping
+        The product's global attributes.
+
+    Returns
+    -------
+    str or None
+        ``"oceanarray <was> wrote it, this is <now>"``, or None for the same release.
+    """
+    was = public_version(attrs.get(VERSION_ATTR))
+    now = public_version(version_attrs()[VERSION_ATTR])
+    if was != now:
+        return f"oceanarray {was or 'unknown'} wrote it, this is {now}"
+    return None
+
+
+def changed_attr(
+    attrs: Mapping[str, object], expected: Mapping[str, object]
+) -> str | None:
+    """Return the first attribute (in name order) a product holds differently, or None.
+
+    Values are compared at the precision the writer stores them
+    (:func:`oceanarray.writers.dtypes.same_attr`), so a float32 ``dp_dbar`` or a NaN
+    position read back is not a change.
+
+    Parameters
+    ----------
+    attrs : Mapping
+        The product's global attributes.
+    expected : Mapping
+        The values the current run would write.
+
+    Returns
+    -------
+    str or None
+        The attribute name, or None when all agree.
+    """
+    from oceanarray.writers.dtypes import same_attr
+
+    for key in sorted(expected):
+        # An absent attribute reads as "" where the expected value is text.
+        stored = attrs.get(key, "" if isinstance(expected[key], str) else None)
+        if not same_attr(key, stored, expected[key]):
+            return key
+    return None

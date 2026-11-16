@@ -21,7 +21,6 @@ from oceanarray.pipeline.qc import _apply_qc_mask, _worst_flag
 from oceanarray.pipeline.read_mooring import read_mooring
 from oceanarray.pipeline.units import UnitsError, to_canonical_units
 from oceanarray.writers import write
-from oceanarray.writers.dtypes import same_attr
 from oceanarray.writers.netcdf import as_stored
 
 log = logging.getLogger(__name__)
@@ -632,7 +631,7 @@ def stack(
         )
 
         # From the instrument's own file (an ADCP's bins and head share its record).
-        rec_name, rec_attrs = sensors.instrument_record(
+        rec_name, rec_attrs = sensors.sensor_record(
             _adcp_parent_datasets[info["_adcp_nc_key"]]
             if "_adcp_nc_key" in info
             else info["ds"],
@@ -1025,7 +1024,10 @@ def stack(
     )
     # Where the data came from (stage 1's source_*): one package per mooring, so one
     # value each; a second value is kept beside the first, with a warning.
-    sources = _joined_sources(kept_infos)
+    sources = attribution.join_sources(
+        [info["ds"].attrs for info in kept_infos],
+        what="the stage files (one mooring is expected to come from one data package)",
+    )
     ds_out.attrs.update(sources)
     ds_out.attrs.update(
         attribution.product_citation(
@@ -1154,30 +1156,6 @@ def mooring_attrs(mooring_config: Mapping) -> dict[str, str]:
     }
 
 
-def _joined_sources(infos: Sequence[Mapping]) -> dict[str, str]:
-    """Return the ``source_*`` attributes of the stacked stage files, one value each.
-
-    A mooring comes from one data package, so every stage file should agree; a
-    second value is kept after the first (``"; "``) with a warning naming the field.
-    """
-    out: dict[str, str] = {}
-    keys = [f"source_{f}" for f in attribution.SOURCE_FIELDS] + ["source_note"]
-    for key in keys:
-        values: list[str] = []
-        for info in infos:
-            value = str(info["ds"].attrs.get(key) or "").strip()
-            if value and value not in values:
-                values.append(value)
-        if len(values) > 1:
-            log.warning(
-                f"  {key}: the stage files give {len(values)} values (one mooring is "
-                "expected to come from one data package); all are kept"
-            )
-        if values:
-            out[key] = "; ".join(values)
-    return out
-
-
 def _read_best_stage(
     mooring: dict, proc_dir: Path
 ) -> tuple[dict[str, xr.Dataset], list[str]]:
@@ -1289,10 +1267,8 @@ def stack_stale_reason(
                 if " " in item:
                     file, digest = item.rsplit(" ", 1)
                     recorded[file] = digest
-    was = provenance.public_version(attrs.get(provenance.VERSION_ATTR))
-    now = provenance.public_version(provenance.version_attrs()[provenance.VERSION_ATTR])
-    if was != now:
-        return f"oceanarray {was or 'unknown'} wrote it, this is {now}"
+    if (reason := provenance.release_change_reason(attrs)) is not None:
+        return reason
     if recorded is None:
         return "it predates recorded stage-file hashes"
     current = {
@@ -1314,22 +1290,55 @@ def stack_stale_reason(
         "deployment_time": str(np.datetime64(mooring["deployment_time"], "ns")),
         "recovery_time": str(np.datetime64(mooring["recovery_time"], "ns")),
     }
-    for key in sorted(
-        set(expected)
-        | {
-            k
-            for k in attrs
-            if k.endswith("_source") and k[:-7] in _mooring.SOURCE_FIELDS
-        }
-    ):
-        if not same_attr(key, attrs.get(key, ""), expected.get(key, "")):
-            return f"the description's {key} changed"
+    for k in attrs:
+        # A <field>_source the stack holds but the description no longer states.
+        if k.endswith("_source") and k[:-7] in _mooring.SOURCE_FIELDS:
+            expected.setdefault(k, "")
+    if (key := provenance.changed_attr(attrs, expected)) is not None:
+        return f"the description's {key} changed"
     want = _stack_settings(
         _mooring.settings_yaml(mooring, stack={"dt_seconds": dt_seconds})
     )
     if _stack_settings(str(attrs.get("deployment_settings", ""))) != want:
         return "the description's settings for the stack changed"
+    if attrs.get(PEOPLE_SOURCE_ATTR, "") != people_source_sha256(mooring):
+        # Stage 1 applies people: and source:, so a new stack from the same stage
+        # files would carry the old values; only rerunning stage 1 brings them in.
+        log.warning(
+            f"{mooring.get('name', '')}: the description's people:/source: changed "
+            "after stage 1 wrote the stage files; rerun with --force to bring them "
+            "into the products"
+        )
     return None
+
+
+#: The stack attribute holding the SHA-256 of the description's ``people:`` and
+#: ``source:`` blocks (absent when the description has neither).
+PEOPLE_SOURCE_ATTR = "people_source_sha256"
+
+
+def people_source_sha256(mooring: Mapping) -> str:
+    """Return the SHA-256 of the description's ``people:`` and ``source:`` blocks.
+
+    Parameters
+    ----------
+    mooring : Mapping
+        The loaded mooring description.
+
+    Returns
+    -------
+    str
+        The hex digest of the two blocks as sorted JSON, or ``""`` when the
+        description has neither.
+    """
+    import hashlib
+    import json
+
+    blocks = {k: mooring[k] for k in ("people", "source") if mooring.get(k)}
+    if not blocks:
+        return ""
+    text = json.dumps(blocks, sort_keys=True, default=str)
+    return hashlib.sha256(text.encode()).hexdigest()
 
 
 def _add_stage_files(
@@ -1474,7 +1483,12 @@ def _stack_file(
         omitted=omitted,
         stage2_reason=stage2_reason or "no stage-3 file",
     )
-    ds = _add_stage_files(ds, stage_paths, mooring_dir)
+    # A file that could not be read is not recorded: the next run tries it again.
+    ds = _add_stage_files(
+        ds, {s: p for s, p in stage_paths.items() if s in datasets}, mooring_dir
+    )
+    if digest := people_source_sha256(mooring):
+        ds.attrs[PEOPLE_SOURCE_ATTR] = digest
     _stage.append_history(ds, f"stack rebuilt: {reason}")
     if failures:
         # The grid inherits this attribute from the stack.

@@ -758,7 +758,7 @@ def _gridcat_matches(stack_path: Path, name: str) -> bool:
     """
     import xarray as xr
 
-    from oceanarray.pipeline.concat import sha256
+    from oceanarray.provenance import sha256
 
     gridcat = paths.product_file(stack_path.parent, name, "gridcat")
     if not gridcat.exists():

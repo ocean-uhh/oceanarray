@@ -134,7 +134,7 @@ def test_the_stack_cat_records_each_deployments_source(stacks, caplog):
     ]
     assert list(site["deployment_source_doi"].values) == ["", ADC_DOI]
     assert site.attrs["source_license"] == "CC-BY 4.0; CLIVAR data policy"
-    assert any("2 different licenses" in r.message for r in caplog.records)
+    assert any("give 2 values of source_license" in r.message for r in caplog.records)
     assert (
         f"Derived from: NOC mooring data; doi:{ADC_DOI}. Users must also abide by "
         "the conditions of the source licenses." in site.attrs["citation"]
@@ -459,3 +459,100 @@ def test_the_report_reads_the_calibration_dates_of_older_files(tmp_path):
         ("TEMPERATURE", "2023-03-28"),
         ("CONDUCTIVITY", "2023-03-28"),
     }
+
+
+# ── review fixes ──────────────────────────────────────────────────────
+
+BEFORE = FIX / "proc" / "before_sensor_records" / "dune2_1_2026_2941_stage3.nc"
+
+
+def test_a_changed_source_block_is_flagged_not_silently_kept(egm2016, caplog):
+    """people:/source: reach the products through stage 1; the stack says so."""
+    cfg, folder = egm2016
+    _stack_file(cfg, folder, force=False)
+    cfg["source"] = {"doi": ADC_DOI, "source_note": "corrected DOI"}
+    with caplog.at_level(logging.INFO, logger="oceanarray"):
+        _stack_file(cfg, folder, force=False)
+    messages = [r.getMessage() for r in caplog.records]
+    assert "egM2_2016: stack current (egM2_2016_stack.nc)" in messages
+    assert any(
+        "people:/source: changed after stage 1" in m and "--force" in m
+        for m in messages
+    )
+
+
+def test_a_stack_records_its_people_and_source_blocks(egm2016, caplog):
+    cfg, folder = egm2016
+    cfg["source"] = {"doi": ADC_DOI, "source_note": "Arctic Data Center package"}
+    _stack_file(cfg, folder, force=False)
+    with caplog.at_level(logging.WARNING, logger="oceanarray"):
+        _stack_file(cfg, folder, force=False)
+    assert not any("people:/source:" in r.getMessage() for r in caplog.records)
+
+
+def test_a_stage_file_that_could_not_be_read_is_tried_again(egm2016):
+    cfg, folder = egm2016
+    stage = folder / "microcat" / "egM2_2016_11331_stage3.nc"
+    good = stage.read_bytes()
+    stage.write_bytes(b"not a netCDF file")
+    _, ds = _stack_file(cfg, folder, force=False, keep_going=True)
+    assert "11331" in ds.attrs["instruments_omitted"]
+    assert "11331" not in ds.attrs.get("stage_files_not_stacked", "")
+    stage.write_bytes(good)
+    _, ds = _stack_file(cfg, folder, force=False, keep_going=True)
+    assert (
+        "stack rebuilt: new stage file: microcat/egM2_2016_11331_stage3.nc"
+        in ds.attrs["history"]
+    )
+
+
+def test_coefficients_are_matched_to_their_sensor():
+    from oceanarray.pipeline import sensors
+
+    with xr.open_dataset(BEFORE, engine="netcdf4") as ds:
+        old = ds.load()
+    # A temperature variable that also carries the conductivity coefficients.
+    old["SENSOR_TEMP_2941"].attrs["CONDUCTIVITY_calibration_coefficients"] = old[
+        "SENSOR_CNDC_2941"
+    ].attrs["CONDUCTIVITY_calibration_coefficients"]
+    old["SENSOR_TEMP_2941"].attrs = dict(
+        reversed(list(old["SENSOR_TEMP_2941"].attrs.items()))
+    )
+    rec = sensors.build_record(old, {"instrument": "microcat"}, "2941")[
+        "SENSOR_CTD_2941"
+    ].attrs
+    assert rec["temperature_calibration_coefficients"].startswith("TA0=")
+    assert rec["conductivity_calibration_coefficients"].startswith("G=")
+
+
+def test_an_instrument_without_a_serial_gets_no_record():
+    from oceanarray.pipeline import sensors
+
+    with xr.open_dataset(BEFORE, engine="netcdf4") as ds:
+        old = ds.load()
+    with pytest.raises(ValueError, match="no serial"):
+        sensors.build_record(old, {"instrument": "microcat"}, "")
+
+
+def test_stage3_variables_name_the_instruments_record():
+    """Derived at stage 3 → the file's record; pressure from a neighbor → none."""
+    from oceanarray.pipeline import sensors
+    from oceanarray.pipeline.oceansites import _sensor_attrs
+
+    with xr.open_dataset(
+        DUNE2 / "aquadopp" / "dune2_1_2026_9920_stage3.nc", engine="netcdf4"
+    ) as ds:
+        adcp = sensors.link_derived(ds.load())
+    assert adcp["east_velocity"].attrs["sensor"] == "SENSOR_AQUADOPP_9920"
+    assert "sensor" not in adcp["east_velocity_qc"].attrs
+    with xr.open_dataset(
+        DUNE2 / "microcat" / "dune2_1_2026_2941_stage3.nc", engine="netcdf4"
+    ) as ds:
+        ctd = ds.load()
+    assert sensors.record_of(ctd, "salinity")["sensor_serial_number"] == "2941"
+    assert sensors.record_of(ctd, "pressure") == {}
+    ctd = sensors.link_derived(ctd)
+    assert ctd["salinity"].attrs["sensor"] == "SENSOR_CTD_2941"
+    assert "sensor" not in ctd["pressure"].attrs
+    attrs = _sensor_attrs(ctd, "salinity", "2026-01-01", "2026-02-01")
+    assert attrs["sensor_calibration_date"] == "2023-03-28"

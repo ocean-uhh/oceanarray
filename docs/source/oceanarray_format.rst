@@ -243,7 +243,9 @@ The stack records each level's stage file and its SHA-256 (``stage_file``,
 records its stack (``stack_file``, ``stack_sha256``); the Stack cat records each
 deployment's stack (``stack_file``, ``stack_sha256`` on ``DEPLOYMENT``) and the Grid
 cat its Stack cat (``stackcat_file``, ``stackcat_sha256``). ``oceanarray run``
-compares these to keep a stack or grid that is still current.
+compares these to keep a stack or grid that is still current. A stack built from a
+mooring YAML with a ``people:`` or ``source:`` block also records
+``people_source_sha256``, the SHA-256 of the two blocks, so a later edit is noticed.
 
 Which oceanarray wrote a file
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

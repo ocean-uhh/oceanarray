@@ -406,7 +406,7 @@ _OWN_ATTRS = frozenset(
         "data_mode",
         "oceanarray_version",
         "oceanarray_commit",  # development builds before 0.6.1; never carried over
-        *(f"source_{f}" for f in attribution.SOURCE_FIELDS),
+        *(f"source_{f}" for f in attribution.CITATION_FIELDS),
         "source_note",
         "citation",
         "references",
@@ -849,21 +849,17 @@ def concat(
         )
     # Where each deployment's data came from (its stack's source_*), always one
     # value per deployment; the joined, de-duplicated lists go in the globals.
-    source_keys = [f"source_{f}" for f in attribution.SOURCE_FIELDS] + ["source_note"]
-    for key in source_keys:
+    for key in attribution.SOURCE_ATTRS:
         values = [str(ds.attrs.get(key) or "") for ds in stacks]
         if any(values):
             data_vars[f"deployment_{key}"] = _deployment_var(values)
-    licenses = {
-        str(ds.attrs.get("source_license"))
-        for ds in stacks
-        if ds.attrs.get("source_license")
-    }
-    if len(licenses) > 1:
-        log.warning(
-            f"{name}: the deployments come under {len(licenses)} different licenses; "
-            "all are kept (deployment_source_license), and a user must follow each"
-        )
+    # Deployments may come from different packages (DOIs differ by year); only a
+    # second license draws a warning, since a user must follow each.
+    joined_sources = attribution.join_sources(
+        [ds.attrs for ds in stacks],
+        what=f"{name}: the deployments",
+        warn=("source_license",),
+    )
 
     out = xr.Dataset(
         data_vars,
@@ -901,15 +897,7 @@ def concat(
     finite_lons = [v for v in lons if v is not None]
     out.attrs.update(shared)
     out.attrs.update(attribution.to_attrs(attribution.union(people)))
-    for key in source_keys:
-        joined: list[str] = []
-        for ds in stacks:
-            # Whole values: a citation may itself hold "; ".
-            value = str(ds.attrs.get(key) or "").strip()
-            if value and value not in joined:
-                joined.append(value)
-        if joined:
-            out.attrs[key] = "; ".join(joined)
+    out.attrs.update(joined_sources)
     out.attrs.update(
         attribution.product_citation(
             f"{name} site stack",
