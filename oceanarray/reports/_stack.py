@@ -142,11 +142,11 @@ STACK_CAPTIONS: dict[str, str] = {
         "30 min of the deployment, to check clock alignment across instruments."
     ),
     "qc_strip": (
-        "Flags through time, one panel per instrument: the originator's (translated "
-        "to our table) above oceanarray's, so a value one flagged and the other did "
-        "not reads straight down. Each bar is the worst flag over the level's "
-        "temperature, salinity, conductivity, pressure, velocity, oxygen and "
-        "turbidity. 0: a value with no flag (not QC'd); 9: no value."
+        "Flags through time, one panel per instrument with anything flagged, a pair "
+        "of bars per flagged variable: the originator's (orig, translated to "
+        "oceanarray's table) above oceanarray's (OA), so a value one flagged and the other did not reads "
+        "straight down the pair. Instruments with nothing flagged are left out "
+        "(named under the table). 0: a value with no flag (not QC'd); 9: no value."
     ),
 }
 
@@ -216,9 +216,9 @@ class StackContext:
     qc_rows: list = field(default_factory=list)
     qc_rule: str = ""
     qc_note: str | None = None  # None: not known (a Stack cat)
-    qc_translation: list = field(default_factory=list)
-    qc_without: list = field(default_factory=list)
-    qc_site: bool = False
+    qc_tables: list = field(default_factory=list)
+    qc_unflagged: list = field(default_factory=list)
+    qc_quiet: int = 0
 
 
 def _fig(panel_id: str) -> Callable[[StackContext], str | None]:
@@ -355,22 +355,22 @@ STACK_PANELS: dict[str, Panel] = {
     "qc_counts": Panel(
         "qc_counts",
         render=lambda c: render_template(
-            "_qc_counts.html", rows=c.qc_rows, rule=c.qc_rule, note=c.qc_note
+            "_qc_counts.html",
+            rows=c.qc_rows,
+            rule=c.qc_rule,
+            note=c.qc_note,
+            unflagged=c.qc_unflagged,
+            quiet=c.qc_quiet,
         ),
         kind="table",
         applies_to=lambda c: bool(c.qc_rule),
     ),
-    "qc_strip": _figure_panel("qc_strip", lambda c: bool(c.qc_rule), slot="half"),
+    "qc_strip": _figure_panel("qc_strip", lambda c: bool(c.qc_rule)),
     "qc_translation": Panel(
         "qc_translation",
-        render=lambda c: render_template(
-            "_qc_translation.html",
-            rows=c.qc_translation,
-            without=c.qc_without,
-            site=c.qc_site,
-        ),
+        render=lambda c: render_template("_qc_translation.html", tables=c.qc_tables),
         kind="table",
-        applies_to=lambda c: bool(c.qc_translation),
+        applies_to=lambda c: bool(c.qc_tables),
     ),
     "nc_coords": Panel(
         "nc_coords",
@@ -459,9 +459,6 @@ STACK_SECTIONS: dict[str, Section] = {
 STACK_DEFAULT = Profile(
     numbering="flat",
     entries=(
-        STACK_SECTIONS["processing_history"],
-        STACK_SECTIONS["instruments"],
-        STACK_SECTIONS["quality_flags"],
         STACK_SECTIONS["hydrography"],
         STACK_SECTIONS["velocity"],
         STACK_SECTIONS["turbidity"],
@@ -470,9 +467,12 @@ STACK_DEFAULT = Profile(
         STACK_SECTIONS["analog"],
         STACK_SECTIONS["ts_diagram"],
         STACK_SECTIONS["roses"],
+        STACK_SECTIONS["processing_history"],
+        STACK_SECTIONS["instruments"],
         STACK_SECTIONS["tilt"],
         STACK_SECTIONS["spacing"],
         STACK_SECTIONS["clock_check"],
+        STACK_SECTIONS["quality_flags"],
         STACK_SECTIONS["netcdf_variables"],
         STACK_SECTIONS["netcdf_attributes"],
     ),
@@ -655,18 +655,10 @@ def generate_stack_page(
 
         # The Quality flags section, from the file alone.
         qc_ruled = masking.STACK_ATTR in ds.attrs
-        qc_rows = _qcflags.count_rows(ds) if qc_ruled else []
-        for row in qc_rows:
-            # Each level links to its instrument's thresholds and flag counts.
-            if row["serial"] and _instrument_report_exists(
-                out_dir, mooring_name, row["serial"]
-            ):
-                row["href"] = (
-                    _instrument_report_href(mooring_name, row["serial"]) + "#qc"
-                )
-        qc_translation, qc_without = (
-            _qcflags.translation_rows(ds) if qc_ruled else ([], [])
+        qc_rows, qc_unflagged, qc_quiet = (
+            _qcflags.count_rows(ds) if qc_ruled else ([], [], 0)
         )
+        qc_tables = _qcflags.translation_tables(ds) if qc_ruled else []
         fig_qc_strip_b64 = (
             as_panel(lambda: _make_flag_strip_b64(ds)) if qc_ruled else None
         )
@@ -711,8 +703,9 @@ def generate_stack_page(
                 qc_rows=qc_rows,
                 qc_rule=qc_rule,
                 qc_note=ctx.get("qc_threshold_note", ""),
-                qc_translation=qc_translation,
-                qc_without=qc_without,
+                qc_tables=qc_tables,
+                qc_unflagged=qc_unflagged,
+                qc_quiet=qc_quiet,
                 present_vars=present_vars,
                 instr_types=instr_types_set,
                 n_instr=n_instr,

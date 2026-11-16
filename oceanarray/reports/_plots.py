@@ -444,7 +444,7 @@ def _make_flag_strip_b64(ds: xr.Dataset) -> str | None:
     """Return base64 PNG: the quality-flag strip of a stack or Stack cat."""
     from oceanarray.plotters.flags import draw_flag_strip
 
-    return render_slot(draw_flag_strip, ds, slot="half", optional=True)
+    return render_slot(draw_flag_strip, ds, slot="full", optional=True)
 
 
 def _make_stack_ts_diagram_b64(ds: xr.Dataset) -> str | None:

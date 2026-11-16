@@ -1,21 +1,22 @@
-{# Originator flag translation — the `qc_translation` panel (kind="table"). #}
+{# Originator flag dictionaries — the `qc_translation` panel (kind="table"). #}
 <p class="caption">Originator flags are translated to oceanarray's flag table by
-meaning, into the nearest severity bucket; the originator's wording is not kept in
-the flag (e.g. <code>appears_probably_bad</code> &rarr; 3
-<code>potentially_correctable_bad_data</code>), it is listed here. A word with no known
-meaning becomes 0 (unknown). Only the numbers found on the data are listed.</p>
+meaning, into the nearest severity bucket; the originator's wording is not kept in the
+flag (e.g. <code>appears_probably_bad</code> &rarr; 3
+<code>potentially_correctable_bad_data</code>), it is listed here. One table per
+originator flag table; only the numbers found on the data. A word with no known
+meaning becomes 0 (unknown).</p>
+{% for table in tables %}
 <table class="instr-table">
-  <thead><tr>{% if site %}<th>Deployment</th>{% endif %}<th>Level</th><th>Variable</th><th>Originator flag</th><th>&rarr; ours</th><th>Samples</th></tr></thead>
+  <thead><tr><th>Originator flag</th><th>&rarr; oceanarray</th><th>Used by</th></tr></thead>
   <tbody>
-  {% for row in rows %}
+  {% for row in table.rows %}
   <tr>
-    {% if site %}<td>{{ row.deployment }}</td>{% endif %}
-    <td>{{ row.level }}</td><td>{{ row.variable }}</td>
     <td>{{ row.number }} {{ row.word }}</td>
-    <td>{% if row.ours is none %}{{ row.meaning }}{% else %}{{ row.ours }} {{ row.meaning }}{% endif %}</td>
-    <td>{{ row.samples }}</td>
+    <td>{% if row.ours is none %}0 {{ row.meaning }}{% else %}{{ row.ours }} {{ row.meaning }}{% endif %}</td>
+    <td>{{ row.used_by }}</td>
   </tr>
   {% endfor %}
   </tbody>
 </table>
-{% if without %}<p>No originator flags: {{ without | join(", ") }}.</p>{% endif %}
+<p>Words on the data with no known meaning: {{ table.unknown | join(", ") if table.unknown else "none" }}.</p>
+{% endfor %}

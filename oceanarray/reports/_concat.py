@@ -315,18 +315,18 @@ CONCAT_SECTIONS: dict[str, Section] = {
 CONCAT_DEFAULT = Profile(
     numbering="flat",
     entries=(
+        STACK_SECTIONS["hydrography"],
+        STACK_SECTIONS["velocity"],
+        CONCAT_SECTIONS["speed_profile"],
+        CONCAT_SECTIONS["ts_diagram"],
+        STACK_SECTIONS["roses"],
+        STACK_SECTIONS["turbidity"],
+        STACK_SECTIONS["trajectories"],
+        STACK_SECTIONS["analog"],
         CONCAT_SECTIONS["deployments"],
         CONCAT_SECTIONS["processing_history"],
         CONCAT_SECTIONS["instruments"],
         STACK_SECTIONS["quality_flags"],
-        STACK_SECTIONS["hydrography"],
-        STACK_SECTIONS["velocity"],
-        STACK_SECTIONS["turbidity"],
-        STACK_SECTIONS["trajectories"],
-        CONCAT_SECTIONS["speed_profile"],
-        STACK_SECTIONS["analog"],
-        CONCAT_SECTIONS["ts_diagram"],
-        STACK_SECTIONS["roses"],
         CONCAT_SECTIONS["netcdf_variables"],
         STACK_SECTIONS["netcdf_attributes"],
     ),
@@ -933,16 +933,16 @@ def generate_concat_page(
         figs["qc_strip"] = (
             as_panel(lambda: _make_flag_strip_b64(ds)) if qc_ruled else None
         )
-        qc_translation, qc_without = (
-            _qcflags.translation_rows(ds) if qc_ruled else ([], [])
+        qc_rows, qc_unflagged, qc_quiet = (
+            _qcflags.count_rows(ds) if qc_ruled else ([], [], 0)
         )
         context = ConcatContext(
             figs=figs,
-            qc_rows=_qcflags.count_rows(ds) if qc_ruled else [],
+            qc_rows=qc_rows,
             qc_rule=_qcflags.rule_text(ds) if qc_ruled else "",
-            qc_translation=qc_translation,
-            qc_without=qc_without,
-            qc_site=True,
+            qc_tables=_qcflags.translation_tables(ds) if qc_ruled else [],
+            qc_unflagged=qc_unflagged,
+            qc_quiet=qc_quiet,
             present_vars=set(ds.data_vars),
             instr_types={str(t).lower() for t in ds["instrument_type"].values},
             n_instr=ds.sizes["N_LEVELS"],

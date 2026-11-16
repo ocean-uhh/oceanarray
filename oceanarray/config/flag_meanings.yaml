@@ -25,6 +25,12 @@ meanings:
   appears_bad: 4
   modified_as_a_result_of_qc: 5
   missing: 9
+  # QARTOD aggregate flags (OOI via ERDDAP, *_qc_agg: 1 PASS, 2 NOT_EVALUATED, 3 SUSPECT, 4 FAIL, 9 MISSING).
+  # not_evaluated is no test result, so 0, not 2 (probably good).
+  pass: 1
+  not_evaluated: 0
+  suspect: 3
+  fail: 4
 
 # Known words with no meaning to carry: never translated (a sample with one is
 # written 0, unknown, with a warning).

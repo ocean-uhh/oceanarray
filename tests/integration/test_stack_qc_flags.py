@@ -322,29 +322,26 @@ def test_concat_refuses_different_rules_unless_given(cf7):
 
 
 def test_the_stack_page_has_the_quality_flags_section(cf7, tmp_path):
-    from oceanarray.reports._qcflags import count_rows, translation_rows
+    from oceanarray.reports._qcflags import count_rows, translation_tables
 
     yaml_path, proc, files = cf7
     with xr.open_dataset(files[-2], engine="netcdf4") as ds:
         st = ds.load()
-    rows = count_rows(st)
+    rows, unflagged, quiet = count_rows(st)
     sal = next(r for r in rows if r["variable"] == "salinity")
     assert sal["level"] == "microcat 22225"
-    assert (sal["orig_3"], sal["hidden"]) == (2, 0)
-    hidden = count_rows(st.assign_attrs(stack_mask_flags='{"default": [3, 4]}'))
+    assert sal["hidden"] == 0
+    three = next(p for p in sal["originator"]["parts"] if p["flag"] == 3)
+    assert three["text"].endswith("(2)")
+    assert sal["only_originator"] >= 2
+    assert all(r["level"] not in unflagged for r in rows)
+    assert quiet > 0
+    hidden, _, _ = count_rows(st.assign_attrs(stack_mask_flags='{"default": [3, 4]}'))
     assert next(r for r in hidden if r["variable"] == "salinity")["hidden"] >= 2
-    table, without = translation_rows(st)
-    assert {
-        "level": "microcat 22225",
-        "variable": "salinity",
-        "number": 3,
-        "word": "appears_probably_bad",
-        "ours": 3,
-        "meaning": "potentially_correctable_bad_data",
-    }.items() <= next(
-        r for r in table if r["variable"] == "salinity" and r["number"] == 3
-    ).items()
-    assert any("currentmeter 500" in w for w in without)
+    tables = translation_tables(st)
+    row = next(r for t in tables for r in t["rows"] if r["number"] == 3)
+    assert (row["word"], row["ours"]) == ("appears_probably_bad", 3)
+    assert "22225" in row["used_by"]
 
     page = oa.report(yaml_path, out_dir=tmp_path, instruments=False, grid=False)
     html = (page.parent / "cf7_2020_stack_report.html").read_text(encoding="utf-8")
@@ -480,3 +477,15 @@ def test_concat_fills_velocity_flag_from_any_velocity_component(cf7):
     flag = site["velocity_flag"].values[second]
     assert np.isfinite(north).any()
     assert not ((flag == 9) & np.isfinite(north)).any()
+
+
+def test_used_by_says_all_only_when_every_user_has_the_number():
+    from oceanarray.reports._qcflags import _used_by
+
+    users = {"a": "microcat", "b": "microcat", "c": "microcat"}
+    two = {"a": ["T", "S"], "b": ["T", "S"]}
+    assert _used_by(two, users) == "a: T, S; b: T, S"
+    three = {**two, "c": ["T", "S"]}
+    assert _used_by(three, users) == "all 3 microcats: T, S"
+    mixed = {**users, "c": "adcp"}
+    assert _used_by(three, mixed) == "all 3 instruments: T, S"
