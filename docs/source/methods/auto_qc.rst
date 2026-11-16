@@ -46,6 +46,13 @@ QC flag values
      <td>Fails hard threshold; should not be used</td>
    </tr>
    <tr>
+     <td><span style="background:#e67e22;color:#fff;border-radius:4px;padding:2px 8px;font-weight:bold">5</span></td>
+     <td>value_changed</td>
+     <td>—</td>
+     <td>oceanarray's one extension to OceanSITES 1.4 (where 5 is unused): set only by
+         translating an originator flag that says its QC modified the value</td>
+   </tr>
+   <tr>
      <td><span style="background:#7f8c8d;color:#fff;border-radius:4px;padding:2px 8px;font-weight:bold">7</span></td>
      <td>nominal_value</td>
      <td>—</td>
@@ -336,10 +343,10 @@ these attributes:
    ds["temperature_qc"].attrs == {
        "long_name": "quality flag for temperature",
        "standard_name": "sea_water_temperature status_flag",
-       "flag_values": [0, 1, 2, 3, 4, 7, 8, 9],  # int8, OceanSITES reference table 2
+       "flag_values": [0, 1, 2, 3, 4, 5, 7, 8, 9],  # int8, OceanSITES table 2 + 5
        "flag_meanings": "unknown good_data probably_good_data "
-       "potentially_correctable_bad_data bad_data nominal_value interpolated_value "
-       "missing_value",
+       "potentially_correctable_bad_data bad_data value_changed nominal_value "
+       "interpolated_value missing_value",
        "conventions": "OceanSITES reference table 2",
        "qc_gross_range_fail_min": -2.5,
        "qc_gross_range_fail_max": 40.0,
@@ -380,6 +387,34 @@ Implementation notes
 - Tilt QC for Aquadopps uses pitch and roll recorded at each timestep.
 - All QC flags default to 9 (missing) and are only set to 1/3/4 where data are
   present.
+
+Originator flags
+----------------
+
+A file that comes with its own flags (OceanSITES ``<CODE>_QC``, or a ``<CODE>_flag``
+flag variable) keeps them as written in ``<var>_qc_originator``. Stage 3 translates
+them into our table by **meaning, not number**: the originator's number only finds
+its word (``flag_values`` paired with ``flag_meanings``), and the word is looked up
+in one vocabulary, ``oceanarray/config/flag_meanings.yaml`` (e.g.
+``appears_probably_bad`` → 3, ``modified_as_a_result_of_qc`` → 5). Words are matched
+exactly after lower-casing; a typo is listed as its own word, never guessed. A word
+not in the vocabulary, or one with no meaning (``reserved``), gives 0 (unknown) with
+a warning, so ``mask_flags`` never acts on a meaning we do not know. 7 and 8 are
+never produced from an originator word.
+
+The translation is into the **nearest severity bucket**, not wording-preserving:
+our 3 also receives "suspect" and "probably bad" words. The originator's words stay
+in ``originator_flag_meanings`` and ``flag_translation`` on the variable, and in the
+flag translation table of the stack and Stack cat pages.
+
+Our flags and the translated ones are kept apart (``<var>_qc`` and
+``<var>_qc_originator_mapped``); the stack carries both, and ``mask_flags`` hides a
+value when either is in the rule.
+
+Interpolated pressure is never made from an input flagged 4 or 9 (ours or the
+originator's), whatever ``mask_flags`` says: a target time whose nearest input
+sample is such a sample is missing (9). The inputs' flags are recorded on the
+pressure in ``pressure_source_flags``.
 
 What QC does not do
 -------------------
