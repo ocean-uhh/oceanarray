@@ -215,6 +215,7 @@ class StackContext:
     stage2_reason: str = ""
     qc_rows: list = field(default_factory=list)
     qc_rule: str = ""
+    qc_note: str | None = None  # None: not known (a Stack cat)
     qc_translation: list = field(default_factory=list)
     qc_without: list = field(default_factory=list)
     qc_site: bool = False
@@ -354,7 +355,7 @@ STACK_PANELS: dict[str, Panel] = {
     "qc_counts": Panel(
         "qc_counts",
         render=lambda c: render_template(
-            "_qc_counts.html", rows=c.qc_rows, rule=c.qc_rule
+            "_qc_counts.html", rows=c.qc_rows, rule=c.qc_rule, note=c.qc_note
         ),
         kind="table",
         applies_to=lambda c: bool(c.qc_rule),
@@ -655,6 +656,14 @@ def generate_stack_page(
         # The Quality flags section, from the file alone.
         qc_ruled = masking.STACK_ATTR in ds.attrs
         qc_rows = _qcflags.count_rows(ds) if qc_ruled else []
+        for row in qc_rows:
+            # Each level links to its instrument's thresholds and flag counts.
+            if row["serial"] and _instrument_report_exists(
+                out_dir, mooring_name, row["serial"]
+            ):
+                row["href"] = (
+                    _instrument_report_href(mooring_name, row["serial"]) + "#qc"
+                )
         qc_translation, qc_without = (
             _qcflags.translation_rows(ds) if qc_ruled else ([], [])
         )
@@ -701,6 +710,7 @@ def generate_stack_page(
                 },
                 qc_rows=qc_rows,
                 qc_rule=qc_rule,
+                qc_note=ctx.get("qc_threshold_note", ""),
                 qc_translation=qc_translation,
                 qc_without=qc_without,
                 present_vars=present_vars,
