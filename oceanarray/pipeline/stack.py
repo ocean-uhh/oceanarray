@@ -1112,12 +1112,8 @@ def stack(
         what="the stage files (one mooring is expected to come from one data package)",
     )
     ds_out.attrs.update(sources)
-    ds_out.attrs.update(
-        attribution.product_citation(
-            f"{mooring_name} stack",
-            provenance.version_attrs()[provenance.VERSION_ATTR],
-            [sources] if sources else [],
-        )
+    attribution.apply_product_citation(
+        ds_out, f"{mooring_name} stack", [sources] if sources else []
     )
     if not_cleaned:
         ds_out.attrs["people_not_cleaned"] = "; ".join(not_cleaned)
@@ -1126,6 +1122,11 @@ def stack(
             f"cleaned people; their people are left out (rerun from stage 1): "
             f"{'; '.join(not_cleaned)}"
         )
+
+    # What each imported level's originator file was, and what its originators say
+    # of the deployment (a file with no originator adds nothing).
+    _add_originator_levels(ds_out, kept_infos)
+    ds_out.attrs.update(_originator_globals(kept_infos))
 
     # Beam velocities are superseded by ENU components in the stacked file.
     beam_vel_vars = [v for v in ds_out.data_vars if v.startswith("velocity_beam")]
@@ -1396,7 +1397,8 @@ def stack_stale_reason(
         # Stage 1 applies people: and source:, so a new stack from the same stage
         # files would carry the old values; only rerunning stage 1 brings them in.
         log.warning(
-            f"{mooring.get('name', '')}: the description's people:/source: changed "
+            f"{mooring.get('name', '')}: the description's people:/source: or its "
+            "sensor catalog changed "
             "after stage 1 wrote the stage files; rerun with --force to bring them "
             "into the products"
         )
@@ -1404,12 +1406,15 @@ def stack_stale_reason(
 
 
 #: The stack attribute holding the SHA-256 of the description's ``people:`` and
-#: ``source:`` blocks (absent when the description has neither).
+#: ``source:`` blocks and its sensor catalog (absent when it has none of them).
 PEOPLE_SOURCE_ATTR = "people_source_sha256"
 
 
 def people_source_sha256(mooring: Mapping) -> str:
-    """Return the SHA-256 of the description's ``people:`` and ``source:`` blocks.
+    """Return the SHA-256 of what stage 1 takes from the description beyond the data.
+
+    That is the ``people:`` and ``source:`` blocks and the sensor catalog's
+    contents (``sensor_catalog:``).
 
     Parameters
     ----------
@@ -1419,17 +1424,92 @@ def people_source_sha256(mooring: Mapping) -> str:
     Returns
     -------
     str
-        The hex digest of the two blocks as sorted JSON, or ``""`` when the
-        description has neither.
+        The hex digest of these as sorted JSON, or ``""`` when the description
+        has none of them.
     """
     import hashlib
     import json
 
     blocks = {k: mooring[k] for k in ("people", "source") if mooring.get(k)}
+    if path := mooring.get("sensor_catalog"):
+        # Stage 1 also applies the sensor catalog: its contents, not its path.
+        try:
+            blocks["sensor_catalog"] = Path(str(path)).read_text()
+        except OSError:
+            blocks["sensor_catalog"] = str(path)
     if not blocks:
         return ""
     text = json.dumps(blocks, sort_keys=True, default=str)
     return hashlib.sha256(text.encode()).hexdigest()
+
+
+#: Per level, what an imported level's originator file was: which file, which
+#: release of it, its own sampling and processing level.
+ORIGINATOR_LEVEL_ATTRS: tuple[str, ...] = (
+    "originator_file",
+    "originator_sha256",
+    "originator_id",
+    "originator_date_created",
+    "originator_date_modified",
+    "originator_time_coverage_resolution",
+    "originator_processing_level",
+    "originator_QC_indicator",
+)
+
+#: Per deployment, what the originators say of it: one value when every imported
+#: instrument agrees, else the distinct values joined.
+ORIGINATOR_DEPLOYMENT_ATTRS: tuple[str, ...] = tuple(
+    f"originator_{key}"
+    for key in (
+        "title",
+        "summary",
+        "institution",
+        "project",
+        "array",
+        "network",
+        "platform_code",
+        "site_code",
+        "publisher_name",
+        "publisher_email",
+        "publisher_url",
+        "data_assembly_center",
+    )
+)
+
+
+def _add_originator_levels(ds: xr.Dataset, infos: Sequence[Mapping]) -> None:
+    """Write :data:`ORIGINATOR_LEVEL_ATTRS` per level, in place (an ADCP's bins share).
+
+    A level with no originator gets ``""``; a name no level has is not written.
+    """
+    by_serial = {
+        paths.adcp_parent_serial(str(info["serial"])): info["ds"].attrs
+        for info in infos
+    }
+    levels = [
+        by_serial.get(paths.adcp_parent_serial(str(s)), {}) for s in ds["serial"].values
+    ]
+    for key in ORIGINATOR_LEVEL_ATTRS:
+        values = [str(attrs.get(key, "") or "") for attrs in levels]
+        if any(values):
+            ds[key] = xr.Variable(
+                ("N_LEVELS",),
+                np.array(values, dtype=object),
+                {
+                    "long_name": f"{key.removeprefix('originator_').replace('_', ' ')} "
+                    "of the originator's file the level was read from"
+                },
+            )
+
+
+def _originator_globals(infos: Sequence[Mapping]) -> dict[str, str]:
+    """Return :data:`ORIGINATOR_DEPLOYMENT_ATTRS`: one value each, joined (with a WARNING) if they differ."""
+    return attribution.join_values(
+        [info["ds"].attrs for info in infos],
+        ORIGINATOR_DEPLOYMENT_ATTRS,
+        what="the imported files",
+        warn=ORIGINATOR_DEPLOYMENT_ATTRS,
+    )
 
 
 def _add_stage_files(
