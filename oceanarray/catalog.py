@@ -108,6 +108,8 @@ def _problems(data: object) -> list[str]:
         if not isinstance(entry, dict):
             out.append(f"{key}: not a mapping (model, pumped, sources)")
             continue
+        if entry.get("pumped") is not None and not isinstance(entry["pumped"], bool):
+            out.append(f"{key}: pumped {entry['pumped']!r} is not true or false")
         model = entry.get("model")
         if model is not None and model not in models:
             out.append(f"{key}: model {model!r} is not under 'models:'")
@@ -283,8 +285,8 @@ def record_attrs(found: Mapping[str, Any], measured: bool) -> dict[str, str]:
             out["sensor_model_vocabulary"] = str(chosen["sensor_model_vocabulary"])
         out.setdefault("long_name", out["sensor_model"])
         out["sensor_model_source"] = sources_text(found)
-    if found.get("pumped") is not None:
-        out["sensor_pumped"] = str(bool(found["pumped"])).lower()
+    if isinstance(found.get("pumped"), bool):
+        out["sensor_pumped"] = str(found["pumped"]).lower()
     return out
 
 

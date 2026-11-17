@@ -367,3 +367,14 @@ def test_a_dict_description_takes_its_catalog_from_the_mooring_directory(tmp_pat
     assert loaded["sensor_catalog"] == str(
         (tmp_path / "config" / "sensor_catalog.yaml").resolve()
     )
+
+
+def test_pumped_must_be_true_or_false(tmp_path):
+    from oceanarray import mooring
+
+    bad = tmp_path / "bad.yaml"
+    bad.write_text(CATALOG.read_text().replace("pumped: true", 'pumped: "false"', 1))
+    issues = mooring.check({"sensor_catalog": str(bad)})
+    assert any(
+        "37-12046: pumped 'false' is not true or false" in i.message for i in issues
+    )
