@@ -292,12 +292,78 @@ def test_no_clock_check_when_every_instrument_was_imported(cf7, tmp_path):
     assert 'id="quality_flags"' in html
 
 
-def test_a_changed_catalog_asks_for_a_rerun(tmp_path):
-    from oceanarray.pipeline.stack import people_source_sha256
+def test_only_this_moorings_catalog_entries_ask_for_a_rerun(tmp_path):
+    from oceanarray import catalog
 
+    records = list(sensors.records(_ic1(tmp_path)).values())
     path = tmp_path / "sensor_catalog.yaml"
     shutil.copy(CATALOG, path)
-    before = people_source_sha256({"sensor_catalog": str(path)})
+    mooring = {"sensor_catalog": str(path)}
+    before = catalog.digest(mooring, records)
+    # Another instrument's entry (10227) changes: not this mooring's concern.
+    path.write_text(path.read_text().replace("2022_AR69-01", "2022_AR69-01 (rev)"))
+    assert catalog.digest(mooring, records) == before
+    # This instrument's model entry changes: rerun.
     path.write_text(path.read_text().replace("TOOL1457", "TOOL1451"))
-    assert people_source_sha256({"sensor_catalog": str(path)}) != before
-    assert people_source_sha256({}) == ""
+    assert catalog.digest(mooring, records) != before
+    assert catalog.digest({}, records) == ""
+
+
+def test_gaps_flagged_missing_do_not_hide_a_pressure_sensor():
+    from oceanarray import catalog
+    from oceanarray.readers import read
+
+    # K7 2014: pressure never quality-controlled (flag 0); open a gap as the
+    # originator would write one (no value, flag 9).
+    ds = read(
+        OSNAP / "OS_OSNAP-10633_KPO_1111_K7_201408_D_MCTD_OSNAPstyleOceanSITES.nc"
+    )
+    ds["pressure"][:10] = np.nan
+    ds["pressure_qc_originator"][:10] = 9
+    assert catalog.measured_pressure(ds) == (
+        True,
+        "pressure values, not quality-controlled (flag 0)",
+    )
+
+
+def test_a_catalog_entry_that_is_not_a_mapping_is_refused(tmp_path):
+    from oceanarray import mooring
+
+    bad = tmp_path / "bad.yaml"
+    bad.write_text(
+        CATALOG.read_text().replace(
+            '  "37-10227":\n    model: SBE 37\n',
+            '  "37-9":\n  "37-10227":\n    model: SBE 37\n',
+        )
+    )
+    issues = mooring.check({"sensor_catalog": str(bad)})
+    assert any("37-9: not a mapping" in i.message for i in issues)
+
+
+def test_a_dict_description_takes_its_catalog_from_the_mooring_directory(tmp_path):
+    from oceanarray.pipeline import resolve_mooring
+
+    (tmp_path / "config").mkdir()
+    shutil.copy(CATALOG, tmp_path / "config" / "sensor_catalog.yaml")
+    cfg = {
+        "name": tmp_path.name,
+        "waterdepth": 2472,
+        "latitude": 59.1,
+        "longitude": -33.7,
+        "deployment_time": "2016-08-09T14:20:00",
+        "recovery_time": "2018-07-15T07:38:41",
+        "clamp": [
+            {
+                "serial": "MC76",
+                "instrument": "microcat",
+                "file_type": "oceansites",
+                "filename": IC1,
+                "hab": 2396,
+            }
+        ],
+        "sensor_catalog": "config/sensor_catalog.yaml",
+    }
+    loaded, _ = resolve_mooring(cfg, tmp_path)
+    assert loaded["sensor_catalog"] == str(
+        (tmp_path / "config" / "sensor_catalog.yaml").resolve()
+    )

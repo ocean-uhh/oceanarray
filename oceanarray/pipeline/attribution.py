@@ -956,9 +956,10 @@ def derivation(
     public = provenance.public_version(version) or str(version)
     derived, _ = _derived(sources)
     line = f"{title} built with oceanarray {public}"
-    return (
-        f"{line} from: {'; '.join(c.rstrip('.') for c in derived)}" if derived else line
-    )
+    # One history entry: "; " separates entries, so the citations are kept apart
+    # with " | " and any "; " inside one becomes ", ".
+    cited = " | ".join(c.rstrip(".").replace("; ", ", ") for c in derived)
+    return f"{line} from: {cited}" if derived else line
 
 
 def deployment_sources(
@@ -1036,8 +1037,13 @@ def join_values(
             if value and value not in values:
                 values.append(value)
         if key in lists:
+            # Warn only when the files list different items, not the same ones
+            # in another order.
+            differ = len({frozenset(list_items(v)) for v in values}) > 1
             values = list_items("; ".join(values))
-        elif len(values) > 1 and key in warn:
+        else:
+            differ = len(values) > 1
+        if differ and key in warn:
             log.warning(
                 f"  {what} give {len(values)} values of {key}; all are kept"
                 + (", and a user must follow each" if key == "source_license" else "")

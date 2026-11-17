@@ -478,8 +478,7 @@ def test_a_changed_source_block_is_flagged_not_silently_kept(egm2016, caplog):
     messages = [r.getMessage() for r in caplog.records]
     assert "egM2_2016: stack current (egM2_2016_stack.nc)" in messages
     assert any(
-        "people:/source: or its sensor catalog changed after stage 1" in m
-        and "--force" in m
+        "people:/source: changed after stage 1" in m and "--force" in m
         for m in messages
     )
 

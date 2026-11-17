@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import xarray as xr
 
-from oceanarray import logger, paths, provenance
+from oceanarray import catalog, logger, paths, provenance
 from oceanarray import mooring as _mooring
 from oceanarray.config import parameters as params
 from oceanarray.exceptions import MooringError
@@ -1339,6 +1339,7 @@ def stack_stale_reason(
         return "no stack yet"
     with xr.open_dataset(stack_path, engine="netcdf4") as old:
         attrs = dict(old.attrs)
+        old_records = list(sensors.records(old).values())
         recorded = (
             {
                 str(f): str(h)
@@ -1393,28 +1394,34 @@ def stack_stale_reason(
         masking.stack_rule(mooring, mask_flags)
     ):
         return "mask_flags changed"
+    # Stage 1 applies people:, source: and the sensor catalog, so a new stack from
+    # the same stage files would carry the old values; only rerunning stage 1
+    # brings them in.
+    changed_inputs = []
     if attrs.get(PEOPLE_SOURCE_ATTR, "") != people_source_sha256(mooring):
-        # Stage 1 applies people: and source:, so a new stack from the same stage
-        # files would carry the old values; only rerunning stage 1 brings them in.
+        changed_inputs.append("people:/source:")
+    if attrs.get(CATALOG_ATTR, "") != catalog.digest(mooring, old_records):
+        changed_inputs.append("what its sensor catalog says of these instruments")
+    if changed_inputs:
         log.warning(
-            f"{mooring.get('name', '')}: the description's people:/source: or its "
-            "sensor catalog changed "
-            "after stage 1 wrote the stage files; rerun with --force to bring them "
-            "into the products"
+            f"{mooring.get('name', '')}: the description's "
+            f"{' and '.join(changed_inputs)} changed after stage 1 wrote the stage "
+            "files; rerun with --force to bring them into the products"
         )
     return None
 
 
 #: The stack attribute holding the SHA-256 of the description's ``people:`` and
-#: ``source:`` blocks and its sensor catalog (absent when it has none of them).
+#: ``source:`` blocks (absent when the description has neither).
 PEOPLE_SOURCE_ATTR = "people_source_sha256"
+
+#: The stack attribute holding the SHA-256 of what the sensor catalog says of the
+#: stack's own instruments (absent when the description names no catalog).
+CATALOG_ATTR = "sensor_catalog_sha256"
 
 
 def people_source_sha256(mooring: Mapping) -> str:
-    """Return the SHA-256 of what stage 1 takes from the description beyond the data.
-
-    That is the ``people:`` and ``source:`` blocks and the sensor catalog's
-    contents (``sensor_catalog:``).
+    """Return the SHA-256 of the description's ``people:`` and ``source:`` blocks.
 
     Parameters
     ----------
@@ -1424,19 +1431,13 @@ def people_source_sha256(mooring: Mapping) -> str:
     Returns
     -------
     str
-        The hex digest of these as sorted JSON, or ``""`` when the description
-        has none of them.
+        The hex digest of the two blocks as sorted JSON, or ``""`` when the
+        description has neither.
     """
     import hashlib
     import json
 
     blocks = {k: mooring[k] for k in ("people", "source") if mooring.get(k)}
-    if path := mooring.get("sensor_catalog"):
-        # Stage 1 also applies the sensor catalog: its contents, not its path.
-        try:
-            blocks["sensor_catalog"] = Path(str(path)).read_text()
-        except OSError:
-            blocks["sensor_catalog"] = str(path)
     if not blocks:
         return ""
     text = json.dumps(blocks, sort_keys=True, default=str)
@@ -1663,6 +1664,8 @@ def _stack_file(
     )
     if digest := people_source_sha256(mooring):
         ds.attrs[PEOPLE_SOURCE_ATTR] = digest
+    if digest := catalog.digest(mooring, list(sensors.records(ds).values())):
+        ds.attrs[CATALOG_ATTR] = digest
     why = reason or ("stage processing failed" if failures else "unknown")
     _stage.append_history(ds, f"stack rebuilt: {why}")
     if failures:

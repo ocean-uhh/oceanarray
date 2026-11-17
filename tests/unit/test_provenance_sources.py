@@ -302,3 +302,24 @@ def test_a_doi_is_added_unless_the_citation_names_that_doi_itself():
         [{"source_citation": url, "source_doi": "10.1000/182"}]
     )
     assert out["citation"] == url
+
+
+def test_join_values_warns_on_different_references_not_on_their_order(caplog):
+    import logging
+
+    a = {"source_references": "http://www.oceansites.org, http://www.o-snap.org"}
+    b = {"source_references": "http://www.o-snap.org, http://www.oceansites.org"}
+    c = {"source_references": "http://www.o-snap.org"}
+    with caplog.at_level(logging.WARNING, logger="oceanarray"):
+        attribution.join_sources([a, b], what="the stage files")
+    assert not caplog.records
+    with caplog.at_level(logging.WARNING, logger="oceanarray"):
+        attribution.join_sources([a, c], what="the stage files")
+    assert any("source_references" in r.message for r in caplog.records)
+
+
+def test_the_history_line_keeps_each_citation_in_one_entry():
+    sources = [{"source_citation": "A; B data"}, {"source_citation": "C data."}]
+    line = attribution.derivation("x site stack", "0.6.1", sources)
+    assert "; " not in line
+    assert line == "x site stack built with oceanarray 0.6.1 from: A, B data | C data"

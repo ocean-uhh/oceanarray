@@ -105,7 +105,10 @@ def _problems(data: object) -> list[str]:
             if not isinstance(entry, dict) or not entry.get("sensor_model"):
                 out.append(f"model {name!r}: no {key}: sensor_model")
     for key, entry in data["instruments"].items():
-        model = entry.get("model") if isinstance(entry, dict) else None
+        if not isinstance(entry, dict):
+            out.append(f"{key}: not a mapping (model, pumped, sources)")
+            continue
+        model = entry.get("model")
         if model is not None and model not in models:
             out.append(f"{key}: model {model!r} is not under 'models:'")
     return out
@@ -226,7 +229,10 @@ def measured_pressure(ds: xr.Dataset) -> tuple[bool, str]:
     """
     from oceanarray.pipeline.qc import originator
 
-    if "pressure" not in ds.data_vars or not np.isfinite(ds["pressure"].values).any():
+    if "pressure" not in ds.data_vars:
+        return False, "no pressure values"
+    here = np.isfinite(ds["pressure"].values)
+    if not here.any():
         return False, "no pressure values"
     if "pressure_qc_originator" not in ds.data_vars:
         return True, "pressure values, not flagged"
@@ -235,7 +241,8 @@ def measured_pressure(ds: xr.Dataset) -> tuple[bool, str]:
         for num, _, ours in originator.dictionary(ds["pressure_qc_originator"])
         if ours is not None
     }
-    raw = np.asarray(ds["pressure_qc_originator"].values)
+    # Only the samples with a value: a gap flagged 9 says nothing of the sensor.
+    raw = np.asarray(ds["pressure_qc_originator"].values)[here]
     ours = np.vectorize(lambda n: lut.get(int(n), 0), otypes=[np.int8])(raw)
     if np.isin(ours, _GOOD).any():
         return True, "pressure flagged good"
@@ -279,6 +286,53 @@ def record_attrs(found: Mapping[str, Any], measured: bool) -> dict[str, str]:
     if found.get("pumped") is not None:
         out["sensor_pumped"] = str(bool(found["pumped"])).lower()
     return out
+
+
+def digest(mooring: Mapping[str, Any], records: list[Mapping[str, Any]]) -> str:
+    """Return the SHA-256 of what the mooring's catalog says of these instruments.
+
+    Only the entries that match the instruments' sensor records (by
+    ``sensor_serial_number`` or ``originator_sensor_serial_number``), with their
+    models, count: an edit to another instrument's entry, or a comment, changes
+    nothing here.
+
+    Parameters
+    ----------
+    mooring : Mapping
+        The mooring description (``sensor_catalog``).
+    records : list of Mapping
+        The attributes of each sensor record (``SENSOR_*``) of a stack.
+
+    Returns
+    -------
+    str
+        The hex digest, or ``""`` when the mooring names no catalog.
+    """
+    import hashlib
+    import json
+
+    path = mooring.get(KEY)
+    if not path:
+        return ""
+    try:
+        data = load(path)
+    except MooringError:
+        return "unreadable"
+    found = {}
+    for attrs in records:
+        for serial in _serials(
+            {"serial": attrs.get("sensor_serial_number")},
+            attrs.get("originator_sensor_serial_number"),
+        ):
+            for prefix in PREFIX.values():
+                if (key := f"{prefix}{serial}") in data["instruments"]:
+                    entry = data["instruments"][key]
+                    found[key] = {
+                        **entry,
+                        "model_attrs": data["models"].get(entry.get("model"), {}),
+                    }
+    text = json.dumps(found, sort_keys=True, default=str)
+    return hashlib.sha256(text.encode()).hexdigest()
 
 
 def sources_text(found: Mapping[str, Any]) -> str:

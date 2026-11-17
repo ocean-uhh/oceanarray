@@ -348,7 +348,9 @@ def check(
         if dir_name is None:
             dir_name = path.parent.name
         if isinstance(data, dict) and data.get("sensor_catalog"):
-            data["sensor_catalog"] = str(path.parent / str(data["sensor_catalog"]))
+            data["sensor_catalog"] = str(
+                (path.parent / str(data["sensor_catalog"])).resolve()
+            )
 
     issues = list(validation.validate_mooring(data, dir_name=dir_name))
 
@@ -749,6 +751,10 @@ def _check_catalog(data: Mapping) -> list[ValidationIssue]:
         return []
     if not isinstance(path, (str, PathLike)):
         return [ValidationIssue("ERROR", f"sensor_catalog: {path!r} is not a path")]
+    if not Path(path).is_absolute():
+        # A description given as a dict: the path is relative to the mooring
+        # directory, which the caller resolves (``pipeline.resolve_mooring``).
+        return []
     try:
         catalog.load(path)
     except MooringError as e:
