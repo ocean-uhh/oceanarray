@@ -158,16 +158,13 @@ def _keep_originator_salinity(
     diff = diff[np.isfinite(diff)]
     if diff.size:
         worst = diff[np.argmax(np.abs(diff))]
-        note = (
-            "salinity recomputed from C, T, P; the originator's kept as "
-            f"salinity_originator (ours - theirs: median {np.median(diff):+.4f}, "
-            f"largest {worst:+.4f})"
-        )
+        detail = f"(ours - theirs: median {np.median(diff):+.4f}, largest {worst:+.4f})"
     else:
-        note = (
-            "salinity recomputed from C, T, P; the originator's kept as "
-            "salinity_originator (no value in common)"
-        )
+        detail = "(no value in common)"
+    note = (
+        "salinity recomputed from C, T, P; the originator's kept as "
+        f"salinity_originator {detail}"
+    )
     return ds, note
 
 

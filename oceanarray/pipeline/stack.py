@@ -1446,15 +1446,18 @@ def people_source_sha256(mooring: Mapping) -> str:
 
 #: Per level, what an imported level's originator file was: which file, which
 #: release of it, its own sampling and processing level.
-ORIGINATOR_LEVEL_ATTRS: tuple[str, ...] = (
-    "originator_file",
-    "originator_sha256",
-    "originator_id",
-    "originator_date_created",
-    "originator_date_modified",
-    "originator_time_coverage_resolution",
-    "originator_processing_level",
-    "originator_QC_indicator",
+ORIGINATOR_LEVEL_ATTRS: tuple[str, ...] = tuple(
+    f"originator_{key}"
+    for key in (
+        "file",
+        "sha256",
+        "id",
+        "date_created",
+        "date_modified",
+        "time_coverage_resolution",
+        "processing_level",
+        "QC_indicator",
+    )
 )
 
 #: Per deployment, what the originators say of it: one value when every imported
