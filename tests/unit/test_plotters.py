@@ -1,9 +1,10 @@
+from pathlib import Path
+
 import matplotlib
 import numpy as np
 import pandas as pd
 import pytest
 import xarray as xr
-from pathlib import Path
 
 matplotlib.use("Agg")  # Use non-interactive backend for testing
 
