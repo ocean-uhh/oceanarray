@@ -312,3 +312,15 @@ def test_good_share_counts_interpolated_as_good_and_zero_as_not_checked() -> Non
     good = good_share(counts, flags.size)
     assert (good["text"], good["color"]) == ("100", "var(--good)")
     assert good_share({0: flags.size}, flags.size)["text"] == "not checked"
+
+
+def test_qc_table_has_one_good_column(page: str) -> None:
+    """The explicit Good % column is not repeated by the per-flag columns."""
+    import re
+
+    table = page.split('id="qc"', 1)[-1].split("</table>", 1)[0]
+    heads = re.findall(r"<th[^>]*>(.*?)</th>", table, flags=re.S)
+    assert (
+        sum(1 for h in heads if re.sub("<[^>]+>", "", h).strip().startswith("Good"))
+        == 1
+    )

@@ -125,6 +125,7 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Fixed
 
+- The deployment page's QC table no longer repeats the Good column (once from Good %, once from the per-flag columns).
 - Rose pages no longer warn of a missing declination when the originator rotated to true north (stack `originator_magnetic_declination`); the warning names who and why.
 - Thermistors, TR-1050 and Seapoint instruments get readable type names on report pages (were upper-cased codes).
 - The deployment page's regrid command names the mooring description and `--from 3`, so it runs as copied (no raw files needed).

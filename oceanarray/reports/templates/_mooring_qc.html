@@ -35,7 +35,7 @@
       <th>Variable</th>
       {{ cols.th("Samples", "", true) }}
       {{ cols.th("Good", "%", true) }}
-      {% for f in qc.flags %}{{ cols.th(f.label | capitalize, "%", true) }}{% endfor %}
+      {% for f in qc.flags if f.flag != 1 %}{{ cols.th(f.label | capitalize, "%", true) }}{% endfor %}
       <th>Distribution</th>
     </tr>
   </thead>
@@ -48,7 +48,7 @@
       <td><code>{{ row.var }}</code></td>
       <td class="num">{{ "{:,}".format(row.total) }}</td>
       <td class="num"><span style="color:{{ row.good.color }}">{{ row.good.text }}</span></td>
-      {% for f in qc.flags %}
+      {% for f in qc.flags if f.flag != 1 %}
       <td class="num">{% if row.pct.get(f.flag) %}<span style="color:{{ f.color }}">{{ row.pct[f.flag] }}</span>{% else %}&ndash;{% endif %}</td>
       {% endfor %}
       <td>
