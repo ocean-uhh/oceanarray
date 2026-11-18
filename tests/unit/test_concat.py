@@ -341,7 +341,9 @@ def test_the_page_links_each_mooring_description_near_the_top(site, tmp_path):
     html = page.read_text(encoding="utf-8")
     see_also = html.split('<p class="see-also">', 1)[1].split("</p>", 1)[0]
     for n in _NAMES:
-        assert f'href="../../outputs/report/{n}/{n}_report.html#description"' in see_also
+        assert (
+            f'href="../../outputs/report/{n}/{n}_report.html#description"' in see_also
+        )
     assert html.index('<p class="see-also">') < html.index('class="jump-nav"')
 
 

@@ -15,6 +15,7 @@ import numpy as np
 from markupsafe import Markup
 
 from oceanarray import location, logger, paths
+from oceanarray.analysis.derived import derived_fields
 from oceanarray.pipeline import masking
 from oceanarray.pipeline.concat import cell_deployment
 
@@ -902,6 +903,8 @@ def generate_concat_page(
         out_path = out_dir / f"{name}_stackcat_report.html"
         view = _report_view(ds)
         depth_view = _depth_view(view)
+        # Position and θ for the T-S figures, derived once for the page.
+        derived = derived_fields(view)
         names = [str(n) for n in ds["deployment_name"].values]
         # Deployments named without the site's prefix on the figures and in the
         # Instruments table (egM4_2014 → 2014); the Deployments table keeps the full name.
@@ -949,10 +952,14 @@ def generate_concat_page(
                 legend_shallow_first=True,
             ),
             "roses": as_panel(lambda: _make_rose_outlines_b64(view)),
-            "ts_diagram": as_panel(lambda: _make_stack_ts_diagram_b64(view)),
-            "ts_by_deployment": as_panel(lambda: _make_ts_by_deployment_b64(view)),
-            "ts_points": as_panel(lambda: _make_ts_points_by_deployment_b64(view)),
-            "ts_medians": as_panel(lambda: _make_ts_medians_b64(view)),
+            "ts_diagram": as_panel(lambda: _make_stack_ts_diagram_b64(view, derived)),
+            "ts_by_deployment": as_panel(
+                lambda: _make_ts_by_deployment_b64(view, derived)
+            ),
+            "ts_points": as_panel(
+                lambda: _make_ts_points_by_deployment_b64(view, derived)
+            ),
+            "ts_medians": as_panel(lambda: _make_ts_medians_b64(view, derived)),
             "trajectories_aquadopp": as_panel(
                 lambda: (
                     _make_multi_aquadopp_trajectories_b64(depth_view)

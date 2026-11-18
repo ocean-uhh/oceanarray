@@ -566,8 +566,9 @@ def _rose_ax(
     # hidden because fewer than 2 finite values are present.
     import matplotlib.pyplot as plt
 
-    speed = np.sqrt(east**2 + north**2)
-    direction = np.degrees(np.arctan2(east, north)) % 360
+    from oceanarray.analysis.derived import speed_direction
+
+    speed, direction = speed_direction(east, north)
     valid = np.isfinite(speed) & np.isfinite(direction)
     speed, direction = speed[valid], direction[valid]
     if len(speed) < 2:

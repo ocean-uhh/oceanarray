@@ -12,6 +12,7 @@ import numpy as np
 
 from oceanarray import logger, paths
 from oceanarray import mooring as _mooring
+from oceanarray.analysis.derived import knockdown as build_knockdown
 from oceanarray.instruments import instrument_entries
 from oceanarray.paths import should_skip_regeneration
 
@@ -1066,14 +1067,17 @@ class MooringReport:
                 import xarray as _xr
 
                 with _xr.open_dataset(stack_nc) as _ds_kd:
+                    # Design pressures and measured records, built once for the
+                    # three knockdown figures.
+                    _kd = build_knockdown(_ds_kd)
                     fig_knockdown_hab_b64 = _figdebug.as_panel(
-                        lambda: _make_knockdown_hab_b64(_ds_kd)
+                        lambda: _make_knockdown_hab_b64(_ds_kd, _kd)
                     )
                     fig_knockdown_anomaly_b64 = _figdebug.as_panel(
-                        lambda: _make_knockdown_anomaly_b64(_ds_kd)
+                        lambda: _make_knockdown_anomaly_b64(_ds_kd, _kd)
                     )
                     fig_knockdown_displacement_b64 = _figdebug.as_panel(
-                        lambda: _make_knockdown_displacement_b64(_ds_kd)
+                        lambda: _make_knockdown_displacement_b64(_ds_kd, _kd)
                     )
             except Exception:
                 pass

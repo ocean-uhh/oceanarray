@@ -393,6 +393,15 @@ differencing.
    :members:
    :undoc-members:
 
+derived
+^^^^^^^
+Quantities a report page derives once from its product (position, potential
+temperature and density, speed and direction, N², knockdown inputs, seabed
+pressure) and passes to every figure that needs them; never written to a product.
+
+.. automodule:: oceanarray.analysis.derived
+   :members:
+
 spectral
 ^^^^^^^^
 Gonella rotary spectra, Welch PSD, and continuous wavelet transforms.

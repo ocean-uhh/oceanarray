@@ -39,6 +39,9 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Changed
 
+- T-S figures plot potential temperature θ against practical salinity, with labelled σθ contours from θ at the mooring position (was in-situ T).
+- Report pages derive θ, speed, direction and the knockdown inputs once (`oceanarray.analysis.derived`) and share them across their figures.
+- `pipeline.pressure.pressure_from_depth` / `depth_from_pressure`: one depth↔pressure conversion, used by ADCP QC and the figures.
 - Deployment report: the instrument summary comes first; processing pipeline, deployment timing and clock corrections follow it, the pipeline table collapsed.
 - Deployment report tables identify instruments by nominal depth and HAB (units on their own header line) with readable type names; sampling interval as "1 h", pressure range as "2358–2376".
 - Deployment report: originator timing, clock corrections and calibration show one line when there is nothing to show.
@@ -79,6 +82,9 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Fixed
 
+- Velocity-profile seabed line and the Overflow near-bottom level convert the water depth to pressure (they read metres as dbar).
+- σθ contours on T-S figures were computed from in-situ temperature at 0° N 0° E; now from θ at the mooring position.
+- N²: an unknown longitude warns instead of silently using 0.
 - Knockdown figures compare the design depth converted to pressure (`gsw.p_from_z`) with measured pressure; they compared metres with dbar, a 1–1.5 % bias read as knockdown.
 - Knockdown figures: an unknown latitude warns and leaves out the design pressure instead of using the equator; the HAB axis stops at the water depth.
 - `OCEANARRAY_FIGURE_SOURCE` is read when a page renders, not when oceanarray is imported.

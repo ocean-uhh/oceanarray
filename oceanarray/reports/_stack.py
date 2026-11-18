@@ -11,6 +11,7 @@ from typing import Any
 import numpy as np
 
 from oceanarray import logger, paths
+from oceanarray.analysis.derived import derived_fields
 from oceanarray.paths import should_skip_regeneration
 
 from ..config import parameters as params
@@ -504,6 +505,8 @@ def generate_stack_page(
         import xarray as xr
 
         ds = xr.open_dataset(stack_path).load()
+        # Quantities the figures derive (position, θ, speed, direction), once.
+        derived = derived_fields(ds)
         n_time = ds.sizes["time"]
         n_instr = ds.sizes["N_LEVELS"]
         dt_seconds = ds.attrs.get("dt_seconds", "?")
@@ -630,7 +633,7 @@ def generate_stack_page(
 
         # as_panel: a figure whose draw raises becomes a Stub naming the cause
         # (shown as a "warn" note) instead of silently vanishing.
-        fig_ts_stack_b64 = as_panel(lambda: _make_stack_ts_diagram_b64(ds))
+        fig_ts_stack_b64 = as_panel(lambda: _make_stack_ts_diagram_b64(ds, derived))
         fig_aquadopp_tilt_b64 = as_panel(
             lambda: _make_aquadopp_tilt_panels_b64(ds, step=step)
         )

@@ -447,9 +447,9 @@ def _make_flag_strip_b64(ds: xr.Dataset) -> str | None:
     return render_slot(draw_flag_strip, ds, slot="full", optional=True)
 
 
-def _make_stack_ts_diagram_b64(ds: xr.Dataset) -> str | None:
-    """Return base64 PNG: T-S diagram for a stacked dataset."""
-    return render_b64(draw_stack_ts_diagram, ds, optional=True)
+def _make_stack_ts_diagram_b64(ds: xr.Dataset, derived: Any = None) -> str | None:
+    """Return base64 PNG: T-S diagram for a stacked dataset (*derived*: the page's)."""
+    return render_b64(draw_stack_ts_diagram, ds, derived=derived, optional=True)
 
 
 # ---------------------------------------------------------------------------
@@ -463,13 +463,13 @@ def _make_instrument_rose_b64(nc_path: Path) -> str | None:
 
 
 def _make_grid_ts_diagram_b64_and_limits(
-    ds: xr.Dataset, n_bins: int = 60
+    ds: xr.Dataset, n_bins: int = 60, derived: Any = None
 ) -> tuple[str | None, dict]:
     """Return (b64_str_or_None, bounds_dict): T-S diagram for gridded mooring data."""
     ts_bounds: dict = {}
 
     def _draw(*, width_in: float = report_tokens.W_FULL) -> plt.Figure | None:
-        result = draw_grid_ts_diagram(ds, n_bins, width_in=width_in)
+        result = draw_grid_ts_diagram(ds, n_bins, width_in=width_in, derived=derived)
         if result is None:
             return None
         nonlocal ts_bounds
@@ -492,9 +492,11 @@ def _make_velocity_iqr_profile_b64(ds: xr.Dataset) -> str | None:
     return render_b64(draw_velocity_iqr_profile, ds, optional=True)
 
 
-def _make_grid_n2_b64(ds: xr.Dataset, lat: float = 0.0) -> str | None:
-    """Compute and plot buoyancy frequency squared N² on the pressure-time grid."""
-    return render_slot(draw_grid_n2, ds, lat, optional=True)
+def _make_grid_n2_b64(
+    ds: xr.Dataset, lat: float = 0.0, derived: Any = None
+) -> str | None:
+    """Plot buoyancy frequency squared N² on the pressure-time grid."""
+    return render_slot(draw_grid_n2, ds, lat, derived=derived, optional=True)
 
 
 def _make_rose_grid_b64(
@@ -525,9 +527,9 @@ def _make_grid_trajectory_b64(ds: xr.Dataset) -> str | None:
     return render_slot(draw_grid_trajectory, ds, slot="half", optional=True)
 
 
-def _make_grid_timeseries_b64(ds: xr.Dataset) -> str | None:
+def _make_grid_timeseries_b64(ds: xr.Dataset, derived: Any = None) -> str | None:
     """Return base64 PNG: velocity time series at depth of maximum mean speed."""
-    return render_b64(draw_grid_timeseries, ds, optional=True)
+    return render_b64(draw_grid_timeseries, ds, derived=derived, optional=True)
 
 
 def _make_isopycnal_ts_b64(ds_iso: xr.Dataset) -> str | None:
@@ -625,21 +627,27 @@ def _make_stack_timeseries_b64(
     )
 
 
-def _make_ts_by_deployment_b64(ds: xr.Dataset) -> str | None:
-    """T-S scatter colored by deployment, half width, for the concatenated page."""
-    return render_slot(draw_ts_by_deployment, ds, slot="half", optional=True)
+def _make_ts_by_deployment_b64(ds: xr.Dataset, derived: Any = None) -> str | None:
+    """T-S outlines by deployment, half width, for the concatenated page."""
+    return render_slot(
+        draw_ts_by_deployment, ds, derived=derived, slot="half", optional=True
+    )
 
 
-def _make_ts_points_by_deployment_b64(ds: xr.Dataset) -> str | None:
+def _make_ts_points_by_deployment_b64(
+    ds: xr.Dataset, derived: Any = None
+) -> str | None:
     """Render the thinned T-S point cloud by deployment, half width, for the concatenated page."""
     from oceanarray.plotters.ts import draw_ts_points_by_deployment
 
-    return render_slot(draw_ts_points_by_deployment, ds, slot="half", optional=True)
+    return render_slot(
+        draw_ts_points_by_deployment, ds, derived=derived, slot="half", optional=True
+    )
 
 
-def _make_ts_medians_b64(ds: xr.Dataset) -> str | None:
+def _make_ts_medians_b64(ds: xr.Dataset, derived: Any = None) -> str | None:
     """T-S medians with IQR whiskers per level, half width, for the concatenated page."""
-    return render_slot(draw_ts_medians, ds, slot="half", optional=True)
+    return render_slot(draw_ts_medians, ds, derived=derived, slot="half", optional=True)
 
 
 def _make_rose_outlines_b64(ds: xr.Dataset) -> str | None:
@@ -788,25 +796,33 @@ def _make_analog_timeseries_b64(nc_path: Path, analog_vars: list[str]) -> str | 
     return render_b64(draw_analog_timeseries, nc_path, analog_vars, optional=True)
 
 
-def _make_knockdown_hab_b64(ds: xr.Dataset) -> str | None:
-    """IQR of measured HAB vs. nominal HAB, for the stack report."""
+def _make_knockdown_hab_b64(ds: xr.Dataset, knockdown: Any = None) -> str | None:
+    """IQR of measured HAB vs. nominal HAB, for the stack report; *knockdown* is the report's shared input."""
     from oceanarray.plotters.diagnostic import draw_knockdown_hab
 
-    return render_slot(draw_knockdown_hab, ds, slot="half", optional=True)
+    return render_slot(
+        draw_knockdown_hab, ds, knockdown=knockdown, slot="half", optional=True
+    )
 
 
-def _make_knockdown_displacement_b64(ds: xr.Dataset) -> str | None:
-    """Scatter of estimated horizontal displacement vs. measured pressure."""
+def _make_knockdown_displacement_b64(
+    ds: xr.Dataset, knockdown: Any = None
+) -> str | None:
+    """Scatter of estimated horizontal displacement vs. measured pressure; *knockdown* is the report's shared input."""
     from oceanarray.plotters.diagnostic import draw_knockdown_displacement
 
-    return render_slot(draw_knockdown_displacement, ds, slot="full", optional=True)
+    return render_slot(
+        draw_knockdown_displacement, ds, knockdown=knockdown, slot="full", optional=True
+    )
 
 
-def _make_knockdown_anomaly_b64(ds: xr.Dataset) -> str | None:
-    """Per-instrument IQR of pressure anomaly (measured − nominal), stack report."""
+def _make_knockdown_anomaly_b64(ds: xr.Dataset, knockdown: Any = None) -> str | None:
+    """Per-instrument IQR of pressure anomaly (measured − nominal), stack report; *knockdown* is the report's shared input."""
     from oceanarray.plotters.diagnostic import draw_knockdown_anomaly
 
-    return render_slot(draw_knockdown_anomaly, ds, slot="half", optional=True)
+    return render_slot(
+        draw_knockdown_anomaly, ds, knockdown=knockdown, slot="half", optional=True
+    )
 
 
 def _make_clock_check_b64(

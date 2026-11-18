@@ -38,10 +38,18 @@ import numpy as np
 import pandas as pd
 
 from oceanarray import _deprecated
+from oceanarray.analysis.derived import (
+    level_of_max_speed,
+    mooring_position,
+    n_squared,
+    speed_direction,
+)
 
 if TYPE_CHECKING:
     import matplotlib.pyplot as plt
     import xarray as xr
+
+    from oceanarray.analysis.derived import DerivedFields
 
 from oceanarray.plotters.primitives import nice_colorbar_ticks
 from oceanarray.reports._vendored import design_tokens as report_tokens
@@ -446,40 +454,53 @@ def draw_grid_sigma(
 
 
 def draw_grid_n2(
-    ds: xr.Dataset, lat: float = 0.0, *, width_in: float = report_tokens.W_FULL
+    ds: xr.Dataset,
+    lat: float = 0.0,
+    *,
+    width_in: float = report_tokens.W_FULL,
+    derived: DerivedFields | None = None,
 ) -> plt.Figure | None:
-    """Compute and plot buoyancy frequency squared N² on the pressure-time grid.
+    """Plot buoyancy frequency squared N² on the pressure-time grid.
 
-    Returns ``None`` when temperature or salinity are absent.
+    N² is computed by :func:`oceanarray.analysis.derived.n_squared` (TEOS-10
+    ``Nsquared`` between neighbouring grid levels).
 
+    Parameters
+    ----------
+    ds : xr.Dataset
+        Gridded dataset with ``temperature`` and ``salinity`` on
+        ``(time, pressure)``.
+    lat : float, optional
+        Mooring latitude (decimal degrees).
+    width_in : float, optional
+        Figure width in inches.
+    derived : DerivedFields or None, optional
+        The page's derived quantities; its longitude is used for Absolute
+        Salinity (read from *ds* when not given; a warning when unknown).
+
+    Returns
+    -------
+    plt.Figure or None
+        Figure, or None when temperature or salinity are absent.
     """
-    import gsw
     import matplotlib.pyplot as plt
 
     if "temperature" not in ds.data_vars or "salinity" not in ds.data_vars:
         return None
 
-    p_1d = ds["pressure"].values.astype(float)
-    T_pt = ds["temperature"].transpose("pressure", "time").values.astype(float)
-    SP_pt = ds["salinity"].transpose("pressure", "time").values.astype(float)
     time_vals = ds["time"].values
-    n_p, n_t = T_pt.shape
-
-    lon = 0.0
-    for key in ("deployment_longitude", "seabed_longitude", "longitude"):
-        v = ds.attrs.get(key)
-        if v is not None:
-            try:
-                lon = float(v)
-                break
-            except Exception:  # noqa: BLE001  — attribute may be non-numeric; skip
-                pass
-
-    p_2d = np.broadcast_to(p_1d[:, np.newaxis], (n_p, n_t)).copy()
-    SA = gsw.SA_from_SP(SP_pt, p_2d, lon, lat)
-    CT = gsw.CT_from_t(SA, T_pt, p_2d)
-    N2, p_mid = gsw.Nsquared(SA, CT, p_2d, lat=lat)
-    p_mid_1d = np.nanmean(p_mid, axis=1)
+    lon = (
+        derived.longitude
+        if derived is not None
+        else mooring_position(ds, warn=False)[1]
+    )
+    N2, p_mid_1d = n_squared(
+        ds["temperature"].transpose("pressure", "time").values.astype(float),
+        ds["salinity"].transpose("pressure", "time").values.astype(float),
+        ds["pressure"].values.astype(float),
+        lat,
+        lon,
+    )
     # Floor non-positive/unstable N² to 1e-12 so it renders as the lowest colour
     # (weakly stratified / off-scale low) rather than blank.
     N2_log = np.log10(np.maximum(N2, 1e-12))
@@ -520,7 +541,10 @@ def draw_grid_n2(
 
 
 def draw_grid_timeseries(
-    ds: xr.Dataset, *, width_in: float = report_tokens.W_FULL
+    ds: xr.Dataset,
+    *,
+    width_in: float = report_tokens.W_FULL,
+    derived: DerivedFields | None = None,
 ) -> plt.Figure | None:
     """Velocity time series at the depth of maximum time-mean current speed.
 
@@ -545,6 +569,9 @@ def draw_grid_timeseries(
     width_in : float, optional
         Figure width in inches -- the display-slot width the report builder
         resolves; standalone callers get the full content width.
+    derived : DerivedFields or None, optional
+        The page's derived quantities; its ``speed`` is used instead of being
+        computed again.
 
     Returns
     -------
@@ -552,8 +579,6 @@ def draw_grid_timeseries(
         Figure, or None if horizontal velocity data are absent or all-NaN.
 
     """
-    import warnings
-
     import matplotlib.dates as mdates
     import matplotlib.pyplot as plt
 
@@ -566,22 +591,13 @@ def draw_grid_timeseries(
     pressure = ds["pressure"].values  # 1-D
     time_vals = ds["time"].values
 
-    spd = np.sqrt(east**2 + north**2)
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", RuntimeWarning)
-        mean_spd = np.nanmean(spd, axis=0, dtype=np.float64)  # (pressure,); float64 sum
-    if not np.any(np.isfinite(mean_spd)):
+    if derived is not None and derived.speed is not None:
+        spd = np.asarray(derived.speed.transpose(*ds["east_velocity"].dims), float)
+    else:
+        spd, _ = speed_direction(east, north)
+    k_max = level_of_max_speed(spd)
+    if k_max is None:
         return None
-
-    # Only consider levels with at least 70 % non-NaN values so that a
-    # depth covered only briefly does not win on spuriously high mean speed.
-    n_time = spd.shape[0]
-    coverage = np.sum(np.isfinite(spd), axis=0) / n_time  # fraction per level
-    eligible = coverage >= 0.70
-    if not np.any(eligible):
-        eligible = np.ones(len(pressure), dtype=bool)  # fall back: no restriction
-    candidate_spd = np.where(eligible, mean_spd, np.nan)
-    k_max = int(np.nanargmax(candidate_spd))
     p_target = float(pressure[k_max])
 
     spd_ts = spd[:, k_max]

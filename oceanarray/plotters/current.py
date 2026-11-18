@@ -29,6 +29,7 @@ import numpy as np
 import xarray as xr
 from matplotlib.collections import LineCollection
 
+from oceanarray.analysis.derived import speed_direction
 from oceanarray.config import parameters as params
 from oceanarray.config.unit_tables import (
     unit_label,
@@ -633,7 +634,7 @@ def draw_aquadopp_speed_profile(
         elif u_var in ds.data_vars and v_var in ds.data_vars:
             u = ds[u_var].values[:, i]
             v = ds[v_var].values[:, i]
-            spd = np.sqrt(u**2 + v**2)
+            spd, _ = speed_direction(u, v)
         else:
             continue
         spd_clean = spd[np.isfinite(spd)]
@@ -1344,9 +1345,8 @@ def draw_adcp_velocity(
         if "east_velocity" in ds and "north_velocity" in ds:
             e = ds["east_velocity"].values.astype(float)
             n = ds["north_velocity"].values.astype(float)
-            spd = np.sqrt(e**2 + n**2)
-            # Oceanographic convention: direction water flows TO, 0=N clockwise
-            dirn = np.degrees(np.arctan2(e, n)) % 360.0
+            # Direction the water flows toward, clockwise from north.
+            spd, dirn = speed_direction(e, n)
             arrays["current_speed"] = spd
             arrays["current_direction"] = dirn
 
@@ -1569,7 +1569,7 @@ def draw_adcp_rose(
             return None
 
         # Shared speed scale across all panels (99th percentile of all data)
-        all_speeds = np.concatenate([np.sqrt(e**2 + n**2) for e, n, _ in panels])
+        all_speeds = np.concatenate([speed_direction(e, n)[0] for e, n, _ in panels])
         shared_max = max(
             float(np.nanpercentile(all_speeds[np.isfinite(all_speeds)], 99)), 1e-9
         )
@@ -2233,7 +2233,7 @@ def draw_rose_outlines(
             ok = np.isfinite(u[:, j]) & np.isfinite(v[:, j]) & (cell_dep[:, j] == k)
             if ok.sum() < 2:
                 continue
-            direction = np.mod(np.arctan2(u[ok, j], v[ok, j]), 2 * np.pi)
+            direction = np.radians(speed_direction(u[ok, j], v[ok, j])[1])
             counts, _ = np.histogram(direction, edges)
             share = 100.0 * counts / counts.sum()
             # The outline of the sector bars: an arc across each sector at its
@@ -2382,7 +2382,7 @@ def draw_speed_profile_by_deployment(
     by = _velocity_by_depth(ds)
     if by is None:
         return None
-    speed = np.hypot(by["u"], by["v"])
+    speed, _ = speed_direction(by["u"], by["v"])
     box_w = by["offset"]
 
     fig, ax = plt.subplots(figsize=(width_in, width_in * 0.9), layout="constrained")

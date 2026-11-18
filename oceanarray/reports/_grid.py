@@ -11,6 +11,7 @@ import numpy as np
 
 from oceanarray import logger, paths
 from oceanarray import mooring as _mooring
+from oceanarray.analysis.derived import derived_fields
 from oceanarray.location import is_unknown_latlon_source, parse_latlon_with_source
 from oceanarray.paths import should_skip_regeneration
 from oceanarray.pipeline.dataset import time_step_seconds
@@ -219,6 +220,9 @@ class GridContext:
         NetCDF metadata (variables/scalars/globals) for the appendix tables.
     nc_file : str
         The gridded NetCDF file's name, for the appendix table heading.
+    derived : DerivedFields or None
+        Quantities the figures derive from the grid (position, θ, speed,
+        direction), computed once for the page.
 
     """
 
@@ -231,6 +235,7 @@ class GridContext:
     history_entries: list
     nc_meta: dict
     nc_file: str
+    derived: Any = None
 
 
 def build_grid_context(ds: Any, grid_path: Path) -> GridContext:
@@ -259,7 +264,8 @@ def build_grid_context(ds: Any, grid_path: Path) -> GridContext:
             stacklevel=2,
         )
         lat_v = 0.0
-    ts_b64, ts_bounds = _make_grid_ts_diagram_b64_and_limits(ds)
+    derived = derived_fields(ds)
+    ts_b64, ts_bounds = _make_grid_ts_diagram_b64_and_limits(ds, derived=derived)
     dt_s = time_step_seconds(ds)
     return GridContext(
         ds=ds,
@@ -271,6 +277,7 @@ def build_grid_context(ds: Any, grid_path: Path) -> GridContext:
         history_entries=_parse_history(ds.attrs.get("history", "")),
         nc_meta=_read_nc_metadata(grid_path),
         nc_file=grid_path.name,
+        derived=derived,
     )
 
 
@@ -448,7 +455,7 @@ GRID_PANELS: dict[str, Panel] = {
     ),
     "vel_timeseries": Panel(
         "vel_timeseries",
-        render=lambda c: as_panel(lambda: _make_grid_timeseries_b64(c.ds)),
+        render=lambda c: as_panel(lambda: _make_grid_timeseries_b64(c.ds, c.derived)),
         caption=GRID_CAPTIONS["vel_timeseries"],
         applies_to=_has_velocity,
     ),
@@ -481,7 +488,9 @@ GRID_PANELS: dict[str, Panel] = {
     ),
     "n2": Panel(
         "n2",
-        render=lambda c: as_panel(lambda: _make_grid_n2_b64(c.ds, lat=c.lat)),
+        render=lambda c: as_panel(
+            lambda: _make_grid_n2_b64(c.ds, lat=c.lat, derived=c.derived)
+        ),
         caption=GRID_CAPTIONS["n2"],
         applies_to=_has_sigma,
         unavailable_if=lambda c: (

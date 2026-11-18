@@ -61,6 +61,8 @@ if TYPE_CHECKING:
     import matplotlib.pyplot as plt
     import xarray as xr
 
+    from oceanarray.analysis.derived import Knockdown
+
 logger = logging.getLogger(__name__)
 
 
@@ -202,94 +204,11 @@ _KD_COLORS = [
 ]
 
 
-def _mooring_latitude(ds: xr.Dataset) -> float | None:
-    """Return the stack's latitude in decimal degrees, or None when it is unknown.
+def _knockdown_input(ds: xr.Dataset, knockdown: Knockdown | None) -> Knockdown | None:
+    """Return the knockdown inputs given by the report, else build them from *ds*."""
+    from oceanarray.analysis.derived import knockdown as build
 
-    Parameters
-    ----------
-    ds : xr.Dataset
-        Stack dataset whose ``latitude`` global attribute holds the mooring position
-        (decimal degrees or degrees and decimal minutes as text).
-
-    Returns
-    -------
-    float or None
-        The latitude; None (with a warning) when the attribute is missing or cannot
-        be read, so the caller skips the depth-to-pressure conversion instead of
-        computing it at the equator.
-    """
-    from oceanarray.location import parse_coordinate
-
-    lat = parse_coordinate(ds.attrs.get("latitude"))
-    if lat is None or not np.isfinite(float(lat)):
-        logger.warning(
-            "%s: mooring latitude unknown; design depths are not converted to "
-            "pressure, so the knockdown reference is left out",
-            ds.attrs.get("mooring_name", "stack"),
-        )
-        return None
-    return float(lat)
-
-
-def design_pressure(waterdepth: float, hab: float, lat: float) -> float:
-    """Return the pressure (dbar) at an instrument's design depth.
-
-    Parameters
-    ----------
-    waterdepth : float
-        Water depth at the mooring (m).
-    hab : float
-        The instrument's design height above bottom (m).
-    lat : float
-        Latitude (decimal degrees), for gravity.
-
-    Returns
-    -------
-    float
-        Sea pressure (dbar) at depth ``waterdepth − hab``; pressure in dbar exceeds
-        depth in metres by 1–1.5 % at depth (2029 dbar at 2000 m, 60° N), so the two
-        are not compared directly.
-    """
-    import gsw
-
-    return float(gsw.p_from_z(-(waterdepth - hab), lat))
-
-
-def _build_knockdown_records(
-    ds: xr.Dataset,
-    waterdepth: float,
-) -> list:
-    """Extract per-instrument knockdown arrays from a stack dataset."""
-    # Returns (p_nom, serial, actual_pressure, hab) per non-ADCP instrument with at
-    # least 10 valid pressure samples; p_nom is the design depth as pressure (dbar),
-    # NaN when the latitude is unknown.
-    lat = _mooring_latitude(ds)
-    serials = ds["serial"].values
-    habs = ds["hab"].values
-    instr_types = ds["instrument_type"].values
-    n_instr = ds.sizes["N_LEVELS"]
-    pressure_arr = ds["pressure"].values  # (time, N_LEVELS)
-    pqc_arr = ds["pressure_qc"].values if "pressure_qc" in ds.data_vars else None
-
-    records = []
-    for i in range(n_instr):
-        if str(instr_types[i]).lower() == "adcp":
-            continue
-        p_nom = (
-            design_pressure(waterdepth, float(habs[i]), lat)
-            if lat is not None
-            else float("nan")
-        )
-        p_vals = pressure_arr[:, i].copy()
-        # Interpolated pressure (QC flag 8) is not a measurement: exclude it.
-        if pqc_arr is not None:
-            _qc = pqc_arr[:, i] if pqc_arr.ndim == 2 else pqc_arr
-            p_vals[_qc == 8] = np.nan
-        valid = p_vals[np.isfinite(p_vals)]
-        if len(valid) < 10:
-            continue
-        records.append((p_nom, str(serials[i]), valid, float(habs[i])))
-    return records
+    return knockdown if knockdown is not None else build(ds)
 
 
 # ---------------------------------------------------------------------------
@@ -299,6 +218,8 @@ def _build_knockdown_records(
 
 def draw_knockdown_pressure(
     ds: xr.Dataset,
+    *,
+    knockdown: Knockdown | None = None,
 ) -> matplotlib.figure.Figure | None:
     """IQR of measured pressure vs. nominal design depth, equal aspect ratio.
 
@@ -322,34 +243,30 @@ def draw_knockdown_pressure(
         optionally ``pressure_qc``.  The ``waterdepth`` global attribute
         must be present and non-zero.
 
+    knockdown : oceanarray.analysis.derived.Knockdown or None, optional
+        The stack's knockdown inputs, built once per report and shared by the
+        knockdown figures; built from *ds* when not given.
+
     Returns
     -------
     matplotlib.figure.Figure or None
 
     """
-    if "pressure" not in ds.data_vars or "hab" not in ds:
+    kd = _knockdown_input(ds, knockdown)
+    if kd is None or not kd.records:
         return None
 
     import matplotlib.pyplot as plt
 
     from oceanarray.config import parameters as params
 
-    try:
-        waterdepth = float(ds.attrs.get("waterdepth", 0) or 0)
-    except (ValueError, TypeError):
-        return None
-    if waterdepth <= 0:
-        return None
-
-    records = _build_knockdown_records(ds, waterdepth)
-    if not records:
-        return None
+    records = kd.records
     # A design pressure needs the latitude and a finite HAB.
-    records = [r for r in records if np.isfinite(r[0])]
+    records = [r for r in records if np.isfinite(r.p_nom)]
     if not records:
         return None
 
-    p_nom_vals = [r[0] for r in records]
+    p_nom_vals = [r.p_nom for r in records]
     p_range = max(p_nom_vals) - min(p_nom_vals) if len(p_nom_vals) > 1 else 50.0
     box_width = max(5.0, p_range / (len(p_nom_vals) * 2))
 
@@ -409,6 +326,7 @@ def draw_knockdown_pressure(
 def draw_knockdown_hab(
     ds: xr.Dataset,
     *,
+    knockdown: Knockdown | None = None,
     width_in: float = report_tokens.W_HALF,
 ) -> matplotlib.figure.Figure | None:
     """IQR of measured pressure vs. nominal HAB, equal aspect ratio.
@@ -437,28 +355,25 @@ def draw_knockdown_hab(
         Figure width in inches -- the display-slot width the report builder
         resolves; standalone callers get the full content width.
 
+    knockdown : oceanarray.analysis.derived.Knockdown or None, optional
+        The stack's knockdown inputs, built once per report and shared by the
+        knockdown figures; built from *ds* when not given.
+
     Returns
     -------
     matplotlib.figure.Figure or None
 
     """
-    if "pressure" not in ds.data_vars or "hab" not in ds:
+    kd = _knockdown_input(ds, knockdown)
+    if kd is None or not kd.records:
         return None
 
     import matplotlib.pyplot as plt
 
     from oceanarray.config import parameters as params
 
-    try:
-        waterdepth = float(ds.attrs.get("waterdepth", 0) or 0)
-    except (ValueError, TypeError):
-        return None
-    if waterdepth <= 0:
-        return None
-
-    records = _build_knockdown_records(ds, waterdepth)
-    if not records:
-        return None
+    waterdepth = kd.waterdepth
+    records = kd.records
 
     # Only instruments with a finite design HAB can be placed on the HAB axis.
     hab_records = [
@@ -473,8 +388,7 @@ def draw_knockdown_hab(
     hab_range = max(hab_nom_vals) - min(hab_nom_vals) if len(hab_nom_vals) > 1 else 10.0
     box_width = max(2.0, hab_range / (len(hab_nom_vals) * 2))
     # Design pressures exist only when the latitude is known (NaN otherwise).
-    with_reference = any(np.isfinite(r[0]) for r in records)
-    lat = _mooring_latitude(ds) if with_reference else None
+    with_reference = kd.latitude is not None
 
     with plt.style.context(str(params.MPLSTYLE)):
         # Half width — displayed side-by-side with the anomaly panel in a two-column
@@ -509,20 +423,20 @@ def draw_knockdown_hab(
         hab_top = min(float(np.nanmax(hab_nom_vals)) * 1.1 + 10.0, waterdepth)
         p_lo = min(float(np.nanmin(a)) for _h, _s, a in hab_records)
         p_hi = p_max_all
-        if lat is not None:
-            p_lo = min(p_lo, design_pressure(waterdepth, hab_top, lat))
-            p_hi = max(p_hi, design_pressure(waterdepth, 0.0, lat))
+        if with_reference:
+            p_lo = min(p_lo, float(kd.design_pressure(hab_top)))
+            p_hi = max(p_hi, float(kd.design_pressure(0.0)))
         pad = 0.05 * (p_hi - p_lo) if p_hi > p_lo else 5.0
         ax.set_xlim(0, hab_top)  # low HAB (deep) on the left, shallow on the right
         ax.set_ylim(p_lo - pad, p_hi + pad)
         ax.invert_yaxis()  # deeper (larger pressure) at bottom
 
         # Reference line: pressure at the design depth for each HAB.
-        if lat is not None:
+        if with_reference:
             hab_line = np.linspace(0.0, hab_top, 50)
             ax.plot(
                 hab_line,
-                [design_pressure(waterdepth, h, lat) for h in hab_line],
+                kd.design_pressure(hab_line),
                 color="dimgrey",
                 lw=0.8,
                 ls="--",
@@ -545,6 +459,7 @@ def draw_knockdown_hab(
 def draw_knockdown_anomaly(
     ds: xr.Dataset,
     *,
+    knockdown: Knockdown | None = None,
     width_in: float = report_tokens.W_HALF,
 ) -> matplotlib.figure.Figure | None:
     """IQR of pressure anomaly (measured − nominal) per instrument.
@@ -576,34 +491,30 @@ def draw_knockdown_anomaly(
         Figure width in inches -- the display-slot width the report builder
         resolves; standalone callers get the full content width.
 
+    knockdown : oceanarray.analysis.derived.Knockdown or None, optional
+        The stack's knockdown inputs, built once per report and shared by the
+        knockdown figures; built from *ds* when not given.
+
     Returns
     -------
     matplotlib.figure.Figure or None
 
     """
-    if "pressure" not in ds.data_vars or "hab" not in ds:
+    kd = _knockdown_input(ds, knockdown)
+    if kd is None or not kd.records:
         return None
 
     import matplotlib.pyplot as plt
 
     from oceanarray.config import parameters as params
 
-    try:
-        waterdepth = float(ds.attrs.get("waterdepth", 0) or 0)
-    except (ValueError, TypeError):
-        return None
-    if waterdepth <= 0:
-        return None
-
-    records = _build_knockdown_records(ds, waterdepth)
-    if not records:
-        return None
+    records = kd.records
     # A design pressure needs the latitude and a finite HAB.
-    records = [r for r in records if np.isfinite(r[0])]
+    records = [r for r in records if np.isfinite(r.p_nom)]
     if not records:
         return None
 
-    p_nom_vals = [r[0] for r in records]
+    p_nom_vals = [r.p_nom for r in records]
     p_range = max(p_nom_vals) - min(p_nom_vals) if len(p_nom_vals) > 1 else 50.0
     box_width = max(5.0, p_range / (len(p_nom_vals) * 2))
 
@@ -655,6 +566,7 @@ def draw_knockdown_anomaly(
 def draw_knockdown_displacement(
     ds: xr.Dataset,
     *,
+    knockdown: Knockdown | None = None,
     width_in: float = report_tokens.W_FULL,
 ) -> matplotlib.figure.Figure | None:
     """Scatter and heatmap of estimated horizontal displacement vs. measured pressure.
@@ -684,33 +596,28 @@ def draw_knockdown_displacement(
         Figure width in inches -- the display-slot width the report builder
         resolves; standalone callers get the full content width.
 
+    knockdown : oceanarray.analysis.derived.Knockdown or None, optional
+        The stack's knockdown inputs, built once per report and shared by the
+        knockdown figures; built from *ds* when not given.
+
     Returns
     -------
     matplotlib.figure.Figure or None
 
     """
-    if "pressure" not in ds.data_vars or "hab" not in ds:
-        return None
+    kd = _knockdown_input(ds, knockdown)
+    if kd is None or not kd.records or kd.latitude is None:
+        return None  # without the latitude, pressure cannot be converted to depth
 
     import matplotlib.colors as mcolors
     import matplotlib.pyplot as plt
 
     from oceanarray.config import parameters as params
+    from oceanarray.pipeline.pressure import depth_from_pressure
     from oceanarray.plotters.primitives import nice_colorbar_bounds
 
-    try:
-        waterdepth = float(ds.attrs.get("waterdepth", 0) or 0)
-    except (ValueError, TypeError):
-        return None
-    if waterdepth <= 0:
-        return None
-
-    records = _build_knockdown_records(ds, waterdepth)
-    if not records:
-        return None
-    lat = _mooring_latitude(ds)
-    if lat is None:
-        return None  # pressure cannot be converted to depth without the latitude
+    waterdepth = kd.waterdepth
+    records = kd.records
 
     # --- collect data for both panels ---
     _tab20 = plt.get_cmap("tab20")
@@ -718,11 +625,9 @@ def draw_knockdown_displacement(
     all_x_list = []
     all_p_list = []
 
-    import gsw
-
     for idx, (_p_nom, serial, actual_p, hab_nom) in enumerate(records):
         # Measured height above bottom from the measured pressure, converted to depth.
-        hab_meas = waterdepth + gsw.z_from_p(actual_p, lat)
+        hab_meas = waterdepth - depth_from_pressure(actual_p, kd.latitude)
         x_horiz = np.sqrt(np.maximum(0.0, hab_nom**2 - hab_meas**2))
         all_x_list.append(x_horiz)
         all_p_list.append(actual_p)
@@ -1775,14 +1680,13 @@ def draw_velocity_iqr_profile(
     axs[0].set_ylabel(f"Pressure ({unit_label('dbar')})")
     axs[0].invert_yaxis()  # shared y — invert once only
 
-    # Mark bottom depth if available (waterdepth global attr, dbar ≈ m seawater)
-    try:
-        _wd = float(ds.attrs.get("waterdepth", ""))
-        if np.isfinite(_wd) and _wd > 0:
-            for _ax in axs:
-                _ax.axhline(_wd, color="k", linewidth=2.0, linestyle="-", zorder=5)
-    except (ValueError, TypeError):
-        pass
+    # Seabed: the water depth converted to pressure (left out without a latitude).
+    from oceanarray.analysis.derived import seabed_pressure
+
+    p_bed = seabed_pressure(ds)
+    if p_bed is not None:
+        for _ax in axs:
+            _ax.axhline(p_bed, color="k", linewidth=2.0, linestyle="-", zorder=5)
 
     return fig
 

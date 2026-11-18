@@ -15,8 +15,9 @@ import numpy as np
 import pytest
 import xarray as xr
 
+from oceanarray.analysis.derived import knockdown
 from oceanarray.location import parse_coordinate
-from oceanarray.plotters.diagnostic import _build_knockdown_records, design_pressure
+from oceanarray.pipeline.pressure import pressure_from_depth
 from oceanarray.reports import MooringReport
 from oceanarray.reports._html_helpers import _format_seconds
 from oceanarray.reports._mooring import SKIP_NO_REASON, _trim_note
@@ -103,14 +104,15 @@ def test_knockdown_design_depth_is_compared_as_pressure() -> None:
         _PROC / _MOORING / f"{_MOORING}_stack.nc", engine="netcdf4"
     ) as ds:
         waterdepth = float(ds.attrs["waterdepth"])
-        records = _build_knockdown_records(ds, waterdepth)
+        kd = knockdown(ds)
         lat = parse_coordinate(ds.attrs["latitude"])  # stored as text, e.g. "65 43.913"
-    assert records
-    for p_nom, _serial, _p, hab in records:
+    assert kd is not None and kd.records
+    assert kd.latitude == pytest.approx(lat)
+    for p_nom, _serial, _p, hab in kd.records:
         expected = float(gsw.p_from_z(-(waterdepth - hab), lat))
         assert p_nom == pytest.approx(expected)
         assert p_nom > waterdepth - hab  # dbar exceed metres at depth
-    assert design_pressure(2000.0, 0.0, 60.0) == pytest.approx(2028.8, abs=0.5)
+    assert pressure_from_depth(2000.0, 60.0) == pytest.approx(2028.8, abs=0.5)
     assert np.isfinite(lat)
 
 
@@ -177,16 +179,18 @@ def test_unknown_latitude_warns_and_skips_the_design_pressure(caplog) -> None:
         draw_knockdown_hab,
     )
 
-    with xr.open_dataset(_PROC / _MOORING / f"{_MOORING}_stack.nc", engine="netcdf4") as ds:
+    with xr.open_dataset(
+        _PROC / _MOORING / f"{_MOORING}_stack.nc", engine="netcdf4"
+    ) as ds:
         ds = ds.load()
     del ds.attrs["latitude"]
-    with caplog.at_level(logging.WARNING, logger="oceanarray.plotters.diagnostic"):
-        records = _build_knockdown_records(ds, float(ds.attrs["waterdepth"]))
-    assert records and all(np.isnan(r[0]) for r in records)
-    assert "latitude unknown" in caplog.text
-    assert draw_knockdown_anomaly(ds) is None
-    assert draw_knockdown_displacement(ds) is None
-    fig = draw_knockdown_hab(ds)
+    with caplog.at_level(logging.WARNING, logger="oceanarray.analysis.derived"):
+        kd = knockdown(ds)
+    assert kd is not None and kd.records and all(np.isnan(r.p_nom) for r in kd.records)
+    assert caplog.text.count("latitude unknown") == 1
+    assert draw_knockdown_anomaly(ds, knockdown=kd) is None
+    assert draw_knockdown_displacement(ds, knockdown=kd) is None
+    fig = draw_knockdown_hab(ds, knockdown=kd)
     assert fig is not None
     assert not fig.axes[0].get_lines() or all(
         ln.get_label() != "expected pressure" for ln in fig.axes[0].get_lines()
@@ -197,7 +201,9 @@ def test_hab_axis_stops_at_the_water_depth() -> None:
     """The HAB axis (and so the reference line) never reaches above the sea surface."""
     from oceanarray.plotters.diagnostic import draw_knockdown_hab
 
-    with xr.open_dataset(_PROC / _MOORING / f"{_MOORING}_stack.nc", engine="netcdf4") as ds:
+    with xr.open_dataset(
+        _PROC / _MOORING / f"{_MOORING}_stack.nc", engine="netcdf4"
+    ) as ds:
         ds = ds.load()
     waterdepth = float(ds.attrs["waterdepth"])
     fig = draw_knockdown_hab(ds)
@@ -216,7 +222,9 @@ def test_figure_source_is_read_when_the_page_renders(monkeypatch) -> None:
     assert tmpl.render() == "on"
 
 
-def test_stack_and_grid_pages_link_the_mooring_description(page: str, tmp_path_factory) -> None:
+def test_stack_and_grid_pages_link_the_mooring_description(
+    page: str, tmp_path_factory
+) -> None:
     """The stack and grid pages link the deployment page's description near the top."""
     out = tmp_path_factory.getbasetemp()
     pages = list(out.rglob(f"{_MOORING}_stack_report.html")) + list(
