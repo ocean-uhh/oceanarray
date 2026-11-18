@@ -328,6 +328,23 @@ def test_the_page_links_reports_kept_elsewhere(site, tmp_path):
     assert "<th>Slot</th>" not in html
 
 
+def test_the_page_links_each_mooring_description_near_the_top(site, tmp_path):
+    """One link per deployment page found, to its "Mooring description" section."""
+    yamls = [site / n / f"{n}.mooring.yaml" for n in _NAMES]
+    reports = tmp_path / "outputs" / "report"
+    for n in _NAMES:
+        (reports / n).mkdir(parents=True)
+        (reports / n / f"{n}_report.html").touch()
+    with contextlib.redirect_stdout(io.StringIO()):
+        out = concat_moorings(yamls, name="egM2", out_dir=tmp_path / "egM2")
+        page = generate_concat_page(out, out.parent / "report", report_dir=reports)
+    html = page.read_text(encoding="utf-8")
+    see_also = html.split('<p class="see-also">', 1)[1].split("</p>", 1)[0]
+    for n in _NAMES:
+        assert f'href="../../outputs/report/{n}/{n}_report.html#description"' in see_also
+    assert html.index('<p class="see-also">') < html.index('class="jump-nav"')
+
+
 def test_the_command(site):
     args = build_parser().parse_args(
         [

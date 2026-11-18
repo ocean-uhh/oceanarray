@@ -9,6 +9,8 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Added
 
+- Deployment report: a closing *Mooring description* section with the mooring YAML in a collapsed box with a Copy button, so a reader can rerun it.
+- `OCEANARRAY_FIGURE_SOURCE=0` turns off the per-figure `source:` line (for a public build).
 - `oceanarray concat` / `oa.concat` join one site's deployment stacks by depth into `<site>_stackcat.nc`, with a Stack cat report page (#135).
 - Stage 1 writes an imported file's principal investigators and contributors as OceanSITES lists; the stack and Stack cat join them (#135).
 - `writers.write(chunks=)` sets the chunk length along a dimension (#135).
@@ -37,6 +39,15 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Changed
 
+- Deployment report: the instrument summary comes first; processing pipeline, deployment timing and clock corrections follow it, the pipeline table collapsed.
+- Deployment report tables identify instruments by nominal depth and HAB (units on their own header line) with readable type names; sampling interval as "1 h", pressure range as "2358–2376".
+- Deployment report: originator timing, clock corrections and calibration show one line when there is nothing to show.
+- Deployment report QC summary: a row only for variables not all good; columns and legend from the flags present.
+- QC summary: variables never checked (flag 0), nominal (7) or interpolated (8) throughout get one line per flag, never counted as good.
+- Stack, grid, Stack cat and Grid cat pages link the deployment page's *Mooring description* near the top (one link per deployment).
+- Instrument summary caption states why a row is shaded (record ends more than 12 h before recovery).
+- Report captions rewritten for readers who did not run the pipeline (deployment report); flag words replace the table tokens ("suspect", "interpolated", "no QC").
+- Report footer: the package name links to the documentation; cruise and config path removed.
 - Deployments on the Stack cat page are colored red to purple in time order; their start lines are dotted.
 - Site figures: up to seven deployments get a color each; more share colors in pairs, the second dashed, hatched or with a square marker.
 - A ▼ above each Stack cat and Grid cat time axis marks a deployment's start.
@@ -68,6 +79,9 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Fixed
 
+- Knockdown figures compare the design depth converted to pressure (`gsw.p_from_z`) with measured pressure; they compared metres with dbar, a 1–1.5 % bias read as knockdown.
+- Knockdown figures: an unknown latitude warns and leaves out the design pressure instead of using the equator; the HAB axis stops at the water depth.
+- `OCEANARRAY_FIGURE_SOURCE` is read when a page renders, not when oceanarray is imported.
 - A grid's current direction is no longer interpolated across 0/360° (it pointed the wrong way between a 355° and a 5° instrument).
 
 - `stage2_source_sha256` is the full SHA-256, not its first 8 digits (#135).

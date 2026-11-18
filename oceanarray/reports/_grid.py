@@ -27,7 +27,11 @@ from ._env import (
     render_template,
 )
 from ._figdebug import as_panel
-from ._html_helpers import _parse_history, _resolve_array_report_href
+from ._html_helpers import (
+    _parse_history,
+    _resolve_array_report_href,
+    description_links,
+)
 from ._navs import mooring_nav
 from ._plots import (
     _make_grid_hodograph_b64,
@@ -679,6 +683,7 @@ def generate_grid_page(
                 array_href=_resolve_array_report_href(out_dir),
             ),
             report=report,
+            description_links=description_links(ctx),
             cruise=ctx.get("cruise", "—"),
             meta_facts=_masthead.masthead_facts(
                 "grid",

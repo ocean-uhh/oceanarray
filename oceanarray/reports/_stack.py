@@ -32,6 +32,7 @@ from ._html_helpers import (
     _parse_dt,
     _parse_history,
     _resolve_array_report_href,
+    description_links,
 )
 from ._navs import mooring_nav
 from ._plots import (
@@ -760,6 +761,7 @@ def generate_stack_page(
                 array_href=_resolve_array_report_href(out_dir),
             ),
             report=report,
+            description_links=description_links(ctx),
             cruise=ctx.get("cruise", "—"),
             meta_facts=_masthead.masthead_facts(
                 "stack",

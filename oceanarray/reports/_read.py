@@ -14,18 +14,8 @@ from oceanarray import paths
 from ..config import parameters as params
 from ..plotters.helpers import QC_COLORS as _QC_COLORS
 
-# Short display glosses of parameters.QC_FLAG_MEANINGS (OceanSITES table 2).
-# Keep the codes and wording consistent with that table.
-_QC_LABELS: dict[int, str] = {
-    0: "unknown",
-    1: "good",
-    2: "prob. good",
-    3: "corr. bad",
-    4: "bad",
-    7: "nominal",
-    8: "interp.",
-    9: "missing",
-}
+#: Reader-facing words for the flag values, from the central flag table.
+_QC_LABELS: dict[int, str] = params.QC_FLAG_LABEL
 
 
 def _read_nc_metadata(nc_path: Path) -> dict[str, Any]:
@@ -185,7 +175,7 @@ def _read_qc_summary(nc_path: Path) -> list[dict[str, Any]]:
             if total == 0:
                 continue
             flag_rows = []
-            for fval in (1, 2, 3, 4, 8, 9):
+            for fval in params.QC_FLAG_VALUES:
                 n = int(np.sum(flags == fval))
                 flag_rows.append(
                     {

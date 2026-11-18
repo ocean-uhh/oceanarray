@@ -26,6 +26,7 @@ from ._breadcrumb import page_crumbs
 from ._env import render_history, render_template
 from ._figdebug import as_panel
 from ._html_helpers import (
+    DESCRIPTION_ANCHOR,
     _format_dt,
     _format_duration,
     _parse_dt,
@@ -449,15 +450,61 @@ def _deployment_href(
     out_dir: Path,
     name: str,
     report_dir: Path | None = None,
+    page_suffix: str = "_stack_report.html",
+    anchor: str = "",
 ) -> str | None:
-    """Return the relative link from this page to a deployment's own stack report."""
+    """Return the relative link from this page to one of a deployment's own pages.
+
+    Parameters
+    ----------
+    source : str
+        The deployment's stack file as recorded in the Stack cat (``stack_file``).
+    site_dir : Path
+        Folder of the Stack cat file, against which *source* is resolved.
+    out_dir : Path
+        Folder this page is written to.
+    name : str
+        Deployment name.
+    report_dir : Path or None, optional
+        Reports root, when the deployment pages live under one.
+    page_suffix : str, optional
+        The page after the deployment name: ``"_stack_report.html"`` (default) or
+        ``"_report.html"`` (the deployment page).
+    anchor : str, optional
+        Section id to link to on that page (``"description"``); none by default.
+
+    Returns
+    -------
+    str or None
+        The relative href, or None when the page does not exist.
+    """
     folder = _report_folder(source, site_dir, name, report_dir)
     if folder is None:
         return None
-    page = folder / f"{name}_stack_report.html"
+    page = folder / f"{name}{page_suffix}"
     if not page.exists():
         return None
-    return Path(os.path.relpath(page.resolve(), out_dir.resolve())).as_posix()
+    href = Path(os.path.relpath(page.resolve(), out_dir.resolve())).as_posix()
+    return f"{href}#{anchor}" if anchor else href
+
+
+def _description_links(rows: list[dict]) -> list[tuple[str, str]]:
+    """Return one (deployment name, href) pair per deployment page found.
+
+    Parameters
+    ----------
+    rows : list of dict
+        Deployments-table rows (:func:`_deployment_rows`), each with ``name`` and
+        ``description_href`` (None when the deployment page was not found).
+
+    Returns
+    -------
+    list of (str, str)
+        Links to the "Mooring description" section of each deployment page.
+    """
+    return [
+        (r["name"], r["description_href"]) for r in rows if r.get("description_href")
+    ]
 
 
 def _deployment_rows(
@@ -504,6 +551,15 @@ def _deployment_rows(
                     out_dir,
                     name,
                     report_dir,
+                ),
+                "description_href": _deployment_href(
+                    _text(get["stack_file"], k),
+                    stack_path.parent,
+                    out_dir,
+                    name,
+                    report_dir,
+                    page_suffix="_report.html",
+                    anchor=DESCRIPTION_ANCHOR,
                 ),
                 "deployed": _format_dt(start),
                 "recovered": _format_dt(end),
@@ -980,6 +1036,7 @@ def generate_concat_page(
                 ),
             ),
             report=report,
+            description_links=_description_links(deployment_rows),
             meta_facts=_masthead_facts(ds, stack_path),
             generated=generated or datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
         )

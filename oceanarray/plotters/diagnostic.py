@@ -34,6 +34,7 @@ plot_spectrum (any 1D time series), plot_polar_histogram (current rose).
 
 from __future__ import annotations
 
+import logging
 import re as _re
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -59,6 +60,8 @@ if TYPE_CHECKING:
     import matplotlib.figure
     import matplotlib.pyplot as plt
     import xarray as xr
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -199,13 +202,68 @@ _KD_COLORS = [
 ]
 
 
+def _mooring_latitude(ds: xr.Dataset) -> float | None:
+    """Return the stack's latitude in decimal degrees, or None when it is unknown.
+
+    Parameters
+    ----------
+    ds : xr.Dataset
+        Stack dataset whose ``latitude`` global attribute holds the mooring position
+        (decimal degrees or degrees and decimal minutes as text).
+
+    Returns
+    -------
+    float or None
+        The latitude; None (with a warning) when the attribute is missing or cannot
+        be read, so the caller skips the depth-to-pressure conversion instead of
+        computing it at the equator.
+    """
+    from oceanarray.location import parse_coordinate
+
+    lat = parse_coordinate(ds.attrs.get("latitude"))
+    if lat is None or not np.isfinite(float(lat)):
+        logger.warning(
+            "%s: mooring latitude unknown; design depths are not converted to "
+            "pressure, so the knockdown reference is left out",
+            ds.attrs.get("mooring_name", "stack"),
+        )
+        return None
+    return float(lat)
+
+
+def design_pressure(waterdepth: float, hab: float, lat: float) -> float:
+    """Return the pressure (dbar) at an instrument's design depth.
+
+    Parameters
+    ----------
+    waterdepth : float
+        Water depth at the mooring (m).
+    hab : float
+        The instrument's design height above bottom (m).
+    lat : float
+        Latitude (decimal degrees), for gravity.
+
+    Returns
+    -------
+    float
+        Sea pressure (dbar) at depth ``waterdepth − hab``; pressure in dbar exceeds
+        depth in metres by 1–1.5 % at depth (2029 dbar at 2000 m, 60° N), so the two
+        are not compared directly.
+    """
+    import gsw
+
+    return float(gsw.p_from_z(-(waterdepth - hab), lat))
+
+
 def _build_knockdown_records(
     ds: xr.Dataset,
     waterdepth: float,
 ) -> list:
     """Extract per-instrument knockdown arrays from a stack dataset."""
-    # Returns (p_nom, serial, actual_pressure) per non-ADCP instrument with at
-    # least 10 valid pressure samples.
+    # Returns (p_nom, serial, actual_pressure, hab) per non-ADCP instrument with at
+    # least 10 valid pressure samples; p_nom is the design depth as pressure (dbar),
+    # NaN when the latitude is unknown.
+    lat = _mooring_latitude(ds)
     serials = ds["serial"].values
     habs = ds["hab"].values
     instr_types = ds["instrument_type"].values
@@ -217,8 +275,11 @@ def _build_knockdown_records(
     for i in range(n_instr):
         if str(instr_types[i]).lower() == "adcp":
             continue
-        # Nominal pressure from depth in meters, taking 1 dbar ≈ 1 m in seawater.
-        p_nom = waterdepth - float(habs[i])
+        p_nom = (
+            design_pressure(waterdepth, float(habs[i]), lat)
+            if lat is not None
+            else float("nan")
+        )
         p_vals = pressure_arr[:, i].copy()
         # Interpolated pressure (QC flag 8) is not a measurement: exclude it.
         if pqc_arr is not None:
@@ -227,7 +288,7 @@ def _build_knockdown_records(
         valid = p_vals[np.isfinite(p_vals)]
         if len(valid) < 10:
             continue
-        records.append((p_nom, str(serials[i]), valid))
+        records.append((p_nom, str(serials[i]), valid, float(habs[i])))
     return records
 
 
@@ -283,6 +344,10 @@ def draw_knockdown_pressure(
     records = _build_knockdown_records(ds, waterdepth)
     if not records:
         return None
+    # A design pressure needs the latitude and a finite HAB.
+    records = [r for r in records if np.isfinite(r[0])]
+    if not records:
+        return None
 
     p_nom_vals = [r[0] for r in records]
     p_range = max(p_nom_vals) - min(p_nom_vals) if len(p_nom_vals) > 1 else 50.0
@@ -292,7 +357,7 @@ def draw_knockdown_pressure(
         fig, ax = plt.subplots(figsize=(5, 5))
 
         p_max_all = 0.0
-        for p_nom, _serial, actual_p in records:
+        for p_nom, _serial, actual_p, _hab in records:
             bp = ax.boxplot(
                 actual_p,
                 vert=True,
@@ -395,14 +460,21 @@ def draw_knockdown_hab(
     if not records:
         return None
 
-    # hab_nom is stored as p_nom = waterdepth - hab, so recover hab
+    # Only instruments with a finite design HAB can be placed on the HAB axis.
     hab_records = [
-        (waterdepth - p_nom, serial, actual_p) for p_nom, serial, actual_p in records
+        (hab, serial, actual_p)
+        for _p_nom, serial, actual_p, hab in records
+        if np.isfinite(hab)
     ]
+    if not hab_records:
+        return None
 
     hab_nom_vals = [r[0] for r in hab_records]
     hab_range = max(hab_nom_vals) - min(hab_nom_vals) if len(hab_nom_vals) > 1 else 10.0
     box_width = max(2.0, hab_range / (len(hab_nom_vals) * 2))
+    # Design pressures exist only when the latitude is known (NaN otherwise).
+    with_reference = any(np.isfinite(r[0]) for r in records)
+    lat = _mooring_latitude(ds) if with_reference else None
 
     with plt.style.context(str(params.MPLSTYLE)):
         # Half width — displayed side-by-side with the anomaly panel in a two-column
@@ -430,24 +502,35 @@ def draw_knockdown_hab(
             bp["boxes"][0].set_alpha(0.6)
             p_max_all = max(p_max_all, float(np.nanmax(actual_p)))
 
-        ax_max = max(p_max_all, waterdepth) * 1.05
-        ax.set_xlim(0, ax_max)  # low HAB (deep) on the left, surface on the right
-        ax.set_ylim(0, ax_max)
-        ax.set_aspect("equal")
+        # Zoom to the instruments: HAB from 0 to above the top one, pressure over
+        # the span of the records and their design pressures, with a margin.  The
+        # top of the HAB axis never exceeds the water depth, so the reference line
+        # is never evaluated above the sea surface.
+        hab_top = min(float(np.nanmax(hab_nom_vals)) * 1.1 + 10.0, waterdepth)
+        p_lo = min(float(np.nanmin(a)) for _h, _s, a in hab_records)
+        p_hi = p_max_all
+        if lat is not None:
+            p_lo = min(p_lo, design_pressure(waterdepth, hab_top, lat))
+            p_hi = max(p_hi, design_pressure(waterdepth, 0.0, lat))
+        pad = 0.05 * (p_hi - p_lo) if p_hi > p_lo else 5.0
+        ax.set_xlim(0, hab_top)  # low HAB (deep) on the left, shallow on the right
+        ax.set_ylim(p_lo - pad, p_hi + pad)
         ax.invert_yaxis()  # deeper (larger pressure) at bottom
 
-        # Reference line: expected pressure = waterdepth - hab
-        ax.plot(
-            [0, ax_max],
-            [waterdepth, waterdepth - ax_max],
-            color="dimgrey",
-            lw=0.8,
-            ls="--",
-            zorder=0,
-            label="expected pressure",
-        )
-        ax.legend(loc="upper right")
-        ax.set_xlabel("Nominal HAB (m)")
+        # Reference line: pressure at the design depth for each HAB.
+        if lat is not None:
+            hab_line = np.linspace(0.0, hab_top, 50)
+            ax.plot(
+                hab_line,
+                [design_pressure(waterdepth, h, lat) for h in hab_line],
+                color="dimgrey",
+                lw=0.8,
+                ls="--",
+                zorder=0,
+                label="expected pressure",
+            )
+            ax.legend(loc="upper right")
+        ax.set_xlabel("Design height above bottom (m)")
         ax.set_ylabel("Measured pressure (dbar)")
 
         plt.tight_layout()
@@ -515,6 +598,10 @@ def draw_knockdown_anomaly(
     records = _build_knockdown_records(ds, waterdepth)
     if not records:
         return None
+    # A design pressure needs the latitude and a finite HAB.
+    records = [r for r in records if np.isfinite(r[0])]
+    if not records:
+        return None
 
     p_nom_vals = [r[0] for r in records]
     p_range = max(p_nom_vals) - min(p_nom_vals) if len(p_nom_vals) > 1 else 50.0
@@ -524,7 +611,7 @@ def draw_knockdown_anomaly(
         # Half width — side-by-side with the HAB panel in the mooring.html flex row.
         fig, ax = plt.subplots(figsize=(width_in, max(3, len(records) * 0.4 + 1)))
 
-        for p_nom, _serial, actual_p in records:
+        for p_nom, _serial, actual_p, _hab in records:
             anomaly = actual_p - p_nom  # positive = knocked down deeper
             median_anom = float(np.median(anomaly))
             color = next(c for thresh, c in _KD_COLORS if abs(median_anom) < thresh)
@@ -578,7 +665,8 @@ def draw_knockdown_displacement(
         x_horiz = sqrt(max(0, hab_nom² − hab_meas²))
 
     where ``hab_nom`` is the nominal height-above-bottom (m) and
-    ``hab_meas = waterdepth − pressure`` is the measured HAB.
+    ``hab_meas = waterdepth − depth(pressure)`` is the measured HAB, the measured
+    pressure converted to depth (``gsw.z_from_p``) at the mooring's latitude.
 
     **Left panel** — scatter of ``(x_horiz, measured_pressure)`` per
     instrument, coloured by serial number.  y-axis is measured pressure
@@ -620,6 +708,9 @@ def draw_knockdown_displacement(
     records = _build_knockdown_records(ds, waterdepth)
     if not records:
         return None
+    lat = _mooring_latitude(ds)
+    if lat is None:
+        return None  # pressure cannot be converted to depth without the latitude
 
     # --- collect data for both panels ---
     _tab20 = plt.get_cmap("tab20")
@@ -627,9 +718,11 @@ def draw_knockdown_displacement(
     all_x_list = []
     all_p_list = []
 
-    for idx, (p_nom, serial, actual_p) in enumerate(records):
-        hab_nom = waterdepth - p_nom
-        hab_meas = waterdepth - actual_p
+    import gsw
+
+    for idx, (_p_nom, serial, actual_p, hab_nom) in enumerate(records):
+        # Measured height above bottom from the measured pressure, converted to depth.
+        hab_meas = waterdepth + gsw.z_from_p(actual_p, lat)
         x_horiz = np.sqrt(np.maximum(0.0, hab_nom**2 - hab_meas**2))
         all_x_list.append(x_horiz)
         all_p_list.append(actual_p)
