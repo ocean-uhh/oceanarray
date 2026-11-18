@@ -285,6 +285,7 @@ MOORING_PANELS: dict[str, Panel] = {
             mooring_name=c["mooring_name"],
             grid_p_start=c["grid_p_start"],
             grid_p_end=c["grid_p_end"],
+            yaml_name=c["yaml_name"] or f"{c['mooring_name']}.mooring.yaml",
         ),
         kind="html",
     ),

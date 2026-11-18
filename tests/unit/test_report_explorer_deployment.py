@@ -268,3 +268,31 @@ def test_stack_and_grid_pages_link_the_mooring_description(
             < html.index('class="expand-all"')
         )
     assert 'id="description"' in page
+
+
+def test_pipeline_regrid_command_is_runnable(page: str) -> None:
+    """The copyable regrid command names the description and parses as ``oceanarray run``."""
+    import html as _html
+    import re
+    import shlex
+
+    from oceanarray.cli import build_parser
+
+    m = re.search(r"cursor:text\">(oceanarray run [^<]+)</pre>", page)
+    assert m, "regrid command not on the page"
+    argv = shlex.split(_html.unescape(m.group(1)))[1:]
+    assert argv[1] == f"{_MOORING}.mooring.yaml"
+    args = build_parser().parse_args(argv)
+    assert args.from_stage == 3  # no raw files needed
+    assert args.pmin is not None and args.pmax is not None
+
+
+def test_every_known_instrument_type_has_a_readable_label() -> None:
+    """No known instrument type falls back to the upper-cased code ("THERMISTOR")."""
+    from oceanarray.config import parameters as params
+    from oceanarray.reports._navs import _TYPE_LABELS
+
+    missing = sorted(
+        t for t in params.KNOWN_INSTRUMENT_TYPES if t.lower() not in _TYPE_LABELS
+    )
+    assert not missing, missing

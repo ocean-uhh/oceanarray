@@ -841,9 +841,10 @@ button.expand-all:focus-visible { outline:2px solid var(--ocean); outline-offset
   pressures span 360&ndash;700&thinsp;dbar (rounded outward to
   20&thinsp;dbar). To grid this mooring over that range, set <code>pmin</code> and
   <code>pmax</code> in the <code>grid:</code> block of the mooring description, or pass
-  them on the command line:
+  them on the command line, from the folder holding the mooring description (the stage
+  files are kept, so no raw files are needed):
 </p>
-<pre style="background:var(--gray-1);border:1px solid var(--rule);border-radius:4px;padding:0.5em 0.8em;font-size:0.85rem;display:inline-block;user-select:all;cursor:text">oceanarray run --pmin 360 --pmax 700</pre>
+<pre style="background:var(--gray-1);border:1px solid var(--rule);border-radius:4px;padding:0.5em 0.8em;font-size:0.85rem;display:inline-block;user-select:all;cursor:text">oceanarray run dune2_1_2026.mooring.yaml --from 3 --pmin 360 --pmax 700</pre>
 
 </details>
 

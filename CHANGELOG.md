@@ -109,6 +109,9 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Fixed
 
+- Thermistors, TR-1050 and Seapoint instruments get readable type names on report pages (were upper-cased codes).
+- The deployment page's regrid command names the mooring description and `--from 3`, so it runs as copied (no raw files needed).
+
 - A relative `sensor_catalog` in a mooring YAML reached through a symbolic link is read from the real file's folder, not the link's.
 - Velocity-profile seabed line and the Overflow near-bottom level convert the water depth to pressure (they read metres as dbar).
 - σθ contours on T-S figures were computed from in-situ temperature at 0° N 0° E; now from θ at the mooring position.

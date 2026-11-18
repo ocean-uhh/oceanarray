@@ -131,7 +131,9 @@ def test_every_page_type_has_one_expand_all_button(pages, kind):
     assert 0 < bar - nav_end < 120, "button bar under the jump-nav"
     # The mooring-description line, when present, sits in the bar left of the button.
     if '<p class="see-also">' in html:
-        assert bar < html.index('<p class="see-also">') < html.index('class="expand-all"')
+        assert (
+            bar < html.index('<p class="see-also">') < html.index('class="expand-all"')
+        )
     # Toggles every <details>, opens them all for printing and restores them after.
     assert "querySelectorAll('details')" in html
     assert "beforeprint" in html and "afterprint" in html
