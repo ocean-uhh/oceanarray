@@ -182,6 +182,13 @@ Geographic position of a mooring: parse and format latitude and longitude.
    :members:
    :undoc-members:
 
+physics
+^^^^^^^
+Seawater and current formulas shared by the pipeline writers and the report pages.
+
+.. automodule:: oceanarray.physics
+   :members:
+
 storage dtypes
 ^^^^^^^^^^^^^^
 The smallest dtype that holds each variable when a file is written.

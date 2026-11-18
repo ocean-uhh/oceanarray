@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -20,6 +22,8 @@ if TYPE_CHECKING:
     import xarray as xr
 
     from oceanarray.analysis.derived import DerivedFields
+
+logger = logging.getLogger(__name__)
 
 #: x-axis label of every T-S panel: ``"Salinity (PSU)"`` (practical salinity, PSS-78).
 SALINITY_LABEL: str = params.vlabel("salinity")
@@ -76,25 +80,45 @@ def _theta(
     return temperature, None, params.vlabel("temperature")
 
 
-def _add_sigma0_contours(
-    ax: plt.Axes,
-    S_data: np.ndarray,
-    T_data: np.ndarray,
+@dataclass(frozen=True)
+class SigmaContours:
+    """σθ on a salinity × θ grid covering a figure's shared T-S axes, built once.
+
+    Attributes
+    ----------
+    salinity, theta : numpy.ndarray
+        The grid's practical salinity and potential temperature (°C).
+    sigma : numpy.ndarray
+        σθ (kg m⁻³) on the grid.
+    interval : float
+        The contour interval (kg m⁻³), from :func:`sigma_contour_levels`.
+    levels : numpy.ndarray
+        The contour levels, whole multiples of *interval*.
+    """
+
+    salinity: np.ndarray
+    theta: np.ndarray
+    sigma: np.ndarray
+    interval: float
+    levels: np.ndarray
+
+
+def sigma0_contours(
+    s_lim: tuple[float, float],
+    t_lim: tuple[float, float],
     position: tuple[float, float] | None,
     n_grid: int = 200,
-) -> float | None:
-    """Overlay labelled potential-density (σθ) contours on a θ-S axes.
+) -> SigmaContours | None:
+    """Return the σθ contours for a T-S figure, from its shared axis limits.
 
     The contours are at whole multiples of a round interval (0.05, 0.1, 0.2,
     0.25, 0.5, 1 or 2 kg m⁻³) chosen to give four to ten lines across the panel.
+    Every panel of the figure draws the same grid (:func:`draw_sigma0_contours`).
 
     Parameters
     ----------
-    ax : matplotlib.axes.Axes
-        The T-S axes (practical salinity on x, potential temperature on y).
-    S_data, T_data : numpy.ndarray
-        The plotted salinity and potential temperature; their range (padded 5 %)
-        sets the contour grid.
+    s_lim, t_lim : tuple of float
+        The figure's practical-salinity and potential-temperature axis limits.
     position : tuple of (float, float) or None
         ``(latitude, longitude)`` of the mooring; no contours when None.
     n_grid : int, optional
@@ -102,45 +126,139 @@ def _add_sigma0_contours(
 
     Returns
     -------
-    float or None
-        The contour interval (kg m⁻³); None when no contours were drawn.
+    SigmaContours or None
+        None without a position, or when the limits or σθ are not finite (logged
+        at debug level).
     """
     if position is None:
         return None
     from oceanarray.analysis.derived import potential_density_grid
 
-    try:
-        s_min, s_max = np.nanmin(S_data), np.nanmax(S_data)
-        t_min, t_max = np.nanmin(T_data), np.nanmax(T_data)
-        s_pad = max((s_max - s_min) * 0.05, 0.05)
-        t_pad = max((t_max - t_min) * 0.05, 0.05)
-        Sg, Tg, sigma0 = potential_density_grid(
-            (s_min - s_pad, s_max + s_pad),
-            (t_min - t_pad, t_max + t_pad),
-            position[0],
-            position[1],
-            n_grid=n_grid,
-        )
-        interval, levels = sigma_contour_levels(
-            float(np.nanmin(sigma0)), float(np.nanmax(sigma0))
-        )
-        cs = ax.contour(
-            Sg,
-            Tg,
-            sigma0,
-            levels=levels,
-            colors="0.35",
-            linewidths=0.6,
-            linestyles="--",
-            zorder=1,
-        )
-        digits = max(0, -int(np.floor(np.log10(interval) + 1e-9)))
-        if abs(interval * 10**digits - round(interval * 10**digits)) > 1e-6:
-            digits += 1
-        ax.clabel(cs, fmt=f"%.{digits}f", fontsize=report_tokens.CLABEL_FS, inline=True)
-        return interval
-    except (TypeError, ValueError):
+    limits = np.asarray([*s_lim, *t_lim], dtype=float)
+    if not np.all(np.isfinite(limits)) or s_lim[1] <= s_lim[0] or t_lim[1] <= t_lim[0]:
+        logger.debug("σθ contours not drawn: T-S limits %s, %s", s_lim, t_lim)
         return None
+    Sg, Tg, sigma = potential_density_grid(
+        s_lim, t_lim, position[0], position[1], n_grid=n_grid
+    )
+    if not np.isfinite(sigma).any():
+        logger.debug("σθ contours not drawn: σθ is all NaN on %s, %s", s_lim, t_lim)
+        return None
+    interval, levels = sigma_contour_levels(
+        float(np.nanmin(sigma)), float(np.nanmax(sigma))
+    )
+    return SigmaContours(Sg, Tg, sigma, interval, levels)
+
+
+def draw_sigma0_contours(ax: plt.Axes, contours: SigmaContours | None) -> float | None:
+    """Overlay labelled σθ contours on a θ-S axes.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The T-S axes (practical salinity on x, potential temperature on y).
+    contours : SigmaContours or None
+        The figure's contours (:func:`sigma0_contours`); nothing is drawn when None.
+
+    Returns
+    -------
+    float or None
+        The contour interval (kg m⁻³); None when no contours were drawn.
+    """
+    if contours is None:
+        return None
+    cs = ax.contour(
+        contours.salinity,
+        contours.theta,
+        contours.sigma,
+        levels=contours.levels,
+        colors="0.35",
+        linewidths=0.6,
+        linestyles="--",
+        zorder=1,
+    )
+    interval = contours.interval
+    digits = max(0, -int(np.floor(np.log10(interval) + 1e-9)))
+    if abs(interval * 10**digits - round(interval * 10**digits)) > 1e-6:
+        digits += 1
+    ax.clabel(cs, fmt=f"%.{digits}f", fontsize=report_tokens.CLABEL_FS, inline=True)
+    return interval
+
+
+#: The on-figure note and the caption words for a T-S figure without σθ.
+NO_SIGMA_NOTE: str = "σθ not drawn: {reason}"
+
+
+def no_sigma_reason(ds: xr.Dataset, derived: DerivedFields | None = None) -> str:
+    """Return why a T-S figure of *ds* has no σθ: ``"no mooring position"`` or ``"no pressure"``.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        The product the figure is drawn from.
+    derived : DerivedFields or None, optional
+        The page's derived quantities (its position is used when given).
+
+    Returns
+    -------
+    str
+    """
+    from oceanarray.analysis.derived import mooring_position
+
+    if derived is not None:
+        lat, lon = derived.latitude, derived.longitude
+    else:
+        lat, lon = mooring_position(ds, warn=False)
+    return "no mooring position" if lat is None or lon is None else "no pressure"
+
+
+def _figure_sigma0_contours(
+    ax: plt.Axes,
+    ds: xr.Dataset,
+    derived: DerivedFields | None,
+    position: tuple[float, float] | None,
+    s_lim: tuple[float, float],
+    t_lim: tuple[float, float],
+) -> SigmaContours | None:
+    """Return the figure's σθ contours; without a position, note it on *ax* and warn.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The figure's first T-S panel, which carries the note.
+    ds : xarray.Dataset
+        The product the figure is drawn from (for its name and position).
+    derived : DerivedFields or None
+        The page's derived quantities.
+    position : tuple of (float, float) or None
+        From :func:`_theta`.
+    s_lim, t_lim : tuple of float
+        The figure's shared axis limits.
+
+    Returns
+    -------
+    SigmaContours or None
+    """
+    if position is not None:
+        return sigma0_contours(s_lim, t_lim, position)
+    reason = no_sigma_reason(ds, derived)
+    logger.warning(
+        "%s: σθ contours not drawn on the T-S figure: %s",
+        ds.attrs.get("mooring_name", "product"),
+        reason,
+    )
+    ax.text(
+        0.02,
+        0.98,
+        NO_SIGMA_NOTE.format(reason=reason),
+        transform=ax.transAxes,
+        ha="left",
+        va="top",
+        fontsize=report_tokens.ANNOT_FS,
+        color="0.35",
+        zorder=5,
+    )
+    return None
 
 
 #: Round contour intervals for σθ on a T-S diagram (kg m⁻³).
@@ -181,13 +299,13 @@ def _ts_heatmap_panel(
     s_lim: tuple | None = None,
     t_lim: tuple | None = None,
     cax: plt.Axes | None = None,
-    position: tuple[float, float] | None = None,
+    contours: SigmaContours | None = None,
     t_label: str | None = None,
 ) -> float | None:
     """Render a T-S 2-D count heatmap on *ax*; return the σθ contour interval.
 
-    *T* is potential temperature when *position* is given (σθ contours drawn),
-    else in-situ temperature (no contours); *t_label* labels the y-axis.
+    *T* is potential temperature when *contours* are given (the figure's σθ,
+    drawn on top), else in-situ temperature; *t_label* labels the y-axis.
     """
     import matplotlib.pyplot as plt
 
@@ -230,7 +348,7 @@ def _ts_heatmap_panel(
         cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=_ticks)
         cb.ax.set_title(r"$\log_{10}$(count)", fontsize=report_tokens.ANNOT_FS)
         ax.set_box_aspect(1)
-    interval = _add_sigma0_contours(ax, S, T, position)
+    interval = draw_sigma0_contours(ax, contours)
     ax.set_xlim(s_lo, s_hi)
     ax.set_ylim(t_lo, t_hi)
     ax.set_xlabel(SALINITY_LABEL)
@@ -371,18 +489,19 @@ def draw_ts_diagram(
         )
     if suspect_mask.any() or bad_mask.any():
         ax_l.legend(loc="best", framealpha=0.8)
-    _add_sigma0_contours(ax_l, S[finite], T[finite], position)
-    ax_l.set_xlabel(SALINITY_LABEL)
-    ax_l.set_ylabel(t_label)
-    plot_title(ax_l, "T-S (colour = pressure)")
 
     # Shared T-S axis limits (the dot plot's data range) so the heatmap and O₂
-    # panels use identical axes; square every panel box.
+    # panels use identical axes, and one σθ grid over them; square every panel box.
     _sf, _tf = S[finite], T[finite]
     _sp = 0.02 * (float(np.nanmax(_sf) - np.nanmin(_sf)) + 1e-9)
     _tp = 0.02 * (float(np.nanmax(_tf) - np.nanmin(_tf)) + 1e-9)
     _s_lim = (float(np.nanmin(_sf)) - _sp, float(np.nanmax(_sf)) + _sp)
     _t_lim = (float(np.nanmin(_tf)) - _tp, float(np.nanmax(_tf)) + _tp)
+    contours = _figure_sigma0_contours(ax_l, ds, derived, position, _s_lim, _t_lim)
+    draw_sigma0_contours(ax_l, contours)
+    ax_l.set_xlabel(SALINITY_LABEL)
+    ax_l.set_ylabel(t_label)
+    plot_title(ax_l, "T-S (colour = pressure)")
     ax_l.set_xlim(*_s_lim)
     ax_l.set_ylim(*_t_lim)
 
@@ -395,7 +514,7 @@ def draw_ts_diagram(
         s_lim=_s_lim,
         t_lim=_t_lim,
         cax=_cax[0, 1],
-        position=position,
+        contours=contours,
         t_label=t_label,
     )
 
@@ -427,7 +546,7 @@ def draw_ts_diagram(
                 unit="%",
                 ticks=nice_colorbar_ticks(float(bounds_s[0]), float(bounds_s[-1])),
             )
-            _add_sigma0_contours(ax_sat, S[sat_finite], T[sat_finite], position)
+            draw_sigma0_contours(ax_sat, contours)
         ax_sat.set_xlabel(SALINITY_LABEL)
         ax_sat.set_ylabel(t_label)
         plot_title(ax_sat, "T-S (colour = O₂ sat.)")
@@ -567,16 +686,18 @@ def draw_stack_ts_diagram(
             alpha=0.4,
             rasterized=True,
         )
-    _add_sigma0_contours(ax_scatter, S_flat[finite], T_flat[finite], position)
+    # Shared limits from robust percentiles (1/99, padded 5% each side and rounded
+    # outward) so a few outliers don't stretch the box; the heatmap matches (boxes
+    # are already square from square_axes_grid), and one σθ grid covers them.
+    _s_lim = _nice_axis_limits(S_flat[finite])
+    _t_lim = _nice_axis_limits(T_flat[finite])
+    contours = _figure_sigma0_contours(
+        ax_scatter, ds, derived, position, _s_lim, _t_lim
+    )
+    draw_sigma0_contours(ax_scatter, contours)
     ax_scatter.set_xlabel(SALINITY_LABEL)
     ax_scatter.set_ylabel(t_label)
     plot_title(ax_scatter, "T-S (colour = pressure)")
-
-    # Shared limits from robust percentiles (1/99, padded 5% each side and rounded
-    # outward) so a few outliers don't stretch the box; the heatmap matches (boxes
-    # are already square from square_axes_grid).
-    _s_lim = _nice_axis_limits(S_flat[finite])
-    _t_lim = _nice_axis_limits(T_flat[finite])
     ax_scatter.set_xlim(*_s_lim)
     ax_scatter.set_ylim(*_t_lim)
 
@@ -589,7 +710,7 @@ def draw_stack_ts_diagram(
         s_lim=_s_lim,
         t_lim=_t_lim,
         cax=_cax[0, 1],
-        position=position,
+        contours=contours,
         t_label=t_label,
     )
 
@@ -620,7 +741,7 @@ def draw_stack_ts_diagram(
             unit="%",
             ticks=nice_colorbar_ticks(float(bounds_s[0]), float(bounds_s[-1])),
         )
-        _add_sigma0_contours(ax_sat, S_flat[sat_finite], T_flat[sat_finite], position)
+        draw_sigma0_contours(ax_sat, contours)
         ax_sat.set_xlabel(SALINITY_LABEL)
         ax_sat.set_ylabel(t_label)
         plot_title(ax_sat, "T-S (colour = O₂ sat.)")
@@ -719,6 +840,9 @@ def draw_grid_ts_diagram(
         per_panel_colorbar=True,
     )
     axes = list(_ax[0])
+    contours = _figure_sigma0_contours(
+        axes[0], ds, derived, position, (s_lo, s_hi), (t_lo, t_hi)
+    )
 
     # Panel 1: count heatmap (shares the data limits + matched colorbar)
     ts_bounds["sigma_interval"] = _ts_heatmap_panel(
@@ -730,7 +854,7 @@ def draw_grid_ts_diagram(
         s_lim=(s_lo, s_hi),
         t_lim=(t_lo, t_hi),
         cax=_cax[0, 0],
-        position=position,
+        contours=contours,
         t_label=t_label,
     )
     plot_title(axes[0], "Values per bin")
@@ -780,7 +904,7 @@ def draw_grid_ts_diagram(
                 unit="%",
                 ticks=nice_colorbar_ticks(float(bounds[0]), float(bounds[-1])),
             )
-            _add_sigma0_contours(axes[1], S[o2_valid], T[o2_valid], position)
+            draw_sigma0_contours(axes[1], contours)
             axes[1].set_xlim(s_lo, s_hi)
             axes[1].set_ylim(t_lo, t_hi)
         axes[1].set_xlabel(params.vlabel("salinity"))
@@ -1000,7 +1124,9 @@ def draw_ts_by_deployment(
             ms=4.5,
             zorder=5,
         )
-    _add_sigma0_contours(ax, s_all, t_all, position)
+    draw_sigma0_contours(
+        ax, _figure_sigma0_contours(ax, ds, derived, position, s_lim, t_lim)
+    )
     ax.set_xlim(*s_lim)
     ax.set_ylim(*t_lim)
     ax.set_xlabel(SALINITY_LABEL)
@@ -1114,9 +1240,12 @@ def draw_ts_points_by_deployment(
             c=colors[k_all[pick]],
             rasterized=True,
         )
-    _add_sigma0_contours(ax, s_all, t_all, position)
-    ax.set_xlim(*_nice_axis_limits(s_all))
-    ax.set_ylim(*_nice_axis_limits(t_all))
+    s_lim, t_lim = _nice_axis_limits(s_all), _nice_axis_limits(t_all)
+    draw_sigma0_contours(
+        ax, _figure_sigma0_contours(ax, ds, derived, position, s_lim, t_lim)
+    )
+    ax.set_xlim(*s_lim)
+    ax.set_ylim(*t_lim)
     ax.set_xlabel(SALINITY_LABEL)
     ax.set_ylabel(t_label)
     handles = [
@@ -1222,9 +1351,12 @@ def draw_ts_medians(
         )
     all_s = np.concatenate([[r[1][0], r[1][2]] for r in rows])
     all_t = np.concatenate([[r[2][0], r[2][2]] for r in rows])
-    _add_sigma0_contours(ax, all_s, all_t, position)
-    ax.set_xlim(*_nice_axis_limits(all_s))
-    ax.set_ylim(*_nice_axis_limits(all_t))
+    s_lim, t_lim = _nice_axis_limits(all_s), _nice_axis_limits(all_t)
+    draw_sigma0_contours(
+        ax, _figure_sigma0_contours(ax, ds, derived, position, s_lim, t_lim)
+    )
+    ax.set_xlim(*s_lim)
+    ax.set_ylim(*t_lim)
     ax.set_xlabel(SALINITY_LABEL)
     ax.set_ylabel(t_label)
     used = sorted({r[0] for r in rows})

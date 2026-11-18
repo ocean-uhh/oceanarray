@@ -299,11 +299,7 @@ def load(
         except yaml.YAMLError as e:
             raise MooringError(f"YAML parse error in {path}: {e}") from e
         dir_name = path.parent.name
-        # A catalog path is relative to the description.
-        if isinstance(data, dict) and data.get("sensor_catalog"):
-            data["sensor_catalog"] = str(
-                (path.parent / str(data["sensor_catalog"])).resolve()
-            )
+        _resolve_relative_paths(data, path)
 
     if not isinstance(data, dict):
         raise MooringError("Mooring YAML root must be a mapping")
@@ -314,6 +310,28 @@ def load(
         summary = "; ".join(i.message for i in errors)
         raise MooringError(f"Invalid mooring config: {summary}", issues)
     return data
+
+
+def _resolve_relative_paths(data: object, path: Path) -> None:
+    """Make the description's relative paths absolute, from the file's real folder.
+
+    A relative path written in a description (``sensor_catalog``) is relative to
+    the file as its author wrote it, so it is taken from the folder of the file a
+    link points to, not the folder of the link: a processing folder may hold a
+    link to a description kept elsewhere.  The link's folder still names the
+    mooring and holds its stage files.
+
+    Parameters
+    ----------
+    data : object
+        The parsed description; changed in place when it is a dict.
+    path : pathlib.Path
+        The description file as given (possibly a link).
+    """
+    if isinstance(data, dict) and data.get("sensor_catalog"):
+        data["sensor_catalog"] = str(
+            (path.resolve().parent / str(data["sensor_catalog"])).resolve()
+        )
 
 
 def check(
@@ -350,10 +368,7 @@ def check(
             return [ValidationIssue("ERROR", f"YAML parse error: {e}")]
         if dir_name is None:
             dir_name = path.parent.name
-        if isinstance(data, dict) and data.get("sensor_catalog"):
-            data["sensor_catalog"] = str(
-                (path.parent / str(data["sensor_catalog"])).resolve()
-            )
+        _resolve_relative_paths(data, path)
 
     issues = list(validation.validate_mooring(data, dir_name=dir_name))
 

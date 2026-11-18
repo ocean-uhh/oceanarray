@@ -25,6 +25,13 @@ from ..config.unit_tables import unit_label, warn_if_not_canonical
 from .helpers import grid_despine, ordered_line_colors
 from .primitives import colorbar_norm, date_axis, plot_title
 
+#: Isopycnal coverage (% of time steps) at or above which a σ₀ bar is green; the
+#: dashed reference line of the coverage panel.
+COVERAGE_GOOD_PCT: float = 80.0
+#: Isopycnal coverage (% of time steps) at or above which a σ₀ bar is amber, below
+#: :data:`COVERAGE_GOOD_PCT`; red below this.
+COVERAGE_FAIR_PCT: float = 50.0
+
 
 def draw_isopycnal_ts(
     ds_iso: xr.Dataset, *, width_in: float = report_tokens.W_FULL
@@ -120,8 +127,9 @@ def draw_isopycnal_coverage(
 
     **Panel 1 — Coverage**: for each σ₀ value at 0.1 kg m⁻³ spacing, the percentage
     of valid time steps during which the target surface lies within the measured column
-    (``min(sigma0_column) ≤ target ≤ max(sigma0_column)``).  Colour-coded:
-    green ≥ 80 %, amber 50–80 %, red < 50 %.  Dashed reference at 80 %.
+    (``min(sigma0_column) ≤ target ≤ max(sigma0_column)``).  Colour-coded: green
+    at or above :data:`COVERAGE_GOOD_PCT`, amber from :data:`COVERAGE_FAIR_PCT` up
+    to it, red below; dashed reference line at :data:`COVERAGE_GOOD_PCT`.
 
     **Panel 2 — Depth distribution**: for each target surface, the median height above
     seabed (or pressure when ``waterdepth`` or the latitude is unavailable), with the IQR
@@ -252,9 +260,9 @@ def draw_isopycnal_coverage(
         q95 = np.nanpercentile(iso_z, 95, axis=0)
 
     def _bar_color(p: float) -> str:
-        if p >= 80:
+        if p >= COVERAGE_GOOD_PCT:
             return "#27ae60"
-        if p >= 50:
+        if p >= COVERAGE_FAIR_PCT:
             return "#f39c12"
         return "#e74c3c"
 
@@ -285,7 +293,13 @@ def draw_isopycnal_coverage(
 
     # ---- Panel 1: coverage bars ----
     ax1.barh(targets, pct, height=0.08, color=bar_colors, edgecolor="none")
-    ax1.axvline(80, color="#7f8c8d", lw=1.0, ls="--", label="80 %")
+    ax1.axvline(
+        COVERAGE_GOOD_PCT,
+        color="#7f8c8d",
+        lw=1.0,
+        ls="--",
+        label=f"{COVERAGE_GOOD_PCT:g} %",
+    )
     for tgt in selected:
         nearest_idx = int(np.argmin(np.abs(targets - tgt)))
         if abs(targets[nearest_idx] - tgt) < 0.06:

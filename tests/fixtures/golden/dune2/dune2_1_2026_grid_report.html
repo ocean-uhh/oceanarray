@@ -584,12 +584,12 @@ button.expand-all:focus-visible { outline:2px solid var(--ocean); outline-offset
 
 <h2 id="velocity_structure">(5) Velocity structure</h2>
 
-<p class="caption">Direction toward which the current flows (relative to true north, declination applied) and speed at grid levels (interpolated between current meters). Wedge length is the percentage of the record in that direction; colours are speed classes. Levels: 200, 400, 550 and 750 dbar, from those with values at least 50 % of the time. Which flags were left out is not recorded in this file.</p>
+<p class="caption">Direction toward which the current flows (relative to true north, declination applied) and speed at grid levels (interpolated between current meters). Wedge length is the percentage of the record in that direction; colours are speed classes. Levels: 200, 400, 550 and 750 dbar, from those with values at least 50 % of the time. Levels with values less than 50 % of the time are left out: 150 dbar (Aquadopp 400115). Which flags were left out is not recorded in this file.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig slot-full" src="data:image/png;base64,<PNG>" alt="roses">
 </details><div class="fig-source">source: oceanarray/plotters/current.py:draw_grid_rose</div>
 
-<p class="caption">Velocity vectors (24-hour smoothed) at 200, 400, 550 and 750 dbar (the levels of the current roses), traced through the deployment: the line joins the successive smoothed hourly velocities, coloured from start (dark) to end (yellow); green circle = start, red square = end.</p>
+<p class="caption">Velocity vectors (24-hour smoothed) at 200, 400, 550 and 750 dbar (the levels of the current roses, with values at least 50 % of the time), traced through the deployment: the line joins the successive smoothed hourly velocities, coloured from start (dark) to end (yellow); green circle = start, red square = end. Levels with values less than 50 % of the time are left out: 150 dbar (Aquadopp 400115).</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig slot-full" src="data:image/png;base64,<PNG>" alt="hodograph">
 </details><div class="fig-source">source: oceanarray/plotters/current.py:draw_grid_hodograph</div>
@@ -611,7 +611,7 @@ button.expand-all:focus-visible { outline:2px solid var(--ocean); outline-offset
 <img class="fig slot-full" src="data:image/png;base64,<PNG>" alt="sigma2">
 </details><div class="fig-source">source: oceanarray/plotters/timeseries.py:draw_grid_potential_density</div>
 
-<p class="caption">Buoyancy frequency squared (log₁₀ N², s⁻²), calculated simply between neighbouring 50 dbar levels of the gridded temperature and salinity (GSW, no adiabatic levelling). Because the grid is interpolated linearly between instruments, N² changes mostly at the instrument pressures; zero or negative values are drawn in the lowest colour. For analysis, calculate N² from the measurements yourself.</p>
+<p class="caption">Buoyancy frequency squared (log₁₀ N², s⁻²), calculated simply between neighbouring 50 dbar levels of the gridded temperature and salinity (GSW, no adiabatic levelling). Because the grid is interpolated linearly in pressure between instruments, N² changes mostly at the instrument pressures; zero or negative values are drawn in the lowest colour. For analysis, calculate N² from the measurements yourself.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig slot-full" src="data:image/png;base64,<PNG>" alt="n2">
 </details><div class="fig-source">source: oceanarray/plotters/timeseries.py:draw_grid_n2</div>

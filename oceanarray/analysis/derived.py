@@ -7,15 +7,19 @@ needs them.  Nothing here is written back to a product file.
 Functions
 ---------
 mooring_position : the mooring's latitude and longitude from a product's attributes.
-speed_direction : current speed and the direction the water flows toward.
+speed_direction : current speed and the direction the water flows toward
+    (from :mod:`oceanarray.physics`, shared with the pipeline).
 level_of_max_speed : the level with the highest time-mean speed.
 potential_temperature_of : potential temperature θ of a product's records.
 potential_density_grid : σθ (or σ2) on a salinity × θ grid, for T-S contours.
 potential_density_fields : σ0 and σ2 from θ and practical salinity.
+potential_density : σ0 and σ2 of a product, for the grid page's sections.
 n_squared : buoyancy frequency squared on a pressure grid.
 seabed_pressure : the sea pressure at the seabed, from the water depth.
 instrument_levels : each instrument of a stack with its median pressure.
+velocity_coverage : the share of the record each level has velocity for.
 velocity_levels : the grid levels the current roses and hodographs are drawn at.
+sparse_velocity_levels : the levels left out of the roses for low coverage.
 knockdown : per-instrument pressure records and design pressures of a stack.
 derived_fields : the per-page bundle (position, θ, speed, direction).
 """
@@ -29,6 +33,8 @@ from functools import lru_cache
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
+
+from oceanarray.physics import sigma_function, speed_direction
 
 if TYPE_CHECKING:
     import xarray as xr
@@ -88,27 +94,6 @@ def mooring_position(
             missing,
         )
     return lat, lon
-
-
-def speed_direction(east: Any, north: Any) -> tuple[Any, Any]:
-    """Return current speed and the direction the water flows toward.
-
-    Parameters
-    ----------
-    east, north : numpy.ndarray or xarray.DataArray
-        Eastward and northward velocity, of the same shape and units.
-
-    Returns
-    -------
-    speed : same type as *east*
-        ``√(east² + north²)``, in the units of the components.
-    direction : same type as *east*
-        Degrees clockwise from north, in [0, 360): north 0, east 90.  NaN where
-        either component is missing.
-    """
-    speed = np.hypot(east, north)
-    direction = np.mod(np.degrees(np.arctan2(east, north)), 360.0)
-    return speed, direction
 
 
 def level_of_max_speed(speed: np.ndarray, min_coverage: float = 0.70) -> int | None:
@@ -198,7 +183,7 @@ def _density_grid(
     )
     sa = gsw.SA_from_SP(sg, 0.0, longitude, latitude)
     ct = gsw.CT_from_pt(sa, tg)
-    sigma = gsw.sigma2(sa, ct) if reference_dbar == 2000 else gsw.sigma0(sa, ct)
+    sigma = sigma_function(reference_dbar)(sa, ct)
     return sg, tg, sigma
 
 
@@ -280,7 +265,7 @@ def potential_density_fields(
     p = np.broadcast_to(np.asarray(pressure, dtype=float), np.shape(theta))
     sa = gsw.SA_from_SP(salinity, p, longitude, latitude)
     ct = gsw.CT_from_pt(sa, theta)
-    return gsw.sigma0(sa, ct), gsw.sigma2(sa, ct)
+    return sigma_function(0)(sa, ct), sigma_function(2000)(sa, ct)
 
 
 def n_squared(
@@ -456,6 +441,52 @@ ROSE_MIN_FILLED: float = 0.5
 ROSE_MAX_LEVELS: int = 4
 
 
+def velocity_coverage(east: np.ndarray, north: np.ndarray) -> np.ndarray | None:
+    """Return the share of the record each level has both velocity components for.
+
+    Parameters
+    ----------
+    east, north : numpy.ndarray
+        Velocity components on ``(time, level)``.
+
+    Returns
+    -------
+    numpy.ndarray or None
+        One share in [0, 1] per level; None when the arrays are not
+        ``(time, level)`` or hold no time.
+    """
+    both = np.isfinite(np.asarray(east, float)) & np.isfinite(np.asarray(north, float))
+    if both.ndim != 2 or both.shape[0] == 0:
+        return None
+    return both.sum(axis=0) / both.shape[0]
+
+
+def sparse_velocity_levels(
+    east: np.ndarray, north: np.ndarray, *, min_filled: float = ROSE_MIN_FILLED
+) -> list[int]:
+    """Return the levels left out of the roses and hodographs for low coverage.
+
+    Parameters
+    ----------
+    east, north : numpy.ndarray
+        Velocity components on ``(time, level)``, levels shallowest first.
+    min_filled : float, optional
+        The share :func:`velocity_levels` requires (default
+        :data:`ROSE_MIN_FILLED`).
+
+    Returns
+    -------
+    list of int
+        Levels with some velocity but less than *min_filled* of the record,
+        shallowest first.  Levels with no velocity at all (outside the current
+        meters) are not listed.
+    """
+    filled = velocity_coverage(east, north)
+    if filled is None:
+        return []
+    return np.flatnonzero((filled > 0) & (filled < min_filled)).tolist()
+
+
 def velocity_levels(
     east: np.ndarray,
     north: np.ndarray,
@@ -470,9 +501,10 @@ def velocity_levels(
     east, north : numpy.ndarray
         Velocity components on ``(time, level)``, levels shallowest first.
     min_filled : float, optional
-        Share of the record a level must have both components for (default 0.5).
+        Share of the record a level must have both components for (default
+        :data:`ROSE_MIN_FILLED`).
     n : int, optional
-        Most levels taken (default 4), evenly from the shallowest to the deepest
+        Most levels taken (default :data:`ROSE_MAX_LEVELS`), evenly from the shallowest to the deepest
         qualifying level, both always included.
 
     Returns
@@ -480,10 +512,10 @@ def velocity_levels(
     list of int
         Level indices, shallowest first; empty when no level qualifies.
     """
-    both = np.isfinite(np.asarray(east, float)) & np.isfinite(np.asarray(north, float))
-    if both.ndim != 2 or both.shape[0] == 0:
+    filled = velocity_coverage(east, north)
+    if filled is None:
         return []
-    ok = np.flatnonzero(both.sum(axis=0) / both.shape[0] >= min_filled).tolist()
+    ok = np.flatnonzero(filled >= min_filled).tolist()
     if len(ok) <= n:
         return ok
     picks = np.round(np.linspace(0, len(ok) - 1, n)).astype(int)
@@ -631,9 +663,11 @@ class DerivedFields:
         Current speed (units of the components) and direction toward which the
         water flows (degrees clockwise from north); None without both horizontal
         velocity components.
-    sigma0, sigma2 : xarray.DataArray or None
-        Potential density anomaly referenced to the surface and to 2000 dbar
-        (kg m⁻³), from θ and practical salinity; None where θ is None.
+
+    Notes
+    -----
+    Potential density is not part of the bundle: only the grid page draws it, so
+    it is computed there, once, by :func:`potential_density`.
     """
 
     latitude: float | None = None
@@ -641,8 +675,6 @@ class DerivedFields:
     theta: Any = None
     speed: Any = None
     direction: Any = None
-    sigma0: Any = None
-    sigma2: Any = None
 
 
 def _pressure_like(ds: xr.Dataset) -> Any:
@@ -694,29 +726,6 @@ def derived_fields(ds: xr.Dataset) -> DerivedFields:
                         ),
                     },
                 )
-    sigma0 = sigma2 = None
-    if theta is not None:
-        s0, s2 = potential_density_fields(
-            theta.values, ds["salinity"].values, p.values, lat, lon
-        )
-        sigma0, sigma2 = (
-            xr.DataArray(
-                values,
-                dims=theta.dims,
-                coords=theta.coords,
-                name=name,
-                attrs={
-                    "units": "kg m-3",
-                    "long_name": f"potential density anomaly referenced to {ref}",
-                    "comment": "TEOS-10, from potential temperature and practical "
-                    "salinity; computed for the report, not stored in the product",
-                },
-            )
-            for values, name, ref in (
-                (s0, "sigma0", "0 dbar"),
-                (s2, "sigma2", "2000 dbar"),
-            )
-        )
     speed = direction = None
     if {"east_velocity", "north_velocity"} <= set(ds.data_vars):
         speed, direction = speed_direction(ds["east_velocity"], ds["north_velocity"])
@@ -726,9 +735,57 @@ def derived_fields(ds: xr.Dataset) -> DerivedFields:
         theta=theta,
         speed=speed,
         direction=direction,
-        sigma0=sigma0,
-        sigma2=sigma2,
     )
+
+
+def potential_density(
+    ds: xr.Dataset, derived: DerivedFields
+) -> dict[str, xr.DataArray] | None:
+    """Return σ0 and σ2 on the dimensions of *ds*'s temperature, from θ.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        The product *derived* was computed from, with ``salinity`` and
+        ``pressure`` (variable or coordinate).
+    derived : DerivedFields
+        Its derived quantities (θ and the position).
+
+    Returns
+    -------
+    dict of str to xarray.DataArray, or None
+        ``{"sigma0": …, "sigma2": …}``: potential density anomaly (kg m⁻³)
+        referenced to the surface and to 2000 dbar, from θ and practical salinity
+        (:func:`potential_density_fields`); None when θ is None.
+    """
+    import xarray as xr
+
+    theta = derived.theta
+    p = _pressure_like(ds) if "temperature" in ds.data_vars else None
+    if theta is None or p is None or "salinity" not in ds.data_vars:
+        return None
+    s0, s2 = potential_density_fields(
+        theta.values,
+        ds["salinity"].values,
+        p.values,
+        derived.latitude,
+        derived.longitude,
+    )
+    return {
+        name: xr.DataArray(
+            values,
+            dims=theta.dims,
+            coords=theta.coords,
+            name=name,
+            attrs={
+                "units": "kg m-3",
+                "long_name": f"potential density anomaly referenced to {ref}",
+                "comment": "TEOS-10, from potential temperature and practical "
+                "salinity; computed for the report, not stored in the product",
+            },
+        )
+        for values, name, ref in ((s0, "sigma0", "0 dbar"), (s2, "sigma2", "2000 dbar"))
+    }
 
 
 __all__ = [
@@ -742,10 +799,13 @@ __all__ = [
     "level_of_max_speed",
     "mooring_position",
     "n_squared",
+    "potential_density",
     "potential_density_fields",
     "potential_density_grid",
     "potential_temperature_of",
     "seabed_pressure",
     "speed_direction",
+    "sparse_velocity_levels",
+    "velocity_coverage",
     "velocity_levels",
 ]

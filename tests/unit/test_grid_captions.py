@@ -41,7 +41,7 @@ _STACK = _DIR / "dune2_1_2026_stack.nc"
 @pytest.fixture(scope="module")
 def stack():
     """The dune2 stack fixture, loaded."""
-    with xr.open_dataset(_STACK) as ds:
+    with xr.open_dataset(_STACK, engine="netcdf4") as ds:
         return ds.load()
 
 
@@ -49,8 +49,8 @@ def stack():
 def gridded(stack, tmp_path_factory):
     """The dune2 stack gridded now (100–800 dbar, 50 dbar), written and reopened."""
     path = tmp_path_factory.mktemp("grid") / "dune2_1_2026_grid.nc"
-    grid(stack, pmin=100, pmax=800, dp=50).to_netcdf(path)
-    with xr.open_dataset(path) as ds:
+    grid(stack, pmin=100, pmax=800, dp=50).to_netcdf(path, engine="netcdf4")
+    with xr.open_dataset(path, engine="netcdf4") as ds:
         return ds.load(), path
 
 
@@ -110,7 +110,9 @@ def test_captions_have_no_jargon_or_stale_claims(ctx):
     caps = _captions.grid_captions(ctx)
     assert "relative to true north, declination applied" in caps["vel_stacked"]
     assert "the 7 current meters" in caps["vel_stacked"]
-    assert "ractical salinity" not in caps["hydro"] and "salinity (PSU)" in caps["hydro"]
+    assert (
+        "ractical salinity" not in caps["hydro"] and "salinity (PSU)" in caps["hydro"]
+    )
 
 
 def test_spectrum_captions_name_windows_and_markers(ctx):
@@ -203,14 +205,34 @@ def test_speed_legend_sits_at_center_right(gridded):
 
 def test_potential_density_panels(gridded):
     """σ0 and σ2 come from θ and practical salinity over the full column."""
+    from oceanarray.analysis.derived import potential_density
     from oceanarray.plotters.timeseries import draw_grid_potential_density
 
     ds, _ = gridded
-    derived = derived_fields(ds)
-    assert derived.sigma0 is not None and derived.sigma2 is not None
-    assert float(np.nanmean(derived.sigma2 - derived.sigma0)) > 8.0
+    density = potential_density(ds, derived_fields(ds))
+    assert set(density) == {"sigma0", "sigma2"}
+    assert float(np.nanmean(density["sigma2"] - density["sigma0"])) > 8.0
     for ref in ("sigma0", "sigma2"):
-        assert draw_grid_potential_density(ds, ref, derived=derived) is not None
+        assert draw_grid_potential_density(ds, ref, density=density) is not None
+
+
+def test_potential_density_is_computed_once_and_only_on_the_grid_page(ctx, monkeypatch):
+    """The per-page bundle has no σ; the grid page computes σ0 and σ2 once."""
+    from oceanarray.analysis import derived as dv
+    from oceanarray.reports import _plots
+
+    assert not hasattr(derived_fields(ctx.ds), "sigma0")
+    assert ctx.density is not None
+    calls = []
+    real = dv.potential_density_fields
+    monkeypatch.setattr(
+        dv, "potential_density_fields", lambda *a, **k: calls.append(1) or real(*a, **k)
+    )
+    for ref in ("sigma0", "sigma2"):
+        assert _plots._make_grid_potential_density_b64(
+            ctx.ds, ref, density=ctx.density, scale=ctx.scale
+        )
+    assert calls == []
 
 
 def test_spectrum_default_markers_are_tides_and_inertial():
@@ -245,19 +267,14 @@ def test_wavelet_periods_start_at_six_steps(gridded):
 
 
 def test_progressive_vector_keeps_its_old_names():
-    """The former trajectory names are aliases of the progressive vector functions."""
+    """The former public trajectory names are aliases of the progressive vector functions."""
     from oceanarray import plotters as p
-    from oceanarray.reports import _plots
 
     assert p.draw_grid_trajectory is p.draw_grid_progressive_vector
     assert (
         p.draw_multi_aquadopp_trajectories is p.draw_multi_aquadopp_progressive_vector
     )
     assert p.draw_adcp_trajectories is p.draw_adcp_progressive_vector
-    assert (
-        _plots._make_multi_aquadopp_trajectories_b64
-        is _plots._make_multi_aquadopp_progressive_vector_b64
-    )
 
 
 def test_stack_progressive_vector_section(stack):
@@ -279,3 +296,125 @@ def test_identifier_variables_get_no_range(stack):
     meta = _read_nc_metadata(_STACK)
     rows = {r["name"]: r for _, g in meta["var_groups"] for r in g}
     assert rows["tilt_pressure_ref_serial"]["v_min"] == "—"
+
+
+def test_rose_and_hodograph_captions_name_the_rule_and_the_levels_left_out(ctx):
+    """150 dbar has velocity 47 % of the time (Aquadopp 400115): named, not drawn."""
+    from oceanarray.analysis.derived import ROSE_MIN_FILLED
+
+    pressure = ctx.ds["pressure"].values
+    assert [pressure[k] for k in ctx.rose_left_out] == [150.0]
+    assert 150.0 not in [pressure[k] for k in ctx.rose_levels]
+    rule = _captions.percent_text(ROSE_MIN_FILLED)
+    left = (
+        f"Levels with values less than {rule} of the time are left out: "
+        "150 dbar (Aquadopp 400115)."
+    )
+    caps = _captions.grid_captions(ctx)
+    for pid in ("roses", "hodograph"):
+        assert f"at least {rule} of the time" in caps[pid]
+        assert left in caps[pid]
+
+
+def test_caption_thresholds_come_from_the_constants():
+    """Coverage bands, target σ₀ and the spectral rule are read, not restated."""
+    from oceanarray.analysis.spectral import SPECTRAL_MIN_FILLED
+    from oceanarray.config import parameters as params
+    from oceanarray.plotters.hydrography import COVERAGE_FAIR_PCT, COVERAGE_GOOD_PCT
+    from oceanarray.reports._grid import GRID_CAPTIONS
+
+    cov = GRID_CAPTIONS["isopycnal_coverage"]
+    assert f"Green ≥ {COVERAGE_GOOD_PCT:g} %" in cov
+    assert f"red < {COVERAGE_FAIR_PCT:g} %" in cov
+    assert f"{params.SIGMA_GRID[0]:.2f}" in GRID_CAPTIONS["isopycnal_ts"]
+    assert _captions.percent_text(SPECTRAL_MIN_FILLED) == "90 %"
+
+
+def test_spectral_captions_state_the_coverage_rule(ctx):
+    """The temperature spectrum and wavelet captions read the rule from its constant."""
+    from oceanarray.analysis.spectral import SPECTRAL_MIN_FILLED
+
+    caps = _captions.grid_captions(ctx)
+    rule = f"at least {_captions.percent_text(SPECTRAL_MIN_FILLED)} of the time"
+    assert rule in caps["temp_spectrum"]
+    assert rule in caps["wavelet"]
+
+
+def test_method_words_only_from_what_the_file_says(gridded):
+    """'linearly' only when the file says linear in pressure; no method otherwise."""
+    ds, _ = gridded
+    assert _captions.interpolated_words(ds) == "interpolated linearly in pressure"
+    bare = ds.copy()
+    for v in bare.data_vars:
+        bare[v].attrs.pop("vertical_interpolation", None)
+    # A history that says "linear" about something else names no method.
+    bare.attrs["history"] = (
+        "stage2: linear clock-drift correction; stack: slow instruments interpolated "
+        "(linear in time); grid: onto 50 dbar levels"
+    )
+    assert _captions.method_words(bare) == ""
+    assert _captions.interpolated_words(bare) == "interpolated in pressure"
+    combine, grid_step, _ = _captions.grid_steps(bare, 22)
+    assert grid_step.what.startswith("Interpolated in pressure between instruments")
+    bare.attrs["history"] = "grid: pchip interpolation in pressure onto 50 dbar levels"
+    assert _captions.method_words(bare) == "by PCHIP"
+
+
+def test_ts_without_position_notes_it_on_the_figure_and_the_caption(gridded):
+    """No position: in-situ T, the note on the figure, the caption says so."""
+    from oceanarray.plotters.ts import draw_grid_ts_diagram
+
+    ds, path = gridded
+    bare = ds.copy()
+    bare.attrs = {
+        k: v for k, v in ds.attrs.items() if "lat" not in k and "lon" not in k
+    }
+    with pytest.warns(UserWarning):
+        c = build_grid_context(bare, path, None)
+    assert c.derived.theta is None and c.density is None
+    assert c.ts_bounds["sigma_interval"] is None
+    assert _captions.NO_SIGMA_CAPTION in _captions.grid_captions(c)["ts_diagram"]
+    fig, _ = draw_grid_ts_diagram(bare)
+    assert "σθ not drawn: no mooring position" in [
+        t.get_text() for t in fig.axes[0].texts
+    ]
+
+
+def test_ts_contour_grid_is_built_once_per_figure(stack, monkeypatch):
+    """The stack T-S figure computes σθ once and draws it on both panels."""
+    from matplotlib.contour import ContourSet
+
+    from oceanarray.analysis import derived as dv
+    from oceanarray.plotters import ts
+
+    calls = []
+    real = dv.potential_density_grid
+    monkeypatch.setattr(
+        dv,
+        "potential_density_grid",
+        lambda *a, **k: calls.append(a[:2]) or real(*a, **k),
+    )
+    fig = ts.draw_stack_ts_diagram(stack, derived=derived_fields(stack))
+    assert len(calls) == 1
+    drawn = [
+        tuple(c.levels)
+        for ax in fig.axes
+        for c in ax.collections
+        if isinstance(c, ContourSet)
+    ]
+    assert len(drawn) == 2 and drawn[0] == drawn[1]
+    # The grid covers the panels' shared limits exactly.
+    assert calls[0] == (fig.axes[0].get_xlim(), fig.axes[0].get_ylim())
+
+
+def test_sigma_contours_skip_all_nan_limits(stack, caplog):
+    """Non-finite limits (an all-NaN panel) draw no contours and log at debug level."""
+    import logging
+
+    from oceanarray.plotters import ts
+
+    lat, lon = derived_fields(stack).latitude, derived_fields(stack).longitude
+    with caplog.at_level(logging.DEBUG, logger="oceanarray.plotters.ts"):
+        assert ts.sigma0_contours((np.nan, np.nan), (2.0, 8.0), (lat, lon)) is None
+    assert "σθ contours not drawn" in caplog.text
+    assert ts.draw_sigma0_contours(None, None) is None

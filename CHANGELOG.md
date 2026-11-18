@@ -46,7 +46,15 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 - Salinity is labelled "Salinity (PSU)" on T-S axes, grid hydrography titles and captions (was "Practical salinity").
 - Grid captions are generated from the file: interpolation, flags left out, levels chosen, window lengths, instrument count and velocity reference; jargon and wrong claims removed.
 - Grid hydrography: colour limits at the 1st–99th percentiles with arrows, instrument median pressures as triangles at the right edge.
-- Grid velocity sections: cropped to the velocity levels at the hydrography's dbar per inch; the three components share one scale and colour bar, speed and direction have their own; triangles at the current meters.
+- Grid velocity sections are cropped to the velocity levels, drawn at the hydrography's dbar per inch, with triangles at the current meters.
+- Grid velocity sections: the three components share one scale and colour bar; speed and direction have their own.
+- Grid roses and hodographs: captions state the 50 % coverage rule and name each level (and current meter) left out for low coverage.
+- Grid captions name the interpolation method only when the file records it; otherwise "interpolated in pressure".
+- Caption thresholds (coverage bands, rose and spectrum coverage, target σ₀) are read from the constants that draw the figures.
+- T-S figures: one σθ grid per figure over the shared axes; without a position the figure notes and logs "σθ not drawn".
+- Grid page computes σ0 and σ2 once, for its Stratification sections only; other pages no longer compute them.
+- Deployment QC summary counts every flag in the table, including 5 (value changed), read by its word.
+- Stage 3, stack and grid compute speed, direction and σ with the report's helpers (`oceanarray.physics`); output values unchanged.
 - Grid velocity profiles: drawn at the same vertical scale, down to the seabed; speed legend at centre right, labels "Middle 50 %", count axis "Hourly values".
 - Stack page: "Particle trajectories" is now "Progressive vector diagram" (`draw_multi_aquadopp_progressive_vector`, `draw_adcp_progressive_vector`; old names kept as aliases).
 - Stack and grid current roses share one design: speed classes 0–5/5–10/10–20/20–30/>30 cm/s, rings in %, a speed-class legend; grid roses at up to 4 levels filled ≥ 50 % of the time.
@@ -101,6 +109,7 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Fixed
 
+- A relative `sensor_catalog` in a mooring YAML reached through a symbolic link is read from the real file's folder, not the link's.
 - Velocity-profile seabed line and the Overflow near-bottom level convert the water depth to pressure (they read metres as dbar).
 - σθ contours on T-S figures were computed from in-situ temperature at 0° N 0° E; now from θ at the mooring position.
 - N²: an unknown longitude warns instead of silently using 0.

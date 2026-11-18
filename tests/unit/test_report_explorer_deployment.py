@@ -169,6 +169,32 @@ def test_qc_single_flag_variables_are_one_line_each(tmp_path) -> None:
     assert "All other variables (2): 100&nbsp;% good." in html
 
 
+def test_qc_value_changed_rows_read_the_reader_word(tmp_path) -> None:
+    """Flag 5 (an originator's QC changed the value) is counted and read "value changed".
+
+    The MicroCAT 2941 file is real; a tenth of its temperature flags are set to 5,
+    as an imported file whose originator adjusted those values reads.
+    """
+    from oceanarray.reports._env import render_template
+    from oceanarray.reports._mooring import _qc_table
+
+    src = _PROC / _MOORING / "microcat" / f"{_MOORING}_2941_stage3.nc"
+    with xr.open_dataset(src, engine="netcdf4") as ds:
+        ds = ds.load()
+    flags = ds["temperature_qc"].values
+    flags[: flags.size // 10] = 5
+    ds["temperature_qc"][:] = flags
+    changed = tmp_path / src.name
+    ds.to_netcdf(changed, engine="netcdf4")
+
+    qc = _qc_table([_qc_instrument(changed, "2941")])
+    (row,) = [r for r in qc["rows"] if r["var"] == "temperature"]
+    assert 5 in row["pct"]
+    assert {f["flag"]: f["label"] for f in qc["flags"]}[5] == "value changed"
+    html = render_template("_mooring_qc.html", qc=qc)
+    assert "value changed&nbsp;(5)" in html and "Value changed" in html
+
+
 def test_unknown_latitude_warns_and_skips_the_design_pressure(caplog) -> None:
     """No position: one warning, no design pressure, the HAB figure without its line."""
     import logging
@@ -236,5 +262,9 @@ def test_stack_and_grid_pages_link_the_mooring_description(
         html = p.read_text(encoding="utf-8")
         assert href in html
         # On the expand-all line under the jump-nav, just left of the button.
-        assert html.index('class="jump-nav"') < html.index(href) < html.index('class="expand-all"')
+        assert (
+            html.index('class="jump-nav"')
+            < html.index(href)
+            < html.index('class="expand-all"')
+        )
     assert 'id="description"' in page

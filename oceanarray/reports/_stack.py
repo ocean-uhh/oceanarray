@@ -707,6 +707,7 @@ def generate_stack_page(
         qc_rule = _qcflags.rule_text(ds) if qc_ruled else ""
         steps = _captions.stack_steps(ds)
         rose_caption = _captions.stack_rose_caption(ds)
+        ts_caption = _captions.stack_ts_caption(STACK_CAPTIONS["ts_diagram"], derived)
 
         # Capture the applies_to inputs before closing the dataset.
         present_vars = set(ds.data_vars)
@@ -772,6 +773,7 @@ def generate_stack_page(
             {
                 **STACK_PANELS,
                 "roses": replace(STACK_PANELS["roses"], caption=rose_caption),
+                "ts_diagram": replace(STACK_PANELS["ts_diagram"], caption=ts_caption),
             },
         )
 

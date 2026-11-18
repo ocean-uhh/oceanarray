@@ -482,8 +482,9 @@ def draw_wavelet(
     """Continuous wavelet transform scalogram for gridded temperature; return a Figure.
 
     Produces up to three stacked wavelet + time-series panel pairs, at the
-    outermost levels with values for at least 90 % of the record and one between
-    (:func:`oceanarray.analysis.spectral.select_levels`), unless *levels* names
+    outermost levels with values for at least
+    :data:`~oceanarray.analysis.spectral.SPECTRAL_MIN_FILLED` of the record and one
+    between (:func:`oceanarray.analysis.spectral.select_levels`), unless *levels* names
     them.  The period axis starts at six time steps, and never below 2 hours.
     Columns gap-filled before the transform are cross-hatched.
 
@@ -650,7 +651,8 @@ def draw_grid_rotary_spectrum(
     lines mark M2, K1, the inertial period and any *markers*.
 
     Levels: *levels*, else three from those with both components for at least
-    90 % of the record (:func:`oceanarray.analysis.spectral.select_levels`).
+    :data:`~oceanarray.analysis.spectral.SPECTRAL_MIN_FILLED` of the record
+    (:func:`oceanarray.analysis.spectral.select_levels`).
 
     Parameters
     ----------

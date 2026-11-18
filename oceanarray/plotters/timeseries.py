@@ -537,14 +537,15 @@ def draw_grid_potential_density(
     *,
     width_in: float = report_tokens.W_FULL,
     derived: DerivedFields | None = None,
+    density: Mapping[str, xr.DataArray] | None = None,
     scale: SectionScale | None = None,
 ) -> plt.Figure | None:
     """One potential-density section (σ0 or σ2) over the whole grid column.
 
     σ is computed from potential temperature and practical salinity on the grid
-    (:func:`oceanarray.analysis.derived.derived_fields`), over the full column at
-    one reference pressure.  Colour limits are the 1st and 99th percentiles, with
-    values beyond in the end colours.
+    (:func:`oceanarray.analysis.derived.potential_density`), over the full column
+    at one reference pressure.  Colour limits are the 1st and 99th percentiles,
+    with values beyond in the end colours.
 
     Parameters
     ----------
@@ -555,7 +556,12 @@ def draw_grid_potential_density(
     width_in : float, optional
         Figure width in inches (the display slot).
     derived : DerivedFields or None, optional
-        The page's derived quantities; computed from *ds* when not given.
+        The page's derived quantities (θ and the position), used when *density*
+        is not given; computed from *ds* when neither is given.
+    density : Mapping of str to xarray.DataArray, optional
+        σ0 and σ2 computed once for the page
+        (:func:`oceanarray.analysis.derived.potential_density`), so the two
+        sections share one computation.
     scale : SectionScale, optional
         Vertical scale; default: that of *ds*'s hydrography.
 
@@ -564,13 +570,13 @@ def draw_grid_potential_density(
     matplotlib.figure.Figure or None
         None when σ cannot be computed (no temperature, salinity or position).
     """
-    from oceanarray.analysis.derived import derived_fields
+    from oceanarray.analysis.derived import derived_fields, potential_density
 
     if reference not in _SIGMA_TITLES:
         raise ValueError(f"reference must be 'sigma0' or 'sigma2', not {reference!r}")
-    if derived is None:
-        derived = derived_fields(ds)
-    sigma = getattr(derived, reference, None)
+    if density is None:
+        density = potential_density(ds, derived or derived_fields(ds))
+    sigma = (density or {}).get(reference)
     if sigma is None:
         return None
     data = sigma.transpose("time", "pressure").values

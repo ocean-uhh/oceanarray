@@ -397,6 +397,7 @@ def _make_grid_potential_density_b64(
     reference: str = "sigma0",
     derived: Any = None,
     scale: Any = None,
+    density: Any = None,
 ) -> str | None:
     """Return base64 PNG: one potential-density section (σ0 or σ2) over the column."""
     return render_slot(
@@ -404,6 +405,7 @@ def _make_grid_potential_density_b64(
         ds,
         reference,
         derived=derived,
+        density=density,
         scale=scale,
         optional=True,
     )
@@ -580,10 +582,6 @@ def _make_grid_progressive_vector_b64(ds: xr.Dataset) -> str | None:
     return render_slot(draw_grid_progressive_vector, ds, slot="half", optional=True)
 
 
-#: Former name of :func:`_make_grid_progressive_vector_b64`.
-_make_grid_trajectory_b64 = _make_grid_progressive_vector_b64
-
-
 def _make_grid_timeseries_b64(ds: xr.Dataset, derived: Any = None) -> str | None:
     """Return base64 PNG: velocity time series at depth of maximum mean speed."""
     return render_b64(draw_grid_timeseries, ds, derived=derived, optional=True)
@@ -662,10 +660,6 @@ def _make_multi_aquadopp_progressive_vector_b64(ds: xr.Dataset) -> str | None:
     return render_slot(
         draw_multi_aquadopp_progressive_vector, ds, slot="half", optional=True
     )
-
-
-#: Former name of :func:`_make_multi_aquadopp_progressive_vector_b64`.
-_make_multi_aquadopp_trajectories_b64 = _make_multi_aquadopp_progressive_vector_b64
 
 
 def _make_stack_timeseries_b64(
@@ -826,10 +820,6 @@ def _make_adcp_progressive_vector_b64(ds: xr.Dataset) -> str | None:
     from oceanarray.plotters.current import draw_adcp_progressive_vector
 
     return render_slot(draw_adcp_progressive_vector, ds, slot="half", optional=True)
-
-
-#: Former name of :func:`_make_adcp_progressive_vector_b64`.
-_make_adcp_trajectories_b64 = _make_adcp_progressive_vector_b64
 
 
 def _make_adcp_velocity_b64(nc_path: str) -> str | None:

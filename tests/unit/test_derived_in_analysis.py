@@ -94,7 +94,9 @@ def test_ts_figures_plot_theta_against_salinity(stack: xr.Dataset) -> None:
 def test_no_position_gives_in_situ_temperature_without_contours(
     stack: xr.Dataset, caplog
 ) -> None:
-    """Without a position: one warning, in-situ T labelled so, no contours."""
+    """Without a position: in-situ T labelled so, no contours, a note and a warning."""
+    from matplotlib.contour import ContourSet
+
     from oceanarray.plotters.ts import draw_stack_ts_diagram
 
     bare = stack.copy()
@@ -107,7 +109,11 @@ def test_no_position_gives_in_situ_temperature_without_contours(
     assert fields.theta is None
     assert caplog.text.count("unknown") == 1
     assert fig.axes[0].get_ylabel().startswith("Temperature")
-    assert not fig.axes[0].texts
+    assert [t.get_text() for t in fig.axes[0].texts] == [
+        "σθ not drawn: no mooring position"
+    ]
+    assert not any(isinstance(c, ContourSet) for ax in fig.axes for c in ax.collections)
+    assert "σθ contours not drawn on the T-S figure: no mooring position" in caplog.text
 
 
 def test_speed_direction_matches_the_stack(stack: xr.Dataset) -> None:

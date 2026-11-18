@@ -17,6 +17,8 @@ from typing import Any
 
 import numpy as np
 
+from oceanarray.analysis.derived import ROSE_MIN_FILLED
+from oceanarray.analysis.spectral import SPECTRAL_MIN_FILLED
 from oceanarray.config import parameters as params
 from oceanarray.pipeline import masking
 from oceanarray.pipeline.qc.originator import MAPPED_SUFFIX
@@ -89,6 +91,25 @@ def _join(items: Sequence[str], last: str = "and") -> str:
     return f"{', '.join(items[:-1])} {last} {items[-1]}"
 
 
+def percent_text(share: float) -> str:
+    """Return a share of the record as caption text: ``0.5`` reads ``"50 %"``.
+
+    Parameters
+    ----------
+    share : float
+        A fraction in [0, 1], e.g. a threshold constant.
+
+    Returns
+    -------
+    str
+    """
+    return f"{100.0 * float(share):g} %"
+
+
+#: Added to a T-S caption whose figure has no σθ contours for want of a position.
+NO_SIGMA_CAPTION: str = "(no σθ: position unknown)"
+
+
 def pressures_text(pressures: Sequence[float]) -> str:
     """Return grid pressures as text: ``"150, 400 and 700 dbar"``."""
     return f"{_join([f'{p:.0f}' for p in pressures])} dbar" if pressures else ""
@@ -101,11 +122,37 @@ def flag_words(flags: Sequence[int]) -> str:
     )
 
 
+#: A method of interpolation in pressure as a file records it, and its adverb.
+_METHOD_ADVERBS: dict[str, str] = {
+    "linear": "linearly",
+    "pchip": "by PCHIP",
+    "cubic spline": "by cubic spline",
+    "akima": "by Akima spline",
+}
+_METHOD_RE = re.compile(
+    r"\b(linear|pchip|cubic[ -]spline|akima)\b(?: interpolation)? in pressure",
+    flags=re.IGNORECASE,
+)
+
+
 def method_words(ds: Any) -> str:
-    """Return how the grid interpolated in pressure, as an adverb (``"linearly"``).
+    """Return how the grid interpolated in pressure, as an adverb, when the file says.
 
     Read from the variables' ``vertical_interpolation`` attribute, else the
-    file's history; ``"linearly"`` (the only method the grid has had) otherwise.
+    file's history, and only where the text ties the method to pressure
+    (``"linear in pressure"``, ``"linear interpolation in pressure"``).
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        The grid.
+
+    Returns
+    -------
+    str
+        ``"linearly"``, ``"by PCHIP"``, ``"by cubic spline"`` or ``"by Akima
+        spline"``; ``""`` when the file does not record the method (no method is
+        assumed).
     """
     texts = [
         str(ds[v].attrs.get("vertical_interpolation", ""))
@@ -113,13 +160,26 @@ def method_words(ds: Any) -> str:
     ]
     texts.append(str(getattr(ds, "attrs", {}).get("history", "")))
     for text in texts:
-        m = re.search(r"\b(linear|pchip|cubic|spline)\b", text, flags=re.IGNORECASE)
+        m = _METHOD_RE.search(text)
         if m:
-            word = m.group(1).lower()
-            return {"linear": "linearly", "pchip": "by PCHIP spline"}.get(
-                word, f"by {word} spline"
-            )
-    return "linearly"
+            return _METHOD_ADVERBS[m.group(1).lower().replace("-", " ")]
+    return ""
+
+
+def interpolated_words(ds: Any) -> str:
+    """Return ``"interpolated linearly in pressure"``, or without the adverb.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        The grid.
+
+    Returns
+    -------
+    str
+        ``"interpolated in pressure"`` when the file does not record the method.
+    """
+    return " ".join(w for w in ("interpolated", method_words(ds), "in pressure") if w)
 
 
 # ---------------------------------------------------------------------------
@@ -328,7 +388,7 @@ def grid_steps(
         ),
         Step(
             "Grid",
-            f"Interpolated {method_words(ds)} in pressure between instruments; no "
+            f"{_sentence(interpolated_words(ds))} between instruments; no "
             "extrapolation above the shallowest or below the deepest",
             f"{float(dp):g} dbar levels, {float(pmin):g}–{float(pmax):g} dbar",
         ),
@@ -451,7 +511,7 @@ def grid_captions(c: Any) -> dict[str, str]:
     """
     ds = c.ds
     attrs = ds.attrs
-    method = method_words(ds)
+    interpolated = interpolated_words(ds)
     cadence = cadence_word(c.dt_s)
     out: dict[str, str] = {}
     pressure = np.asarray(ds["pressure"].values, dtype=float)
@@ -472,7 +532,7 @@ def grid_captions(c: Any) -> dict[str, str]:
             else ""
         )
         out["hydro"] = (
-            f"{what} on the pressure grid, interpolated {method} in pressure between "
+            f"{what} on the pressure grid, {interpolated} between "
             "instruments; nothing is extrapolated beyond the shallowest or deepest "
             f"instrument at each time.{marks} " + flag_sentence(attrs, hydro_vars)
         )
@@ -495,8 +555,8 @@ def grid_captions(c: Any) -> dict[str, str]:
             text = (
                 "In-situ temperature against salinity (PSU) for every grid cell "
                 f"(interpolated values included), as the number of {values} in each "
-                "bin (log scale). No position, so no potential temperature or "
-                "density."
+                f"bin (log scale) {NO_SIGMA_CAPTION}: no potential temperature or "
+                "density without the mooring position."
             )
         text += " " + flag_sentence(attrs, ["temperature", "salinity"])
         if "oxygen_saturation_pct" in dv:
@@ -516,8 +576,8 @@ def grid_captions(c: Any) -> dict[str, str]:
         toward = f" ({reference})" if reference else ""
         out["vel_stacked"] = (
             "Eastward, northward and upward velocity, current speed, and the "
-            f"direction toward which the current flows{toward}, interpolated "
-            f"{method} in pressure {between}; no values above the shallowest or "
+            f"direction toward which the current flows{toward}, {interpolated} "
+            f"{between}; no values above the shallowest or "
             "below the deepest. One colour scale for the three components, "
             "symmetric about zero, to the larger magnitude of the 1st and 99th "
             "percentiles; speed (to its 98th percentile) and direction (a cyclic "
@@ -553,21 +613,29 @@ def grid_captions(c: Any) -> dict[str, str]:
             )
         rose_p = [pressure[k] for k in c.rose_levels]
         directions = f" ({reference})" if reference else ""
+        filled = percent_text(ROSE_MIN_FILLED)
+        left_out = _left_out_sentence(c, pressure, vel_instr)
+        levels = (
+            f"Levels: {pressures_text(rose_p)}, from those with values at least "
+            f"{filled} of the time."
+            if rose_p
+            else f"No level has values at least {filled} of the time."
+        )
         out["roses"] = (
             f"Direction toward which the current flows{directions} and speed at "
             "grid levels (interpolated between current meters). Wedge length is the "
             "percentage of the record in that direction; colours are speed classes. "
-            f"Levels: {pressures_text(rose_p)}, from those with values at least "
-            "50 % of the time. "
+            f"{levels}{left_out} "
             + flag_sentence(attrs, ["east_velocity", "north_velocity"])
         )
         if rose_p:
             out["hodograph"] = (
                 f"Velocity vectors (24-hour smoothed) at {pressures_text(rose_p)} (the "
-                "levels of the current roses), traced through the deployment: the "
+                "levels of the current roses, with values at least "
+                f"{filled} of the time), traced through the deployment: the "
                 f"line joins the successive smoothed {cadence or 'time-step'} "
                 "velocities, coloured from start (dark) to end (yellow); green "
-                "circle = start, red square = end."
+                f"circle = start, red square = end.{left_out}"
             )
         out["progressive_vector"] = (
             "Cumulative displacement from adding up the hourly velocity at each "
@@ -591,7 +659,7 @@ def grid_captions(c: Any) -> dict[str, str]:
         f"Buoyancy frequency squared (log₁₀ N², {params.vunit('n2')}), calculated "
         "simply between "
         f"neighbouring {dp:g} dbar levels of the gridded temperature and salinity "
-        f"(GSW, no adiabatic levelling). Because the grid is interpolated {method} "
+        f"(GSW, no adiabatic levelling). Because the grid is {interpolated} "
         "between instruments, N² changes mostly at the instrument pressures; zero or "
         "negative values are drawn in the lowest colour. For analysis, calculate N² "
         "from the measurements yourself."
@@ -610,6 +678,34 @@ def _nearest(levels: Sequence[Any], p: float) -> Any:
     if not levels:
         return None
     return min(levels, key=lambda r: abs(r.pressure - p))
+
+
+def _left_out_sentence(
+    c: Any, pressure: np.ndarray, current_meters: Sequence[Any]
+) -> str:
+    """Return the sentence naming the levels the roses leave out, or ``""``.
+
+    Each level is named by its pressure, with the current meter within half a
+    grid step of it when there is one: ``" Levels with values less than 50 % of
+    the time are left out: 150 dbar (Aquadopp 400115)."``
+    """
+    if not c.rose_left_out:
+        return ""
+    half = 0.5 * float(np.median(np.diff(pressure))) if len(pressure) > 1 else 0.0
+    names = []
+    for k in c.rose_left_out:
+        p = float(pressure[k])
+        near = _nearest(current_meters, p)
+        meter = (
+            f" ({_type_label(near.instrument_type)} {near.serial})"
+            if near is not None and abs(near.pressure - p) <= half
+            else ""
+        )
+        names.append(f"{p:.0f} dbar{meter}")
+    return (
+        f" Levels with values less than {percent_text(ROSE_MIN_FILLED)} of the time "
+        f"are left out: {_join(names)}."
+    )
 
 
 def _markers_sentence(c: Any, lo: float, hi: float) -> str:
@@ -675,7 +771,8 @@ def _spectral_captions(c: Any, pressure: np.ndarray) -> dict[str, str]:
         out["temp_spectrum"] = (
             f"Power spectral density of temperature at {len(t_levels)} levels "
             f"(Welch estimate): {pressures_text(t_levels)}, {where} with values at "
-            "least 90 % of the time, shallowest, deepest and evenly between (colour "
+            f"least {percent_text(SPECTRAL_MIN_FILLED)} of the time, shallowest, "
+            "deepest and evenly between (colour "
             f"bar). Left: {lf}; right: {hf}, zoomed to periods under 2 days; "
             f"50 % overlap. Vertical lines: {lines}. Dashed: a −2 slope for "
             "reference." + _markers_sentence(c, nyq, lf_max)
@@ -686,7 +783,8 @@ def _spectral_captions(c: Any, pressure: np.ndarray) -> dict[str, str]:
         out["wavelet"] = (
             f"Wavelet power of temperature at {pressures_text(w_levels)} (Morlet, "
             "ω₀ = 6; Torrence & Compo 1998), log₁₀ °C² d: the outermost levels with "
-            "values at least 90 % of the time and one between. Hatched: "
+            f"values at least {percent_text(SPECTRAL_MIN_FILLED)} of the time and one "
+            "between. Hatched: "
             "edge-affected (cone of influence); cross-hatched: gaps filled before "
             "the transform. Black contours: 95 % significance against red noise. "
             f"Periods from {duration_words(min_p)} up."
@@ -712,6 +810,28 @@ def _spectral_captions(c: Any, pressure: np.ndarray) -> dict[str, str]:
                 "internal waves in the Southern Hemisphere.",
             )
     return out
+
+
+def stack_ts_caption(default: str, derived: Any) -> str:
+    """Return the stack page's T-S caption: *default*, led by the no-σθ note when needed.
+
+    Parameters
+    ----------
+    default : str
+        The page's standing caption.
+    derived : DerivedFields or None
+        The page's derived quantities; without a position the figure plots
+        in-situ temperature and draws no σθ.
+
+    Returns
+    -------
+    str
+    """
+    if derived is not None and (derived.latitude is None or derived.longitude is None):
+        return (
+            f"In-situ temperature against salinity (PSU) {NO_SIGMA_CAPTION}. {default}"
+        )
+    return default
 
 
 def stack_rose_caption(ds_stack: Any) -> str:

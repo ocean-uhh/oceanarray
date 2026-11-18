@@ -111,7 +111,8 @@ def select_levels(
         How many levels to take.  None: three, or five when there are at least
         :data:`SPECTRAL_MANY_LEVELS` candidates.
     min_filled : float, optional
-        Share of the record a level must have filled (default 0.9).
+        Share of the record a level must have filled (default
+        :data:`SPECTRAL_MIN_FILLED`).
 
     Returns
     -------
