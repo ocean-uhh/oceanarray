@@ -44,8 +44,9 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 - Grid captions are generated from the file: interpolation, flags left out, levels chosen, window lengths, instrument count and velocity reference; jargon and wrong claims removed.
 - Grid hydrography: practical salinity, colour limits at the 1st–99th percentiles with arrows, instrument median pressures as triangles at the right edge.
-- Grid velocity sections: eastward/northward/upward only, cropped to the velocity levels at the hydrography's dbar per inch, one symmetric scale and one colour bar, triangles at the current meters.
-- Grid velocity profiles: drawn at the same vertical scale, down to the seabed; legend labels "Middle 50 %", count axis "Hourly values".
+- Grid velocity sections: cropped to the velocity levels at the hydrography's dbar per inch; the three components share one scale and colour bar, speed and direction have their own; triangles at the current meters.
+- Grid velocity profiles: drawn at the same vertical scale, down to the seabed; speed legend at centre right, labels "Middle 50 %", count axis "Hourly values".
+- Stack page: "Particle trajectories" is now "Progressive vector diagram" (`draw_multi_aquadopp_progressive_vector`, `draw_adcp_progressive_vector`; old names kept as aliases).
 - Stack and grid current roses share one design: speed classes 0–5/5–10/10–20/20–30/>30 cm/s, rings in %, a speed-class legend; grid roses at up to 4 levels filled ≥ 50 % of the time.
 - Grid hodographs are drawn at the current roses' levels, titled by pressure.
 - "Particle trajectory" on the grid page is now the progressive vector diagram (`draw_grid_progressive_vector`; `draw_grid_trajectory` kept as an alias).

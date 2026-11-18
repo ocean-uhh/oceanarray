@@ -341,6 +341,8 @@ _VELOCITY_TITLES: dict[str, str] = {
     "east_velocity": "Eastward velocity",
     "north_velocity": "Northward velocity",
     "up_velocity": "Upward velocity",
+    "current_speed": "Current speed",
+    "current_direction": "Direction toward which the current flows",
 }
 
 
@@ -351,19 +353,24 @@ def draw_grid_velocity_stacked(
     instrument_pressures: Sequence[float] | None = None,
     scale: SectionScale | None = None,
 ) -> plt.Figure | None:
-    """Eastward, northward and upward velocity sections for the grid report.
+    """Velocity component, speed and direction sections for the grid report.
 
-    The panels are cropped to the levels with velocity and drawn at the page's
-    vertical scale (*scale*: the hydrography panels' dbar per inch, so a dbar
-    spans the same height in both figures), with the same pressure tick step.
-    All three share one colour scale, symmetric about zero, to the larger of the
-    magnitudes of the 1st and 99th percentiles of all their values; values beyond
-    take the end colours.  One colorbar spans the three panels.
+    Eastward, northward and upward velocity, then current speed and the direction
+    toward which the current flows.  The panels are cropped to the levels with
+    velocity and drawn at the page's vertical scale (*scale*: the hydrography
+    panels' dbar per inch, so a dbar spans the same height in both figures), with
+    the same pressure tick step.  The three components share one colour scale,
+    symmetric about zero, to the larger of the magnitudes of the 1st and 99th
+    percentiles of all their values (values beyond take the end colours), and one
+    colorbar spanning their panels.  Speed (0 to its 98th percentile) and
+    direction (a cyclic map, 0–360°) have their own colorbars.
 
     Parameters
     ----------
     ds : xarray.Dataset
-        Gridded dataset with dimensions ``(time, pressure)``.
+        Gridded dataset with dimensions ``(time, pressure)``.  Speed and direction
+        are ``current_speed`` / ``current_direction`` when present, else computed
+        from the horizontal components.
     width_in : float, optional
         Figure width in inches (the display slot).
     instrument_pressures : sequence of float, optional
@@ -378,31 +385,73 @@ def draw_grid_velocity_stacked(
     matplotlib.figure.Figure or None
         None when no velocity component is present or all are empty.
     """
-    present = [v for v in _VELOCITY_TITLES if v in ds.data_vars]
-    if not present:
+    from oceanarray.analysis.derived import speed_direction
+
+    from .helpers import _velocity_panel_style
+
+    components = [
+        v
+        for v in ("east_velocity", "north_velocity", "up_velocity")
+        if v in ds.data_vars
+    ]
+    if not components:
         return None
     pressure = ds["pressure"].values
     time = ds["time"].values
-    fields = {v: ds[v].transpose("time", "pressure").values for v in present}
+    fields = {v: ds[v].transpose("time", "pressure").values for v in components}
     extent = pressure_extent(pressure, list(fields.values()))
     if extent is None:
         return None
+    if {"east_velocity", "north_velocity"} <= set(components):
+        if {"current_speed", "current_direction"} <= set(ds.data_vars):
+            spd = ds["current_speed"].transpose("time", "pressure").values
+            dirn = ds["current_direction"].transpose("time", "pressure").values
+        else:
+            spd, dirn = speed_direction(
+                fields["east_velocity"], fields["north_velocity"]
+            )
+        fields["current_speed"], fields["current_direction"] = spd, dirn
     if scale is None:
         scale = hydro_scale(ds) or section_scale(pressure, list(fields.values()))
-    lo, hi = _percentile_limits(np.concatenate([f.ravel() for f in fields.values()]))
+    lo, hi = _percentile_limits(np.concatenate([fields[v].ravel() for v in components]))
     vmax = max(abs(lo or 0.0), abs(hi or 0.0), 1e-4)
-    from .helpers import _velocity_panel_style
-
     bounds, _, cmap, _ = _velocity_panel_style("east_velocity", np.array([]), vmax)
     norm = mcolors.BoundaryNorm(bounds, ncolors=256, extend="both")
 
+    panels = list(fields)
     h = scale.height_in(extent)
-    fig, axes, cax = section_layout(width_in, [h] * len(present), colorbar="shared")
+    fig, axes, caxes = section_layout(width_in, [h] * len(panels), colorbar="each")
+    # One colorbar spans the component panels: replace their own bars by one.
+    n_comp = len(components)
+    x0, w = caxes[0].get_position().x0, caxes[0].get_position().width
+    y_bot = caxes[n_comp - 1].get_position().y0
+    y_top = caxes[0].get_position().y1
+    for cax in caxes[:n_comp]:
+        cax.remove()
+    shared = fig.add_axes([x0, y_bot, w, y_top - y_bot])
     pc = None
-    for ax, var in zip(axes, present, strict=True):
-        pc = ax.pcolormesh(
-            time, pressure, fields[var].T, shading="nearest", cmap=cmap, norm=norm
-        )
+    for i, (ax, var) in enumerate(zip(axes, panels, strict=True)):
+        data = fields[var].T
+        if i < n_comp:
+            pc = ax.pcolormesh(
+                time, pressure, data, shading="nearest", cmap=cmap, norm=norm
+            )
+        else:
+            finite = data[np.isfinite(data)]
+            b_own, n_own, c_own, label = _velocity_panel_style(var, finite, vmax)
+            extend = "max" if var == "current_speed" else "neither"
+            if extend == "max":
+                n_own = mcolors.BoundaryNorm(b_own, ncolors=256, extend="max")
+            own = ax.pcolormesh(
+                time, pressure, data, shading="nearest", cmap=c_own, norm=n_own
+            )
+            ticks = (
+                [0, 90, 180, 270, 360]
+                if var == "current_direction"
+                else nice_colorbar_ticks(float(b_own[0]), float(b_own[-1]))
+            )
+            cb = fig.colorbar(own, cax=caxes[i], extend=extend, ticks=ticks)
+            cb.ax.set_title(label, fontsize=report_tokens.ANNOT_FS)
         pressure_axis(ax)
         ax.grid(False, axis="y")
         apply_section_scale(ax, extent, scale)
@@ -410,7 +459,7 @@ def draw_grid_velocity_stacked(
         instrument_marks(ax, instrument_pressures or ())
     cb = fig.colorbar(
         pc,
-        cax=cax,
+        cax=shared,
         extend="both",
         ticks=nice_colorbar_ticks(float(bounds[0]), float(bounds[-1])),
     )

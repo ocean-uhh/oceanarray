@@ -513,12 +513,15 @@ def grid_captions(c: Any) -> dict[str, str]:
             if vel_instr
             else "between the current meters"
         )
-        directions = f" Directions {reference}." if reference else ""
+        toward = f" ({reference})" if reference else ""
         out["vel_stacked"] = (
-            f"Eastward, northward and upward velocity, interpolated {method} in "
-            f"pressure {between}; no values above the shallowest or below the "
-            f"deepest.{directions} One colour scale for all three, symmetric about "
-            "zero, to the larger magnitude of the 1st and 99th percentiles. "
+            "Eastward, northward and upward velocity, current speed, and the "
+            f"direction toward which the current flows{toward}, interpolated "
+            f"{method} in pressure {between}; no values above the shallowest or "
+            "below the deepest. One colour scale for the three components, "
+            "symmetric about zero, to the larger magnitude of the 1st and 99th "
+            "percentiles; speed (to its 98th percentile) and direction (a cyclic "
+            "scale, 0–360°, clockwise from north) have their own. "
             + flag_sentence(attrs, ["east_velocity", "north_velocity", "up_velocity"])
         )
         values = f"{cadence} values" if cadence else "values"

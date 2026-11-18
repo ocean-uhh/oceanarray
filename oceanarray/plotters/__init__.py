@@ -71,7 +71,9 @@ from oceanarray.plotters.animation import animate_hodograph
 # ---------------------------------------------------------------------------
 from oceanarray.plotters.current import (
     draw_adcp_hodograph,
+    draw_adcp_progressive_vector,
     draw_adcp_rose,
+    draw_adcp_trajectories,
     draw_adcp_velocity,
     draw_aquadopp_speed_profile,
     draw_grid_hodograph,
@@ -80,6 +82,7 @@ from oceanarray.plotters.current import (
     draw_grid_trajectory,
     draw_hodograph,
     draw_instrument_rose,
+    draw_multi_aquadopp_progressive_vector,
     draw_multi_aquadopp_trajectories,
     draw_rose_grid,
     draw_speed_boxplot,
@@ -140,7 +143,10 @@ __all__ = [
     # draw_* — current meters (Figure per dataset)
     "draw_temperature_trajectory",
     "draw_speed_boxplot",
+    "draw_multi_aquadopp_progressive_vector",
     "draw_multi_aquadopp_trajectories",
+    "draw_adcp_progressive_vector",
+    "draw_adcp_trajectories",
     "draw_aquadopp_speed_profile",
     "draw_hodograph",
     "animate_hodograph",

@@ -555,7 +555,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 
 <h2 id="velocity">(4) Velocity</h2>
 
-<p class="caption">Eastward, northward and upward velocity, interpolated linearly in pressure between the 7 current meters (triangles at right); no values above the shallowest or below the deepest. Directions relative to true north, declination applied. One colour scale for all three, symmetric about zero, to the larger magnitude of the 1st and 99th percentiles. Which flags were left out is not recorded in this file.</p>
+<p class="caption">Eastward, northward and upward velocity, current speed, and the direction toward which the current flows (relative to true north, declination applied), interpolated linearly in pressure between the 7 current meters (triangles at right); no values above the shallowest or below the deepest. One colour scale for the three components, symmetric about zero, to the larger magnitude of the 1st and 99th percentiles; speed (to its 98th percentile) and direction (a cyclic scale, 0–360°, clockwise from north) have their own. Which flags were left out is not recorded in this file.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig slot-full" src="data:image/png;base64,<PNG>" alt="vel_stacked">
 </details><div class="fig-source">source: oceanarray/plotters/timeseries.py:draw_grid_velocity_stacked</div>

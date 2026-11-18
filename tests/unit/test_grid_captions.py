@@ -180,8 +180,25 @@ def test_velocity_sections_match_the_hydrography_scale(gridded):
         ratios.append((hi - lo) / h_in)
     assert ratios[0] == pytest.approx(ratios[1], rel=1e-6)
     vel = figs[1]
-    # one colour bar spans the three panels
-    assert len(vel.axes) == 4
+    # five panels; one colour bar for the three components, one each for speed
+    # and direction
+    assert len(vel.axes) == 8
+    titles = [a.get_title(loc="left") for a in vel.axes if a.get_title(loc="left")]
+    assert titles[3] == "Current speed"
+    assert titles[4].startswith("Direction toward")
+    shared = vel.axes[-1].get_position()
+    assert shared.y0 == pytest.approx(vel.axes[2].get_position().y0)
+    assert shared.y1 == pytest.approx(vel.axes[0].get_position().y1)
+
+
+def test_speed_legend_sits_at_center_right(gridded):
+    """The speed panel's legend is inside the axes at the centre right."""
+    from oceanarray.plotters.diagnostic import draw_velocity_iqr_profile
+
+    ds, _ = gridded
+    fig = draw_velocity_iqr_profile(ds)
+    leg = fig.axes[0].get_legend()
+    assert leg is not None and leg._loc == 7  # matplotlib's code for "center right"
 
 
 def test_potential_density_panels(gridded):
@@ -227,11 +244,30 @@ def test_wavelet_periods_start_at_six_steps(gridded):
     assert min(periods[0].get_ylim()) == pytest.approx(0.25)
 
 
-def test_progressive_vector_keeps_its_old_name():
-    """draw_grid_trajectory is the former name of draw_grid_progressive_vector."""
-    from oceanarray.plotters import draw_grid_progressive_vector, draw_grid_trajectory
+def test_progressive_vector_keeps_its_old_names():
+    """The former trajectory names are aliases of the progressive vector functions."""
+    from oceanarray import plotters as p
+    from oceanarray.reports import _plots
 
-    assert draw_grid_trajectory is draw_grid_progressive_vector
+    assert p.draw_grid_trajectory is p.draw_grid_progressive_vector
+    assert (
+        p.draw_multi_aquadopp_trajectories is p.draw_multi_aquadopp_progressive_vector
+    )
+    assert p.draw_adcp_trajectories is p.draw_adcp_progressive_vector
+    assert (
+        _plots._make_multi_aquadopp_trajectories_b64
+        is _plots._make_multi_aquadopp_progressive_vector_b64
+    )
+
+
+def test_stack_progressive_vector_section(stack):
+    """The stack page's section is the progressive vector diagram, drawn from the stack."""
+    from oceanarray.plotters.current import draw_multi_aquadopp_progressive_vector
+    from oceanarray.reports._stack import STACK_CAPTIONS, STACK_SECTIONS
+
+    assert STACK_SECTIONS["trajectories"].title == "Progressive vector diagram"
+    assert "not the path of a water parcel" in STACK_CAPTIONS["trajectories_aquadopp"]
+    assert draw_multi_aquadopp_progressive_vector(stack) is not None
 
 
 def test_identifier_variables_get_no_range(stack):

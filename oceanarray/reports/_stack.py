@@ -37,14 +37,14 @@ from ._html_helpers import (
 )
 from ._navs import mooring_nav
 from ._plots import (
-    _make_adcp_trajectories_b64,
+    _make_adcp_progressive_vector_b64,
     _make_analog_timeseries_b64,
     _make_aquadopp_speed_profile_b64,
     _make_aquadopp_tilt_panels_b64,
     _make_clock_check_b64,
     _make_flag_strip_b64,
     _make_instrument_spacing_b64,
-    _make_multi_aquadopp_trajectories_b64,
+    _make_multi_aquadopp_progressive_vector_b64,
     _make_rose_grid_b64,
     _make_stack_timeseries_b64,
     _make_stack_ts_diagram_b64,
@@ -103,13 +103,18 @@ STACK_CAPTIONS: dict[str, str] = {
         "(verify: NTU, FTU, or V depending on sensor)."
     ),
     "trajectories_aquadopp": (
-        "Pseudo-Lagrangian particle trajectories integrated from each Aquadopp's "
-        "east/north velocity. Start at the origin; coloured by time through the "
-        "deployment."
+        "Cumulative displacement from adding up each Aquadopp's measured velocity "
+        "(a progressive vector diagram): how far water passing the instrument would "
+        "travel if the flow were the same everywhere. It shows the mean flow "
+        "direction and how steady it is, not the path of a water parcel. Coloured "
+        "by temperature; the serial number marks each line's end."
     ),
     "trajectories_adcp": (
-        "Pseudo-Lagrangian particle trajectories integrated from ADCP bin "
-        "east/north velocity, one path per bin."
+        "Cumulative displacement from adding up the measured velocity in each ADCP "
+        "bin (a progressive vector diagram): how far water passing the bin would "
+        "travel if the flow were the same everywhere. It shows the mean flow "
+        "direction and how steady it is, not the path of a water parcel. Coloured "
+        "by height above bottom."
     ),
     "speed_profile": (
         "Aquadopp current-speed profile: median and interquartile range of speed "
@@ -437,7 +442,7 @@ STACK_SECTIONS: dict[str, Section] = {
     "turbidity": Section("turbidity", "Turbidity", ("turbidity",)),
     "trajectories": Section(
         "trajectories",
-        "Particle trajectories",
+        "Progressive vector diagram",
         ("trajectories_aquadopp", "trajectories_adcp"),
         layout="row",
     ),
@@ -651,9 +656,11 @@ def generate_stack_page(
             lambda: _make_aquadopp_tilt_panels_b64(ds, step=step)
         )
         fig_trajectories_b64 = as_panel(
-            lambda: _make_multi_aquadopp_trajectories_b64(ds)
+            lambda: _make_multi_aquadopp_progressive_vector_b64(ds)
         )
-        fig_adcp_trajectories_b64 = as_panel(lambda: _make_adcp_trajectories_b64(ds))
+        fig_adcp_trajectories_b64 = as_panel(
+            lambda: _make_adcp_progressive_vector_b64(ds)
+        )
         fig_speed_profile_b64 = as_panel(lambda: _make_aquadopp_speed_profile_b64(ds))
         # Clock alignment check: one temperature trace per instrument zoomed to
         # first/last 30 min.  Build {serial: path} preferring stage3 over stage2.

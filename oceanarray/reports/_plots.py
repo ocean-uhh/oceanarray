@@ -655,11 +655,17 @@ def _make_hodograph_b64(nc_path: str) -> str | None:
     return render_b64(_draw, source=source_for(draw_hodograph))
 
 
-def _make_multi_aquadopp_trajectories_b64(ds: xr.Dataset) -> str | None:
-    """Multi-instrument Aquadopp trajectory plot coloured by temperature, stack page."""
-    from oceanarray.plotters.current import draw_multi_aquadopp_trajectories
+def _make_multi_aquadopp_progressive_vector_b64(ds: xr.Dataset) -> str | None:
+    """Return base64 PNG: the Aquadopps' progressive vector diagram, stack page."""
+    from oceanarray.plotters.current import draw_multi_aquadopp_progressive_vector
 
-    return render_slot(draw_multi_aquadopp_trajectories, ds, slot="half", optional=True)
+    return render_slot(
+        draw_multi_aquadopp_progressive_vector, ds, slot="half", optional=True
+    )
+
+
+#: Former name of :func:`_make_multi_aquadopp_progressive_vector_b64`.
+_make_multi_aquadopp_trajectories_b64 = _make_multi_aquadopp_progressive_vector_b64
 
 
 def _make_stack_timeseries_b64(
@@ -815,11 +821,15 @@ def _make_aquadopp_speed_profile_b64(ds: xr.Dataset) -> str | None:
     return render_slot(draw_aquadopp_speed_profile, ds, slot="half", optional=True)
 
 
-def _make_adcp_trajectories_b64(ds: xr.Dataset) -> str | None:
-    """Per-bin ADCP particle trajectories coloured by HAB, for stack page."""
-    from oceanarray.plotters.current import draw_adcp_trajectories
+def _make_adcp_progressive_vector_b64(ds: xr.Dataset) -> str | None:
+    """Return base64 PNG: the ADCP bins' progressive vector diagram, stack page."""
+    from oceanarray.plotters.current import draw_adcp_progressive_vector
 
-    return render_slot(draw_adcp_trajectories, ds, slot="half", optional=True)
+    return render_slot(draw_adcp_progressive_vector, ds, slot="half", optional=True)
+
+
+#: Former name of :func:`_make_adcp_progressive_vector_b64`.
+_make_adcp_trajectories_b64 = _make_adcp_progressive_vector_b64
 
 
 def _make_adcp_velocity_b64(nc_path: str) -> str | None:

@@ -35,11 +35,11 @@ from ._html_helpers import (
     doi_link,
 )
 from ._plots import (
-    _make_adcp_trajectories_b64,
+    _make_adcp_progressive_vector_b64,
     _make_analog_timeseries_b64,
     _make_direction_profile_by_deployment_b64,
     _make_flag_strip_b64,
-    _make_multi_aquadopp_trajectories_b64,
+    _make_multi_aquadopp_progressive_vector_b64,
     _make_rose_outlines_b64,
     _make_speed_profile_by_deployment_b64,
     _make_stack_timeseries_b64,
@@ -127,8 +127,9 @@ CONCAT_CAPTIONS: dict[str, str] = {
         + _OVERLAP_NOTE
     ),
     "trajectories_aquadopp": (
-        "Pseudo-Lagrangian trajectories integrated from east/north velocity, one per "
-        "depth, running through every deployment in the depth (a turnaround "
+        "Cumulative displacement from adding up the measured velocity (a progressive "
+        "vector diagram), one line per depth, running through every deployment in "
+        "the depth (a turnaround "
         "adds no displacement; where two deployments overlap, the one filling the "
         "depth counts). Start at the origin; the label marks the end."
     ),
@@ -962,12 +963,14 @@ def generate_concat_page(
             "ts_medians": as_panel(lambda: _make_ts_medians_b64(view, derived)),
             "trajectories_aquadopp": as_panel(
                 lambda: (
-                    _make_multi_aquadopp_trajectories_b64(depth_view)
+                    _make_multi_aquadopp_progressive_vector_b64(depth_view)
                     if depth_view is not None
                     else None
                 )
             ),
-            "trajectories_adcp": as_panel(lambda: _make_adcp_trajectories_b64(view)),
+            "trajectories_adcp": as_panel(
+                lambda: _make_adcp_progressive_vector_b64(view)
+            ),
             "speed_profile": as_panel(
                 lambda: _make_speed_profile_by_deployment_b64(view)
             ),

@@ -88,8 +88,9 @@ GRID_CAPTIONS: dict[str, str] = {
         "scale). Dashed lines: potential density σθ."
     ),
     "vel_stacked": (
-        "Eastward, northward and upward velocity, interpolated in pressure between "
-        "the current meters; no values above the shallowest or below the deepest."
+        "Eastward, northward and upward velocity, current speed, and the direction "
+        "toward which the current flows, interpolated in pressure between the "
+        "current meters; no values above the shallowest or below the deepest."
     ),
     "vel_iqr": (
         "Distribution of current speed (left) and eastward/northward velocity "

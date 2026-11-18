@@ -1664,7 +1664,8 @@ def draw_velocity_iqr_profile(
             ax.set_xlim(left=0)
         ax.set_xlabel(f"Current speed ({unit_label('m s-1')})")
         grid_despine(ax)
-        ax.legend(loc="best")
+        # Inside, at the right: it covers only some of the most extreme speeds.
+        ax.legend(loc="center right")
 
     # ── Panel 2: east + north on shared axes ─────────────────────────────────
     if has_horiz:

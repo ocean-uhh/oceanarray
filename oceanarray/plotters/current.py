@@ -257,7 +257,7 @@ def draw_speed_boxplot(
     return fig
 
 
-def draw_multi_aquadopp_trajectories(
+def draw_multi_aquadopp_progressive_vector(
     ds: xr.Dataset,
     u_var: str = "east_velocity",
     v_var: str = "north_velocity",
@@ -268,10 +268,11 @@ def draw_multi_aquadopp_trajectories(
     *,
     width_in: float = report_tokens.W_HALF,
 ) -> plt.Figure | None:
-    """Multi-instrument Lagrangian trajectories for all Aquadopps, coloured by temperature.
+    """Progressive vector diagram of every Aquadopp, coloured by temperature.
 
-    Each trajectory starts at the origin and is built by integrating the
-    east/north velocity over time (Euler forward; NaN velocities set to zero).
+    Each line starts at the origin and adds up the measured east/north velocity
+    over time (Euler forward; a missing velocity adds nothing): how far water
+    passing the instrument would travel if the flow were the same everywhere.
     All trajectories share a single temperature colour scale so instruments can
     be compared directly.  End points are annotated with the instrument serial.
 
@@ -693,7 +694,7 @@ def draw_aquadopp_speed_profile(
     return fig
 
 
-def draw_adcp_trajectories(
+def draw_adcp_progressive_vector(
     ds: xr.Dataset,
     u_var: str = "east_velocity",
     v_var: str = "north_velocity",
@@ -704,7 +705,7 @@ def draw_adcp_trajectories(
     *,
     width_in: float = report_tokens.W_HALF,
 ) -> plt.Figure | None:
-    """Lagrangian per-bin trajectories for ADCP data, coloured by HAB.
+    """Progressive vector diagram of each ADCP bin, coloured by height above bottom.
 
     Each depth bin integrated by Euler-forward from the origin.  Bins that are
     entirely below the seabed (every seabed_qc flag bad) are silently omitted.  QC
@@ -808,7 +809,7 @@ def draw_adcp_trajectories(
     norm: mcolors.BoundaryNorm = mcolors.BoundaryNorm(_bounds, ncolors=256)
 
     # Half width — shown in a 50% flex column beside the Aquadopp trajectory
-    # (see stack.html), matching draw_multi_aquadopp_trajectories.
+    # (see stack.html), matching draw_multi_aquadopp_progressive_vector.
     _all_x = np.concatenate([x for _, x, _ in trajs])
     _all_y = np.concatenate([y for _, _, y in trajs])
     fig, axes, cax = square_axes_grid(width_in, 1, 1, left_in=ytick_reserve_in(_all_y))
@@ -1277,6 +1278,10 @@ def draw_grid_progressive_vector(
 
 #: Former name of :func:`draw_grid_progressive_vector`, kept for callers.
 draw_grid_trajectory = draw_grid_progressive_vector
+#: Former name of :func:`draw_multi_aquadopp_progressive_vector`, kept for callers.
+draw_multi_aquadopp_trajectories = draw_multi_aquadopp_progressive_vector
+#: Former name of :func:`draw_adcp_progressive_vector`, kept for callers.
+draw_adcp_trajectories = draw_adcp_progressive_vector
 
 
 def draw_adcp_velocity(

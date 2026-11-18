@@ -477,7 +477,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <nav class="jump-nav">
 <a href="#hydrography">(1) Hydrography</a>
 <a href="#velocity">(2) Velocity</a>
-<a href="#trajectories">(3) Particle trajectories</a>
+<a href="#trajectories">(3) Progressive vector diagram</a>
 <a href="#speed_profile">(4) Aquadopp speed profile</a>
 <a href="#ts_diagram">(5) T-S diagram</a>
 <a href="#roses">(6) Current rose diagrams</a>
@@ -504,14 +504,14 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <img class="fig" src="data:image/png;base64,<PNG>" alt="vel_uvw">
 </details><div class="fig-source">source: oceanarray/plotters/timeseries.py:draw_stack_timeseries</div>
 
-<h2 id="trajectories">(3) Particle trajectories</h2>
+<h2 id="trajectories">(3) Progressive vector diagram</h2>
 
 <div class="fig-row">
 <div class="fig-cell slot-half">
-<p class="caption">Pseudo-Lagrangian particle trajectories integrated from each Aquadopp&#39;s east/north velocity. Start at the origin; coloured by time through the deployment.</p>
+<p class="caption">Cumulative displacement from adding up each Aquadopp&#39;s measured velocity (a progressive vector diagram): how far water passing the instrument would travel if the flow were the same everywhere. It shows the mean flow direction and how steady it is, not the path of a water parcel. Coloured by temperature; the serial number marks each line&#39;s end.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="trajectories_aquadopp">
-</details><div class="fig-source">source: oceanarray/plotters/current.py:draw_multi_aquadopp_trajectories</div>
+</details><div class="fig-source">source: oceanarray/plotters/current.py:draw_multi_aquadopp_progressive_vector</div>
 </div>
 </div>
 
