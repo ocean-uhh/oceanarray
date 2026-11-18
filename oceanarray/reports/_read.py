@@ -18,6 +18,43 @@ from ..plotters.helpers import QC_COLORS as _QC_COLORS
 _QC_LABELS: dict[int, str] = params.QC_FLAG_LABEL
 
 
+def is_identifier(ds: Any, name: str) -> bool:
+    """Return True when variable *name* holds labels or codes rather than measurements.
+
+    Serial numbers, indices, flag codes and ``cf_role`` variables are numbers only
+    as labels: their minimum and maximum say nothing, so the variables table
+    leaves them out.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        The open file.
+    name : str
+        A variable or coordinate name.
+
+    Returns
+    -------
+    bool
+    """
+    v = ds[name]
+    lowered = name.lower()
+    if "serial" in lowered or lowered.endswith("_index") or lowered == "index":
+        return True
+    if "cf_role" in v.attrs:
+        return True
+    return v.dtype.kind in "iu" and (
+        "flag_values" in v.attrs or "flag_meanings" in v.attrs
+    )
+
+
+def _blank_identifier_ranges(ds: Any, rows: list[dict[str, Any]]) -> None:
+    """Replace the minimum and maximum of identifier-like rows with a dash."""
+    for row in rows:
+        if row.get("name") in ds.variables and is_identifier(ds, row["name"]):
+            row["v_min"] = row["v_max"] = "—"
+            row["v_min_raw"] = None
+
+
 def _read_nc_metadata(nc_path: Path) -> dict[str, Any]:
     """Return the vendored-builder inventory rows/groups for a NetCDF file."""
     # SENSOR_* variables stay in the scalar table.  A malformed file returns the
@@ -33,6 +70,9 @@ def _read_nc_metadata(nc_path: Path) -> dict[str, Any]:
             var_groups, var_src = nc_tables.variables_rows(
                 ds, is_qc=design.is_qc, is_sensor=design.is_sensor
             )
+            for _title, rows in var_groups:
+                _blank_identifier_ranges(ds, rows)
+            _blank_identifier_ranges(ds, coords_rows)
             scalar_rows, scalar_src = nc_tables.scalars_rows(ds)
             # `history` has its own dedicated processing-history panel, so exclude it from
             # the global-attributes table (the builder's `exclude=` drops the attr and any

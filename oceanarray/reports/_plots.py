@@ -18,8 +18,8 @@ from ..plotters.current import (
     draw_adcp_rose,
     draw_adcp_velocity,
     draw_grid_hodograph,
+    draw_grid_progressive_vector,
     draw_grid_rose,
-    draw_grid_trajectory,
     draw_instrument_rose,
     draw_rose_grid,
 )
@@ -56,6 +56,7 @@ from ..plotters.timeseries import (
     draw_analog_timeseries,
     draw_grid_hydro,
     draw_grid_n2,
+    draw_grid_potential_density,
     draw_grid_sigma,
     draw_grid_timeseries,
     draw_grid_velocity_stacked,
@@ -102,7 +103,7 @@ _DOT_LINE_VARS: frozenset = frozenset({"turbidity"})
 
 
 # _instrument_panels is imported from plotters.diagnostic (single definition) —
-# it was previously duplicated here (U8).
+# it was previously duplicated here.
 
 
 # ---------------------------------------------------------------------------
@@ -391,25 +392,61 @@ def _make_grid_sigma_b64(ds: xr.Dataset) -> str | None:
     return render_slot(draw_grid_sigma, ds, optional=True)
 
 
+def _make_grid_potential_density_b64(
+    ds: xr.Dataset,
+    reference: str = "sigma0",
+    derived: Any = None,
+    scale: Any = None,
+) -> str | None:
+    """Return base64 PNG: one potential-density section (σ0 or σ2) over the column."""
+    return render_slot(
+        draw_grid_potential_density,
+        ds,
+        reference,
+        derived=derived,
+        scale=scale,
+        optional=True,
+    )
+
+
 def _make_grid_hydro_b64(
     ds: xr.Dataset,
     var_bounds: dict | None = None,
+    instrument_pressures: Any = None,
+    scale: Any = None,
 ) -> str | None:
-    """Return base64 PNG: stacked temperature / salinity pcolormesh panels."""
-    return render_slot(draw_grid_hydro, ds, var_bounds, optional=True)
+    """Return base64 PNG: stacked temperature / practical-salinity sections."""
+    return render_slot(
+        draw_grid_hydro,
+        ds,
+        var_bounds,
+        instrument_pressures=instrument_pressures,
+        scale=scale,
+        optional=True,
+    )
 
 
-def _make_grid_velocity_stacked_b64(ds: xr.Dataset) -> str | None:
-    """Stacked east / north / up velocity pcolormesh panels for the grid report."""
-    return render_slot(draw_grid_velocity_stacked, ds, optional=True)
+def _make_grid_velocity_stacked_b64(
+    ds: xr.Dataset, instrument_pressures: Any = None, scale: Any = None
+) -> str | None:
+    """Eastward / northward / upward velocity sections for the grid report."""
+    return render_slot(
+        draw_grid_velocity_stacked,
+        ds,
+        instrument_pressures=instrument_pressures,
+        scale=scale,
+        optional=True,
+    )
 
 
 def _make_spectrum_b64(
     da_temp: xr.DataArray,
     dt_seconds: float,
     lat: float = 0.0,
-    hf_segment_days: float = 1.0,
-    hf_x_max_days: float = 3.0,
+    hf_segment_days: float = 7.0,
+    hf_x_max_days: float = 2.0,
+    levels: list[int] | None = None,
+    markers: Any = (),
 ) -> str | None:
     """Return base64 PNG: two-panel Welch PSD of gridded temperature."""
     return render_b64(
@@ -419,6 +456,8 @@ def _make_spectrum_b64(
         lat,
         hf_segment_days,
         hf_x_max_days,
+        levels=levels,
+        markers=markers,
         optional=True,
     )
 
@@ -427,17 +466,29 @@ def _make_wavelet_b64(
     da_temp: xr.DataArray,
     dt_seconds: float,
     wavelet: str = "morlet",
+    levels: list[int] | None = None,
 ) -> str | None:
     """Return base64 PNG: continuous wavelet transform scalogram for gridded temperature."""
-    return render_b64(draw_wavelet, da_temp, dt_seconds, wavelet, optional=True)
+    return render_b64(
+        draw_wavelet, da_temp, dt_seconds, wavelet, levels=levels, optional=True
+    )
 
 
 def _make_grid_rotary_spectrum_b64(
     ds: xr.Dataset,
     lat: float = 0.0,
+    levels: list[int] | None = None,
+    markers: Any = (),
 ) -> str | None:
     """Return base64 PNG: two-panel rotary velocity spectrum for the grid report."""
-    return render_b64(draw_grid_rotary_spectrum, ds, lat, optional=True)
+    return render_b64(
+        draw_grid_rotary_spectrum,
+        ds,
+        lat,
+        levels=levels,
+        markers=markers,
+        optional=True,
+    )
 
 
 def _make_flag_strip_b64(ds: xr.Dataset) -> str | None:
@@ -478,7 +529,7 @@ def _make_grid_ts_diagram_b64_and_limits(
 
     # Displayed at half width (template slot-half); rendering at that width keeps
     # the PNG px == display px.  With O₂ the diagram gains a panel but the page
-    # still shows it at half — same as before U0.2, now without the oversample.
+    # still shows it at half — now without the oversample.
     return (
         render_slot(
             _draw, slot="half", optional=True, source=source_for(draw_grid_ts_diagram)
@@ -487,9 +538,9 @@ def _make_grid_ts_diagram_b64_and_limits(
     )
 
 
-def _make_velocity_iqr_profile_b64(ds: xr.Dataset) -> str | None:
-    """Return base64 PNG: percentile-profile figure for gridded ADCP velocity data."""
-    return render_b64(draw_velocity_iqr_profile, ds, optional=True)
+def _make_velocity_iqr_profile_b64(ds: xr.Dataset, scale: Any = None) -> str | None:
+    """Return base64 PNG: percentile profiles of gridded velocity, at the page's scale."""
+    return render_b64(draw_velocity_iqr_profile, ds, scale=scale, optional=True)
 
 
 def _make_grid_n2_b64(
@@ -517,14 +568,20 @@ def _make_rose_grid_b64(
     return render_b64(_draw, optional=True, source=source_for(draw_rose_grid)), n_panels
 
 
-def _make_grid_rose_b64(ds: xr.Dataset, max_roses: int = 4) -> str | None:
-    """Grid of current roses, one per pressure level, for the grid report."""
-    return render_b64(draw_grid_rose, ds, max_roses, optional=True)
+def _make_grid_rose_b64(
+    ds: xr.Dataset, max_roses: int = 4, levels: list[int] | None = None
+) -> str | None:
+    """Return base64 PNG: current roses at grid levels (the stack page's design)."""
+    return render_b64(draw_grid_rose, ds, max_roses, levels=levels, optional=True)
 
 
-def _make_grid_trajectory_b64(ds: xr.Dataset) -> str | None:
-    """Pseudo-Lagrangian trajectory by pressure level for the grid report."""
-    return render_slot(draw_grid_trajectory, ds, slot="half", optional=True)
+def _make_grid_progressive_vector_b64(ds: xr.Dataset) -> str | None:
+    """Progressive vector diagram by pressure level for the grid report."""
+    return render_slot(draw_grid_progressive_vector, ds, slot="half", optional=True)
+
+
+#: Former name of :func:`_make_grid_progressive_vector_b64`.
+_make_grid_trajectory_b64 = _make_grid_progressive_vector_b64
 
 
 def _make_grid_timeseries_b64(ds: xr.Dataset, derived: Any = None) -> str | None:
@@ -784,9 +841,13 @@ def _make_adcp_hodograph_b64(
     )
 
 
-def _make_grid_hodograph_b64(ds: xr.Dataset, smooth_hours: float = 24.0) -> str | None:
-    """Return base64 PNG: two-depth hodograph for the grid report."""
-    return render_b64(draw_grid_hodograph, ds, smooth_hours, optional=True)
+def _make_grid_hodograph_b64(
+    ds: xr.Dataset, smooth_hours: float = 24.0, levels: list[int] | None = None
+) -> str | None:
+    """Return base64 PNG: hodographs at the current roses' grid levels."""
+    return render_b64(
+        draw_grid_hodograph, ds, smooth_hours, levels=levels, optional=True
+    )
 
 
 def _make_analog_timeseries_b64(nc_path: Path, analog_vars: list[str]) -> str | None:

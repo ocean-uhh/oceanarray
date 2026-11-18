@@ -25,12 +25,13 @@ Domain ``draw_*`` functions:
 
   Timeseries (timeseries.py):
     draw_grid, draw_grid_hydro, draw_grid_velocity_stacked,
-    draw_grid_sigma, draw_grid_n2, draw_grid_timeseries,
-    draw_analog_timeseries
+    draw_grid_sigma, draw_grid_potential_density, draw_grid_n2,
+    draw_grid_timeseries, draw_analog_timeseries
 
   Current / velocity (current.py):
     draw_instrument_rose, draw_rose_grid, draw_grid_rose,
-    draw_grid_trajectory, draw_adcp_velocity, draw_adcp_rose,
+    draw_grid_progressive_vector (alias draw_grid_trajectory), draw_adcp_velocity,
+    draw_adcp_rose,
     draw_adcp_hodograph, draw_grid_hodograph
 
   Spectral (spectrum.py):
@@ -74,6 +75,7 @@ from oceanarray.plotters.current import (
     draw_adcp_velocity,
     draw_aquadopp_speed_profile,
     draw_grid_hodograph,
+    draw_grid_progressive_vector,
     draw_grid_rose,
     draw_grid_trajectory,
     draw_hodograph,
@@ -119,6 +121,7 @@ from oceanarray.plotters.timeseries import (
     draw_grid,
     draw_grid_hydro,
     draw_grid_n2,
+    draw_grid_potential_density,
     draw_grid_sigma,
     draw_grid_timeseries,
     draw_grid_velocity_stacked,
@@ -146,6 +149,7 @@ __all__ = [
     "draw_grid_hydro",
     "draw_grid_velocity_stacked",
     "draw_grid_sigma",
+    "draw_grid_potential_density",
     "draw_grid_n2",
     "draw_grid_timeseries",
     "draw_analog_timeseries",
@@ -153,6 +157,7 @@ __all__ = [
     "draw_instrument_rose",
     "draw_rose_grid",
     "draw_grid_rose",
+    "draw_grid_progressive_vector",
     "draw_grid_trajectory",
     "draw_adcp_velocity",
     "draw_adcp_rose",

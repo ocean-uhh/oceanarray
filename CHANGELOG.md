@@ -9,6 +9,9 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Added
 
+- `spectrum_markers:` in the mooring YAML adds periods (e.g. `4 d: 4 d`) to the grid page's temperature and rotary spectra and names them in the captions; `validate` checks them.
+- Grid page: σ0 and σ2 sections over the full column, from θ and practical salinity (`draw_grid_potential_density`).
+- Stack and grid pages open their Processing history with a step table (Step / What was done / Settings) read from the file; the dated record is collapsed below it.
 - Deployment report: a closing *Mooring description* section with the mooring YAML in a collapsed box with a Copy button, so a reader can rerun it.
 - `OCEANARRAY_FIGURE_SOURCE=0` turns off the per-figure `source:` line (for a public build).
 - `oceanarray concat` / `oa.concat` join one site's deployment stacks by depth into `<site>_stackcat.nc`, with a Stack cat report page (#135).
@@ -39,6 +42,19 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Changed
 
+- Grid captions are generated from the file: interpolation, flags left out, levels chosen, window lengths, instrument count and velocity reference; jargon and wrong claims removed.
+- Grid hydrography: practical salinity, colour limits at the 1st–99th percentiles with arrows, instrument median pressures as triangles at the right edge.
+- Grid velocity sections: eastward/northward/upward only, cropped to the velocity levels at the hydrography's dbar per inch, one symmetric scale and one colour bar, triangles at the current meters.
+- Grid velocity profiles: drawn at the same vertical scale, down to the seabed; legend labels "Middle 50 %", count axis "Hourly values".
+- Stack and grid current roses share one design: speed classes 0–5/5–10/10–20/20–30/>30 cm/s, rings in %, a speed-class legend; grid roses at up to 4 levels filled ≥ 50 % of the time.
+- Grid hodographs are drawn at the current roses' levels, titled by pressure.
+- "Particle trajectory" on the grid page is now the progressive vector diagram (`draw_grid_progressive_vector`; `draw_grid_trajectory` kept as an alias).
+- Grid temperature spectrum: 14-day and 7-day windows (right panel periods under 2 days), 3 or 5 levels at instrument pressures filled ≥ 90 %, a pressure colour bar; titles give the windows used.
+- Spectra mark M2, K1 and the inertial period only by default (1.8 d, 4 d and 9 min removed from the defaults).
+- Grid wavelet: at most 3 levels (outermost filled ≥ 90 % and one between), periods from 6 time steps (at least 2 h), gap-filled columns cross-hatched.
+- Grid rotary spectrum: 3 levels filled ≥ 90 %, chosen by the helper the temperature spectrum and wavelet use.
+- T-S σθ contours are drawn at a round interval, named in the grid caption.
+- Grid NetCDF appendix: one collapsed "NetCDF file" section; serial-like, index and flag-code variables show no min/max in the variables tables.
 - T-S figures plot potential temperature θ against practical salinity, with labelled σθ contours from θ at the mooring position (was in-situ T).
 - Report pages derive θ, speed, direction and the knockdown inputs once (`oceanarray.analysis.derived`) and share them across their figures.
 - `pipeline.pressure.pressure_from_depth` / `depth_from_pressure`: one depth↔pressure conversion, used by ADCP QC and the figures.

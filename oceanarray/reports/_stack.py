@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import Any
 
@@ -16,7 +16,7 @@ from oceanarray.paths import should_skip_regeneration
 
 from ..config import parameters as params
 from ..pipeline import masking
-from . import _html_helpers, _masthead, _qcflags
+from . import _captions, _html_helpers, _masthead, _qcflags
 from ._breadcrumb import crumbs_from_ctx
 from ._env import (
     render_history,
@@ -125,10 +125,11 @@ STACK_CAPTIONS: dict[str, str] = {
         "flagged 3, 4 or 9 (probably bad, bad, missing) left out; nominal and "
         "interpolated values (flags 7, 8) kept."
     ),
+    "steps": "Processing steps that produced this combined record, with the settings used.",
     "roses": (
-        "Direction the current flows toward (oceanographic convention, 0°=N). "
-        "Speed coloured light→dark blue (slow→fast). QC-flagged samples "
-        "excluded. Title shows serial number and height above bottom (m)."
+        "Direction toward which the current flows and speed for each current meter. "
+        "Wedge length is the percentage of the record in that direction; colours "
+        "are speed classes. Titles: serial number and height above bottom (m)."
     ),
     "tilt": (
         "|pitch| / |roll| / pressure-estimate tilt per Aquadopp, sharing a "
@@ -222,6 +223,7 @@ class StackContext:
     qc_unflagged: list = field(default_factory=list)
     qc_quiet: int = 0
     all_imported: bool = False
+    steps: list = field(default_factory=list)
 
 
 def _fig(panel_id: str) -> Callable[[StackContext], str | None]:
@@ -274,9 +276,20 @@ def _figure_panel(
 #: grid).  ``speed_profile`` is half-width, ``spacing`` a third; trajectories are
 #: full-width and stacked (the old side-by-side flex is a later CSS enhancement).
 STACK_PANELS: dict[str, Panel] = {
+    "steps": Panel(
+        "steps",
+        render=lambda c: render_template("_processing_steps.html", steps=c.steps),
+        kind="html",
+        caption=STACK_CAPTIONS["steps"],
+        applies_to=lambda c: bool(c.steps),
+    ),
     "history": Panel(
         "history",
-        render=lambda c: render_history(c.history_entries),
+        render=lambda c: render_template(
+            "_collapsed.html",
+            summary="show the file's processing record (dated events)",
+            body=render_history(c.history_entries),
+        ),
         kind="html",
         unavailable_if=_history_unavailable,
     ),
@@ -407,7 +420,7 @@ STACK_PANELS: dict[str, Panel] = {
 #: Stack sections (Hydrography and Velocity folded).
 STACK_SECTIONS: dict[str, Section] = {
     "processing_history": Section(
-        "processing_history", "Processing history", ("history",)
+        "processing_history", "Processing history", ("steps", "history")
     ),
     "instruments": Section(
         "instruments",
@@ -685,6 +698,8 @@ def generate_stack_page(
             as_panel(lambda: _make_flag_strip_b64(ds)) if qc_ruled else None
         )
         qc_rule = _qcflags.rule_text(ds) if qc_ruled else ""
+        steps = _captions.stack_steps(ds)
+        rose_caption = _captions.stack_rose_caption(ds)
 
         # Capture the applies_to inputs before closing the dataset.
         present_vars = set(ds.data_vars)
@@ -732,6 +747,7 @@ def generate_stack_page(
                 instr_types=instr_types_set,
                 n_instr=n_instr,
                 all_imported=all(imported),
+                steps=steps,
                 has_analog=bool(analog_vars),
                 history_entries=stack_history,
                 instr_rows=instr_rows,
@@ -746,7 +762,10 @@ def generate_stack_page(
                 stage2_reason=str(ds.attrs.get("stage2_reason", "")),
                 stage2_magnetic_north=ds.attrs.get("stage2_magnetic_north", "").split(),
             ),
-            STACK_PANELS,
+            {
+                **STACK_PANELS,
+                "roses": replace(STACK_PANELS["roses"], caption=rose_caption),
+            },
         )
 
         html = render_template(

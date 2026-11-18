@@ -37,7 +37,7 @@ from __future__ import annotations
 import logging
 import re as _re
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -1473,6 +1473,7 @@ def draw_velocity_iqr_profile(
     ds: xr.Dataset,
     *,
     width_in: float = report_tokens.W_FULL,
+    scale: Any = None,
 ) -> plt.Figure | None:
     """Percentile-profile figure for gridded ADCP velocity data; return a Figure.
 
@@ -1509,6 +1510,10 @@ def draw_velocity_iqr_profile(
     width_in : float, optional
         Figure width in inches -- the display-slot width the report builder
         resolves; standalone callers get the full content width.
+    scale : SectionScale or None, optional
+        The page's vertical scale (:func:`oceanarray.plotters.timeseries.hydro_scale`):
+        the panels span the levels with velocity, down to the seabed, at the
+        hydrography's dbar per inch.  Default: that of *ds*'s own hydrography.
 
     Returns
     -------
@@ -1520,6 +1525,14 @@ def draw_velocity_iqr_profile(
 
     import matplotlib.pyplot as plt
     import xarray as _xr
+
+    from oceanarray.analysis.derived import seabed_pressure
+    from oceanarray.plotters.primitives import (
+        SECTION_AXES_IN,
+        apply_section_scale,
+        pressure_extent,
+    )
+    from oceanarray.plotters.timeseries import hydro_scale
 
     # Ensure current_speed exists
     if "current_speed" not in ds.data_vars and all(
@@ -1557,15 +1570,42 @@ def draw_velocity_iqr_profile(
     _C_NORTH = "#E69F00"
 
     n_panels = int(has_speed) + int(has_horiz) + 1  # +1 for count panel
-    fig, axs = plt.subplots(
-        1,
-        n_panels,
-        figsize=(width_in, 4.5),
-        sharey=True,
-        gridspec_kw={"width_ratios": [2] * (n_panels - 1) + [1]},
-    )
-    if n_panels == 1:
-        axs = [axs]
+    # The levels with velocity, down to the seabed, at the hydrography's scale.
+    vel_fields = [
+        ds[v].values for v in ("east_velocity", "north_velocity") if v in ds.data_vars
+    ] or [ds["current_speed"].values]
+    extent = pressure_extent(pressure, vel_fields)
+    p_bed = seabed_pressure(ds)
+    if extent is not None and p_bed is not None and p_bed > extent[1]:
+        extent = (extent[0], p_bed + 0.02 * (p_bed - extent[0]))
+    if scale is None:
+        scale = hydro_scale(ds)
+    if extent is None:
+        extent = (float(pressure.min()), float(pressure.max()))
+    ax_h = scale.height_in(extent) if scale is not None else SECTION_AXES_IN
+    left_in, right_in, gap_in = 0.72, 0.15, 0.25
+    top_in, bottom_in = 0.12, 0.55
+    fig_h = top_in + ax_h + bottom_in
+    fig = plt.figure(figsize=(width_in, fig_h))
+    fig._manual_layout = True
+    ratios = [2] * (n_panels - 1) + [1]
+    unit_w = (width_in - left_in - right_in - gap_in * (n_panels - 1)) / sum(ratios)
+    axs = []
+    x0 = left_in
+    for r in ratios:
+        ax = fig.add_axes(
+            [
+                x0 / width_in,
+                bottom_in / fig_h,
+                r * unit_w / width_in,
+                ax_h / fig_h,
+            ],
+            sharey=axs[0] if axs else None,
+        )
+        axs.append(ax)
+        x0 += r * unit_w + gap_in
+    for _ax in axs[1:]:
+        _ax.tick_params(labelleft=False)
     for _ax in axs:
         grid_despine(_ax)
 
@@ -1598,7 +1638,7 @@ def draw_velocity_iqr_profile(
                 p75[valid],
                 alpha=0.35,
                 color="steelblue",
-                label="IQR (25–75 %)",
+                label="Middle 50 %",
             )
             ax.plot(
                 p50[valid],
@@ -1631,8 +1671,8 @@ def draw_velocity_iqr_profile(
         ax = next(ax_iter)
         absmax = 0.0
         for varname, color, label in [
-            ("east_velocity", _C_EAST, "East"),
-            ("north_velocity", _C_NORTH, "North"),
+            ("east_velocity", _C_EAST, "Eastward"),
+            ("north_velocity", _C_NORTH, "Northward"),
         ]:
             data = ds[varname].values
             with warnings.catch_warnings():
@@ -1674,21 +1714,28 @@ def draw_velocity_iqr_profile(
         color="gray",
         alpha=0.6,
     )
-    ax_count.set_xlabel("N good")
+    ax_count.set_xlabel("Hourly values" if _hourly(ds) else "Values")
     grid_despine(ax_count)
 
     axs[0].set_ylabel(f"Pressure ({unit_label('dbar')})")
-    axs[0].invert_yaxis()  # shared y — invert once only
+    apply_section_scale(axs[0], extent, scale)  # shared y: once
 
     # Seabed: the water depth converted to pressure (left out without a latitude).
-    from oceanarray.analysis.derived import seabed_pressure
-
-    p_bed = seabed_pressure(ds)
     if p_bed is not None:
         for _ax in axs:
             _ax.axhline(p_bed, color="k", linewidth=2.0, linestyle="-", zorder=5)
 
     return fig
+
+
+def _hourly(ds: xr.Dataset) -> bool:
+    """Return True when *ds*'s time step is one hour."""
+    from oceanarray.pipeline.dataset import time_step_seconds
+
+    try:
+        return abs(float(time_step_seconds(ds)) - 3600.0) < 1.0
+    except Exception:  # noqa: BLE001
+        return False
 
 
 def draw_instrument_spacing(

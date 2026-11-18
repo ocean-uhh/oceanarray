@@ -409,10 +409,13 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 }
 
   :root { --accent:#2980b9; --accent-link:#cef; }
-  /* No width here: the slot class sets each figure's width (U0.2); width:100%
+  /* No width here: the slot class sets each figure's width; width:100%
      would override the slot and force full-width. */
   .fig { border:1px solid var(--rule); border-radius:var(--radius-btn); margin-bottom:1.5rem; }
   /* .var-table / .instr-table drop to the canonical emit_css table style. */
+  /* Processing steps and collapsed detail (file record, NetCDF appendix). */
+  table.steps td:first-child { white-space:nowrap; }
+  details.processing > summary { cursor:pointer; color:var(--interp); font-size:0.82rem; margin:0.2rem 0 0.6rem; }
 
 </style>
 
@@ -533,13 +536,25 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 
 <p class="caption">Magnetic declination applied: -13.97°</p>
 
-<p class="caption">Direction the current flows toward (oceanographic convention, 0°=N). Speed coloured light→dark blue (slow→fast). QC-flagged samples excluded. Title shows serial number and height above bottom (m).</p>
+<p class="caption">Direction toward which the current flows (relative to true north, declination applied) and speed for each current meter. Wedge length is the percentage of the record in that direction; colours are speed classes. Which flags were left out is not recorded in this file.</p>
 <details open><summary class="collapse-toggle">show / hide</summary>
 <img class="fig" src="data:image/png;base64,<PNG>" alt="roses">
 </details><div class="fig-source">source: oceanarray/plotters/current.py:draw_rose_grid</div>
 
 <h2 id="processing_history">(7) Processing history</h2>
 
+<p class="caption">Processing steps that produced this combined record, with the settings used.</p>
+
+<table class="steps">
+  <thead><tr><th>Step</th><th>What was done</th><th>Settings</th></tr></thead>
+  <tbody>
+    <tr><td>1. Combine</td><td>The 22 instruments were placed on a common time axis; instruments sampling at least once a step take the nearest sample within ±30 min, slower ones were interpolated linearly in time</td><td>1 h steps</td></tr>
+    <tr><td>2. Flags</td><td>Which flags were left out is not recorded in this file</td><td>not recorded</td></tr>
+  </tbody>
+</table>
+
+
+<details class="processing"><summary>show the file&#39;s processing record (dated events)</summary>
 
 
 
@@ -559,6 +574,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
   <tr><td>1</td><td></td><td>fast instruments (dt&lt;=3600s) subsampled (nearest-neighbour in time), slow instruments interpolated (linear in time)</td></tr>
 </tbody>
 </table><div class="fig-source">source: oceanarray/reports/_html_helpers.py:_build_history_tables</div>
+</details>
 
 <h2 id="instruments">(8) Instruments (deep-first)</h2>
 <p class="caption">HAB = height above bottom (m).</p>
@@ -932,7 +948,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <td data-sort="31.8" class="cell-bad">31.8</td><td data-nosort>—</td></tr>
 <tr>
 <td data-sort="velocity_flag">velocity_flag</td>
-<td><code>int8</code></td><td>—</td><td class="cell-wrap">Combined velocity QC flag (worst of east/north/up)</td><td data-sort="1.0">1 / 9</td>
+<td><code>int8</code></td><td>—</td><td class="cell-wrap">Combined velocity QC flag (worst of east/north/up)</td><td data-sort="-1e308">—</td>
 <td data-sort="7216">7,216</td>
 <td data-sort="100.0">100.0</td><td data-nosort><details class="attr-disclosure"><summary>4 attrs</summary>
 <table data-nosort><tbody><tr><th>comment</th><td>Worst OceanSITES flag across east/north/up_velocity; apply to the velocity components before use.</td></tr><tr><th>flag_values</th><td>[0 1 2 3 4 7 8 9]</td></tr><tr><th>flag_meanings</th><td>unknown good_data probably_good_data potentially_correctable_bad_data bad_data nominal_value interpolated_value missing_</td></tr><tr><th>conventions</th><td>OceanSITES reference table 2</td></tr>

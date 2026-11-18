@@ -14,6 +14,8 @@ potential_density_grid : σθ (or σ2) on a salinity × θ grid, for T-S contour
 potential_density_fields : σ0 and σ2 from θ and practical salinity.
 n_squared : buoyancy frequency squared on a pressure grid.
 seabed_pressure : the sea pressure at the seabed, from the water depth.
+instrument_levels : each instrument of a stack with its median pressure.
+velocity_levels : the grid levels the current roses and hodographs are drawn at.
 knockdown : per-instrument pressure records and design pressures of a stack.
 derived_fields : the per-page bundle (position, θ, speed, direction).
 """
@@ -361,6 +363,134 @@ def seabed_pressure(ds: xr.Dataset) -> float | None:
 
 
 @dataclass(frozen=True)
+class InstrumentLevel:
+    """One instrument of a stack: what it measured and where.
+
+    Attributes
+    ----------
+    serial : str
+        The instrument's serial number.
+    instrument_type : str
+        Its type (``microcat``, ``aquadopp``, ...).
+    pressure : float
+        Median of its pressure record (dbar).
+    variables : frozenset of str
+        The variables it has values for (``temperature``, ``salinity``,
+        ``east_velocity``, ...).
+    """
+
+    serial: str
+    instrument_type: str
+    pressure: float
+    variables: frozenset = field(default_factory=frozenset)
+
+
+#: The variables :func:`instrument_levels` records an instrument as measuring.
+_LEVEL_VARIABLES: tuple[str, ...] = (
+    "temperature",
+    "salinity",
+    "conductivity",
+    "dissolved_oxygen",
+    "east_velocity",
+    "north_velocity",
+)
+
+
+def instrument_levels(ds_stack: xr.Dataset | None) -> list[InstrumentLevel]:
+    """Return each instrument of a stack with its median pressure, shallowest first.
+
+    Parameters
+    ----------
+    ds_stack : xarray.Dataset or None
+        A stack (``time`` × ``N_LEVELS``) with ``pressure``, ``serial`` and
+        ``instrument_type``.  None (no stack beside the grid) gives no levels.
+
+    Returns
+    -------
+    list of InstrumentLevel
+        Instruments with a pressure record, sorted by median pressure.  Values
+        are counted as the stack holds them (its flags are not applied).
+    """
+    import warnings
+
+    if ds_stack is None or "pressure" not in ds_stack.data_vars:
+        return []
+    dim = "N_LEVELS"
+    if dim not in ds_stack.dims:
+        return []
+    p = ds_stack["pressure"].transpose("time", dim).values.astype(float)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        med = np.nanmedian(p, axis=0)
+    serials = (
+        [str(s) for s in ds_stack["serial"].values]
+        if "serial" in ds_stack.variables
+        else [str(i) for i in range(ds_stack.sizes[dim])]
+    )
+    types = (
+        [str(t) for t in ds_stack["instrument_type"].values]
+        if "instrument_type" in ds_stack.variables
+        else [""] * len(serials)
+    )
+    present = {
+        v: np.isfinite(ds_stack[v].transpose("time", dim).values).any(axis=0)
+        for v in _LEVEL_VARIABLES
+        if v in ds_stack.data_vars and ds_stack[v].dims == ("time", dim)
+    }
+    out = [
+        InstrumentLevel(
+            serial=serials[i],
+            instrument_type=types[i],
+            pressure=float(med[i]),
+            variables=frozenset(v for v, has in present.items() if has[i]),
+        )
+        for i in range(len(serials))
+        if np.isfinite(med[i])
+    ]
+    return sorted(out, key=lambda r: r.pressure)
+
+
+#: Share of the record a grid level must have velocity for to get a current rose.
+ROSE_MIN_FILLED: float = 0.5
+#: Most current roses (and hodographs) drawn on a grid page.
+ROSE_MAX_LEVELS: int = 4
+
+
+def velocity_levels(
+    east: np.ndarray,
+    north: np.ndarray,
+    *,
+    min_filled: float = ROSE_MIN_FILLED,
+    n: int = ROSE_MAX_LEVELS,
+) -> list[int]:
+    """Return the grid levels the current roses and hodographs are drawn at.
+
+    Parameters
+    ----------
+    east, north : numpy.ndarray
+        Velocity components on ``(time, level)``, levels shallowest first.
+    min_filled : float, optional
+        Share of the record a level must have both components for (default 0.5).
+    n : int, optional
+        Most levels taken (default 4), evenly from the shallowest to the deepest
+        qualifying level, both always included.
+
+    Returns
+    -------
+    list of int
+        Level indices, shallowest first; empty when no level qualifies.
+    """
+    both = np.isfinite(np.asarray(east, float)) & np.isfinite(np.asarray(north, float))
+    if both.ndim != 2 or both.shape[0] == 0:
+        return []
+    ok = np.flatnonzero(both.sum(axis=0) / both.shape[0] >= min_filled).tolist()
+    if len(ok) <= n:
+        return ok
+    picks = np.round(np.linspace(0, len(ok) - 1, n)).astype(int)
+    return [ok[i] for i in dict.fromkeys(picks.tolist())]
+
+
+@dataclass(frozen=True)
 class KnockdownRecord:
     """One instrument's pressure record against its design position.
 
@@ -501,6 +631,9 @@ class DerivedFields:
         Current speed (units of the components) and direction toward which the
         water flows (degrees clockwise from north); None without both horizontal
         velocity components.
+    sigma0, sigma2 : xarray.DataArray or None
+        Potential density anomaly referenced to the surface and to 2000 dbar
+        (kg m⁻³), from θ and practical salinity; None where θ is None.
     """
 
     latitude: float | None = None
@@ -508,6 +641,8 @@ class DerivedFields:
     theta: Any = None
     speed: Any = None
     direction: Any = None
+    sigma0: Any = None
+    sigma2: Any = None
 
 
 def _pressure_like(ds: xr.Dataset) -> Any:
@@ -559,19 +694,50 @@ def derived_fields(ds: xr.Dataset) -> DerivedFields:
                         ),
                     },
                 )
+    sigma0 = sigma2 = None
+    if theta is not None:
+        s0, s2 = potential_density_fields(
+            theta.values, ds["salinity"].values, p.values, lat, lon
+        )
+        sigma0, sigma2 = (
+            xr.DataArray(
+                values,
+                dims=theta.dims,
+                coords=theta.coords,
+                name=name,
+                attrs={
+                    "units": "kg m-3",
+                    "long_name": f"potential density anomaly referenced to {ref}",
+                    "comment": "TEOS-10, from potential temperature and practical "
+                    "salinity; computed for the report, not stored in the product",
+                },
+            )
+            for values, name, ref in (
+                (s0, "sigma0", "0 dbar"),
+                (s2, "sigma2", "2000 dbar"),
+            )
+        )
     speed = direction = None
     if {"east_velocity", "north_velocity"} <= set(ds.data_vars):
         speed, direction = speed_direction(ds["east_velocity"], ds["north_velocity"])
     return DerivedFields(
-        latitude=lat, longitude=lon, theta=theta, speed=speed, direction=direction
+        latitude=lat,
+        longitude=lon,
+        theta=theta,
+        speed=speed,
+        direction=direction,
+        sigma0=sigma0,
+        sigma2=sigma2,
     )
 
 
 __all__ = [
     "DerivedFields",
+    "InstrumentLevel",
     "Knockdown",
     "KnockdownRecord",
     "derived_fields",
+    "instrument_levels",
     "knockdown",
     "level_of_max_speed",
     "mooring_position",
@@ -581,4 +747,5 @@ __all__ = [
     "potential_temperature_of",
     "seabed_pressure",
     "speed_direction",
+    "velocity_levels",
 ]

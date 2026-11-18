@@ -82,8 +82,11 @@ def _add_sigma0_contours(
     T_data: np.ndarray,
     position: tuple[float, float] | None,
     n_grid: int = 200,
-) -> None:
+) -> float | None:
     """Overlay labelled potential-density (σθ) contours on a θ-S axes.
+
+    The contours are at whole multiples of a round interval (0.05, 0.1, 0.2,
+    0.25, 0.5, 1 or 2 kg m⁻³) chosen to give four to ten lines across the panel.
 
     Parameters
     ----------
@@ -96,9 +99,14 @@ def _add_sigma0_contours(
         ``(latitude, longitude)`` of the mooring; no contours when None.
     n_grid : int, optional
         Grid points along each axis.
+
+    Returns
+    -------
+    float or None
+        The contour interval (kg m⁻³); None when no contours were drawn.
     """
     if position is None:
-        return
+        return None
     from oceanarray.analysis.derived import potential_density_grid
 
     try:
@@ -113,19 +121,53 @@ def _add_sigma0_contours(
             position[1],
             n_grid=n_grid,
         )
+        interval, levels = sigma_contour_levels(
+            float(np.nanmin(sigma0)), float(np.nanmax(sigma0))
+        )
         cs = ax.contour(
             Sg,
             Tg,
             sigma0,
-            levels=8,
+            levels=levels,
             colors="0.35",
             linewidths=0.6,
             linestyles="--",
             zorder=1,
         )
-        ax.clabel(cs, fmt="%.1f", fontsize=report_tokens.CLABEL_FS, inline=True)
+        digits = max(0, -int(np.floor(np.log10(interval) + 1e-9)))
+        if abs(interval * 10**digits - round(interval * 10**digits)) > 1e-6:
+            digits += 1
+        ax.clabel(cs, fmt=f"%.{digits}f", fontsize=report_tokens.CLABEL_FS, inline=True)
+        return interval
     except (TypeError, ValueError):
-        pass
+        return None
+
+
+#: Round contour intervals for σθ on a T-S diagram (kg m⁻³).
+_SIGMA_INTERVALS: tuple[float, ...] = (0.05, 0.1, 0.2, 0.25, 0.5, 1.0, 2.0)
+
+
+def sigma_contour_levels(lo: float, hi: float) -> tuple[float, np.ndarray]:
+    """Return a round contour interval and the levels it gives between *lo* and *hi*.
+
+    Parameters
+    ----------
+    lo, hi : float
+        The σ range (kg m⁻³) of the panel.
+
+    Returns
+    -------
+    tuple of (float, numpy.ndarray)
+        The smallest interval of :data:`_SIGMA_INTERVALS` giving at most ten
+        levels, and the levels (whole multiples of it within the range).
+    """
+    span = max(hi - lo, 1e-6)
+    interval = next(
+        (d for d in _SIGMA_INTERVALS if span / d <= 10), _SIGMA_INTERVALS[-1]
+    )
+    first = np.ceil(lo / interval - 1e-9) * interval
+    levels = np.arange(first, hi + 1e-9, interval)
+    return interval, np.round(levels, 6)
 
 
 def _ts_heatmap_panel(
@@ -141,8 +183,8 @@ def _ts_heatmap_panel(
     cax: plt.Axes | None = None,
     position: tuple[float, float] | None = None,
     t_label: str | None = None,
-) -> None:
-    """Render a T-S 2-D count heatmap on *ax*.
+) -> float | None:
+    """Render a T-S 2-D count heatmap on *ax*; return the σθ contour interval.
 
     *T* is potential temperature when *position* is given (σθ contours drawn),
     else in-situ temperature (no contours); *t_label* labels the y-axis.
@@ -188,12 +230,13 @@ def _ts_heatmap_panel(
         cb = fig.colorbar(pc, ax=ax, pad=0.02, ticks=_ticks)
         cb.ax.set_title(r"$\log_{10}$(count)", fontsize=report_tokens.ANNOT_FS)
         ax.set_box_aspect(1)
-    _add_sigma0_contours(ax, S, T, position)
+    interval = _add_sigma0_contours(ax, S, T, position)
     ax.set_xlim(s_lo, s_hi)
     ax.set_ylim(t_lo, t_hi)
     ax.set_xlabel(SALINITY_LABEL)
     ax.set_ylabel(t_label or params.vlabel("temperature"))
     plot_title(ax, "T-S heat map")
+    return interval
 
 
 def draw_ts_diagram(
@@ -628,6 +671,8 @@ def draw_grid_ts_diagram(
         - ``"t_lim"`` : (vmin, vmax) for in-situ temperature
         - ``"s_lim"`` : (vmin, vmax) for salinity
         - ``"o2_lim"`` : (vmin, vmax) for oxygen_saturation_pct, or None
+        - ``"sigma_interval"`` : the σθ contour interval (kg m⁻³), or None
+          without contours
 
     """
     import matplotlib.pyplot as plt
@@ -676,7 +721,7 @@ def draw_grid_ts_diagram(
     axes = list(_ax[0])
 
     # Panel 1: count heatmap (shares the data limits + matched colorbar)
-    _ts_heatmap_panel(
+    ts_bounds["sigma_interval"] = _ts_heatmap_panel(
         axes[0],
         fig,
         S[finite],
@@ -688,7 +733,7 @@ def draw_grid_ts_diagram(
         position=position,
         t_label=t_label,
     )
-    plot_title(axes[0], r"T-S count ($\log_{10}$ samples per bin)")
+    plot_title(axes[0], "Values per bin")
 
     # Panel 2: median O2 saturation per T-S bin
     if has_o2 and O2 is not None:

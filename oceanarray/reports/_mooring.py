@@ -1102,6 +1102,8 @@ class MooringReport:
             # Optional report sections turned on in the config. A standalone mooring
             # report resolves from the mooring YAML (the strongest level reachable here).
             "report_sections_grid": _mooring.resolve_report_sections("grid", cfg),
+            # Extra periods marked on the grid page's spectra.
+            "spectrum_markers": _mooring.resolve_spectrum_markers(cfg),
             "rec_deploy": rec_deploy,
             "rec_recover": rec_recover,
             "rec_deploy_sec": rec_deploy_sec,
