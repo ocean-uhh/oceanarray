@@ -80,13 +80,13 @@ def test_sigma_theta_contours_are_computed_from_theta(stack: xr.Dataset) -> None
     assert np.all(sig2 > sig)
 
 
-def test_ts_figures_plot_theta_against_practical_salinity(stack: xr.Dataset) -> None:
-    """The stack T-S axes read θ / Practical salinity and carry labelled contours."""
+def test_ts_figures_plot_theta_against_salinity(stack: xr.Dataset) -> None:
+    """The stack T-S axes read θ / Salinity (PSU) and carry labelled contours."""
     from oceanarray.plotters.ts import SALINITY_LABEL, draw_stack_ts_diagram
 
     fig = draw_stack_ts_diagram(stack, derived=dv.derived_fields(stack))
     ax = fig.axes[0]
-    assert ax.get_xlabel() == SALINITY_LABEL == "Practical salinity"
+    assert ax.get_xlabel() == SALINITY_LABEL == "Salinity (PSU)"
     assert ax.get_ylabel().startswith("Potential temperature")
     assert ax.texts, "σθ contour labels expected"
 

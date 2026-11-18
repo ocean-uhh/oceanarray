@@ -401,7 +401,15 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 .debug { font-family:var(--font-mono); font-size:var(--fs-top); color:var(--muted);
          background:var(--seafoam); border-left:3px solid var(--muted);
          padding:0.2rem 0.5rem; margin:0 0 1rem; white-space:pre-wrap; }
+/* Expand-all button under the jump-nav (_expand_all.html). */
+.expand-all-bar { margin:0.2rem 0 0.6rem; }
+button.expand-all { font:inherit; font-size:var(--fs-cap); color:var(--ocean);
+  background:var(--seafoam); border:1px solid var(--rule); border-radius:var(--radius-btn);
+  padding:0.1rem 0.6rem; cursor:pointer; }
+button.expand-all:hover { text-decoration:underline; }
+button.expand-all:focus-visible { outline:2px solid var(--ocean); outline-offset:2px; }
 @media print {
+  .expand-all-bar { display:none; }
   body { padding:0; }
   h2 { page-break-after:avoid; }
   figure, table, .card { break-inside:avoid; }
@@ -489,6 +497,7 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 <a href="#netcdf_variables">(A) NetCDF variables</a>
 <a href="#netcdf_attributes">(B) NetCDF attributes</a>
 </nav>
+<p class="expand-all-bar"><button type="button" class="expand-all" aria-expanded="false" hidden>Expand all</button></p>
 
 <h2 id="files">(1) Files</h2>
 
@@ -1376,6 +1385,40 @@ details[open] summary.collapse-toggle::before { content:"▴ "; }
 </script>
 
 
+<script>
+/* Expand all / Collapse all: one button opens or closes every <details>. Before
+   printing every <details> is opened, and afterwards each is put back as it was. */
+(function () {
+  var all = function () { return Array.prototype.slice.call(document.querySelectorAll('details')); };
+  var buttons = Array.prototype.slice.call(document.querySelectorAll('button.expand-all'));
+  var sync = function () {
+    var d = all(), open = d.length > 0 && d.every(function (e) { return e.open; });
+    buttons.forEach(function (b) {
+      b.setAttribute('aria-expanded', open ? 'true' : 'false');
+      b.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  };
+  buttons.forEach(function (b) {
+    b.hidden = false;
+    b.addEventListener('click', function () {
+      var open = b.getAttribute('aria-expanded') !== 'true';
+      all().forEach(function (e) { e.open = open; });
+      sync();
+    });
+  });
+  document.addEventListener('toggle', sync, true);
+  var saved = null;
+  window.addEventListener('beforeprint', function () {
+    saved = all().map(function (e) { return [e, e.open]; });
+    saved.forEach(function (p) { p[0].open = true; });
+  });
+  window.addEventListener('afterprint', function () {
+    if (saved) { saved.forEach(function (p) { p[0].open = p[1]; }); saved = null; }
+    sync();
+  });
+  sync();
+})();
+</script>
 <script>
 document.querySelectorAll('table').forEach(function (table) {
   if (table.hasAttribute('data-nosort')) { return; }

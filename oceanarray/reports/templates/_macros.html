@@ -1,4 +1,5 @@
 {# Shared template macros.  Import with:  {% import "_macros.html" as m %}  #}
+{% import "_expand_all.html" as xa %}
 
 {# Figure-debug line (OCEANARRAY_REPORT_DEBUG=1): the display slot this template
    chose vs the render-side figsize/png, so a figsize≠slot mismatch is visible.
@@ -24,7 +25,8 @@
    "instrument"); `generated` is passed in because macros do not
    see the calling template's context.  `description_links` — (label, href) pairs
    to the "Mooring description" section of each deployment page this page was
-   built from — renders as one line above the jump-nav. #}
+   built from — renders as one line above the jump-nav.  The expand-all button
+   sits under the jump-nav. #}
 {% macro report_body(report, na_scope, generated, cruise, yaml_path="", description_links=None) %}
 {%- if description_links %}
 <p class="see-also">Mooring description{% if description_links | length > 1 %}s{% endif %} (the configuration this page was built from):
@@ -35,6 +37,7 @@
 <a href="#{{ sec.id }}">{% if sec.number %}({{ sec.number }}) {% endif %}{{ sec.title }}</a>
 {%- endfor %}
 </nav>
+{{ xa.button() }}
 {% for sec in report.sections %}
 <h{{ sec.level }} id="{{ sec.id }}">{% if sec.number %}({{ sec.number }}) {% endif %}{{ sec.title }}</h{{ sec.level }}>
 {%- if sec.intro %}

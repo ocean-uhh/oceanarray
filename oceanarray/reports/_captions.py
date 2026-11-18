@@ -462,9 +462,9 @@ def grid_captions(c: Any) -> dict[str, str]:
         hydro_vars.append("salinity")
     if hydro_vars:
         what = (
-            "Temperature and practical salinity"
+            "Temperature and salinity (PSU)"
             if len(hydro_vars) == 2
-            else _sentence(hydro_vars[0].replace("salinity", "practical salinity"))
+            else _sentence(hydro_vars[0].replace("salinity", "salinity (PSU)"))
         )
         marks = (
             " Triangles at right: the instruments' median pressures."
@@ -482,7 +482,7 @@ def grid_captions(c: Any) -> dict[str, str]:
         values = f"{cadence} values" if cadence else "values"
         if c.derived is not None and c.derived.theta is not None:
             text = (
-                "Potential temperature against practical salinity for every grid "
+                "Potential temperature against salinity (PSU) for every grid "
                 f"cell (interpolated values included), as the number of {values} "
                 "in each bin (log scale)."
             )
@@ -493,7 +493,7 @@ def grid_captions(c: Any) -> dict[str, str]:
                 )
         else:
             text = (
-                "In-situ temperature against practical salinity for every grid cell "
+                "In-situ temperature against salinity (PSU) for every grid cell "
                 f"(interpolated values included), as the number of {values} in each "
                 "bin (log scale). No position, so no potential temperature or "
                 "density."
@@ -584,7 +584,7 @@ def grid_captions(c: Any) -> dict[str, str]:
     ):
         out[ref] = (
             f"Potential density anomaly {words}, from potential temperature and "
-            f"practical salinity on the grid. {flags_ts}"
+            f"salinity (PSU) on the grid. {flags_ts}"
         )
     dp = float(np.median(np.diff(pressure))) if len(pressure) > 1 else float("nan")
     out["n2"] = (

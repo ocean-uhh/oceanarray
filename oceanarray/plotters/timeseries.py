@@ -169,7 +169,7 @@ SECTION_PERCENTILES: tuple[float, float] = (1.0, 99.0)
 #: Panel titles of the grid hydrography sections.
 _HYDRO_TITLES: dict[str, str] = {
     "temperature": "Temperature",
-    "salinity": "Practical salinity",
+    "salinity": "Salinity (PSU)",
     "oxygen_saturation_pct": "Oxygen saturation",
 }
 
@@ -231,7 +231,7 @@ def draw_grid_hydro(
     instrument_pressures: Mapping[str, Sequence[float]] | Sequence[float] | None = None,
     scale: SectionScale | None = None,
 ) -> plt.Figure | None:
-    """Stacked temperature / practical-salinity sections for the grid report.
+    """Stacked temperature / salinity (PSU) sections for the grid report.
 
     Each panel shows the variable on the pressure grid against time (surface up),
     over the levels with values, at the page's vertical scale (*scale*).  Colour

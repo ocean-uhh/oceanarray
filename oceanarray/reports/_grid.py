@@ -78,12 +78,12 @@ from ._vendored.page_model import Panel, PanelGroup, Profile, Section, resolve
 GRID_CAPTIONS: dict[str, str] = {
     "steps": "Processing steps that produced this gridded record, with the settings used.",
     "hydro": (
-        "Temperature and practical salinity on the pressure grid, interpolated "
+        "Temperature and salinity (PSU) on the pressure grid, interpolated "
         "in pressure between instruments; nothing is extrapolated beyond the "
         "shallowest or deepest instrument at each time."
     ),
     "ts_diagram": (
-        "Potential temperature against practical salinity for every grid cell "
+        "Potential temperature against salinity (PSU) for every grid cell "
         "(interpolated values included), as the number of values in each bin (log "
         "scale). Dashed lines: potential density σθ."
     ),
@@ -121,11 +121,11 @@ GRID_CAPTIONS: dict[str, str] = {
     ),
     "sigma0": (
         f"Potential density anomaly σ0 (referenced to the surface; {params.vunit('potential_density')}), from "
-        "potential temperature and practical salinity on the grid."
+        "potential temperature and salinity (PSU) on the grid."
     ),
     "sigma2": (
         f"Potential density anomaly σ2 (referenced to 2000 dbar; {params.vunit('potential_density')}), from "
-        "potential temperature and practical salinity on the grid."
+        "potential temperature and salinity (PSU) on the grid."
     ),
     "n2": (
         f"Buoyancy frequency squared (log₁₀ N², {params.vunit('n2')}), calculated "

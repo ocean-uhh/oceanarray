@@ -9,6 +9,7 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Added
 
+- Every report page has an Expand all / Collapse all button under the jump-nav; printing opens every collapsed box and restores them afterwards.
 - `spectrum_markers:` in the mooring YAML adds periods (e.g. `4 d: 4 d`) to the grid page's temperature and rotary spectra and names them in the captions; `validate` checks them.
 - Grid page: σ0 and σ2 sections over the full column, from θ and practical salinity (`draw_grid_potential_density`).
 - Stack and grid pages open their Processing history with a step table (Step / What was done / Settings) read from the file; the dated record is collapsed below it.
@@ -42,8 +43,9 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Changed
 
+- Salinity is labelled "Salinity (PSU)" on T-S axes, grid hydrography titles and captions (was "Practical salinity").
 - Grid captions are generated from the file: interpolation, flags left out, levels chosen, window lengths, instrument count and velocity reference; jargon and wrong claims removed.
-- Grid hydrography: practical salinity, colour limits at the 1st–99th percentiles with arrows, instrument median pressures as triangles at the right edge.
+- Grid hydrography: colour limits at the 1st–99th percentiles with arrows, instrument median pressures as triangles at the right edge.
 - Grid velocity sections: cropped to the velocity levels at the hydrography's dbar per inch; the three components share one scale and colour bar, speed and direction have their own; triangles at the current meters.
 - Grid velocity profiles: drawn at the same vertical scale, down to the seabed; speed legend at centre right, labels "Middle 50 %", count axis "Hourly values".
 - Stack page: "Particle trajectories" is now "Progressive vector diagram" (`draw_multi_aquadopp_progressive_vector`, `draw_adcp_progressive_vector`; old names kept as aliases).

@@ -21,8 +21,8 @@ if TYPE_CHECKING:
 
     from oceanarray.analysis.derived import DerivedFields
 
-#: x-axis label of every T-S panel.
-SALINITY_LABEL = "Practical salinity"
+#: x-axis label of every T-S panel: ``"Salinity (PSU)"`` (practical salinity, PSS-78).
+SALINITY_LABEL: str = params.vlabel("salinity")
 
 
 def _theta(

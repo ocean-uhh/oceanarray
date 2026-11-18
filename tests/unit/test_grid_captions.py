@@ -110,7 +110,7 @@ def test_captions_have_no_jargon_or_stale_claims(ctx):
     caps = _captions.grid_captions(ctx)
     assert "relative to true north, declination applied" in caps["vel_stacked"]
     assert "the 7 current meters" in caps["vel_stacked"]
-    assert "Practical" not in caps["hydro"] and "practical salinity" in caps["hydro"]
+    assert "ractical salinity" not in caps["hydro"] and "salinity (PSU)" in caps["hydro"]
 
 
 def test_spectrum_captions_name_windows_and_markers(ctx):
