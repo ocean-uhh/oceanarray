@@ -123,17 +123,21 @@ _PAGE_TYPES = (
 
 @pytest.mark.parametrize("kind", _PAGE_TYPES)
 def test_every_page_type_has_one_expand_all_button(pages, kind):
-    """One button, right under the jump-nav, with its script and print rules."""
+    """One button in a bar right under the jump-nav, with its script and print rules."""
     html = pages[kind]
     assert len(_BUTTON.findall(html)) == 1
     nav_end = html.index("</nav>", html.index('<nav class="jump-nav">'))
-    assert html.index('class="expand-all"') - nav_end < 120, "button under the jump-nav"
+    bar = html.index('class="expand-all-bar"')
+    assert 0 < bar - nav_end < 120, "button bar under the jump-nav"
+    # The mooring-description line, when present, sits in the bar left of the button.
+    if '<p class="see-also">' in html:
+        assert bar < html.index('<p class="see-also">') < html.index('class="expand-all"')
     # Toggles every <details>, opens them all for printing and restores them after.
     assert "querySelectorAll('details')" in html
     assert "beforeprint" in html and "afterprint" in html
     assert "aria-expanded" in html and "Collapse all" in html
     # The button itself never prints.
-    assert re.search(r"@media print \{\s*\.expand-all-bar \{ display:none; \}", html)
+    assert re.search(r"@media print \{\s*button\.expand-all \{ display:none; \}", html)
 
 
 @pytest.mark.parametrize("kind", _PAGE_TYPES)

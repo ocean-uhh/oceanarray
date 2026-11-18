@@ -25,19 +25,15 @@
    "instrument"); `generated` is passed in because macros do not
    see the calling template's context.  `description_links` — (label, href) pairs
    to the "Mooring description" section of each deployment page this page was
-   built from — renders as one line above the jump-nav.  The expand-all button
-   sits under the jump-nav. #}
+   built from — renders under the jump-nav on the line of the expand-all
+   button, just left of it. #}
 {% macro report_body(report, na_scope, generated, cruise, yaml_path="", description_links=None) %}
-{%- if description_links %}
-<p class="see-also">Mooring description{% if description_links | length > 1 %}s{% endif %} (the configuration this page was built from):
-{% for label, href in description_links %}<a href="{{ href }}">{{ label }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</p>
-{%- endif %}
 <nav class="jump-nav">
 {%- for sec in report.sections %}
 <a href="#{{ sec.id }}">{% if sec.number %}({{ sec.number }}) {% endif %}{{ sec.title }}</a>
 {%- endfor %}
 </nav>
-{{ xa.button() }}
+{{ xa.button(description_links) }}
 {% for sec in report.sections %}
 <h{{ sec.level }} id="{{ sec.id }}">{% if sec.number %}({{ sec.number }}) {% endif %}{{ sec.title }}</h{{ sec.level }}>
 {%- if sec.intro %}

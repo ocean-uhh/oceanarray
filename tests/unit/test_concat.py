@@ -344,7 +344,9 @@ def test_the_page_links_each_mooring_description_near_the_top(site, tmp_path):
         assert (
             f'href="../../outputs/report/{n}/{n}_report.html#description"' in see_also
         )
-    assert html.index('<p class="see-also">') < html.index('class="jump-nav"')
+    # Under the jump-nav, on the line of the expand-all button, just left of it.
+    assert html.index('class="jump-nav"') < html.index('<p class="see-also">')
+    assert html.index('<p class="see-also">') < html.index('class="expand-all"')
 
 
 def test_the_command(site):

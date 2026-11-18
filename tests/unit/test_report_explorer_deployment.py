@@ -235,5 +235,6 @@ def test_stack_and_grid_pages_link_the_mooring_description(
     for p in pages:
         html = p.read_text(encoding="utf-8")
         assert href in html
-        assert html.index(href) < html.index('class="jump-nav"')
+        # On the expand-all line under the jump-nav, just left of the button.
+        assert html.index('class="jump-nav"') < html.index(href) < html.index('class="expand-all"')
     assert 'id="description"' in page

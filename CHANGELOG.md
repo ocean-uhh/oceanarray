@@ -9,7 +9,7 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Added
 
-- Every report page has an Expand all / Collapse all button under the jump-nav; printing opens every collapsed box and restores them afterwards.
+- Every report page has a right-justified Expand all / Collapse all button under the jump-nav; printing opens every collapsed box and restores them afterwards.
 - `spectrum_markers:` in the mooring YAML adds periods (e.g. `4 d: 4 d`) to the grid page's temperature and rotary spectra and names them in the captions; `validate` checks them.
 - Grid page: σ0 and σ2 sections over the full column, from θ and practical salinity (`draw_grid_potential_density`).
 - Stack and grid pages open their Processing history with a step table (Step / What was done / Settings) read from the file; the dated record is collapsed below it.
@@ -66,7 +66,7 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 - Deployment report: originator timing, clock corrections and calibration show one line when there is nothing to show.
 - Deployment report QC summary: a row only for variables not all good; columns and legend from the flags present.
 - QC summary: variables never checked (flag 0), nominal (7) or interpolated (8) throughout get one line per flag, never counted as good.
-- Stack, grid, Stack cat and Grid cat pages link the deployment page's *Mooring description* near the top (one link per deployment).
+- Stack, grid, Stack cat and Grid cat pages link the deployment page's *Mooring description* on the expand-all line, left of the button (one link per deployment).
 - Instrument summary caption states why a row is shaded (record ends more than 12 h before recovery).
 - Report captions rewritten for readers who did not run the pipeline (deployment report); flag words replace the table tokens ("suspect", "interpolated", "no QC").
 - Report footer: the package name links to the documentation; cruise and config path removed.
