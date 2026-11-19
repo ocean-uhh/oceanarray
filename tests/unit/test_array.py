@@ -186,6 +186,19 @@ class TestBuildTypeSummary:
         assert rows["aquadopp"]["processed"] == 0
         assert rows["aquadopp"]["notes"] == "flooded"
 
+    def test_inline_instruments_counted_and_non_mapping_entries_skipped(self, tmp_path):
+        """The Aquadopp moved to ``inline:`` beside a shackle, a bare string in ``clamp:``."""
+
+        def inline(text):
+            return text.replace(
+                "\n- serial: 9920*",
+                "\n- not a mapping\ninline:\n- name: shackle\n- serial: 9920*",
+            )
+
+        rows = _build_type_summary(_dune2_instruments(tmp_path, inline))
+        assert [r["itype"] for r in rows] == ["microcat", "aquadopp"]
+        assert all(r["deployed"] == r["processed"] == 1 for r in rows)
+
     def test_records_ending_before_recovery_stopped_early(self, tmp_path):
         from datetime import UTC, datetime
 
@@ -457,6 +470,36 @@ class TestYearPage:
         assert re.search(r"<td>0 of \d+ \(", html)
         durations = re.findall(r'<td class="num">([\d.]+ \w+)</td>', html)
         assert len({d.split()[1] for d in durations}) == 1
+
+    def test_a_water_depth_given_as_text_is_shown_as_given(self, tmp_path):
+        """egM2_2016 with ``waterdepth: unknown`` (fails validation, read unvalidated)."""
+        import shutil
+        import warnings
+
+        from oceanarray.reports._array import generate_array_report
+
+        src = self._FIX / "proc" / "egM2_concat" / "egM2_2016"
+        shutil.copytree(src, tmp_path / "egM2_2016")
+        cfg = tmp_path / "egM2_2016" / "egM2_2016.mooring.yaml"
+        cfg.write_text(
+            cfg.read_text().replace("waterdepth: 2459.0", "waterdepth: unknown")
+        )
+        moorings = "".join(
+            f"- mooring: {n}\n  config: {d / n / f'{n}.mooring.yaml'}\n"
+            for n, d in (
+                ("egM2_2016", tmp_path),
+                ("egM2_2018", self._FIX / "proc" / "egM2_concat"),
+            )
+        )
+        array_yaml = tmp_path / "EG.array.yaml"
+        array_yaml.write_text(f"name: EG\nmoorings:\n{moorings}", encoding="utf-8")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            out = generate_array_report(array_yaml, tmp_path)
+        html = out.read_text(encoding="utf-8")
+        assert '<td class="num">unknown</td>' in html
+        assert '<td class="num">2436</td>' in html
+        assert "2436–2436" in html  # the header's range, from the numeric depth
 
     def test_without_lines_or_covering_bathymetry(self, tmp_path, caplog):
         """One colour per mooring, and a file north of the moorings: no contours."""

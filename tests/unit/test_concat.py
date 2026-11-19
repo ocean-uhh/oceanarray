@@ -677,7 +677,9 @@ def test_a_short_record_is_left_out_of_every_figure_and_named(flmb_site):
     cut = view.copy(deep=True)
     for v in ("east_velocity", "north_velocity"):
         cut[v][first[: int(0.6 * first.size)], j] = np.nan
-    dropped, left_out = _drop_short(cut, ["2016", "2017"])
+    dropped, left_out = _drop_short(
+        cut, cut["cell_deployment"].values, ["2016", "2017"], cut["serial"].values
+    )
     assert left_out == {"velocity": ["2016 at 2724 m CM"]}
     assert np.isnan(dropped["east_velocity"].values[first, j]).all()
     assert np.isfinite(dropped["temperature"].values[first, j]).any()

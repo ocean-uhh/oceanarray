@@ -22,15 +22,14 @@ from . import _captions as _captions_mod
 from . import _masthead
 from ._breadcrumb import page_crumbs
 from ._concat import (
-    _FAMILY_VARIABLES,
     CONCAT_PANELS,
     CONCAT_SECTIONS,
-    SHORT_RECORD_TEST,
     SITE_DESCRIPTION,
     ConcatContext,
     _deployment_rows,
     _deployment_windows,
     _description_links,
+    _drop_short,
     _masthead_facts,
     _nav,
 )
@@ -58,46 +57,6 @@ def _velocity_titles(angle: float | None) -> list[tuple[str, str]]:
     return out
 
 
-def _drop_short(grid: Any, names: list[str]) -> tuple[Any, dict[str, list[str]]]:
-    """Return the grid without deployments that have values for too little of their time.
-
-    Less than :data:`~oceanarray.config.parameters.MIN_RECORD_FRACTION`, judged
-    per family (:data:`~oceanarray.reports._concat.SHORT_RECORD_TEST`), on the
-    steps with a value at any level.
-
-    Parameters
-    ----------
-    grid : xarray.Dataset
-        A site grid.
-    names : list of str
-        Short deployment names, in deployment order.
-
-    Returns
-    -------
-    grid : xarray.Dataset
-        A copy with those deployments' values of that family set to NaN.
-    left_out : dict of str to list of str
-        The deployments left out, by family.
-    """
-    index = grid["deployment_index"].values
-    grid = grid.copy(deep=True)
-    left_out: dict[str, list[str]] = {}
-    for family, test in SHORT_RECORD_TEST.items():
-        if test not in grid:
-            continue
-        filled = np.isfinite(grid[test].values).any(axis=1)
-        drop = np.zeros_like(filled)
-        for k, name in enumerate(names):
-            here = index == k
-            if here.any() and 0 < filled[here].mean() < params.MIN_RECORD_FRACTION:
-                drop |= here
-                left_out.setdefault(family, []).append(name)
-        for v in _FAMILY_VARIABLES[family] & set(grid.data_vars):
-            if grid[v].dims == ("time", "pressure"):
-                grid[v] = grid[v].where(~drop[:, None])
-    return grid, left_out
-
-
 def _captions(
     grid: Any,
     stackcat: Any,
@@ -122,7 +81,7 @@ def _captions(
         f"Shown as {words} means of the hourly grid ({site.display_steps_text()}); "
         "the bins restart at each deployment's start, so none spans two "
         "deployments and a step between deployments shows as a sharp edge. A bin "
-        f"with data for less than {site.DISPLAY_MIN_FRACTION:.0%} of its time is "
+        f"with data for less than {params.MIN_DISPLAY_BIN_FRACTION:.0%} of its time is "
         f"left blank, and a deployment with values for less than {fraction} its "
         "time is left out"
         + (f" ({'; '.join(short)})" if short else " (none here)")
@@ -391,16 +350,24 @@ def _figures(grid: Any, stackcat: Any, names: list[str]) -> tuple[dict, str]:
             )
         )
 
+    hydro_medians = {v: medians(v) for v, _ in hydro}
+
     def site_ts() -> str | None:
-        if "temperature" not in hourly or "salinity" not in hourly:
+        if "temperature" not in hydro_medians or "salinity" not in hydro_medians:
             return None
-        salinity = medians("salinity")
-        temperature = medians("temperature")
+        salinity = hydro_medians["salinity"]
+        temperature = hydro_medians["temperature"]
         pins = None
         if "temperature" in stackcat and "salinity" in stackcat:
-            # The pins (stackcat order) line up with the curves (grid order): the
-            # grid carries the stack's deployment record unchanged.
-            pins = site.instrument_mean_pressures(stackcat)
+            # Paired by name: the curves are in grid order, the pins in stack order.
+            by_name = dict(
+                zip(
+                    [str(n) for n in stackcat["deployment_name"].values],
+                    site.instrument_mean_pressures(stackcat),
+                    strict=True,
+                )
+            )
+            pins = [by_name.get(str(n), []) for n in grid["deployment_name"].values]
         if position is not None:
             temperature = site.potential_temperature(
                 temperature, salinity, pressure, *position
@@ -424,7 +391,10 @@ def _figures(grid: Any, stackcat: Any, names: list[str]) -> tuple[dict, str]:
         "anomalies_ts": sections_b64(anomalies, isopycnals),
         "sections_uv": sections_b64(vel_sections, [], crop=True),
         "profiles_ts": profiles_b64(
-            [{"medians": medians(v), "title": params.vlabel(v)} for v, _ in hydro],
+            [
+                {"medians": hydro_medians[v], "title": params.vlabel(v)}
+                for v, _ in hydro
+            ],
             "twothirds",
         ),
         "profiles_uv": profiles_b64(
@@ -515,7 +485,7 @@ def generate_gridcat_page(
             stackcat = opened.load()
         out_path = out_dir / f"{name}_gridcat_report.html"
         names = _helpers.short_names([str(n) for n in grid["deployment_name"].values])
-        grid, left_out = _drop_short(grid, names)
+        grid, left_out = _drop_short(grid, grid["deployment_index"].values, names)
         figs, words = _figures(grid, stackcat, names)
         captions = _captions(
             grid, stackcat, words, _angle(grid), _position(grid) is not None, left_out

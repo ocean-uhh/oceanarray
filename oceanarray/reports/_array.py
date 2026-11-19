@@ -386,7 +386,7 @@ def _build_array_masthead(
         status = (
             f"{recovered} of {len(rows)} recovered" if recovered else "in the water"
         )
-    depths = [float(r["waterdepth"]) for r in rows if r["waterdepth"] is not None]
+    depths = [r["waterdepth"] for r in rows if r["waterdepth"] is not None]
     by_type = " · ".join(
         f"{type_word(t['itype'])} {t['deployed']}" for t in type_summary
     )
@@ -423,8 +423,8 @@ def _array_map_payload(rows: list[dict[str, Any]]) -> tuple[str, str, str]:
             f"{location.format_ddm(r['lat'], is_lat=True)}, "
             f"{location.format_ddm(r['lon'], is_lat=False)}",
         ]
-        if r.get("waterdepth"):
-            info.append(f"{float(r['waterdepth']):.0f} m")
+        if r.get("waterdepth") is not None:
+            info.append(f"{r['waterdepth']:.0f} m")
         info.append(f"{escape(r['deploy_time'])} &ndash; {escape(r['recover_time'])}")
         if r.get("report_exists"):
             info.append(f'<a href="{escape(r["report_href"])}">&rarr; Overview</a>')
@@ -499,6 +499,13 @@ def _mooring_row(
         else (proc_dir / mooring_id / "report", f"{mooring_id}/report")
     )
     instrs = _build_mooring_instruments(proc_dir, mooring_id, mcfg, recover_dt)
+    # An unvalidated YAML may give the depth as text ("unknown", "~2000"): the
+    # table shows that text and the header and map leave it out.
+    depth = mcfg.get("waterdepth")
+    try:
+        depth_m = float(depth)
+    except (TypeError, ValueError):
+        depth_m = None
     row = {
         "mooring": mooring_id,
         "line": entry.get("line"),
@@ -510,7 +517,8 @@ def _mooring_row(
             if lat is not None and lon is not None
             else _masthead.MISSING
         ),
-        "waterdepth": mcfg.get("waterdepth"),
+        "waterdepth": depth_m,
+        "waterdepth_text": f"{depth_m:.0f}" if depth_m is not None else depth or "—",
         "deploy_time": deploy_dt.strftime("%Y-%m-%d %H:%M") if deploy_dt else "—",
         "recover_time": recover_dt.strftime("%Y-%m-%d %H:%M") if recover_dt else "—",
         "_deploy_dt": deploy_dt,

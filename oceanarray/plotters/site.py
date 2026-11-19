@@ -121,9 +121,10 @@ def _isopycnal_ends(
     for level in levels:
         cross = np.flatnonzero(np.diff(np.sign(v - level)) != 0)
         if cross.size:
+            # Linear between the pair, which may be in either order (an inversion).
             a = cross[0]
             out[f"{name} {level:g}"] = float(
-                np.interp(level, v[a : a + 2], p[a : a + 2])
+                p[a] + (level - v[a]) * (p[a + 1] - p[a]) / (v[a + 1] - v[a])
             )
     return out
 

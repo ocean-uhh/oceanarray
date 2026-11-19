@@ -140,6 +140,10 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Fixed
 
+- Year array page: a mooring YAML whose `waterdepth` is text ("unknown") no longer stops the page; the table shows the text, the header and map leave it out.
+- Deployment page QC summary reads character flags (originator files) as numbers; a variable whose flags are not digits is left out with a warning.
+- Grid cat T-S diagram pairs each deployment's instrument circles with its curve by deployment name, not by position.
+- Grid cat isopycnal labels sit at the right pressure where density decreases with pressure between two levels.
 - `oceanarray plot` and `process --plot` apply the report style to their own figures only; it no longer stays set for later figures in the same Python session.
 - The deployment page's QC table no longer repeats the Good column (once from Good %, once from the per-flag columns).
 - Rose pages no longer warn of a missing declination when the originator rotated to true north (stack `originator_magnetic_declination`); the warning names who and why.

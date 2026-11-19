@@ -267,3 +267,36 @@ def test_the_deployment_qc_summary_reads_the_originators_flags(pages, tmp_path):
     counts = {f["flag"]: f["n"] for f in theirs["flags"]}
     assert counts[4] == 2 and counts[5] == 12
     assert ("salinity", "oceanarray") in rows
+
+
+def test_character_flags_are_read_as_numbers_and_letters_left_out(
+    pages, tmp_path, caplog
+):
+    """14644's flags written as characters, as originator (BODC-style) files have them.
+
+    No committed fixture has character flags: the mapped originator flags are
+    converted to digit characters and oceanarray's to letters, in a copy.
+    """
+    import logging
+
+    import numpy as np
+
+    from oceanarray.reports._read import _read_qc_summary
+
+    ds = pages["egM2_2018"][1].copy()
+    mapped = ds["salinity_qc_originator_mapped"]
+    ours = ds["salinity_qc"]
+    ds["salinity_qc_originator_mapped"] = (
+        mapped.dims,
+        mapped.values.astype(int).astype("S1"),
+        mapped.attrs,
+    )
+    ds["salinity_qc"] = (ours.dims, np.full(ours.shape, b"A"), ours.attrs)
+    path = tmp_path / "egM2_2018_14644_char_flags.nc"
+    ds.to_netcdf(path, engine="netcdf4")
+    with caplog.at_level(logging.WARNING, logger="oceanarray.reports._read"):
+        rows = {(r["var"], r["by"]): r for r in _read_qc_summary(path)}
+    counts = {f["flag"]: f["n"] for f in rows[("salinity", "originator")]["flags"]}
+    assert counts[4] == 2 and counts[5] == 12
+    assert ("salinity", "oceanarray") not in rows
+    assert "salinity_qc flags are not all digits" in caplog.text

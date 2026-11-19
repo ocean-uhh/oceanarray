@@ -199,6 +199,12 @@ MASK_FLAGS: tuple[int, ...] = (4,)
 #: and the caption names it.
 MIN_RECORD_FRACTION: float = 0.5
 
+#: A display bin of a site section is shown only when its cell has values for at
+#: least this share of the bin's time steps; an edge level the grid fills only part
+#: of the time (an instrument riding across it) is left blank, not a chequer of
+#: partial means.
+MIN_DISPLAY_BIN_FRACTION: float = 0.5
+
 #: Flags counted as good in the QC tables (Good %, and a variable left out as
 #: all good): good (1) and interpolated by oceanarray (8).
 QC_GOOD_FLAGS: tuple[int, ...] = (1, 8)

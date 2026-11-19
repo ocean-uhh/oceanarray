@@ -88,7 +88,7 @@ deployment and recovery (UTC); instruments processed of those deployed.</p>
   <tr data-track-id="{{ r.mooring }}">
     <td><span class="dot" style="background:{{ r.color_hex }}"></span>{% if r.report_exists %}<a href="{{ r.report_href }}"><strong>{{ r.mooring }}</strong></a>{% else %}<strong>{{ r.mooring }}</strong>{% endif %}</td>
     <td>{{ r.position }}</td>
-    <td class="num">{{ "%.0f"|format(r.waterdepth|float) if r.waterdepth else "—" }}</td>
+    <td class="num">{{ r.waterdepth_text }}</td>
     <td>{{ r.deploy_time }}</td>
     <td>{{ r.recover_time }}</td>
     <td class="num">{{ r.duration }}</td>

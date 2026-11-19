@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -13,6 +14,8 @@ from oceanarray import paths
 from oceanarray.pipeline.dataset import time_step_seconds
 
 from ..config import parameters as params
+
+log = logging.getLogger(__name__)
 
 #: Reader-facing words for the flag values, from the central flag table.
 _QC_LABELS: dict[int, str] = params.QC_FLAG_LABEL
@@ -212,6 +215,8 @@ def _read_qc_summary(nc_path: Path) -> list[dict[str, Any]]:
         ``<var>_qc_originator_mapped``): ``var``, ``by`` (``"oceanarray"`` or
         ``"originator"``), ``total`` (samples), ``flags`` (``_qcflags.flag_bar``)
         and ``good`` (``_qcflags.good_share``); empty when the file cannot be read.
+        Character flags (an originator's ``"1"``, ``"4"``) are read as numbers; a
+        variable whose flags are not all digits is left out with a warning.
     """
     import xarray as xr
 
@@ -230,7 +235,21 @@ def _read_qc_summary(nc_path: Path) -> list[dict[str, Any]]:
                 base = v.removesuffix(suffix)
                 if base == v or base.endswith("_orig") or base not in ds.data_vars:
                     continue
-                flags = ds[v].values.astype(int).ravel()
+                flags = ds[v].values.ravel()
+                if flags.dtype.kind in "SUO":
+                    text = np.char.strip(
+                        np.char.decode(flags)
+                        if flags.dtype.kind == "S"
+                        else flags.astype(str)
+                    )
+                    if not np.char.isdigit(text).all():
+                        log.warning(
+                            f"{nc_path.name}: {v} flags are not all digits; "
+                            "left out of the QC summary"
+                        )
+                        continue
+                    flags = text
+                flags = flags.astype(int)
                 if flags.size:
                     counts = flag_counts(flags)
                     rows.append(

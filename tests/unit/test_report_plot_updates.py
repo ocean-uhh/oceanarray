@@ -18,6 +18,7 @@ import pytest
 import xarray as xr
 
 from oceanarray.analysis import site
+from oceanarray.config import parameters as params
 from oceanarray.pipeline.concat import cell_deployment, concat
 from oceanarray.plotters import site as site_plots
 
@@ -139,7 +140,7 @@ def test_the_grid_cat_captions_name_pins_labels_and_blank_bins(egm2_pages):
     _, grid_page = egm2_pages
     assert "Circles: each deployment's instruments measuring both T and S" in grid_page
     assert "labelled in the right margin" in grid_page
-    assert f"less than {site.DISPLAY_MIN_FRACTION:.0%} of its time" in grid_page
+    assert f"less than {params.MIN_DISPLAY_BIN_FRACTION:.0%} of its time" in grid_page
     assert "▼ above the panel" in grid_page
     assert "change in sampling" in grid_page
 
@@ -235,3 +236,44 @@ def test_a_level_filled_part_of_the_time_has_no_median(flmb_site):
         values, index, flmb_site["deployment_name"].size, min_fraction=0.5
     )
     assert np.isfinite(kept[k, 0]) and np.isnan(ruled[k, 0])
+
+
+def test_isopycnal_ends_read_a_pair_in_either_order(flmb_site):
+    """The FLMB σ0 profile, deep to shallow, gives the same level pressure."""
+    from oceanarray.plotters.site import _isopycnal_ends
+
+    pressure = np.arange(1700.0, 2800.0, 20.0)
+    th, sa = _profiles(flmb_site, pressure)
+    s0, _ = site.density_fields(th, sa, pressure, -39.31479, 59.71547)
+    last = s0[-1][np.isfinite(s0[-1])]
+    level = round(float(np.mean(last[:2])), 4)  # between the two shallowest values
+    down = _isopycnal_ends(pressure, s0, [level], "s0")
+    up = _isopycnal_ends(pressure[::-1], s0[:, ::-1], [level], "s0")
+    assert down and down == pytest.approx(up)
+    p = down[f"s0 {level:g}"]
+    ok = np.isfinite(s0[-1])
+    assert pressure[ok][0] <= p <= pressure[ok][1]
+
+
+def test_the_grid_cat_pins_pair_with_their_deployment_by_name(egm2_site, monkeypatch):
+    """A grid deployment the site stack does not name gets no pins; the other its own."""
+    from oceanarray.plotters import helpers
+    from oceanarray.reports import _gridcat
+
+    grid = xr.load_dataset(egm2_site / "egM2_gridcat.nc")
+    stack = xr.load_dataset(egm2_site / "egM2_stackcat.nc")
+    own = site.instrument_mean_pressures(stack)
+    names = [str(n) for n in stack["deployment_name"].values]
+    stack["deployment_name"] = stack["deployment_name"].copy(
+        data=np.array(["egM2_elsewhere", names[1]], dtype=object)
+    )
+    seen = {}
+    draw = site_plots.draw_site_ts
+
+    def spy(*args, **kwargs):
+        seen["pins"] = kwargs["pins"]
+        return draw(*args, **kwargs)
+
+    monkeypatch.setattr(site_plots, "draw_site_ts", spy)
+    _quiet(_gridcat._figures, grid, stack, helpers.short_names(names))
+    assert seen["pins"] == [[], own[1]]

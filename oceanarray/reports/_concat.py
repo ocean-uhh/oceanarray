@@ -862,45 +862,54 @@ _FAMILY_VARIABLES: dict[str, frozenset[str]] = {
 }
 
 
-def _drop_short(view: Any, names: list[str]) -> tuple[Any, dict[str, list[str]]]:
-    """Return the view without the short records, and who was left out, by family.
+def _drop_short(
+    view: Any, member: np.ndarray, names: list[str], at: np.ndarray | None = None
+) -> tuple[Any, dict[str, list[str]]]:
+    """Return *view* without the short records, and who was left out, by family.
 
-    A deployment whose values at a depth (by :data:`SHORT_RECORD_TEST`) cover
-    less than :data:`~oceanarray.config.parameters.MIN_RECORD_FRACTION` of its
-    time there is left out of every figure of that family.
+    A deployment whose values (by :data:`SHORT_RECORD_TEST`) cover less than
+    :data:`~oceanarray.config.parameters.MIN_RECORD_FRACTION` of its time is left
+    out of every figure of that family.
 
     Parameters
     ----------
     view : xarray.Dataset
-        The report view (:func:`_report_view`).
+        The report view (:func:`_report_view`) or a site grid.
+    member : numpy.ndarray of int
+        Each value's deployment index (-1 for none): ``(time, level)`` to judge each
+        level on its own, or ``(time,)`` to judge the steps with a value at any level.
     names : list of str
         Short deployment names, in deployment order.
+    at : numpy.ndarray of str, optional
+        Each level's label, for a per-level *member*.
 
     Returns
     -------
     view : xarray.Dataset
         A copy with those values set to NaN.
     left_out : dict of str to list of str
-        ``"2016 at 1820 m"`` per record left out, by family.
+        ``"2016 at 1820 m"`` per record left out (``"2016"`` per step), by family.
     """
-    cell = view["cell_deployment"].values
+    cells = member if member.ndim == 2 else member[:, None]
     view = view.copy(deep=True)
     left_out: dict[str, list[str]] = {}
     for family, test in SHORT_RECORD_TEST.items():
         if test not in view:
             continue
         finite = np.isfinite(view[test].values)
+        if member.ndim == 1:
+            finite = finite.any(axis=1)[:, None]
         drop = np.zeros_like(finite)
-        for j, label in enumerate(view["serial"].values):
-            for k in np.unique(cell[:, j][cell[:, j] >= 0]):
-                here = cell[:, j] == k
-                share = finite[here, j].sum() / here.sum()
-                if 0 < share < params.MIN_RECORD_FRACTION:
+        for j in range(cells.shape[1]):
+            for k in np.unique(cells[:, j][cells[:, j] >= 0]):
+                here = cells[:, j] == k
+                if 0 < finite[here, j].mean() < params.MIN_RECORD_FRACTION:
                     drop[here, j] = True
-                    left_out.setdefault(family, []).append(f"{names[k]} at {label}")
+                    where = f" at {at[j]}" if member.ndim == 2 else ""
+                    left_out.setdefault(family, []).append(f"{names[k]}{where}")
         if drop.any():
             for v in _FAMILY_VARIABLES[family] & set(view.data_vars):
-                if view[v].dims == ("time", "N_LEVELS"):
+                if view[v].dims == view[test].dims:
                     view[v] = view[v].where(~drop)
     return view, left_out
 
@@ -1023,7 +1032,13 @@ def generate_concat_page(
         # Deployments named without the site's prefix on the figures and in the
         # Instruments table (egM4_2014 → 2014); the Deployments table keeps the full name.
         short = dict(zip(names, _helpers.short_names(names), strict=True))
-        view, left_out = _drop_short(_report_view(ds), [short[n] for n in names])
+        view = _report_view(ds)
+        view, left_out = _drop_short(
+            view,
+            view["cell_deployment"].values,
+            [short[n] for n in names],
+            view["serial"].values,
+        )
         depth_view = _depth_view(view)
         # Position and θ for the T-S figures, derived once for the page.
         derived = derived_fields(view)
@@ -1134,7 +1149,7 @@ def generate_concat_page(
             }
         analog_vars = nc_meta.get("analog_vars", [])
         figs["analog"] = (
-            as_panel(lambda: _make_analog_timeseries_b64(stack_path, analog_vars))
+            as_panel(lambda: _make_analog_timeseries_b64(ds, analog_vars))
             if analog_vars
             else None
         )

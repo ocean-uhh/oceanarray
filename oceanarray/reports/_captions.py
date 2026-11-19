@@ -619,9 +619,9 @@ def stack_history_rows(ds: Any) -> list[HistoryRow]:
 
     # The settings of each entry, by the text it starts with (and, for flags,
     # the attribute it names).
-    by_prefix: tuple[tuple[str, Callable[[], str]], ...] = (
-        ("stack:", lambda: f"{step_text(dt)} steps"),
-        ("Step 1 stack:", lambda: f"{step_text(dt)} steps"),
+    stack_step = ("stack:", "Step 1 stack:")
+    by_prefix: tuple[tuple[str | tuple[str, ...], Callable[[], str]], ...] = (
+        (stack_step, lambda: f"{step_text(dt)} steps"),
         ("join:", depths),
         ("overlaps:", lambda: f"rule: the {attrs.get('overlap_rule', 'newer')} one"),
         ("grid:", lambda: f"{float(attrs.get('dp_dbar', np.nan)):g} dbar levels"),
@@ -641,7 +641,7 @@ def stack_history_rows(ds: Any) -> list[HistoryRow]:
         r.when
         for h in ds["deployment_history"].values
         for r in history_rows(str(h))
-        if r.events and r.events[0].startswith(("stack:", "Step 1 stack:"))
+        if r.events and r.events[0].startswith(stack_step)
     )
     combine = HistoryRow(
         f"{stamps[0]} – {stamps[-1]}" if len(set(stamps)) > 1 else (stamps or ["—"])[0],

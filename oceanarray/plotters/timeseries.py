@@ -793,7 +793,7 @@ def draw_grid_timeseries(
 
 
 def draw_analog_timeseries(
-    nc_path: Path,
+    nc_path: Path | xr.Dataset,
     analog_vars: list[str],
     *,
     width_in: float = report_tokens.W_FULL,
@@ -804,8 +804,8 @@ def draw_analog_timeseries(
 
     Parameters
     ----------
-    nc_path : Path
-        Path to the stage-3 or stack NetCDF file.
+    nc_path : Path or xarray.Dataset
+        The stage-3 or stack NetCDF file, or the dataset already read from it.
     analog_vars : list of str
         Variable names to plot (caller must ensure the list is non-empty).
 
