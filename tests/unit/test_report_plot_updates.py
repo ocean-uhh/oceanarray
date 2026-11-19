@@ -9,7 +9,6 @@ import contextlib
 import html
 import io
 import re
-import shutil
 import warnings
 from pathlib import Path
 
@@ -18,13 +17,8 @@ import numpy as np
 import pytest
 import xarray as xr
 
-import oceanarray as oa
-from oceanarray import mooring, paths
 from oceanarray.analysis import site
-from oceanarray.cli import build_parser
-from oceanarray.config import parameters as params
 from oceanarray.pipeline.concat import cell_deployment, concat
-from oceanarray.pipeline.read_mooring import read_mooring
 from oceanarray.plotters import site as site_plots
 
 _FIX = Path(__file__).parent.parent / "fixtures" / "proc"
@@ -38,28 +32,14 @@ def _quiet(fn, *args, **kwargs):
 
 
 @pytest.fixture(scope="module")
-def egm2_pages(tmp_path_factory) -> tuple[str, str]:
+def egm2_pages(egm2_site) -> tuple[str, str]:
     """The egM2 Stack cat and Grid cat pages, built by ``oceanarray concat``."""
-    root = tmp_path_factory.mktemp("osnap")
-    for name in _EGM2:
-        shutil.copytree(_FIX / "egM2_concat" / name, root / name)
-        cfg = mooring.load(root / name / f"{name}.mooring.yaml")
-        data = _quiet(
-            read_mooring, cfg, stage=3, mooring_dir=root / name, allow_missing=True
-        )
-        oa.write(
-            _quiet(oa.stack, data, cfg), paths.product_file(root / name, name, "stack")
-        )
-    yamls = [str(root / n / f"{n}.mooring.yaml") for n in _EGM2]
-    args = build_parser().parse_args(
-        ["concat", *yamls, "--name", "egM2", "--dp", "50", "--force"]
-    )
-    with warnings.catch_warnings(), contextlib.redirect_stdout(io.StringIO()):
-        warnings.simplefilter("error", UserWarning)  # a page that fails warns
-        assert args.func(args) == 0
-    report = root / "egM2" / "report"
     return tuple(
-        html.unescape((report / f"egM2_{kind}_report.html").read_text(encoding="utf-8"))
+        html.unescape(
+            (egm2_site / "report" / f"egM2_{kind}_report.html").read_text(
+                encoding="utf-8"
+            )
+        )
         for kind in ("stackcat", "gridcat")
     )
 
@@ -113,24 +93,43 @@ def test_the_stack_cat_draws_direction_beside_speed(egm2_pages):
         'alt="direction_profile"'
     )
     assert "draw_direction_profile_by_deployment" in stack_page
-    # The captions name the rules the figures follow.
-    from oceanarray.plotters.helpers import PROFILE_MIN_FRACTION
-
-    assert f"at least {PROFILE_MIN_FRACTION:.0%} of its time steps" in stack_page
-    assert f"less than {params.SLOPE_STEADINESS_MIN:g} of the mean speed" in stack_page
+    # The captions name the rules the figures follow; no steadiness.
+    assert "velocity for less than half their time are left out" in stack_page
+    assert "mean speed" not in stack_page
     assert "▼ above the panel" in stack_page
 
 
-def test_the_stack_cat_ts_caption_describes_the_outlines():
-    # The egM2 test records are shorter than the 30 days a level needs, so the
-    # figure (and its caption) is not on that page: check the caption itself.
-    from oceanarray.plotters import ts
-    from oceanarray.reports._concat import CONCAT_CAPTIONS
+def test_the_stack_cat_names_the_originators_north(egm2_pages):
+    """Both years' velocities are imported: roses, direction profile and the velocity
+    time series say so (the report view has no file names; the site stack does)."""
+    stack_page, _ = egm2_pages
+    for start in (
+        "One rose per depth",
+        "Current direction at each current-meter depth",
+        "Eastward, northward and upward velocity",
+    ):
+        caption = stack_page.split(start, 1)[1].split("</", 1)[0]
+        assert "relative to true north, as provided by the originator" in caption
+    assert "declination applied" not in stack_page
 
-    caption = CONCAT_CAPTIONS["ts_by_deployment"]
-    assert f"densest {ts.TS_OUTLINE_FRACTION:.0%}" in caption
-    assert f"fewer than {ts.TS_MIN_LEVEL_POINTS:g} points" in caption
-    assert f"more than {ts.TS_MAX_OUTLINES} levels" in caption
+
+def test_the_stack_cat_ts_caption_says_whether_outlines_were_drawn(flmb_site):
+    """The outline sentence when outlines are drawn; else how many levels there were."""
+    from oceanarray.plotters import ts
+    from oceanarray.reports._concat import _page_captions, _report_view
+
+    view = _report_view(flmb_site)
+
+    def caption(record):
+        return _page_captions(
+            flmb_site, view, {"ts_by_deployment": record}, {}, False, []
+        )["ts_by_deployment"]
+
+    drawn = caption({"outlines": True, "levels": 30})
+    assert f"densest {ts.TS_OUTLINE_FRACTION:.0%}" in drawn
+    left_out = caption({"outlines": False, "levels": 52})
+    assert f"Outlines not drawn: 52 levels (more than {ts.TS_MAX_OUTLINES})" in left_out
+    assert "densest" not in left_out
 
 
 # Grid cat: pins, labels, captions --------------------------------------------
@@ -139,13 +138,13 @@ def test_the_stack_cat_ts_caption_describes_the_outlines():
 def test_the_grid_cat_captions_name_pins_labels_and_blank_bins(egm2_pages):
     _, grid_page = egm2_pages
     assert "Circles: each deployment's instruments measuring both T and S" in grid_page
-    assert "labeled with the value only" in grid_page
+    assert "labelled in the right margin" in grid_page
     assert f"less than {site.DISPLAY_MIN_FRACTION:.0%} of its time" in grid_page
     assert "▼ above the panel" in grid_page
     assert "change in sampling" in grid_page
 
 
-def test_isopycnal_labels_are_numbers_only(flmb_site):
+def test_isopycnal_labels_name_their_reference(flmb_site):
     pressure = np.arange(1700.0, 2800.0, 20.0)
     th, sa = _profiles(flmb_site, pressure)
     names = [str(n) for n in flmb_site["deployment_name"].values]
@@ -162,7 +161,14 @@ def test_isopycnal_labels_are_numbers_only(flmb_site):
     )
     labels = [t.get_text() for t in fig.axes[0].texts]
     assert labels, "no isopycnal in range: pick levels inside the FLMB T-S range"
-    assert all(re.fullmatch(r"\d+(\.\d+)?", s) for s in labels), labels
+    # Each label names its reference: σ₀ dashed, σ₂ solid (they cross on a T-S).
+    assert all(re.fullmatch(r"\$\\sigma_[02]\$ \d+(\.\d+)?", t) for t in labels), labels
+    styles = {
+        c.get_linestyle()[0][1] is None
+        for c in fig.axes[0].collections
+        if c.get_array() is not None
+    }
+    assert styles == {True, False}
     plt.close(fig)
 
 

@@ -194,6 +194,11 @@ QC_BAD_FLAGS = (3, 4, 9)
 #: shown and gridded; 9 marks a missing value, so there is nothing to show.
 MASK_FLAGS: tuple[int, ...] = (4,)
 
+#: A record with values for less than this share of its time is left out of a
+#: site page's figures (a deployment at a depth, or a grid level in a deployment),
+#: and the caption names it.
+MIN_RECORD_FRACTION: float = 0.5
+
 #: Flags counted as good in the QC tables (Good %, and a variable left out as
 #: all good): good (1) and interpolated by oceanarray (8).
 QC_GOOD_FLAGS: tuple[int, ...] = (1, 8)
