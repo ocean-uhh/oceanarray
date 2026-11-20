@@ -66,7 +66,7 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 - Deployment QC table: the caption says rows are per flag source and figures mark the worse of the two, when both sources are present.
 - Grid cat T-S: σ₀ dashed and σ₂ solid over the full range of the medians; velocity profiles cropped to their pressures with a dashed zero line.
 - `concat` and `grid` write one dated `history` entry per step (join, overlaps, flags, grid) in place of one undated line.
-- Durations use one unit per table: decimal years past a year, else months past a month, else days ("13.6 days" for "13d 15h").
+- Durations use one unit per table, named in the column header: decimal years past a year, else months past a month, else days (13.6 for "13d 15h").
 - The instrument header's sampling interval is the median time step (was the 90th percentile).
 - Instrument page: files table, history record, start/end windows and value distributions move into a collapsed Processing section; one NetCDF file appendix.
 - Instrument time series and T-S mark the worse of the originator's and our flags: dots suspect, crosses bad, legend in words; captions generated from the file.

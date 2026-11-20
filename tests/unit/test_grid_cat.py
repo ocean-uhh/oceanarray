@@ -10,6 +10,7 @@ import contextlib
 import io
 import json
 import logging
+import re
 import shutil
 import warnings
 from pathlib import Path
@@ -247,6 +248,10 @@ def test_concat_writes_the_site_grid_and_both_pages(egm2):
     )
     assert 'href="egM2_gridcat_report.html"' in stack_page
     assert '<nav class="breadcrumb">' in stack_page
+    # Both Deployments tables: the duration's unit in the header, numbers in the cells.
+    for html in (page, stack_page):
+        assert 'Duration<span class="th-unit">days</span>' in html
+        assert not re.search(r"<td>[\d.]+ days</td>", html)
 
 
 def test_no_grid_writes_the_site_stack_only(egm2, tmp_path):
@@ -312,6 +317,23 @@ def test_the_rotated_axis_points_along_the_mean_flow(flmb_site):
     )
     assert float(along.mean()) > 0
     assert _rotation(out, -30) == (330.0, True)
+
+
+def test_a_short_deployment_is_left_out_of_every_grid_level(flmb_site):
+    """FLMB 2016 with hydrography at 40 % of its steps: NaN at every pressure."""
+    from oceanarray.reports._concat import _drop_short
+
+    out = _quiet(grid, flmb_site, pmin=200, pmax=2600, dp=50)
+    first = np.flatnonzero(out["deployment_index"].values == 0)
+    for v in ("temperature", "salinity"):
+        out[v][first[int(0.4 * first.size) :], :] = np.nan
+    shown, left_out = _drop_short(out, out["deployment_index"].values, ["2016", "2017"])
+    assert left_out == {"hydrography": ["2016"]}
+    later = out["deployment_index"].values == 1
+    for v in ("temperature", "salinity"):
+        assert np.isnan(shown[v].values[first]).all()
+        np.testing.assert_array_equal(shown[v].values[later], out[v].values[later])
+    assert np.isfinite(shown["east_velocity"].values[first]).any()
 
 
 def test_a_zero_grid_spacing_is_an_error_not_a_crash(egm2):

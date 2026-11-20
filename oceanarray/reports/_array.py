@@ -37,7 +37,7 @@ from ._html_helpers import (
     STOPPED_EARLY_HOURS,
     _parse_dt,
     _stage_files,
-    format_durations,
+    duration_cells,
     span_seconds,
 )
 from ._navs import FUNCTION_ABBR, function_word
@@ -141,8 +141,8 @@ def bathymetry_contours(
     extent : tuple of float
         West, south, east, north, in degrees.
     cache : Path
-        JSON file the contours are kept in, reused while the file, extent and
-        depths are the same.
+        JSON file the contours are kept in, reused while the file (path, size,
+        modification time), extent and depths are the same.
 
     Returns
     -------
@@ -154,18 +154,19 @@ def bathymetry_contours(
     import matplotlib.pyplot as plt
     import xarray as xr
 
+    if not path.exists():
+        _log.warning("no depth contours on the map: %s not found", path)
+        return None
+    stat = path.stat()
     key = {
         "extent": [round(v, 2) for v in extent],
         "depths": list(CONTOURS),
-        "file": path.name,
+        "file": [str(path.resolve()), stat.st_mtime_ns, stat.st_size],
     }
     if cache.exists():
         cached = json.loads(cache.read_text(encoding="utf-8"))
         if cached.get("key") == key:
             return json.dumps(cached["geojson"], separators=(",", ":"))
-    if not path.exists():
-        _log.warning("no depth contours on the map: %s not found", path)
-        return None
     west, south, east, north = extent
     with xr.open_dataset(path, engine="netcdf4") as ds:
         z = next(ds[v] for v in ds.data_vars if ds[v].ndim == 2)
@@ -712,7 +713,7 @@ def generate_array_report(
                 "color": colors[k % len(colors)],
             }
         )
-    durations = format_durations(
+    duration_unit, durations = duration_cells(
         [span_seconds(r["_deploy_dt"], r["_recover_dt"]) for r in rows]
     )
     for k, (row, duration) in enumerate(zip(rows, durations, strict=True)):
@@ -750,6 +751,7 @@ def generate_array_report(
         title=f"{array_cfg.get('project') or array_name} {year}".strip(),
         year=year,
         moorings=rows,
+        duration_unit=duration_unit,
         legend=legend if by_group else [],
         fig_map_b64=fig_map_b64,
         payload_json=payload_json,

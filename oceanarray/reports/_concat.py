@@ -33,6 +33,7 @@ from ._html_helpers import (
     _format_dt,
     _parse_dt,
     doi_link,
+    duration_cells,
     format_durations,
     span_seconds,
 )
@@ -607,7 +608,7 @@ def _deployment_rows(
         )
     }
     instruments = Counter(dep for dep, _ in _physical_instruments(ds))
-    durations = format_durations(
+    unit, durations = duration_cells(
         [
             span_seconds(
                 _parse_dt(str(ds["deployment_time"].values[k])),
@@ -658,6 +659,7 @@ def _deployment_rows(
                 "deployed": _format_dt(start),
                 "recovered": _format_dt(end),
                 "duration": durations[k],
+                "duration_unit": unit,
                 "lat": _ddm(float(ds["deployment_latitude"].values[k]), is_lat=True),
                 "lon": _ddm(float(ds["deployment_longitude"].values[k]), is_lat=False),
                 "waterdepth": (

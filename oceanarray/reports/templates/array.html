@@ -81,14 +81,14 @@ deployment and recovery (UTC); instruments processed of those deployed.</p>
     <tr>
       <th>Mooring</th>{% if legend %}<th>Array</th>{% endif %}<th>Position</th><th class="num">Water depth<span class="th-unit">m</span></th>
       <th>Deployed<span class="th-unit">UTC</span></th><th>Recovered<span class="th-unit">UTC</span></th>
-      <th class="num">Duration</th><th>Instruments</th><th>Pages</th>
+      <th class="num">Duration<span class="th-unit">{{ duration_unit }}</span></th><th>Instruments</th><th>Pages</th>
     </tr>
   </thead>
   <tbody>
   {% for r in moorings %}
   <tr data-track-id="{{ r.mooring }}">
     <td>{% if not legend %}<span class="dot" style="background:{{ r.color_hex }}"></span>{% endif %}{% if r.report_exists %}<a href="{{ r.report_href }}"><strong>{{ r.mooring }}</strong></a>{% else %}<strong>{{ r.mooring }}</strong>{% endif %}</td>
-    {% if legend %}<td><span class="dot" style="background:{{ r.color_hex }}"></span>{{ r.array.name }}{% if r.array.short != r.array.name %} ({{ r.array.short }}){% endif %}</td>{% endif %}
+    {% if legend %}<td><span class="dot" style="background:{{ r.color_hex }}"></span>{{ r.array.name }}</td>{% endif %}
     <td>{{ r.position }}</td>
     <td class="num">{{ r.waterdepth_text }}</td>
     <td>{{ r.deploy_time }}</td>

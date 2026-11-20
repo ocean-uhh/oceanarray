@@ -441,6 +441,30 @@ class TestBathymetryContours:
         assert "does not cover" in caplog.text
         assert not (tmp_path / "c.json").exists()
 
+    def test_the_cache_follows_the_file_not_its_name(self, tmp_path):
+        """Another file of the same name, or the file rewritten, draws afresh."""
+        import shutil
+
+        import xarray as xr
+
+        from oceanarray.reports._array import bathymetry_contours
+
+        cache = tmp_path / "contours.json"
+        (tmp_path / "a").mkdir()
+        (tmp_path / "b").mkdir()
+        here = shutil.copy(self._ETOPO, tmp_path / "a" / "etopo.nc")
+        with xr.open_dataset(self._ETOPO, engine="netcdf4") as ds:
+            (ds - 500).to_netcdf(tmp_path / "b" / "etopo.nc")
+        first = bathymetry_contours(here, self._EAST_GREENLAND, cache)
+        assert bathymetry_contours(here, self._EAST_GREENLAND, cache) == first
+        other = bathymetry_contours(
+            tmp_path / "b" / "etopo.nc", self._EAST_GREENLAND, cache
+        )
+        assert other != first
+        assert bathymetry_contours(here, self._EAST_GREENLAND, cache) == first
+        shutil.copy(tmp_path / "b" / "etopo.nc", here)
+        assert bathymetry_contours(here, self._EAST_GREENLAND, cache) == other
+
 
 class TestDatasetName:
     """The map caption names the bathymetry dataset from the file's title."""
@@ -524,7 +548,7 @@ class TestYearPage:
         assert "from ETOPO1." in html and "etopo1_osnap_east_8min.nc" not in html
         legend = html.split('<div class="legend">')[1].split("</div>")[0]
         assert "East Greenland</span>" in legend and "other</span>" in legend
-        assert "East Greenland Array (East Greenland)</td>" in html
+        assert "East Greenland Array</td>" in html and "(East Greenland)" not in html
 
     def test_unused_array_yaml_keys_warn_once(self, tmp_path, caplog):
         """``cruise`` and a mooring's ``line`` are named in one warning."""
@@ -554,8 +578,12 @@ class TestYearPage:
         assert "Gridded</span>" in html
         # No stage files here: every instrument is counted, none processed.
         assert re.search(r"<td>0 of \d+ \(", html)
-        durations = re.findall(r'<td class="num">([\d.]+ \w+)</td>', html)
-        assert len({d.split()[1] for d in durations}) == 1
+        # One unit, in the header; the cells are numbers.
+        assert re.search(
+            r'Duration<span class="th-unit">(years|months|days)</span>', html
+        )
+        assert re.findall(r'<td class="num">\d+\.\d</td>', html)
+        assert not re.search(r"<td[^>]*>[\d.]+ (years|months|days)</td>", html)
 
     def test_a_water_depth_given_as_text_is_shown_as_given(self, tmp_path):
         """egM2_2016 with ``waterdepth: unknown`` (fails validation, read unvalidated)."""
