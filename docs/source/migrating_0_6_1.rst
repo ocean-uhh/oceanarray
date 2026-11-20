@@ -48,6 +48,15 @@ the stack and the plots, which put an upward-looking ADCP's bins below it. Now
 that disagrees with the YAML is logged and the YAML is used; an imported file that
 disagrees is refused.
 
+Instrument ``depth:`` key no longer read
+----------------------------------------
+
+An instrument's depth (``instrument_depth``) is its ``nominal_depth``, else the water
+depth minus its HAB; a ``depth:`` key on an instrument entry is not read. Rename it to
+``nominal_depth`` (m, positive down) or give ``hab``. ``validate`` warns on ``depth:``,
+and reports an error when the entry has neither ``nominal_depth`` nor a HAB; stage 1
+logs the same warning.
+
 One sensor record per instrument
 --------------------------------
 
@@ -84,7 +93,9 @@ Tilt QC flags more
 Velocity is flagged on the geometric tilt, arccos(cos pitch · cos roll), at
 ``QC_TILT`` 30° (suspect) and 50° (bad), even where ``pitch_qc`` / ``roll_qc`` exist,
 so a tilted current meter gets more 3s and 4s. To change the thresholds, set
-``tilt_qc`` in the mooring YAML.
+``tilt_qc`` in the mooring YAML. Velocity flags come from the geometric tilt only;
+configured pitch / roll gross-range flags are kept on ``pitch_qc`` / ``roll_qc`` but no
+longer reach the velocities.
 
 The rotation angle is not in the grid file
 ------------------------------------------

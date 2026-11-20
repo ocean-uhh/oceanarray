@@ -60,7 +60,7 @@ What to do for each: *Upgrading from 0.6.0 to 0.6.1* (`migrating_0_6_1`).
 - `serial_number` is now `instrument_serial`, always text; the stack's `serial` stays the per-level key. Older stage files are read under the new names.
 - Positions (`latitude`, `longitude`, `waterdepth` …) are numbers, not text, and left out when absent; `deployment_time` / `recovery_time` are ISO 8601 UTC with `Z`.
 - `valid_min` / `valid_max` are written only where a physical limit is known, no longer from the gross-range limits.
-- Tilt QC flags velocity on the geometric tilt at `QC_TILT` 30° / 50°, even where `pitch_qc` / `roll_qc` exist.
+- Tilt QC flags velocity on the geometric tilt at `QC_TILT` 30° / 50°, even where `pitch_qc` / `roll_qc` exist; their gross-range flags no longer reach velocity.
 - Raw Sea-Bird stage files hold one `SENSOR_<type>_<serial>` record, not `SENSOR_TEMP_` / `_CNDC_` / `_PRES_<serial>`; no stage file carries `sample_interval_seconds`.
 - Stacks write σ0 as `sea_water_sigma_theta`, σ1…σ4 with no standard name, long names `σ₀` … `σ₄`; magnetic-north velocity and direction carry no standard name.
 - The stack keeps every value with both flag sets; suspect (3) is shown and gridded by default (`mask_flags: [3, 4]` keeps the old way); no flag variable reads 0, missing 9 (int8).
