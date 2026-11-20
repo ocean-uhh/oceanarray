@@ -275,27 +275,36 @@ class TestArrayModeOutputDir:
         # The flag that DOES apply in array mode is honoured, not dropped.
         assert seen["report_dir"] == Path(str(central))
 
-    def test_bathymetry_reaches_the_year_page(self, tmp_path, monkeypatch):
-        """``report --array --bathymetry FILE`` is ``oa.report(..., bathymetry=)``."""
+    def test_bathymetry_reaches_the_year_page(self, tmp_path):
+        """``report --array --bathymetry FILE`` draws the file's contours on the map."""
+        import warnings
+
         from oceanarray.cli import build_parser
-        from oceanarray.reports import _array
 
-        seen = {}
-
-        def _fake_generate(**kwargs):
-            seen.update(kwargs)
-            out = tmp_path / "arr_array_report.html"
-            out.write_text("<html></html>")
-            return out
-
-        monkeypatch.setattr(_array, "generate_array_report", _fake_generate)
-        yaml_path = tmp_path / "arr.array.yaml"
-        yaml_path.write_text("name: arr\n")
-        args = build_parser().parse_args(
-            ["report", str(yaml_path), "--array", "--bathymetry", "etopo.nc"]
+        fix = Path(__file__).resolve().parents[1] / "fixtures"
+        config = fix / "proc" / "egM2_concat" / "egM2_2016" / "egM2_2016.mooring.yaml"
+        yaml_path = tmp_path / "EG.array.yaml"
+        yaml_path.write_text(
+            "name: EG\nyear: 2016\nmoorings:\n"
+            f"- mooring: egM2_2016\n  config: {config}\n",
+            encoding="utf-8",
         )
-        assert args.func(args) == 0
-        assert seen["bathymetry"] == Path("etopo.nc")
+        args = build_parser().parse_args(
+            [
+                "report",
+                str(yaml_path),
+                "--array",
+                "--proc-dir",
+                str(tmp_path),
+                "--bathymetry",
+                str(fix / "bathymetry" / "etopo1_osnap_east_8min.nc"),
+            ]
+        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            assert args.func(args) == 0
+        html = (tmp_path / "EG_array_report.html").read_text(encoding="utf-8")
+        assert "L.geoJSON(CONTOURS" in html and "from ETOPO1." in html
 
 
 class TestArrayHeader:
