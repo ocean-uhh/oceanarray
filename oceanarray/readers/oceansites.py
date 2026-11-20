@@ -118,8 +118,9 @@ def _outside_valid_range(
     valid range, and some files mark a missing position only this way
     (``BINDEPTH`` 99999 with no ``_FillValue``).  Other variables keep their
     values, since an originator's range can be wrong (``ROLL`` ``valid_min`` 0;
-    ``CNDC`` ``valid_max`` in S/m with units mS/cm).  A ``valid_range`` that is
-    not two values is ignored.
+    ``CNDC`` ``valid_max`` in S/m with units mS/cm).  Integer positions are
+    checked too (as float once masked); other integer variables (flags) are not.
+    A ``valid_range`` that is not two values is ignored.
 
     Parameters
     ----------
@@ -140,7 +141,8 @@ def _outside_valid_range(
     missing, kept = {}, {}
     for name in list(src.variables):
         da = src[name]
-        if not np.issubdtype(da.dtype, np.floating):
+        kinds = "iuf" if name in POSITIONAL_VARIABLES else "f"
+        if da.dtype.kind not in kinds:
             continue
         attrs = _unpacked(da)
         lo = hi = None

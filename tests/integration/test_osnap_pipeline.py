@@ -301,6 +301,53 @@ def test_adcp_velocity_axis_ends_at_the_last_bin_with_data(tmp_path):
     mesh = np.ma.filled(ax.collections[0].get_array(), np.nan).reshape(len(rng), -1)
     np.testing.assert_array_equal(np.isfinite(mesh).any(axis=1), has_data)
 
+    # East masked further out than north and up: the axis follows them.
+    s3["east_velocity"][:, np.flatnonzero(has_data)[-1] - 2 :] = np.nan
+    ylim = draw_adcp_velocity(s3).axes[0].get_ylim()
+    assert ylim == pytest.approx((0.0, rng[has_data].max() + half_cell))
+
+
+IC1 = {
+    "waterdepth": 2472,
+    "latitude": 59.1,
+    "longitude": -33.7,
+    "deployment_time": "2016-08-09T14:20:00",
+    "recovery_time": "2018-07-15T07:38:41",
+}
+_IC1_ADCP = {
+    "serial": "ADCP480",
+    "instrument": "adcp",
+    "file_type": "oceansites",
+    "filename": "os_osnap-ic1_201608_adcp_480m_cut.nc",
+    "hab": 1997,
+    "orientation": "up",
+}
+
+
+def test_percent_good_per_bin_is_flagged_per_bin(tmp_path):
+    """A ``PERG`` on ``TIME × BINDEPTH`` (no beam) is one value per bin at stage 3."""
+    import oceanarray as oa
+    from oceanarray.config.parameters import QC_ADCP
+
+    raw, proc = _mooring(tmp_path, "ic1", IC1, [_IC1_ADCP])
+    path = raw / "ic1" / "adcp" / _IC1_ADCP["filename"]
+    with xr.open_dataset(path, decode_cf=False) as src:
+        src = src.load()
+    src["PERG"] = src["PERG"].isel(BEAM=3)  # the 4-beam column
+    src.to_netcdf(path, format="NETCDF3_CLASSIC")
+
+    oa.run(proc / "ic1" / "ic1.mooring.yaml", stages=[1, 2, 3], raw_dir=raw)
+    s3 = _open(proc, "ic1", "adcp", "ADCP480", 3)
+    pg = s3["percent_good"]
+    assert pg.dims == s3["percent_good_qc"].dims == ("time", "N_BINS")
+    expected = np.where(
+        pg < QC_ADCP["percent_good_bad"],
+        4,
+        np.where(pg < QC_ADCP["percent_good_suspect"], 3, 1),
+    )
+    np.testing.assert_array_equal(s3["percent_good_qc"], expected)
+    assert {1, 3, 4} <= set(np.unique(expected))
+
 
 def test_a_stage2_stack_names_true_north_only_when_it_is(tmp_path):
     """Originator ENU is true north at stage 2; without it, no CF direction names."""

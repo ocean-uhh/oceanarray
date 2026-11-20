@@ -391,6 +391,18 @@ def test_oceansites_values_outside_the_valid_range_are_missing():
     assert "set missing: BINDEPTH 3369" in ds.attrs["history"]
 
 
+def test_oceansites_integer_position_outside_the_valid_range_is_missing(tmp_path):
+    """An integer BINDEPTH's 99999 is set missing too, not kept as a depth."""
+    path = tmp_path / UMM2_ADCP.name
+    with xr.open_dataset(UMM2_ADCP, decode_cf=False) as src:
+        src = src.load()
+    src["BINDEPTH"] = src["BINDEPTH"].round().astype("int32")
+    src.to_netcdf(path)
+    ds = read_oceansites(path)
+    assert float(ds["bin_depth"].max()) <= 12000
+    assert "set missing: BINDEPTH 3369" in ds.attrs["history"]
+
+
 def test_oceansites_positions_set_missing_others_kept_with_counts(caplog):
     """CF1: BINDEPTH outside the range is missing; ROLL (file valid_min 0) is kept."""
     with netCDF4.Dataset(WHOI_ADCP) as nc:

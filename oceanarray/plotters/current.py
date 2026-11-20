@@ -1377,16 +1377,14 @@ def draw_adcp_velocity(
         shown = np.ones(len(range_coord), dtype=bool)
         if "seabed_qc" in ds.data_vars:
             shown &= np.any(ds["seabed_qc"].values == 1, axis=0)
-        vel_var = next(
-            (
-                v
-                for v in ("east_velocity", "north_velocity", "up_velocity")
-                if v in arrays
-            ),
-            None,
-        )
-        if vel_var is not None:
-            shown &= np.any(np.isfinite(np.asarray(arrays[vel_var])), axis=0)
+        vel_vars = [
+            v for v in ("east_velocity", "north_velocity", "up_velocity") if v in arrays
+        ]
+        if vel_vars:
+            shown &= np.any(
+                [np.isfinite(np.asarray(arrays[v])).any(axis=0) for v in vel_vars],
+                axis=0,
+            )
         range_max = float(
             range_coord[shown].max() if shown.any() else range_coord.max()
         )
