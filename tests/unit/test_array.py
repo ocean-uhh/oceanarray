@@ -593,6 +593,7 @@ class TestYearPage:
         )
         assert re.findall(r'<td class="num">\d+\.\d</td>', html)
         assert not re.search(r"<td[^>]*>[\d.]+ (years|months|days)</td>", html)
+        assert "Instruments by function</h2>" in html and "by type" not in html
 
     def test_a_water_depth_given_as_text_is_shown_as_given(self, tmp_path):
         """egM2_2016 with ``waterdepth: unknown`` (fails validation, read unvalidated)."""

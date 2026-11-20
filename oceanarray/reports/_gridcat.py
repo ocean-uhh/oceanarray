@@ -464,7 +464,10 @@ def _rotation(grid: Any, rotate_to: float | None) -> tuple[float | None, bool]:
     given : bool
     """
     if rotate_to is not None:
-        return float(rotate_to) % 360.0, True
+        angle = float(rotate_to)
+        if not np.isfinite(angle):
+            raise ValueError(f"rotate_to={rotate_to!r} is not a finite angle")
+        return angle % 360.0, True
     if "east_velocity" not in grid or "north_velocity" not in grid:
         return None, False
     angle, steadiness = site.mean_flow(grid["east_velocity"], grid["north_velocity"])

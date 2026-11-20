@@ -317,6 +317,9 @@ def test_the_rotated_axis_points_along_the_mean_flow(flmb_site):
     )
     assert float(along.mean()) > 0
     assert _rotation(out, -30) == (330.0, True)
+    for bad in (float("nan"), float("inf")):
+        with pytest.raises(ValueError, match="finite"):
+            _rotation(out, bad)
 
 
 def test_a_short_deployment_is_left_out_of_every_grid_level(flmb_site):

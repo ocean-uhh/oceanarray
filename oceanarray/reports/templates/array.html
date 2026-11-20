@@ -21,7 +21,7 @@
 {% block masthead_nav %}{% endblock %}
 {% block content %}
 
-<nav class="jump-nav"><a href="#moorings">Moorings</a><a href="#type-summary">Instruments by type</a><a href="#processing">Processing</a></nav>
+<nav class="jump-nav"><a href="#moorings">Moorings</a><a href="#type-summary">Instruments by function</a><a href="#processing">Processing</a></nav>
 {{ xa.button() }}
 
 {% if payload_json != "[]" or fig_map_b64 %}
@@ -106,12 +106,12 @@ deployment and recovery (UTC); instruments processed of those deployed.</p>
 </table>
 
 {% if type_summary %}
-<h2 id="type-summary">Instruments by type</h2>
-<p class="caption">Instruments on the {{ year }} moorings by type: deployed, processed here, not processed (with the
+<h2 id="type-summary">Instruments by function</h2>
+<p class="caption">Instruments on the {{ year }} moorings by function: deployed, processed here, not processed (with the
 reason the mooring description gives), and records that ended more than {{ stopped_hours }} h before recovery.</p>
 <table>
   <thead>
-    <tr><th>Type</th><th class="num">Deployed</th><th class="num">Processed</th><th class="num">Not processed</th>
+    <tr><th>Function</th><th class="num">Deployed</th><th class="num">Processed</th><th class="num">Not processed</th>
     <th class="num">Stopped early</th><th>Why not processed</th></tr>
   </thead>
   <tbody>

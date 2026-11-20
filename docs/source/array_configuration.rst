@@ -10,7 +10,7 @@ own :doc:`mooring YAML file <yaml_configuration>`. Two commands read it:
 
 - ``oceanarray report ARRAY.array.yaml --array [--bathymetry FILE]`` builds the year
   page: a map (with depth contours from a GEBCO or ETOPO file), one row per mooring
-  linking to its pages, and the instruments by type.
+  linking to its pages, and the instruments by function.
 - ``oceanarray export MOORING --array ARRAY.array.yaml`` takes ``site_code`` and
   ``project`` from it for the OceanSITES files.
 
