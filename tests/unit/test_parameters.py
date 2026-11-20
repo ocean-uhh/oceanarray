@@ -1,5 +1,8 @@
 """Tests for oceanarray.config.parameters: VARIABLES registry and vlabel()."""
 
+import re
+from pathlib import Path
+
 import pytest
 
 from oceanarray.config import parameters as params
@@ -153,13 +156,41 @@ class TestIsKnownInstrumentType:
 
 
 def test_valid_limits_only_where_a_physical_limit_is_known():
-    """valid_min / valid_max come from the OceanSITES table, never the QC gross range."""
+    """valid_min / valid_max are physical limits, never the QC gross range."""
     limited = {v for v, e in params.VARIABLES.items() if "valid_min" in e}
     assert limited == {
         "temperature",
         "conservative_temperature",
         "potential_temperature",
         "conductivity",
+        "salinity",
         "pressure",
         "depth",
+        "east_velocity",
+        "north_velocity",
+        "up_velocity",
     }
+
+
+def test_docs_valid_range_table_matches_registry():
+    """The physical-limits table on the auto-QC page lists the registry's limits."""
+    page = Path(__file__).parents[2] / "docs" / "source" / "methods" / "auto_qc.rst"
+    text = page.read_text(encoding="utf-8")
+    table = text[text.index("**Physical limits**") :].split(".. list-table::")[1]
+    table = table.split("\n\n**")[0]
+    cells = re.findall(r"^\s+(?:\* )?- (.*)$", table, flags=re.MULTILINE)
+    rows = [cells[i : i + 5] for i in range(5, len(cells), 5)]
+    documented = {
+        r[0].strip("`"): (
+            float(r[1].replace("−", "-")),
+            float(r[2].replace("−", "-")),
+            r[3].strip("`"),
+        )
+        for r in rows
+    }
+    expected = {
+        v: (e["valid_min"], e["valid_max"], e["units"])
+        for v, e in params.VARIABLES.items()
+        if "valid_min" in e
+    }
+    assert documented == expected
