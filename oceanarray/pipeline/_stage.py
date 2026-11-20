@@ -44,6 +44,36 @@ OLD_IDENTITY_NAMES: dict[str, str] = {
 }
 
 
+def normalize_identity_names(ds: xr.Dataset) -> xr.Dataset:
+    """Return ``ds`` with the identity scalars under their names since 0.6.1.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        A stage file or stack, of any version.
+
+    Returns
+    -------
+    xarray.Dataset
+        ``InstrDepth`` renamed ``instrument_depth`` and ``serial_number`` renamed
+        ``instrument_serial`` (as text), with :data:`IDENTITY_ATTRS`; ``ds`` itself
+        when it has neither old name.
+    """
+    renames = {
+        old: new
+        for old, new in OLD_IDENTITY_NAMES.items()
+        if old in ds.variables and new not in ds.variables
+    }
+    if not renames:
+        return ds
+    ds = ds.rename(renames)
+    for new in renames.values():
+        var = ds[new].variable
+        values = var.values.astype(str) if new == "instrument_serial" else var.values
+        ds[new] = xr.Variable(var.dims, values, IDENTITY_ATTRS[new])
+    return ds
+
+
 def identity_variables(
     entry: Mapping, waterdepth: float | None
 ) -> dict[str, xr.Variable]:

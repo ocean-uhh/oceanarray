@@ -541,9 +541,9 @@ ALL_FILE_TYPES: frozenset = frozenset(
 #:     without a natural diverging / sequential convention.
 #: ``valid_min`` / ``valid_max``
 #:     CF ``valid_min`` / ``valid_max`` attributes written to NetCDF output
-#:     (physically valid range): from :file:`legacy/OS1_variable_attributes.yaml`
-#:     where it gives one, else the gross-range ``fail_span`` of
-#:     :data:`QC_GROSS_RANGE` (a value outside it is flagged bad).
+#:     (physically valid range).  Present only where
+#:     :file:`legacy/OS1_variable_attributes.yaml` provides an authoritative value;
+#:     absent for other variables (:data:`QC_GROSS_RANGE` is for flagging only).
 VARIABLES: dict[str, dict] = {
     "temperature": {
         "label": "Temperature",
@@ -612,6 +612,16 @@ VARIABLES: dict[str, dict] = {
         # (i.e. rho(T_potential, S, p=0) − 1000 kg m-3)
         "standard_name": "sea_water_sigma_theta",
         "cmap": "BuPu",
+    },
+    # σ at 1000–4000 dbar (the stack's sigma1 … sigma4); CF has no standard name.
+    **{
+        f"sigma{n}": {
+            "label": f"σ{sub}",
+            "units": "kg m-3",
+            "standard_name": None,
+            "cmap": None,
+        }
+        for n, sub in zip((1, 2, 3, 4), "₁₂₃₄", strict=True)
     },
     "u": {
         "label": "Eastward velocity",
@@ -762,14 +772,9 @@ VARIABLES: dict[str, dict] = {
     },
 }
 
-for _var, _ranges in QC_GROSS_RANGE.items():
-    if _var in VARIABLES and "fail_span" in _ranges:
-        VARIABLES[_var].setdefault("valid_min", float(_ranges["fail_span"][0]))
-        VARIABLES[_var].setdefault("valid_max", float(_ranges["fail_span"][1]))
 
-
-def cf_attrs(var: str) -> dict[str, str]:
-    """Return the CF ``standard_name``, ``units`` and ``long_name`` of *var* from :data:`VARIABLES`.
+def cf_attrs(var: str) -> dict[str, str | float]:
+    """Return the CF attributes of *var* from :data:`VARIABLES`.
 
     Parameters
     ----------
@@ -778,13 +783,15 @@ def cf_attrs(var: str) -> dict[str, str]:
 
     Returns
     -------
-    dict of str to str
-        The attributes the registry gives (no ``standard_name`` where none exists).
+    dict of str to str or float
+        ``units``, ``long_name``, and ``standard_name``, ``valid_min`` and
+        ``valid_max`` where the registry gives them.
     """
     entry = VARIABLES[var]
     attrs = {"units": entry["units"], "long_name": entry["label"]}
     if entry.get("standard_name"):
         attrs["standard_name"] = entry["standard_name"]
+    attrs.update({k: entry[k] for k in ("valid_min", "valid_max") if k in entry})
     return attrs
 
 

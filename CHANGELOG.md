@@ -54,7 +54,7 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 - Velocity, speed and direction attributes come from the variable registry (`params.cf_attrs`); the registry key is `current_speed`, as written.
 - Direction and tilt units are spelled `degree` everywhere (stage 3, stack, grid).
-- `valid_min` / `valid_max` for salinity, velocity, oxygen and turbidity, from the QC gross-range fail span.
+- `valid_min` / `valid_max` are written only where a physical limit is known; gross-range limits are used for flagging only.
 - The stage-3 history names the rotation's transformation matrix source instead of `beam_angle=?°`.
 - OceanSITES `time_coverage_resolution` of a deployment file is read from its time axis.
 - Tilt QC flags the geometric tilt, arccos(cos pitch · cos roll), at `QC_TILT` 30°/50°; the report tilt panel and ADCP bin pressure use the same formula.
@@ -149,7 +149,7 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 - `serial_number` is now `instrument_serial`, always text; the stack's `serial` stays the per-level key. Older stage files are read under the new names.
 - `latitude`, `longitude`, `waterdepth` and the deployment and seabed positions are numbers (decimal degrees, m), not text; absent positions are left out.
 - `deployment_time` / `recovery_time` are ISO 8601 UTC to the second (`2026-07-11T20:30:00Z`), as OceanSITES 1.4.
-- Stacks write σ0 as `sea_water_sigma_theta`; σ1…σ4 carry no standard name (none exists in CF).
+- Stacks write σ0 as `sea_water_sigma_theta`; σ1…σ4 carry no standard name (none exists in CF). σ attributes come from the variable registry: long names are `σ₀` … `σ₄`.
 - Stage files no longer carry `sample_interval_seconds`.
 - The year page ignores the array YAML's cruise, ship, dates, position, water-depth range, `vocab` and `bathymetry` (one warning names them); values come from the mooring YAMLs.
 - Site grids no longer record `slope_angle_deg` / `slope_angle_source`; `concat --slope-angle` and `grid(slope_angle=)` warn until 0.7.0 (use `--rotate-to`).
@@ -162,6 +162,7 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Fixed
 
+- An OceanSITES variable without a `standard_name` gets the registry's, not an empty one.
 - Stack cat and Grid cat sections: deployment names beyond the time axis no longer collapse the figure's layout (titles crowded the panel above).
 - The year page creates its report folder when it does not exist.
 - Year array page: a mooring YAML whose `waterdepth` is text ("unknown") no longer stops the page; the table shows the text, the header and map leave it out.

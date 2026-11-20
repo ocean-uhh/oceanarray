@@ -15,6 +15,7 @@ import pytest
 import xarray as xr
 
 from oceanarray import mooring as _mooring
+from oceanarray.config import parameters as params
 from oceanarray.exceptions import MooringError
 from oceanarray.pipeline.grid import grid
 from oceanarray.pipeline.read_mooring import read_mooring
@@ -165,3 +166,13 @@ def test_stack_accepts_stage_files_before_0_6_1(stage3, cfg):
     assert "InstrDepth" not in out and "serial_number" not in out
     assert out["instrument_serial"].values.tolist() == ["9920", "2941"]
     assert out["instrument_depth"].attrs["long_name"] == "nominal instrument depth"
+
+
+@pytest.mark.parametrize(
+    ("ref", "name", "entry"),
+    [(0, "sigma0", "potential_density"), (2000, "sigma2", "sigma2")],
+)
+def test_stack_sigma_attributes_come_from_the_registry(stage3, cfg, ref, name, entry):
+    """σ0 is the registry's potential_density (sea_water_sigma_theta); σ2 has no standard name."""
+    out = stack(stage3, {**cfg, "density_reference": ref}, dt_seconds=_DT)
+    assert out[name].attrs == {**params.cf_attrs(entry), "reference_pressure_dbar": ref}

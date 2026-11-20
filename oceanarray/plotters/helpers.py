@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 
 from oceanarray.config.unit_tables import unit_label
+from oceanarray.pipeline._stage import normalize_identity_names
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -817,10 +818,6 @@ def _quiet_bearing(lengths: np.ndarray) -> float:
     return (int(np.argmin(span)) + 0.5) * 360.0 / n
 
 
-#: The nominal-depth variable; files before 0.6.1 call it ``InstrDepth``.
-_DEPTH_NAMES = ("instrument_depth", "InstrDepth")
-
-
 def nominal_depth_text(ds: xr.Dataset) -> str:
     """Return one instrument file's nominal depth as ``"1500 m"``, or ``"?"``.
 
@@ -834,10 +831,29 @@ def nominal_depth_text(ds: xr.Dataset) -> str:
     str
         The depth to the metre, or ``"?"`` when the file has none.
     """
-    for name in _DEPTH_NAMES:
-        if name in ds.variables:
-            return f"{float(ds[name].values):.0f} m"
+    ds = normalize_identity_names(ds)
+    if "instrument_depth" in ds.variables:
+        return f"{float(ds['instrument_depth'].values):.0f} m"
     return "?"
+
+
+def serial_text(ds: xr.Dataset) -> str:
+    """Return one instrument file's serial: ``instrument_serial``, else ``serial``, else ``"?"``.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        An instrument's stage file.
+
+    Returns
+    -------
+    str
+        The serial as the file records it.
+    """
+    ds = normalize_identity_names(ds)
+    if "instrument_serial" in ds.variables:
+        return str(ds["instrument_serial"].item())
+    return str(ds.attrs.get("serial", "?"))
 
 
 def nominal_depths(ds: xr.Dataset) -> np.ndarray | None:
@@ -857,9 +873,9 @@ def nominal_depths(ds: xr.Dataset) -> np.ndarray | None:
     """
     if "N_DEPTHS" in ds.dims:
         return ds["nominal_depth"].values.astype(float)
-    for name in _DEPTH_NAMES:
-        if name in ds.variables and ds[name].ndim == 1:
-            return np.asarray(ds[name].values, dtype=float)
+    ds = normalize_identity_names(ds)
+    if "instrument_depth" in ds.variables and ds["instrument_depth"].ndim == 1:
+        return np.asarray(ds["instrument_depth"].values, dtype=float)
     waterdepth = ds.attrs.get("waterdepth")
     if "hab" in ds.variables and waterdepth not in (None, ""):
         try:

@@ -126,6 +126,7 @@ def type_code(ds: xr.Dataset) -> str:
 
 def _nominal_depth(ds: xr.Dataset) -> float:
     """Return the instrument's nominal depth (m): ``instrument_depth``, else water depth − HAB."""
+    ds = _stage.normalize_identity_names(ds)
     if "instrument_depth" in ds.variables:
         return float(ds["instrument_depth"].values)
     try:

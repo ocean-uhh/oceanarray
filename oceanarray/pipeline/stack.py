@@ -235,15 +235,10 @@ class _LowPassedError(ValueError):
     """A low-passed instrument file reached the stack without ``stack: false``."""
 
 
-#: Reference pressure (dbar) → variable name and long name. Only σ0 has a CF
-#: standard name (``sea_water_sigma_theta``); the others carry the long name alone.
-_SIGMA_META = {
-    ref: (
-        f"sigma{ref // 1000}",
-        f"Potential density anomaly referenced to {ref} dbar (sigma-{ref // 1000})",
-    )
-    for ref in (1000, 2000, 3000, 4000)
-} | {0: ("sigma0", "Potential density anomaly referenced to surface (sigma-0)")}
+#: Registry entry of the σ at each reference pressure (dbar).
+_SIGMA_ENTRY = {0: "potential_density"} | {
+    ref: f"sigma{ref // 1000}" for ref in (1000, 2000, 3000, 4000)
+}
 
 
 def stack(
@@ -551,9 +546,9 @@ def stack(
                 ds = _build_adcp_head_ds(ds_parent)
             else:
                 ds = info["ds"]
-            # Canonicalise each instrument's units before stacking, so a
-            # pre-0.5.0 input (degC, S/m, …) joins the stack already canonical.
-            ds = to_canonical_units(ds, stage="stack")
+            # Canonicalise each instrument's units and identity names before
+            # stacking, so an older input (degC, S/m, InstrDepth, …) joins canonical.
+            ds = to_canonical_units(_stage.normalize_identity_names(ds), stage="stack")
             # A low-passed file (e.g. RODB .lowedt) would be sampled onto the
             # stack's steps as if it were full-rate data.
             if "originator_low_passed" in ds.attrs:
@@ -658,17 +653,11 @@ def stack(
         for vname, da in ds.data_vars.items():
             if da.dims or sensors.is_record(vname):  # time series; sensor records
                 continue
-            value, attrs = da.values.item(), dict(da.attrs)
-            if vname in _stage.OLD_IDENTITY_NAMES:  # a stage file before 0.6.1
-                vname = _stage.OLD_IDENTITY_NAMES[vname]
-                attrs = dict(_stage.IDENTITY_ATTRS[vname])
-                if vname == "instrument_serial":
-                    value = str(value)
             if vname not in scalar_meta:
                 # Back-fill with None for instruments processed before this variable appeared
                 scalar_meta[vname] = [None] * i
-                scalar_attrs[vname] = attrs
-            scalar_meta[vname].append(value)
+                scalar_attrs[vname] = dict(da.attrs)
+            scalar_meta[vname].append(da.values.item())
 
         # Collect magnetic_declination from global attrs (set by stage3 BEAM→ENU).
         # Must come BEFORE the fill-None loop so the length is already i+1 when
@@ -813,20 +802,17 @@ def stack(
                 SA, CT, ref_p, temperature=T_arr, pressure=P_arr
             )
             if not np.all(np.isnan(sigma_vals)):
-                vname, long_name = _SIGMA_META.get(
-                    ref_p,
-                    (
-                        f"sigma_{ref_p}",
-                        f"Potential density anomaly referenced to {ref_p} dbar",
-                    ),
+                entry = _SIGMA_ENTRY.get(ref_p)
+                vname = f"sigma{ref_p // 1000}" if entry else f"sigma_{ref_p}"
+                attrs = (
+                    params.cf_attrs(entry)
+                    if entry
+                    else {
+                        "units": "kg m-3",
+                        "long_name": f"Potential density anomaly referenced to {ref_p} dbar",
+                    }
                 )
-                attrs = {
-                    "units": "kg m-3",
-                    "long_name": long_name,
-                    "reference_pressure_dbar": ref_p,
-                }
-                if ref_p == 0:
-                    attrs["standard_name"] = "sea_water_sigma_theta"
+                attrs["reference_pressure_dbar"] = ref_p
                 data_vars[vname] = xr.Variable(("N_LEVELS", "time"), sigma_vals, attrs)
         except Exception as exc:  # noqa: BLE001  — gsw failure must not abort stack
             log.warning(f"  could not compute potential density: {exc}")

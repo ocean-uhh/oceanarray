@@ -19,6 +19,7 @@ from scipy.signal import find_peaks
 from oceanarray import mooring as _mooring
 from oceanarray import paths
 from oceanarray.instruments import instrument_entries
+from oceanarray.pipeline import _stage
 from oceanarray.pipeline.clock import deployment as find_deployment
 
 _STAGE2_TAG = paths.stage_suffix(2).removesuffix(".nc")
@@ -69,7 +70,7 @@ def load_mooring_instruments(
 
         if Path(rawfile).exists():
             print(rawfile)
-            ds1 = xr.open_dataset(rawfile)
+            ds1 = _stage.normalize_identity_names(xr.open_dataset(rawfile))
 
             # Add metadata from YAML
             if "instrument" not in ds1.variables and "instrument" in i:

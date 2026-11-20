@@ -22,6 +22,7 @@ from oceanarray.legacy.qc_rodb import (
     flag_vertical_inconsistencies,
     run_qc,
 )
+from oceanarray.pipeline.clock import offsets
 from oceanarray.pipeline.clock.offsets import lag_correlation, split_value
 from oceanarray.pipeline.gridders.climatology import downsample_to_sparse
 
@@ -329,3 +330,20 @@ def test_split_value_returns_float():
     data = rng.normal(5.0, 1.0, 100)
     val = split_value(data)
     assert np.isfinite(val)
+
+
+def test_clock_levels_read_files_before_0_6_1():
+    """Stage files with InstrDepth and serial_number give each level its depth and serial."""
+    datasets, _ = offsets.load_mooring_instruments(
+        "egM2_2018", None, "tests/fixtures/proc/egM2_concat/", file_suffix="_stage3"
+    )
+    grid = offsets.create_common_time_grid(datasets)
+    combined = offsets.combine_interpolated_datasets(
+        offsets.interpolate_datasets_to_grid(datasets, grid)
+    )
+    assert [d["instrument_serial"].item() for d in datasets] == [
+        "13220",
+        "CM2000",
+        "11514",
+    ]
+    assert combined["nominal_depth"].values.tolist() == [1500.0, 2000.0, 2385.0]

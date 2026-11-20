@@ -308,3 +308,12 @@ def test_adcp_flags_bin_pressure_from_the_transducer_and_seabed_on_velocity() ->
     assert (ucur_qc[has_value, -1] == 4).all()
     # A passed seabed test leaves the (unchecked, 0) velocity flags as they were.
     assert set(np.unique(ucur_qc[:, 0])) <= {0, 9}
+
+
+def test_depth_of_a_stage3_file_before_0_6_1(description: dict) -> None:
+    """A file with InstrDepth exports at that depth, without falling back to the HAB."""
+    with xr.open_dataset(_PROC.parent / "before_sensor_records" / _MICROCAT.name) as f:
+        old = f.load()
+    del old.attrs["hab"]
+    out = to_oceansites(old, description)
+    assert out["DEPTH"].values.tolist() == [320.0]
