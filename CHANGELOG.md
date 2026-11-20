@@ -57,7 +57,7 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 - `valid_min` / `valid_max` are written only where a physical limit is known; gross-range limits are used for flagging only.
 - The stage-3 history names the rotation's transformation matrix source instead of `beam_angle=?°`.
 - OceanSITES `time_coverage_resolution` of a deployment file is read from its time axis.
-- Tilt QC flags the geometric tilt, arccos(cos pitch · cos roll), at `QC_TILT` 30°/50°; the report tilt panel and ADCP bin pressure use the same formula.
+- Tilt QC, the report tilt panel and ADCP bin pressure use one tilt, arccos(cos pitch · cos roll), with RDI pitch converted to true pitch; QC flags it at `QC_TILT` 30°/50° even where `pitch_qc` / `roll_qc` exist.
 - Stack cat captions are built from the file: flag sentence, direction reference, σθ interval; grey bands named only when a turnaround has a gap.
 - Stack cat: depths labelled "1824 m" (type added when two share a depth), shorter upward-velocity panel, time axis ends at the data, T-S axes over every value.
 - Stack cat: roses share one ring scale, direction profile drops the steadiness markers, T-S medians lose "Draft"; one NetCDF file appendix.

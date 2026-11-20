@@ -4,8 +4,6 @@ QARTOD QC wrappers, OceanSITES flag handling, and CTD derivations. The flag
 scheme (OceanSITES Reference Table 2) and merge priority are the scientific
 conventions under test — assertions encode the documented behaviour so a silent
 change to a threshold, a flag mapping, or the merge order is caught.
-
-Milestone B of ``.claude/notes/2026-08-19-stage-coverage-plan.md``.
 """
 
 from __future__ import annotations
@@ -173,7 +171,7 @@ def test_load_qc_config_instrument_override_beats_mooring():
 
 
 # ---------------------------------------------------------------------------
-# apply_tilt_qc — fallback path (compute from raw pitch/roll)
+# apply_tilt_qc — geometric tilt against the tilt thresholds
 # ---------------------------------------------------------------------------
 
 
@@ -229,6 +227,27 @@ def test_apply_tilt_qc_uses_the_geometric_tilt_and_qc_tilt_on_real_data():
     assert n_suspect > int(np.sum(np.maximum(abs(pitch), abs(roll)) >= 30))
     assert out.attrs["tilt_suspect_threshold"] == 30.0
     assert out.attrs["tilt_fail_threshold"] == 50.0
+
+
+def test_apply_tilt_qc_ignores_component_flags_on_real_data():
+    """9920 with pitch_qc / roll_qc at 30°/50°: a record with both under 30° but tilt over is flagged."""
+    path = (
+        Path(__file__).parents[1]
+        / "fixtures/proc/dune2_1_2026/aquadopp/dune2_1_2026_9920_stage2.nc"
+    )
+    with xr.open_dataset(path) as src:
+        ds = src.load()
+    span = {"suspect_span": [-30, 30], "fail_span": [-50, 50]}
+    ds = Q.apply_qc_tests(ds, {"pitch": span, "roll": span}, {})
+    pitch_qc = ds["pitch_qc"].values.copy()
+    i = 1173  # pitch -29.1°, roll -9.9°: tilt 30.6°
+    assert ds["pitch_qc"][i] == 1 and ds["roll_qc"][i] == 1
+
+    out, n_suspect, _ = Q.apply_tilt_qc(ds, {})
+
+    assert out["velocity_beam1_qc"][i] == 3
+    assert n_suspect > int(np.sum(pitch_qc == 3))
+    np.testing.assert_array_equal(out["pitch_qc"].values, pitch_qc)
 
 
 # ---------------------------------------------------------------------------

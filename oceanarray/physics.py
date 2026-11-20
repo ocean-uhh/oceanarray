@@ -10,6 +10,7 @@ Functions
 flow_direction : direction the water flows toward, degrees clockwise from north.
 speed_direction : current speed and flow direction.
 tilt : angle of an instrument's axis from vertical, from its pitch and roll.
+instrument_tilt : that angle for a dataset, with the RDI pitch conversion where it applies.
 sigma_function : the TEOS-10 potential-density function for a reference pressure.
 potential_density_anomaly : σ at a reference pressure from Absolute Salinity and Conservative Temperature.
 """
@@ -80,6 +81,40 @@ def tilt(pitch: Any, roll: Any) -> Any:
     """
     cos_t = np.cos(np.radians(pitch)) * np.cos(np.radians(roll))
     return np.degrees(np.arccos(np.clip(cos_t, -1.0, 1.0)))
+
+
+def instrument_tilt(ds: Any) -> Any:
+    """Return the geometric tilt of an instrument dataset, in degrees.
+
+    :func:`tilt` of the dataset's pitch and roll (a missing one counts as 0). An RDI
+    ADCP (``file_type == "rdi-raw"`` or a ``firmware_coordinate_system`` attr) records
+    pitch as the raw tilt-1 reading; its true pitch is ``arctan(tan(tilt1)·cos(roll))``
+    (RDI ADCP Coordinate Transformation manual), used here in place of the recorded pitch.
+    Other instruments' pitch is used as recorded.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        With ``pitch`` and/or ``roll`` (degrees) on ``time``.
+
+    Returns
+    -------
+    numpy.ndarray or None
+        Tilt on ``time``; None when both pitch and roll are absent.
+    """
+    if "pitch" not in ds.data_vars and "roll" not in ds.data_vars:
+        return None
+    zeros = np.zeros(ds.sizes["time"])
+    pitch = ds["pitch"].values.astype(float) if "pitch" in ds.data_vars else zeros
+    roll = ds["roll"].values.astype(float) if "roll" in ds.data_vars else zeros
+    if (
+        ds.attrs.get("file_type") == "rdi-raw"
+        or "firmware_coordinate_system" in ds.attrs
+    ):
+        pitch = np.degrees(
+            np.arctan(np.tan(np.radians(pitch)) * np.cos(np.radians(roll)))
+        )
+    return tilt(pitch, roll)
 
 
 def sigma_function(reference_dbar: int) -> Callable[[Any, Any], Any] | None:

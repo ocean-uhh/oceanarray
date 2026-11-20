@@ -118,14 +118,12 @@ _MAX_TS_PANELS = 5
 
 
 def _add_tilt(ds: xr.Dataset) -> xr.Dataset:
-    """Return *ds* with the derived ``tilt`` (:func:`oceanarray.physics.tilt`) added."""
-    if "pitch" not in ds.data_vars and "roll" not in ds.data_vars:
+    """Return *ds* with the derived ``tilt`` (:func:`oceanarray.physics.instrument_tilt`) added."""
+    tilt = physics.instrument_tilt(ds)
+    if tilt is None:
         return ds
-    zeros = np.zeros(ds.sizes["time"])
-    pitch = ds["pitch"].values.astype(float) if "pitch" in ds.data_vars else zeros
-    roll = ds["roll"].values.astype(float) if "roll" in ds.data_vars else zeros
     attrs = {"units": "degree", "long_name": "Instrument tilt from vertical"}
-    return ds.assign(tilt=("time", physics.tilt(pitch, roll), attrs))
+    return ds.assign(tilt=("time", tilt, attrs))
 
 
 def _draw_instrument_panels(

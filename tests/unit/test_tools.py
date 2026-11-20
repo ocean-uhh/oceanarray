@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -23,6 +25,7 @@ from oceanarray.legacy.qc_rodb import (
     run_qc,
 )
 from oceanarray.pipeline.clock import offsets
+from oceanarray.pipeline.clock.deployment import find_deployment
 from oceanarray.pipeline.clock.offsets import lag_correlation, split_value
 from oceanarray.pipeline.gridders.climatology import downsample_to_sparse
 
@@ -347,3 +350,21 @@ def test_clock_levels_read_files_before_0_6_1():
         "11514",
     ]
     assert combined["nominal_depth"].values.tolist() == [1500.0, 2000.0, 2385.0]
+
+
+def test_deployment_labels_name_each_serial(capsys):
+    """Combined stage-1 files carry ``instrument_serial``, so each label shows it."""
+    proc = Path(__file__).resolve().parents[1] / "fixtures" / "proc" / "dune2_1_2026"
+    files = [
+        proc / "microcat" / "dune2_1_2026_2941_stage1.nc",
+        proc / "aquadopp" / "dune2_1_2026_9920_stage1.nc",
+    ]
+    datasets = [xr.load_dataset(f) for f in files]
+    grid = offsets.create_common_time_grid(datasets)
+    combined = offsets.combine_interpolated_datasets(
+        offsets.interpolate_datasets_to_grid(datasets, grid)
+    )
+    assert list(combined["instrument_serial"].values) == ["2941", "9920*"]
+    find_deployment(combined)
+    out = capsys.readouterr().out
+    assert "0/2941:microcat" in out and "1/9920*:aquadopp" in out

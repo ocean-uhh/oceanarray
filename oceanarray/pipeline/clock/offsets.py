@@ -255,7 +255,7 @@ def combine_interpolated_datasets(datasets_interp):
             "time": time_coord,
             "N_LEVELS": np.arange(N_LEVELS),
             "clock_offset": ("N_LEVELS", np.array(clock_offsets)),
-            "serial_number": ("N_LEVELS", np.array(serial)),
+            "instrument_serial": ("N_LEVELS", np.array(serial)),
             "nominal_depth": ("N_LEVELS", np.array(depths)),
             "instrument": ("N_LEVELS", np.asarray(instrtype)),
         },
@@ -429,7 +429,7 @@ def print_timing_offset_summary(combined_ds, offset_results):
     """
     N = combined_ds.sizes["N_LEVELS"]
     labels = combined_ds["instrument"].values
-    serial = combined_ds["serial_number"].values
+    serial = combined_ds["instrument_serial"].values
 
     start_times = pd.to_datetime(combined_ds["start_time"].values)
     end_times = pd.to_datetime(combined_ds["end_time"].values)
@@ -489,7 +489,7 @@ def suggest_reference_instrument(combined_ds, offset_results):
     min_abs_idx = finite_indices[np.argmin(abs_offsets[finite_mask])]
 
     instruments = combined_ds["instrument"].values
-    serial = combined_ds["serial_number"].values
+    serial = combined_ds["instrument_serial"].values
     depths = combined_ds["nominal_depth"].values
 
     suggestion = {
@@ -524,7 +524,7 @@ def print_correlation_summary(combined_ds, correlation_results):
         Results from perform_lag_correlation_analysis()
 
     """
-    serial = combined_ds["serial_number"].values
+    serial = combined_ds["instrument_serial"].values
 
     print("Lag Correlation Analysis Results:")
     print("(Enter the summed value, no sign change, in the yaml as clock_offset)")

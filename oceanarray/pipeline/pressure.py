@@ -746,17 +746,8 @@ def _compute_adcp_bin_pressure(
             "cos(tilt) NOT applied (would double-correct)."
         )
     elif has_tilt:
-        # Angle of the instrument axis from vertical.  RDI stores pitch as the raw tilt-1
-        # reading; the true pitch is arctan(tan(tilt1)·cos(roll)) (RDI Coordinate
-        # Transformation manual), and the angle from vertical is arccos(cos P_true·cos R)
-        # (roll is already the true roll, tilt-2).
-        roll_r = np.deg2rad(ds["roll"].values.astype(float))  # (time,)
-        p_true = np.arctan(
-            np.tan(np.deg2rad(ds["pitch"].values.astype(float))) * np.cos(roll_r)
-        )
-        tilt = np.radians(
-            physics.tilt(np.degrees(p_true), ds["roll"].values.astype(float))
-        )
+        # Angle of the instrument axis from vertical, with the RDI true-pitch conversion.
+        tilt = np.radians(physics.instrument_tilt(ds))
         tilt_correction = "applied"
         tilt_definition = "arccos(cos(true_pitch)·cos(roll)); true_pitch = arctan(tan(tilt1)·cos(roll))"
         tilt_source = "pitch,roll"
