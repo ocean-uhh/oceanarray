@@ -157,19 +157,23 @@ class TestIsKnownInstrumentType:
 
 def test_valid_limits_only_where_a_physical_limit_is_known():
     """valid_min / valid_max are physical limits, never the QC gross range."""
-    limited = {v for v, e in params.VARIABLES.items() if "valid_min" in e}
-    assert limited == {
-        "temperature",
-        "conservative_temperature",
-        "potential_temperature",
-        "conductivity",
-        "salinity",
-        "pressure",
-        "depth",
-        "east_velocity",
-        "north_velocity",
-        "up_velocity",
+    expected = {
+        "temperature": (-5.0, 42.0),
+        "conservative_temperature": (-5.0, 42.0),
+        "potential_temperature": (-5.0, 42.0),
+        "conductivity": (0.0, 80.0),
+        "salinity": (0.0, 42.0),
+        "pressure": (0.0, 11000.0),
+        "depth": (0.0, 12000.0),
+        "east_velocity": (-10.0, 10.0),
+        "north_velocity": (-10.0, 10.0),
+        "up_velocity": (-10.0, 10.0),
     }
+    assert {
+        v: (e["valid_min"], e["valid_max"])
+        for v, e in params.VARIABLES.items()
+        if "valid_min" in e
+    } == expected
 
 
 def test_docs_valid_range_table_matches_registry():
