@@ -9,7 +9,7 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ---
 
-## [0.6.1] — 2026-11-21
+## [0.6.1] — 2026-11-20
 
 ### Added
 
