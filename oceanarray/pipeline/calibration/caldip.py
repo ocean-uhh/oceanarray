@@ -28,9 +28,8 @@ import numpy as np
 import xarray as xr
 
 from oceanarray.config import parameters as params
-from oceanarray.config.unit_tables import TABLES
+from oceanarray.config.unit_tables import TABLES, UnitsError, resolve_units
 from oceanarray.paths import safe_serial
-from oceanarray.reports._vendored.units import UnitsError, resolve_units
 
 #: Filename suffix of the per-cast caldip netCDF (strict — excludes CSV exports and variants).
 CALDIP_SUFFIX = "_caldip.nc"

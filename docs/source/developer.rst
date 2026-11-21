@@ -153,17 +153,22 @@ for a page).
   ``physics``, ``inspect``) → ``config``, ``exceptions`` and ``_deprecated``. The
   shared report layer (``reports/_vendored/``) may be used by every part and
   imports none of them.
-- ``plotters/`` never imports ``reports/`` (the shared report layer excepted).
+- ``plotters/`` never imports a ``reports/`` module directly (the shared report
+  layer excepted). Indirect chains are not checked yet: they still reach the pages
+  through the mooring and pipeline cycle below.
 - **Units have one door.** Pipeline code gets the unit tables through
   ``config/unit_tables.py``, never from ``reports/_vendored/`` directly.
 - Nothing outside ``legacy/`` imports ``oceanarray.legacy``.
 
 The imports that break a rule today are listed as exceptions in the contracts,
-each marked "To change": the readers and the mooring YAML using pipeline helpers,
-``config/validation.py`` using the modules it checks against, the sensor catalog
-and provenance using a pipeline or writer helper, and ``pipeline/units.py`` and
-``pipeline/calibration/caldip.py`` reaching the shared units directly. A pull
-request that removes one deletes its line; a new one fails the lint job.
+each marked "To change": the readers using pipeline helpers, the sensor catalog
+and provenance using a pipeline or writer helper, and two **cycles**, where the
+lower module imports back inside a function to avoid a circular import at load
+time: ``mooring`` and ``pipeline`` (``pipeline.stack`` and ``pipeline.concat``
+import ``mooring``; ``mooring`` uses ``pipeline.attribution``, ``masking`` and
+``_run``), and ``mooring`` and ``config/validation.py``. A cycle is fixed by
+moving the shared pieces below both modules, not by deleting a line. A pull
+request that removes an exception deletes its line; a new one fails the lint job.
 ``pipeline/_run.py`` importing ``reports`` is allowed: ``run`` ends with the
 report.
 

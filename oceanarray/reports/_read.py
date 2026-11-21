@@ -331,7 +331,7 @@ def _read_instrument_info(
         p_max: float | None = None
         if "pressure" in ds.data_vars:
             try:
-                pvals = masking.masked(ds, "pressure", rule)
+                pvals = masking.masked(ds, "pressure", rule=rule)
                 # Exclude non-positive values (pre-deployment bench / stuck sensor)
                 pvals = np.where(pvals > 0, pvals, np.nan)
                 _pmin = float(np.nanmin(pvals))

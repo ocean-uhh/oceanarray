@@ -242,11 +242,13 @@ ignore_imports = [
   "oceanarray.** -> oceanarray.reports._vendored.**",
   # The package version, read from the package root.
   "oceanarray.provenance -> oceanarray",
-  # To change: mooring-YAML validation belongs above the modules it checks against.
+  # To change, and a cycle (mooring imports config.validation back): mooring-YAML
+  # validation belongs above the modules it checks against.
   "oceanarray.config.validation -> oceanarray.mooring",
   "oceanarray.config.validation -> oceanarray.paths",
   "oceanarray.config.validation -> oceanarray.instruments",
-  # To change: the mooring YAML reads pipeline helpers and defaults.
+  # To change, and a cycle (pipeline.stack and pipeline.concat import mooring): the
+  # mooring YAML reads pipeline helpers and defaults; those pieces move below mooring.
   "oceanarray.mooring -> oceanarray.pipeline.attribution",
   "oceanarray.mooring -> oceanarray.pipeline.masking",
   "oceanarray.mooring -> oceanarray.pipeline._run",
@@ -278,17 +280,15 @@ name = "Units have one door: pipeline code gets the unit tables through config.u
 type = "forbidden"
 source_modules = ["oceanarray.pipeline"]
 forbidden_modules = ["oceanarray.reports._vendored.units", "oceanarray.reports._vendored.units_tables"]
+# Indirect imports are allowed: config.unit_tables is the door, and it reads the shared units.
 allow_indirect_imports = true
-ignore_imports = [
-  # To change: these two still import the shared units directly.
-  "oceanarray.pipeline.units -> oceanarray.reports._vendored.units",
-  "oceanarray.pipeline.calibration.caldip -> oceanarray.reports._vendored.units",
-]
 
 [[tool.importlinter.contracts]]
-name = "Plotters do not import the pages (the shared report layer excepted)"
+name = "Plotters import no page module directly (the shared report layer excepted)"
 type = "forbidden"
 source_modules = ["oceanarray.plotters"]
 forbidden_modules = ["oceanarray.reports"]
+# Direct imports only for now: indirect chains still reach the pages through the
+# mooring <-> pipeline cycle (pipeline._run ends with the report).
 allow_indirect_imports = true
 ignore_imports = ["oceanarray.plotters.** -> oceanarray.reports._vendored.**"]
