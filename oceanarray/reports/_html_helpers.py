@@ -220,11 +220,21 @@ def _resolve_clock(entry: dict[str, Any]) -> dict[str, Any]:
     Delegates to the single :func:`~oceanarray.instruments.resolve_clock_correction` so
     the page table cannot disagree with the applied correction or the outlier check.
     """
-    from oceanarray.instruments import resolve_clock_correction
+    from oceanarray.instruments import (
+        is_missing_clock_reading,
+        resolve_clock_correction,
+    )
 
     offset_s = float(entry.get("clock_offset", 0) or 0)
     correction = resolve_clock_correction(entry)
-    not_read = correction.source == "not read"
+    comp_str = entry.get("computer_clock_at_recovery")
+    inst_str = entry.get("instrument_clock_at_recovery")
+    # "Not read" is about the readings, not the correction: a pair that is present but
+    # unknown/empty is not read even when clock_drift_seconds supplies the drift.
+    pair_present = comp_str is not None or inst_str is not None
+    not_read = pair_present and (
+        is_missing_clock_reading(comp_str) or is_missing_clock_reading(inst_str)
+    )
     drift_s = (
         correction.seconds
         if correction.source in ("recovery readings", "clock_drift_seconds")
@@ -236,8 +246,6 @@ def _resolve_clock(entry: dict[str, Any]) -> dict[str, Any]:
         else "none"
     )
 
-    comp_str = entry.get("computer_clock_at_recovery")
-    inst_str = entry.get("instrument_clock_at_recovery")
     return {
         "offset_s": offset_s,
         "drift_s": drift_s,

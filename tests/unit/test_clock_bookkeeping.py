@@ -6,6 +6,7 @@ and dsG3_1_2026); the records are the committed dune2 stage-1 files.
 
 from pathlib import Path
 
+import numpy as np
 import pytest
 import xarray as xr
 
@@ -195,14 +196,15 @@ def test_clock_table_lists_instruments_not_read():
     assert shown["drift_s"] is None
 
 
-# -- 6. a non-numeric clock field fails loudly ----------------------------------------
+# -- 6. a non-finite clock field fails loudly -----------------------------------------
 
 
 @pytest.mark.parametrize("field", ["clock_offset", "clock_drift_seconds"])
-def test_non_numeric_clock_field_is_an_error(field):
-    """A hand-edited word in a numeric clock field is an ERROR naming the key and serial."""
+@pytest.mark.parametrize("bad", ["unknown", float("nan"), float("inf")])
+def test_non_finite_clock_field_is_an_error(field, bad):
+    """A word, nan or inf in a numeric clock field is an ERROR naming the key and serial."""
     cfg = _dune2()
-    _entry(cfg, "2941")[field] = "unknown"
+    _entry(cfg, "2941")[field] = bad
     errors = [
         i for i in validate_mooring(cfg) if i.level == "ERROR" and field in i.message
     ]
@@ -211,11 +213,12 @@ def test_non_numeric_clock_field_is_an_error(field):
 
 
 @pytest.mark.parametrize("field", ["clock_offset", "clock_drift_seconds"])
-def test_non_numeric_clock_field_raises_mooring_error(field):
-    """Stage 2 refuses a non-numeric clock field with a MooringError, not a bare ValueError."""
+@pytest.mark.parametrize("bad", ["unknown", float("nan"), float("inf")])
+def test_non_finite_clock_field_raises_mooring_error(field, bad):
+    """Stage 2 refuses a non-finite clock field with a MooringError, not a low-level error."""
     cfg = _dune2()
     entry = _entry(cfg, "2941")
-    entry[field] = "unknown"
+    entry[field] = bad
     with pytest.raises(MooringError, match=field):
         _stage2(cfg, entry, _stage1("microcat", "2941"))
 
@@ -269,3 +272,53 @@ def test_unparseable_reading_is_a_validation_error():
     ]
     assert errors
     assert "2941" in errors[0].message
+
+
+# -- 9. an offset with agreeing readings ramps back to zero ---------------------------
+
+
+def test_offset_with_agreeing_readings_ramps_back_to_zero():
+    """clock_offset with agreeing recovery readings ramps from the offset to 0, not flat."""
+    cfg = _dune2()
+    entry = _entry(cfg, "2941")
+    entry["clock_offset"] = 30  # agreeing readings give a recovery correction of 0
+    out = _stage2(cfg, entry, _stage1("microcat", "2941"))
+    corr = (out["time"].values - out["time_orig"].values) / np.timedelta64(1, "s")
+    assert corr[0] == pytest.approx(30, abs=2)  # +30 s near deployment
+    assert corr[-1] == pytest.approx(0, abs=2)  # ramped to 0 near recovery
+
+
+# -- 10. a midnight pair matching clock_drift_seconds is not a conflict ----------------
+
+
+def test_midnight_pair_matching_clock_drift_is_not_a_conflict():
+    """23:59:50 vs 00:00:10 is −20 s; clock_drift_seconds: -20 agrees, so no conflict ERROR."""
+    cfg = _dune2()
+    entry = _entry(cfg, "2941")
+    entry["computer_clock_at_recovery"] = "23:59:50"
+    entry["instrument_clock_at_recovery"] = "00:00:10"
+    entry["clock_drift_seconds"] = -20
+    conflicts = [
+        i
+        for i in validate_mooring(cfg)
+        if i.level == "ERROR" and "conflicts" in i.message
+    ]
+    assert not conflicts
+
+
+# -- 11. unknown readings with a drift fallback are shown as not read ------------------
+
+
+def test_clock_table_unknown_readings_with_drift_are_not_read():
+    """Unknown readings with a clock_drift_seconds fallback: not read, with the drift shown."""
+    shown = _resolve_clock(
+        {
+            "computer_clock_at_recovery": "unknown",
+            "instrument_clock_at_recovery": "unknown",
+            "clock_drift_seconds": 100,
+        }
+    )
+    assert shown["not_read"] is True
+    assert shown["drift_s"] == 100.0
+    assert shown["computer_time"] is None
+    assert shown["has_correction"] is True

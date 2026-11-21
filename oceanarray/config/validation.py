@@ -24,6 +24,7 @@ import numpy as np
 from oceanarray import paths
 from oceanarray.config import parameters as params
 from oceanarray.instruments import (
+    clock_seconds,
     hab_for,
     is_missing_clock_reading,
     parse_clock_reading,
@@ -579,7 +580,17 @@ def validate_mooring(
                 except (TypeError, ValueError):
                     stated_drift = None
                 if stated_drift is not None:
-                    computed_drift = (comp_t - inst_t).total_seconds()
+                    # The same correction stage 2 applies (time-only readings normalised
+                    # modulo 24 h), so a pair straddling midnight is not a false conflict.
+                    computed_drift = resolve_clock_correction(
+                        {
+                            k: entry[k]
+                            for k in (
+                                "computer_clock_at_recovery",
+                                "instrument_clock_at_recovery",
+                            )
+                        }
+                    ).seconds
                     if abs(computed_drift - stated_drift) > 1.0:
                         issues.append(
                             ValidationIssue(
@@ -598,20 +609,14 @@ def validate_mooring(
                             )
                         )
 
-        # clock_offset and clock_drift_seconds must be a number of seconds.
+        # clock_offset and clock_drift_seconds must be a finite number of seconds.
+        # clock_seconds raises MooringError (a ValueError) naming the key and serial;
+        # config cannot import exceptions (same layer), so catch it as ValueError.
         for num_key in ("clock_offset", "clock_drift_seconds"):
-            value = entry.get(num_key)
-            if value in (None, ""):
-                continue
             try:
-                float(value)
-            except (TypeError, ValueError):
-                issues.append(
-                    ValidationIssue(
-                        "ERROR",
-                        f"{prefix} {num_key}={value!r} is not a number of seconds",
-                    )
-                )
+                clock_seconds(entry, num_key)
+            except ValueError as exc:
+                issues.append(ValidationIssue("ERROR", str(exc)))
 
     issues.extend(_drift_outliers(combined_list))
     issues.extend(check_serials(combined_list))

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 from typing import Any, NamedTuple
 
@@ -90,14 +91,53 @@ class ClockCorrection(NamedTuple):
 def _stated_clock_drift(entry: dict[str, Any]) -> float:
     """Return ``clock_drift_seconds`` as a float (0 if absent, empty or non-numeric).
 
-    The loud error on a non-numeric value is raised by the caller that applies it
-    (stage 2) and reported by the mooring check; this read is tolerant so the report
-    and the outlier check never crash.
+    The loud error on a non-numeric value is raised by :func:`clock_seconds` (stage 2
+    and the mooring check); this read is tolerant so the report and the outlier check
+    never crash.
     """
     try:
         return float(entry.get("clock_drift_seconds") or 0)
     except (TypeError, ValueError):
         return 0.0
+
+
+def clock_seconds(entry: dict[str, Any], field: str) -> float:
+    """Return a clock field (``clock_offset`` or ``clock_drift_seconds``) in seconds.
+
+    ``None`` or ``""`` is 0.0. A non-numeric value (e.g. ``"unknown"``) or a non-finite
+    one (``nan``, ``inf``) raises :class:`~oceanarray.exceptions.MooringError` naming the
+    field and serial, so a hand-edited mistake fails loudly at stage 2 and is caught as an
+    ERROR by the mooring check (:class:`MooringError` is a :class:`ValueError`).
+
+    Parameters
+    ----------
+    entry : dict
+        One instrument entry of a mooring YAML.
+    field : str
+        ``"clock_offset"`` or ``"clock_drift_seconds"``.
+
+    Returns
+    -------
+    float
+    """
+    # Local import: ``oceanarray.exceptions`` imports from ``config.validation``, which
+    # imports this module — a module-level import would close that cycle.
+    from oceanarray.exceptions import MooringError
+
+    value = entry.get(field, 0)
+    if value is None or value == "":
+        return 0.0
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        number = None
+    if number is None or not math.isfinite(number):
+        serial = str(entry.get("serial", "unknown")).rstrip("* ")
+        raise MooringError(
+            f"{entry.get('instrument', 'instrument')} s/n {serial}: "
+            f"{field}={value!r} is not a finite number of seconds"
+        )
+    return number
 
 
 def resolve_clock_correction(entry: dict[str, Any]) -> ClockCorrection:

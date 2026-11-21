@@ -29,7 +29,11 @@ from oceanarray import mooring as _mooring
 from oceanarray import paths
 from oceanarray.config import parameters as params
 from oceanarray.exceptions import MooringError
-from oceanarray.instruments import instrument_entries, resolve_clock_correction
+from oceanarray.instruments import (
+    clock_seconds,
+    instrument_entries,
+    resolve_clock_correction,
+)
 from oceanarray.logger import format_time, with_stage_handlers
 from oceanarray.pipeline import _stage
 from oceanarray.pipeline.dataset import drop_all_zero_vars
@@ -44,25 +48,6 @@ log = logging.getLogger(__name__)
 #: planned deployment window is a short record (WARNING): usually an instrument
 #: that failed before recovery, not a processing error.
 _SHORT_RECORD_FRACTION = 0.05
-
-
-def _clock_seconds(entry: dict[str, Any], field: str) -> float:
-    """Return a numeric clock field in seconds, raising MooringError if it is not a number.
-
-    Guards ``clock_offset`` and ``clock_drift_seconds`` so a hand-edited non-number
-    (e.g. ``"unknown"``) fails loudly here rather than as a bare ``ValueError`` deeper in.
-    """
-    value = entry.get(field, 0)
-    if value is None or value == "":
-        return 0.0
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        serial = paths.safe_serial(entry.get("serial", "unknown"))
-        raise MooringError(
-            f"{entry.get('instrument', 'instrument')} s/n {serial}: "
-            f"{field}={value!r} is not a number of seconds"
-        ) from None
 
 
 def detect_deployment_window(
@@ -528,17 +513,23 @@ def _stage2_instrument(
     _stage1_t0 = dataset["time"].values[0]
     _stage1_t1 = dataset["time"].values[-1]
 
-    clock_offset = _clock_seconds(entry, "clock_offset")
-    _clock_seconds(entry, "clock_drift_seconds")  # fail loudly on a non-numeric value
+    clock_offset = clock_seconds(entry, "clock_offset")
+    clock_seconds(entry, "clock_drift_seconds")  # fail loudly on a non-finite value
     correction = resolve_clock_correction(entry)
     if correction.source == "unparseable":
         serial = paths.safe_serial(entry.get("serial", "unknown"))
         raise MooringError(
             f"{entry.get('instrument', 'instrument')} s/n {serial}: {correction.reason}"
         )
-    # Offset is a constant shift; the ramp carries the record from offset at
-    # deployment to the recovery correction, so its height is correction − offset.
-    drift_ramp = (correction.seconds - clock_offset) if correction.seconds != 0 else 0
+    # Offset is a constant shift; when a recovery correction was determined (readings or
+    # clock_drift_seconds) the ramp carries the record from offset at deployment to that
+    # correction at recovery, so its height is correction − offset — even when the
+    # correction is 0 (agreeing readings), which ramps the offset back to 0.
+    drift_ramp = (
+        correction.seconds - clock_offset
+        if correction.source in ("recovery readings", "clock_drift_seconds")
+        else 0
+    )
 
     sug_start, sug_end, sug_source = detect_deployment_window(dataset)
     _nonnull_start, _nonnull_end = _nonnull_time_bounds(dataset)
