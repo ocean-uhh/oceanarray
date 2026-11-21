@@ -730,8 +730,9 @@ class Stage2Processor:
             proc_dir = Path(output_path) / mooring_name
 
         if not proc_dir.exists():
-            print(f"ERROR: Processing directory not found: {proc_dir}")
-            return False
+            raise MooringError(
+                f"{mooring_name}: processing directory not found: {proc_dir}"
+            )
 
         # Set up logging
         self._setup_logging(mooring_name, proc_dir)

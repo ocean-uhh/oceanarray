@@ -557,7 +557,17 @@ def _add_sbe_hex_sensor_vars(
         from seasenselib.readers.sbe_hex_reader import parse_hex_header_sensors
 
         sensor_info = parse_hex_header_sensors(file_path)
-    except Exception:  # noqa: BLE001  — optional; don't break stage1 if unavailable
+    except (
+        ImportError,
+        OSError,
+        KeyError,
+        ValueError,
+    ) as e:  # optional; stage 1 goes on without
+        log.debug(
+            "%s: no calibration coefficients from the hex header (%s)",
+            file_path.name,
+            e,
+        )
         return dataset
 
     cal_coeffs = sensor_info.get("calibration_coefficients", {})

@@ -679,8 +679,9 @@ class Stage3Processor:
         """
         proc_dir = paths.mooring_proc_dir(self._proc_dir, mooring_name)
         if not proc_dir.exists():
-            print(f"ERROR: Processing directory not found: {proc_dir}")
-            return False
+            raise MooringError(
+                f"{mooring_name}: processing directory not found: {proc_dir}"
+            )
 
         self._setup_logging(mooring_name, proc_dir)
         mode = "DRY RUN — " if dry_run else ""
