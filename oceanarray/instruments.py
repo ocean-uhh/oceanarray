@@ -61,8 +61,14 @@ def parse_clock_reading(value: object) -> pd.Timestamp | None:
         s = f"{s[:4]}-{s[4:6]}-{s[6:8]}T{s[9:]}"
     try:
         return pd.Timestamp(s)
-    except Exception:  # noqa: BLE001  — any unparseable string gives None
+    except (TypeError, ValueError):
         return None
+
+
+def _is_time_only(value: object) -> bool:
+    """Return whether a reading is a bare ``HH:MM:SS`` time of day (no date)."""
+    s = str(value).strip()
+    return bool(re.match(r"^\d{2}:\d{2}:\d{2}", s)) and "T" not in s
 
 
 class ClockCorrection(NamedTuple):
@@ -71,7 +77,8 @@ class ClockCorrection(NamedTuple):
     ``seconds`` is the correction at recovery (seconds added to instrument time,
     positive when the instrument clock was slow). ``applied`` is whether a non-zero
     drift correction is made. ``reason`` is the history note. ``source`` is one of
-    ``"recovery readings"``, ``"clock_drift_seconds"``, ``"not read"`` or ``"none"``.
+    ``"recovery readings"``, ``"clock_drift_seconds"``, ``"not read"``, ``"unparseable"``
+    or ``"none"``.
     """
 
     seconds: float
@@ -94,24 +101,25 @@ def _stated_clock_drift(entry: dict[str, Any]) -> float:
 
 
 def resolve_clock_correction(entry: dict[str, Any]) -> ClockCorrection:
-    """Resolve an instrument entry's recovery clock correction and its explanation.
+    """Return the recovery clock correction for a mooring YAML instrument entry.
 
-    The one resolver for the recovery correction, called by stage 2, the mooring
-    check and the report so the applied value, the outlier check and the page table
-    cannot disagree. The ``computer_clock_at_recovery`` / ``instrument_clock_at_recovery``
-    pair (computer − instrument) takes priority over ``clock_drift_seconds``; a pair
-    read as ``unknown`` (see :func:`is_missing_clock_reading`) falls back to
-    ``clock_drift_seconds``, else no drift. The constant ``clock_offset`` at deployment
-    is separate and read by the caller.
+    The ``computer_clock_at_recovery`` / ``instrument_clock_at_recovery`` pair
+    (computer − instrument) takes priority over ``clock_drift_seconds``; a pair read
+    as ``unknown`` (see :func:`is_missing_clock_reading`) falls back to
+    ``clock_drift_seconds``, else there is no drift. Two time-only readings are
+    compared modulo 24 h. The constant ``clock_offset`` at deployment is separate.
 
     Parameters
     ----------
     entry : dict
-        One instrument entry of a mooring description.
+        One instrument entry of a mooring YAML.
 
     Returns
     -------
     ClockCorrection
+        ``seconds``, whether it is ``applied``, the history ``reason`` and the
+        ``source`` (``"recovery readings"``, ``"clock_drift_seconds"``, ``"not read"``,
+        ``"unparseable"`` or ``"none"``).
     """
     comp = entry.get("computer_clock_at_recovery")
     inst = entry.get("instrument_clock_at_recovery")
@@ -134,6 +142,10 @@ def resolve_clock_correction(entry: dict[str, Any]) -> ClockCorrection:
         inst_t = parse_clock_reading(inst)
         if comp_t is not None and inst_t is not None:
             drift = (comp_t - inst_t).total_seconds()
+            if _is_time_only(comp) and _is_time_only(inst):
+                # Both are times of day: wrap the difference into ±12 h so a pair
+                # straddling midnight (23:59:50 vs 00:00:10) reads as −20 s, not +86 380 s.
+                drift = ((drift + 43200) % 86400) - 43200
             if drift:
                 return ClockCorrection(
                     drift,
@@ -149,9 +161,13 @@ def resolve_clock_correction(entry: dict[str, Any]) -> ClockCorrection:
                 f"(computer={comp}, instrument={inst})",
                 "recovery readings",
             )
-        # Present but unparseable: the mooring check ERRORs on this; treat as not read.
+        # Present but neither a "missing" word nor a valid timestamp.
         return ClockCorrection(
-            0.0, False, "clock: no reading at recovery, not corrected", "not read"
+            0.0,
+            False,
+            f"clock: recovery reading is not a valid timestamp "
+            f"(computer={comp!r}, instrument={inst!r})",
+            "unparseable",
         )
 
     if stated:

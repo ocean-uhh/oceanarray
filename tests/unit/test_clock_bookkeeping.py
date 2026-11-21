@@ -15,6 +15,7 @@ from oceanarray.config.validation import (
     validate_mooring,
 )
 from oceanarray.exceptions import MooringError
+from oceanarray.instruments import resolve_clock_correction
 from oceanarray.pipeline import _stage
 from oceanarray.pipeline.stage2 import _parse_yaml_time, _stage2_instrument
 from oceanarray.reports._html_helpers import _resolve_clock
@@ -217,3 +218,54 @@ def test_non_numeric_clock_field_raises_mooring_error(field):
     entry[field] = "unknown"
     with pytest.raises(MooringError, match=field):
         _stage2(cfg, entry, _stage1("microcat", "2941"))
+
+
+# -- 7. time-of-day readings wrap across midnight -------------------------------------
+
+
+def test_time_only_readings_wrap_across_midnight():
+    """A time-only pair straddling midnight is a small drift, not nearly a day."""
+    corr = resolve_clock_correction(
+        {
+            "computer_clock_at_recovery": "23:59:50",
+            "instrument_clock_at_recovery": "00:00:10",
+        }
+    )
+    assert corr.seconds == -20.0
+
+
+# -- 8. an unparseable reading is refused ---------------------------------------------
+
+
+def test_unparseable_reading_has_its_own_source():
+    """A present but malformed reading is 'unparseable', not 'not read' or a correction."""
+    corr = resolve_clock_correction(
+        {
+            "computer_clock_at_recovery": "25:99",
+            "instrument_clock_at_recovery": "12:00:00",
+        }
+    )
+    assert corr.source == "unparseable"
+    assert corr.applied is False
+
+
+def test_unparseable_reading_raises_in_stage2():
+    """Stage 2 refuses a malformed recovery reading with a MooringError (like a bad number)."""
+    cfg = _dune2()
+    entry = _entry(cfg, "2941")
+    entry["computer_clock_at_recovery"] = "25:99"
+    with pytest.raises(MooringError, match="not a valid timestamp"):
+        _stage2(cfg, entry, _stage1("microcat", "2941"))
+
+
+def test_unparseable_reading_is_a_validation_error():
+    """The mooring check reports the malformed reading as an ERROR naming the serial."""
+    cfg = _dune2()
+    _entry(cfg, "2941")["computer_clock_at_recovery"] = "25:99"
+    errors = [
+        i
+        for i in validate_mooring(cfg)
+        if i.level == "ERROR" and "timestamp" in i.message
+    ]
+    assert errors
+    assert "2941" in errors[0].message

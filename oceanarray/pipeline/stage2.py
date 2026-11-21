@@ -531,6 +531,11 @@ def _stage2_instrument(
     clock_offset = _clock_seconds(entry, "clock_offset")
     _clock_seconds(entry, "clock_drift_seconds")  # fail loudly on a non-numeric value
     correction = resolve_clock_correction(entry)
+    if correction.source == "unparseable":
+        serial = paths.safe_serial(entry.get("serial", "unknown"))
+        raise MooringError(
+            f"{entry.get('instrument', 'instrument')} s/n {serial}: {correction.reason}"
+        )
     # Offset is a constant shift; the ramp carries the record from offset at
     # deployment to the recovery correction, so its height is correction − offset.
     drift_ramp = (correction.seconds - clock_offset) if correction.seconds != 0 else 0

@@ -230,7 +230,11 @@ def _resolve_clock(entry: dict[str, Any]) -> dict[str, Any]:
         if correction.source in ("recovery readings", "clock_drift_seconds")
         else None
     )
-    method = correction.source if not not_read else "none"
+    method = (
+        correction.source
+        if correction.source in ("recovery readings", "clock_drift_seconds")
+        else "none"
+    )
 
     comp_str = entry.get("computer_clock_at_recovery")
     inst_str = entry.get("instrument_clock_at_recovery")
