@@ -497,8 +497,12 @@ def stack(
         for i in valid_bins:
             r = float(range_vals[i])
             bin_hab = float(info["hab"]) - r if looking_down else float(info["hab"]) + r
-            bin_depth = nominal_depth(
-                {"hab": bin_hab}, mooring_config.get("waterdepth")
+            bin_depth = (
+                head_depth - (bin_hab - float(info["hab"]))
+                if head_depth is not None and np.isfinite(head_depth)
+                else nominal_depth(
+                    {"hab": bin_hab}, mooring_config.get("waterdepth")
+                )
             )
             if bin_depth is None and head_depth is not None:
                 bin_depth = head_depth - (bin_hab - float(info["hab"]))
