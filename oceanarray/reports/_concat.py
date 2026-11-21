@@ -189,7 +189,15 @@ def _page_captions(
     )
     shown = _bins_shown(ds)
     out = {
-        "qc_strip": _STACK_CAPTIONS["qc_strip"] + shown,
+        "qc_strip": _STACK_CAPTIONS["qc_strip"]
+        + (
+            " Each ADCP is one panel at its head: the head's series (pressure) once, "
+            "their flags filled from its bins where the head has none; then each "
+            "per-bin variable flagged, a row per bin shown."
+            if shown
+            else ""
+        )
+        + shown,
         "hydro_pts": stack["hydro_pts"].replace(
             "over the deployment", "over every deployment"
         )
@@ -337,10 +345,24 @@ def _page_panels(captions: dict[str, str]) -> dict[str, Panel]:
         **captions,
         "nc_file": _captions.netcdf_caption("site stack file", SITE_DESCRIPTION),
     }
-    return {
+    out = {
         pid: replace(panel, caption=captions[pid]) if pid in captions else panel
         for pid, panel in CONCAT_PANELS.items()
     }
+    out["qc_strip"] = Panel(
+        "qc_strip",
+        render=lambda c: render_template(
+            "_collapsed_figure.html",
+            summary="Flags through time",
+            caption=captions["qc_strip"],
+            images=[c.figs["qc_strip"]],
+        ),
+        kind="html",
+        applies_to=lambda c: (
+            bool(c.qc_rule and c.qc_rows) and isinstance(c.figs.get("qc_strip"), str)
+        ),
+    )
+    return out
 
 
 def _has_velocity(c: Any) -> bool:

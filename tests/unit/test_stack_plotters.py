@@ -168,13 +168,17 @@ def test_tilt_lines_are_the_stored_limits_else_the_qc_default(ds, stored):
 
 
 def test_every_flag_bar_has_one_height(ds):
-    """A flag panel's height follows its number of bars, across the figure."""
-    from oceanarray.plotters.flags import draw_flag_strip
+    """Every flag bar is BAR_HEIGHT_IN high (half the earlier 0.36 in), across the figure."""
+    from oceanarray.plotters.flags import BAR_HEIGHT_IN, draw_flag_strip
 
     fig = draw_flag_strip(ds)
     fig.canvas.draw()
-    per_bar = [ax.get_position().height / len(ax.get_yticks()) for ax in fig.axes]
+    per_bar = [
+        ax.get_position().height * fig.get_figheight() / len(ax.get_yticks())
+        for ax in fig.axes
+    ]
     bars = {len(ax.get_yticks()) for ax in fig.axes}
     plt.close(fig)
     assert len(bars) > 1
-    np.testing.assert_allclose(per_bar, per_bar[0], rtol=0.02)
+    assert BAR_HEIGHT_IN == 0.36 / 2
+    np.testing.assert_allclose(per_bar, BAR_HEIGHT_IN, rtol=0.01)

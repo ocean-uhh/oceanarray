@@ -15,6 +15,7 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 - Deployment page: the Aquadopp speed profile leaves out a level with no speed; the rose grid takes at most four bins per ADCP.
 - Stack cat page: an ADCP is a median line and middle-50 % band per deployment; roses and flags show three bins per ADCP; bins above the surface go.
 - Stack cat page: every flag bar has one height; ADCP bins left out are named as one range per deployment.
+- Flag strip: bars half as tall; an ADCP is one panel at its head (its pressure once, per-bin variables a row per bin shown); collapsed on the Stack cat page.
 - `validate` knows `density_reference`.
 
 ---

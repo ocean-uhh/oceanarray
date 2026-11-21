@@ -841,3 +841,29 @@ def test_three_adcp_bins_per_deployment_and_none_above_the_surface(cf1_site, tmp
     html = generate_concat_page(path, tmp_path / "report").read_text()
     assert "ADCP bins shown:" in html and "ADCP bin " in html
     assert not re.search(r"at -\d+ m|· -\d+ m|bin -\d+ m", html)
+
+
+def test_the_flag_strip_shows_each_adcp_once(cf1_site):
+    """Two deployments of one ADCP: one panel at its head, pressure once, half-height bars."""
+    import matplotlib.pyplot as plt
+
+    from oceanarray.pipeline.concat import concat, select_depths, shown_depths
+    from oceanarray.plotters.flags import BAR_HEIGHT_IN, draw_flag_strip
+    from oceanarray.reports._qcflags import instrument_labels
+
+    site = concat(cf1_site, name="cf1")
+    shown = select_depths(site, shown_depths(site, bins="three"))
+    fig = draw_flag_strip(shown, labels=instrument_labels(shown))
+    fig.canvas.draw()
+    titles = [ax.get_title(loc="left") for ax in fig.axes]
+    ticks = [t.get_text() for ax in fig.axes for t in ax.get_yticklabels()]
+    per_bar = [
+        ax.get_position().height * fig.get_figheight() / len(ax.get_yticks())
+        for ax in fig.axes
+    ]
+    plt.close(fig)
+    assert sum(t.startswith("ADCP") for t in titles) == 1
+    assert not any("bin" in t for t in titles)
+    assert ticks.count("P oceanarray") == 1
+    assert not any(t.startswith("P ") and " m " in t for t in ticks)
+    np.testing.assert_allclose(per_bar, BAR_HEIGHT_IN, rtol=0.01)
