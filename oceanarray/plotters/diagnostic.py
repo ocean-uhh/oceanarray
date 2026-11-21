@@ -1520,10 +1520,7 @@ def _hourly(ds: xr.Dataset) -> bool:
     """Return True when *ds*'s time step is one hour."""
     from oceanarray.pipeline.dataset import time_step_seconds
 
-    try:
-        return abs(float(time_step_seconds(ds)) - 3600.0) < 1.0
-    except KeyError:  # no time: not hourly
-        return False
+    return abs(float(time_step_seconds(ds)) - 3600.0) < 1.0  # NaN (no step): False
 
 
 def draw_instrument_spacing(

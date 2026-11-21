@@ -557,14 +557,10 @@ def _add_sbe_hex_sensor_vars(
         from seasenselib.readers.sbe_hex_reader import parse_hex_header_sensors
 
         sensor_info = parse_hex_header_sensors(file_path)
-    except (
-        ImportError,
-        OSError,
-        KeyError,
-        ValueError,
-    ) as e:  # optional; stage 1 goes on without
-        log.debug(
-            "%s: no calibration coefficients from the hex header (%s)",
+    except (ImportError, OSError, KeyError, ValueError) as e:
+        # Stage 1 goes on without the SENSOR_* records.
+        log.warning(
+            "%s: calibration coefficients not read from the hex header (%s)",
             file_path.name,
             e,
         )
