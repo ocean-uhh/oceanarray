@@ -142,28 +142,37 @@ the code (analytic case, invariant, a ``gsw`` cross-check).
 inside a function where it is the natural tool (parsing times, building a table
 for a page).
 
-**What may import what.** Enforced by ``tests/unit/test_package_boundaries.py``:
+**What may import what.** Checked by ``lint-imports`` (contracts in
+``pyproject.toml``, run in the lint job) and, for ``legacy``, by
+``tests/unit/test_package_boundaries.py``:
 
-- Nothing outside ``legacy/`` imports ``oceanarray.legacy``.
-- ``plotters/`` never imports ``reports/`` (the vendored design tokens excepted).
-
-Rules not yet enforced:
-
-- **Anything imported across subpackages is public** (no leading ``_``). A private
-  helper is used inside its own subpackage only. Planned: about 20 places cross
-  today (for example ``cli`` → ``reports._verb._resolve_*``,
-  ``pipeline.raw_files`` → ``readers.nortek._parse_*``). For each, first check
-  whether the helper sits in the right subpackage or belongs in a module shared
-  across subpackages, then make it public or move it.
+- **Layers.** Each part imports only the parts listed below it: ``cli`` →
+  ``reports`` → ``plotters`` → ``analysis`` → ``pipeline`` → ``readers`` and
+  ``writers`` → the mooring YAML and its helpers (``mooring``, ``catalog``,
+  ``provenance``, ``logger``, ``paths``, ``instruments``, ``location``,
+  ``physics``, ``inspect``) → ``config``, ``exceptions`` and ``_deprecated``. The
+  shared report layer (``reports/_vendored/``) may be used by every part and
+  imports none of them.
+- ``plotters/`` never imports ``reports/`` (the shared report layer excepted).
 - **Units have one door.** Pipeline code gets the unit tables through
-  ``config/unit_tables.py``, never from ``reports/_vendored/`` directly. Planned:
-  ``pipeline/units.py`` and ``pipeline/calibration/caldip.py`` still import
-  ``reports._vendored.units``.
-- **Readers sit below the pipeline.** ``readers/oceansites.py`` and
-  ``readers/rodb.py`` still import pipeline helpers (``pressure``,
-  ``qc.originator``, ``_stage.append_history``); those helpers move below the
-  readers when the modules are next reworked.
-- ``pipeline/_run.py`` imports ``reports``: ``run`` ends with the report.
+  ``config/unit_tables.py``, never from ``reports/_vendored/`` directly.
+- Nothing outside ``legacy/`` imports ``oceanarray.legacy``.
+
+The imports that break a rule today are listed as exceptions in the contracts,
+each marked "To change": the readers and the mooring YAML using pipeline helpers,
+``config/validation.py`` using the modules it checks against, the sensor catalog
+and provenance using a pipeline or writer helper, and ``pipeline/units.py`` and
+``pipeline/calibration/caldip.py`` reaching the shared units directly. A pull
+request that removes one deletes its line; a new one fails the lint job.
+``pipeline/_run.py`` importing ``reports`` is allowed: ``run`` ends with the
+report.
+
+Not yet checked: **anything imported across subpackages is public** (no leading
+``_``). A private helper is used inside its own subpackage only. Planned: about 20
+places cross today (for example ``cli`` → ``reports._verb._resolve_*``,
+``pipeline.raw_files`` → ``readers.nortek._parse_*``). For each, first check
+whether the helper sits in the right subpackage or belongs in a module shared
+across subpackages, then make it public or move it.
 
 
 3. One idiom per recurring job
@@ -941,8 +950,10 @@ a human reviewer; it replaces neither.
      - Notes
    * - unit
      - ``pytest tests/unit -m "not slow and not local"`` on Ubuntu 3.11–3.13,
-       macOS and Windows 3.11; 3.14 allowed to fail
-     - coverage gate 58 % (Ubuntu 3.11)
+       macOS and Windows 3.11; 3.14 allowed to fail; then the docstring examples
+       (``pytest --doctest-modules oceanarray``)
+     - coverage gate 58 % (Ubuntu 3.11); an example that needs files on disk is
+       marked ``# doctest: +SKIP`` with the reason above it
    * - integration
      - ``pytest tests/integration -m "not local"``, Ubuntu 3.11
      - golden pipeline tests with ``seasenselib``
@@ -951,7 +962,8 @@ a human reviewer; it replaces neither.
        packaged data file
      - catches files missing from the package
    * - lint
-     - ``ruff check .`` and ``ruff format --check .`` over the whole repository
+     - ``ruff check .`` and ``ruff format --check .`` over the whole repository;
+       ``lint-imports`` (the import contracts)
      - ``legacy/``, ``notebooks/``, ``docs/`` excluded
    * - docs
      - executes ``notebooks/demo_mooring.ipynb``, ``make clean html``
@@ -969,7 +981,8 @@ minor release, and only when that version stops working with a core dependency
 release.
 
 Locally, before handing over a change: ``ruff format --check .``, ``ruff check .``
-(whole repository) and ``pytest``. The full local run (unit + integration, not
+(whole repository), ``lint-imports`` and ``pytest``. ``AGENTS.md`` at the top of
+the repository points coding assistants to this guide. The full local run (unit + integration, not
 ``local``) is about 1900 tests in 5 minutes; the first test to build the session
 pages takes about 20 s.
 

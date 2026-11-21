@@ -157,8 +157,10 @@ def read_caldip_cast(path: str | Path) -> xr.Dataset:
 
     Examples
     --------
-    >>> cast = read_caldip_cast("proc_calib/msm142_2026/castM4_caldip.nc")
-    >>> instrument_record(cast, "013840")["cond_diff"].values
+    Not run as tests: they need a caldip cast file on disk.
+
+    >>> cast = read_caldip_cast("proc_calib/msm142_2026/castM4_caldip.nc")  # doctest: +SKIP
+    >>> instrument_record(cast, "013840")["cond_diff"].values  # doctest: +SKIP
 
     """
     path = Path(path)
