@@ -58,7 +58,12 @@ class TestStage2Processor:
     @pytest.fixture
     def processor(self, temp_dir):
         """Create a Stage2Processor instance for testing."""
-        return Stage2Processor(proc_dir=str(temp_dir))
+        from oceanarray.logger import detach_handlers
+
+        p = Stage2Processor(proc_dir=str(temp_dir))
+        yield p
+        # Close the stage log so Windows can delete the temp directory.
+        detach_handlers(getattr(p, "_log_handlers", []))
 
     @pytest.fixture
     def sample_yaml_data(self):
