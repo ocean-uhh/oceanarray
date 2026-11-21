@@ -19,52 +19,32 @@ correction far from those of the other instruments on the mooring is a warning t
 import re
 from typing import NamedTuple
 
+import numpy as np
+
 from oceanarray import paths
 from oceanarray.config import parameters as params
-from oceanarray.instruments import hab_for
-
-#: How a logsheet says a clock was not read at recovery.
-_NO_CLOCK_READING: frozenset[str] = frozenset(
-    {"", "unknown", "n/a", "na", "none", "not read", "-", "?"}
+from oceanarray.instruments import (
+    hab_for,
+    is_missing_clock_reading,
+    parse_clock_reading,
+    resolve_clock_correction,
 )
 
-
-def is_missing_clock_reading(value: object) -> bool:
-    """Return whether a recovery clock reading is absent: null, or a word such as ``unknown``.
-
-    Parameters
-    ----------
-    value : object
-        A ``computer_clock_at_recovery`` or ``instrument_clock_at_recovery`` value.
-
-    Returns
-    -------
-    bool
-
-    Examples
-    --------
-    >>> is_missing_clock_reading("unknown"), is_missing_clock_reading("20260725T13:13:20")
-    (True, False)
-    """
-    return value is None or str(value).strip().lower() in _NO_CLOCK_READING
+# ``is_missing_clock_reading`` is re-exported here (imported above): the clock
+# vocabulary lives in ``oceanarray.instruments`` with the resolver, but callers still
+# import it from validation.
 
 
 def _recovery_correction(entry: dict) -> float | None:
-    """Return the clock correction at recovery (s, computer − instrument), or None."""
-    comp = entry.get("computer_clock_at_recovery")
-    inst = entry.get("instrument_clock_at_recovery")
-    if not (is_missing_clock_reading(comp) or is_missing_clock_reading(inst)):
-        import pandas as pd
+    """Return the clock correction applied at recovery (s), or None if there is none.
 
-        try:
-            return (pd.Timestamp(str(comp)) - pd.Timestamp(str(inst))).total_seconds()
-        except (ValueError, TypeError):
-            return None
-    drift = entry.get("clock_drift_seconds")
-    try:
-        return float(drift) if drift not in (None, "") else None
-    except (TypeError, ValueError):
-        return None
+    The same :func:`~oceanarray.instruments.resolve_clock_correction` stage 2 applies,
+    so the outlier check compares the values the pipeline actually uses.
+    """
+    correction = resolve_clock_correction(entry)
+    if correction.source in ("recovery readings", "clock_drift_seconds"):
+        return correction.seconds
+    return None
 
 
 def _drift_outliers(entries: list) -> list["ValidationIssue"]:
@@ -76,8 +56,6 @@ def _drift_outliers(entries: list) -> list["ValidationIssue"]:
     ]
     if len(found) < 3:
         return []
-    import numpy as np
-
     out = []
     for k, (serial, value) in enumerate(found):
         others = float(np.median([c for j, (_, c) in enumerate(found) if j != k]))
@@ -578,29 +556,30 @@ def validate_mooring(
                 )
             )
         elif has_comp and has_inst:
-            for ts_key in (
-                "computer_clock_at_recovery",
-                "instrument_clock_at_recovery",
+            comp_t = parse_clock_reading(entry["computer_clock_at_recovery"])
+            inst_t = parse_clock_reading(entry["instrument_clock_at_recovery"])
+            for ts_key, parsed in (
+                ("computer_clock_at_recovery", comp_t),
+                ("instrument_clock_at_recovery", inst_t),
             ):
-                try:
-                    import pandas as _pd
-
-                    _pd.Timestamp(entry[ts_key])
-                except Exception:  # noqa: BLE001  — report issue and continue; Timestamp parse errors vary
+                if parsed is None:
                     issues.append(
                         ValidationIssue(
                             "ERROR",
                             f"{prefix} {ts_key}='{entry[ts_key]}' is not a valid timestamp",
                         )
                     )
-            if "clock_drift_seconds" in entry:
+            if (
+                "clock_drift_seconds" in entry
+                and comp_t is not None
+                and inst_t is not None
+            ):
                 try:
-                    import pandas as _pd
-
-                    comp_t = _pd.Timestamp(entry["computer_clock_at_recovery"])
-                    inst_t = _pd.Timestamp(entry["instrument_clock_at_recovery"])
-                    computed_drift = (comp_t - inst_t).total_seconds()
                     stated_drift = float(entry["clock_drift_seconds"])
+                except (TypeError, ValueError):
+                    stated_drift = None
+                if stated_drift is not None:
+                    computed_drift = (comp_t - inst_t).total_seconds()
                     if abs(computed_drift - stated_drift) > 1.0:
                         issues.append(
                             ValidationIssue(
@@ -618,8 +597,21 @@ def validate_mooring(
                                 f"timestamp pair will be used (they agree to <1 s)",
                             )
                         )
-                except (ValueError, TypeError):  # parse errors already reported above
-                    pass
+
+        # clock_offset and clock_drift_seconds must be a number of seconds.
+        for num_key in ("clock_offset", "clock_drift_seconds"):
+            value = entry.get(num_key)
+            if value in (None, ""):
+                continue
+            try:
+                float(value)
+            except (TypeError, ValueError):
+                issues.append(
+                    ValidationIssue(
+                        "ERROR",
+                        f"{prefix} {num_key}={value!r} is not a number of seconds",
+                    )
+                )
 
     issues.extend(_drift_outliers(combined_list))
     issues.extend(check_serials(combined_list))

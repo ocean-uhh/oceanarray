@@ -6,11 +6,11 @@
 <p class="one-line">No clock corrections applied here.{% if timing_mode == "imported" %} For originator data, any clock correction was made by the originator before publication.{% endif %}</p>
 {% else %}
 <p class="caption">
-  Clock correction at deployment (offset) and at recovery (computer − instrument), as
+  Clock correction at deployment (offset) and at recovery (computer − instrument){% if any_correction_applied %}, as
   applied in processing; it ramps linearly in between. A positive value means the
-  instrument clock ran slow (behind UTC), so its times were shifted later. Listed: the
-  instruments with a correction, and those whose clock was not read at recovery (not
-  corrected). HAB: height above bottom.
+  instrument clock ran slow (behind UTC), so its times were shifted later{% else %}. No clock
+  correction was applied on this mooring{% endif %}. Listed: the instruments with a correction, and those whose clock
+  was not read at recovery (not corrected). HAB: height above bottom.
 </p>
 <table>
   <thead>

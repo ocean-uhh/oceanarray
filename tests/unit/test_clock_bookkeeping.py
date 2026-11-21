@@ -14,6 +14,7 @@ from oceanarray.config.validation import (
     is_missing_clock_reading,
     validate_mooring,
 )
+from oceanarray.exceptions import MooringError
 from oceanarray.pipeline import _stage
 from oceanarray.pipeline.stage2 import _parse_yaml_time, _stage2_instrument
 from oceanarray.reports._html_helpers import _resolve_clock
@@ -116,10 +117,14 @@ def test_applied_drift_is_recorded_as_a_correction():
 def test_agreeing_readings_are_not_called_a_correction():
     """MicroCAT 2941 read the same time as the computer: nothing applied, nothing claimed."""
     cfg = _dune2()
-    out = _stage2(cfg, _entry(cfg, "2941"), _stage1("microcat", "2941"))
+    entry = _entry(cfg, "2941")
+    out = _stage2(cfg, entry, _stage1("microcat", "2941"))
     history = out.attrs["history"]
     assert "clock corrected" not in history
     assert "the recovery readings agree" in history
+    # Both readings are shown, so a reader can see what was compared.
+    assert f"computer={entry['computer_clock_at_recovery']}" in history
+    assert f"instrument={entry['instrument_clock_at_recovery']}" in history
     assert "clock_offset" not in out.variables
     assert "clock_drift_seconds" not in out.variables
 
@@ -187,3 +192,28 @@ def test_clock_table_lists_instruments_not_read():
     )
     assert shown["not_read"] is True
     assert shown["drift_s"] is None
+
+
+# -- 6. a non-numeric clock field fails loudly ----------------------------------------
+
+
+@pytest.mark.parametrize("field", ["clock_offset", "clock_drift_seconds"])
+def test_non_numeric_clock_field_is_an_error(field):
+    """A hand-edited word in a numeric clock field is an ERROR naming the key and serial."""
+    cfg = _dune2()
+    _entry(cfg, "2941")[field] = "unknown"
+    errors = [
+        i for i in validate_mooring(cfg) if i.level == "ERROR" and field in i.message
+    ]
+    assert errors
+    assert "2941" in errors[0].message
+
+
+@pytest.mark.parametrize("field", ["clock_offset", "clock_drift_seconds"])
+def test_non_numeric_clock_field_raises_mooring_error(field):
+    """Stage 2 refuses a non-numeric clock field with a MooringError, not a bare ValueError."""
+    cfg = _dune2()
+    entry = _entry(cfg, "2941")
+    entry[field] = "unknown"
+    with pytest.raises(MooringError, match=field):
+        _stage2(cfg, entry, _stage1("microcat", "2941"))

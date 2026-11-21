@@ -215,33 +215,25 @@ def _format_clock(s: str | None) -> str | None:
 
 
 def _resolve_clock(entry: dict[str, Any]) -> dict[str, Any]:
-    """Return one YAML instrument entry's clock correction, as stage 2 applies it."""
-    from oceanarray.config.validation import is_missing_clock_reading
+    """Return one YAML instrument entry's clock correction, as stage 2 applies it.
+
+    Delegates to the single :func:`~oceanarray.instruments.resolve_clock_correction` so
+    the page table cannot disagree with the applied correction or the outlier check.
+    """
+    from oceanarray.instruments import resolve_clock_correction
 
     offset_s = float(entry.get("clock_offset", 0) or 0)
-    drift_s: float | None = None
-    method = "none"
-    not_read = False
+    correction = resolve_clock_correction(entry)
+    not_read = correction.source == "not read"
+    drift_s = (
+        correction.seconds
+        if correction.source in ("recovery readings", "clock_drift_seconds")
+        else None
+    )
+    method = correction.source if not not_read else "none"
 
     comp_str = entry.get("computer_clock_at_recovery")
     inst_str = entry.get("instrument_clock_at_recovery")
-    stated = entry.get("clock_drift_seconds")
-    if comp_str is not None or inst_str is not None:
-        not_read = is_missing_clock_reading(comp_str) or is_missing_clock_reading(
-            inst_str
-        )
-    if comp_str and inst_str and not not_read:
-        comp = _parse_dt(str(comp_str))
-        inst = _parse_dt(str(inst_str))
-        if comp and inst:
-            # The correction added at recovery: computer − instrument (positive: slow).
-            drift_s = (comp - inst).total_seconds()
-            method = "recovery readings"
-    if drift_s is None and stated not in (None, 0, ""):
-        drift_s = float(stated)
-        method = "clock_drift_seconds"
-        not_read = False
-
     return {
         "offset_s": offset_s,
         "drift_s": drift_s,
