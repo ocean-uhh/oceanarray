@@ -7,9 +7,11 @@ The mooring YAML file
 Each mooring is described by one YAML file, ``{mooring_name}.mooring.yaml``. It
 holds everything oceanarray needs to process the mooring: what instruments were
 deployed and at what depths, when the mooring was in the water, and how to
-quality-control the data. It says nothing about where files are: the raw-data
+quality-control the data. It does not choose where files are: the raw-data
 folder and the processed folder are given when the pipeline is run
-(``raw_dir`` / ``--raw-dir``, see :doc:`files`). How this file relates to the
+(``raw_dir`` / ``--raw-dir``, see :doc:`files`). Two keys still name a file
+relative to this YAML, ``sensor_catalog`` and ``caldip.root``; both are planned to
+move to the run. How this file relates to the
 other configuration files is on :doc:`configuration_files`.
 
 ----

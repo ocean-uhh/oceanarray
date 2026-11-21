@@ -39,9 +39,10 @@ own :doc:`mooring YAML file <yaml_configuration>`. Two commands read it:
      - The array's name: the page's file name (default: the YAML file name).
    * - ``moorings``
      - One entry per mooring: ``mooring`` (its name), ``config`` (its YAML's file
-       name, only when it is not ``{mooring}.mooring.yaml``; a file name, never a
-       path: the file is looked for beside the array file, then in the mooring's
-       processed folder) and ``subarray`` (a key of
+       name, only when it is not ``{mooring}.mooring.yaml``; looked for beside the
+       array file, then in the mooring's processed folder; a path, relative to the
+       array file or absolute, is still accepted and is planned to be deprecated in
+       0.7.0) and ``subarray`` (a key of
        ``subarrays``: the map colours moorings by subarray; moorings without one
        are grouped as "other"; without any, one colour per mooring).
    * - ``subarrays``

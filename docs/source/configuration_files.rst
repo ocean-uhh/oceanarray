@@ -4,10 +4,12 @@
 Configuration files
 ===================
 
-oceanarray reads a few YAML files. Each says *what* is being processed; none says
-*where* files are on a machine, so the same files work with any directory layout.
-Input locations (the raw-data folder, the processed folder, the bathymetry file)
-come from the call or the command line.
+oceanarray reads a few YAML files. Each says *what* is being processed, not
+*where* files are on a machine, so the same files work with any directory layout:
+the raw-data folder, the processed folder and the bathymetry file come from the
+call or the command line. Two keys of the mooring YAML still name a file relative
+to the YAML, ``sensor_catalog`` and ``caldip.root``; both are planned to move to
+the call and the command line.
 
 .. list-table::
    :header-rows: 1
@@ -44,7 +46,8 @@ help find the file.
 oceanarray supports two ways of working, and both are kept working:
 
 - **Your own directory structure, by path.** Give the mooring YAML's path (``oceanarray run
-  /data/configs/my_mooring.yaml``, or ``read_mooring(path)``). The file can have
+  /data/configs/my_mooring.yaml --raw-dir /data/raw``, or ``read_mooring(path)``;
+  ``--raw-dir`` is needed whenever stage 1 runs). The file can have
   any name; the stage files are written in the folder that holds it.
 - **The prescribed directory structure, by name.** Keep each mooring's files in
   ``{proc_dir}/{name}/``, with its YAML as ``{name}.mooring.yaml``; then the name

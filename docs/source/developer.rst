@@ -445,8 +445,10 @@ that writes such a setting into every mooring YAML of an array at once.
 **The YAML says what, the run says where (paths).** The mooring YAML holds facts
 and settings, never a path. Input locations (raw-data root, sensor catalog, caldip
 set, bathymetry) come from the call or a CLI flag, optionally from a project or
-user configuration file. Keeping paths out of the YAML makes it portable: the
-same file works on any machine and with any directory layout.
+user configuration file (planned). Keeping paths out of the YAML makes it
+portable: the same file works on any machine and with any directory layout.
+Planned: two keys still hold a path relative to the YAML, ``sensor_catalog`` and
+``caldip.root``; until they move to the run, a new key never adds a third.
 
 **Not.** A key read by the pipeline but missing from ``KNOWN_KEYS``; a path of
 any kind in the YAML. Planned: ``caldip.root`` and ``sensor_catalog`` are still

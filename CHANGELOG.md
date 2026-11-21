@@ -9,8 +9,8 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Added
 
-- Developer guide (`developer`): principles, layers, one idiom per job, vocabulary, naming, branches and pull requests, known deviations; replaces the style guide.
-- Configuration files page (`configuration_files`): the YAML files, which value wins, finding a mooring by name or by path; a sensor catalog page (`sensor_catalog`) with an example.
+- Developer guide (`developer`): principles, layers, one idiom per job, vocabulary, naming, branches and pull requests, known deviations; replaces the style guide (#154).
+- Configuration files page (`configuration_files`): the YAML files, which value wins, finding a mooring by name or by path; a sensor catalog page (`sensor_catalog`) with an example (#154).
 
 ### Removed
 
