@@ -14,12 +14,17 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Changed
 
-- Import rules are checked in CI by `lint-imports` (contracts in `pyproject.toml`), docstring examples run as doctests, and `AGENTS.md` points coding assistants to the developer guide (#).
+- Import rules are checked in CI by `lint-imports` (contracts in `pyproject.toml`), docstring examples run as doctests, and `AGENTS.md` points coding assistants to the developer guide (#156).
 - Every figure and the instrument summary hide flagged values by the `mask_flags` rule (default 4), like the grid: suspect (3) values are now drawn on instrument pages and on stacks without a recorded rule, and the Stack cat page marks them with black dots as the stack page does. Re-run the report to apply (#155).
+- Mooring check: a warning when an instrument's clock correction at recovery is more than 120 s from the median of the other instruments on the mooring (`parameters.CLOCK_DRIFT_OUTLIER_SECONDS`): check the recovery logsheet (#).
 
 ### Fixed
 
-- Deployment and array pages: an instrument's pressure range leaves out what the mooring's `stack: mask_flags` hides, like its figures (it used the default rule, so a mooring hiding suspect values showed suspect pressures in its range) (#).
+- Deployment and array pages: an instrument's pressure range leaves out what the mooring's `stack: mask_flags` hides, like its figures (it used the default rule, so a mooring hiding suspect values showed suspect pressures in its range) (#156).
+- Clock: a recovery reading of `unknown` (or empty) is a warning, not an error; the instrument's drift is not corrected and its stage-2 history says so (#).
+- Deployment page, clock table: the correction at recovery is shown as stage 2 applies it (computer − instrument); it showed the opposite sign. Instruments not read at recovery are listed (#).
+- Stage-2 history says "clock corrected" only when a correction was applied, and otherwise why not; stage 1 no longer writes a `clock_offset` of 0, and stage 2 writes `clock_offset` only when it applies one. Rerun stage 2 to update existing files (#).
+- Mooring YAML template: the `clock_offset` comment described the drift (#).
 
 ### Removed
 

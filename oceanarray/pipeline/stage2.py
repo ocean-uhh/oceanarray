@@ -4,8 +4,11 @@ The correction, seconds **added** to instrument time (positive: the clock was sl
 ramps linearly from ``clock_offset`` at deployment to ``clock_drift_seconds`` at
 recovery (both default 0). ``computer_clock_at_recovery`` /
 ``instrument_clock_at_recovery`` give the drift as computer − instrument and take
-priority over ``clock_drift_seconds``. A corrected file keeps ``time_orig``. The record
-is then trimmed to ``deployment_time`` … ``recovery_time``.
+priority over ``clock_drift_seconds``; a pair read as ``unknown`` (or empty) gives no
+drift. A corrected file keeps ``time_orig`` and its history says what was applied; a
+file with no correction says why (no offset or reading, readings that agree, or time
+as delivered by the originator). The record is then trimmed to ``deployment_time`` …
+``recovery_time``.
 """
 
 import logging
@@ -21,6 +24,7 @@ import xarray as xr
 from oceanarray import mooring as _mooring
 from oceanarray import paths
 from oceanarray.config import parameters as params
+from oceanarray.config.validation import is_missing_clock_reading
 from oceanarray.exceptions import MooringError
 from oceanarray.instruments import instrument_entries
 from oceanarray.logger import format_time, with_stage_handlers
@@ -223,34 +227,48 @@ def _apply_clock_offset(dataset: xr.Dataset, clock_offset: float) -> xr.Dataset:
         time=result["time"].values + np.timedelta64(int(clock_offset * 1e9), "ns")
     )
     sign = "+" if clock_offset >= 0 else ""
-    _stage.append_history(result, f"clock_offset={sign}{clock_offset:.1f}s applied")
+    _stage.append_history(
+        result, f"clock corrected: clock_offset={sign}{clock_offset:.1f}s applied"
+    )
     return result
 
 
-def _resolve_clock_drift(instrument_config: dict[str, Any]) -> tuple:
-    """Return (drift_seconds, history_note) from the YAML config."""
-    # Drift is ADDED to instrument time at recovery to get corrected time (positive =
-    # instrument was slow). The two recovery timestamps take priority over
-    # clock_drift_seconds.
+def _resolve_clock_drift(instrument_config: dict[str, Any]) -> tuple[float, str]:
+    """Return (correction at recovery in seconds, history note) from the YAML entry."""
+    # The correction is ADDED to instrument time at recovery (positive = instrument
+    # was slow). The two recovery readings take priority over clock_drift_seconds; a
+    # pair read as "unknown" falls back to clock_drift_seconds, else no drift.
     comp_str = instrument_config.get("computer_clock_at_recovery")
     inst_str = instrument_config.get("instrument_clock_at_recovery")
-    if comp_str and inst_str:
+    stated = float(instrument_config.get("clock_drift_seconds", 0) or 0)
+    if comp_str is not None or inst_str is not None:
+        if is_missing_clock_reading(comp_str) or is_missing_clock_reading(inst_str):
+            return stated, (
+                f"clock corrected: clock_drift={stated:+.1f}s over deployment "
+                "(clock_drift_seconds; no clock reading at recovery)"
+            )
         comp_t = _parse_clock_str(str(comp_str))
         inst_t = _parse_clock_str(str(inst_str))
-        if comp_t is None or inst_t is None:
-            drift_s = float(instrument_config.get("clock_drift_seconds", 0))
-            note = f"clock_drift={drift_s:+.1f}s over deployment"
-            return drift_s, note
-        drift_s = (comp_t - inst_t).total_seconds()  # +ve when instrument was slow
-        note = (
-            f"clock_drift={drift_s:+.1f}s over deployment "
-            f"(computer={comp_str}, instrument={inst_str})"
-        )
-        return drift_s, note
+        if comp_t is not None and inst_t is not None:
+            drift_s = (comp_t - inst_t).total_seconds()  # +ve when instrument was slow
+            return drift_s, (
+                f"clock corrected: clock_drift={drift_s:+.1f}s over deployment "
+                f"(computer={comp_str}, instrument={inst_str})"
+            )
+    return stated, f"clock corrected: clock_drift={stated:+.1f}s over deployment"
 
-    drift_s = float(instrument_config.get("clock_drift_seconds", 0))
-    note = f"clock_drift={drift_s:+.1f}s over deployment"
-    return drift_s, note
+
+def _no_correction_note(entry: dict[str, Any], dataset: xr.Dataset) -> str:
+    """Return the history note for a record whose time was not corrected, saying why."""
+    comp = entry.get("computer_clock_at_recovery")
+    inst = entry.get("instrument_clock_at_recovery")
+    if dataset.attrs.get("originator_file") and comp is None and inst is None:
+        return "clock: time as delivered by the originator"
+    if comp is not None or inst is not None:
+        if is_missing_clock_reading(comp) or is_missing_clock_reading(inst):
+            return "clock: no reading at recovery, not corrected"
+        return f"clock: not corrected, the recovery readings agree ({comp})"
+    return "clock: no correction (no offset or recovery reading)"
 
 
 def _apply_clock_drift(
@@ -543,7 +561,7 @@ def _stage2_instrument(
     _stage1_t0 = dataset["time"].values[0]
     _stage1_t1 = dataset["time"].values[-1]
 
-    clock_offset = entry.get("clock_offset", 0)
+    clock_offset = float(entry.get("clock_offset", 0) or 0)
     drift_s, drift_note = _resolve_clock_drift(entry)
     drift_ramp = (drift_s - clock_offset) if drift_s != 0 else 0
 
@@ -569,10 +587,15 @@ def _stage2_instrument(
 
     if clock_offset != 0 or drift_ramp != 0:
         dataset = _preserve_time_orig(dataset)
+    elif "clock_offset" in dataset.variables:
+        # A zero offset written by an earlier stage 1 claims a correction not made.
+        dataset = dataset.drop_vars("clock_offset")
     dataset = _apply_clock_offset(dataset, clock_offset)
     dataset = _apply_clock_drift(
         dataset, drift_ramp, deploy_time, recover_time, history_note=drift_note
     )
+    if clock_offset == 0 and drift_ramp == 0:
+        _stage.append_history(dataset, _no_correction_note(entry, dataset))
     dataset = _trim_to_deployment_window(dataset, deploy_time, recover_time)
 
     if len(dataset.time) == 0:

@@ -1049,7 +1049,9 @@ class MooringReport:
             rec_recover != _yaml_recover_min
         )
 
-        any_clock = any(i["clock"]["has_correction"] for i in instruments)
+        any_clock = any(
+            i["clock"]["has_correction"] or i["clock"]["not_read"] for i in instruments
+        )
 
         # Build {serial: nc_path} for the clock-offset comparison figure.
         # Use stage1 (raw, UNtrimmed): stage2/3 are trimmed to the deployment

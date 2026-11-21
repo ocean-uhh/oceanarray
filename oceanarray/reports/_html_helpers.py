@@ -215,29 +215,44 @@ def _format_clock(s: str | None) -> str | None:
 
 
 def _resolve_clock(entry: dict[str, Any]) -> dict[str, Any]:
-    """Extract clock correction info from one YAML instrument entry."""
+    """Return one YAML instrument entry's clock correction, as stage 2 applies it."""
+    from oceanarray.config.validation import is_missing_clock_reading
+
     offset_s = float(entry.get("clock_offset", 0) or 0)
     drift_s: float | None = None
     method = "none"
+    not_read = False
 
     comp_str = entry.get("computer_clock_at_recovery")
     inst_str = entry.get("instrument_clock_at_recovery")
-    if comp_str and inst_str:
+    stated = entry.get("clock_drift_seconds")
+    if comp_str is not None or inst_str is not None:
+        not_read = is_missing_clock_reading(comp_str) or is_missing_clock_reading(
+            inst_str
+        )
+    if comp_str and inst_str and not not_read:
         comp = _parse_dt(str(comp_str))
         inst = _parse_dt(str(inst_str))
         if comp and inst:
-            drift_s = (inst - comp).total_seconds()
-            method = "Option B"
-    elif entry.get("clock_drift_seconds") not in (None, 0, ""):
-        drift_s = float(entry["clock_drift_seconds"])
-        method = "Option A"
+            # The correction added at recovery: computer − instrument (positive: slow).
+            drift_s = (comp - inst).total_seconds()
+            method = "recovery readings"
+    if drift_s is None and stated not in (None, 0, ""):
+        drift_s = float(stated)
+        method = "clock_drift_seconds"
+        not_read = False
 
     return {
         "offset_s": offset_s,
         "drift_s": drift_s,
         "method": method,
-        "computer_time": _format_clock(str(comp_str)) if comp_str else None,
-        "instrument_time": _format_clock(str(inst_str)) if inst_str else None,
+        "not_read": not_read,
+        "computer_time": None
+        if not_read or not comp_str
+        else _format_clock(str(comp_str)),
+        "instrument_time": None
+        if not_read or not inst_str
+        else _format_clock(str(inst_str)),
         "has_correction": offset_s != 0 or (drift_s is not None and drift_s != 0),
     }
 
