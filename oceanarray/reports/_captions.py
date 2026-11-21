@@ -353,8 +353,13 @@ def stack_rule_sentence(ds: Any, variables: Sequence[str]) -> str:
     present = [v for v in variables if v in names] or list(variables)
     rule = _rule(ds.attrs, masking.STACK_ATTR)
     if rule is None:
+        ours = any(f"{v}_qc" in names for v in present)
+        theirs = any(f"{v}{MAPPED_SUFFIX}" in names for v in present)
         return rule_sentence(
-            masking.resolve_mask_flags(None), present, ours=True, theirs=False
+            masking.resolve_mask_flags(None),
+            present,
+            ours=ours or not theirs,
+            theirs=theirs,
         ).replace(
             " are left out", " are left out (the default: the stack records no rule)"
         )

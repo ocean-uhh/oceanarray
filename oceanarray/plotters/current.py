@@ -1186,21 +1186,36 @@ def draw_adcp_velocity(
             arrays["current_speed"] = spd
             arrays["current_direction"] = dirn
 
-        # Mask the bins the rule hides by seabed_qc in every (time, N_BINS) array,
-        # speed and direction included.
-        if "seabed_qc" in ds.data_vars:
-            hide = masking.flags_for(
-                rule or masking.from_attrs(ds.attrs), "east_velocity"
-            )
-            seabed_mask = np.isin(ds["seabed_qc"].values, hide)  # (time, N_BINS)
-            masked_arrays = {}
-            for k, v in arrays.items():
-                arr = v if isinstance(v, np.ndarray) else v.values
-                if arr.ndim == 2 and arr.shape == seabed_mask.shape:
-                    arr = arr.astype(float).copy()
-                    arr[seabed_mask] = np.nan
-                masked_arrays[k] = arr
-            arrays = masked_arrays
+        # Hide what the rule hides: each velocity by its own flags, the
+        # originator's and the ADCP flags (masking.flagged); speed and direction
+        # where east or north is hidden; any other (time, N_BINS) array by
+        # seabed_qc. Applied before the panels and their percentile scales.
+        rule = rule or masking.from_attrs(ds.attrs)
+        hidden = {
+            v: masking.flagged(ds, v, rule)
+            for v in (*sorted(masking.VELOCITY_GROUP), "error_velocity")
+            if v in ds.data_vars
+        }
+        if "east_velocity" in hidden and "north_velocity" in hidden:
+            either = hidden["east_velocity"] | hidden["north_velocity"]
+            hidden.setdefault("current_speed", either)
+            hidden.setdefault("current_direction", either)
+        seabed = (
+            np.isin(ds["seabed_qc"].values, masking.flags_for(rule, "east_velocity"))
+            if "seabed_qc" in ds.data_vars
+            else None
+        )
+        masked_arrays = {}
+        for k, v in arrays.items():
+            arr = v if isinstance(v, np.ndarray) else v.values
+            hide = hidden.get(k)
+            if hide is None and seabed is not None and arr.shape == seabed.shape:
+                hide = seabed
+            if hide is not None and arr.ndim >= 1 and arr.shape == hide.shape:
+                arr = arr.astype(float).copy()
+                arr[hide] = np.nan
+            masked_arrays[k] = arr
+        arrays = masked_arrays
 
         present = [(v, lbl, pt) for v, lbl, pt in _COMPONENTS if v in arrays]
         if not present:
