@@ -27,8 +27,6 @@ from oceanarray.pipeline.stage2 import (
     detect_deployment_window,
 )
 
-pytestmark = pytest.mark.needs_seasenselib
-
 _DUNE2 = Path(__file__).parents[1] / "fixtures" / "proc" / "dune2_1_2026"
 
 

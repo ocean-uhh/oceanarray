@@ -14,8 +14,6 @@ from oceanarray.pipeline import stage1 as s1
 from oceanarray.pipeline.raw_files import find_file_tag
 from oceanarray.pipeline.stage1 import MooringProcessor
 
-pytestmark = pytest.mark.needs_seasenselib
-
 
 class TestMooringProcessor:
     """Test cases for MooringProcessor class."""
