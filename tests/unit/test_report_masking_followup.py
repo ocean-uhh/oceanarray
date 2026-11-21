@@ -40,7 +40,7 @@ def test_pressure_range_leaves_out_what_the_mooring_rule_hides(tmp_path):
         "13220",
         rule=masking.resolve_mask_flags([3, 4]),
     )
-    kept = np.isfinite(p) & (p > 0) & ~np.isin(flags, (3, 4, 9))
+    kept = np.isfinite(p) & (p > 0) & ~np.isin(flags, (3, 4))
     assert default["p_max"] == float(p[deepest])
     assert strict["p_max"] == float(p[kept].max())
     assert strict["p_max"] < default["p_max"]

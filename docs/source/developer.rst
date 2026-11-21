@@ -956,7 +956,7 @@ a human reviewer; it replaces neither.
    * - unit
      - ``pytest tests/unit -m "not slow and not local"`` on Ubuntu 3.11–3.13,
        macOS and Windows 3.11; 3.14 allowed to fail; then the docstring examples
-       (``pytest --doctest-modules oceanarray``)
+       (``pytest --doctest-modules oceanarray --ignore=oceanarray/legacy``)
      - coverage gate 58 % (Ubuntu 3.11); an example that needs files on disk is
        marked ``# doctest: +SKIP`` with the reason above it
    * - integration

@@ -269,10 +269,26 @@ ignore_imports = [
 name = "The shared report layer stands alone (it is copied from ctdcast)"
 type = "forbidden"
 source_modules = ["oceanarray.reports._vendored"]
+# Every other part of the package, by name: the package root and reports/ cannot be
+# listed whole, since they hold the source. A new module is added here.
 forbidden_modules = [
   "oceanarray.analysis", "oceanarray.cli", "oceanarray.config", "oceanarray.pipeline",
   "oceanarray.plotters", "oceanarray.readers", "oceanarray.writers",
-  "oceanarray.mooring", "oceanarray.paths", "oceanarray.logger",
+  "oceanarray.reports._array", "oceanarray.reports._breadcrumb",
+  "oceanarray.reports._captions", "oceanarray.reports._concat",
+  "oceanarray.reports._env", "oceanarray.reports._figdebug", "oceanarray.reports._grid",
+  "oceanarray.reports._gridcat", "oceanarray.reports._html_helpers",
+  "oceanarray.reports._instrument", "oceanarray.reports._instrument_text",
+  "oceanarray.reports._masthead", "oceanarray.reports._mooring",
+  "oceanarray.reports._navs", "oceanarray.reports._pdf", "oceanarray.reports._plots",
+  "oceanarray.reports._qcflags", "oceanarray.reports._read",
+  "oceanarray.reports._recovery_table", "oceanarray.reports._slots",
+  "oceanarray.reports._stack", "oceanarray.reports._summary",
+  "oceanarray.reports._verb", "oceanarray.reports.design",
+  "oceanarray.mooring", "oceanarray.paths", "oceanarray.logger", "oceanarray.catalog",
+  "oceanarray.provenance", "oceanarray.instruments", "oceanarray.location",
+  "oceanarray.physics", "oceanarray.inspect", "oceanarray.exceptions",
+  "oceanarray._deprecated", "oceanarray.legacy",
 ]
 
 [[tool.importlinter.contracts]]
