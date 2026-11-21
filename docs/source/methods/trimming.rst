@@ -115,7 +115,7 @@ appropriate interpolated correction.  All values are **added** to instrument tim
 
 To estimate an offset from the data — when each instrument entered the cold deep
 water, and the lag that best lines up neighboring temperature records —
-``oceanarray.pipeline.clock.offsets`` has the functions, shown in the notebook
+``oceanarray.analysis.clock.offsets`` has the functions, shown in the notebook
 ``notebooks/legacy/demo_clock_offset.ipynb``.
 
 CLI usage

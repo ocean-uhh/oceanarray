@@ -1071,7 +1071,7 @@ that makes the change.
      - All tables from the shared macros
      - New templates use the shared macros (section 3.8); the older ones move
        over when they are next reworked.
-   * - Coverage gate 58 %; ``pipeline/clock/`` omitted
+   * - Coverage gate 58 %; ``analysis/clock/`` omitted
      - Higher gate, nothing omitted
      - Held until coverage is measured per module; the clock code is omitted
        until its use is settled.
