@@ -853,6 +853,17 @@ def test_the_flag_strip_shows_each_adcp_once(cf1_site):
 
     site = concat(cf1_site, name="cf1")
     shown = select_depths(site, shown_depths(site, bins="three"))
+    # CF1's flags are all good: mark one step suspect, pressure at the head and
+    # every bin (as a pressure test flags each), east velocity at one bin.
+    family = shown["depth_family"].values.astype(str)
+    adcp = np.flatnonzero(np.isin(family, ["adcp", "adcp_head"]))
+    one = np.flatnonzero(family == "adcp")[0]
+    for var, at in (("pressure", adcp), ("east_velocity", [one])):
+        flags = shown[f"{var}_qc"].transpose("time", "N_DEPTHS").values.copy()
+        for k in at:
+            t = np.flatnonzero(np.isfinite(shown[var].values[:, k]))[0]
+            flags[t, k] = 3
+        shown[f"{var}_qc"] = (("time", "N_DEPTHS"), flags)
     fig = draw_flag_strip(shown, labels=instrument_labels(shown))
     fig.canvas.draw()
     titles = [ax.get_title(loc="left") for ax in fig.axes]
@@ -862,8 +873,7 @@ def test_the_flag_strip_shows_each_adcp_once(cf1_site):
         for ax in fig.axes
     ]
     plt.close(fig)
-    assert sum(t.startswith("ADCP") for t in titles) == 1
-    assert not any("bin" in t for t in titles)
-    assert ticks.count("P oceanarray") == 1
-    assert not any(t.startswith("P ") and " m " in t for t in ticks)
+    depth = shown["nominal_depth"].values
+    assert titles == [f"ADCP · {depth[family == 'adcp_head'][0]:.0f} m"]
+    assert ticks == ["P oceanarray", f"u {depth[one]:.0f} m oceanarray"]
     np.testing.assert_allclose(per_bar, BAR_HEIGHT_IN, rtol=0.01)

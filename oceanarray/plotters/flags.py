@@ -362,6 +362,7 @@ def draw_flag_strip(
     height_in = gap_in + sum(title_in + BAR_HEIGHT_IN * h + gap_in for h in heights)
     height_in += foot_in
     fig = plt.figure(figsize=(width_in, height_in))
+    fig._manual_layout = True
     tops = height_in - np.cumsum(
         [0, *(title_in + BAR_HEIGHT_IN * h + gap_in for h in heights)]
     )
