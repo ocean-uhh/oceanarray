@@ -190,7 +190,8 @@ def draw_flag_strip(
     Each panel holds, for every variable flagged by oceanarray or the
     originator, the originator's flags (translated to our table) above ours on a
     shared time axis, so where one flagged a value and the other did not reads
-    straight down the pair. Panels sit two to a row (half width, even alone).
+    straight down the pair. Panels sit two to a row (half width, even alone);
+    every bar has one height, so a panel's height follows its number of bars.
     Instruments with nothing flagged are left out, and so is a flag set the file
     does not have (oceanarray runs no conductivity QC, say). 9: no value; 0: a
     value with no flag.
@@ -233,18 +234,27 @@ def draw_flag_strip(
     time = ds["time"].values
     t_num = mdates.date2num(time.astype("datetime64[ns]"))
     labels = labels if labels is not None else level_labels(ds)
-    fig, axs = plt.subplots(
-        nrows,
-        ncols,
+    fig = plt.figure(
         figsize=(width_in, 0.9 + sum(0.45 + 0.36 * h for h in heights)),
-        sharex=True,
-        squeeze=False,
-        height_ratios=[0.6 + h for h in heights],
         layout="constrained",
     )
+    # Every bar is one gridspec row, so it has one height across the figure; a
+    # panel with fewer bars than its row's tallest leaves the rows below it empty.
+    # No padding between rows: a panel spanning several would take it in.
+    fig.get_layout_engine().set(h_pad=0, hspace=0)
+    grid = fig.add_gridspec(sum(heights), ncols)
+    tops = np.cumsum([0, *heights])
+    axs: list = []
     present: set[int] = set()
     for n, k in enumerate(levels):
-        ax = axs[n // ncols, n % ncols]
+        r, c = divmod(n, ncols)
+        span = grid[tops[r] : tops[r] + len(rows[k]), c]
+        ax = fig.add_subplot(span, sharex=axs[0] if axs else None)
+        axs.append(ax)
+        # Dates only under the last panel of each column; no tick marks elsewhere,
+        # whose margin would stretch the bars of a panel beside it.
+        last = n + ncols >= len(levels)
+        ax.tick_params(labelbottom=last, bottom=last)
         ticks = [label for label, _row in rows[k]]
         bars = [row for _label, row in rows[k]]
         image = np.stack(bars)
@@ -271,15 +281,9 @@ def draw_flag_strip(
         ax.set_yticks(range(len(bars)), ticks)
         ax.tick_params(axis="y", length=0)
         ax.set_title(labels[k], loc="left")
-    for n in range(len(levels), nrows * ncols):
-        axs[n // ncols, n % ncols].set_visible(False)
-        # The panel above an empty slot is the bottom of its column: give it dates.
-        if n >= ncols:
-            axs[n // ncols - 1, n % ncols].tick_params(labelbottom=True)
     locator = mdates.AutoDateLocator(minticks=2, maxticks=4)
-    for ax in axs[-1]:
-        ax.xaxis.set_major_locator(locator)
-        ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
+    axs[0].xaxis.set_major_locator(locator)
+    axs[0].xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
     words = params.QC_FLAG_LABEL
     shown = sorted(f for f in present if f in QC_COLORS)
     fig.legend(
