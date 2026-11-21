@@ -26,6 +26,7 @@ from oceanarray.config.unit_tables import (
     warn_if_not_canonical,
 )
 from oceanarray.physics import flow_direction, speed_direction
+from oceanarray.pipeline import masking
 from oceanarray.plotters import helpers
 from oceanarray.plotters.helpers import (
     _rose_ax,
@@ -332,10 +333,9 @@ def draw_multi_aquadopp_progressive_vector(
     # Build trajectories and collect temperature data for shared norm
     trajs = []
     all_temps: list = []
-    # A stack's rule hides flagged values (a file without one keeps its velocity).
-    u_all = helpers.masked(ds, u_var) if helpers.ruled(ds) else ds[u_var].values
-    v_all = helpers.masked(ds, v_var) if helpers.ruled(ds) else ds[v_var].values
-    t_all = helpers.masked(ds, temp_var) if has_temp else None
+    u_all = masking.masked(ds, u_var)
+    v_all = masking.masked(ds, v_var)
+    t_all = masking.masked(ds, temp_var) if has_temp else None
     for i in aqd_idx:
         u = np.nan_to_num(u_all[:, i], nan=0.0)
         v = np.nan_to_num(v_all[:, i], nan=0.0)
@@ -692,16 +692,14 @@ def draw_adcp_progressive_vector(
     instr_type_var: str = "instrument_type",
     hab_var: str = "hab",
     seabed_qc_var: str = "seabed_qc",
-    percent_good_qc_var: str = "percent_good_qc",
     *,
     width_in: float = report_tokens.W_HALF,
 ) -> plt.Figure | None:
     """Progressive vector diagram of each ADCP bin, coloured by height above bottom.
 
-    Each depth bin integrated by Euler-forward from the origin.  Bins that are
-    entirely below the seabed (every seabed_qc flag bad) are silently omitted.  QC
-    masking is applied before integration so bad pings are treated as zero
-    velocity (do not accumulate spurious displacement).
+    Each depth bin integrated by Euler-forward from the origin.  Bins whose every
+    ``seabed_qc`` flag the ``mask_flags`` rule hides are omitted.  Values the rule
+    hides (:func:`oceanarray.pipeline.masking.masked`) count as zero velocity.
 
     Parameters
     ----------
@@ -713,9 +711,7 @@ def draw_adcp_progressive_vector(
     instr_type_var, hab_var : str
         Coordinate variable names.
     seabed_qc_var : str
-        QC variable for seabed proximity; bins with every flag bad (``QC_BAD_FLAGS``) are skipped.
-    percent_good_qc_var : str
-        Ping-quality QC; timesteps with a bad flag (``QC_BAD_FLAGS``) are zeroed before integration.
+        QC variable for seabed proximity; bins with every flag hidden are skipped.
     width_in : float, optional
         Figure width (inches), the report slot; default the full content width.
 
@@ -741,38 +737,19 @@ def draw_adcp_progressive_vector(
         dtype=float,
     )
 
-    # Build per-bin trajectories with seabed + percent_good masking
     trajs: list = []  # (hab, x, y)
     hab_all: list = []
-    stack_rule = helpers.ruled(ds)
-    if stack_rule:
-        # The stack's rule hides by every velocity flag (seabed, ping quality too).
-        u_all = helpers.masked(ds, u_var)
-        v_all = helpers.masked(ds, v_var)
+    # The rule hides by every velocity flag: the seabed and ping quality too.
+    rule = masking.from_attrs(ds.attrs)
+    u_all = masking.masked(ds, u_var, rule)
+    v_all = masking.masked(ds, v_var, rule)
+    hide = masking.flags_for(rule, u_var)
     for i in adcp_idx:
-        u = ds[u_var].values[:, i].copy().astype(float)
-        v = ds[v_var].values[:, i].copy().astype(float)
-        if stack_rule:
-            u, v = u_all[:, i].copy(), v_all[:, i].copy()
-            if seabed_qc_var in ds.data_vars and np.all(
-                np.isin(ds[seabed_qc_var].values[:, i], params.QC_BAD_FLAGS)
-            ):
-                continue  # a bin always below the seabed
-
-        # Mask by seabed proximity
-        elif seabed_qc_var in ds.data_vars:
-            sqc = ds[seabed_qc_var].values[:, i]
-            # Skip bins that are always below the seabed
-            if np.all(np.isin(sqc, params.QC_BAD_FLAGS)):
-                continue
-            u[np.isin(sqc, params.QC_BAD_FLAGS)] = np.nan
-            v[np.isin(sqc, params.QC_BAD_FLAGS)] = np.nan
-
-        # Mask by ping quality
-        if percent_good_qc_var in ds.data_vars and not stack_rule:
-            pqc = ds[percent_good_qc_var].values[:, i]
-            u[np.isin(pqc, params.QC_BAD_FLAGS)] = np.nan
-            v[np.isin(pqc, params.QC_BAD_FLAGS)] = np.nan
+        if seabed_qc_var in ds.data_vars and np.all(
+            np.isin(ds[seabed_qc_var].values[:, i], hide)
+        ):
+            continue  # a bin always below the seabed
+        u, v = u_all[:, i], v_all[:, i]
 
         # NaN → 0 for integration (no displacement during missing pings)
         x = (
@@ -846,7 +823,6 @@ def rose_panels(
         ``(east, north, label, n)`` per panel, e.g. ``"Suspect (originator)"``
         with its number of values; good first.
     """
-    from oceanarray.pipeline import masking
     from oceanarray.pipeline.qc.originator import MAPPED_SUFFIX
 
     rule = rule if rule is not None else masking.resolve_mask_flags(None)
@@ -960,28 +936,9 @@ def draw_rose_grid(
     if "east_velocity" not in ds.data_vars or "north_velocity" not in ds.data_vars:
         return None
 
-    east_all = ds["east_velocity"].values.copy()
-    north_all = ds["north_velocity"].values.copy()
-
-    # Mask suspect/bad data from all available QC variables before plotting roses.
-    # seabed_qc handles ADCP bins below the seafloor; percent_good_qc and
-    # error_velocity_qc handle low-quality ADCP pings.  A flag in QC_BAD_FLAGS (3, 4, 9) is
-    # treated as invalid; nominal (7) and interpolated (8) are kept.
-    if helpers.ruled(ds):
-        # A stack: its mask_flags rule covers every velocity flag.
-        east_all = helpers.masked(ds, "east_velocity")
-        north_all = helpers.masked(ds, "north_velocity")
-    for _qc_var in (
-        "east_velocity_qc",
-        "seabed_qc",
-        "percent_good_qc",
-        "error_velocity_qc",
-    ):
-        if _qc_var in ds.data_vars and not helpers.ruled(ds):
-            _qc = ds[_qc_var].values
-            if _qc.shape == east_all.shape:
-                east_all[np.isin(_qc, params.QC_BAD_FLAGS)] = np.nan
-                north_all[np.isin(_qc, params.QC_BAD_FLAGS)] = np.nan
+    # The mask_flags rule covers every velocity flag (seabed, ping quality too).
+    east_all = masking.masked(ds, "east_velocity")
+    north_all = masking.masked(ds, "north_velocity")
 
     has_vel = [np.any(np.isfinite(east_all[:, i])) for i in range(east_all.shape[1])]
     hab_vals = ds.coords["hab"].values if "hab" in ds.coords else None
@@ -1130,14 +1087,9 @@ def draw_grid_progressive_vector(
         dtype=float,
     )
 
+    # A grid holds no flags: the grid's rule was applied when it was made.
     east = ds["east_velocity"].values.copy()  # (time, pressure)
     north = ds["north_velocity"].values.copy()
-
-    # Apply QC masking before integration
-    for _qv, _dv in (("east_velocity_qc", east), ("north_velocity_qc", north)):
-        if _qv in ds.data_vars:
-            _qc = ds[_qv].values
-            _dv[np.isin(_qc, params.QC_BAD_FLAGS)] = np.nan
 
     # Build one trajectory per pressure level; skip levels with all-NaN velocity
     trajs = progressive_vector(east, north, dt, pressure)
@@ -1183,14 +1135,15 @@ def draw_adcp_velocity(
     nc_path: str,
     *,
     width_in: float = report_tokens.W_FULL,
+    rule: dict | None = None,
 ) -> plt.Figure | None:
     """Draw an ADCP's stage-3 velocities as stacked time × range panels, for its instrument page.
 
     One panel per variable present: east, north, up and error velocity (``Spectral_r``,
     symmetric at ``±max(|p2|, |p98|)`` of the ENU velocities), ``current_speed`` (``plasma``,
     0 to p98), ``current_direction`` (``hsv``, degrees toward which the water flows,
-    clockwise from true north) and ``bin_pressure`` (``viridis``). Bins with ``seabed_qc``
-    in ``QC_BAD_FLAGS`` are masked. Range runs from 0 to the far edge of the last bin with
+    clockwise from true north) and ``bin_pressure`` (``viridis``). Bins whose ``seabed_qc``
+    the ``mask_flags`` rule hides are masked. Range runs from 0 to the far edge of the last bin with
     data, inverted for a downward-looking ADCP.
 
     Parameters
@@ -1199,6 +1152,8 @@ def draw_adcp_velocity(
         The ADCP's stage-3 file.
     width_in : float, optional
         Figure width (inches), the report slot; default the full content width.
+    rule : dict or None, optional
+        The flag rule (``masking.resolve_mask_flags``); the default when not given.
 
     Returns
     -------
@@ -1231,13 +1186,13 @@ def draw_adcp_velocity(
             arrays["current_speed"] = spd
             arrays["current_direction"] = dirn
 
-        # Apply seabed mask (seabed_qc ≥ 3 → at or below seabed) to all
-        # (time, N_BINS) arrays before plotting.  Done after speed/direction
-        # are computed so they are masked consistently.
+        # Mask the bins the rule hides by seabed_qc in every (time, N_BINS) array,
+        # speed and direction included.
         if "seabed_qc" in ds.data_vars:
-            seabed_mask = np.isin(
-                ds["seabed_qc"].values, params.QC_BAD_FLAGS
-            )  # (time, N_BINS)
+            hide = masking.flags_for(
+                rule or masking.from_attrs(ds.attrs), "east_velocity"
+            )
+            seabed_mask = np.isin(ds["seabed_qc"].values, hide)  # (time, N_BINS)
             masked_arrays = {}
             for k, v in arrays.items():
                 arr = v if isinstance(v, np.ndarray) else v.values
@@ -2023,8 +1978,8 @@ def draw_rose_outlines(
     groups = _velocity_groups(ds)
     if not groups:
         return None
-    u = helpers.masked(ds, "east_velocity")
-    v = helpers.masked(ds, "north_velocity")
+    u = masking.masked(ds, "east_velocity")
+    v = masking.masked(ds, "north_velocity")
     cell_dep = ds["cell_deployment"].values
     names = short_names([str(n) for n in ds["deployment_name"].values])
     n_dep = len(names)
@@ -2122,8 +2077,8 @@ def _velocity_by_depth(ds: xr.Dataset) -> dict | None:
     groups = [(label, j) for label, j in _velocity_groups(ds) if np.isfinite(depth[j])]
     if not groups:
         return None
-    u = helpers.masked(ds, "east_velocity")
-    v = helpers.masked(ds, "north_velocity")
+    u = masking.masked(ds, "east_velocity")
+    v = masking.masked(ds, "north_velocity")
     cell_dep = ds["cell_deployment"].values
     cells = []
     for _label, j in groups:
