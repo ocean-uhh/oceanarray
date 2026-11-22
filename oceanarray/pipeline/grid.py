@@ -9,17 +9,15 @@ import numpy as np
 import xarray as xr
 
 from oceanarray import logger, paths, provenance
+from oceanarray.config import mask_rules
 from oceanarray.config import parameters as params
+from oceanarray.config.mask_rules import resolve_mask_flags
+from oceanarray.config.originator_flags import MAPPED_SUFFIX
 from oceanarray.exceptions import MooringError
 from oceanarray.physics import speed_direction
 from oceanarray.pipeline import _stage, attribution, masking
 from oceanarray.pipeline.concat import chunks, is_site_stack, own_levels
 from oceanarray.pipeline.dataset import canonical_grid_attrs
-from oceanarray.pipeline.masking import (  # noqa: F401  (re-exported)
-    VELOCITY_GROUP,
-    resolve_mask_flags,
-)
-from oceanarray.pipeline.qc.originator import MAPPED_SUFFIX
 from oceanarray.pipeline.units import to_canonical_units
 from oceanarray.writers import write
 from oceanarray.writers.netcdf import as_stored
@@ -92,7 +90,7 @@ def grid(
         ``pmax_dbar`` and ``dp_dbar``.
     mask_flags : iterable of int, or Mapping of str to iterable of int, optional
         The grid's own rule (see
-        :func:`oceanarray.pipeline.masking.resolve_mask_flags`), which must hide at
+        :func:`oceanarray.config.mask_rules.resolve_mask_flags`), which must hide at
         least what the stack's does; default the stack's rule. Recorded as
         ``grid_mask_flags``.
     slope_angle : float, optional
@@ -111,16 +109,16 @@ def grid(
     ValueError
         If *mask_flags* is invalid or drops a flag the stack's rule hides.
     """
-    if masking.STACK_ATTR not in ds_stack.attrs:
+    if mask_rules.STACK_ATTR not in ds_stack.attrs:
         # A stack written before the rule was recorded (its values are already
         # masked with 3, 4 and 9): say which rule the grid uses.
         log.warning(
             f"  {ds_stack.attrs.get('mooring_name', 'stack')}: the stack records no "
-            f"{masking.STACK_ATTR}; the grid uses the default "
+            f"{mask_rules.STACK_ATTR}; the grid uses the default "
             f"{list(params.MASK_FLAGS)}"
         )
-    flags = masking.combine(
-        masking.from_attrs(ds_stack.attrs),
+    flags = mask_rules.combine(
+        mask_rules.from_attrs(ds_stack.attrs),
         None if mask_flags is None else resolve_mask_flags(mask_flags),
     )
     if slope_angle is not None:
@@ -265,12 +263,12 @@ def grid(
             "pmin_dbar": pmin,
             "pmax_dbar": pmax,
             "dp_dbar": dp,
-            "grid_mask_flags": masking.to_json(flags),
+            "grid_mask_flags": mask_rules.to_json(flags),
         }
     )
     _stage.append_history(
         ds_out,
-        f"flags: values flagged {masking.rule_words(flags)} left out before gridding "
+        f"flags: values flagged {mask_rules.rule_words(flags)} left out before gridding "
         "(grid_mask_flags)",
     )
     _stage.append_history(
@@ -369,14 +367,14 @@ def grid_stale_reason(
     if key is not None:
         return f"{key} changed"
     with xr.open_dataset(stack_path, engine="netcdf4") as stack:
-        stack_rule = masking.from_attrs(stack.attrs)
+        stack_rule = mask_rules.from_attrs(stack.attrs)
     try:
-        flags = masking.combine(
+        flags = mask_rules.combine(
             stack_rule, None if mask_flags is None else resolve_mask_flags(mask_flags)
         )
     except ValueError:
         return "mask_flags changed"  # the rebuild reports why it cannot grid
-    if attrs.get("grid_mask_flags") != masking.to_json(flags):
+    if attrs.get("grid_mask_flags") != mask_rules.to_json(flags):
         return "mask_flags changed"
     return None
 
@@ -555,8 +553,8 @@ def grid_site(
         bottom = float(pmax) if pmax is not None else hi
         if bottom <= top:
             raise ValueError(f"pmax={bottom:g} must be above pmin={top:g}")
-        flags = masking.combine(
-            masking.from_attrs(ds.attrs),
+        flags = mask_rules.combine(
+            mask_rules.from_attrs(ds.attrs),
             None if mask_flags is None else resolve_mask_flags(mask_flags),
         )
         _warn_other_settings(

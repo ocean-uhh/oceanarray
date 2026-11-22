@@ -42,7 +42,7 @@ Package layout
    │   │   ├── _stage.py              # the stage marker; append_history
    │   │   ├── raw_files.py           # finding and reading each instrument's raw file
    │   │   ├── stamp.py               # marking pre-0.6 stage files with their stage
-   │   │   ├── masking.py             # which flagged values the pages and the grid hide
+   │   │   ├── masking.py             # hides the flagged values a mask rule names
    │   │   ├── pressure.py            # pressure interpolation for stage 3
    │   │   ├── coordinate.py          # BEAM → XYZ → ENU transforms
    │   │   ├── units.py               # canonical units
@@ -99,6 +99,8 @@ Package layout
    │   │   ├── parameters.py          # the variable registry and every default
    │   │   ├── unit_tables.py         # units: oceanarray's additions to the shared tables
    │   │   ├── validation.py          # mooring YAML validation
+   │   │   ├── mask_rules.py          # mask_flags rules: parse, combine, record
+   │   │   ├── originator_flags.py    # originator flag words → our flags (reads flag_meanings.yaml)
    │   │   ├── flag_meanings.yaml     # originator flag translation table
    │   │   ├── logging.yaml           # logging configuration
    │   │   └── legacy/                # RAPID/RODB configuration files
