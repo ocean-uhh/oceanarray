@@ -530,21 +530,19 @@ def _apply_analog_and_unit_hygiene(
         units = da.attrs.get("units")
         if units in bad_units:
             del dataset[vname].attrs["units"]
-            warnings.warn(
-                f"Variable '{vname}': units attr was '{units}' (placeholder from "
-                f"instrument file) and has been removed.  Verify the sensor "
-                f"specification and set units manually if required.",
-                UserWarning,
-                stacklevel=2,
+            log.warning(
+                "Variable '%s': units attr was '%s' (placeholder from instrument "
+                "file) and has been removed.  Verify the sensor specification and "
+                "set units manually if required.",
+                vname,
+                units,
             )
     # Turbidity often has no units at all (Seapoint: no units in the RSK table).
     if "turbidity" in dataset.data_vars and "units" not in dataset["turbidity"].attrs:
-        warnings.warn(
+        log.warning(
             "Variable 'turbidity' has no units attribute.  Typical units are "
             "'FTU' (Seapoint) or 'NTU' (WET Labs).  Verify the sensor spec and "
-            "add a units attribute to the output file if required.",
-            UserWarning,
-            stacklevel=2,
+            "add a units attribute to the output file if required."
         )
 
     # seasenselib attrs that duplicate our own provenance fields.
