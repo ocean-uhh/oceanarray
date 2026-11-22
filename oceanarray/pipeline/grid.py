@@ -628,16 +628,17 @@ class MooringGridder:
     def grid(
         self,
         mooring_name: str,
-        p_start: float = 200.0,
-        p_end: float = 1000.0,
-        dp: float = 20.0,
+        p_start: float | None = None,
+        p_end: float | None = None,
+        dp: float | None = None,
         force: bool = False,
     ) -> bool:
         """Interpolate the stacked mooring dataset onto a regular pressure grid.
 
         Reads ``{mooring}_stack.nc``, interpolates all variables onto a pressure
-        axis from *p_start* to *p_end* in steps of *dp* dbar, and writes
-        ``{mooring}_grid.nc``.
+        axis from *p_start* to *p_end* in steps of *dp* dbar (each defaults to
+        ``GRID_PMIN_DBAR``, ``GRID_PMAX_DBAR``, ``GRID_DP_DBAR`` in
+        :mod:`oceanarray.config.parameters`), and writes ``{mooring}_grid.nc``.
 
         Returns True on success, False on error.
         """
