@@ -1,8 +1,11 @@
 """Exception types for oceanarray.
 
-Every error the package raises on purpose derives from :class:`OceanarrayError`,
-so ``except OceanarrayError`` catches them all; each also keeps the built-in base
-it had (``ValueError``, ``RuntimeError``), so existing ``except`` clauses still work.
+Every error the package raises about the user's input (the mooring YAML, a file,
+its data or stage) derives from :class:`OceanarrayError`, so ``except
+OceanarrayError`` catches them all; each also keeps its built-in base (``ValueError``,
+``RuntimeError``), so existing ``except`` clauses still work. A bug in the package
+itself, such as an inconsistent table shipped with it, raises a built-in error and
+shows a traceback.
 """
 
 from typing import NamedTuple

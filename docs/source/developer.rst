@@ -286,10 +286,12 @@ and one caption counts entries from it.
 - **Raise** when the input is wrong and continuing would write a wrong file:
   ``MooringError`` for a problem in the mooring YAML or the input, ``ReaderError``
   for a file a reader cannot read, ``UnitsError`` for an unknown
-  unit, ``StageError`` for a file at the wrong stage. Every error the package
-  raises derives from ``OceanarrayError`` and keeps its built-in base
+  unit, ``StageError`` for a file at the wrong stage. Every error about the user's
+  input derives from ``OceanarrayError`` and keeps its built-in base
   (``ValueError``, ``RuntimeError``); the CLI catches ``OceanarrayError`` and
-  prints one line. The base and the general errors are in ``exceptions.py``; an
+  prints one line. A package bug (e.g. an inconsistent table shipped with
+  oceanarray) raises a built-in error such as ``RuntimeError``, so it shows a
+  traceback. The base and the general errors are in ``exceptions.py``; an
   error tied to one module stays beside it (``OceanSitesError``, ``CaldipError``,
   ``UnitsError``).
 - **User input or caller mistake.** A problem with the user's input (the YAML and
