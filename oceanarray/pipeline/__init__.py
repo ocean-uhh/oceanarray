@@ -24,6 +24,8 @@ from os import PathLike
 from pathlib import Path
 from typing import Any, Literal
 
+from oceanarray.exceptions import MooringError, OceanarrayError, ValidationIssue
+
 __all__ = [
     "Stage",
     "STAGES",
@@ -234,7 +236,6 @@ def _process_legacy(
     # instruments' stage/report files silently overwrite each other.  Runs before
     # any stage writes, and `force` does not bypass it (force re-runs stale outputs,
     # it does not license data loss).
-    from oceanarray.exceptions import MooringError, ValidationIssue
     from oceanarray.mooring import serial_collision_errors
 
     _collisions = serial_collision_errors(
@@ -456,7 +457,6 @@ def resolve_mooring(
     >>> cfg, folder = resolve_mooring("proc/dune2_1_2026/dune2_1_2026.mooring.yaml", None)  # doctest: +SKIP
     """
     from oceanarray import mooring as _mooring
-    from oceanarray.exceptions import MooringError
     from oceanarray.pipeline.read_mooring import _resolve_description
 
     if isinstance(mooring, Mapping):
@@ -495,7 +495,6 @@ def _process_stages(
     caldip_dir: PathLike | None,
 ) -> None:
     """Run *wanted* of stages 1–3, filling *outcome*; raise on failure unless *keep_going*."""
-    from oceanarray.exceptions import MooringError, OceanarrayError
     from oceanarray.logger import StageLog
     from oceanarray.pipeline.stage1 import (
         _attach_reader_logs,
