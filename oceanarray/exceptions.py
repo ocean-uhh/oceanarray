@@ -43,3 +43,7 @@ class MooringError(OceanarrayError, ValueError):
 
 class StageError(OceanarrayError, ValueError):
     """Raised when a dataset is at the wrong processing stage for the step requested."""
+
+
+class ReaderError(OceanarrayError, ValueError):
+    """Raised when a reader cannot read a file: unknown format, missing header, column or time."""

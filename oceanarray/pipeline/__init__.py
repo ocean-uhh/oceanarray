@@ -234,16 +234,17 @@ def _process_legacy(
     # instruments' stage/report files silently overwrite each other.  Runs before
     # any stage writes, and `force` does not bypass it (force re-runs stale outputs,
     # it does not license data loss).
+    from oceanarray.exceptions import MooringError, ValidationIssue
     from oceanarray.mooring import serial_collision_errors
 
     _collisions = serial_collision_errors(
         proc_dir / mooring / f"{mooring}.mooring.yaml"
     )
     if _collisions:
-        raise ValueError(
-            f"Refusing to process '{mooring}': serial collisions would silently "
-            f"overwrite output files. Fix the mooring YAML:\n  - "
-            + "\n  - ".join(_collisions)
+        raise MooringError(
+            f"{mooring}: serial collisions would silently overwrite output files; "
+            f"fix the serials in the mooring YAML: {'; '.join(_collisions)}",
+            issues=[ValidationIssue("ERROR", c) for c in _collisions],
         )
 
     if stage is None:

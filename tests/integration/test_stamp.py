@@ -83,6 +83,14 @@ def test_stamp_refuses_a_product_file(tmp_path):
         stamp_file(path, 3)
 
 
+def test_stamp_refuses_a_missing_file_and_creates_nothing(tmp_path):
+    """A stage file name that does not exist is refused, not created."""
+    path = tmp_path / _STAGE3.name
+    with pytest.raises(FileNotFoundError, match="no such stage file"):
+        stamp_file(path, 3)
+    assert not path.exists()
+
+
 def test_cli_stamp_exits_nonzero_when_any_file_is_refused(tmp_path, capsys):
     """`oceanarray stamp` marks what it can and exits 1 when one file is refused."""
     good = _unmarked_copy(_STAGE3, tmp_path / _STAGE3.name)

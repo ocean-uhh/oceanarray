@@ -81,6 +81,9 @@ Errors
 .. autoexception:: oceanarray.StageError
    :no-index:
 
+.. autoexception:: oceanarray.ReaderError
+   :no-index:
+
 Pipeline internals
 ------------------
 

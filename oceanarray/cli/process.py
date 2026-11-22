@@ -65,7 +65,11 @@ def cmd_process(args: argparse.Namespace) -> int:
         )
     ok = True
     if products:
-        ok = _process_with_classes(args, stages, raw_dir)
+        try:
+            ok = _process_with_classes(args, stages, raw_dir)
+        except OceanarrayError as e:
+            logger.status("error", str(e))
+            return 1
     elif stages:
         from ..pipeline import process
 

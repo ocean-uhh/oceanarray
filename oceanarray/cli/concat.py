@@ -3,11 +3,23 @@
 from __future__ import annotations
 
 import argparse
+import math
 from pathlib import Path
 
 from oceanarray.cli._common import _add_dir_args, _add_mask_flags_arg, _mask_flags
 from oceanarray.cli._deprecate import DeprecatedAlias
 from oceanarray.cli.validate import _description_path
+
+
+def _finite_angle(value: str) -> float:
+    """Convert a ``--rotate-to`` token to a finite angle in degrees, or refuse it."""
+    try:
+        angle = float(value)
+    except ValueError:
+        angle = math.nan
+    if not math.isfinite(angle):
+        raise argparse.ArgumentTypeError(f"{value!r} is not a finite angle in degrees")
+    return angle
 
 
 def cmd_concat(args: argparse.Namespace) -> int:
@@ -137,7 +149,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     _add_mask_flags_arg(p, from_description=False)
     p.add_argument(
         "--rotate-to",
-        type=float,
+        type=_finite_angle,
         default=None,
         metavar="DEG",
         help=(
@@ -149,7 +161,7 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     p.add_argument(
         "--slope-angle",
         dest="rotate_to",
-        type=float,
+        type=_finite_angle,
         action=DeprecatedAlias,
         new="--rotate-to",
         help=argparse.SUPPRESS,
