@@ -10,7 +10,6 @@ from __future__ import annotations
 import copy
 import logging
 import re
-import warnings
 from pathlib import Path
 
 import xarray as xr
@@ -104,7 +103,7 @@ def test_emails_that_do_not_line_up_are_still_an_error():
     ]
 
 
-def test_a_role_written_for_each_person_passes_without_a_warning():
+def test_a_role_written_for_each_person_passes_without_a_warning(caplog):
     """K7's two contributors, each given the shared role: no finding, both keep it."""
     data = _egm2()
     data["people"] = {
@@ -113,9 +112,9 @@ def test_a_role_written_for_each_person_passes_without_a_warning():
         "people_source": "OSNAP K7 file header",
     }
     assert not [i for i in mooring.check(data) if "people" in i.message]
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
+    with caplog.at_level(logging.WARNING, logger="oceanarray"):
         out = attribution.people_from_block(data["people"])
+    assert "WARNING" not in caplog.text
     assert out["contributor_name"] == "Johannes Karstensen; Marilena Oltmanns"
     assert out["contributor_role"] == "PI; PI"
 

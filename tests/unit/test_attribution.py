@@ -7,7 +7,6 @@ CF4 2014).
 
 import logging
 import re
-import warnings
 from pathlib import Path
 
 import pytest
@@ -19,9 +18,7 @@ _OSNAP = Path(__file__).parent.parent / "fixtures" / "raw" / "osnap"
 
 
 def _people(attrs: dict, prefix: str = "") -> dict:
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        return attribution.union([attribution.people_from_attrs(attrs, prefix=prefix)])
+    return attribution.union([attribution.people_from_attrs(attrs, prefix=prefix)])
 
 
 def _clean(path: Path) -> dict:
