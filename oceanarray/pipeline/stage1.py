@@ -7,7 +7,6 @@ files. :class:`MooringProcessor` reads each instrument's raw file, calls
 """
 
 import logging
-import warnings
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
@@ -569,13 +568,12 @@ def _people_counts(people: Mapping[str, str]) -> str:
 def _cleaned(
     read: Callable[[], dict[str, str]], label: str
 ) -> tuple[dict[str, str], int]:
-    """Return *read*'s people, logging each warning the reading raised, and their count."""
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
+    """Return *read*'s people and how many warnings reading them logged."""
+    with logger.count_warnings(attribution.__name__) as warned:
         people = read()
-    for w in caught:
-        log.warning(f"  people ({label}): {w.message}")
-    return people, len(caught)
+    if warned:
+        log.info("  people (%s): %d warning(s) above", label, len(warned))
+    return people, len(warned)
 
 
 def _add_people(dataset: xr.Dataset, mooring: Mapping[str, Any]) -> xr.Dataset:

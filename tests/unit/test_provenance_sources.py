@@ -8,10 +8,11 @@ no one) and a dune2 stage-3 file.
 from __future__ import annotations
 
 import copy
+import logging
+import re
 import warnings
 from pathlib import Path
 
-import pytest
 import xarray as xr
 import yaml
 
@@ -69,7 +70,7 @@ def test_a_valid_people_block_passes_validate():
     assert not [i for i in mooring.check(data) if "people" in i.message]
 
 
-def test_one_role_for_two_names_goes_to_the_first_with_a_warning():
+def test_one_role_for_two_names_goes_to_the_first_with_a_warning(caplog):
     """K7 gives one role for two contributors: the first name gets it, the second a blank."""
     data = _egm2()
     data["people"] = {**_own_people(K7), "people_source": "OSNAP K7 file header"}
@@ -78,10 +79,11 @@ def test_one_role_for_two_names_goes_to_the_first_with_a_warning():
     ]
     assert [lv for lv, _ in issues] == ["WARNING"]
     assert "the first name gets the role" in issues[0][1]
-    with pytest.warns(UserWarning, match="1 role for 2 names; given to the first name"):
+    with caplog.at_level(logging.WARNING, logger="oceanarray"):
         out = attribution.people_from_block(
             {k: data["people"][k] for k in ("contributor_name", "contributor_role")}
         )
+    assert re.search("1 role for 2 names; given to the first name", caplog.text)
     assert out["contributor_name"] == (
         "Johannes Karstensen; Johannes Karstensen; Marilena Oltmanns"
     )

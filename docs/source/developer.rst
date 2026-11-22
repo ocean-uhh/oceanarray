@@ -1135,11 +1135,6 @@ that makes the change.
      - Proportionate docstrings
      - Trimmed (section 6)
      - planned
-   * - ``pipeline/attribution`` raises its people warnings with ``warnings.warn``;
-       stage 1 collects, logs and counts them
-     - ``logging`` for run-time events
-     - Return the messages with the people (section 3.4)
-     - planned
    * - Some figures drop ``QC_BAD_FLAGS`` (3, 4, 9) themselves
      - One rule
      - Every figure masks through ``pipeline/masking.py`` (section 3.7)
