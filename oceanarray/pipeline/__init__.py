@@ -494,7 +494,7 @@ def _process_stages(
     caldip_dir: PathLike | None,
 ) -> None:
     """Run *wanted* of stages 1–3, filling *outcome*; raise on failure unless *keep_going*."""
-    from oceanarray.exceptions import MooringError
+    from oceanarray.exceptions import MooringError, OceanarrayError
     from oceanarray.logger import StageLog
     from oceanarray.pipeline.stage1 import (
         _attach_reader_logs,
@@ -552,7 +552,7 @@ def _process_stages(
                 except Exception as e:
                     log(
                         f"ERROR: {e}"
-                        if isinstance(e, MooringError)
+                        if isinstance(e, OceanarrayError)
                         else f"ERROR: Stage 3 failed: {e}"
                     )
                     if keep_going:
@@ -560,7 +560,7 @@ def _process_stages(
                         outcome.failures.append(f"stage 3: {e}")
                         outcome.stage3_failed = True
                         continue
-                    if isinstance(e, MooringError):
+                    if isinstance(e, OceanarrayError):
                         raise
                     raise MooringError(
                         f"{name}: stage 3 failed (nothing written; see {log.file}): {e}"

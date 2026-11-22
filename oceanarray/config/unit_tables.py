@@ -42,7 +42,7 @@ def resolve_units(
     units: str,
     standard_name: str | None = None,
     *,
-    tables: Tables = DEFAULT_TABLES,
+    tables: Tables | None = None,
     canonical: str | None = None,
 ) -> tuple[str, float]:
     """Return ``(canonical spelling, factor)`` for a reader *units* string.
@@ -56,7 +56,7 @@ def resolve_units(
     standard_name : str, optional
         CF standard name, which selects the canonical spelling when known.
     tables : Tables, optional
-        Unit tables; oceanarray passes :data:`TABLES`.
+        Unit tables; default :data:`TABLES` (oceanarray's overrides on the family's).
     canonical : str, optional
         The canonical spelling, when the caller already knows it.
 
@@ -72,7 +72,10 @@ def resolve_units(
     """
     try:
         return _shared_resolve_units(
-            units, standard_name, tables=tables, canonical=canonical
+            units,
+            standard_name,
+            tables=TABLES if tables is None else tables,
+            canonical=canonical,
         )
     except _SharedUnitsError as exc:
         raise UnitsError(str(exc)) from exc

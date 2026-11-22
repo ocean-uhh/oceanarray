@@ -14,7 +14,6 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Changed
 
-- All package errors derive from the new `OceanarrayError`; `StageError` is no longer a `MooringError` and moves to `oceanarray.exceptions` (#161).
 - Data problems found while reading or reporting are logged as WARNINGs instead of Python `UserWarning`s, so they reach the log files; report progress lines go through logging too (#160).
 - An unreadable file or header is skipped with a WARNING naming the file, no longer silently (#159).
 - A missing processing folder or mooring YAML raises `MooringError`; `MooringReport.generate` and `generate_recovery_table` returned `None` (#159).
@@ -42,6 +41,7 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 What to do for each: *Upgrading from 0.6.1 to 0.7.0* (`migrating_0_7_0`).
 
+- All package errors derive from the new `OceanarrayError`; `StageError` is no longer a `MooringError` and moves to `oceanarray.exceptions` (#161).
 - `qc_ranges: pitch` / `roll` are no longer applied and `pitch_qc` / `roll_qc` are no longer written or stacked: tilt QC is geometric only (`tilt_qc`); the mooring check warns if they are set.
 
 ---

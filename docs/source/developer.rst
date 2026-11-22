@@ -285,9 +285,11 @@ and one caption counts entries from it.
 - **Raise** when the input is wrong and continuing would write a wrong file:
   ``MooringError`` for a problem in the mooring YAML or the input, ``UnitsError`` for an unknown
   unit, ``StageError`` for a file at the wrong stage. Every error the package
-  raises derives from ``OceanarrayError`` (in ``exceptions.py``) and keeps its
-  built-in base (``ValueError``, ``RuntimeError``); the CLI catches
-  ``OceanarrayError`` and prints one line.
+  raises derives from ``OceanarrayError`` and keeps its built-in base
+  (``ValueError``, ``RuntimeError``); the CLI catches ``OceanarrayError`` and
+  prints one line. The base and the general errors are in ``exceptions.py``; an
+  error tied to one module stays beside it (``OceanSitesError``, ``CaldipError``,
+  ``UnitsError``).
 - **WARNING** (``log.warning``) for every data problem the user should act on:
   data dropped, a value assumed, a key ignored. Also recorded in the file when it
   changed the data.
