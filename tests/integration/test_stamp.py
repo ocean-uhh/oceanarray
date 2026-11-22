@@ -9,7 +9,8 @@ import pytest
 import xarray as xr
 
 from oceanarray.cli import build_parser
-from oceanarray.pipeline._stage import STAGE_ATTR, StageError
+from oceanarray.exceptions import StageError
+from oceanarray.pipeline._stage import STAGE_ATTR
 from oceanarray.pipeline.stamp import stamp_file
 
 _FIX = Path(__file__).parent.parent / "fixtures" / "proc" / "dune2_1_2026"

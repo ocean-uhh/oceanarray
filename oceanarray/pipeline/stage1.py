@@ -18,7 +18,7 @@ from oceanarray import catalog, logger, paths
 from oceanarray import mooring as _mooring
 from oceanarray.config import parameters as params
 from oceanarray.config.validation import check_depth_key
-from oceanarray.exceptions import MooringError
+from oceanarray.exceptions import MooringError, StageError
 from oceanarray.instruments import extract_inline_instruments, instrument_entries
 from oceanarray.location import parse_coordinate
 from oceanarray.logger import with_stage_handlers
@@ -746,7 +746,7 @@ def stage1(
 
     Raises
     ------
-    oceanarray.pipeline._stage.StageError
+    oceanarray.exceptions.StageError
         If a dataset already carries a ``processing_stage`` marker.
     oceanarray.exceptions.MooringError
         If a dataset's serial has no entry in the description.
@@ -762,7 +762,7 @@ def stage1(
     for serial, ds in datasets.items():
         marker = ds.attrs.get(_stage.STAGE_ATTR)
         if marker is not None:
-            raise _stage.StageError(
+            raise StageError(
                 f"stage 1 expects raw datasets; {serial!r} is already stage "
                 f"{int(marker)}."
             )
@@ -884,7 +884,7 @@ class MooringProcessor:
                 log=self._log_print,
                 rel=self._rel,
             )
-        except MooringError as e:
+        except (MooringError, StageError) as e:
             self._log_print(f"ERROR: {e}")
             return False
         # Partial success is still success: instruments that processed are written

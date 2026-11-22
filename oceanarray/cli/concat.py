@@ -12,7 +12,7 @@ from oceanarray.cli.validate import _description_path
 
 def cmd_concat(args: argparse.Namespace) -> int:
     """Concatenate the named moorings' stacks and grid them; write both and their reports."""
-    from oceanarray.exceptions import MooringError
+    from oceanarray.exceptions import OceanarrayError
     from oceanarray.pipeline.concat import concat_moorings
     from oceanarray.pipeline.grid import grid_site
 
@@ -36,7 +36,7 @@ def cmd_concat(args: argparse.Namespace) -> int:
                 dp=args.dp,
                 overwrite=args.force,
             )
-    except MooringError as exc:
+    except OceanarrayError as exc:
         print(f"ERROR: {exc}")
         return 1
     if args.dry_run and not args.no_grid:

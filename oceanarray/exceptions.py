@@ -1,9 +1,25 @@
-"""Exception types for oceanarray."""
+"""Exception types for oceanarray.
 
-from oceanarray.config.validation import ValidationIssue
+Every error the package raises on purpose derives from :class:`OceanarrayError`,
+so ``except OceanarrayError`` catches them all; each also keeps the built-in base
+it had (``ValueError``, ``RuntimeError``), so existing ``except`` clauses still work.
+"""
+
+from typing import NamedTuple
 
 
-class MooringError(ValueError):
+class ValidationIssue(NamedTuple):
+    """A single validation finding with a severity level and human-readable message."""
+
+    level: str  # "ERROR" or "WARNING"
+    message: str
+
+
+class OceanarrayError(Exception):
+    """Base class of the errors oceanarray raises."""
+
+
+class MooringError(OceanarrayError, ValueError):
     """Raised when a mooring description fails validation.
 
     Carries the full list of validation issues so a caller can inspect every
@@ -23,3 +39,7 @@ class MooringError(ValueError):
     ) -> None:
         super().__init__(message)
         self.issues: list[ValidationIssue] = list(issues) if issues else []
+
+
+class StageError(OceanarrayError, ValueError):
+    """Raised when a dataset is at the wrong processing stage for the step requested."""

@@ -575,7 +575,7 @@ def stage3(
 
     Raises
     ------
-    oceanarray.pipeline._stage.StageError
+    oceanarray.exceptions.StageError
         If any dataset is not at stage 2.
     """
     _stage.require(datasets, 2, 3)

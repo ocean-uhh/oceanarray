@@ -152,7 +152,7 @@ for a page).
   ``reports`` → ``plotters`` → ``analysis`` → ``pipeline`` → ``readers`` and
   ``writers`` → the mooring YAML and its helpers (``mooring``, ``catalog``,
   ``provenance``, ``logger``, ``paths``, ``instruments``, ``location``,
-  ``physics``, ``inspect``) → ``config``, ``exceptions`` and ``_deprecated``. The
+  ``physics``, ``inspect``) → ``config`` and ``_deprecated`` → ``exceptions``. The
   shared report layer (``reports/_vendored/``) may be used by every part and
   imports none of them.
 - ``plotters/`` never imports a ``reports/`` module directly (the shared report
@@ -284,7 +284,10 @@ and one caption counts entries from it.
 
 - **Raise** when the input is wrong and continuing would write a wrong file:
   ``MooringError`` for a problem in the mooring YAML or the input, ``UnitsError`` for an unknown
-  unit, ``StageError`` for a file at the wrong stage.
+  unit, ``StageError`` for a file at the wrong stage. Every error the package
+  raises derives from ``OceanarrayError`` (in ``exceptions.py``) and keeps its
+  built-in base (``ValueError``, ``RuntimeError``); the CLI catches
+  ``OceanarrayError`` and prints one line.
 - **WARNING** (``log.warning``) for every data problem the user should act on:
   data dropped, a value assumed, a key ignored. Also recorded in the file when it
   changed the data.
@@ -311,12 +314,8 @@ Message style: what (instrument and serial), what is wrong, what to do; lazy
    )
 
 **Not.** ``print`` in library code; a broad ``except`` that swallows;
-``UserWarning`` for a data problem. Planned: ``UserWarning`` remains in stage 1
-(units) and ``concat`` (settings).
-
-*Planned for 0.7.0:* one base exception, ``OceanarrayError``. ``MooringError``
-(still a ``ValueError``, so ``except ValueError`` keeps working) is kept for
-mooring YAML problems only; ``StageError`` stops being a ``MooringError``.
+``UserWarning`` for a data problem; an error class that does not derive from
+``OceanarrayError``.
 
 3.5 Old file names and layouts
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1143,10 +1142,6 @@ that makes the change.
      - Configuration separate from location
      - From the call, a CLI flag or a user configuration file (section 3.9)
      - planned
-   * - Exceptions without a common base
-     - One package base exception
-     - ``OceanarrayError`` as the base (section 3.4)
-     - 0.7.0
    * - Defaults in ``config/parameters.py`` and ``pipeline/_run.DEFAULTS``
      - One place
      - All in ``config/parameters.py`` (section 3.10)

@@ -21,6 +21,18 @@ The clock tools moved to ``analysis``
 ``DeprecationWarning``, until 0.8.0; change ``from oceanarray.pipeline.clock import …``
 to ``from oceanarray.analysis.clock import …``.
 
+One base for the package's errors
+---------------------------------
+
+Every error oceanarray raises now derives from ``OceanarrayError``
+(``MooringError``, ``StageError``, ``OceanSitesError``, ``CaldipError``,
+``LegacyLayoutError``); each keeps its built-in base, so ``except ValueError``
+still works. ``StageError`` is no longer a ``MooringError``: code that caught a
+wrong-stage file with ``except MooringError`` should catch ``StageError`` or
+``OceanarrayError``. ``StageError`` and ``ValidationIssue`` are defined in
+``oceanarray.exceptions``; import them from there (or ``StageError`` from
+``oceanarray``).
+
 Data warnings are log records
 -----------------------------
 

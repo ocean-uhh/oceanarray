@@ -72,6 +72,9 @@ On datasets
 Errors
 ^^^^^^
 
+.. autoexception:: oceanarray.OceanarrayError
+   :no-index:
+
 .. autoexception:: oceanarray.MooringError
    :no-index:
 
