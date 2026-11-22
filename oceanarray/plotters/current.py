@@ -18,8 +18,7 @@ import numpy as np
 import xarray as xr
 from matplotlib.collections import LineCollection
 
-from oceanarray import paths
-from oceanarray.config import mask_rules
+from oceanarray import mask_rules, paths
 from oceanarray.config import parameters as params
 from oceanarray.config.unit_tables import (
     unit_label,
@@ -824,7 +823,7 @@ def rose_panels(
         ``(east, north, label, n)`` per panel, e.g. ``"Suspect (originator)"``
         with its number of values; good first.
     """
-    from oceanarray.config.originator_flags import MAPPED_SUFFIX
+    from oceanarray.originator_flags import MAPPED_SUFFIX
 
     rule = rule if rule is not None else mask_rules.resolve_mask_flags(None)
     east = np.asarray(ds["east_velocity"].values, dtype=float)

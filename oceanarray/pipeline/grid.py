@@ -8,12 +8,10 @@ from pathlib import Path
 import numpy as np
 import xarray as xr
 
-from oceanarray import logger, paths, provenance
-from oceanarray.config import mask_rules
+from oceanarray import logger, mask_rules, paths, provenance
 from oceanarray.config import parameters as params
-from oceanarray.config.mask_rules import resolve_mask_flags
-from oceanarray.config.originator_flags import MAPPED_SUFFIX
 from oceanarray.exceptions import MooringError
+from oceanarray.originator_flags import MAPPED_SUFFIX
 from oceanarray.physics import speed_direction
 from oceanarray.pipeline import _stage, attribution, masking
 from oceanarray.pipeline.concat import chunks, is_site_stack, own_levels
@@ -90,7 +88,7 @@ def grid(
         ``pmax_dbar`` and ``dp_dbar``.
     mask_flags : iterable of int, or Mapping of str to iterable of int, optional
         The grid's own rule (see
-        :func:`oceanarray.config.mask_rules.resolve_mask_flags`), which must hide at
+        :func:`oceanarray.mask_rules.resolve_mask_flags`), which must hide at
         least what the stack's does; default the stack's rule. Recorded as
         ``grid_mask_flags``.
     slope_angle : float, optional
@@ -119,7 +117,7 @@ def grid(
         )
     flags = mask_rules.combine(
         mask_rules.from_attrs(ds_stack.attrs),
-        None if mask_flags is None else resolve_mask_flags(mask_flags),
+        None if mask_flags is None else mask_rules.resolve_mask_flags(mask_flags),
     )
     if slope_angle is not None:
         from oceanarray._deprecated import REMOVED_IN
@@ -344,7 +342,7 @@ def grid_stale_reason(
     pmin, pmax, dp : float
         The pressure levels the new grid would use, in dbar.
     mask_flags : Mapping, optional
-        The grid's own rule (see :func:`resolve_mask_flags`), or None for the
+        The grid's own rule (see :func:`oceanarray.mask_rules.resolve_mask_flags`), or None for the
         stack's.
 
     Returns
@@ -370,7 +368,8 @@ def grid_stale_reason(
         stack_rule = mask_rules.from_attrs(stack.attrs)
     try:
         flags = mask_rules.combine(
-            stack_rule, None if mask_flags is None else resolve_mask_flags(mask_flags)
+            stack_rule,
+            None if mask_flags is None else mask_rules.resolve_mask_flags(mask_flags),
         )
     except ValueError:
         return "mask_flags changed"  # the rebuild reports why it cannot grid
@@ -476,7 +475,7 @@ def _warn_other_settings(ds: xr.Dataset, used: Mapping[str, object]) -> None:
         for key, value in own.items():
             if key == "mask_flags":
                 try:
-                    same = resolve_mask_flags(value) == used[key]
+                    same = mask_rules.resolve_mask_flags(value) == used[key]
                 except ValueError:
                     same = False
             else:
@@ -555,7 +554,7 @@ def grid_site(
             raise ValueError(f"pmax={bottom:g} must be above pmin={top:g}")
         flags = mask_rules.combine(
             mask_rules.from_attrs(ds.attrs),
-            None if mask_flags is None else resolve_mask_flags(mask_flags),
+            None if mask_flags is None else mask_rules.resolve_mask_flags(mask_flags),
         )
         _warn_other_settings(
             ds, {"pmin": top, "pmax": bottom, "dp": step, "mask_flags": flags}

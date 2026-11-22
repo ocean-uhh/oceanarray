@@ -1090,7 +1090,7 @@ def draw_data_histogram(
 
     import matplotlib.pyplot as plt
 
-    from oceanarray.config import mask_rules
+    from oceanarray import mask_rules
     from oceanarray.pipeline import masking
 
     from ..config import parameters as params

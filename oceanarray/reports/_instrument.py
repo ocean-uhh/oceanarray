@@ -12,7 +12,7 @@ from typing import Any
 from oceanarray import paths
 from oceanarray.paths import should_skip_regeneration
 
-from ..config import mask_rules
+from .. import mask_rules
 from ..config import parameters as params
 from ..paths import safe_serial
 from . import _captions, _html_helpers, _instrument_text, _qcflags

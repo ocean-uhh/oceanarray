@@ -8,11 +8,9 @@ from typing import Any
 import numpy as np
 import xarray as xr
 
-from oceanarray import catalog, logger, paths, provenance
+from oceanarray import catalog, logger, mask_rules, paths, provenance
 from oceanarray import mooring as _mooring
-from oceanarray.config import mask_rules
 from oceanarray.config import parameters as params
-from oceanarray.config.originator_flags import MAPPED_SUFFIX
 from oceanarray.exceptions import MooringError
 from oceanarray.instruments import instrument_entries, nominal_depth
 from oceanarray.location import (
@@ -20,6 +18,7 @@ from oceanarray.location import (
     parse_latlon,
     parse_latlon_with_source,
 )
+from oceanarray.originator_flags import MAPPED_SUFFIX
 from oceanarray.paths import safe_serial
 from oceanarray.physics import potential_density_anomaly, speed_direction
 from oceanarray.pipeline import _stage, attribution, sensors
@@ -303,7 +302,7 @@ def stack(
         shown in the report's amber note (e.g. ``"stage 3 failed in this run"``).
     mask_flags : iterable of int, or Mapping of str to iterable of int, optional
         The flags hidden from the pages and left out of the grid
-        (:func:`oceanarray.config.mask_rules.resolve_mask_flags`); ``None`` takes
+        (:func:`oceanarray.mask_rules.resolve_mask_flags`); ``None`` takes
         ``stack: mask_flags`` from *mooring*, else ``parameters.MASK_FLAGS`` (4).
 
     Returns

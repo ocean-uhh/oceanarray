@@ -43,7 +43,7 @@ import numpy as np
 import xarray as xr
 import yaml
 
-from oceanarray.config import originator_flags
+from oceanarray import originator_flags
 from oceanarray.exceptions import MooringError
 
 #: The maker's label prefix of each instrument type, as the catalog keys it.

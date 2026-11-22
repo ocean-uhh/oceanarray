@@ -222,7 +222,7 @@ def _read_qc_summary(nc_path: Path) -> list[dict[str, Any]]:
     """
     import xarray as xr
 
-    from oceanarray.config.originator_flags import MAPPED_SUFFIX
+    from oceanarray.originator_flags import MAPPED_SUFFIX
 
     from ._qcflags import flag_bar, flag_counts, good_share
 

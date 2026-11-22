@@ -234,7 +234,7 @@ layers = [
   "oceanarray.analysis",
   "oceanarray.pipeline",
   "oceanarray.readers : oceanarray.writers",
-  "oceanarray.mooring : oceanarray.catalog : oceanarray.provenance : oceanarray.logger : oceanarray.paths : oceanarray.instruments : oceanarray.location : oceanarray.physics : oceanarray.inspect",
+  "oceanarray.mooring : oceanarray.catalog : oceanarray.provenance : oceanarray.logger : oceanarray.paths : oceanarray.instruments : oceanarray.location : oceanarray.physics : oceanarray.inspect : oceanarray.mask_rules : oceanarray.originator_flags",
   "oceanarray.config : oceanarray._deprecated",
   "oceanarray.exceptions",
 ]

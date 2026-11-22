@@ -14,7 +14,7 @@ from collections.abc import Iterable, Mapping
 import numpy as np
 
 from oceanarray.config import parameters as params
-from oceanarray.config.originator_flags import MAPPED_SUFFIX
+from oceanarray.originator_flags import MAPPED_SUFFIX
 
 #: The velocity variables: one ``mask_flags`` key, ``velocity``, sets the flags
 #: masked in all of them (by ``velocity_flag``, the ADCP seabed, percent-good and

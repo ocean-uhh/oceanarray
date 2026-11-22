@@ -17,11 +17,11 @@ from typing import Any
 
 import numpy as np
 
+from oceanarray import mask_rules
 from oceanarray.analysis.derived import ROSE_MIN_FILLED
 from oceanarray.analysis.spectral import SPECTRAL_MIN_FILLED
-from oceanarray.config import mask_rules
 from oceanarray.config import parameters as params
-from oceanarray.config.originator_flags import MAPPED_SUFFIX
+from oceanarray.originator_flags import MAPPED_SUFFIX
 from oceanarray.plotters.helpers import duration_words
 
 from ._navs import _type_label

@@ -16,9 +16,9 @@ from typing import Any
 import numpy as np
 import xarray as xr
 
-from oceanarray.config import mask_rules
+from oceanarray import mask_rules
 from oceanarray.config import parameters as params
-from oceanarray.config.originator_flags import MAPPED_SUFFIX
+from oceanarray.originator_flags import MAPPED_SUFFIX
 from oceanarray.pipeline import masking
 from oceanarray.plotters.flags import SHORT, SHOWN_ORIGINATOR, SHOWN_OURS
 from oceanarray.plotters.flags import level_dim as _level_dim

@@ -21,9 +21,8 @@ import numpy as np
 import yaml
 from markupsafe import Markup, escape
 
-from oceanarray import location, logger
+from oceanarray import location, logger, mask_rules
 from oceanarray import mooring as _mooring
-from oceanarray.config import mask_rules
 from oceanarray.exceptions import MooringError
 from oceanarray.instruments import instrument_entries
 

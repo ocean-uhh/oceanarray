@@ -129,8 +129,8 @@ the code (analytic case, invariant, a ``gsw`` cross-check).
    * - Config
      - ``config/``
      - The variable registry and defaults (``parameters.py``), unit tables, flag
-       translation table (``originator_flags.py``), mask rules (``mask_rules.py``),
-       mooring YAML validation.
+       translation table (``flag_meanings.yaml``), mooring YAML validation. Tables
+       only: the code that reads and applies them lives above.
    * - CLI
      - ``cli/``
      - One module per subcommand; argument parsing only. Nothing the CLI does is
@@ -153,7 +153,7 @@ for a page).
   ``reports`` → ``plotters`` → ``analysis`` → ``pipeline`` → ``readers`` and
   ``writers`` → the mooring YAML and its helpers (``mooring``, ``catalog``,
   ``provenance``, ``logger``, ``paths``, ``instruments``, ``location``,
-  ``physics``, ``inspect``) → ``config`` and ``_deprecated`` → ``exceptions``. The
+  ``physics``, ``inspect``, ``mask_rules``, ``originator_flags``) → ``config`` and ``_deprecated`` → ``exceptions``. The
   shared report layer (``reports/_vendored/``) may be used by every part and
   imports none of them.
 - ``plotters/`` never imports a ``reports/`` module directly (the shared report

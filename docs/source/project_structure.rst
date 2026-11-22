@@ -21,6 +21,8 @@ Package layout
    │   ├── paths.py                   # file names, suffixes and folder layout
    │   ├── catalog.py                 # the sensor catalog: what each instrument is, by serial
    │   ├── physics.py                 # seawater and current formulas shared by pipeline and pages
+   │   ├── mask_rules.py              # mask_flags rules: parse, combine, describe, record
+   │   ├── originator_flags.py        # originator flag words → our flags (reads config/flag_meanings.yaml)
    │   ├── provenance.py              # which oceanarray wrote a file (version, commit)
    │   ├── inspect.py                 # quick dataset inspection for interactive use
    │   ├── logger.py                  # logging configuration, status lines
@@ -99,8 +101,6 @@ Package layout
    │   │   ├── parameters.py          # the variable registry and every default
    │   │   ├── unit_tables.py         # units: oceanarray's additions to the shared tables
    │   │   ├── validation.py          # mooring YAML validation
-   │   │   ├── mask_rules.py          # mask_flags rules: parse, combine, record
-   │   │   ├── originator_flags.py    # originator flag words → our flags (reads flag_meanings.yaml)
    │   │   ├── flag_meanings.yaml     # originator flag translation table
    │   │   ├── logging.yaml           # logging configuration
    │   │   └── legacy/                # RAPID/RODB configuration files

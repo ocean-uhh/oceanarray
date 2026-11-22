@@ -14,9 +14,9 @@ import numpy as np
 import xarray as xr
 
 from oceanarray import provenance
-from oceanarray.config.originator_flags import vocabulary
 from oceanarray.config.parameters import ADCP_BIN_DIM
 from oceanarray.exceptions import ReaderError
+from oceanarray.originator_flags import vocabulary
 
 log = logging.getLogger(__name__)
 

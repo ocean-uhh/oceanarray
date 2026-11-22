@@ -17,7 +17,8 @@ from typing import Any
 import pandas as pd
 import yaml
 
-from oceanarray.config import mask_rules, validation
+from oceanarray import mask_rules
+from oceanarray.config import validation
 from oceanarray.config.validation import ValidationIssue
 from oceanarray.exceptions import MooringError
 from oceanarray.location import LATLON_KEY_PAIRS

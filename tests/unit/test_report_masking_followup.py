@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import xarray as xr
 
-from oceanarray.config import mask_rules
+from oceanarray import mask_rules
 from oceanarray.reports._read import _read_instrument_info
 
 FIXTURE = (

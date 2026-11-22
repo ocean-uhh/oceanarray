@@ -18,7 +18,7 @@ import xarray as xr
 import yaml
 
 import oceanarray as oa
-from oceanarray.config import mask_rules, originator_flags
+from oceanarray import mask_rules, originator_flags
 from oceanarray.exceptions import MooringError
 from oceanarray.pipeline import masking
 from oceanarray.pipeline.qc import originator

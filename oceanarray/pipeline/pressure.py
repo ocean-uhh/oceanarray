@@ -155,7 +155,7 @@ UNUSABLE_SOURCE_FLAGS: tuple[int, ...] = (4, 9)
 
 def _source_flags(ds: xr.Dataset, var: str) -> list[np.ndarray]:
     """Return the flag arrays of a source's pressure: ours, and the originator's."""
-    from oceanarray.config.originator_flags import MAPPED_SUFFIX
+    from oceanarray.originator_flags import MAPPED_SUFFIX
     from oceanarray.pipeline.qc.originator import translate
 
     out = []

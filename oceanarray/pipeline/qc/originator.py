@@ -2,7 +2,7 @@
 
 An originator's flag variable pairs ``flag_values`` with ``flag_meanings``; the
 number on a sample only finds its word, and the word is looked up in one vocabulary
-(:mod:`oceanarray.config.originator_flags`) to give our flag. Two originators that
+(:mod:`oceanarray.originator_flags`) to give our flag. Two originators that
 use 3 for different things are therefore never confused, and a word we do not know
 is never guessed: its samples are written 0 (unknown) with a warning.
 """
@@ -17,7 +17,7 @@ import numpy as np
 import xarray as xr
 
 from oceanarray.config import parameters as params
-from oceanarray.config.originator_flags import MAPPED_SUFFIX, dictionary
+from oceanarray.originator_flags import MAPPED_SUFFIX, dictionary
 
 log = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ def translate(
     flags : numpy.ndarray
         Our flags, int8, the shape of *flag_var*.
     entries : list of (int, str, int or None)
-        The dictionary (:func:`~oceanarray.config.originator_flags.dictionary`).
+        The dictionary (:func:`~oceanarray.originator_flags.dictionary`).
     counts : dict of int to int
         Samples per originator number found on the data.
     """
@@ -79,7 +79,7 @@ def entries_text(entries: list[tuple[int, str, int | None]]) -> str:
     Parameters
     ----------
     entries : list of (int, str, int or None)
-        From :func:`~oceanarray.config.originator_flags.dictionary`.
+        From :func:`~oceanarray.originator_flags.dictionary`.
 
     Returns
     -------

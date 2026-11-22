@@ -24,10 +24,10 @@ import xarray as xr
 
 from oceanarray import location
 from oceanarray.config import parameters as params
-from oceanarray.config.originator_flags import MAPPED_SUFFIX
 from oceanarray.exceptions import OceanarrayError
 from oceanarray.instruments import instrument_entries
 from oceanarray.mooring import DEPLOYMENT_CODE_PATTERN
+from oceanarray.originator_flags import MAPPED_SUFFIX
 from oceanarray.paths import safe_serial
 from oceanarray.pipeline import _stage, attribution, dataset, sensors
 from oceanarray.pipeline.calibration import CALDIP_STUB_APPLIED

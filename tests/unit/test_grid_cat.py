@@ -24,8 +24,8 @@ from oceanarray import mooring, paths
 from oceanarray.analysis import site
 from oceanarray.cli import build_parser
 from oceanarray.cli._common import _mask_flags
-from oceanarray.config.mask_rules import resolve_mask_flags
 from oceanarray.exceptions import MooringError
+from oceanarray.mask_rules import resolve_mask_flags
 from oceanarray.pipeline._run import resolve_grid_mask_flags
 from oceanarray.pipeline.concat import concat, concat_moorings
 from oceanarray.pipeline.grid import grid, grid_site, site_levels
@@ -135,7 +135,7 @@ def test_the_cli_refuses_a_key_given_twice(capsys):
 
 
 def test_the_call_then_the_yaml_then_the_default():
-    from oceanarray.config.mask_rules import stack_rule
+    from oceanarray.mask_rules import stack_rule
 
     cfg = mooring.load(_FIX / "egM2_concat" / "egM2_2018" / "egM2_2018.mooring.yaml")
     assert stack_rule(cfg) == {"default": (4,)}

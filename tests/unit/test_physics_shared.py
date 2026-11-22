@@ -21,10 +21,9 @@ import pytest
 import xarray as xr
 
 import oceanarray as oa
-from oceanarray import mooring, physics
-from oceanarray.config import mask_rules
-from oceanarray.config.originator_flags import MAPPED_SUFFIX
+from oceanarray import mask_rules, mooring, physics
 from oceanarray.location import parse_latlon
+from oceanarray.originator_flags import MAPPED_SUFFIX
 from oceanarray.pipeline.coordinate import apply_beam_to_enu
 from oceanarray.pipeline.grid import _speed_direction as _grid_speed_direction
 from oceanarray.pipeline.grid import grid

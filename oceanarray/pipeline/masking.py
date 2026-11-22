@@ -5,7 +5,7 @@ originator's translated to our table (``<var>_qc_originator_mapped``). One rule,
 ``mask_flags``, decides what is not shown on the stack and Stack cat pages and not
 gridded: a value is left out when **either** flag is in the rule. The stack records
 its rule as ``stack_mask_flags``; the grid uses it and may only add flags. The rule
-itself (parsing, combining, recording) is :mod:`oceanarray.config.mask_rules`.
+itself (parsing, combining, recording) is :mod:`oceanarray.mask_rules`.
 """
 
 from __future__ import annotations
@@ -15,13 +15,13 @@ from collections.abc import Mapping
 import numpy as np
 import xarray as xr
 
-from oceanarray.config.mask_rules import (
+from oceanarray.mask_rules import (
     ADCP_VELOCITY_QC,
     VELOCITY_GROUP,
     flags_for,
     from_attrs,
 )
-from oceanarray.config.originator_flags import MAPPED_SUFFIX
+from oceanarray.originator_flags import MAPPED_SUFFIX
 
 
 def _flag_values(ds: xr.Dataset, name: str, like: xr.DataArray) -> np.ndarray | None:
@@ -43,8 +43,8 @@ def flagged(
     var : str
         The data variable.
     rule : Mapping
-        From :func:`~oceanarray.config.mask_rules.resolve_mask_flags` or
-        :func:`~oceanarray.config.mask_rules.from_attrs`.
+        From :func:`~oceanarray.mask_rules.resolve_mask_flags` or
+        :func:`~oceanarray.mask_rules.from_attrs`.
 
     Returns
     -------

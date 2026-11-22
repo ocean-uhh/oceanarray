@@ -18,13 +18,12 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+from oceanarray import mask_rules, paths, provenance
 from oceanarray import mooring as _mooring
-from oceanarray import paths, provenance
-from oceanarray.config import mask_rules
 from oceanarray.config import parameters as params
-from oceanarray.config.originator_flags import MAPPED_SUFFIX
 from oceanarray.exceptions import MooringError
 from oceanarray.location import parse_coordinate
+from oceanarray.originator_flags import MAPPED_SUFFIX
 from oceanarray.pipeline import _stage, attribution, sensors
 from oceanarray.pipeline.dataset import time_axis
 from oceanarray.provenance import sha256

@@ -9,7 +9,7 @@ from os import PathLike
 from pathlib import Path
 from typing import Any
 
-from oceanarray import paths
+from oceanarray import mask_rules, paths
 from oceanarray.config import parameters as params
 
 log = logging.getLogger(__name__)
@@ -65,7 +65,7 @@ def run(
         ``parameters.GRID_PMIN_DBAR``, ``GRID_PMAX_DBAR``, ``GRID_DP_DBAR``.
     mask_flags : iterable of int, or Mapping of str to iterable of int, optional
         Flags the stack pages hide and the grid leaves out (``stack_mask_flags``; see
-        :func:`~oceanarray.config.mask_rules.resolve_mask_flags`); default
+        :func:`~oceanarray.mask_rules.resolve_mask_flags`); default
         ``stack: mask_flags``, else 4.
     stack_stage : {3, 2}, optional
         Stage files the stack reads; 2 is a quick look without QC, interpolated pressure
@@ -120,7 +120,6 @@ def run(
     if mask_flags is not None and grid_flags is not None:
         # --mask-flags sets the stack's rule; the description's grid: mask_flags
         # then adds to it rather than clash with it.
-        from oceanarray.config import mask_rules
 
         try:
             grid_flags = mask_rules.union(
@@ -379,7 +378,7 @@ def resolve_grid_mask_flags(
     Returns
     -------
     dict of str to tuple of int, or None
-        As :func:`oceanarray.config.mask_rules.resolve_mask_flags` returns it; the
+        As :func:`oceanarray.mask_rules.resolve_mask_flags` returns it; the
         grid adds it to the stack's rule.
 
     Raises
@@ -387,14 +386,13 @@ def resolve_grid_mask_flags(
     oceanarray.exceptions.MooringError
         The value is invalid.
     """
-    from oceanarray.config.mask_rules import resolve_mask_flags
     from oceanarray.exceptions import MooringError
 
     value = (cfg.get("grid") or {}).get("mask_flags")
     if value is None:
         return None
     try:
-        return resolve_mask_flags(value)
+        return mask_rules.resolve_mask_flags(value)
     except ValueError as exc:
         raise MooringError(
             f"{cfg.get('name', 'mooring')}: {exc} (the description's grid: block)"

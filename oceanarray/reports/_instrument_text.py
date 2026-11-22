@@ -16,10 +16,10 @@ from typing import Any
 
 import numpy as np
 
-from oceanarray.config import mask_rules, originator_flags
+from oceanarray import mask_rules, originator_flags
 from oceanarray.config import parameters as params
-from oceanarray.config.originator_flags import MAPPED_SUFFIX
 from oceanarray.config.unit_tables import unit_label
+from oceanarray.originator_flags import MAPPED_SUFFIX
 from oceanarray.pipeline import sensors
 from oceanarray.plotters.helpers import QC_COLORS, marker_flags
 
