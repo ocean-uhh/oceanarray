@@ -3,12 +3,17 @@
 import importlib
 import inspect
 import pkgutil
+from pathlib import Path
 
 import pytest
 
 import oceanarray
 from oceanarray.exceptions import MooringError, OceanarrayError, StageError
 
+_OSNAP = Path(__file__).parent.parent / "fixtures" / "raw" / "osnap"
+
+# The shared report layer belongs to ctdcast; oceanarray's door to its units error is
+# config.unit_tables.UnitsError, which the walk checks.
 _SKIP = (
     "oceanarray.legacy",
     "oceanarray.reports._vendored",
@@ -44,3 +49,18 @@ def test_stage_error_is_not_a_mooring_error_but_still_a_value_error():
     assert not issubclass(StageError, MooringError)
     assert issubclass(StageError, ValueError)
     assert issubclass(MooringError, ValueError)
+
+
+def test_a_unit_problem_is_an_oceanarray_error():
+    """A real stage-1 variable with an unreadable unit raises an OceanarrayError."""
+    from oceanarray.pipeline.units import UnitsError, to_canonical_units
+    from oceanarray.readers import read_oceansites
+
+    ds = read_oceansites(_OSNAP / "CF7_MCTD_2020_22225_50m.nc")
+    var = next(v for v in ("temperature", "TEMP") if v in ds)
+    ds[var].attrs["units"] = "furlongs"
+    with pytest.raises(OceanarrayError):
+        to_canonical_units(ds)
+    assert issubclass(UnitsError, OceanarrayError) and issubclass(
+        UnitsError, ValueError
+    )

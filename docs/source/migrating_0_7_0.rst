@@ -25,8 +25,8 @@ One base for the package's errors
 ---------------------------------
 
 Every error oceanarray raises now derives from ``OceanarrayError``
-(``MooringError``, ``StageError``, ``OceanSitesError``, ``CaldipError``,
-``LegacyLayoutError``); each keeps its built-in base, so ``except ValueError``
+(``MooringError``, ``StageError``, ``UnitsError``, ``OceanSitesError``,
+``CaldipError``, ``LegacyLayoutError``); each keeps its built-in base, so ``except ValueError``
 still works. ``StageError`` is no longer a ``MooringError``: code that caught a
 wrong-stage file with ``except MooringError`` should catch ``StageError`` or
 ``OceanarrayError``. ``StageError`` and ``ValidationIssue`` are defined in
