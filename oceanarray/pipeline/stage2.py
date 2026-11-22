@@ -741,8 +741,7 @@ class Stage2Processor:
         # Load configuration
         config_file = proc_dir / f"{mooring_name}.mooring.yaml"
         if not config_file.exists():
-            self._log_print(f"ERROR: Configuration file not found: {config_file}")
-            return False
+            raise MooringError(f"{mooring_name}: mooring YAML not found: {config_file}")
 
         try:
             mooring_config = _mooring.load(config_file)

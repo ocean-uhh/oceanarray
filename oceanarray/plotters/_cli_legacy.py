@@ -230,7 +230,14 @@ def draw_mooring_timeseries(
             else:
                 step = 1
             ds_small = ds[keep].isel(time=slice(None, None, step)).load()
-        except (KeyError, ValueError, IndexError, TypeError, ArithmeticError) as e:
+        except (
+            OSError,
+            KeyError,
+            ValueError,
+            IndexError,
+            TypeError,
+            ArithmeticError,
+        ) as e:
             log.warning(
                 "%s: left out of the plot, cannot be subsampled (%s)", nc.name, e
             )

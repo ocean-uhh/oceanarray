@@ -43,3 +43,18 @@ def test_nortek_header_missing_warns(tmp_path, caplog):
 def test_recovery_table_missing_yaml_raises(tmp_path):
     with pytest.raises(MooringError, match="M1: mooring YAML not found"):
         generate_recovery_table(mooring_name="M1", proc_dir=tmp_path, force=True)
+
+
+def test_recovery_table_missing_yaml_raises_even_with_old_output(tmp_path):
+    old = tmp_path / "M1_recovery_table.html"
+    old.write_text("<html></html>")
+    with pytest.raises(MooringError, match="M1: mooring YAML not found"):
+        generate_recovery_table(mooring_name="M1", proc_dir=tmp_path, out_path=old)
+
+
+def test_stage2_missing_yaml_raises(tmp_path):
+    from oceanarray.pipeline.stage2 import Stage2Processor
+
+    (tmp_path / "M1").mkdir()
+    with pytest.raises(MooringError, match="M1: mooring YAML not found"):
+        Stage2Processor(proc_dir=str(tmp_path)).process_mooring("M1")

@@ -245,7 +245,7 @@ def generate_recovery_table(
     yaml_path: Path | None = None,
     out_path: Path | None = None,
     force: bool = False,
-) -> Path | None:
+) -> Path:
     """Generate a standalone HTML cruise-report recovery table.
 
     Parameters
@@ -284,12 +284,12 @@ def generate_recovery_table(
     if out_path is None:
         out_path = proc_dir / f"{mooring_name}_recovery_table.html"
 
+    if not yaml_path.exists():
+        raise MooringError(f"{mooring_name}: mooring YAML not found: {yaml_path}")
+
     if out_path.exists() and not force:
         logger.status("skip", str(out_path))
         return out_path
-
-    if not yaml_path.exists():
-        raise MooringError(f"{mooring_name}: mooring YAML not found: {yaml_path}")
 
     with yaml_path.open() as fh:
         cfg = yaml.safe_load(fh) or {}

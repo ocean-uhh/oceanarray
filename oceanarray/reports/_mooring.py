@@ -590,7 +590,7 @@ class MooringReport:
         cfg: Mapping[str, Any] | None = None,
         mooring_dir: str | Path | None = None,
         yaml_path: str | Path | None = None,
-    ) -> Path | None:
+    ) -> Path:
         """Build the mooring's summary page and, when asked, its other pages.
 
         Parameters
