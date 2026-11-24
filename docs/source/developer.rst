@@ -746,7 +746,7 @@ The rest:
   named for a kind of code: no ``tools``, ``utilities``, ``utils``, ``helpers``,
   ``misc``. A package's ``__init__.py`` lists the names it re-exports in
   ``__all__``, right after its imports; a plain module has no ``__all__``: a
-  leading underscore marks what is private, and the API page shows the rest.
+  leading underscore marks what is private, and the API page shows the rest. A test fails if a plain module defines one.
 - **Public functions** are named by kind:
 
   .. list-table::
