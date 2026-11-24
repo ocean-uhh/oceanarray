@@ -16,7 +16,7 @@ def test_no_plain_module_defines_all():
         rel = path.relative_to(_PACKAGE).as_posix()
         if path.name == "__init__.py" or rel.startswith(_SKIP):
             continue
-        tree = ast.parse(path.read_text())
+        tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in tree.body:
             targets = node.targets if isinstance(node, ast.Assign) else []
             if any(getattr(t, "id", None) == "__all__" for t in targets):
