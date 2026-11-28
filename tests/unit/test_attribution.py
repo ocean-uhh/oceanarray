@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 from oceanarray.exceptions import MooringError
-from oceanarray.pipeline import attribution
+from oceanarray.pipeline import _attribution as attribution
 from oceanarray.readers import read_oceansites
 
 _OSNAP = Path(__file__).parent.parent / "fixtures" / "raw" / "osnap"
@@ -255,10 +255,14 @@ def test_only_stage1_cleans():
     users = sorted(
         p.relative_to(root).as_posix()
         for p in root.rglob("*.py")
-        if "people_from_attrs" in p.read_text(encoding="utf-8")
-        or "attribution.clean(" in p.read_text(encoding="utf-8")
+        # pipeline/attribution.py only names them for its deprecated aliases.
+        if p.relative_to(root).as_posix() != "pipeline/attribution.py"
+        and (
+            "people_from_attrs" in p.read_text(encoding="utf-8")
+            or "attribution.clean(" in p.read_text(encoding="utf-8")
+        )
     )
-    assert users == ["pipeline/attribution.py", "pipeline/stage1.py"]
+    assert users == ["pipeline/_attribution.py", "pipeline/stage1.py"]
 
 
 @pytest.mark.parametrize(

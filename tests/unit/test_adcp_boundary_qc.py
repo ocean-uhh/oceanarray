@@ -31,7 +31,7 @@ def _depth(pressure: np.ndarray, lat: float) -> np.ndarray:
 def test_seabed_down_looking_flags_below_and_side_lobe_zone():
     """dsG2: 4 below 985 m and within D·(1 − cos 20°) + 16 m above it; 1 elsewhere."""
     ds = xr.load_dataset(DSG2)
-    out = apply_adcp_seabed_qc(ds, water_depth_m=985.0, lat=DSG2_LAT)
+    out = apply_adcp_seabed_qc(ds, water_depth_m=985.0, latitude=DSG2_LAT)
     z_bin = _depth(ds["bin_pressure"].values, DSG2_LAT)
     z_head = _depth(ds["pressure"].values, DSG2_LAT)
     zone = (985.0 - z_head) * (1 - 0.9396926) + 16.0  # cos 20° = 0.9396926
@@ -46,7 +46,7 @@ def test_seabed_down_looking_flags_below_and_side_lobe_zone():
 
 def test_surface_down_looking_has_no_side_lobe_zone():
     """dsG2 looks down from 520 m: no bin reaches the surface, so every bin is 1."""
-    out = apply_adcp_surface_qc(xr.load_dataset(DSG2), lat=DSG2_LAT)
+    out = apply_adcp_surface_qc(xr.load_dataset(DSG2), latitude=DSG2_LAT)
     assert set(np.unique(out["surface_qc"].values)) == {1}
     attrs = out["surface_qc"].attrs
     assert "beam_angle_deg" not in attrs
@@ -59,7 +59,7 @@ def test_surface_up_looking_without_beam_angle_flags_only_above(caplog):
     ds = read_oceansites(CF1)
     ds.attrs["orientation_yaml"] = "up"
     with caplog.at_level(logging.WARNING):
-        out = apply_adcp_surface_qc(ds, lat=CF1_LAT)
+        out = apply_adcp_surface_qc(ds, latitude=CF1_LAT)
     assert "no side-lobe zone (no beam angle)" in caplog.text
     z_bin = _depth(ds["bin_pressure"].values, CF1_LAT)
     np.testing.assert_array_equal(out["surface_qc"].values, np.where(z_bin <= 0, 4, 1))
@@ -76,7 +76,7 @@ def test_surface_up_looking_yaml_beam_angle_and_bin_spacing_are_recorded(caplog)
         orientation_yaml="up", beam_angle_deg=20.0, beam_angle_source="yaml"
     )
     with caplog.at_level(logging.WARNING):
-        out = apply_adcp_surface_qc(ds, lat=CF1_LAT)
+        out = apply_adcp_surface_qc(ds, latitude=CF1_LAT)
     assert "no cell_size_m; using the bin spacing" in caplog.text
     attrs = out["surface_qc"].attrs
     assert (attrs["beam_angle_deg"], attrs["beam_angle_source"]) == (20.0, "yaml")
@@ -101,9 +101,9 @@ def test_old_margin_keywords_warn_and_are_ignored(function, keyword):
     ds = xr.load_dataset(DSG2)
     args = {"water_depth_m": 985.0} if function is apply_adcp_seabed_qc else {}
     name = "seabed_qc" if function is apply_adcp_seabed_qc else "surface_qc"
-    plain = function(ds.copy(), lat=DSG2_LAT, **args)
+    plain = function(ds.copy(), latitude=DSG2_LAT, **args)
     with pytest.warns(DeprecationWarning, match=f"{keyword}=") as record:
-        old = function(ds.copy(), lat=DSG2_LAT, **{keyword: 20.0}, **args)
+        old = function(ds.copy(), latitude=DSG2_LAT, **{keyword: 20.0}, **args)
     assert record[0].filename == __file__
     np.testing.assert_array_equal(old[name].values, plain[name].values)
 
@@ -111,10 +111,10 @@ def test_old_margin_keywords_warn_and_are_ignored(function, keyword):
 def test_seabed_profiles_without_head_pressure_flag_only_below(caplog):
     """dsG2 with the head pressure missing in five profiles: those get 4 only below 985 m; the count is recorded."""
     ds = xr.load_dataset(DSG2)
-    full = apply_adcp_seabed_qc(ds.copy(), water_depth_m=985.0, lat=DSG2_LAT)
+    full = apply_adcp_seabed_qc(ds.copy(), water_depth_m=985.0, latitude=DSG2_LAT)
     ds["pressure"][5:10] = np.nan
     with caplog.at_level(logging.WARNING):
-        out = apply_adcp_seabed_qc(ds, water_depth_m=985.0, lat=DSG2_LAT)
+        out = apply_adcp_seabed_qc(ds, water_depth_m=985.0, latitude=DSG2_LAT)
     assert "no head pressure in 5 of" in caplog.text
     z_bin = _depth(ds["bin_pressure"].values, DSG2_LAT)
     np.testing.assert_array_equal(
@@ -132,7 +132,7 @@ def test_seabed_without_any_head_pressure_is_beyond_only(caplog):
     ds = xr.load_dataset(DSG2)
     ds["pressure"][:] = np.nan
     with caplog.at_level(logging.WARNING):
-        out = apply_adcp_seabed_qc(ds, water_depth_m=985.0, lat=DSG2_LAT)
+        out = apply_adcp_seabed_qc(ds, water_depth_m=985.0, latitude=DSG2_LAT)
     assert "no side-lobe zone (no head pressure)" in caplog.text
     z_bin = _depth(ds["bin_pressure"].values, DSG2_LAT)
     np.testing.assert_array_equal(

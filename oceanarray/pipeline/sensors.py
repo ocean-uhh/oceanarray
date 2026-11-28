@@ -31,6 +31,7 @@ from typing import Any
 import numpy as np
 import xarray as xr
 
+from oceanarray import _deprecated
 from oceanarray.exceptions import MooringError
 
 log = logging.getLogger(__name__)
@@ -68,7 +69,7 @@ def sensor_type(instrument: str) -> str:
     return SENSOR_TYPES.get(key) or re.sub(r"\W+", "_", key.upper()).strip("_") or "UNK"
 
 
-def record_name(
+def _record_name(
     instrument: str, serial: str, deployment_code: str | None = None
 ) -> str:
     """Return the record variable's name: ``SENSOR_<type>_<serial>[_<deployment code>]``.
@@ -91,7 +92,7 @@ def record_name(
     return f"{name}_{deployment_code}" if deployment_code else name
 
 
-def is_record(name: object) -> bool:
+def _is_record(name: object) -> bool:
     """Return whether *name* is a sensor-record variable.
 
     Parameters
@@ -202,7 +203,7 @@ def build_record(  # noqa: C901
             f"{entry.get('instrument', 'an instrument')}: no serial; a sensor record "
             "is named by the instrument's serial"
         )
-    name = record_name(entry.get("instrument", ""), serial)
+    name = _record_name(entry.get("instrument", ""), serial)
     attrs: dict[str, str] = {
         "long_name": "",
         "sensor_type": sensor_type(entry.get("instrument", "")),
@@ -210,7 +211,7 @@ def build_record(  # noqa: C901
         "sensor_serial_number": serial,
     }
     dates: dict[str, str] = {}
-    old = [v for v in ds.variables if is_record(v)]
+    old = [v for v in ds.variables if _is_record(v)]
     for var in old:
         meta = ds[var].attrs
         code = str(var).split("_")[1] if str(var).count("_") >= 2 else ""
@@ -347,7 +348,7 @@ def records(ds: xr.Dataset) -> dict[str, dict[str, Any]]:
     return {
         str(v): dict(ds[v].attrs)
         for v in ds.variables
-        if is_record(v) and ds[v].ndim == 0
+        if _is_record(v) and ds[v].ndim == 0
     }
 
 
@@ -363,7 +364,7 @@ def _borrowed(var: xr.DataArray) -> bool:
     return any(str(k).endswith("_source_serials") for k in var.attrs)
 
 
-def record_of(ds: xr.Dataset, name: str) -> dict[str, Any]:
+def _record_of(ds: xr.Dataset, name: str) -> dict[str, Any]:
     """Return the attributes of the sensor record that measured variable *name*.
 
     Parameters
@@ -389,7 +390,7 @@ def record_of(ds: xr.Dataset, name: str) -> dict[str, Any]:
     return next(iter(own.values()))
 
 
-def link_derived(ds: xr.Dataset) -> xr.Dataset:
+def _link_derived(ds: xr.Dataset) -> xr.Dataset:
     """Name the file's one sensor record on data variables derived after stage 1.
 
     Salinity, ENU velocities and the other variables stage 3 makes come from the
@@ -416,7 +417,7 @@ def link_derived(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
-def sensor_record(ds: xr.Dataset, instrument: str, serial: str) -> tuple[str, dict]:
+def _sensor_record(ds: xr.Dataset, instrument: str, serial: str) -> tuple[str, dict]:
     """Return the name and attributes of an instrument's one sensor record.
 
     A stage file written with sensor records names its record in its data
@@ -446,7 +447,7 @@ def sensor_record(ds: xr.Dataset, instrument: str, serial: str) -> tuple[str, di
         if name in own:
             return name, own[name]
     built = build_record(ds, {"instrument": instrument}, serial)
-    name = record_name(instrument, serial)
+    name = _record_name(instrument, serial)
     return name, dict(built[name].attrs)
 
 
@@ -485,3 +486,16 @@ def calibration_rows(record: Mapping[str, Any]) -> list[dict[str, str]]:
         }
         for sensor in sensors
     ]
+
+
+#: Released names now private: each still imports, warning, until 0.8.0.
+__getattr__ = _deprecated.moved_names(
+    __name__,
+    {
+        "is_record": lambda: _is_record,
+        "link_derived": lambda: _link_derived,
+        "record_name": lambda: _record_name,
+        "record_of": lambda: _record_of,
+        "sensor_record": lambda: _sensor_record,
+    },
+)

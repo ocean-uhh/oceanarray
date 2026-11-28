@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import warnings
 from types import ModuleType
 from typing import Any
 
@@ -30,18 +29,7 @@ _MOVED: dict[str, ModuleType] = {
 }
 
 
-def __getattr__(name: str) -> object:
-    """Return a moved name from its new module, warning that this path is deprecated."""
-    if name not in _MOVED:
-        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-    new = _MOVED[name]
-    warnings.warn(
-        f"{__name__}.{name} is deprecated and is removed in "
-        f"{_deprecated.REMOVED_IN_NEXT}; use {new.__name__}.{name}.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return getattr(new, name)
+__getattr__ = _deprecated.moved_names(__name__, moved=_MOVED)
 
 
 def _times_to_float(time_values: np.ndarray) -> np.ndarray:
@@ -81,7 +69,7 @@ UNUSABLE_SOURCE_FLAGS: tuple[int, ...] = (4, 9)
 def _source_flags(ds: xr.Dataset, var: str) -> list[np.ndarray]:
     """Return the flag arrays of a source's pressure: ours, and the originator's."""
     from oceanarray.originator_flags import MAPPED_SUFFIX
-    from oceanarray.pipeline.qc.originator import translate
+    from oceanarray.pipeline.qc.originator import _translate
 
     out = []
     if f"{var}_qc" in ds.data_vars:
@@ -90,7 +78,7 @@ def _source_flags(ds: xr.Dataset, var: str) -> list[np.ndarray]:
         out.append(np.asarray(ds[f"{var}{MAPPED_SUFFIX}"].values))
     elif f"{var}_qc_originator" in ds.data_vars:
         # A stage-2 source: translate its originator flags here.
-        out.append(translate(ds[f"{var}_qc_originator"])[0])
+        out.append(_translate(ds[f"{var}_qc_originator"])[0])
     return out
 
 
@@ -399,8 +387,10 @@ def _interpolate_pressure(
 
 def compute_adcp_bin_pressure(
     ds: xr.Dataset,
-    lat: float,
+    latitude: float | None = None,
     log_fn: Any = None,
+    *,
+    lat: float | None = None,
 ) -> xr.Dataset:
     """Add ``bin_pressure(time, N_BINS)`` (dbar): transducer pressure plus the bins' tilt-reduced range.
 
@@ -410,10 +400,12 @@ def compute_adcp_bin_pressure(
         Stage-3 ADCP dataset with ``pressure(time)`` (dbar, at the head), ``range(N_BINS)``
         (m, from the transducer face) and orientation in ``orientation_yaml`` or
         ``orientation_instrument``.
-    lat : float
+    latitude : float
         Latitude (decimal degrees north), for ``gsw.p_from_z``.
     log_fn : callable, optional
         Deprecated (removed in 0.7.0): configure logging instead.
+    lat : float, optional
+        Deprecated name of *latitude*; removed in 0.8.0.
 
     Returns
     -------
@@ -440,8 +432,14 @@ def compute_adcp_bin_pressure(
     ``p_from_z`` is measured from the sea surface, not from the head: ~2–3 dbar at 300 m
     range from a 500 m transducer.
     """
+    latitude = _deprecated.resolve_keyword(
+        "oceanarray.pipeline.pressure.compute_adcp_bin_pressure(lat=)",
+        latitude,
+        lat,
+        required="latitude",
+    )
     with logger.deprecated_log_fn(log_fn):
-        return _compute_adcp_bin_pressure(ds, lat)
+        return _compute_adcp_bin_pressure(ds, latitude)
 
 
 def _compute_adcp_bin_pressure(

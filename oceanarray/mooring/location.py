@@ -54,7 +54,14 @@ def parse_coordinate(value: Any) -> float | None:
     return parsed if math.isfinite(parsed) else None
 
 
-def format_latlon(lat: float, lon: float, *, ndp: int = 4) -> tuple[str, str]:
+def format_latlon(
+    latitude: float | None = None,
+    longitude: float | None = None,
+    *,
+    ndp: int = 4,
+    lat: float | None = None,
+    lon: float | None = None,
+) -> tuple[str, str]:
     """Return (lat, lon) as hemisphere-suffixed strings from signed decimal degrees.
 
     The sign selects the hemisphere and the magnitude is shown unsigned, so a
@@ -64,10 +71,14 @@ def format_latlon(lat: float, lon: float, *, ndp: int = 4) -> tuple[str, str]:
 
     Parameters
     ----------
-    lat, lon : float
+    latitude, longitude : float
         Latitude and longitude in signed decimal degrees.
     ndp : int, optional
         Number of decimal places for the magnitude (default 4 ≈ 11 m).
+    lat : float, optional
+        Deprecated name of *latitude*; removed in 0.8.0.
+    lon : float, optional
+        Deprecated name of *longitude*; removed in 0.8.0.
 
     Returns
     -------
@@ -75,11 +86,23 @@ def format_latlon(lat: float, lon: float, *, ndp: int = 4) -> tuple[str, str]:
         ``(lat_str, lon_str)``, e.g. ``("65.7319° N", "27.8000° W")``.
 
     """
-    lat_hemi = "N" if lat >= 0 else "S"
-    lon_hemi = "E" if lon >= 0 else "W"
+    latitude = _deprecated.resolve_keyword(
+        "oceanarray.location.format_latlon(lat=)",
+        latitude,
+        lat,
+        required="latitude",
+    )
+    longitude = _deprecated.resolve_keyword(
+        "oceanarray.location.format_latlon(lon=)",
+        longitude,
+        lon,
+        required="longitude",
+    )
+    lat_hemi = "N" if latitude >= 0 else "S"
+    lon_hemi = "E" if longitude >= 0 else "W"
     return (
-        f"{abs(lat):.{ndp}f}° {lat_hemi}",
-        f"{abs(lon):.{ndp}f}° {lon_hemi}",
+        f"{abs(latitude):.{ndp}f}° {lat_hemi}",
+        f"{abs(longitude):.{ndp}f}° {lon_hemi}",
     )
 
 

@@ -180,7 +180,7 @@ def _check_enrich_depth(
     return [ValidationIssue("WARNING", message)]
 
 
-def check_serials(entries: list[dict]) -> list[ValidationIssue]:
+def _check_serials(entries: list[dict]) -> list[ValidationIssue]:
     """Return ERRORs for serials whose output files would silently overwrite.
 
     Serials are compared on :func:`oceanarray.paths.safe_serial` — the exact token
@@ -256,7 +256,7 @@ def check_serials(entries: list[dict]) -> list[ValidationIssue]:
     return issues
 
 
-def validate_mooring(  # noqa: C901
+def _validate_mooring(  # noqa: C901
     data: object, *, dir_name: str | None = None
 ) -> list[ValidationIssue]:
     """Validate a parsed mooring configuration mapping.
@@ -661,5 +661,5 @@ def validate_mooring(  # noqa: C901
                 issues.append(ValidationIssue("ERROR", str(exc)))
 
     issues.extend(_drift_outliers(combined_list))
-    issues.extend(check_serials(combined_list))
+    issues.extend(_check_serials(combined_list))
     return issues

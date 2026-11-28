@@ -235,7 +235,7 @@ def test_different_depth_rules_are_refused(stacks):
 def test_the_file_verb_writes_the_stackcat_and_its_cruises(site):
     yamls = [site / n / f"{n}.mooring.yaml" for n in _NAMES]
     with contextlib.redirect_stdout(io.StringIO()):
-        out = concat_moorings(yamls, name="egM2", overwrite=True)
+        out = concat_moorings(yamls, name="egM2", force=True)
     assert out == site / "egM2" / "egM2_stackcat.nc"
     with xr.open_dataset(out, engine="netcdf4") as ds:
         assert ds.attrs["oceanarray_version"]
@@ -290,7 +290,7 @@ def test_a_dry_run_writes_nothing(site, tmp_path):
 def test_the_report_page(site):
     yamls = [site / n / f"{n}.mooring.yaml" for n in _NAMES]
     with contextlib.redirect_stdout(io.StringIO()):
-        out = concat_moorings(yamls, name="egM2", overwrite=True)
+        out = concat_moorings(yamls, name="egM2", force=True)
         page = generate_concat_page(out, out.parent / "report")
     html = page.read_text(encoding="utf-8")
     assert page.name == "egM2_stackcat_report.html"
@@ -789,7 +789,7 @@ def test_the_time_axis_ends_at_the_data(flmb_site):
 def test_the_page_has_one_netcdf_appendix_and_reader_headings(site):
     yamls = [site / n / f"{n}.mooring.yaml" for n in _NAMES]
     with contextlib.redirect_stdout(io.StringIO()):
-        out = concat_moorings(yamls, name="egM2", overwrite=True)
+        out = concat_moorings(yamls, name="egM2", force=True)
         html = generate_concat_page(out, out.parent / "report").read_text("utf-8")
     assert 'id="netcdf"' in html and 'id="netcdf_variables"' not in html
     assert "Instruments by depth" not in html and "Draft" not in html

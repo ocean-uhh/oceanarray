@@ -24,9 +24,11 @@ BOUNDARY_RULE = (
 def apply_adcp_seabed_qc(
     ds: xr.Dataset,
     water_depth_m: float,
-    lat: float,
+    latitude: float | None = None,
     fail_margin_m: float | None = None,
     log_fn: Any = None,
+    *,
+    lat: float | None = None,
 ) -> xr.Dataset:
     """Add ``seabed_qc(time, N_BINS)``: 4 below the seabed and in its side-lobe zone, else 1.
 
@@ -38,13 +40,15 @@ def apply_adcp_seabed_qc(
         ``orientation_instrument`` and the beam angle in ``beam_angle_deg``.
     water_depth_m : float
         Water depth (m, the YAML ``waterdepth``); no-op if ≤ 0.
-    lat : float
+    latitude : float
         Latitude (decimal degrees), for the pressure-to-depth conversion.
     fail_margin_m : float, optional
         Deprecated and ignored (removed in 0.8.0): the zone follows from the beam
         geometry.
     log_fn : callable, optional
         Deprecated (removed in 0.7.0): configure logging instead.
+    lat : float, optional
+        Deprecated name of *latitude*; removed in 0.8.0.
 
     Returns
     -------
@@ -52,6 +56,12 @@ def apply_adcp_seabed_qc(
         *ds* with ``seabed_qc`` (not merged into the velocity flags), its rule and
         settings in the attributes; unchanged without ``bin_pressure``.
     """
+    latitude = _deprecated.resolve_keyword(
+        "oceanarray.pipeline.qc.adcp.apply_adcp_seabed_qc(lat=)",
+        latitude,
+        lat,
+        required="latitude",
+    )
     if fail_margin_m is not None:
         _deprecated.warn(
             "oceanarray.pipeline.qc.adcp.apply_adcp_seabed_qc(fail_margin_m=)"
@@ -60,14 +70,16 @@ def apply_adcp_seabed_qc(
         if water_depth_m <= 0:
             log.warning("  seabed QC: skipped (waterdepth not set in mooring YAML)")
             return ds
-        return _apply_boundary_qc(ds, lat, "seabed", float(water_depth_m))
+        return _apply_boundary_qc(ds, latitude, "seabed", float(water_depth_m))
 
 
 def apply_adcp_surface_qc(
     ds: xr.Dataset,
-    lat: float,
+    latitude: float | None = None,
     suspect_margin_m: float | None = None,
     log_fn: Any = None,
+    *,
+    lat: float | None = None,
 ) -> xr.Dataset:
     """Add ``surface_qc(time, N_BINS)``: 4 at or above the surface and in its side-lobe zone, else 1.
 
@@ -77,13 +89,15 @@ def apply_adcp_surface_qc(
         Stage-3 ADCP dataset with ``bin_pressure(time, N_BINS)`` (dbar), the head's
         ``pressure(time)``, the orientation in ``orientation_yaml`` or
         ``orientation_instrument`` and the beam angle in ``beam_angle_deg``.
-    lat : float
+    latitude : float
         Latitude (decimal degrees), for the pressure-to-depth conversion.
     suspect_margin_m : float, optional
         Deprecated and ignored (removed in 0.8.0): the zone follows from the beam
         geometry.
     log_fn : callable, optional
         Deprecated (removed in 0.7.0): configure logging instead.
+    lat : float, optional
+        Deprecated name of *latitude*; removed in 0.8.0.
 
     Returns
     -------
@@ -91,12 +105,18 @@ def apply_adcp_surface_qc(
         *ds* with ``surface_qc`` (not merged into the velocity flags), its rule and
         settings in the attributes; unchanged without ``bin_pressure``.
     """
+    latitude = _deprecated.resolve_keyword(
+        "oceanarray.pipeline.qc.adcp.apply_adcp_surface_qc(lat=)",
+        latitude,
+        lat,
+        required="latitude",
+    )
     if suspect_margin_m is not None:
         _deprecated.warn(
             "oceanarray.pipeline.qc.adcp.apply_adcp_surface_qc(suspect_margin_m=)"
         )
     with logger.deprecated_log_fn(log_fn):
-        return _apply_boundary_qc(ds, lat, "surface", 0.0)
+        return _apply_boundary_qc(ds, latitude, "surface", 0.0)
 
 
 #: Per boundary: the flag variable, its long_name and the orientation that looks at it.

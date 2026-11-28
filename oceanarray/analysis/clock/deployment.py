@@ -5,6 +5,8 @@ import logging
 import numpy as np
 import pandas as pd
 
+from oceanarray import _deprecated
+
 # Initialize logging
 _log = logging.getLogger(__name__)
 
@@ -146,7 +148,7 @@ def likely_at_bottom_window(
     return np.datetime64(start.to_datetime64()), np.datetime64(end.to_datetime64())
 
 
-def compute_threshold_sigma_band(
+def _compute_threshold_sigma_band(
     time,
     temp,
     sea_mean,
@@ -448,7 +450,7 @@ def find_deployment(
         print(f"My sea_mean is {sea_mean} and std is {sea_std}")
 
         # 2) threshold (separate step)
-        thr, deep_is_below = compute_threshold_sigma_band(
+        thr, deep_is_below = _compute_threshold_sigma_band(
             time,
             data1,
             sea_mean,
@@ -495,3 +497,13 @@ def find_deployment(
         )
 
     return ds
+
+
+#: Released names now private: each still imports, warning, until 0.8.0.
+__getattr__ = _deprecated.moved_names(
+    __name__,
+    {
+        "compute_threshold_sigma_band": lambda: _compute_threshold_sigma_band,
+    },
+    key="oceanarray.pipeline.clock.deployment.compute_threshold_sigma_band",
+)

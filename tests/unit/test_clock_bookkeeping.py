@@ -14,8 +14,8 @@ from oceanarray import mooring
 from oceanarray.exceptions import MooringError
 from oceanarray.mooring.instruments import resolve_clock_correction
 from oceanarray.mooring.validation import (
+    _validate_mooring,
     is_missing_clock_reading,
-    validate_mooring,
 )
 from oceanarray.pipeline import _stage
 from oceanarray.pipeline.stage2 import _parse_yaml_time, _stage2_instrument
@@ -85,7 +85,7 @@ def test_unknown_readings_are_a_warning_not_an_error():
     entry = _entry(cfg, "2941")
     entry["computer_clock_at_recovery"] = "unknown"
     entry["instrument_clock_at_recovery"] = "unknown"
-    issues = validate_mooring(cfg)
+    issues = _validate_mooring(cfg)
     about = [i for i in issues if "clock reading" in i.message]
     assert [i.level for i in about] == ["WARNING"]
     assert "drift not corrected" in about[0].message
@@ -165,7 +165,7 @@ def _dune2_with_all_readings() -> dict:
 
 def test_drift_far_from_the_others_is_a_warning():
     """RBRsolo 240232 reads +601 s against a median near 0: the one warning."""
-    issues = validate_mooring(_dune2_with_all_readings())
+    issues = _validate_mooring(_dune2_with_all_readings())
     far = [i for i in issues if "recovery logsheet" in i.message]
     assert [i.level for i in far] == ["WARNING"]
     assert "240232" in far[0].message
@@ -206,7 +206,7 @@ def test_non_finite_clock_field_is_an_error(field, bad):
     cfg = _dune2()
     _entry(cfg, "2941")[field] = bad
     errors = [
-        i for i in validate_mooring(cfg) if i.level == "ERROR" and field in i.message
+        i for i in _validate_mooring(cfg) if i.level == "ERROR" and field in i.message
     ]
     assert errors
     assert "2941" in errors[0].message
@@ -267,7 +267,7 @@ def test_unparseable_reading_is_a_validation_error():
     _entry(cfg, "2941")["computer_clock_at_recovery"] = "25:99"
     errors = [
         i
-        for i in validate_mooring(cfg)
+        for i in _validate_mooring(cfg)
         if i.level == "ERROR" and "timestamp" in i.message
     ]
     assert errors
@@ -300,7 +300,7 @@ def test_midnight_pair_matching_clock_drift_is_not_a_conflict():
     entry["clock_drift_seconds"] = -20
     conflicts = [
         i
-        for i in validate_mooring(cfg)
+        for i in _validate_mooring(cfg)
         if i.level == "ERROR" and "conflicts" in i.message
     ]
     assert not conflicts

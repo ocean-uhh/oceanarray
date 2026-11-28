@@ -98,7 +98,7 @@ def originator_identity(attrs: Mapping[str, Any]) -> Originator | None:
             file,
             cut_from=dataset if dataset != file.removesuffix(".nc") else None,
         )
-    from oceanarray.pipeline.attribution import bare_doi
+    from oceanarray.mooring.blocks import bare_doi
 
     doi = bare_doi(attrs.get("source_doi"))
     info = str(attrs.get("originator_infoUrl") or "").strip()

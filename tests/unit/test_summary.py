@@ -3,11 +3,11 @@
 import json
 import logging
 
-from oceanarray.pipeline.summary import RunSummary
+from oceanarray.pipeline.summary import _RunSummary
 
 
 def test_run_summary_dedupes_counts_and_round_trips(tmp_path):
-    summary = RunSummary()
+    summary = _RunSummary()
     pkg = logging.getLogger("oceanarray")
     pkg.addHandler(summary)
     try:
@@ -35,7 +35,7 @@ def test_run_summary_dedupes_counts_and_round_trips(tmp_path):
 
 
 def test_run_summary_with_no_warnings_writes_empty(tmp_path):
-    summary = RunSummary()
+    summary = _RunSummary()
     path = summary.finish("dune2_1_2026", tmp_path)
     data = json.loads(path.read_text())
     assert data == {"mooring": "dune2_1_2026", "n_warnings": 0, "warnings": []}

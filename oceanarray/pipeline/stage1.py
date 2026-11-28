@@ -29,9 +29,10 @@ from oceanarray.mooring.instruments import (
 from oceanarray.mooring.location import parse_coordinate
 from oceanarray.mooring.validation import check_depth_key
 from oceanarray.paths import safe_serial, should_skip_regeneration
-from oceanarray.pipeline import _stage, attribution, sensors
+from oceanarray.pipeline import _attribution as attribution
+from oceanarray.pipeline import _stage, sensors
 from oceanarray.pipeline.raw_files import read_raw_file, resolve_raw_file
-from oceanarray.pipeline.read_mooring import header_attrs, join_raw
+from oceanarray.pipeline.read_mooring import _join_raw, header_attrs
 from oceanarray.pipeline.units import to_canonical_units
 from oceanarray.writers import write
 from oceanarray.writers.netcdf import as_stored
@@ -1024,7 +1025,7 @@ def _stage1_file(
         return "failed", f"{instrument} {serial}: {e}"
 
     try:
-        dataset = join_raw(dataset, raw.entry, mooring)
+        dataset = _join_raw(dataset, raw.entry, mooring)
         dataset = stage1({clean: dataset}, mooring)[clean]
         logger.status("file", rel(output_file))
         return "written", write(dataset, output_file, overwrite=True)

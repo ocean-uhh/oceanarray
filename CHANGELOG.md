@@ -9,6 +9,8 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Added
 
+- The API page lists `oa.concat` and the public modules several subpackages import (`pipeline.concat`, `mask_rules`, `pipeline.sensors`, `provenance`, …) (#180).
+- Developer guide: the one or two things a function works on are positional, options keyword-only; plain values over classes (#180).
 - The CLI takes a `*.paths.yaml` right after the command (`process`, `run`, `report`, `export`, `validate`): moorings by name, folders from the file, a folder flag beating the file (#179).
 - `oceanarray run PATHS --array X.array.yaml` and `--all` run each mooring of the array, or every mooring YAML in `yaml_dir` (#179).
 - `oceanarray.mooring.load_array` reads an array YAML; `report_array` finds a mooring YAML in the paths' `yaml_dir` when it is not beside the array YAML (#179).
@@ -46,6 +48,10 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Deprecated
 
+- Internal names that only oceanarray uses start with `_` (old names warn until 0.8.0): `pipeline.attribution`, `cli.cmd_*` and 25 helpers and classes (#180).
+- `export`, `concat_moorings` and `grid_site` take `force=` like the other verbs; `overwrite=` warns until 0.8.0 and stays on the writers (#180).
+- Eight functions take `latitude=`/`longitude=` (as `gsw`); `lat=`/`lon=` warn until 0.8.0 (#180).
+- `oceanarray validate --strict` is `--fail-on-warnings`; `--strict` warns until 0.8.0 (#180).
 - `oceanarray.instruments.nominal_depth` is `mooring.instruments.resolve_nominal_depth` (hab first); the old name keeps `nominal_depth` first and warns until 0.8.0 (#178).
 - `apply_adcp_seabed_qc(fail_margin_m=)` and `apply_adcp_surface_qc(suspect_margin_m=)` warn until 0.8.0 and are ignored: the side-lobe zone follows from the beam angle and cell size (#177).
 - The verbs' folder keywords (`raw_dir=`, `mooring_dir=`, `out_dir=`, ...), a folder or dict for the YAML, `mooring=` and calls without `paths` warn until 0.8.0; same files as before.

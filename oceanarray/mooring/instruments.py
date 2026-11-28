@@ -75,7 +75,7 @@ def _is_time_only(value: object) -> bool:
     return bool(re.match(r"^\d{2}:\d{2}:\d{2}", s)) and "T" not in s
 
 
-class ClockCorrection(NamedTuple):
+class _ClockCorrection(NamedTuple):
     """One instrument's recovery clock correction, resolved from its YAML entry.
 
     ``seconds`` is the correction at recovery (seconds added to instrument time,
@@ -139,7 +139,7 @@ def clock_seconds(entry: dict[str, Any], field: str) -> float:
     return number
 
 
-def resolve_clock_correction(entry: dict[str, Any]) -> ClockCorrection:
+def resolve_clock_correction(entry: dict[str, Any]) -> _ClockCorrection:
     """Return the recovery clock correction for a mooring YAML instrument entry.
 
     The ``computer_clock_at_recovery`` / ``instrument_clock_at_recovery`` pair
@@ -155,7 +155,7 @@ def resolve_clock_correction(entry: dict[str, Any]) -> ClockCorrection:
 
     Returns
     -------
-    ClockCorrection
+    _ClockCorrection
         ``seconds``, whether it is ``applied``, the history ``reason`` and the
         ``source`` (``"recovery readings"``, ``"clock_drift_seconds"``, ``"not read"``,
         ``"unparseable"`` or ``"none"``).
@@ -167,14 +167,14 @@ def resolve_clock_correction(entry: dict[str, Any]) -> ClockCorrection:
     if comp is not None or inst is not None:
         if is_missing_clock_reading(comp) or is_missing_clock_reading(inst):
             if stated:
-                return ClockCorrection(
+                return _ClockCorrection(
                     stated,
                     True,
                     f"clock corrected: clock_drift={stated:+.1f}s over deployment "
                     "(clock_drift_seconds; no clock reading at recovery)",
                     "clock_drift_seconds",
                 )
-            return ClockCorrection(
+            return _ClockCorrection(
                 0.0, False, "clock: no reading at recovery, not corrected", "not read"
             )
         comp_t = parse_clock_reading(comp)
@@ -186,14 +186,14 @@ def resolve_clock_correction(entry: dict[str, Any]) -> ClockCorrection:
                 # straddling midnight (23:59:50 vs 00:00:10) reads as −20 s, not +86 380 s.
                 drift = ((drift + 43200) % 86400) - 43200
             if drift:
-                return ClockCorrection(
+                return _ClockCorrection(
                     drift,
                     True,
                     f"clock corrected: clock_drift={drift:+.1f}s over deployment "
                     f"(computer={comp}, instrument={inst})",
                     "recovery readings",
                 )
-            return ClockCorrection(
+            return _ClockCorrection(
                 0.0,
                 False,
                 "clock: not corrected, the recovery readings agree "
@@ -201,7 +201,7 @@ def resolve_clock_correction(entry: dict[str, Any]) -> ClockCorrection:
                 "recovery readings",
             )
         # Present but neither a "missing" word nor a valid timestamp.
-        return ClockCorrection(
+        return _ClockCorrection(
             0.0,
             False,
             f"clock: recovery reading is not a valid timestamp "
@@ -210,13 +210,13 @@ def resolve_clock_correction(entry: dict[str, Any]) -> ClockCorrection:
         )
 
     if stated:
-        return ClockCorrection(
+        return _ClockCorrection(
             stated,
             True,
             f"clock corrected: clock_drift={stated:+.1f}s over deployment",
             "clock_drift_seconds",
         )
-    return ClockCorrection(
+    return _ClockCorrection(
         0.0, False, "clock: no correction (no offset or recovery reading)", "none"
     )
 
@@ -236,20 +236,20 @@ def hab_for(entry: dict[str, Any]) -> Any:
     return entry.get("hab_bottom")
 
 
-class NominalDepth(NamedTuple):
+class _NominalDepth(NamedTuple):
     """An instrument's nominal depth (m, positive down) and where it came from."""
 
     depth: float | None
     source: str
 
 
-#: ``NominalDepth.source`` values.
+#: ``_NominalDepth.source`` values.
 FROM_HAB = "waterdepth - hab"
 FROM_ENTRY = "nominal_depth"
 NO_DEPTH = "none"
 
 
-def resolve_nominal_depth(entry: dict[str, Any], waterdepth: Any) -> NominalDepth:
+def resolve_nominal_depth(entry: dict[str, Any], waterdepth: Any) -> _NominalDepth:
     """Return an instrument's nominal depth: its typical depth as deployed, below the surface.
 
     With a numeric hab and water depth it is ``waterdepth - hab`` (the hab is set by how the
@@ -266,24 +266,24 @@ def resolve_nominal_depth(entry: dict[str, Any], waterdepth: Any) -> NominalDept
 
     Returns
     -------
-    NominalDepth
+    _NominalDepth
         The depth (None without either) and its source: :data:`FROM_HAB`,
         :data:`FROM_ENTRY` or :data:`NO_DEPTH`.
 
     Examples
     --------
     >>> resolve_nominal_depth({"hab": 29.5, "nominal_depth": 670.5}, 685)
-    NominalDepth(depth=655.5, source='waterdepth - hab')
+    _NominalDepth(depth=655.5, source='waterdepth - hab')
     >>> resolve_nominal_depth({"nominal_depth": 800}, None)
-    NominalDepth(depth=800.0, source='nominal_depth')
+    _NominalDepth(depth=800.0, source='nominal_depth')
     """
     hab, depth = _as_metres(hab_for(entry)), _as_metres(waterdepth)
     if hab is not None and depth is not None:
-        return NominalDepth(depth - hab, FROM_HAB)
+        return _NominalDepth(depth - hab, FROM_HAB)
     given = _as_metres(entry.get("nominal_depth"))
     if given is not None:
-        return NominalDepth(given, FROM_ENTRY)
-    return NominalDepth(None, NO_DEPTH)
+        return _NominalDepth(given, FROM_ENTRY)
+    return _NominalDepth(None, NO_DEPTH)
 
 
 def _as_metres(value: Any) -> float | None:

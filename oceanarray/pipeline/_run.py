@@ -112,7 +112,7 @@ def run(  # noqa: C901
     from oceanarray.pipeline import _Outcome, _process_stages, resolve_verb_call
     from oceanarray.pipeline.grid import _grid_file
     from oceanarray.pipeline.stack import _stack_file
-    from oceanarray.pipeline.summary import RunSummary
+    from oceanarray.pipeline.summary import _RunSummary
 
     if stack_stage not in (2, 3):
         raise ValueError(f"stack_stage={stack_stage!r}: expected 3 or 2")
@@ -164,7 +164,7 @@ def run(  # noqa: C901
     outcome = _Outcome()
     # Collect the run's warnings on the package logger; the summary is logged and
     # written to processing_logs/<name>_summary.json at the end, whatever happens.
-    summary = RunSummary()
+    summary = _RunSummary()
     logging.getLogger("oceanarray").addHandler(summary)
     try:
         try:

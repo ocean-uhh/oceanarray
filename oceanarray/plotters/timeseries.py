@@ -48,7 +48,7 @@ from .helpers import (
 )
 from .primitives import (
     SECTION_AXES_IN,
-    SectionScale,
+    _SectionScale,
     apply_section_scale,
     colorbar_norm,
     date_axis,
@@ -182,7 +182,7 @@ def _marks_for(
     return instrument_pressures
 
 
-def hydro_scale(ds: xr.Dataset) -> SectionScale | None:
+def hydro_scale(ds: xr.Dataset) -> _SectionScale | None:
     """Return the vertical scale of a grid page: its hydrography panels' dbar per inch.
 
     Parameters
@@ -192,7 +192,7 @@ def hydro_scale(ds: xr.Dataset) -> SectionScale | None:
 
     Returns
     -------
-    SectionScale or None
+    _SectionScale or None
         None without temperature or salinity values.
     """
     fields = [
@@ -211,7 +211,7 @@ def draw_grid_hydro(
     *,
     width_in: float = report_tokens.W_FULL,
     instrument_pressures: Mapping[str, Sequence[float]] | Sequence[float] | None = None,
-    scale: SectionScale | None = None,
+    scale: _SectionScale | None = None,
 ) -> plt.Figure | None:
     """Stacked temperature / salinity (PSU) sections for the grid report.
 
@@ -236,7 +236,7 @@ def draw_grid_hydro(
     instrument_pressures : Mapping of str to sequence of float, or sequence of float, optional
         Pressures (dbar) of the instruments behind each panel, keyed by variable
         (or one sequence for every panel); none marked when omitted.
-    scale : SectionScale, optional
+    scale : _SectionScale, optional
         Vertical scale; default: the panels fill :data:`SECTION_AXES_IN`.
 
     Returns
@@ -333,7 +333,7 @@ def draw_grid_velocity_stacked(  # noqa: C901
     *,
     width_in: float = report_tokens.W_FULL,
     instrument_pressures: Sequence[float] | None = None,
-    scale: SectionScale | None = None,
+    scale: _SectionScale | None = None,
 ) -> plt.Figure | None:
     """Velocity component, speed and direction sections for the grid report.
 
@@ -358,7 +358,7 @@ def draw_grid_velocity_stacked(  # noqa: C901
     instrument_pressures : sequence of float, optional
         Pressures (dbar) of the current meters, marked by triangles at the right
         edge of each panel.
-    scale : SectionScale, optional
+    scale : _SectionScale, optional
         Vertical scale; default: that of *ds*'s own hydrography
         (:func:`hydro_scale`).
 
@@ -520,7 +520,7 @@ def draw_grid_potential_density(
     width_in: float = report_tokens.W_FULL,
     derived: DerivedFields | None = None,
     density: Mapping[str, xr.DataArray] | None = None,
-    scale: SectionScale | None = None,
+    scale: _SectionScale | None = None,
 ) -> plt.Figure | None:
     """One potential-density section (σ0 or σ2) over the whole grid column.
 
@@ -544,7 +544,7 @@ def draw_grid_potential_density(
         σ0 and σ2 computed once for the page
         (:func:`oceanarray.analysis.derived.potential_density`), so the two
         sections share one computation.
-    scale : SectionScale, optional
+    scale : _SectionScale, optional
         Vertical scale; default: that of *ds*'s hydrography.
 
     Returns
@@ -592,10 +592,11 @@ def draw_grid_potential_density(
 
 def draw_grid_n2(
     ds: xr.Dataset,
-    lat: float = 0.0,
+    latitude: float | None = None,
     *,
     width_in: float = report_tokens.W_FULL,
     derived: DerivedFields | None = None,
+    lat: float | None = None,
 ) -> plt.Figure | None:
     """Plot buoyancy frequency squared N² on the pressure-time grid.
 
@@ -607,19 +608,26 @@ def draw_grid_n2(
     ds : xr.Dataset
         Gridded dataset with ``temperature`` and ``salinity`` on
         ``(time, pressure)``.
-    lat : float, optional
+    latitude : float, optional
         Mooring latitude (decimal degrees).
     width_in : float, optional
         Figure width in inches.
     derived : DerivedFields or None, optional
         The page's derived quantities; its longitude is used for Absolute
         Salinity (read from *ds* when not given; a warning when unknown).
+    lat : float, optional
+        Deprecated name of *latitude*; removed in 0.8.0.
 
     Returns
     -------
     plt.Figure or None
         Figure, or None when temperature or salinity are absent.
     """
+    latitude = _deprecated.resolve_keyword(
+        "oceanarray.plotters.timeseries.draw_grid_n2(lat=)", latitude, lat
+    )
+    if latitude is None:
+        latitude = 0.0
     import matplotlib.pyplot as plt
 
     if "temperature" not in ds.data_vars or "salinity" not in ds.data_vars:
@@ -635,7 +643,7 @@ def draw_grid_n2(
         ds["temperature"].transpose("pressure", "time").values.astype(float),
         ds["salinity"].transpose("pressure", "time").values.astype(float),
         ds["pressure"].values.astype(float),
-        lat,
+        latitude,
         lon,
     )
     # Floor non-positive/unstable N² to 1e-12 so it renders as the lowest colour

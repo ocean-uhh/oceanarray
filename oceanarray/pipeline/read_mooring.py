@@ -273,7 +273,7 @@ def read_mooring(  # noqa: C901
     return datasets
 
 
-def join_raw(
+def _join_raw(
     ds: xr.Dataset,
     entry: dict[str, Any],
     mooring_dict: Mapping[str, Any] | None = None,
@@ -412,3 +412,12 @@ def _read_stage(
         )
         ds = _stage.stamp(ds, stage, inferred=True)
     return ds
+
+
+#: Released names now private: each still imports, warning, until 0.8.0.
+__getattr__ = _deprecated.moved_names(
+    __name__,
+    {
+        "join_raw": lambda: _join_raw,
+    },
+)

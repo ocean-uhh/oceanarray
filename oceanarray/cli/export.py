@@ -32,7 +32,7 @@ def cmd_export(args: argparse.Namespace) -> int:
             paths,
             array_path=args.array,
             grid=not args.no_grid,
-            overwrite=args.force,
+            force=args.force,
             dry_run=args.dry_run,
         )
     except (OceanarrayError, FileExistsError) as e:

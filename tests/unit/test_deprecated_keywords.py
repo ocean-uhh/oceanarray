@@ -230,7 +230,7 @@ _WITH_MORE = [
     ),
     (
         "oceanarray.pipeline.read_mooring.join_raw(mooring=)",
-        read_mooring.join_raw,
+        read_mooring._join_raw,
         lambda g: ((g["raw"]["2941"], g["entry"]), {}),
     ),
 ]

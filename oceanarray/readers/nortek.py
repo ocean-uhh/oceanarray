@@ -1,7 +1,7 @@
 """Nortek (Aquadopp / AquaPro) header parsers and variable normalisers.
 
 The ``.hdr`` parsers read the coordinate system, transformation matrix and
-pressure calibration from a Nortek header file; :func:`to_canonical_nortek`
+pressure calibration from a Nortek header file; :func:`_to_canonical_nortek`
 tidies the dataset seasenselib produces; :func:`load_nortek_csv` reads the
 AquaPro CSV export directly.
 """
@@ -13,6 +13,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import xarray as xr
+
+from oceanarray import _deprecated
 
 log = logging.getLogger(__name__)
 
@@ -141,7 +143,7 @@ def _parse_nortek_pressure_cal(hdr_path: Path) -> dict:
     return cal
 
 
-def to_canonical_nortek(dataset: xr.Dataset, coord_system: str = "ENU") -> xr.Dataset:  # noqa: C901
+def _to_canonical_nortek(dataset: xr.Dataset, coord_system: str = "ENU") -> xr.Dataset:  # noqa: C901
     """Normalise variable names produced by the seasenselib nortek readers.
 
     The Nortek .hdr file describes columns for both the main .dat file and the
@@ -506,3 +508,12 @@ def load_nortek_csv(
 
     log.debug("Nortek CSV: loaded %d samples from %s", len(times), file_path.name)
     return ds
+
+
+#: Released names now private: each still imports, warning, until 0.8.0.
+__getattr__ = _deprecated.moved_names(
+    __name__,
+    {
+        "to_canonical_nortek": lambda: _to_canonical_nortek,
+    },
+)

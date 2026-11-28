@@ -57,7 +57,7 @@ Package layout
    │   │   ├── coordinate.py          # BEAM → XYZ → ENU transforms
    │   │   ├── units.py               # canonical units
    │   │   ├── sensors.py             # sensor records, one per instrument
-   │   │   ├── attribution.py         # investigators, contributors, DOIs, licenses of a product
+   │   │   ├── _attribution.py        # investigators, contributors, DOIs, licenses of a product
    │   │   ├── summary.py             # one run's warnings, collected
    │   │   ├── dataset.py             # small xarray conveniences the stages share
    │   │   ├── clock/                 # clock offsets between instruments; deployment window

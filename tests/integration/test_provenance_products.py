@@ -568,16 +568,16 @@ def test_stage3_variables_name_the_instruments_record():
     with xr.open_dataset(
         DUNE2 / "aquadopp" / "dune2_1_2026_9920_stage3.nc", engine="netcdf4"
     ) as ds:
-        adcp = sensors.link_derived(ds.load())
+        adcp = sensors._link_derived(ds.load())
     assert adcp["east_velocity"].attrs["sensor"] == "SENSOR_AQUADOPP_9920"
     assert "sensor" not in adcp["east_velocity_qc"].attrs
     with xr.open_dataset(
         DUNE2 / "microcat" / "dune2_1_2026_2941_stage3.nc", engine="netcdf4"
     ) as ds:
         ctd = ds.load()
-    assert sensors.record_of(ctd, "salinity")["sensor_serial_number"] == "2941"
-    assert sensors.record_of(ctd, "pressure") == {}
-    ctd = sensors.link_derived(ctd)
+    assert sensors._record_of(ctd, "salinity")["sensor_serial_number"] == "2941"
+    assert sensors._record_of(ctd, "pressure") == {}
+    ctd = sensors._link_derived(ctd)
     assert ctd["salinity"].attrs["sensor"] == "SENSOR_CTD_2941"
     assert "sensor" not in ctd["pressure"].attrs
     attrs = _sensor_attrs(ctd, "salinity", "2026-01-01", "2026-02-01")

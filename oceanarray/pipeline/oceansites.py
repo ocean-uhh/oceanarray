@@ -29,7 +29,8 @@ from oceanarray.mooring import DEPLOYMENT_CODE_PATTERN, location
 from oceanarray.mooring.instruments import instrument_entries
 from oceanarray.originator_flags import MAPPED_SUFFIX
 from oceanarray.paths import safe_serial
-from oceanarray.pipeline import _stage, attribution, dataset, sensors
+from oceanarray.pipeline import _attribution as attribution
+from oceanarray.pipeline import _stage, dataset, sensors
 from oceanarray.pipeline.calibration import CALDIP_STUB_APPLIED
 from oceanarray.readers.oceansites import OCEANSITES_VARIABLES
 
@@ -208,7 +209,7 @@ def _sensor_attrs(ds: xr.Dataset, name: str, start: str, end: str) -> dict[str, 
     ``UNK`` when nothing states it.
     """
     # Its own record, or the file's one record for a variable derived at stage 3.
-    record = sensors.record_of(ds, name)
+    record = sensors._record_of(ds, name)
     if not record:
         # A file written before sensor records: its per-sensor variables.
         for var in ds.variables.values():
@@ -500,7 +501,7 @@ def _terms(ds: xr.Dataset) -> dict[str, str]:
     """Return how to cite the data and the license it is under (``citation``, ``license``, ``references``).
 
     A product's own values; a stage-3 file, which has none, gives its source's
-    (:func:`~oceanarray.pipeline.attribution.product_citation`).
+    (the package's product citation).
     """
     own = {
         k: str(ds.attrs[k])

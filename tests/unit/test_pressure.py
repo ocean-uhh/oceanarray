@@ -275,14 +275,14 @@ def _adcp_ds(orientation: str | None, n_bins: int = 3) -> xr.Dataset:
 def test_adcp_bin_pressure_skipped_without_pressure_or_range():
     ds = xr.Dataset(coords={"time": _dt([0.0])})
     msgs: list[str] = []
-    out = P.compute_adcp_bin_pressure(ds, lat=60.0, log_fn=msgs.append)
+    out = P.compute_adcp_bin_pressure(ds, latitude=60.0, log_fn=msgs.append)
     assert "bin_pressure" not in out.data_vars
     assert any("skipped" in m for m in msgs)
 
 
 def test_adcp_bin_pressure_down_increases_with_bin():
     """Downward-looking: deeper bins → higher pressure than the transducer."""
-    out = P.compute_adcp_bin_pressure(_adcp_ds("down"), lat=60.0)
+    out = P.compute_adcp_bin_pressure(_adcp_ds("down"), latitude=60.0)
     bp = out["bin_pressure"].values  # (time, N_BINS)
     assert (bp[:, 0] > 500.0).all()
     assert (np.diff(bp, axis=1) > 0).all()  # monotonically deeper with range
@@ -290,7 +290,7 @@ def test_adcp_bin_pressure_down_increases_with_bin():
 
 def test_adcp_bin_pressure_up_decreases_with_bin():
     """Upward-looking: shallower bins → lower pressure than the transducer."""
-    out = P.compute_adcp_bin_pressure(_adcp_ds("up"), lat=60.0)
+    out = P.compute_adcp_bin_pressure(_adcp_ds("up"), latitude=60.0)
     bp = out["bin_pressure"].values
     assert (bp[:, 0] < 500.0).all()
     assert (np.diff(bp, axis=1) < 0).all()
@@ -299,19 +299,19 @@ def test_adcp_bin_pressure_up_decreases_with_bin():
 def test_adcp_bin_pressure_refuses_an_unknown_orientation():
     """No orientation is assumed."""
     with pytest.raises(MooringError, match="orientation"):
-        P.compute_adcp_bin_pressure(_adcp_ds(None), lat=60.0)
+        P.compute_adcp_bin_pressure(_adcp_ds(None), latitude=60.0)
 
 
 def test_adcp_bin_pressure_keeps_the_originators():
     """An imported ADCP's bin pressures pass through unchanged."""
     ds = read_oceansites(OSNAP_ADCP)
-    out = P.compute_adcp_bin_pressure(ds, lat=60.07)
+    out = P.compute_adcp_bin_pressure(ds, latitude=60.07)
     assert out["bin_pressure"].attrs["bin_pressure_source"] == "originator"
     np.testing.assert_array_equal(out["bin_pressure"].values, ds["bin_pressure"].values)
 
 
 def test_adcp_bin_pressure_records_formula_in_comment():
-    out = P.compute_adcp_bin_pressure(_adcp_ds("down"), lat=60.0)
+    out = P.compute_adcp_bin_pressure(_adcp_ds("down"), latitude=60.0)
     comment = out["bin_pressure"].attrs["comment"]
     assert "gsw.p_from_z" in comment and "down-looking" in comment
 
@@ -336,7 +336,7 @@ def test_adcp_bin_pressure_guard_skips_firmware_bin_mapping():
     assert ds.attrs["firmware_bin_mapping"] == "yes"
     msgs: list[str] = []
     out = P.compute_adcp_bin_pressure(
-        ds.drop_vars("bin_pressure"), lat=DSG2_LAT, log_fn=msgs.append
+        ds.drop_vars("bin_pressure"), latitude=DSG2_LAT, log_fn=msgs.append
     )
     assert out["bin_pressure"].attrs["tilt_correction"] == "none (firmware bin mapping)"
     np.testing.assert_allclose(
@@ -359,7 +359,7 @@ def test_adcp_bin_pressure_apply_on_beam_matches_cos_tilt():
     ds.attrs["firmware_coordinate_system"] = "beam"
     ds.attrs["firmware_bin_mapping"] = "no"
 
-    out = P.compute_adcp_bin_pressure(ds, lat=DSG2_LAT)
+    out = P.compute_adcp_bin_pressure(ds, latitude=DSG2_LAT)
     assert out["bin_pressure"].attrs["tilt_correction"] == "applied"
 
     # Reconstruct θ via the documented definition and assert range·cos(θ) through gsw.
@@ -387,7 +387,7 @@ def test_adcp_bin_pressure_no_pitch_roll_skips_with_warning():
         "beam"  # known non-mapped; reaches the tilt step
     )
     msgs: list[str] = []
-    out = P.compute_adcp_bin_pressure(ds, lat=60.0, log_fn=msgs.append)
+    out = P.compute_adcp_bin_pressure(ds, latitude=60.0, log_fn=msgs.append)
     assert (
         out["bin_pressure"].attrs["tilt_correction"] == "none (pitch/roll unavailable)"
     )
@@ -406,7 +406,7 @@ def test_adcp_bin_pressure_unknown_firmware_fails_closed():
     ds["pitch"] = ("time", np.array([20.0, 20.0]))
     ds["roll"] = ("time", np.array([5.0, 5.0]))
     msgs: list[str] = []
-    out = P.compute_adcp_bin_pressure(ds, lat=60.0, log_fn=msgs.append)
+    out = P.compute_adcp_bin_pressure(ds, latitude=60.0, log_fn=msgs.append)
     assert (
         out["bin_pressure"].attrs["tilt_correction"] == "none (firmware config unknown)"
     )
@@ -424,7 +424,7 @@ def test_adcp_bin_pressure_nan_pitch_roll_warns_and_does_not_claim_clean():
     ds["pitch"] = ("time", np.array([20.0, np.nan]))  # one gap
     ds["roll"] = ("time", np.array([5.0, 5.0]))
     msgs: list[str] = []
-    out = P.compute_adcp_bin_pressure(ds, lat=60.0, log_fn=msgs.append)
+    out = P.compute_adcp_bin_pressure(ds, latitude=60.0, log_fn=msgs.append)
     bp = out["bin_pressure"].values
     assert np.isfinite(bp[0]).all()  # good timestep
     assert np.isnan(bp[1]).all()  # gap timestep → NaN depth, not a wrong number

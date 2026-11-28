@@ -35,7 +35,7 @@ def cmd_concat(args: argparse.Namespace) -> int:
             mooring_paths,
             name=args.name,
             out_dir=args.output_dir,
-            overwrite=args.force,
+            force=args.force,
             dry_run=args.dry_run,
             mask_flags=mask_flags,
         )
@@ -46,7 +46,7 @@ def cmd_concat(args: argparse.Namespace) -> int:
                 pmin=args.pmin,
                 pmax=args.pmax,
                 dp=args.dp,
-                overwrite=args.force,
+                force=args.force,
             )
     except OceanarrayError as exc:
         print(f"ERROR: {exc}")

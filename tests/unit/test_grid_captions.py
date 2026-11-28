@@ -285,7 +285,7 @@ def test_spectrum_default_markers_are_tides_and_inertial():
     from oceanarray.plotters.spectrum import spectrum_markers
 
     assert [m[0] for m in spectrum_markers(65.7)] == ["M2", "K1", "f"]
-    assert [m[0] for m in spectrum_markers(65.7, [("4 d", 4.0)])][-1] == "4 d"
+    assert [m[0] for m in spectrum_markers(65.7, extra=[("4 d", 4.0)])][-1] == "4 d"
 
 
 def test_spectrum_markers_key_is_checked(mooring_yaml):

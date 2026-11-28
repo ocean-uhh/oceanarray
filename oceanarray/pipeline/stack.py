@@ -27,7 +27,8 @@ from oceanarray.mooring.location import (
 from oceanarray.originator_flags import MAPPED_SUFFIX
 from oceanarray.paths import safe_serial
 from oceanarray.physics import potential_density_anomaly, speed_direction
-from oceanarray.pipeline import _stage, attribution, sensors
+from oceanarray.pipeline import _attribution as attribution
+from oceanarray.pipeline import _stage, sensors
 from oceanarray.pipeline.dataset import drop_all_zero_vars, time_axis
 from oceanarray.pipeline.pressure import _times_to_float
 from oceanarray.pipeline.qc import _worst_flag
@@ -704,7 +705,7 @@ def stack(  # noqa: C901
         )
 
         # From the instrument's own file (an ADCP's bins and head share its record).
-        rec_name, rec_attrs = sensors.sensor_record(
+        rec_name, rec_attrs = sensors._sensor_record(
             _adcp_parent_datasets[info["_adcp_nc_key"]]
             if "_adcp_nc_key" in info
             else info["ds"],
@@ -726,7 +727,7 @@ def stack(  # noqa: C901
 
         # Collect scalar (0-D) metadata variables — keep all instruments consistent
         for vname, da in ds.data_vars.items():
-            if da.dims or sensors.is_record(vname):  # time series; sensor records
+            if da.dims or sensors._is_record(vname):  # time series; sensor records
                 continue
             if vname not in scalar_meta:
                 # Back-fill with None for instruments processed before this variable appeared

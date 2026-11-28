@@ -25,8 +25,8 @@ def test_declination_guard_unknown_position():
     ds = _make_enu_dataset()
     result = _apply_declination_to_enu(
         ds,
-        lat=0.0,
-        lon=0.0,
+        latitude=0.0,
+        longitude=0.0,
         latlon_source="unknown (defaulting to 0, 0)",
     )
     assert result.attrs.get("magnetic_declination") == "UNK"
@@ -42,8 +42,8 @@ def test_declination_guard_only_triggers_on_unknown_source():
     # (ppigrf may or may not be installed; we only check the guard path here)
     result = _apply_declination_to_enu(
         ds,
-        lat=0.0,
-        lon=0.0,
+        latitude=0.0,
+        longitude=0.0,
         latlon_source="seabed GPS fix",  # not 'unknown'
     )
     # Guard did not fire → magnetic_declination is numeric (or missing if ppigrf absent)
@@ -329,7 +329,7 @@ def test_declination_skipped_if_already_applied():
     ds = _make_enu_dataset()
     ds.attrs["magnetic_declination"] = 5.0
     ds["east_velocity"].values[0] = 0.1
-    result = _apply_declination_to_enu(ds, lat=55.0, lon=-20.0)
+    result = _apply_declination_to_enu(ds, latitude=55.0, longitude=-20.0)
     # No change — already applied
     np.testing.assert_array_equal(result["east_velocity"].values, [0.1])
 
@@ -341,7 +341,7 @@ def test_declination_skipped_if_no_velocity():
         {"temperature": ("time", np.array([5.0]))},
         coords={"time": time},
     )
-    result = _apply_declination_to_enu(ds, lat=55.0, lon=-20.0)
+    result = _apply_declination_to_enu(ds, latitude=55.0, longitude=-20.0)
     assert "magnetic_declination" not in result.attrs
 
 

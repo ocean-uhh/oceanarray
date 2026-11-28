@@ -497,7 +497,7 @@ def doi_link(doi: object) -> str:
     """
     import html as _html
 
-    from oceanarray.pipeline.attribution import bare_doi
+    from oceanarray.mooring.blocks import bare_doi
 
     text = "" if doi is None else str(doi).strip()
     bare = bare_doi(text)

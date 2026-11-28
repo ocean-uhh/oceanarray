@@ -11,8 +11,10 @@ from __future__ import annotations
 import contextlib
 import contextvars
 import functools
+import sys
 import warnings
 from collections.abc import Callable, Iterator
+from types import ModuleType
 from typing import Any, TypeVar
 
 #: The release that removes every name in :data:`RENAMED`.
@@ -67,6 +69,59 @@ DICT_GIVEN = "a mooring dict in place of a mooring_path"
 #: renamed keyword is written ``<function>(<old keyword>=)``; a file location or
 #: a call form is described in words.
 RENAMED_NEXT: dict[str, str] = {
+    "oceanarray.cli.cmd_animate": "the oceanarray animate command",
+    "oceanarray.cli.cmd_concat": "the oceanarray concat command",
+    "oceanarray.cli.cmd_export": "the oceanarray export command",
+    "oceanarray.cli.cmd_init": "the oceanarray init command",
+    "oceanarray.cli.cmd_list": "the oceanarray list command",
+    "oceanarray.cli.cmd_plot": "the oceanarray plot command",
+    "oceanarray.cli.cmd_process": "the oceanarray process command",
+    "oceanarray.cli.cmd_report": "the oceanarray report command",
+    "oceanarray.cli.cmd_run": "the oceanarray run command",
+    "oceanarray.cli.cmd_stamp": "the oceanarray stamp command",
+    "oceanarray.cli.cmd_validate": "the oceanarray validate command",
+    "oceanarray.pipeline.sensors.is_record": "nothing public: an internal helper of oceanarray",
+    "oceanarray.pipeline.sensors.link_derived": "nothing public: an internal helper of oceanarray",
+    "oceanarray.pipeline.sensors.record_name": "nothing public: an internal helper of oceanarray",
+    "oceanarray.pipeline.sensors.record_of": "nothing public: an internal helper of oceanarray",
+    "oceanarray.pipeline.sensors.sensor_record": "nothing public: an internal helper of oceanarray",
+    "oceanarray.pipeline.qc.originator.translate": "nothing public: an internal helper of oceanarray",
+    "oceanarray.pipeline.qc.originator.add_mapped": "nothing public: an internal helper of oceanarray",
+    "oceanarray.pipeline.qc.originator.entries_text": "nothing public: an internal helper of oceanarray",
+    "oceanarray.pipeline.concat.chunks": "nothing public: an internal helper of oceanarray",
+    "oceanarray.pipeline.concat.is_site_stack": "nothing public: an internal helper of oceanarray",
+    "oceanarray.pipeline.read_mooring.join_raw": "nothing public: an internal helper of oceanarray",
+    "oceanarray.pipeline.summary.RunSummary": "nothing public: an internal helper of oceanarray",
+    "oceanarray.plotters.flags.adcp_groups": "nothing public: an internal helper of oceanarray",
+    "oceanarray.plotters.flags.flagged_rows": "nothing public: an internal helper of oceanarray",
+    "oceanarray.analysis.site.bin_means": "nothing public: an internal helper of oceanarray",
+    "oceanarray.analysis.derived.InstrumentLevel": "nothing public: an internal helper of oceanarray",
+    "oceanarray.analysis.derived.KnockdownRecord": "nothing public: an internal helper of oceanarray",
+    "oceanarray.analysis.site.DisplayBins": "nothing public: an internal helper of oceanarray",
+    "oceanarray.plotters.primitives.SectionScale": "nothing public: an internal helper of oceanarray",
+    "oceanarray.plotters.ts.SigmaContours": "nothing public: an internal helper of oceanarray",
+    "oceanarray.readers.nortek.to_canonical_nortek": "nothing public: an internal helper of oceanarray",
+    "oceanarray.pipeline.clock.deployment.compute_threshold_sigma_band": "nothing public: an internal helper of oceanarray",
+    "oceanarray.config.validation.validate_mooring": "oceanarray.mooring.check",
+    "oceanarray.config.validation.check_serials": "oceanarray.mooring.check",
+    "oceanarray.export(overwrite=)": "the force= keyword",
+    "oceanarray.pipeline.concat.concat_moorings(overwrite=)": "the force= keyword",
+    "oceanarray.pipeline.grid.grid_site(overwrite=)": "the force= keyword",
+    "oceanarray.location.format_latlon(lat=)": "the latitude= keyword",
+    "oceanarray.location.format_latlon(lon=)": "the longitude= keyword",
+    "oceanarray.pipeline.coordinate.apply_beam_to_enu(lat=)": "the latitude= keyword",
+    "oceanarray.pipeline.coordinate.apply_beam_to_enu(lon=)": "the longitude= keyword",
+    "oceanarray.pipeline.coordinate.apply_declination_to_enu(lat=)": "the latitude= keyword",
+    "oceanarray.pipeline.coordinate.apply_declination_to_enu(lon=)": "the longitude= keyword",
+    "oceanarray.pipeline.pressure.compute_adcp_bin_pressure(lat=)": "the latitude= keyword",
+    "oceanarray.pipeline.qc.adcp.apply_adcp_seabed_qc(lat=)": "the latitude= keyword",
+    "oceanarray.pipeline.qc.adcp.apply_adcp_surface_qc(lat=)": "the latitude= keyword",
+    "oceanarray.plotters.spectrum.spectrum_markers(lat=)": "the latitude= keyword",
+    "oceanarray.plotters.timeseries.draw_grid_n2(lat=)": "the latitude= keyword",
+    "oceanarray.pipeline.attribution": (
+        "nothing public: its helpers are internal to oceanarray (bare_doi is "
+        "oceanarray.mooring.blocks.bare_doi)"
+    ),
     "oceanarray.instruments.nominal_depth": (
         "oceanarray.mooring.instruments.resolve_nominal_depth (which puts the hab "
         "before nominal_depth)"
@@ -399,6 +454,43 @@ def keyword_only(
         return _read_old  # type: ignore[return-value]
 
     return decorate
+
+
+def moved_names(
+    module: str,
+    names: dict[str, Callable[[], object]] | None = None,
+    *,
+    key: str | None = None,
+    moved: ModuleType | dict[str, ModuleType] | None = None,
+) -> Callable[[str], object]:
+    """Return a module ``__getattr__`` for its deprecated names, each warning once per access.
+
+    *names* (old name -> getter) warn with *key*, default ``<module>.<name>``; a name
+    found in *moved* (a module, or old name -> module) warns that it moved there.
+    """
+    names = names or {}
+
+    def __getattr__(name: str) -> object:
+        """Return the object behind the deprecated *name*, warning."""
+        # ``from package import name`` also asks hasattr() first: warn on the real access only.
+        quiet = sys._getframe(1).f_code.co_name == "_handle_fromlist"
+        if name in names:
+            if not quiet:
+                warn(key or f"{module}.{name}")
+            return names[name]()
+        new = moved.get(name) if isinstance(moved, dict) else moved
+        if new is None or not hasattr(new, name):
+            raise AttributeError(f"module {module!r} has no attribute {name!r}")
+        if not quiet:
+            warnings.warn(
+                f"{module}.{name} is deprecated and is removed in {REMOVED_IN_NEXT}; "
+                f"use {new.__name__}.{name}.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        return getattr(new, name)
+
+    return __getattr__
 
 
 @contextlib.contextmanager

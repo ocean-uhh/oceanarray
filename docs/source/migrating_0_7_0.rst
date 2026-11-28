@@ -426,3 +426,156 @@ and are ignored.
      - ``nothing: the side-lobe zone follows from the beam angle and cell size, and the keyword is ignored``
    * - ``oceanarray.pipeline.qc.adcp.apply_adcp_surface_qc(suspect_margin_m=)``
      - ``nothing: the side-lobe zone follows from the beam angle and cell size, and the keyword is ignored``
+
+Internal names are private
+--------------------------
+
+Names that only oceanarray itself uses now start with ``_``, and
+``oceanarray.pipeline.attribution`` is the private ``pipeline._attribution``. The
+old names still import, with a ``DeprecationWarning``, until 0.8.0. They have no
+public replacement: they are internal helpers. ``oceanarray.cli`` keeps only
+``main`` and ``build_parser``; run a subcommand as the command it is
+(``oceanarray report …``).
+
+.. list-table::
+   :header-rows: 1
+   :widths: 60 40
+
+   * - Old name
+     - Use instead
+   * - ``oceanarray.pipeline.sensors.is_record``
+     - ``nothing public: an internal helper of oceanarray``
+   * - ``oceanarray.pipeline.sensors.link_derived``
+     - ``nothing public: an internal helper of oceanarray``
+   * - ``oceanarray.pipeline.sensors.record_name``
+     - ``nothing public: an internal helper of oceanarray``
+   * - ``oceanarray.pipeline.sensors.record_of``
+     - ``nothing public: an internal helper of oceanarray``
+   * - ``oceanarray.pipeline.sensors.sensor_record``
+     - ``nothing public: an internal helper of oceanarray``
+   * - ``oceanarray.pipeline.qc.originator.translate``
+     - ``nothing public: an internal helper of oceanarray``
+   * - ``oceanarray.pipeline.qc.originator.add_mapped``
+     - ``nothing public: an internal helper of oceanarray``
+   * - ``oceanarray.pipeline.qc.originator.entries_text``
+     - ``nothing public: an internal helper of oceanarray``
+   * - ``oceanarray.pipeline.concat.chunks``
+     - ``nothing public: an internal helper of oceanarray``
+   * - ``oceanarray.pipeline.concat.is_site_stack``
+     - ``nothing public: an internal helper of oceanarray``
+   * - ``oceanarray.pipeline.read_mooring.join_raw``
+     - ``nothing public: an internal helper of oceanarray``
+   * - ``oceanarray.pipeline.summary.RunSummary``
+     - ``nothing public: an internal helper of oceanarray``
+   * - ``oceanarray.plotters.flags.adcp_groups``
+     - ``nothing public: an internal helper of oceanarray``
+   * - ``oceanarray.plotters.flags.flagged_rows``
+     - ``nothing public: an internal helper of oceanarray``
+   * - ``oceanarray.analysis.site.bin_means``
+     - ``nothing public: an internal helper of oceanarray``
+   * - ``oceanarray.analysis.derived.InstrumentLevel``
+     - ``nothing public: an internal helper of oceanarray``
+   * - ``oceanarray.analysis.derived.KnockdownRecord``
+     - ``nothing public: an internal helper of oceanarray``
+   * - ``oceanarray.analysis.site.DisplayBins``
+     - ``nothing public: an internal helper of oceanarray``
+   * - ``oceanarray.plotters.primitives.SectionScale``
+     - ``nothing public: an internal helper of oceanarray``
+   * - ``oceanarray.plotters.ts.SigmaContours``
+     - ``nothing public: an internal helper of oceanarray``
+   * - ``oceanarray.readers.nortek.to_canonical_nortek``
+     - ``nothing public: an internal helper of oceanarray``
+   * - ``oceanarray.pipeline.clock.deployment.compute_threshold_sigma_band``
+     - ``nothing public: an internal helper of oceanarray``
+   * - ``oceanarray.pipeline.attribution``
+     - ``nothing public: its helpers are internal to oceanarray (bare_doi is oceanarray.mooring.blocks.bare_doi)``
+   * - ``oceanarray.config.validation.validate_mooring``
+     - ``oceanarray.mooring.check``
+   * - ``oceanarray.config.validation.check_serials``
+     - ``oceanarray.mooring.check``
+   * - ``oceanarray.cli.cmd_animate``
+     - ``the oceanarray animate command``
+   * - ``oceanarray.cli.cmd_concat``
+     - ``the oceanarray concat command``
+   * - ``oceanarray.cli.cmd_export``
+     - ``the oceanarray export command``
+   * - ``oceanarray.cli.cmd_init``
+     - ``the oceanarray init command``
+   * - ``oceanarray.cli.cmd_list``
+     - ``the oceanarray list command``
+   * - ``oceanarray.cli.cmd_plot``
+     - ``the oceanarray plot command``
+   * - ``oceanarray.cli.cmd_process``
+     - ``the oceanarray process command``
+   * - ``oceanarray.cli.cmd_report``
+     - ``the oceanarray report command``
+   * - ``oceanarray.cli.cmd_run``
+     - ``the oceanarray run command``
+   * - ``oceanarray.cli.cmd_stamp``
+     - ``the oceanarray stamp command``
+   * - ``oceanarray.cli.cmd_validate``
+     - ``the oceanarray validate command``
+
+``force=`` for every verb
+-------------------------
+
+``export``, ``concat_moorings`` and ``grid_site`` take ``force=`` to replace files
+that exist, as ``process``, ``run`` and ``report`` do; ``overwrite=`` stays on the
+writers (``write``, ``write_mooring``, ``mooring.save``). The old keyword still
+works, with a ``DeprecationWarning``, until 0.8.0.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 70 30
+
+   * - Old keyword
+     - New keyword
+   * - ``oceanarray.export(overwrite=)``
+     - ``force=``
+   * - ``oceanarray.pipeline.concat.concat_moorings(overwrite=)``
+     - ``force=``
+   * - ``oceanarray.pipeline.grid.grid_site(overwrite=)``
+     - ``force=``
+
+``latitude=`` and ``longitude=``
+--------------------------------
+
+These functions name a position ``latitude`` and ``longitude``, as ``gsw`` does. A
+call that gives them by position is unchanged; ``lat=`` and ``lon=`` still work,
+with a ``DeprecationWarning``, until 0.8.0.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 70 30
+
+   * - Old keyword
+     - New keyword
+   * - ``oceanarray.location.format_latlon(lat=)``
+     - ``latitude=``
+   * - ``oceanarray.location.format_latlon(lon=)``
+     - ``longitude=``
+   * - ``oceanarray.pipeline.coordinate.apply_beam_to_enu(lat=)``
+     - ``latitude=``
+   * - ``oceanarray.pipeline.coordinate.apply_beam_to_enu(lon=)``
+     - ``longitude=``
+   * - ``oceanarray.pipeline.coordinate.apply_declination_to_enu(lat=)``
+     - ``latitude=``
+   * - ``oceanarray.pipeline.coordinate.apply_declination_to_enu(lon=)``
+     - ``longitude=``
+   * - ``oceanarray.pipeline.pressure.compute_adcp_bin_pressure(lat=)``
+     - ``latitude=``
+   * - ``oceanarray.pipeline.qc.adcp.apply_adcp_seabed_qc(lat=)``
+     - ``latitude=``
+   * - ``oceanarray.pipeline.qc.adcp.apply_adcp_surface_qc(lat=)``
+     - ``latitude=``
+   * - ``oceanarray.plotters.spectrum.spectrum_markers(lat=)``
+     - ``latitude=``
+   * - ``oceanarray.plotters.timeseries.draw_grid_n2(lat=)``
+     - ``latitude=``
+
+``validate --fail-on-warnings``
+-------------------------------
+
+``oceanarray validate --strict`` is now ``--fail-on-warnings``: ``--strict`` means
+"stop at the first failure" in ``process`` and ``run``. The old spelling still
+works, with a warning, until 0.8.0.

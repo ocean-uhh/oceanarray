@@ -349,9 +349,9 @@ def test_a_short_deployment_is_left_out_of_every_grid_level(flmb_site):
 def test_a_zero_grid_spacing_is_an_error_not_a_crash(egm2):
     yamls = [egm2 / n / f"{n}.mooring.yaml" for n in _EGM2]
     with contextlib.redirect_stdout(io.StringIO()):
-        path = concat_moorings(yamls, name="egM2", overwrite=True)
+        path = concat_moorings(yamls, name="egM2", force=True)
     with pytest.raises(MooringError, match="dp=0 must be > 0"):
-        grid_site(path, dp=0, overwrite=True)
+        grid_site(path, dp=0, force=True)
 
 
 @pytest.fixture(scope="module")
@@ -390,9 +390,9 @@ def test_a_deployment_whose_grid_settings_differ_is_named(egm2, caplog):
     """egM2 2018's YAML grids 1000–2450 dbar: a site grid on its own range says so."""
     yamls = [egm2 / n / f"{n}.mooring.yaml" for n in _EGM2]
     with contextlib.redirect_stdout(io.StringIO()):
-        path = concat_moorings(yamls, name="egM2", overwrite=True)
+        path = concat_moorings(yamls, name="egM2", force=True)
     with caplog.at_level(logging.WARNING, logger="oceanarray"):
-        grid_site(path, dp=25, overwrite=True)
+        grid_site(path, dp=25, force=True)
     assert "egM2_2018's own grid: settings (" in caplog.text
 
 
@@ -401,8 +401,8 @@ def test_without_a_position_no_isopycnals_are_drawn(egm2, tmp_path, caplog):
 
     yamls = [egm2 / n / f"{n}.mooring.yaml" for n in _EGM2]
     with contextlib.redirect_stdout(io.StringIO()):
-        stackcat = concat_moorings(yamls, name="egM2", overwrite=True)
-        gridcat = grid_site(stackcat, dp=50, overwrite=True)
+        stackcat = concat_moorings(yamls, name="egM2", force=True)
+        gridcat = grid_site(stackcat, dp=50, force=True)
     folder = tmp_path / "egM2"
     folder.mkdir()
     shutil.copy(stackcat, folder / stackcat.name)
@@ -441,8 +441,8 @@ def test_a_grid_from_an_older_stack_is_not_linked(egm2, tmp_path):
 
     yamls = [egm2 / n / f"{n}.mooring.yaml" for n in _EGM2]
     with contextlib.redirect_stdout(io.StringIO()):
-        stackcat = concat_moorings(yamls, name="egM2", overwrite=True)
-        grid_site(stackcat, dp=50, overwrite=True)
+        stackcat = concat_moorings(yamls, name="egM2", force=True)
+        grid_site(stackcat, dp=50, force=True)
         linked = generate_concat_page(stackcat, tmp_path / "a")
         # The stack changes (rebuilt with the other overlap rule's history): the old
         # grid no longer matches it.
@@ -480,7 +480,7 @@ def test_the_rotated_velocity_is_named_by_its_direction(flmb_site, tmp_path):
     from oceanarray.reports._gridcat import generate_gridcat_page
 
     oa.write(flmb_site, tmp_path / "FLMB_stackcat.nc")
-    gridded = _quiet(grid_site, tmp_path / "FLMB_stackcat.nc", overwrite=True)
+    gridded = _quiet(grid_site, tmp_path / "FLMB_stackcat.nc", force=True)
     html = generate_gridcat_page(gridded, tmp_path / "report").read_text("utf-8")
     import html as html_lib
 
@@ -583,7 +583,7 @@ def test_concat_rotate_to_reaches_the_page_and_slope_angle_warns(flmb_site, tmp_
         )
     assert old.rotate_to == 210.0
     oa.write(flmb_site, tmp_path / "FLMB_stackcat.nc")
-    gridded = _quiet(grid_site, tmp_path / "FLMB_stackcat.nc", overwrite=True)
+    gridded = _quiet(grid_site, tmp_path / "FLMB_stackcat.nc", force=True)
     page = _quiet(generate_gridcat_page, gridded, tmp_path / "report", rotate_to=210)
     html = page.read_text("utf-8")
     assert "velocity toward 210° and across it" in html

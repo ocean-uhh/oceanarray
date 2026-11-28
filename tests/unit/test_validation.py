@@ -372,7 +372,7 @@ def test_validate_serial_with_special_chars_is_warning(tmp_path):
 # ---------------------------------------------------------------------------
 
 from oceanarray.mooring.validation import (  # noqa: E402
-    check_serials,
+    _check_serials,
 )
 
 
@@ -381,45 +381,45 @@ def _mk(serial, instrument="microcat"):
 
 
 def test_duplicate_serial_same_type_flags_stage_and_report():
-    errs = _errors(check_serials([_mk("1234"), _mk("1234")]))
+    errs = _errors(_check_serials([_mk("1234"), _mk("1234")]))
     assert len(errs) == 1
     assert "stage NetCDF files AND report pages" in errs[0].message
 
 
 def test_duplicate_serial_different_type_flags_report_only():
-    errs = _errors(check_serials([_mk("1234", "microcat"), _mk("1234", "sbe56")]))
+    errs = _errors(_check_serials([_mk("1234", "microcat"), _mk("1234", "sbe56")]))
     assert len(errs) == 1
     assert "per-instrument report pages" in errs[0].message
 
 
 def test_star_serial_collides_with_its_base():
     # `1234*` and `1234` reduce to the same safe serial — a collision.
-    assert len(_errors(check_serials([_mk("1234"), _mk("1234*")]))) == 1
+    assert len(_errors(_check_serials([_mk("1234"), _mk("1234*")]))) == 1
 
 
 def test_comma_serial_collides_on_primary_token():
-    assert len(_errors(check_serials([_mk("16430"), _mk("16430, R01-024")]))) == 1
+    assert len(_errors(_check_serials([_mk("16430"), _mk("16430, R01-024")]))) == 1
 
 
 def test_blank_and_missing_serials_are_errors():
-    assert _errors(check_serials([_mk("*")]))  # strips to empty
-    assert _errors(check_serials([{"instrument": "microcat"}]))  # no serial key
+    assert _errors(_check_serials([_mk("*")]))  # strips to empty
+    assert _errors(_check_serials([{"instrument": "microcat"}]))  # no serial key
 
 
 def test_reserved_serials_stack_and_grid_are_errors():
-    assert _errors(check_serials([_mk("stack")]))
-    assert _errors(check_serials([_mk("grid")]))
+    assert _errors(_check_serials([_mk("stack")]))
+    assert _errors(_check_serials([_mk("grid")]))
 
 
 def test_summary_serial_is_not_reserved():
     # summary writes {mooring}_summary_report.html, which collides with nothing.
-    assert check_serials([_mk("summary")]) == []
+    assert _check_serials([_mk("summary")]) == []
 
 
 def test_distinct_star_serials_are_clean():
     # dsG3-style: several `*` serials with distinct bases → no collision.
     entries = [_mk("400115*", "aquadopp"), _mk("9920*", "aquadopp"), _mk("2941")]
-    assert check_serials(entries) == []
+    assert _check_serials(entries) == []
 
 
 def test_star_only_serial_is_marker_warning_not_illegal(tmp_path):
@@ -462,7 +462,7 @@ def test_process_refuses_colliding_serials_before_writing(tmp_path):
 
 def test_case_only_serials_collide_on_case_insensitive_fs():
     # 'Alpha' and 'alpha' are one file on macOS/Windows → a collision.
-    assert len(_errors(check_serials([_mk("Alpha"), _mk("alpha")]))) == 1
+    assert len(_errors(_check_serials([_mk("Alpha"), _mk("alpha")]))) == 1
 
 
 def test_stack_key_must_be_boolean(tmp_path):

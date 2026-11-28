@@ -14,6 +14,7 @@ from typing import NamedTuple
 import numpy as np
 import xarray as xr
 
+from oceanarray import _deprecated
 from oceanarray.config import parameters as params
 from oceanarray.physics import flow_direction
 
@@ -57,7 +58,7 @@ def display_steps_text() -> str:
     return ", ".join(parts)
 
 
-class DisplayBins(NamedTuple):
+class _DisplayBins(NamedTuple):
     """Averaging bins of a site grid's time axis (see :func:`display_bins`)."""
 
     #: The bins' edges in time order, one more than the bins.
@@ -72,7 +73,7 @@ class DisplayBins(NamedTuple):
 
 def display_bins(
     time: np.ndarray, deployment_index: np.ndarray, freq: str
-) -> DisplayBins:
+) -> _DisplayBins:
     """Return averaging bins that never span two deployments.
 
     Each deployment's bins start at its first step and run every *freq* to its
@@ -90,7 +91,7 @@ def display_bins(
 
     Returns
     -------
-    DisplayBins
+    _DisplayBins
         The bins' edges and centers, each step's bin, and each bin's deployment.
     """
     import pandas as pd
@@ -98,7 +99,7 @@ def display_bins(
     if not len(time):
         empty = np.array([], dtype=np.int64)
         none = np.array([], dtype="datetime64[ns]")
-        return DisplayBins(none, none, empty, empty)
+        return _DisplayBins(none, none, empty, empty)
     time = time.astype("datetime64[ns]")
     step = time[1] - time[0] if len(time) > 1 else np.timedelta64(1, "h")
     change = np.flatnonzero(np.diff(deployment_index)) + 1
@@ -116,10 +117,10 @@ def display_bins(
     owner = np.full(len(edges) - 1, -1, dtype=np.int64)
     owner[bins] = deployment_index
     centers = edges[:-1] + (edges[1:] - edges[:-1]) / 2
-    return DisplayBins(edges, centers, bins, owner)
+    return _DisplayBins(edges, centers, bins, owner)
 
 
-def bin_means(
+def _bin_means(
     values: np.ndarray, bins: np.ndarray, n_bins: int, *, min_fraction: float = 0.0
 ) -> np.ndarray:
     """Return the mean of the finite values of each bin.
@@ -131,7 +132,7 @@ def bin_means(
     values : numpy.ndarray
         ``(time, n)``.
     bins : numpy.ndarray
-        Each step's bin (``DisplayBins.step_bin``).
+        Each step's bin (``_DisplayBins.step_bin``).
     n_bins : int
         Number of bins.
     min_fraction : float, optional
@@ -154,7 +155,7 @@ def bin_means(
         return np.where(keep, total / count, np.nan)
 
 
-def display_means(ds: xr.Dataset, bins: DisplayBins) -> xr.Dataset:
+def display_means(ds: xr.Dataset, bins: _DisplayBins) -> xr.Dataset:
     """Return the ``(time, pressure)`` variables of a grid averaged in deployment-bound bins.
 
     A cell is shown only where it has data for at least
@@ -164,7 +165,7 @@ def display_means(ds: xr.Dataset, bins: DisplayBins) -> xr.Dataset:
     ----------
     ds : xarray.Dataset
         A grid on ``(time, pressure)``.
-    bins : DisplayBins
+    bins : _DisplayBins
         Bins of its time axis (:func:`display_bins`).
 
     Returns
@@ -177,7 +178,7 @@ def display_means(ds: xr.Dataset, bins: DisplayBins) -> xr.Dataset:
         {
             v: (
                 ("time", "pressure"),
-                bin_means(
+                _bin_means(
                     ds[v].values,
                     bins.step_bin,
                     len(bins.centers),
@@ -361,7 +362,7 @@ def density_fields(
 
 
 def instrument_pressures(
-    stackcat: xr.Dataset, var: str, bins: DisplayBins
+    stackcat: xr.Dataset, var: str, bins: _DisplayBins
 ) -> np.ndarray:
     """Return, per depth, the pressure of the instruments measuring *var*, in display bins.
 
@@ -374,7 +375,7 @@ def instrument_pressures(
         The site stack the grid was made from (on the grid's time axis).
     var : str
         A variable of the site stack.
-    bins : DisplayBins
+    bins : _DisplayBins
         Bins of the time axis (:func:`display_bins`).
 
     Returns
@@ -386,7 +387,7 @@ def instrument_pressures(
 
     keep = own_levels(stackcat) & np.isfinite(stackcat[var].values)
     pressure = np.where(keep, stackcat["pressure"].values.astype(float), np.nan)
-    return bin_means(pressure, bins.step_bin, len(bins.centers))
+    return _bin_means(pressure, bins.step_bin, len(bins.centers))
 
 
 def potential_temperature(
@@ -454,3 +455,13 @@ def instrument_mean_pressures(stackcat: xr.Dataset) -> list[list[float]]:
                 means.append(float(p[rows, j].mean()))
         out.append(sorted(means))
     return out
+
+
+#: Released names now private: each still imports, warning, until 0.8.0.
+__getattr__ = _deprecated.moved_names(
+    __name__,
+    {
+        "bin_means": lambda: _bin_means,
+        "DisplayBins": lambda: _DisplayBins,
+    },
+)

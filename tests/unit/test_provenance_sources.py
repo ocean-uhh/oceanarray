@@ -17,7 +17,7 @@ import yaml
 
 from oceanarray import mooring, provenance
 from oceanarray.mooring import blocks
-from oceanarray.pipeline import attribution
+from oceanarray.pipeline import _attribution as attribution
 from oceanarray.readers import read_oceansites
 from oceanarray.reports._html_helpers import doi_link
 from oceanarray.writers.netcdf import write

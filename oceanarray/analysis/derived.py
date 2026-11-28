@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
+from oceanarray import _deprecated
 from oceanarray.physics import pressure_from_depth, sigma_function, speed_direction
 
 if TYPE_CHECKING:
@@ -326,7 +327,7 @@ def seabed_pressure(ds: xr.Dataset) -> float | None:
 
 
 @dataclass(frozen=True)
-class InstrumentLevel:
+class _InstrumentLevel:
     """One instrument of a stack: what it measured and where.
 
     Attributes
@@ -359,7 +360,7 @@ _LEVEL_VARIABLES: tuple[str, ...] = (
 )
 
 
-def instrument_levels(ds_stack: xr.Dataset | None) -> list[InstrumentLevel]:
+def instrument_levels(ds_stack: xr.Dataset | None) -> list[_InstrumentLevel]:
     """Return each instrument of a stack with its median pressure, shallowest first.
 
     Parameters
@@ -370,7 +371,7 @@ def instrument_levels(ds_stack: xr.Dataset | None) -> list[InstrumentLevel]:
 
     Returns
     -------
-    list of InstrumentLevel
+    list of _InstrumentLevel
         Instruments with a pressure record, sorted by median pressure.  Values
         are counted as the stack holds them (its flags are not applied).
     """
@@ -401,7 +402,7 @@ def instrument_levels(ds_stack: xr.Dataset | None) -> list[InstrumentLevel]:
         if v in ds_stack.data_vars and ds_stack[v].dims == ("time", dim)
     }
     out = [
-        InstrumentLevel(
+        _InstrumentLevel(
             serial=serials[i],
             instrument_type=types[i],
             pressure=float(med[i]),
@@ -510,7 +511,7 @@ def velocity_levels(
 
 
 @dataclass(frozen=True)
-class KnockdownRecord:
+class _KnockdownRecord:
     """One instrument's pressure record against its design position.
 
     Attributes
@@ -545,13 +546,13 @@ class Knockdown:
         Water depth at the mooring (m).
     latitude : float or None
         Mooring latitude; None when unknown (design pressures are then NaN).
-    records : list of KnockdownRecord
+    records : list of _KnockdownRecord
         One per non-ADCP instrument with at least 10 measured pressure samples.
     """
 
     waterdepth: float
     latitude: float | None
-    records: list[KnockdownRecord] = field(default_factory=list)
+    records: list[_KnockdownRecord] = field(default_factory=list)
 
     def design_pressure(self, hab: float | np.ndarray) -> float | np.ndarray:
         """Return the sea pressure (dbar) at height *hab* (m) above the seabed.
@@ -623,7 +624,7 @@ def knockdown(ds: xr.Dataset) -> Knockdown | None:
             continue
         hab = float(habs[i])
         kd.records.append(
-            KnockdownRecord(
+            _KnockdownRecord(
                 p_nom=float(kd.design_pressure(hab)),
                 serial=str(serials[i]),
                 pressure=valid,
@@ -771,3 +772,13 @@ def potential_density(
         )
         for values, name, ref in ((s0, "sigma0", "0 dbar"), (s2, "sigma2", "2000 dbar"))
     }
+
+
+#: Released names now private: each still imports, warning, until 0.8.0.
+__getattr__ = _deprecated.moved_names(
+    __name__,
+    {
+        "InstrumentLevel": lambda: _InstrumentLevel,
+        "KnockdownRecord": lambda: _KnockdownRecord,
+    },
+)

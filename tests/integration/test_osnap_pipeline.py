@@ -560,7 +560,7 @@ def test_people_are_cleaned_once_at_stage1_and_joined_after(tmp_path):
     says so in history; every file names its oceanarray; the stack and the export
     only join, and name the same people."""
     from oceanarray import mooring, provenance
-    from oceanarray.pipeline import attribution
+    from oceanarray.pipeline import _attribution as attribution
     from oceanarray.pipeline.oceansites import _people
     from oceanarray.pipeline.read_mooring import read_mooring
 

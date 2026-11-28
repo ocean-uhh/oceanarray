@@ -164,8 +164,8 @@ def test_display_bins_with_too_little_data_are_blank(flmb_site):
         flmb_site["time"].values, flmb_site["deployment_index"].values, "1D"
     )
     values = flmb_site["temperature"].values
-    plain = site.bin_means(values, bins.step_bin, len(bins.centers))
-    strict = site.bin_means(values, bins.step_bin, len(bins.centers), min_fraction=0.5)
+    plain = site._bin_means(values, bins.step_bin, len(bins.centers))
+    strict = site._bin_means(values, bins.step_bin, len(bins.centers), min_fraction=0.5)
     count = np.zeros_like(plain)
     np.add.at(count, bins.step_bin, np.isfinite(values))
     steps = np.bincount(bins.step_bin, minlength=len(bins.centers))[:, None]
@@ -180,8 +180,8 @@ def test_bin_means_accumulate_in_float64(flmb_site):
         flmb_site["time"].values, flmb_site["deployment_index"].values, "1D"
     )
     values = flmb_site["salinity"].values.astype(np.float32)
-    got = site.bin_means(values, bins.step_bin, len(bins.centers))
-    want = site.bin_means(values.astype(np.float64), bins.step_bin, len(bins.centers))
+    got = site._bin_means(values, bins.step_bin, len(bins.centers))
+    want = site._bin_means(values.astype(np.float64), bins.step_bin, len(bins.centers))
     np.testing.assert_array_equal(got, want)
 
 

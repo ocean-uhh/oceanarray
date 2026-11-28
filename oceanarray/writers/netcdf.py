@@ -309,7 +309,9 @@ def write(
     path = Path(path)
     if path.exists():
         if not overwrite:
-            raise FileExistsError(f"{path} exists; pass overwrite=True to replace it.")
+            raise FileExistsError(
+                f"{path} exists; replace it with force=True (overwrite=True when calling write)."
+            )
         # Re-running a stage is routine; the overwrite is recorded at DEBUG, so it
         # shows in the stage log file and under ``-v`` (not at the default level —
         # a full run overwrites many files).

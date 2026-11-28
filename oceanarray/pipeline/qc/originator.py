@@ -16,13 +16,14 @@ from typing import Any
 import numpy as np
 import xarray as xr
 
+from oceanarray import _deprecated
 from oceanarray.config import parameters as params
 from oceanarray.originator_flags import MAPPED_SUFFIX, dictionary
 
 log = logging.getLogger(__name__)
 
 
-def translate(
+def _translate(
     flag_var: xr.DataArray, *, label: str = ""
 ) -> tuple[np.ndarray, list[tuple[int, str, int | None]], dict[int, int]]:
     """Translate an originator flag variable to our flags.
@@ -73,7 +74,7 @@ def translate(
     return out, entries, counts
 
 
-def entries_text(entries: list[tuple[int, str, int | None]]) -> str:
+def _entries_text(entries: list[tuple[int, str, int | None]]) -> str:
     """Return a dictionary as text: ``"3 appears_probably_bad -> 3; ..."``.
 
     Parameters
@@ -95,7 +96,7 @@ def entries_text(entries: list[tuple[int, str, int | None]]) -> str:
     )
 
 
-def add_mapped(ds: xr.Dataset, *, label: str = "") -> tuple[xr.Dataset, str | None]:
+def _add_mapped(ds: xr.Dataset, *, label: str = "") -> tuple[xr.Dataset, str | None]:
     """Write ``<var>_qc_originator_mapped`` beside every ``<var>_qc_originator``.
 
     Parameters
@@ -122,7 +123,7 @@ def add_mapped(ds: xr.Dataset, *, label: str = "") -> tuple[xr.Dataset, str | No
     for name in found:
         src = ds[name]
         var = str(name).removesuffix("_qc_originator")
-        flags, entries, counts = translate(src, label=f"{label} {var}".strip())
+        flags, entries, counts = _translate(src, label=f"{label} {var}".strip())
         lut = {num: ours for num, _, ours in entries}
         attrs: dict[str, Any] = {
             "long_name": f"originator QC flag for {var}, in oceanarray's flag table",
@@ -130,7 +131,7 @@ def add_mapped(ds: xr.Dataset, *, label: str = "") -> tuple[xr.Dataset, str | No
             "flag_meanings": params.QC_FLAG_MEANINGS,
             "conventions": params.QC_CONVENTION,
             "originator_flag_meanings": str(src.attrs.get("flag_meanings", "")),
-            "flag_translation": entries_text(entries),
+            "flag_translation": _entries_text(entries),
             "flag_translation_counts": json.dumps(
                 {str(k): v for k, v in sorted(counts.items())}
             ),
@@ -152,3 +153,14 @@ def add_mapped(ds: xr.Dataset, *, label: str = "") -> tuple[xr.Dataset, str | No
         " | ".join(lines)
     )
     return ds, note
+
+
+#: Released names now private: each still imports, warning, until 0.8.0.
+__getattr__ = _deprecated.moved_names(
+    __name__,
+    {
+        "translate": lambda: _translate,
+        "add_mapped": lambda: _add_mapped,
+        "entries_text": lambda: _entries_text,
+    },
+)

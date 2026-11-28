@@ -441,9 +441,9 @@ def _stage3_instrument(  # noqa: C901
             ds = apply_adcp_seabed_qc(
                 ds,
                 water_depth_m=info.get("water_depth_m", 0.0),
-                lat=info["lat"],
+                latitude=info["lat"],
             )
-            ds = apply_adcp_surface_qc(ds, lat=info["lat"])
+            ds = apply_adcp_surface_qc(ds, latitude=info["lat"])
         else:
             ds = apply_enu_velocity_qc(ds, gr_cfg)
 
@@ -480,7 +480,7 @@ def _stage3_instrument(  # noqa: C901
 
     # The originator's flags, translated to our table by meaning (kept separate
     # from ours: neither overwrites the other).
-    ds, note = originator.add_mapped(ds, label=str(info["serial"]))
+    ds, note = originator._add_mapped(ds, label=str(info["serial"]))
     if note:
         history_notes.append(note)
 
@@ -517,7 +517,7 @@ def _stage3_instrument(  # noqa: C901
     # Canonical units on everything stage 3 derived (salinity, ENU velocities, oxygen).
     ds = to_canonical_units(ds, stage=3)
     # Salinity, ENU velocities, oxygen saturation: measured by the same instrument.
-    ds = sensors.link_derived(ds)
+    ds = sensors._link_derived(ds)
     _set_processing_level(ds)
     log.info(f"{info['serial']}: {'; '.join(qc_summary)}")
     return ds
