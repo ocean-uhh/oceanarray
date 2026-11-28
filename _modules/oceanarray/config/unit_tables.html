@@ -1,0 +1,447 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>oceanarray.config.unit_tables &mdash; oceanarray 0.6.2.post1.dev28 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/custom.css?v=a3d0f024" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=bbea0676"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            oceanarray
+              <img src="../../../_static/oceanarray_icon.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reports.html">Reports</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://ocean-uhh.github.io/oceanarray/_static/demo/dune2/dune2_1_2026_report.html">Example report</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../troubleshooting.html">Troubleshooting</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">How it works</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../processing_framework.html">Processing stages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../files.html">Files and folders</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/standardisation.html">Stage 1: read</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/trimming.html">Stage 2: trim and clocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/auto_qc.html">Stage 3: QC flags</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/nortek_coordinate_transform.html">Stage 3: Aquadopp velocity</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../calibration_dips.html">Calibration dips</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/time_gridding.html">Stack</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/vertical_gridding.html">Grid</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/concatenation.html">Several deployments of a site</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/oceansites_export.html">OceanSITES export</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Inputs and outputs</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../configuration_files.html">Configuration files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../oceanarray_format.html">Output files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../oceanSITES_manual.html">OceanSITES manual</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Interfaces</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli_reference.html">Command line</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../oceanarray.html">Python API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Upgrading</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../migrating_0_7_0.html">From 0.6.1 to 0.7.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../migrating_0_6_1.html">From 0.6.0 to 0.6.1</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../migrating_0_6_0.html">From 0.5 to 0.6</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../migration.html">Older versions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Background</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../rapid_heritage.html">RAPID heritage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../legacy.html">Legacy modules</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../roadmap.html">Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../developer.html">Developer guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../project_structure.html">Project structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/calibration.html">Calibration correction (design)</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/ocean-uhh/oceanarray">GitHub repository</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">oceanarray</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">oceanarray.config.unit_tables</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for oceanarray.config.unit_tables</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""oceanarray's view of the family units tables.</span>
+
+<span class="sd">The one place oceanarray speaks about units.  Three override dicts are folded over the</span>
+<span class="sd">vendored family defaults (:data:`oceanarray.reports._vendored.units.DEFAULT_TABLES`)</span>
+<span class="sd">into :data:`TABLES`, which the storage pass</span>
+<span class="sd">(:func:`oceanarray.pipeline.units.to_canonical_units`) and the display entry point</span>
+<span class="sd">(:func:`unit_label`) both take.</span>
+
+<span class="sd">An override entry identical to the family default is a no-op and ``merge_tables`` warns</span>
+<span class="sd">about it, so a restatement cannot silently shadow a later change to the base; only</span>
+<span class="sd">oceanarray's real differences from the family are live here.</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">OceanarrayError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.reports._vendored.units</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">DEFAULT_TABLES</span><span class="p">,</span>
+    <span class="n">Tables</span><span class="p">,</span>
+    <span class="n">format_units</span><span class="p">,</span>
+    <span class="n">merge_tables</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.reports._vendored.units</span><span class="w"> </span><span class="kn">import</span> <span class="n">UnitsError</span> <span class="k">as</span> <span class="n">_SharedUnitsError</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.reports._vendored.units</span><span class="w"> </span><span class="kn">import</span> <span class="n">resolve_units</span> <span class="k">as</span> <span class="n">_shared_resolve_units</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="UnitsError">
+<a class="viewcode-back" href="../../../oceanarray.html#oceanarray.config.unit_tables.UnitsError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">UnitsError</span><span class="p">(</span><span class="n">OceanarrayError</span><span class="p">,</span> <span class="n">_SharedUnitsError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Raised for a unit oceanarray cannot read or convert.</span>
+
+<span class="sd">    The shared report layer's ``UnitsError`` (still a ``ValueError``) placed under</span>
+<span class="sd">    :class:`~oceanarray.exceptions.OceanarrayError`; ``except`` on either catches it.</span>
+<span class="sd">    """</span></div>
+
+
+
+<div class="viewcode-block" id="resolve_units">
+<a class="viewcode-back" href="../../../oceanarray.html#oceanarray.config.unit_tables.resolve_units">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">resolve_units</span><span class="p">(</span>
+    <span class="n">units</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">standard_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">tables</span><span class="p">:</span> <span class="n">Tables</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">canonical</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Return ``(canonical spelling, factor)`` for a reader *units* string.</span>
+
+<span class="sd">    The shared layer's ``resolve_units``, raising oceanarray's :class:`UnitsError`.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    units : str</span>
+<span class="sd">        The units string as read.</span>
+<span class="sd">    standard_name : str, optional</span>
+<span class="sd">        CF standard name, which selects the canonical spelling when known.</span>
+<span class="sd">    tables : Tables, optional</span>
+<span class="sd">        Unit tables; default :data:`TABLES` (oceanarray's overrides on the family's).</span>
+<span class="sd">    canonical : str, optional</span>
+<span class="sd">        The canonical spelling, when the caller already knows it.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple of (str, float)</span>
+<span class="sd">        The canonical spelling and the factor that converts to it.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    UnitsError</span>
+<span class="sd">        When *units* is empty or not a spelling of the canonical.</span>
+<span class="sd">    """</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_shared_resolve_units</span><span class="p">(</span>
+            <span class="n">units</span><span class="p">,</span>
+            <span class="n">standard_name</span><span class="p">,</span>
+            <span class="n">tables</span><span class="o">=</span><span class="n">TABLES</span> <span class="k">if</span> <span class="n">tables</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">tables</span><span class="p">,</span>
+            <span class="n">canonical</span><span class="o">=</span><span class="n">canonical</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">except</span> <span class="n">_SharedUnitsError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">UnitsError</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">exc</span><span class="p">))</span> <span class="kn">from</span><span class="w"> </span><span class="nn">exc</span></div>
+
+
+
+<span class="c1">#: Stored-spelling overrides, keyed by CF ``standard_name``.  oceanarray writes the</span>
+<span class="c1">#: squared buoyancy frequency as ``s-2``, the spelling its gridded files have always</span>
+<span class="c1">#: carried; the family canonical is ``rad2 s-2``.</span>
+<span class="n">CANONICAL_UNIT_OVERRIDES</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"square_of_brunt_vaisala_frequency_in_sea_water"</span><span class="p">:</span> <span class="s2">"s-2"</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="c1">#: Extra reader spellings the family table lacks, keyed by canonical spelling, each</span>
+<span class="c1">#: evidenced. A spelling with a factor other than ``1`` would be a conversion and</span>
+<span class="c1">#: belongs in the vendored table after review, never here.</span>
+<span class="n">UNIT_ALIAS_EXTRAS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"mL L-1"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"ml l-1"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>  <span class="c1"># the RBR hex reader writes dissolved oxygen as 'ml l-1'</span>
+        <span class="c1"># the oxygen display label, leaked into a units attr by a pre-0.5.0 stage</span>
+        <span class="s2">"mL/L"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="c1"># the N² display label, leaked into a units attr by a pre-0.5.0 stage</span>
+    <span class="s2">"s-2"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"s⁻²"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">},</span>
+    <span class="c1"># The angle spellings 'degrees' and '°' (for pitch/roll/heading/current_direction/tilt)</span>
+    <span class="c1"># now live in the vendored family ALIASES (ctdcast #58, from oceanarray's finding); keeping</span>
+    <span class="c1"># them here would restate the base value and shadow a future upstream change.  'deg' stays</span>
+    <span class="c1"># out — it is lat/lon-scoped in the vendored SCOPED_ALIASES, where the axis disambiguates it.</span>
+    <span class="c1"># The reader writes battery as 'volts'; the CF/UDUNITS canonical symbol is 'V'.</span>
+    <span class="c1"># Evidence: dune2 battery_voltage stores units='volts'.  Factor 1.</span>
+    <span class="s2">"V"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"volts"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">},</span>
+    <span class="c1"># OceanSITES 1.3 files from the OSNAP arrays (WHOI, NIOZ, UMiami, GEOMAR, Scripps)</span>
+    <span class="c1"># spell units in words.  Evidence: OS_OSNAP_WHOI_CF7_202007_CM_500m.nc,</span>
+    <span class="c1"># os_osnap-ic2_201807_cm_611m.nc, OS_OSNAP-UMD2_201407_*.nc,</span>
+    <span class="c1"># OS_OSNAP-10633_KPO_1111_K7_201408_D_MCTD_OSNAPstyleOceanSITES.nc.  Factor 1.</span>
+    <span class="s2">"dbar"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"decibar"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="c1"># The OOI Data Explorer ERDDAP spells units ERDDAP-style. Evidence:</span>
+        <span class="c1"># ooi-gi03flma-ri000-00-velptb000.nc (pressure 'decibars'). Factor 1.</span>
+        <span class="s2">"decibars"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="c1"># The same ERDDAP serves the FLMA/FLMB single-point current-meter (VELPT)</span>
+        <span class="c1"># pressure labelled 'decibars' but holding kPa (ten times the deployed depth at</span>
+        <span class="c1"># every level); the instrument entry sets units_override: {pressure: kPa}.</span>
+        <span class="c1"># A conversion, not a spelling: belongs in the vendored family table once</span>
+        <span class="c1"># ctdcast reviews it (raised there); held here until then.</span>
+        <span class="s2">"kPa"</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s2">"m s-1"</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">"meter/second"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="s2">"m.s-1"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span>  <span class="c1"># OOI ERDDAP (ooi-gi03flma-ri000-00-velptb000.nc). Factor 1.</span>
+        <span class="c1"># RODB files (RAPID/BODC) carry velocities in cm/s, as documented for the</span>
+        <span class="c1"># U/V/W codes in config/legacy/rodb_keys.yaml; evidence rtwb1_01_2014_11021.edt.</span>
+        <span class="c1"># A conversion, not a spelling: belongs in the vendored family table once</span>
+        <span class="c1"># ctdcast reviews it (raised there); held here until then.</span>
+        <span class="s2">"cm s-1"</span><span class="p">:</span> <span class="mf">0.01</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="s2">"m"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"meter"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">},</span>
+    <span class="s2">"mS cm-1"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"mS.cm-1"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">},</span>  <span class="c1"># OOI ERDDAP CTD conductivity. Factor 1.</span>
+    <span class="c1"># caldip writes temperatures and temperature differences as 'degree_C' (UDUNITS).</span>
+    <span class="c1"># Evidence: castM4_caldip.nc temp_diff / inst_temp / ctd_temp.  Factor 1.</span>
+    <span class="s2">"degree_Celsius"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"degree_C"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">},</span>
+<span class="p">}</span>
+
+<span class="c1">#: Extra spellings meaningful for one quantity only, keyed by CF ``standard_name``.</span>
+<span class="c1">#: Evidence: the OSNAP OceanSITES files above write practical salinity as 'psu'; the OOI</span>
+<span class="c1">#: ERDDAP writes '1e-3'.</span>
+<span class="n">UNIT_SCOPED_EXTRAS</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="c1"># OOI ERDDAP writes practical salinity as '1e-3' (the old parts-per-thousand</span>
+    <span class="c1"># spelling); the values are practical salinity. Factor 1.</span>
+    <span class="s2">"sea_water_practical_salinity"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"psu"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">"1e-3"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">},</span>
+<span class="p">}</span>
+
+<span class="c1">#: Spellings the storage pass keeps as the file has them, keyed by CF ``standard_name``.</span>
+<span class="c1">#: For a frequency the two spellings differ only in whether the radian is written, so</span>
+<span class="c1">#: neither is forced into the other: a file that arrives as ``rad2 s-2`` stays ``rad2</span>
+<span class="c1">#: s-2`` and one that arrives as ``s-2`` stays ``s-2``.  Any other accepted spelling (a</span>
+<span class="c1">#: leaked display label) is still rewritten to the canonical.</span>
+<span class="n">UNIT_SPELLINGS_KEPT</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"square_of_brunt_vaisala_frequency_in_sea_water"</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">({</span><span class="s2">"s-2"</span><span class="p">,</span> <span class="s2">"rad2 s-2"</span><span class="p">}),</span>
+<span class="p">}</span>
+
+<span class="c1">#: Display-label overrides, keyed by units string.  Empty: the family rule already labels</span>
+<span class="c1">#: every canonical oceanarray uses — ``degree`` → ``°``, ``degrees_east/north`` → ``°E``/``°N``,</span>
+<span class="c1">#: ``V`` → ``V`` — so the non-canonical reader spellings (``degrees``, ``volts``) are handled</span>
+<span class="c1">#: as aliases of those canonicals in :data:`UNIT_ALIAS_EXTRAS`, not relabelled here.  Add an</span>
+<span class="c1">#: entry only for a label the family rule cannot produce (e.g. ``{"percent": "%sat"}``).</span>
+<span class="n">UNIT_LABEL_OVERRIDES</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+<span class="c1">#: oceanarray's resolved view: the family defaults with the overrides above folded in.</span>
+<span class="n">TABLES</span><span class="p">:</span> <span class="n">Tables</span> <span class="o">=</span> <span class="n">merge_tables</span><span class="p">(</span>
+    <span class="n">DEFAULT_TABLES</span><span class="p">,</span>
+    <span class="n">canonical</span><span class="o">=</span><span class="n">CANONICAL_UNIT_OVERRIDES</span><span class="p">,</span>
+    <span class="n">aliases</span><span class="o">=</span><span class="n">UNIT_ALIAS_EXTRAS</span><span class="p">,</span>
+    <span class="n">scoped</span><span class="o">=</span><span class="n">UNIT_SCOPED_EXTRAS</span><span class="p">,</span>
+    <span class="n">labels</span><span class="o">=</span><span class="n">UNIT_LABEL_OVERRIDES</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="unit_label">
+<a class="viewcode-back" href="../../../oceanarray.html#oceanarray.config.unit_tables.unit_label">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">unit_label</span><span class="p">(</span><span class="n">units</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">standard_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return the display label for a units string, with oceanarray's overrides applied.</span>
+
+<span class="sd">    The single display-unit entry point:</span>
+<span class="sd">    :func:`oceanarray.reports._vendored.units.format_units` against :data:`TABLES`.</span>
+<span class="sd">    Converts the stored CF/UDUNITS spelling to the slash form used on plot axes (``mS</span>
+<span class="sd">    cm-1`` → ``mS/cm``, ``kg m-3`` → ``kg/m³``, ``s-2`` → ``s⁻²``, ``degree_Celsius`` →</span>
+<span class="sd">    ``°C``); dimensionless practical salinity renders ``PSU`` and dimensionless</span>
+<span class="sd">    turbidity ``NTU``.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    units : str</span>
+<span class="sd">        CF/UDUNITS units string (e.g. ``"mS cm-1"``).</span>
+<span class="sd">    standard_name : str or None, optional</span>
+<span class="sd">        CF standard name, for the dimensionless salinity and turbidity labels.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        The display units string; ``""`` when *units* is empty.</span>
+<span class="sd">    """</span>
+    <span class="n">label</span> <span class="o">=</span> <span class="n">format_units</span><span class="p">(</span><span class="n">units</span><span class="p">,</span> <span class="n">standard_name</span><span class="p">,</span> <span class="n">tables</span><span class="o">=</span><span class="n">TABLES</span><span class="p">)</span>
+    <span class="c1"># Diagnostic: when OCEANARRAY_UNIT_DEBUG_MARK=1, append a trailing "*" to every</span>
+    <span class="c1"># non-empty label so a rendered report shows which labels passed through this</span>
+    <span class="c1"># format-units pipeline (vs. a raw units attribute shown directly). Off by default.</span>
+    <span class="k">if</span> <span class="n">label</span> <span class="ow">and</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"OCEANARRAY_UNIT_DEBUG_MARK"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"1"</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">label</span> <span class="o">+</span> <span class="s2">"*"</span>
+    <span class="k">return</span> <span class="n">label</span></div>
+
+
+
+<div class="viewcode-block" id="var_unit_label">
+<a class="viewcode-back" href="../../../oceanarray.html#oceanarray.config.unit_tables.var_unit_label">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">var_unit_label</span><span class="p">(</span><span class="n">da</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return the display unit for a variable, read from its stored ``units`` attribute.</span>
+
+<span class="sd">    Unlike passing a literal unit string to :func:`unit_label`, this reads the unit the</span>
+<span class="sd">    data actually carries, so a stored-unit change (or a conversion on write) flows</span>
+<span class="sd">    through to the axis label — a label can never silently claim a unit the data no</span>
+<span class="sd">    longer has.  Returns ``""`` when the variable carries no ``units`` attribute.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    da : xarray.DataArray</span>
+<span class="sd">        The variable whose ``units`` (and optional ``standard_name``) attribute is read.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        The display units string, or ``""`` when the variable has no ``units``.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">unit_label</span><span class="p">(</span><span class="n">da</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"units"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span> <span class="n">da</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"standard_name"</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="warn_if_not_canonical">
+<a class="viewcode-back" href="../../../oceanarray.html#oceanarray.config.unit_tables.warn_if_not_canonical">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">warn_if_not_canonical</span><span class="p">(</span><span class="n">da</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">expected</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">quantity</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Warn when *da* does not carry the canonical units a derivation assumes.</span>
+
+<span class="sd">    A derived display — displacement in km, height-above-seabed in m, a spectral</span>
+<span class="sd">    density, a period — hard-codes the unit of its *output*, which is only correct if</span>
+<span class="sd">    the *source* variable carries the unit the derivation was written for.  The storage</span>
+<span class="sd">    pass (:func:`oceanarray.pipeline.units.to_canonical_units`) canonicalises every</span>
+<span class="sd">    registered variable, so this never fires on an oceanarray-written file; it catches a</span>
+<span class="sd">    foreign or hand-edited file whose units the derivation would otherwise silently</span>
+<span class="sd">    mislabel.  A spelling that resolves to *expected* at factor 1 is not flagged; a</span>
+<span class="sd">    variable with no ``units`` attribute is not flagged (nothing to check against).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    da : xarray.DataArray</span>
+<span class="sd">        The source variable whose ``units`` the derivation depends on.</span>
+<span class="sd">    expected : str</span>
+<span class="sd">        The canonical units the derivation was written for (e.g. ``"m s-1"``, ``"dbar"``,</span>
+<span class="sd">        ``"degree_Celsius"``).</span>
+<span class="sd">    quantity : str</span>
+<span class="sd">        Short description of the derived quantity, for the warning message.</span>
+
+<span class="sd">    """</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">da</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"units"</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">u</span> <span class="ow">or</span> <span class="n">u</span> <span class="o">==</span> <span class="n">expected</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="c1"># Only honour the variable's standard_name for scoped aliases when that standard</span>
+    <span class="c1"># name denotes the expected quantity; otherwise a cross-quantity scoped alias (a</span>
+    <span class="c1"># latitude ``deg`` checked against an expected ``dbar``) can resolve as a false</span>
+    <span class="c1"># match and silence the guard.</span>
+    <span class="n">standard_name</span> <span class="o">=</span> <span class="n">da</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"standard_name"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">TABLES</span><span class="o">.</span><span class="n">canonical</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">standard_name</span><span class="p">)</span> <span class="o">!=</span> <span class="n">expected</span><span class="p">:</span>
+        <span class="n">standard_name</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">resolve_units</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">standard_name</span><span class="p">,</span> <span class="n">tables</span><span class="o">=</span><span class="n">TABLES</span><span class="p">,</span> <span class="n">canonical</span><span class="o">=</span><span class="n">expected</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span>
+            <span class="n">expected</span><span class="p">,</span>
+            <span class="mf">1.0</span><span class="p">,</span>
+        <span class="p">):</span>
+            <span class="k">return</span>
+    <span class="k">except</span> <span class="n">UnitsError</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+        <span class="s2">"</span><span class="si">%s</span><span class="s2">: source variable carries units </span><span class="si">%r</span><span class="s2">, not the expected </span><span class="si">%r</span><span class="s2">; "</span>
+        <span class="s2">"the derived label assumes </span><span class="si">%r</span><span class="s2"> and may be wrong."</span><span class="p">,</span>
+        <span class="n">quantity</span><span class="p">,</span>
+        <span class="n">u</span><span class="p">,</span>
+        <span class="n">expected</span><span class="p">,</span>
+        <span class="n">expected</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Eleanor Frajka-Williams.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

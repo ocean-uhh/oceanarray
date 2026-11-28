@@ -1,0 +1,508 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>oceanarray.mask_rules &mdash; oceanarray 0.6.2.post1.dev28 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/custom.css?v=a3d0f024" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=bbea0676"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            oceanarray
+              <img src="../../_static/oceanarray_icon.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reports.html">Reports</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://ocean-uhh.github.io/oceanarray/_static/demo/dune2/dune2_1_2026_report.html">Example report</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../troubleshooting.html">Troubleshooting</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">How it works</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../processing_framework.html">Processing stages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../files.html">Files and folders</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../methods/standardisation.html">Stage 1: read</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../methods/trimming.html">Stage 2: trim and clocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../methods/auto_qc.html">Stage 3: QC flags</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../methods/nortek_coordinate_transform.html">Stage 3: Aquadopp velocity</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../calibration_dips.html">Calibration dips</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../methods/time_gridding.html">Stack</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../methods/vertical_gridding.html">Grid</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../methods/concatenation.html">Several deployments of a site</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../methods/oceansites_export.html">OceanSITES export</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Inputs and outputs</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../configuration_files.html">Configuration files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../oceanarray_format.html">Output files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../oceanSITES_manual.html">OceanSITES manual</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Interfaces</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../cli_reference.html">Command line</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../oceanarray.html">Python API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Upgrading</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../migrating_0_7_0.html">From 0.6.1 to 0.7.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../migrating_0_6_1.html">From 0.6.0 to 0.6.1</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../migrating_0_6_0.html">From 0.5 to 0.6</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../migration.html">Older versions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Background</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../rapid_heritage.html">RAPID heritage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../legacy.html">Legacy modules</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../roadmap.html">Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../developer.html">Developer guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../project_structure.html">Project structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../methods/calibration.html">Calibration correction (design)</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/ocean-uhh/oceanarray">GitHub repository</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">oceanarray</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">oceanarray.mask_rules</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for oceanarray.mask_rules</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""``mask_flags`` rules: which flag values are hidden, per variable.</span>
+
+<span class="sd">A rule maps ``"default"`` and optional per-variable keys (``"velocity"`` for the</span>
+<span class="sd">velocity group) to the flag values hidden. This module parses, combines, describes</span>
+<span class="sd">and records rules; it never reads data. Applying a rule to a dataset is</span>
+<span class="sd">:mod:`oceanarray.pipeline.masking`.</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Mapping</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray</span><span class="w"> </span><span class="kn">import</span> <span class="n">_deprecated</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">parameters</span> <span class="k">as</span> <span class="n">params</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.originator_flags</span><span class="w"> </span><span class="kn">import</span> <span class="n">MAPPED_SUFFIX</span>
+
+<span class="c1">#: The velocity variables: one ``mask_flags`` key, ``velocity``, sets the flags</span>
+<span class="c1">#: masked in all of them (by ``velocity_flag``, the ADCP seabed, percent-good and</span>
+<span class="c1">#: error-velocity flags, and each component's own flags).</span>
+<span class="n">VELOCITY_GROUP</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span>
+    <span class="p">{</span>
+        <span class="s2">"east_velocity"</span><span class="p">,</span>
+        <span class="s2">"north_velocity"</span><span class="p">,</span>
+        <span class="s2">"up_velocity"</span><span class="p">,</span>
+        <span class="s2">"current_speed"</span><span class="p">,</span>
+        <span class="s2">"current_direction"</span><span class="p">,</span>
+    <span class="p">}</span>
+<span class="p">)</span>
+
+<span class="c1">#: The variables whose flags the stack carries, the pages count and the flag strip</span>
+<span class="c1">#: draws: one list, so a flag the stack carries is never left off the page.</span>
+<span class="n">FLAGGED_VARIABLES</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">"temperature"</span><span class="p">,</span>
+    <span class="s2">"salinity"</span><span class="p">,</span>
+    <span class="s2">"conductivity"</span><span class="p">,</span>
+    <span class="s2">"pressure"</span><span class="p">,</span>
+    <span class="s2">"east_velocity"</span><span class="p">,</span>
+    <span class="s2">"north_velocity"</span><span class="p">,</span>
+    <span class="s2">"up_velocity"</span><span class="p">,</span>
+    <span class="s2">"current_speed"</span><span class="p">,</span>
+    <span class="s2">"current_direction"</span><span class="p">,</span>
+    <span class="s2">"dissolved_oxygen"</span><span class="p">,</span>
+    <span class="s2">"turbidity"</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1">#: The ADCP flags that mask the velocity group, as well as ``velocity_flag``.</span>
+<span class="n">ADCP_VELOCITY_QC</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">"seabed_qc"</span><span class="p">,</span>
+    <span class="s2">"percent_good_qc"</span><span class="p">,</span>
+    <span class="s2">"error_velocity_qc"</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1">#: The attribute in which a stack (or Stack cat) records its rule.</span>
+<span class="n">STACK_ATTR</span> <span class="o">=</span> <span class="s2">"stack_mask_flags"</span>
+
+<span class="c1">#: Names the flag sets the rule is applied to, recorded beside it.</span>
+<span class="n">FLAG_SOURCES</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"&lt;var&gt;_qc (oceanarray), &lt;var&gt;</span><span class="si">{</span><span class="n">MAPPED_SUFFIX</span><span class="si">}</span><span class="s2"> (originator)"</span>
+
+<span class="n">Rule</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_flag_list</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">flags</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Return *flags* as a sorted tuple of our flag values, or raise ValueError."""</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">flags</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">flags</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="n">flags</span> <span class="o">=</span> <span class="p">(</span><span class="n">flags</span><span class="p">,)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">flags</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">flags</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"mask_flags </span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s2">: expected a list of flag values, got </span><span class="si">{</span><span class="n">flags</span><span class="si">!r}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">flag</span> <span class="ow">in</span> <span class="n">flags</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span>
+            <span class="nb">isinstance</span><span class="p">(</span><span class="n">flag</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">flag</span><span class="p">,</span> <span class="nb">int</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">integer</span><span class="p">)</span>
+            <span class="ow">or</span> <span class="nb">int</span><span class="p">(</span><span class="n">flag</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">QC_FLAG_VALUES</span>
+        <span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"mask_flags </span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s2">: </span><span class="si">{</span><span class="n">flag</span><span class="si">!r}</span><span class="s2"> is not a flag value "</span>
+                <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span><span class="w"> </span><span class="n">params</span><span class="o">.</span><span class="n">QC_FLAG_VALUES</span><span class="p">))</span><span class="si">}</span><span class="s2">)"</span>
+            <span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">flag</span><span class="p">))</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">out</span><span class="p">)))</span>
+
+
+<div class="viewcode-block" id="resolve_mask_flags">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.mask_rules.resolve_mask_flags">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">resolve_mask_flags</span><span class="p">(</span>
+    <span class="n">mask_flags</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Rule</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return a rule: a default and per-variable exceptions.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mask_flags : iterable of int, or Mapping of str to iterable of int, or None</span>
+<span class="sd">        ``None`` for the default (``parameters.MASK_FLAGS``: 4); a list of flags for</span>
+<span class="sd">        every variable; or a mapping with an optional ``"default"`` and one key per</span>
+<span class="sd">        exception: a variable name or ``"velocity"`` for the velocity group</span>
+<span class="sd">        (:data:`VELOCITY_GROUP`).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict of str to tuple of int</span>
+<span class="sd">        Always holds ``"default"``; the other keys as given.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        An unknown key (or a member of the velocity group named on its own), or a</span>
+<span class="sd">        value that is not a list of flag values.</span>
+<span class="sd">    """</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"default"</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">MASK_FLAGS</span><span class="p">)}</span>
+    <span class="k">if</span> <span class="n">mask_flags</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">out</span>
+    <span class="n">given</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="nb">dict</span><span class="p">(</span><span class="n">mask_flags</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">mask_flags</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">)</span> <span class="k">else</span> <span class="p">{</span><span class="s2">"default"</span><span class="p">:</span> <span class="n">mask_flags</span><span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">known</span> <span class="o">=</span> <span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">VARIABLES</span><span class="p">)</span> <span class="o">-</span> <span class="n">VELOCITY_GROUP</span><span class="p">)</span> <span class="o">|</span> <span class="p">{</span><span class="s2">"default"</span><span class="p">,</span> <span class="s2">"velocity"</span><span class="p">}</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">flags</span> <span class="ow">in</span> <span class="n">given</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">VELOCITY_GROUP</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"mask_flags </span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s2">: the velocity variables share one key, 'velocity'"</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">known</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"mask_flags </span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s2"> is not a variable; expected 'default', "</span>
+                <span class="s2">"'velocity' or a variable name (e.g. 'temperature', 'dissolved_oxygen')"</span>
+            <span class="p">)</span>
+        <span class="n">out</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">_flag_list</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">flags</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span></div>
+
+
+
+<div class="viewcode-block" id="flags_for">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.mask_rules.flags_for">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">flags_for</span><span class="p">(</span><span class="n">rule</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]],</span> <span class="n">var</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Return the flags *rule* hides for variable *var*.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    rule : Mapping</span>
+<span class="sd">        From :func:`resolve_mask_flags`.</span>
+<span class="sd">    var : str</span>
+<span class="sd">        A variable name.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple of int</span>
+<span class="sd">        The variable's own entry (``velocity`` for the velocity group), else the</span>
+<span class="sd">        default.</span>
+<span class="sd">    """</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="s2">"velocity"</span> <span class="k">if</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">VELOCITY_GROUP</span> <span class="k">else</span> <span class="n">var</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">rule</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">rule</span><span class="p">[</span><span class="s2">"default"</span><span class="p">]))</span></div>
+
+
+
+<div class="viewcode-block" id="to_json">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.mask_rules.to_json">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">to_json</span><span class="p">(</span><span class="n">rule</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return *rule* as the JSON a file records (``{"default": [4], ...}``).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    rule : Mapping</span>
+<span class="sd">        From :func:`resolve_mask_flags`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        Keys in the order given, flag lists sorted.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">rule</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span></div>
+
+
+
+<div class="viewcode-block" id="rule_words">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.mask_rules.rule_words">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">rule_words</span><span class="p">(</span><span class="n">rule</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]],</span> <span class="o">*</span><span class="p">,</span> <span class="n">table</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return a flag rule in words.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    rule : Mapping</span>
+<span class="sd">        From :func:`resolve_mask_flags`.</span>
+<span class="sd">    table : bool, optional</span>
+<span class="sd">        The report's settings form, ``"4; velocity 3, 4"``, instead of the</span>
+<span class="sd">        history's ``"4 (velocity 3, 4)"`` (which also spells keys with spaces).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">flags_text</span><span class="p">(</span><span class="n">flags</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">flags</span><span class="p">))</span> <span class="ow">or</span> <span class="s2">"none"</span>
+
+    <span class="n">default</span> <span class="o">=</span> <span class="n">flags_text</span><span class="p">(</span><span class="n">rule</span><span class="p">[</span><span class="s2">"default"</span><span class="p">])</span>
+    <span class="n">others</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">key</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">table</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="n">key</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">'_'</span><span class="p">,</span><span class="w"> </span><span class="s1">' '</span><span class="p">)</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">flags_text</span><span class="p">(</span><span class="n">flags</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">flags</span> <span class="ow">in</span> <span class="n">rule</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="o">!=</span> <span class="s2">"default"</span>
+    <span class="p">]</span>
+    <span class="k">if</span> <span class="n">table</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">default</span><span class="p">,</span> <span class="o">*</span><span class="n">others</span><span class="p">])</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">default</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">others</span><span class="p">)</span><span class="si">}</span><span class="s2">)"</span> <span class="k">if</span> <span class="n">others</span> <span class="k">else</span> <span class="n">default</span></div>
+
+
+
+<div class="viewcode-block" id="from_attrs">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.mask_rules.from_attrs">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">from_attrs</span><span class="p">(</span><span class="n">attrs</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">],</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">STACK_ATTR</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Rule</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return the rule a file records, or the default when it records none.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    attrs : Mapping</span>
+<span class="sd">        The file's global attributes.</span>
+<span class="sd">    key : str, optional</span>
+<span class="sd">        The attribute (``stack_mask_flags``, or ``grid_mask_flags`` on a grid).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict of str to tuple of int</span>
+<span class="sd">        The recorded rule; the default for a file written before rules were</span>
+<span class="sd">        recorded.</span>
+<span class="sd">    """</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">resolve_mask_flags</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">resolve_mask_flags</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">text</span><span class="p">)))</span></div>
+
+
+
+<div class="viewcode-block" id="combine">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.mask_rules.combine">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">combine</span><span class="p">(</span>
+    <span class="n">stack_rule</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]],</span>
+    <span class="n">grid_rule</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Rule</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return the grid's rule: the stack's, with what ``grid: mask_flags`` adds.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    stack_rule : Mapping</span>
+<span class="sd">        The stack's recorded rule.</span>
+<span class="sd">    grid_rule : Mapping or None</span>
+<span class="sd">        The grid's own rule, or None to use the stack's.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict of str to tuple of int</span>
+<span class="sd">        The grid's rule.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        When *grid_rule* would grid a value the stack's pages hide: the grid can</span>
+<span class="sd">        only add flags.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">grid_rule</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">stack_rule</span><span class="p">)</span>
+    <span class="n">keys</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"default"</span><span class="p">,</span> <span class="o">*</span><span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="o">*</span><span class="n">stack_rule</span><span class="p">,</span> <span class="o">*</span><span class="n">grid_rule</span><span class="p">)</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s2">"default"</span><span class="p">]]</span>
+    <span class="n">out</span><span class="p">:</span> <span class="n">Rule</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">keys</span><span class="p">):</span>
+        <span class="n">want</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">flags_for</span><span class="p">(</span><span class="n">grid_rule</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span>
+        <span class="n">have</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">flags_for</span><span class="p">(</span><span class="n">stack_rule</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">have</span> <span class="o">&lt;=</span> <span class="n">want</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"mask_flags </span><span class="si">{</span><span class="n">key</span><span class="si">!r}</span><span class="s2">: the grid's </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">want</span><span class="p">)</span><span class="si">}</span><span class="s2"> would grid values "</span>
+                <span class="sa">f</span><span class="s2">"flagged </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">have</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">want</span><span class="p">)</span><span class="si">}</span><span class="s2"> that the stack's rule hides "</span>
+                <span class="sa">f</span><span class="s2">"(</span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">have</span><span class="p">)</span><span class="si">}</span><span class="s2">); the grid can only add flags"</span>
+            <span class="p">)</span>
+        <span class="n">out</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">want</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">out</span></div>
+
+
+
+<div class="viewcode-block" id="union">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.mask_rules.union">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">union</span><span class="p">(</span>
+    <span class="n">stack_rule</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]],</span> <span class="n">extra</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="o">...</span><span class="p">]]</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Rule</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return *stack_rule* with what *extra* adds, key by key (never fewer flags).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    stack_rule : Mapping</span>
+<span class="sd">        The stack's rule.</span>
+<span class="sd">    extra : Mapping</span>
+<span class="sd">        Flags to add (e.g. the mooring YAML's ``grid: mask_flags``).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict of str to tuple of int</span>
+<span class="sd">        For every key in either: the flags of both.</span>
+<span class="sd">    """</span>
+    <span class="n">keys</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"default"</span><span class="p">,</span> <span class="o">*</span><span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="o">*</span><span class="n">stack_rule</span><span class="p">,</span> <span class="o">*</span><span class="n">extra</span><span class="p">)</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s2">"default"</span><span class="p">]]</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="n">key</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span>
+            <span class="nb">sorted</span><span class="p">(</span>
+                <span class="nb">set</span><span class="p">(</span><span class="n">flags_for</span><span class="p">(</span><span class="n">stack_rule</span><span class="p">,</span> <span class="n">key</span><span class="p">))</span>
+                <span class="o">|</span> <span class="nb">set</span><span class="p">(</span><span class="n">flags_for</span><span class="p">({</span><span class="s2">"default"</span><span class="p">:</span> <span class="p">(),</span> <span class="o">**</span><span class="n">extra</span><span class="p">},</span> <span class="n">key</span><span class="p">))</span>
+            <span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">dict</span><span class="o">.</span><span class="n">fromkeys</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
+    <span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="stack_rule">
+<a class="viewcode-back" href="../../oceanarray.html#oceanarray.mask_rules.stack_rule">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">stack_rule</span><span class="p">(</span>
+    <span class="n">mooring_dict</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">given</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">mooring</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Rule</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return the stack's rule: the call, else ``stack: mask_flags``, else the default.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mooring_dict : Mapping</span>
+<span class="sd">        The loaded mooring YAML.</span>
+<span class="sd">    given : iterable of int, or Mapping, optional</span>
+<span class="sd">        The rule the caller (or ``--mask-flags``) gave.</span>
+<span class="sd">    mooring : Mapping, optional</span>
+<span class="sd">        Deprecated name of *mooring_dict*; removed in 0.8.0.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict of str to tuple of int</span>
+<span class="sd">        The resolved rule.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    ValueError</span>
+<span class="sd">        When the chosen value is not a valid rule.</span>
+<span class="sd">    """</span>
+    <span class="n">mooring_dict</span> <span class="o">=</span> <span class="n">_deprecated</span><span class="o">.</span><span class="n">resolve_keyword</span><span class="p">(</span>
+        <span class="s2">"oceanarray.mask_rules.stack_rule(mooring=)"</span><span class="p">,</span>
+        <span class="n">mooring_dict</span><span class="p">,</span>
+        <span class="n">mooring</span><span class="p">,</span>
+        <span class="n">required</span><span class="o">=</span><span class="s2">"mooring_dict"</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">given</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">resolve_mask_flags</span><span class="p">(</span><span class="n">given</span><span class="p">)</span>
+    <span class="n">block</span> <span class="o">=</span> <span class="n">mooring_dict</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"stack"</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">block</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"mask_flags"</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">resolve_mask_flags</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Eleanor Frajka-Williams.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

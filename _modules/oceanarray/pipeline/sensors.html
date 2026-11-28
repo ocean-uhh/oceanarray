@@ -1,0 +1,670 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>oceanarray.pipeline.sensors &mdash; oceanarray 0.6.2.post1.dev28 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/custom.css?v=a3d0f024" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=bbea0676"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            oceanarray
+              <img src="../../../_static/oceanarray_icon.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reports.html">Reports</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://ocean-uhh.github.io/oceanarray/_static/demo/dune2/dune2_1_2026_report.html">Example report</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../troubleshooting.html">Troubleshooting</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">How it works</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../processing_framework.html">Processing stages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../files.html">Files and folders</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Methods</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/standardisation.html">Stage 1: read</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/trimming.html">Stage 2: trim and clocks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/auto_qc.html">Stage 3: QC flags</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/nortek_coordinate_transform.html">Stage 3: Aquadopp velocity</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../calibration_dips.html">Calibration dips</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/time_gridding.html">Stack</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/vertical_gridding.html">Grid</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/concatenation.html">Several deployments of a site</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/oceansites_export.html">OceanSITES export</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Inputs and outputs</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../configuration_files.html">Configuration files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../oceanarray_format.html">Output files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../oceanSITES_manual.html">OceanSITES manual</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Interfaces</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli_reference.html">Command line</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../oceanarray.html">Python API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Upgrading</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../migrating_0_7_0.html">From 0.6.1 to 0.7.0</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../migrating_0_6_1.html">From 0.6.0 to 0.6.1</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../migrating_0_6_0.html">From 0.5 to 0.6</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../migration.html">Older versions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Background</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../rapid_heritage.html">RAPID heritage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../legacy.html">Legacy modules</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Development</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../roadmap.html">Roadmap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../developer.html">Developer guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../project_structure.html">Project structure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods/calibration.html">Calibration correction (design)</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/ocean-uhh/oceanarray">GitHub repository</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">oceanarray</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../pipeline.html">oceanarray.pipeline</a></li>
+      <li class="breadcrumb-item active">oceanarray.pipeline.sensors</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for oceanarray.pipeline.sensors</h1><div class="highlight"><pre>
+<span></span><span class="sd">"""Sensor records: one OG1-style ``SENSOR_&lt;type&gt;_&lt;serial&gt;`` variable per instrument.</span>
+
+<span class="sd">Each instrument is described by one dimensionless variable, as the OG1 glider</span>
+<span class="sd">format does: ``sensor_type`` (from :data:`SENSOR_TYPES`), ``sensor_maker``,</span>
+<span class="sd">``sensor_model``, ``sensor_serial_number`` and ``sensor_calibration_date``, and</span>
+<span class="sd">every data variable names its record in a ``sensor`` attribute. An instrument</span>
+<span class="sd">whose sensors were calibrated on different dates (a MicroCAT's temperature,</span>
+<span class="sd">conductivity and pressure) keeps one record: ``sensor_calibration_date`` is the</span>
+<span class="sd">latest, ``sensor_calibration_dates`` lists each (``"temperature: 2018-04-12;</span>
+<span class="sd">conductivity: 2018-04-10"``), and each sensor's coefficients are a</span>
+<span class="sd">``&lt;sensor&gt;_calibration_coefficients`` attribute. Files that join deployments</span>
+<span class="sd">(the Stack cat) end each record name with the deployment code (``_201806``), so</span>
+<span class="sd">an instrument recalibrated between deployments has a record per deployment.</span>
+
+<span class="sd">The originator's own ``sensor_*`` attributes (an imported OceanSITES file) are</span>
+<span class="sd">kept verbatim on the record as ``originator_sensor_*``, and its other variable</span>
+<span class="sd">attributes (``comment``, ``uncertainty``, ``accuracy`` ...) as</span>
+<span class="sd">``originator_&lt;variable&gt;_&lt;attribute&gt;`` with ``originator_&lt;variable&gt;_units``; the</span>
+<span class="sd">data variables keep only oceanarray's attributes. A ``sensor_model`` in the</span>
+<span class="sd">instrument's mooring-YAML entry, with its ``sensor_model_source``, fills or</span>
+<span class="sd">corrects the model; nothing is inferred from the data.</span>
+<span class="sd">"""</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Mapping</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xarray</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">xr</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray</span><span class="w"> </span><span class="kn">import</span> <span class="n">_deprecated</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">MooringError</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="c1">#: The OG1 sensor-type word for each instrument type. Every MicroCAT is a CTD,</span>
+<span class="c1">#: with or without a pressure sensor. Types not listed use the instrument type in</span>
+<span class="c1">#: capitals until a term is chosen.</span>
+<span class="n">SENSOR_TYPES</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"microcat"</span><span class="p">:</span> <span class="s2">"CTD"</span><span class="p">}</span>
+
+<span class="c1">#: The vocabulary the sensor-type word comes from (NERC L05, as OG1 uses).</span>
+<span class="n">SENSOR_TYPE_VOCABULARY</span> <span class="o">=</span> <span class="s2">"https://vocab.nerc.ac.uk/collection/L05/current/"</span>
+
+<span class="c1">#: The per-sensor calibration variables stage 1 reads from a raw Sea-Bird header,</span>
+<span class="c1">#: ``SENSOR_&lt;code&gt;_&lt;serial&gt;``, and the sensor each names.</span>
+<span class="n">_CALIBRATED</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"TEMP"</span><span class="p">:</span> <span class="s2">"temperature"</span><span class="p">,</span> <span class="s2">"CNDC"</span><span class="p">:</span> <span class="s2">"conductivity"</span><span class="p">,</span> <span class="s2">"PRES"</span><span class="p">:</span> <span class="s2">"pressure"</span><span class="p">}</span>
+
+<span class="n">_RECORD</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^SENSOR_"</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="sensor_type">
+<a class="viewcode-back" href="../../../oceanarray.html#oceanarray.pipeline.sensors.sensor_type">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">sensor_type</span><span class="p">(</span><span class="n">instrument</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return the sensor-type word for an instrument type.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    instrument : str</span>
+<span class="sd">        The instrument entry's ``instrument`` (``microcat``, ``aquadopp``, ...).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        ``CTD`` for a MicroCAT; otherwise the type in capitals, without characters</span>
+<span class="sd">        a variable name cannot hold.</span>
+<span class="sd">    """</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">instrument</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">SENSOR_TYPES</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="ow">or</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\W+"</span><span class="p">,</span> <span class="s2">"_"</span><span class="p">,</span> <span class="n">key</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">"_"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"UNK"</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_record_name</span><span class="p">(</span>
+    <span class="n">instrument</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">serial</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">deployment_code</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return the record variable's name: ``SENSOR_&lt;type&gt;_&lt;serial&gt;[_&lt;deployment code&gt;]``.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    instrument : str</span>
+<span class="sd">        The instrument type.</span>
+<span class="sd">    serial : str</span>
+<span class="sd">        The instrument's (cleaned) serial.</span>
+<span class="sd">    deployment_code : str, optional</span>
+<span class="sd">        ``YYYYMM`` of the deployment, for files that join deployments.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    str</span>
+<span class="sd">        The variable name.</span>
+<span class="sd">    """</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"SENSOR_</span><span class="si">{</span><span class="n">sensor_type</span><span class="p">(</span><span class="n">instrument</span><span class="p">)</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">serial</span><span class="si">}</span><span class="s2">"</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">deployment_code</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">deployment_code</span> <span class="k">else</span> <span class="n">name</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_record</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return whether *name* is a sensor-record variable.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    name : object</span>
+<span class="sd">        A variable name.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    bool</span>
+<span class="sd">        True for a ``SENSOR_*`` name.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">_RECORD</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">name</span><span class="p">)))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_iso</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">object</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return *value* if it is an ISO date (``YYYY-MM-DD``), else None."""</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">text</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\d</span><span class="si">{4}</span><span class="s2">-\d</span><span class="si">{2}</span><span class="s2">-\d</span><span class="si">{2}</span><span class="s2">"</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_originator_sensor_attrs</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Return the originator's ``sensor_*`` variable attributes, one value per key.</span>
+
+<span class="sd">    Values that differ between variables are joined with ``"; "`` in variable order.</span>
+<span class="sd">    """</span>
+    <span class="n">found</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">var</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"originator_sensor_"</span><span class="p">):</span>
+                <span class="n">text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">text</span> <span class="ow">and</span> <span class="n">text</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">found</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">[]):</span>
+                    <span class="n">found</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">found</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_originator_variable_attrs</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Return the originator's other variable attributes as record keys.</span>
+
+<span class="sd">    Each ``originator_&lt;attribute&gt;`` on a data variable (other than</span>
+<span class="sd">    ``originator_sensor_*``, which :func:`_originator_sensor_attrs` joins) becomes</span>
+<span class="sd">    ``originator_&lt;variable&gt;_&lt;attribute&gt;``, with ``originator_&lt;variable&gt;_units`` (the</span>
+<span class="sd">    variable's units as read) so a number such as an uncertainty keeps its unit.</span>
+<span class="sd">    """</span>
+    <span class="n">out</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">_links</span><span class="p">(</span><span class="n">var</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="n">own</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">k</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="s2">"originator_"</span><span class="p">)</span> <span class="p">:]:</span> <span class="n">v</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">var</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"originator_"</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"originator_sensor_"</span><span class="p">)</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">own</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">own</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">out</span><span class="p">[</span><span class="sa">f</span><span class="s2">"originator_</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">"</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">if</span> <span class="n">var</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"units"</span><span class="p">):</span>
+            <span class="n">out</span><span class="p">[</span><span class="sa">f</span><span class="s2">"originator_</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">_units"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"units"</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+<div class="viewcode-block" id="build_record">
+<a class="viewcode-back" href="../../../oceanarray.html#oceanarray.pipeline.sensors.build_record">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_record</span><span class="p">(</span>  <span class="c1"># noqa: C901</span>
+    <span class="n">ds</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span>
+    <span class="n">entry</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">serial</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">maker</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">catalog</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Replace a stage-1 dataset's sensor variables with its one record, and link to it.</span>
+
+<span class="sd">    ``sensor_model`` comes from the instrument's entry, else the sensor</span>
+<span class="sd">    catalog, else the file; each replacement of the file's value is a WARNING.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ds : xarray.Dataset</span>
+<span class="sd">        The instrument's dataset at stage 1: any per-sensor calibration variables</span>
+<span class="sd">        (``SENSOR_TEMP_&lt;serial&gt;`` ... from a raw Sea-Bird header) and any</span>
+<span class="sd">        ``originator_sensor_*`` variable attributes (an imported file).</span>
+<span class="sd">    entry : Mapping</span>
+<span class="sd">        The instrument's mooring-YAML entry (``instrument``; optional</span>
+<span class="sd">        ``sensor_model`` and ``sensor_model_source``).</span>
+<span class="sd">    serial : str</span>
+<span class="sd">        The instrument's cleaned serial.</span>
+<span class="sd">    maker : str, optional</span>
+<span class="sd">        The maker when the file format says it (a Sea-Bird file).</span>
+<span class="sd">    catalog : Mapping, optional</span>
+<span class="sd">        What the sensor catalog says of this instrument</span>
+<span class="sd">        (:func:`oceanarray.mooring.catalog.lookup`). Its model's attributes and</span>
+<span class="sd">        vocabularies are written, the "with pressure" entry when the instrument</span>
+<span class="sd">        measured pressure (:func:`oceanarray.mooring.catalog.measured_pressure`).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    xarray.Dataset</span>
+<span class="sd">        *ds* with one ``SENSOR_&lt;type&gt;_&lt;serial&gt;`` variable, the per-sensor variables</span>
+<span class="sd">        removed, and ``sensor`` on every data variable on ``time``.</span>
+
+<span class="sd">    Raises</span>
+<span class="sd">    ------</span>
+<span class="sd">    oceanarray.exceptions.MooringError</span>
+<span class="sd">        When *serial* is empty: two such instruments would share one record name.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">str</span><span class="p">(</span><span class="n">serial</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="n">MooringError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'instrument'</span><span class="p">,</span><span class="w"> </span><span class="s1">'an instrument'</span><span class="p">)</span><span class="si">}</span><span class="s2">: no serial; a sensor record "</span>
+            <span class="s2">"is named by the instrument's serial"</span>
+        <span class="p">)</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">_record_name</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"instrument"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span> <span class="n">serial</span><span class="p">)</span>
+    <span class="n">attrs</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">"long_name"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span>
+        <span class="s2">"sensor_type"</span><span class="p">:</span> <span class="n">sensor_type</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"instrument"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)),</span>
+        <span class="s2">"sensor_type_vocabulary"</span><span class="p">:</span> <span class="n">SENSOR_TYPE_VOCABULARY</span><span class="p">,</span>
+        <span class="s2">"sensor_serial_number"</span><span class="p">:</span> <span class="n">serial</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">dates</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">old</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">variables</span> <span class="k">if</span> <span class="n">_is_record</span><span class="p">(</span><span class="n">v</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">old</span><span class="p">:</span>
+        <span class="n">meta</span> <span class="o">=</span> <span class="n">ds</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span>
+        <span class="n">code</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">var</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"_"</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">var</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">"_"</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span> <span class="k">else</span> <span class="s2">""</span>
+        <span class="n">sensor</span> <span class="o">=</span> <span class="n">_CALIBRATED</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">code</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sensor</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">date</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"sensor_calibration_date"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">date</span> <span class="ow">and</span> <span class="n">date</span> <span class="o">!=</span> <span class="s2">"—"</span><span class="p">:</span>
+            <span class="c1"># Kept as written when it is not an ISO date (only ISO dates are compared).</span>
+            <span class="n">dates</span><span class="p">[</span><span class="n">sensor</span><span class="p">]</span> <span class="o">=</span> <span class="n">date</span>
+        <span class="c1"># The coefficients named for this sensor (TEMPERATURE_calibration_...),</span>
+        <span class="c1"># never another sensor's that the variable might also carry.</span>
+        <span class="n">coefficients</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+            <span class="p">(</span>
+                <span class="n">v</span>
+                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">meta</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">sensor</span><span class="si">}</span><span class="s2">_calibration_coefficients"</span>
+            <span class="p">),</span>
+            <span class="s2">""</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">coefficients</span><span class="p">:</span>
+            <span class="n">attrs</span><span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">sensor</span><span class="si">}</span><span class="s2">_calibration_coefficients"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">coefficients</span><span class="p">)</span>
+        <span class="n">own_serial</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">meta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"sensor_serial_number"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">own_serial</span> <span class="ow">and</span> <span class="n">own_serial</span> <span class="o">!=</span> <span class="n">serial</span><span class="p">:</span>
+            <span class="n">attrs</span><span class="p">[</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">sensor</span><span class="si">}</span><span class="s2">_sensor_serial_number"</span><span class="p">]</span> <span class="o">=</span> <span class="n">own_serial</span>
+    <span class="n">iso_dates</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">dates</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">if</span> <span class="n">_iso</span><span class="p">(</span><span class="n">d</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">iso_dates</span><span class="p">:</span>
+        <span class="n">attrs</span><span class="p">[</span><span class="s2">"sensor_calibration_date"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">iso_dates</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">dates</span><span class="p">:</span>
+        <span class="n">attrs</span><span class="p">[</span><span class="s2">"sensor_calibration_dates"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">"</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">dates</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+        <span class="p">)</span>
+
+    <span class="n">originator</span> <span class="o">=</span> <span class="n">_originator_sensor_attrs</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+    <span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">originator</span><span class="p">)</span>
+    <span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">_originator_variable_attrs</span><span class="p">(</span><span class="n">ds</span><span class="p">))</span>
+    <span class="n">file_model</span> <span class="o">=</span> <span class="n">originator</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"originator_sensor_model"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
+    <span class="n">file_maker</span> <span class="o">=</span> <span class="n">originator</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"originator_sensor_manufacturer"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span> <span class="ow">or</span> <span class="n">originator</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+        <span class="s2">"originator_sensor_maker"</span><span class="p">,</span> <span class="s2">""</span>
+    <span class="p">)</span>
+    <span class="n">cat</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">catalog</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">oceanarray.mooring</span><span class="w"> </span><span class="kn">import</span> <span class="n">catalog</span> <span class="k">as</span> <span class="n">_catalog</span>
+
+        <span class="n">measured</span><span class="p">,</span> <span class="n">why</span> <span class="o">=</span> <span class="n">_catalog</span><span class="o">.</span><span class="n">measured_pressure</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+        <span class="n">cat</span> <span class="o">=</span> <span class="n">_catalog</span><span class="o">.</span><span class="n">record_attrs</span><span class="p">(</span><span class="n">catalog</span><span class="p">,</span> <span class="n">measured</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">"pressure"</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">measured</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: described without pressure by the sensor catalog: </span><span class="si">{</span><span class="n">why</span><span class="si">}</span><span class="s2">"</span>
+            <span class="p">)</span>
+    <span class="n">yaml_model</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"sensor_model"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">yaml_model</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">file_model</span> <span class="ow">and</span> <span class="n">file_model</span> <span class="o">!=</span> <span class="n">yaml_model</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: the mooring YAML's sensor_model </span><span class="si">{</span><span class="n">yaml_model</span><span class="si">!r}</span><span class="s2"> replaces the "</span>
+                <span class="sa">f</span><span class="s2">"file's </span><span class="si">{</span><span class="n">file_model</span><span class="si">!r}</span><span class="s2"> (kept as originator_sensor_model)"</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">cat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"sensor_model"</span><span class="p">)</span> <span class="ow">and</span> <span class="n">cat</span><span class="p">[</span><span class="s2">"sensor_model"</span><span class="p">]</span> <span class="o">!=</span> <span class="n">yaml_model</span><span class="p">:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: the mooring YAML's sensor_model </span><span class="si">{</span><span class="n">yaml_model</span><span class="si">!r}</span><span class="s2"> is used, "</span>
+                <span class="sa">f</span><span class="s2">"not the sensor catalog's </span><span class="si">{</span><span class="n">cat</span><span class="p">[</span><span class="s1">'sensor_model'</span><span class="p">]</span><span class="si">!r}</span><span class="s2">"</span>
+            <span class="p">)</span>
+        <span class="n">attrs</span><span class="p">[</span><span class="s2">"sensor_model"</span><span class="p">]</span> <span class="o">=</span> <span class="n">yaml_model</span>
+        <span class="n">attrs</span><span class="p">[</span><span class="s2">"sensor_model_source"</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"sensor_model_source"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span>
+        <span class="n">attrs</span><span class="p">[</span><span class="s2">"sensor_metadata_source"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"mooring YAML: </span><span class="si">{</span><span class="n">attrs</span><span class="p">[</span><span class="s1">'sensor_model_source'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">cat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"sensor_model"</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">file_model</span> <span class="ow">and</span> <span class="n">file_model</span> <span class="o">!=</span> <span class="n">cat</span><span class="p">[</span><span class="s2">"sensor_model"</span><span class="p">]:</span>
+            <span class="n">log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: the sensor catalog's sensor_model </span><span class="si">{</span><span class="n">cat</span><span class="p">[</span><span class="s1">'sensor_model'</span><span class="p">]</span><span class="si">!r}</span><span class="s2"> "</span>
+                <span class="sa">f</span><span class="s2">"replaces the file's </span><span class="si">{</span><span class="n">file_model</span><span class="si">!r}</span><span class="s2"> (kept as originator_sensor_model)"</span>
+            <span class="p">)</span>
+        <span class="n">attrs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">cat</span><span class="p">)</span>
+        <span class="n">attrs</span><span class="p">[</span><span class="s2">"sensor_metadata_source"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">"sensor catalog: </span><span class="si">{</span><span class="n">catalog</span><span class="p">[</span><span class="s1">'catalog_file'</span><span class="p">]</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">catalog</span><span class="p">[</span><span class="s1">'catalog_key'</span><span class="p">]</span><span class="si">}</span><span class="s2">, "</span>
+            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">why</span><span class="si">}</span><span class="s2">)"</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="n">file_model</span><span class="p">:</span>
+        <span class="n">attrs</span><span class="p">[</span><span class="s2">"sensor_model"</span><span class="p">]</span> <span class="o">=</span> <span class="n">file_model</span>
+        <span class="n">attrs</span><span class="p">[</span><span class="s2">"sensor_metadata_source"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"originator file"</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">attrs</span><span class="p">[</span><span class="s2">"sensor_model"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"UNK"</span>
+        <span class="n">attrs</span><span class="p">[</span><span class="s2">"sensor_metadata_source"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">"raw file header (calibration only)"</span> <span class="k">if</span> <span class="n">dates</span> <span class="k">else</span> <span class="s2">"none"</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="s2">"sensor_pumped"</span> <span class="ow">in</span> <span class="n">cat</span><span class="p">:</span>
+        <span class="c1"># Known even when the model is not ("SBE 37-SM or -SMP").</span>
+        <span class="n">attrs</span><span class="p">[</span><span class="s2">"sensor_pumped"</span><span class="p">]</span> <span class="o">=</span> <span class="n">cat</span><span class="p">[</span><span class="s2">"sensor_pumped"</span><span class="p">]</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">maker</span> <span class="ow">or</span> <span class="n">file_maker</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">"sensor_maker"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">attrs</span><span class="p">:</span>
+        <span class="n">attrs</span><span class="p">[</span><span class="s2">"sensor_maker"</span><span class="p">]</span> <span class="o">=</span> <span class="n">maker</span> <span class="ow">or</span> <span class="n">file_maker</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"long_name"</span><span class="p">):</span>
+        <span class="n">attrs</span><span class="p">[</span><span class="s2">"long_name"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">" "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="n">p</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="p">(</span>
+                <span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"sensor_maker"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span>
+                <span class="n">attrs</span><span class="p">[</span><span class="s2">"sensor_model"</span><span class="p">],</span>
+                <span class="sa">f</span><span class="s2">"s/n </span><span class="si">{</span><span class="n">serial</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">p</span> <span class="ow">and</span> <span class="n">p</span> <span class="o">!=</span> <span class="s2">"UNK"</span>
+        <span class="p">)</span>
+    <span class="n">attrs</span><span class="p">[</span><span class="s2">"cf_role"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"sensor_id"</span>
+    <span class="n">attrs</span><span class="p">[</span><span class="s2">"coverage_content_type"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"auxiliaryInformation"</span>
+
+    <span class="c1"># A shallow copy: the attributes removed below are not removed from the caller's.</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">drop_vars</span><span class="p">(</span><span class="n">old</span><span class="p">)</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="c1"># The originator's descriptions now live on the record; the variables keep ours.</span>
+    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">_links</span><span class="p">(</span><span class="n">var</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">var</span><span class="o">.</span><span class="n">attrs</span> <span class="k">if</span> <span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"originator_"</span><span class="p">)]:</span>
+                <span class="k">del</span> <span class="n">var</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+    <span class="n">ds</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">xr</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
+        <span class="p">(),</span> <span class="n">np</span><span class="o">.</span><span class="n">int8</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">attrs</span><span class="o">=</span><span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">attrs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span> <span class="o">!=</span> <span class="s2">""</span><span class="p">}</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">_links</span><span class="p">(</span><span class="n">var</span><span class="p">):</span>
+            <span class="n">var</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"sensor"</span><span class="p">]</span> <span class="o">=</span> <span class="n">name</span>
+    <span class="k">return</span> <span class="n">ds</span></div>
+
+
+
+<div class="viewcode-block" id="records">
+<a class="viewcode-back" href="../../../oceanarray.html#oceanarray.pipeline.sensors.records">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">records</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""Return a dataset's sensor records.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ds : xarray.Dataset</span>
+<span class="sd">        A stage file, stack or Stack cat.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict of str to dict</span>
+<span class="sd">        ``{variable name: attributes}`` for each dimensionless ``SENSOR_*`` variable.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">):</span> <span class="nb">dict</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">variables</span>
+        <span class="k">if</span> <span class="n">_is_record</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">and</span> <span class="n">ds</span><span class="p">[</span><span class="n">v</span><span class="p">]</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="p">}</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_links</span><span class="p">(</span><span class="n">var</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return whether *var* is a data variable that names its sensor record."""</span>
+    <span class="k">return</span> <span class="s2">"time"</span> <span class="ow">in</span> <span class="n">var</span><span class="o">.</span><span class="n">dims</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">str</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span>
+        <span class="p">(</span><span class="s2">"_qc"</span><span class="p">,</span> <span class="s2">"_qc_originator"</span><span class="p">,</span> <span class="s2">"_qc_originator_mapped"</span><span class="p">,</span> <span class="s2">"_flag"</span><span class="p">)</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_borrowed</span><span class="p">(</span><span class="n">var</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">DataArray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Return whether *var* came from other instruments (``*_source_serials``)."""</span>
+    <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">)</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"_source_serials"</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">var</span><span class="o">.</span><span class="n">attrs</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_record_of</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Return the attributes of the sensor record that measured variable *name*.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ds : xarray.Dataset</span>
+<span class="sd">        A single-instrument file (stage 1-3).</span>
+<span class="sd">    name : str</span>
+<span class="sd">        A data variable.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    dict</span>
+<span class="sd">        The record its ``sensor`` attribute names; else, when the file holds exactly</span>
+<span class="sd">        one record and the variable was not taken from other instruments, that</span>
+<span class="sd">        record (a variable derived after stage 1); else ``{}``.</span>
+<span class="sd">    """</span>
+    <span class="n">own</span> <span class="o">=</span> <span class="n">records</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+    <span class="n">linked</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"sensor"</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">ds</span> <span class="k">else</span> <span class="s2">""</span>
+    <span class="k">if</span> <span class="n">linked</span> <span class="ow">in</span> <span class="n">own</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">own</span><span class="p">[</span><span class="n">linked</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">own</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="p">(</span><span class="n">name</span> <span class="ow">in</span> <span class="n">ds</span> <span class="ow">and</span> <span class="n">_borrowed</span><span class="p">(</span><span class="n">ds</span><span class="p">[</span><span class="n">name</span><span class="p">])):</span>
+        <span class="k">return</span> <span class="p">{}</span>
+    <span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">own</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_link_derived</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Name the file's one sensor record on data variables derived after stage 1.</span>
+
+<span class="sd">    Salinity, ENU velocities and the other variables stage 3 makes come from the</span>
+<span class="sd">    instrument's own measurements. A variable taken from other instruments (pressure</span>
+<span class="sd">    interpolated from its neighbors, marked by a ``*_source_serials`` attribute) is</span>
+<span class="sd">    not linked, and a file with several records is left as it is.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ds : xarray.Dataset</span>
+<span class="sd">        A single-instrument file.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    xarray.Dataset</span>
+<span class="sd">        *ds*, with ``sensor`` on every time-series data variable that lacked it.</span>
+<span class="sd">    """</span>
+    <span class="n">own</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">records</span><span class="p">(</span><span class="n">ds</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">own</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">ds</span>
+    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">_links</span><span class="p">(</span><span class="n">var</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">"sensor"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">var</span><span class="o">.</span><span class="n">attrs</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_borrowed</span><span class="p">(</span><span class="n">var</span><span class="p">):</span>
+            <span class="n">var</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"sensor"</span><span class="p">]</span> <span class="o">=</span> <span class="n">own</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">ds</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_sensor_record</span><span class="p">(</span><span class="n">ds</span><span class="p">:</span> <span class="n">xr</span><span class="o">.</span><span class="n">Dataset</span><span class="p">,</span> <span class="n">instrument</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">serial</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Return the name and attributes of an instrument's one sensor record.</span>
+
+<span class="sd">    A stage file written with sensor records names its record in its data</span>
+<span class="sd">    variables' ``sensor``; one written before them (per-sensor ``SENSOR_TEMP_`` /</span>
+<span class="sd">    ``_CNDC_`` / ``_PRES_&lt;serial&gt;`` variables, or none) gets its record built here,</span>
+<span class="sd">    so every calibration it holds is kept.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    ds : xarray.Dataset</span>
+<span class="sd">        The instrument's stage file.</span>
+<span class="sd">    instrument : str</span>
+<span class="sd">        The instrument type.</span>
+<span class="sd">    serial : str</span>
+<span class="sd">        The instrument's cleaned serial.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    tuple of (str, dict)</span>
+<span class="sd">        The record's variable name and its attributes.</span>
+<span class="sd">    """</span>
+    <span class="n">own</span> <span class="o">=</span> <span class="n">records</span><span class="p">(</span><span class="n">ds</span><span class="p">)</span>
+    <span class="n">linked</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">attrs</span><span class="p">[</span><span class="s2">"sensor"</span><span class="p">])</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">ds</span><span class="o">.</span><span class="n">data_vars</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">if</span> <span class="s2">"sensor"</span> <span class="ow">in</span> <span class="n">v</span><span class="o">.</span><span class="n">attrs</span>
+    <span class="p">}</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">linked</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">own</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">name</span><span class="p">,</span> <span class="n">own</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+    <span class="n">built</span> <span class="o">=</span> <span class="n">build_record</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="p">{</span><span class="s2">"instrument"</span><span class="p">:</span> <span class="n">instrument</span><span class="p">},</span> <span class="n">serial</span><span class="p">)</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">_record_name</span><span class="p">(</span><span class="n">instrument</span><span class="p">,</span> <span class="n">serial</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">name</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">built</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">attrs</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="calibration_rows">
+<a class="viewcode-back" href="../../../oceanarray.html#oceanarray.pipeline.sensors.calibration_rows">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">calibration_rows</span><span class="p">(</span><span class="n">record</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""Return one row per calibrated sensor of a record: sensor, serial, date, coefficients.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    record : Mapping</span>
+<span class="sd">        A record's attributes.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list of dict of str to str</span>
+<span class="sd">        ``sensor``, ``serial``, ``date`` and ``coefficients`` per sensor named in</span>
+<span class="sd">        ``sensor_calibration_dates`` or with ``&lt;sensor&gt;_calibration_coefficients``.</span>
+<span class="sd">    """</span>
+    <span class="n">dates</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">part</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">": "</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"sensor_calibration_dates"</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">"; "</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">": "</span> <span class="ow">in</span> <span class="n">part</span>
+    <span class="p">)</span>
+    <span class="n">sensors</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">dates</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">record</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">"_calibration_coefficients"</span><span class="p">):</span>
+            <span class="n">sensor</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">removesuffix</span><span class="p">(</span><span class="s2">"_calibration_coefficients"</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">sensor</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sensors</span><span class="p">:</span>
+                <span class="n">sensors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sensor</span><span class="p">)</span>
+    <span class="n">serial</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"sensor_serial_number"</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s2">"sensor"</span><span class="p">:</span> <span class="n">sensor</span><span class="p">,</span>
+            <span class="s2">"serial"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">sensor</span><span class="si">}</span><span class="s2">_sensor_serial_number"</span><span class="p">,</span> <span class="n">serial</span><span class="p">)),</span>
+            <span class="s2">"date"</span><span class="p">:</span> <span class="n">dates</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">sensor</span><span class="p">,</span> <span class="s2">"—"</span><span class="p">),</span>
+            <span class="s2">"coefficients"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">sensor</span><span class="si">}</span><span class="s2">_calibration_coefficients"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)),</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">sensor</span> <span class="ow">in</span> <span class="n">sensors</span>
+    <span class="p">]</span></div>
+
+
+
+<span class="c1">#: Released names now private: each still imports, warning, until 0.8.0.</span>
+<span class="fm">__getattr__</span> <span class="o">=</span> <span class="n">_deprecated</span><span class="o">.</span><span class="n">moved_names</span><span class="p">(</span>
+    <span class="vm">__name__</span><span class="p">,</span>
+    <span class="p">{</span>
+        <span class="s2">"is_record"</span><span class="p">:</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">_is_record</span><span class="p">,</span>
+        <span class="s2">"link_derived"</span><span class="p">:</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">_link_derived</span><span class="p">,</span>
+        <span class="s2">"record_name"</span><span class="p">:</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">_record_name</span><span class="p">,</span>
+        <span class="s2">"record_of"</span><span class="p">:</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">_record_of</span><span class="p">,</span>
+        <span class="s2">"sensor_record"</span><span class="p">:</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">_sensor_record</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Eleanor Frajka-Williams.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
