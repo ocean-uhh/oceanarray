@@ -37,6 +37,12 @@ The verbs
 .. autofunction:: oceanarray.report
    :no-index:
 
+.. autofunction:: oceanarray.report_array
+   :no-index:
+
+.. autofunction:: oceanarray.recovery_table
+   :no-index:
+
 .. autofunction:: oceanarray.export
    :no-index:
 

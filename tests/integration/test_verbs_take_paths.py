@@ -341,68 +341,58 @@ def test_report_old_forms_write_the_same_pages(tmp_path, key, old, new_paths):
     assert _outputs(where) == expected
 
 
-def test_report_recovery_and_array_old_forms_write_the_same_pages(tmp_path):
-    """The recovery table beside the YAML and the array index under the processed folder, as before."""
+def test_recovery_table_and_report_array_write_the_old_forms_pages(tmp_path):
+    """recovery_table and report_array write what report(kind=) wrote, which now warns once."""
     mooring_path = _old_tree(tmp_path)
     folder = mooring_path.parent
     table = _quiet(
-        lambda: oa.report(
-            mooring_path, _paths(mooring_path, report_dir=folder), kind="recovery"
-        )
+        lambda: oa.recovery_table(mooring_path, _paths(mooring_path, report_dir=folder))
     )
     assert table == folder / f"{_NAME}_recovery_table.html"
     expected = table.read_text(encoding="utf-8")
-    again = _warned_once(
+    for call in (
+        lambda: oa.report(
+            mooring_path,
+            _paths(mooring_path, report_dir=folder),
+            kind="recovery",
+            force=True,
+        ),
         lambda: oa.report(mooring_path, kind="recovery", force=True),
-        "a verb called without paths",
-    )
-    assert again == table and table.read_text(encoding="utf-8") == expected
+    ):
+        assert _warned_once(call, "oceanarray.report(kind=)") == table
+        assert table.read_text(encoding="utf-8") == expected
 
     array_path = Path(shutil.copy(_ARRAY, tmp_path / "proc"))
     proc = tmp_path / "proc"
-    index = _quiet(
-        lambda: oa.report(
-            paths=oa.Paths(proc_dir=proc), kind="array", array_path=array_path
-        )
-    )
+    index = _quiet(lambda: oa.report_array(array_path, oa.Paths(proc_dir=proc)))
     assert index.parent == proc
-    # The array YAML as the first argument is the same call.
-    assert (
-        _quiet(
-            lambda: oa.report(
-                array_path, oa.Paths(proc_dir=proc), kind="array", force=True
-            )
-        )
-        == index
-    )
     expected = _outputs(proc)
-    for key, call in (
-        (
-            "a verb called without paths",
-            lambda: oa.report(array_path, kind="array", force=True),
+    for call in (
+        lambda: oa.report(
+            array_path, oa.Paths(proc_dir=proc), kind="array", force=True
         ),
-        (
-            "oceanarray.report(proc_dir=)",
-            lambda: oa.report(array_path, kind="array", proc_dir=proc, force=True),
-        ),
+        lambda: oa.report(array_path, kind="array", force=True),
+        lambda: oa.report(array_path, kind="array", proc_dir=proc, force=True),
     ):
-        assert _warned_once(call, key) == index
+        assert _warned_once(call, "oceanarray.report(kind=)") == index
         assert _outputs(proc) == expected
-    with pytest.raises(TypeError, match="twice"):
-        oa.report(
-            array_path, oa.Paths(proc_dir=proc), kind="array", array_path=array_path
-        )
-    with pytest.raises(TypeError, match="not array_path"):
-        oa.report(mooring_path, kind="mooring", array_path=array_path)
+    # A mooring's pages need no kind=; given, it warns once too.
+    page = _warned_once(
+        lambda: oa.report(mooring_path, _paths(mooring_path), kind="mooring", **_PAGES),
+        "oceanarray.report(kind=)",
+    )
+    assert page == _quiet(
+        lambda: oa.report(mooring_path, _paths(mooring_path), **_PAGES)
+    )
     elsewhere = tmp_path / "index"
     new = _quiet(
-        lambda: oa.report(
-            array_path, oa.Paths(proc_dir=proc, report_dir=elsewhere), kind="array"
+        lambda: oa.report_array(
+            array_path, oa.Paths(proc_dir=proc, report_dir=elsewhere)
         )
     )
     old = _warned_once(
         lambda: oa.report(array_path, kind="array", report_dir=elsewhere, force=True),
-        "oceanarray.report(report_dir=)",
+        "oceanarray.report(kind=)",
     )
     assert new == old == elsewhere / new.name
 
@@ -475,9 +465,9 @@ def test_export_old_forms_write_the_same_files(tmp_path, key, old, new_paths):
         ("report_dir", lambda y: oa.report(y, oa.Paths(proc_dir=y.parent.parent))),
         (
             "report_dir",
-            lambda y: oa.report(y, oa.Paths(proc_dir=y.parent.parent), kind="recovery"),
+            lambda y: oa.recovery_table(y, oa.Paths(proc_dir=y.parent.parent)),
         ),
-        ("proc_dir", lambda _y: oa.report(_ARRAY, oa.Paths(), kind="array")),
+        ("proc_dir", lambda _y: oa.report_array(_ARRAY, oa.Paths())),
         ("export_dir", lambda y: oa.export(y, oa.Paths(proc_dir=y.parent.parent))),
         ("proc_dir", lambda y: oa.export(y, oa.Paths(export_dir=y.parent))),
     ],
@@ -564,7 +554,8 @@ _VERBS = {
     "process": lambda y, p: oa.process(y, p, stages=3),
     "run": lambda y, p: oa.run(y, p, from_stage=3),
     "report": lambda y, p: oa.report(y, p),
-    "report_array": lambda _y, p: oa.report(_ARRAY, p, kind="array"),
+    "report_array": lambda _y, p: oa.report_array(_ARRAY, p),
+    "recovery_table": lambda y, p: oa.recovery_table(y, p),
     "export": lambda y, p: oa.export(y, p, dry_run=True),
 }
 
@@ -575,8 +566,7 @@ def test_a_second_argument_that_is_not_paths_is_refused(tmp_path, verb, kind):
     """A folder or a dict where paths goes is a TypeError naming what was given."""
     mooring_path = _old_tree(tmp_path)
     given = {"Path": tmp_path, "str": str(tmp_path), "dict": {"raw_dir": "raw"}}[kind]
-    name = verb.partition("_")[0]
-    expected = f"{name}() paths must be an oceanarray.Paths, got {type(given).__name__}"
+    expected = f"{verb}() paths must be an oceanarray.Paths, got {type(given).__name__}"
     with pytest.raises(TypeError, match=re.escape(expected)):
         _VERBS[verb](mooring_path, given)
 
@@ -609,7 +599,7 @@ _ONCE = [
     ("oceanarray.run(mooring=)", lambda y: oa.run(mooring=y, from_stage=3)),
     ("oceanarray.report(mooring=)", lambda y: oa.report(mooring=y, **_PAGES)),
     (
-        "oceanarray.report(mooring=)",
+        "oceanarray.report(kind=)",
         lambda y: oa.report(mooring=_ARRAY, kind="array", proc_dir=y.parent.parent),
     ),
     (
@@ -663,19 +653,19 @@ def test_a_mooring_dict_with_paths_uses_the_yaml_in_yaml_dir(tmp_path):
     paths = oa.Paths(
         yaml_dir=yaml_dir, proc_dir=tmp_path / "proc", report_dir=tmp_path / "pages"
     )
-    table = _warned_once(
-        lambda: oa.report(mooring.load(mooring_path), paths, kind="recovery"),
+    page = _warned_once(
+        lambda: oa.report(mooring.load(mooring_path), paths, **_PAGES),
         "a mooring dict in place of a mooring_path",
     )
-    assert table == tmp_path / "pages" / _NAME / f"{_NAME}_recovery_table.html"
-    assert table.is_file()
+    assert page == tmp_path / "pages" / _NAME / f"{_NAME}_report.html"
+    assert page.is_file()
 
 
 def test_report_makes_its_folder(tmp_path):
     """The recovery table is written into a report folder that did not exist."""
     mooring_path = _old_tree(tmp_path)
     paths = oa.Paths(proc_dir=tmp_path / "proc", report_dir=tmp_path / "new" / "pages")
-    table = _quiet(lambda: oa.report(mooring_path, paths, kind="recovery"))
+    table = _quiet(lambda: oa.recovery_table(mooring_path, paths))
     assert table.parent == tmp_path / "new" / "pages" / _NAME
     assert table.is_file()
 

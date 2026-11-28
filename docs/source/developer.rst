@@ -90,7 +90,8 @@ the code (analytic case, invariant, a ``gsw`` cross-check).
      - ``oceanarray/__init__.py``
      - The verbs: ``read``, ``read_mooring``, ``stage1``–``stage3``, ``process``,
        ``stack``, ``grid``, ``run``, ``write``, ``write_mooring``, ``report``,
-       ``export``. ``__all__`` is the public surface.
+       ``report_array``, ``recovery_table``, ``export``. ``__all__`` is the public
+       surface.
    * - Mooring YAML
      - ``mooring/`` (``load_yaml.py``, ``check_yaml.py``, ``write_yaml.py``,
        ``yaml_keys.py``, ``settings.py``, ``validation.py``, ``blocks.py``,
@@ -675,8 +676,8 @@ The rest:
        ``mooring_config`` or ``description``.
      - ``mooring_dict``
    * - array_path
-     - The path of one ``*.array.yaml``; ``report(array_path, paths, kind="array")``
-       takes it first (or as ``array_path=``). Not ``array_yaml`` or ``array=``.
+     - The path of one ``*.array.yaml``, the first argument of
+       ``report_array(array_path, paths)``. Not ``array_yaml`` or ``array=``.
      - ``array_path``
    * - array_dict
      - The parsed contents of an array YAML, a dict or Mapping. Not

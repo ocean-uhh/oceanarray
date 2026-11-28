@@ -119,6 +119,8 @@ path and a ``Paths``, and take every folder from it:
    oa.run(mooring_path, paths)               # stage files, stack and grid in paths.mooring_dir
    oa.report(mooring_path, paths, pdf=True)  # pages and PDF in paths.report_mooring_dir
    oa.export(mooring_path, paths)            # OceanSITES files in paths.export_dir
+   oa.recovery_table(mooring_path, paths)    # recovery table in paths.report_mooring_dir
+   oa.report_array("MIXSED2026.array.yaml", paths)  # array index in paths.report_dir
 
 Coming next: the command line takes a paths file (``--paths``); until then it
 builds a ``Paths`` from ``--raw-dir``, ``--proc-dir``, ``--report-dir`` and ``-o``.

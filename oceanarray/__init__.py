@@ -50,7 +50,7 @@ if TYPE_CHECKING:
     from oceanarray.pipeline.stage3 import stage3
     from oceanarray.pipeline.write_mooring import write_mooring
     from oceanarray.readers import read
-    from oceanarray.reports import report
+    from oceanarray.reports import recovery_table, report, report_array
     from oceanarray.writers import write
 
 __all__ = [
@@ -67,7 +67,9 @@ __all__ = [
     "process",
     "read",
     "read_mooring",
+    "recovery_table",
     "report",
+    "report_array",
     "run",
     "stack",
     "stage1",
@@ -91,7 +93,9 @@ _EXPORTS: dict[str, tuple[str, str | None]] = {
     "process": ("oceanarray.pipeline", "process"),
     "read": ("oceanarray.readers", "read"),
     "read_mooring": ("oceanarray.pipeline.read_mooring", "read_mooring"),
+    "recovery_table": ("oceanarray.reports", "recovery_table"),
     "report": ("oceanarray.reports", "report"),
+    "report_array": ("oceanarray.reports", "report_array"),
     "run": ("oceanarray.pipeline", "run"),
     "stack": ("oceanarray.pipeline.stack", "stack"),
     "stage1": ("oceanarray.pipeline.stage1", "stage1"),

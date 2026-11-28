@@ -1,4 +1,4 @@
-"""``oceanarray.report`` and ``reports.summary`` on a copy of the committed dune2 processed tree."""
+"""``oceanarray.report``, ``report_array``, ``recovery_table`` and ``reports.summary`` on a copy of the committed dune2 processed tree."""
 
 import shutil
 from pathlib import Path
@@ -9,7 +9,13 @@ import pytest
 import oceanarray as oa
 from oceanarray import paths
 from oceanarray.exceptions import MooringError
-from oceanarray.reports import report, report_paths, summary
+from oceanarray.reports import (
+    recovery_table,
+    report,
+    report_array,
+    report_paths,
+    summary,
+)
 
 _PROC = Path(__file__).parent.parent / "fixtures" / "proc"
 _NAME = "dune2_1_2026"
@@ -100,18 +106,16 @@ def test_an_entry_with_no_hab_stays_in_the_mooring_tables(tree):
 
 
 def test_recovery_table_goes_beside_the_description(tree):
-    """kind="recovery" writes the recovery table in the mooring directory by default."""
-    page = report(_yaml(tree), _paths(tree, report_dir=tree), kind="recovery")
+    """recovery_table writes the recovery table where the Paths put the mooring's pages."""
+    page = recovery_table(_yaml(tree), _paths(tree, report_dir=tree))
     assert page == tree / f"{_NAME}_recovery_table.html"
     assert page.exists()
 
 
 def test_array_index_from_an_array_description(tree):
-    """kind="array" builds the array index from an *.array.yaml under the processed root."""
-    page = report(
-        tree.parent / "MIXSED2026.array.yaml",
-        oa.Paths(proc_dir=tree.parent),
-        kind="array",
+    """report_array builds the array index from an *.array.yaml under the processed root."""
+    page = report_array(
+        tree.parent / "MIXSED2026.array.yaml", oa.Paths(proc_dir=tree.parent)
     )
     assert page.exists()
     assert page.name.endswith("_array_report.html")
@@ -214,7 +218,7 @@ def test_a_folder_named_differently_from_the_mooring(tree, capsys):
         assert where[key].exists(), key
     assert len(list(where["instrument_dir"].glob(f"{_NAME}_*_report.html"))) == 2
     assert "s/n 2941" in summary(folder)
-    table = report(_yaml(folder), _paths(folder, report_dir=folder), kind="recovery")
+    table = recovery_table(_yaml(folder), _paths(folder, report_dir=folder))
     assert table == folder / f"{_NAME}_recovery_table.html"
 
     args = build_parser().parse_args(

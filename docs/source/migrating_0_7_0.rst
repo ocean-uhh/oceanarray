@@ -237,10 +237,10 @@ YAML (a dict) given in place of the path, and the first argument given as
      - ``the mooring YAML's path as mooring_path``
    * - ``oceanarray.process(mooring=)``, ``oceanarray.run(mooring=)``,
        ``oceanarray.export(mooring=)``, ``oceanarray.mooring.load(mooring=)``,
-       ``oceanarray.mooring.check(mooring=)``
+       ``oceanarray.mooring.check(mooring=)``, ``oceanarray.report(mooring=)``
      - ``mooring_path=``
-   * - ``oceanarray.report(mooring=)``
-     - ``the mooring_path= keyword, or array_path= for kind='array'``
+   * - ``oceanarray.report(kind=)``
+     - ``oceanarray.report_array(array_path, paths) for kind='array', oceanarray.recovery_table(mooring_path, paths) for kind='recovery', and no kind= for a mooring's pages``
    * - ``oceanarray.process(mooring_dir=)``
      - ``paths.with_mooring(mooring_name, proc_dir=...) in oceanarray.process(mooring_path, paths)``
    * - ``oceanarray.process(raw_dir=)``
@@ -256,7 +256,7 @@ YAML (a dict) given in place of the path, and the first argument given as
    * - ``oceanarray.report(mooring_dir=)``
      - ``paths.with_mooring(mooring_name, proc_dir=...) in oceanarray.report(mooring_path, paths)``
    * - ``oceanarray.report(proc_dir=)``
-     - ``oceanarray.Paths(proc_dir=...) in oceanarray.report(array_path, paths, kind='array')``
+     - ``oceanarray.Paths(proc_dir=...) in oceanarray.report(mooring_path, paths) or oceanarray.report_array(array_path, paths)``
    * - ``oceanarray.report(raw_dir=)``
      - ``oceanarray.Paths(raw_dir=...) in oceanarray.report(mooring_path, paths)``
    * - ``oceanarray.report(out_dir=)``

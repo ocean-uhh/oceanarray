@@ -155,14 +155,18 @@ RENAMED_NEXT: dict[str, str] = {
     "oceanarray.run(caldip_dir=)": (
         "oceanarray.Paths(caldip_dir=...) in oceanarray.run(mooring_path, paths)"
     ),
-    "oceanarray.report(mooring=)": (
-        "the mooring_path= keyword, or array_path= for kind='array'"
+    "oceanarray.report(mooring=)": "the mooring_path= keyword",
+    "oceanarray.report(kind=)": (
+        "oceanarray.report_array(array_path, paths) for kind='array', "
+        "oceanarray.recovery_table(mooring_path, paths) for kind='recovery', "
+        "and no kind= for a mooring's pages"
     ),
     "oceanarray.report(mooring_dir=)": (
         "paths.with_mooring(mooring_name, proc_dir=...) in oceanarray.report(mooring_path, paths)"
     ),
     "oceanarray.report(proc_dir=)": (
-        "oceanarray.Paths(proc_dir=...) in oceanarray.report(array_path, paths, kind='array')"
+        "oceanarray.Paths(proc_dir=...) in oceanarray.report(mooring_path, paths) "
+        "or oceanarray.report_array(array_path, paths)"
     ),
     "oceanarray.report(raw_dir=)": (
         "oceanarray.Paths(raw_dir=...) in oceanarray.report(mooring_path, paths)"

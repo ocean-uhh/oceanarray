@@ -21,7 +21,7 @@ from oceanarray.paths import Paths
 
 
 def cmd_report(args: argparse.Namespace) -> int:  # noqa: C901
-    """Generate HTML reports for a mooring or an array, through :func:`oceanarray.report`.
+    """Build a mooring's report pages, an array index or a recovery table, through :func:`oceanarray.report`, :func:`~oceanarray.report_array` or :func:`~oceanarray.recovery_table`.
 
     Without ``--array``: the mooring summary page, plus ``--instruments``,
     ``--stack`` and ``--grid`` pages (``--all``: all of them and the PDF).
@@ -32,7 +32,7 @@ def cmd_report(args: argparse.Namespace) -> int:  # noqa: C901
     are ignored.
     """
     from ..exceptions import OceanarrayError
-    from ..reports import report
+    from ..reports import recovery_table, report, report_array
 
     raw_dir, proc_root = _resolve_dirs(args, proc_required=False)
     report_dir = getattr(args, "report_dir", None)
@@ -52,13 +52,12 @@ def cmd_report(args: argparse.Namespace) -> int:  # noqa: C901
                 "goes to the tree root. Use --report-dir to set it.",
             )
         try:
-            report(
-                paths=Paths(
+            report_array(
+                args.mooring,
+                Paths(
                     proc_dir=proc_root or Path(args.mooring).parent,
                     report_dir=report_dir,
                 ),
-                kind="array",
-                array_path=args.mooring,
                 force=args.force,
                 bathymetry=getattr(args, "bathymetry", None),
             )
@@ -117,7 +116,7 @@ def cmd_report(args: argparse.Namespace) -> int:  # noqa: C901
                 report_dir=report_dir,
                 mooring_report_dir=outdir or (None if report_dir else folder),
             )
-            report(mooring_path, table_paths, kind="recovery", force=args.force)
+            recovery_table(mooring_path, table_paths, force=args.force)
     except OceanarrayError as e:
         logger.status("error", str(e))
         return 1
