@@ -376,12 +376,13 @@ files. The default levels (200 to 1000 dbar every 20 dbar) moved from
 An instrument's ``depth:`` is an error
 --------------------------------------
 
-An instrument entry's depth is ``nominal_depth`` (m, positive down) or its ``hab``;
-``depth:`` was never read, and ``oceanarray validate`` and ``mooring.check`` now
-report it as an ERROR, with or without a ``hab`` beside it, as they do a negative
-``nominal_depth``. Hardware entries keep ``depth:``. Change ``depth: -670.5`` to
-``nominal_depth: 670.5``, or remove the line when the ``hab`` gives the depth (when
-both are given, ``nominal_depth`` wins).
+An instrument entry's depth comes from its ``hab`` (m above the seabed, set by how
+the mooring is built) or from ``nominal_depth`` (m, positive down). ``depth:`` was
+never read, and ``oceanarray validate`` and ``mooring.check`` now report it as an
+ERROR, with or without a ``hab`` beside it, as they do a negative
+``nominal_depth``. Hardware entries keep ``depth:``. Where the entry has a ``hab``,
+remove the ``depth:`` line; otherwise change ``depth: -670.5`` to
+``nominal_depth: 670.5`` (when both are given, ``nominal_depth`` wins).
 
 ADCP seabed and surface flags
 -----------------------------
@@ -391,10 +392,12 @@ water within ``D·(1 − cos θ) + cell size`` of it when the ADCP looks toward 
 side-lobe zone; ``D`` is the transducer-to-boundary distance, ``θ`` the beam angle),
 otherwise 1. There is no flag 3 and no fixed 20 m margin: below-seabed bins that were
 3 are 4, and the bins in the side-lobe zone, which were 1 or 3, are 4. The beam angle
-and cell size come from the file (``beam_angle_deg``, ``cell_size_m``); without them,
-``config.parameters.ADCP_BEAM_ANGLE_DEG`` (20°) and the bin spacing are used, with a
-warning, and the flag's attributes record which. Rerun stage 3 to update existing
-files. The margin keywords still work, with a ``DeprecationWarning``, until 0.8.0,
+comes from the file (``beam_angle_deg``) or an optional ``beam_angle_deg:`` on the
+instrument entry, and is never assumed: an ADCP with neither (e.g. an imported
+OceanSITES file) gets no side-lobe zone, only the bins beyond the boundary are 4, and
+the flag says so; add ``beam_angle_deg:`` to its entry and rerun from stage 1. The
+cell size falls back to the bin spacing, with a warning. Rerun stage 3 to update
+existing files. The margin keywords still work, with a ``DeprecationWarning``, until 0.8.0,
 and are ignored.
 
 .. list-table::

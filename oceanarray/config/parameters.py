@@ -349,11 +349,6 @@ QC_ADCP: dict = {
     "error_velocity_threshold": 0.3,
 }
 
-#: Beam angle (degrees from the instrument axis) of an ADCP whose file does not give
-#: ``beam_angle_deg``, for the seabed and surface side-lobe zone; stage 3 warns and
-#: records it on the flag when it is used.
-ADCP_BEAM_ANGLE_DEG: float = 20.0
-
 # ---------------------------------------------------------------------------
 # ADCP bin dimension name.
 # Never hard-code "N_BINS" — reference this constant everywhere so the

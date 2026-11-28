@@ -117,7 +117,7 @@ def check_depth_key(entry: dict) -> ValidationIssue | None:
     if "depth" in entry:
         return ValidationIssue(
             "ERROR",
-            "depth is not read; give nominal_depth (m, positive down) or hab",
+            "depth is not read; give hab (m above the seabed) or nominal_depth (m, positive down)",
         )
     nominal = entry.get("nominal_depth")
     if isinstance(nominal, (int, float)) and nominal < 0:
@@ -462,6 +462,20 @@ def validate_mooring(  # noqa: C901
                     "ERROR",
                     f"{prefix} instrument='{instrument}' needs orientation: up or down "
                     f"(got {entry.get('orientation')!r}); it is never assumed",
+                )
+            )
+
+        angle = entry.get("beam_angle_deg")
+        if angle is not None and not (
+            isinstance(angle, int | float)
+            and not isinstance(angle, bool)
+            and 0 < angle < 90
+        ):
+            issues.append(
+                ValidationIssue(
+                    "ERROR",
+                    f"{prefix} beam_angle_deg {angle!r}: expected degrees from the "
+                    "instrument axis, between 0 and 90",
                 )
             )
 

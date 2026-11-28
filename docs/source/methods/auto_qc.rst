@@ -347,14 +347,16 @@ merges ``seabed_qc`` into each velocity's ``_QC``). One rule for both boundaries
   beam angle;
 - otherwise 1.
 
-The beam angle and cell size come from the instrument (``beam_angle_deg``,
-``cell_size_m``); without them stage 3 uses ``config.parameters.ADCP_BEAM_ANGLE_DEG``
-(20°) and the bin spacing, logs a warning, and the flag's attributes record the values
-and where they came from (``beam_angle_source``, ``cell_size_source``).
+The beam angle comes from the file (``beam_angle_deg``, read from the raw header at
+stage 1) or, when the file has none, from an optional ``beam_angle_deg:`` on the
+instrument entry in the mooring YAML; it is never assumed, and when both give one and
+they differ, the file's is used with a warning. The cell size comes from the file
+(``cell_size_m``) or, with a warning, the bin spacing. The flag's attributes record
+the values and where they came from (``beam_angle_source``, ``cell_size_source``).
 
 Without a side-lobe zone only the bins beyond the boundary get 4, and the flag's
 ``side_lobe_zone`` attribute says why: the ADCP looks away from the boundary, its
-orientation is unknown, or it has no head pressure. Profiles without a head pressure get
+orientation is unknown, it has no head pressure, or it has no beam angle. Profiles without a head pressure get
 no zone either, with a warning; ``profiles_without_head_pressure`` counts them.
 
 Configuration

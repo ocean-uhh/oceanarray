@@ -544,6 +544,24 @@ def test_adcp_orientation_is_required(extra, n_errors, mooring_yaml):
 
 
 @pytest.mark.parametrize(
+    "angle, n_errors",
+    [(20, 0), (25.0, 0), (0, 1), (90, 1), (-20, 1), ("20", 1), (True, 1)],
+)
+def test_adcp_beam_angle_is_degrees_between_0_and_90(angle, n_errors, mooring_yaml):
+    """An optional beam_angle_deg on an instrument entry is a number of degrees in (0, 90)."""
+    cfg = mooring.load(_DUNE2_YAML)
+    entry = next(e for e in cfg["clamp"] if str(e["serial"]) == "2941")
+    entry.update({"instrument": "ADCP", "file_type": "oceansites", "orientation": "up"})
+    entry["beam_angle_deg"] = angle
+    errs = [
+        e
+        for e in _errors(mooring.check(mooring_yaml(cfg)))
+        if "beam_angle_deg" in e.message
+    ]
+    assert len(errs) == n_errors
+
+
+@pytest.mark.parametrize(
     "instrument, file_type, filename, n_errors",
     [
         ("ADCP", "rodb", "nocm3_03_2016_20961_bin*.edt", 0),

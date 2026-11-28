@@ -9,7 +9,7 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Added
 
-- `oa.report_array(array_path, paths)` builds the array index and `oa.recovery_table(mooring_path, paths)` the cruise-report recovery table; `oa.report` builds a mooring's pages only (#NNN).
+- `oa.report_array(array_path, paths)` builds the array index and `oa.recovery_table(mooring_path, paths)` the cruise-report recovery table; `oa.report` builds a mooring's pages only (#176).
 - `oa.Paths` and the paths file (`paths.yaml`): where a project's mooring YAMLs, raw, processed, report and export folders are, with exact folders per mooring.
 - A test imports every module with `DeprecationWarning` as an error, so package code never imports a moved module through its old path.
 - Developer guide (`developer`): principles, layers, one idiom per job, vocabulary, naming, branches and pull requests, known deviations; replaces the style guide (#154).
@@ -43,11 +43,11 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Deprecated
 
-- `apply_adcp_seabed_qc(fail_margin_m=)` and `apply_adcp_surface_qc(suspect_margin_m=)` warn until 0.8.0 and are ignored: the side-lobe zone follows from the beam angle and cell size (#NNN).
+- `apply_adcp_seabed_qc(fail_margin_m=)` and `apply_adcp_surface_qc(suspect_margin_m=)` warn until 0.8.0 and are ignored: the side-lobe zone follows from the beam angle and cell size (#177).
 - The verbs' folder keywords (`raw_dir=`, `mooring_dir=`, `out_dir=`, ...), a folder or dict for the YAML, `mooring=` and calls without `paths` warn until 0.8.0; same files as before.
 - `paths.mooring_proc_dir`, `raw_mooring_dir`, `resolve_report_dir`, `resolve_pdf_path`, `require_current_layout`'s `proc_root=`/`mooring=` and the file-name functions' old arguments warn until 0.8.0.
 - `plotters.helpers.masked` and `ruled`, removed without a warning, are back as aliases that warn until 0.8.0: use `pipeline.masking.masked` and `mask_rules.STACK_ATTR in ds.attrs`.
-- `report(kind=)` warns until 0.8.0: `kind="array"` is `report_array`, `kind="recovery"` is `recovery_table`, and a mooring's pages need no `kind=` (#NNN).
+- `report(kind=)` warns until 0.8.0: `kind="array"` is `report_array`, `kind="recovery"` is `recovery_table`, and a mooring's pages need no `kind=` (#176).
 - Thirty keywords renamed to say what they carry: the mooring YAML's path is `mooring_path=` (`mooring_paths=`), the array YAML's `array_path=` and its parsed form `array_dict=`, a loaded mooring YAML `mooring_dict=` (`mooring_dicts=`), anything `load` accepts `mooring=`; the old ones warn until 0.8.0. See the 0.7.0 migration page (#174).
 
 ### Fixed
@@ -70,9 +70,9 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 What to do for each: *Upgrading from 0.6.1 to 0.7.0* (`migrating_0_7_0`).
 
-- ADCP `seabed_qc` and `surface_qc`: 4 beyond the boundary and in its side-lobe zone (`D·(1 − cos θ) + cell size`), otherwise 1; no flag 3 and no fixed 20 m margins. Rerun stage 3 (#NNN).
-- The ADCP beam angle defaults to `config.parameters.ADCP_BEAM_ANGLE_DEG` (20°) and the cell size to the bin spacing, each with a warning; the flag records the values used (#NNN).
-- An instrument entry's `depth:` (never read) and a negative `nominal_depth` are errors in `oceanarray validate` and `mooring.check`; use `nominal_depth` (m, positive down) or `hab` (#NNN).
+- ADCP `seabed_qc` and `surface_qc`: 4 beyond the boundary and in its side-lobe zone (`D·(1 − cos θ) + cell size`), otherwise 1; no flag 3 and no fixed 20 m margins. Rerun stage 3 (#177).
+- The ADCP beam angle comes from the file or an entry's `beam_angle_deg:`, never a default: without one, no side-lobe zone; the cell size falls back to the bin spacing (#178).
+- An instrument entry's `depth:` (never read) and a negative `nominal_depth` are errors in `oceanarray validate` and `mooring.check`; use `nominal_depth` (m, positive down) or `hab` (#177).
 - Grid files name their levels `pmin_dbar` / `pmax_dbar` (were `p_start_dbar` / `p_end_dbar`, still read); the grid defaults are `config.parameters.GRID_*_DBAR`, not `_run.DEFAULTS` (#162).
 - All package errors derive from the new `OceanarrayError`; `StageError` is no longer a `MooringError` and moves to `oceanarray.exceptions` (#161).
 - `qc_ranges: pitch` / `roll` are no longer applied and `pitch_qc` / `roll_qc` are no longer written or stacked: tilt QC is geometric only (`tilt_qc`); the mooring check warns if they are set.
