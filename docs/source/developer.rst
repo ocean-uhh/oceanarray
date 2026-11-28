@@ -731,8 +731,8 @@ The rest:
    * - depth
      - **Two meanings:** depth computed from pressure (``depth`` variable,
        ``gsw``) and, in a Stack cat, a group of levels matched across moorings
-       (``N_DEPTHS``, value ``nominal_depth``). The YAML ``depth:`` key is not
-       read.
+       (``N_DEPTHS``, value ``nominal_depth``). An instrument's YAML ``depth:``
+       key is an error (``nominal_depth`` or ``hab``).
      - ``depth``, ``N_DEPTHS``
    * - pressure / bin pressure
      - Measured (or stage-3 interpolated, flag 8) sea pressure in dbar; an ADCP

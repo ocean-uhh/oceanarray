@@ -372,3 +372,38 @@ files. The default levels (200 to 1000 dbar every 20 dbar) moved from
 ``oceanarray.pipeline._run.DEFAULTS``, which is gone, to
 ``oceanarray.config.parameters``: ``GRID_PMIN_DBAR``, ``GRID_PMAX_DBAR`` and
 ``GRID_DP_DBAR`` (and ``STACK_DT_SECONDS`` for the stack's time step).
+
+An instrument's ``depth:`` is an error
+--------------------------------------
+
+An instrument entry's depth is ``nominal_depth`` (m, positive down) or its ``hab``;
+``depth:`` was never read, and ``oceanarray validate`` and ``mooring.check`` now
+report it as an ERROR, with or without a ``hab`` beside it, as they do a negative
+``nominal_depth``. Hardware entries keep ``depth:``. Change ``depth: -670.5`` to
+``nominal_depth: 670.5``, or remove the line when the ``hab`` gives the depth (when
+both are given, ``nominal_depth`` wins).
+
+ADCP seabed and surface flags
+-----------------------------
+
+``seabed_qc`` and ``surface_qc`` follow one rule: 4 beyond the boundary, 4 in the
+water within ``D·(1 − cos θ) + cell size`` of it when the ADCP looks toward it (the
+side-lobe zone; ``D`` is the transducer-to-boundary distance, ``θ`` the beam angle),
+otherwise 1. There is no flag 3 and no fixed 20 m margin: below-seabed bins that were
+3 are 4, and the bins in the side-lobe zone, which were 1 or 3, are 4. The beam angle
+and cell size come from the file (``beam_angle_deg``, ``cell_size_m``); without them,
+``config.parameters.ADCP_BEAM_ANGLE_DEG`` (20°) and the bin spacing are used, with a
+warning, and the flag's attributes record which. Rerun stage 3 to update existing
+files. The margin keywords still work, with a ``DeprecationWarning``, until 0.8.0,
+and are ignored.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 45 55
+
+   * - Old keyword
+     - Use instead
+   * - ``oceanarray.pipeline.qc.adcp.apply_adcp_seabed_qc(fail_margin_m=)``
+     - ``nothing: the side-lobe zone follows from the beam angle and cell size, and the keyword is ignored``
+   * - ``oceanarray.pipeline.qc.adcp.apply_adcp_surface_qc(suspect_margin_m=)``
+     - ``nothing: the side-lobe zone follows from the beam angle and cell size, and the keyword is ignored``

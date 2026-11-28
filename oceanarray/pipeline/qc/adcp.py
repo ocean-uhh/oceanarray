@@ -1,4 +1,4 @@
-"""ADCP QC steps: bins in the seabed or surface sidelobe zone, and velocity checks."""
+"""ADCP QC steps: bins beyond or in the side-lobe zone of the seabed and surface, and velocity checks."""
 
 from __future__ import annotations
 
@@ -8,167 +8,210 @@ from typing import Any
 import numpy as np
 import xarray as xr
 
-from oceanarray import logger
+from oceanarray import _deprecated, logger
 
 log = logging.getLogger(__name__)
+
+
+#: The boundary rule, written on ``seabed_qc`` and ``surface_qc``.
+BOUNDARY_RULE = (
+    "4 beyond the boundary; 4 in the water within D*(1 - cos(beam_angle)) + cell_size "
+    "of it (side-lobe contamination; D the transducer-to-boundary distance, applied "
+    "when the ADCP looks toward the boundary); otherwise 1"
+)
 
 
 def apply_adcp_seabed_qc(
     ds: xr.Dataset,
     water_depth_m: float,
     lat: float,
-    fail_margin_m: float = 20.0,
+    fail_margin_m: float | None = None,
     log_fn: Any = None,
 ) -> xr.Dataset:
-    """Add ``seabed_qc(time, N_BINS)``: 3 for bins below the seabed, 4 beyond *fail_margin_m*.
+    """Add ``seabed_qc(time, N_BINS)``: 4 below the seabed and in its side-lobe zone, else 1.
 
     Parameters
     ----------
     ds : xarray.Dataset
-        Stage-3 ADCP dataset with ``bin_pressure(time, N_BINS)`` (dbar).
+        Stage-3 ADCP dataset with ``bin_pressure(time, N_BINS)`` (dbar), the head's
+        ``pressure(time)`` and the orientation in ``orientation_yaml`` or
+        ``orientation_instrument``.
     water_depth_m : float
         Water depth (m, the YAML ``waterdepth``); no-op if ≤ 0.
     lat : float
-        Latitude (decimal degrees), for :func:`~oceanarray.physics.pressure_from_depth`.
+        Latitude (decimal degrees), for the pressure-to-depth conversion.
     fail_margin_m : float, optional
-        Metres below the seabed beyond which a bin is bad (4) rather than suspect (3).
+        Deprecated and ignored (removed in 0.8.0): the zone follows from the beam
+        geometry.
     log_fn : callable, optional
         Deprecated (removed in 0.7.0): configure logging instead.
 
     Returns
     -------
     xarray.Dataset
-        *ds* with ``seabed_qc`` (not merged into the velocity flags); unchanged without
-        ``bin_pressure``.
+        *ds* with ``seabed_qc`` (not merged into the velocity flags), its rule and
+        settings in the attributes; unchanged without ``bin_pressure``.
     """
+    if fail_margin_m is not None:
+        _deprecated.warn(
+            "oceanarray.pipeline.qc.adcp.apply_adcp_seabed_qc(fail_margin_m=)"
+        )
     with logger.deprecated_log_fn(log_fn):
-        return _apply_adcp_seabed_qc(ds, water_depth_m, lat, fail_margin_m)
-
-
-def _apply_adcp_seabed_qc(
-    ds: xr.Dataset,
-    water_depth_m: float,
-    lat: float,
-    fail_margin_m: float = 20.0,
-) -> xr.Dataset:
-    """Flag ADCP bins at or below the seabed; see :func:`apply_adcp_seabed_qc`."""
-    if water_depth_m <= 0:
-        log.warning("  seabed QC: skipped (waterdepth not set in mooring YAML)")
-        return ds
-    if "bin_pressure" not in ds.data_vars:
-        log.warning("  seabed QC: skipped (bin_pressure not in dataset)")
-        return ds
-
-    from oceanarray.config import parameters as params
-    from oceanarray.physics import pressure_from_depth
-
-    p_seabed = pressure_from_depth(water_depth_m, lat)
-    p_fail = pressure_from_depth(water_depth_m + fail_margin_m, lat)
-
-    bin_p = ds["bin_pressure"].values  # (time, N_BINS)
-    seabed_flags = np.ones(bin_p.shape, dtype=np.int8)  # 1 = good
-    seabed_flags = np.where(bin_p > p_seabed, np.int8(3), seabed_flags)  # suspect
-    seabed_flags = np.where(bin_p > p_fail, np.int8(4), seabed_flags)  # bad
-    seabed_flags = seabed_flags.astype(np.int8)
-
-    n_suspect = int(np.sum(seabed_flags == 3))
-    n_bad = int(np.sum(seabed_flags == 4))
-
-    ds["seabed_qc"] = xr.Variable(
-        ("time", params.ADCP_BIN_DIM),
-        seabed_flags,
-        {
-            "long_name": "Seabed proximity QC flag",
-            "comment": (
-                f"Bins at or below seabed ({water_depth_m:.0f} m, "
-                f"p_seabed={p_seabed:.1f} dbar): flag 3 (suspect); "
-                f"bins >{fail_margin_m:.0f} m below seabed "
-                f"(p={p_fail:.1f} dbar): flag 4 (bad). "
-                "Standalone — not merged into velocity_qc."
-            ),
-        },
-    )
-
-    log.info(
-        f"  seabed QC: water_depth={water_depth_m:.0f} m, "
-        f"p_seabed={p_seabed:.1f} dbar, "
-        f"p_fail={p_fail:.1f} dbar (+{fail_margin_m:.0f} m), "
-        f"suspect={n_suspect}, bad={n_bad}"
-    )
-    return ds
+        if water_depth_m <= 0:
+            log.warning("  seabed QC: skipped (waterdepth not set in mooring YAML)")
+            return ds
+        return _apply_boundary_qc(ds, lat, "seabed", float(water_depth_m))
 
 
 def apply_adcp_surface_qc(
     ds: xr.Dataset,
     lat: float,
-    suspect_margin_m: float = 20.0,
+    suspect_margin_m: float | None = None,
     log_fn: Any = None,
 ) -> xr.Dataset:
-    """Add ``surface_qc(time, N_BINS)``: 4 at or above the surface, 3 within *suspect_margin_m* of it.
+    """Add ``surface_qc(time, N_BINS)``: 4 at or above the surface and in its side-lobe zone, else 1.
 
     Parameters
     ----------
     ds : xarray.Dataset
-        Stage-3 ADCP dataset with ``bin_pressure(time, N_BINS)`` (dbar).
+        Stage-3 ADCP dataset with ``bin_pressure(time, N_BINS)`` (dbar), the head's
+        ``pressure(time)`` and the orientation in ``orientation_yaml`` or
+        ``orientation_instrument``.
     lat : float
-        Latitude (decimal degrees), for the depth-to-pressure conversion.
+        Latitude (decimal degrees), for the pressure-to-depth conversion.
     suspect_margin_m : float, optional
-        Depth (m) of the suspect zone below the surface.
+        Deprecated and ignored (removed in 0.8.0): the zone follows from the beam
+        geometry.
     log_fn : callable, optional
         Deprecated (removed in 0.7.0): configure logging instead.
 
     Returns
     -------
     xarray.Dataset
-        *ds* with ``surface_qc`` (not merged into the velocity flags); unchanged without
-        ``bin_pressure``.
+        *ds* with ``surface_qc`` (not merged into the velocity flags), its rule and
+        settings in the attributes; unchanged without ``bin_pressure``.
     """
+    if suspect_margin_m is not None:
+        _deprecated.warn(
+            "oceanarray.pipeline.qc.adcp.apply_adcp_surface_qc(suspect_margin_m=)"
+        )
     with logger.deprecated_log_fn(log_fn):
-        return _apply_adcp_surface_qc(ds, lat, suspect_margin_m)
+        return _apply_boundary_qc(ds, lat, "surface", 0.0)
 
 
-def _apply_adcp_surface_qc(
-    ds: xr.Dataset,
-    lat: float,
-    suspect_margin_m: float = 20.0,
+#: Per boundary: the flag variable, its long_name and the orientation that looks at it.
+_BOUNDARIES = {
+    "seabed": ("seabed_qc", "Seabed proximity QC flag", "down"),
+    "surface": ("surface_qc", "Sea surface proximity QC flag", "up"),
+}
+
+
+def _apply_boundary_qc(
+    ds: xr.Dataset, lat: float, boundary: str, boundary_m: float
 ) -> xr.Dataset:
-    """Flag ADCP bins at or above the sea surface; see :func:`apply_adcp_surface_qc`."""
-    if "bin_pressure" not in ds.data_vars:
-        log.warning("  surface QC: skipped (bin_pressure not in dataset)")
-        return ds
-
+    """Return *ds* with the *boundary* flag of :data:`BOUNDARY_RULE` (*boundary_m*: its depth, m)."""
     from oceanarray.config import parameters as params
-    from oceanarray.physics import pressure_from_depth
+    from oceanarray.physics import depth_from_pressure
 
-    p_suspect = pressure_from_depth(suspect_margin_m, lat)
-
-    bin_p = ds["bin_pressure"].values  # (time, N_BINS)
-    surface_flags = np.ones(bin_p.shape, dtype=np.int8)  # 1 = good
-    surface_flags = np.where(bin_p < p_suspect, np.int8(3), surface_flags)  # suspect
-    surface_flags = np.where(bin_p <= 0.0, np.int8(4), surface_flags)  # bad
-
-    n_suspect = int(np.sum(surface_flags == 3))
-    n_bad = int(np.sum(surface_flags == 4))
-
-    ds["surface_qc"] = xr.Variable(
-        ("time", params.ADCP_BIN_DIM),
-        surface_flags,
-        {
-            "long_name": "Sea surface proximity QC flag",
-            "comment": (
-                f"Bins within {suspect_margin_m:.0f} m of sea surface "
-                f"(bin_pressure < {p_suspect:.1f} dbar): flag 3 (suspect); "
-                f"bins at or above surface (bin_pressure ≤ 0 dbar): flag 4 (bad). "
-                "Standalone — not merged into velocity_qc."
-            ),
-        },
-    )
-
+    name, long_name, toward = _BOUNDARIES[boundary]
+    if "bin_pressure" not in ds.data_vars:
+        log.warning(f"  {boundary} QC: skipped (bin_pressure not in dataset)")
+        return ds
+    z_bins = depth_from_pressure(ds["bin_pressure"].values, lat)  # (time, N_BINS), m
+    beyond = z_bins >= boundary_m if boundary == "seabed" else z_bins <= boundary_m
+    flags = np.where(beyond, np.int8(4), np.int8(1)).astype(np.int8)
+    attrs = {"long_name": long_name, "boundary_depth_m": boundary_m}
+    zone, settings = _side_lobe_zone(ds, lat, boundary, boundary_m, toward)
+    attrs.update(settings)
+    if zone is None:
+        attrs["comment"] = (
+            f"4 beyond the {boundary}; no side-lobe zone "
+            f"({settings['side_lobe_zone']}). Standalone, not merged into velocity_qc."
+        )
+    else:
+        near = np.abs(boundary_m - z_bins) < zone[:, None]
+        flags = np.where(near & ~beyond, np.int8(4), flags).astype(np.int8)
+        attrs["comment"] = f"{BOUNDARY_RULE}. Standalone, not merged into velocity_qc."
+    ds[name] = xr.Variable(("time", params.ADCP_BIN_DIM), flags, attrs)
     log.info(
-        f"  surface QC: p_suspect={p_suspect:.1f} dbar ({suspect_margin_m:.0f} m), "
-        f"suspect={n_suspect}, bad={n_bad}"
+        f"  {boundary} QC: boundary at {boundary_m:.0f} m, "
+        f"beyond={int(beyond.sum())}, side-lobe={int((flags == 4).sum() - beyond.sum())}"
     )
     return ds
+
+
+def _side_lobe_zone(
+    ds: xr.Dataset, lat: float, boundary: str, boundary_m: float, toward: str
+) -> tuple[np.ndarray | None, dict]:
+    """Return the side-lobe zone width (m, per time; NaN where the head pressure is missing) and its settings.
+
+    Without a zone, the width is None and ``settings["side_lobe_zone"]`` says why.
+    """
+    from oceanarray.physics import depth_from_pressure
+
+    orientation = str(
+        ds.attrs.get("orientation_yaml") or ds.attrs.get("orientation_instrument")
+    ).lower()
+    if orientation not in ("up", "down"):
+        log.warning(f"  {boundary} QC: no side-lobe zone (orientation unknown)")
+        return None, {"side_lobe_zone": "orientation unknown"}
+    if orientation != toward:
+        return None, {"side_lobe_zone": f"the ADCP looks away from the {boundary}"}
+    head_m = (
+        depth_from_pressure(ds["pressure"].values, lat)
+        if "pressure" in ds.data_vars
+        else np.array([np.nan])
+    )
+    missing = int((~np.isfinite(head_m)).sum())
+    if missing == head_m.size:
+        log.warning(f"  {boundary} QC: no side-lobe zone (no head pressure)")
+        return None, {"side_lobe_zone": "no head pressure"}
+    settings = _zone_settings(ds, lat, boundary)
+    if missing:
+        log.warning(
+            f"  {boundary} QC: no head pressure in {missing} of {head_m.size} "
+            "profiles; only bins beyond the boundary flagged there"
+        )
+        settings["profiles_without_head_pressure"] = missing
+    angle = np.radians(settings["beam_angle_deg"])
+    zone_m = np.abs(boundary_m - head_m) * (1 - np.cos(angle))
+    return zone_m + settings["cell_size_m"], settings
+
+
+def _zone_settings(ds: xr.Dataset, lat: float, boundary: str) -> dict:
+    """Return the beam angle and cell size of the zone and where each came from (a default or fallback is warned)."""
+    from oceanarray.config import parameters as params
+
+    angle, angle_source = ds.attrs.get("beam_angle_deg"), "instrument"
+    if angle is None:
+        angle, angle_source = params.ADCP_BEAM_ANGLE_DEG, "default"
+        log.warning(
+            f"  {boundary} QC: no beam_angle_deg; using the default "
+            f"{angle:g} deg (config.parameters.ADCP_BEAM_ANGLE_DEG)"
+        )
+    cell, cell_source = ds.attrs.get("cell_size_m"), "instrument"
+    if cell is None:
+        cell, cell_source = _bin_spacing_m(ds, lat), "bin spacing"
+        log.warning(
+            f"  {boundary} QC: no cell_size_m; using the bin spacing {cell:g} m"
+        )
+    return {
+        "side_lobe_zone": "applied",
+        "beam_angle_deg": float(angle),
+        "beam_angle_source": angle_source,
+        "cell_size_m": float(cell),
+        "cell_size_source": cell_source,
+    }
+
+
+def _bin_spacing_m(ds: xr.Dataset, lat: float) -> float:
+    """Return the median spacing of the bins (m): from ``range``, else from ``bin_pressure``."""
+    from oceanarray.physics import depth_from_pressure
+
+    if "range" in ds.coords:
+        return float(np.nanmedian(np.abs(np.diff(ds["range"].values))))
+    z = depth_from_pressure(ds["bin_pressure"].values, lat)
+    return float(np.nanmedian(np.abs(np.diff(z, axis=1))))
 
 
 def apply_adcp_velocity_qc(

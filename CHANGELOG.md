@@ -43,6 +43,7 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Deprecated
 
+- `apply_adcp_seabed_qc(fail_margin_m=)` and `apply_adcp_surface_qc(suspect_margin_m=)` warn until 0.8.0 and are ignored: the side-lobe zone follows from the beam angle and cell size (#NNN).
 - The verbs' folder keywords (`raw_dir=`, `mooring_dir=`, `out_dir=`, ...), a folder or dict for the YAML, `mooring=` and calls without `paths` warn until 0.8.0; same files as before.
 - `paths.mooring_proc_dir`, `raw_mooring_dir`, `resolve_report_dir`, `resolve_pdf_path`, `require_current_layout`'s `proc_root=`/`mooring=` and the file-name functions' old arguments warn until 0.8.0.
 - `plotters.helpers.masked` and `ruled`, removed without a warning, are back as aliases that warn until 0.8.0: use `pipeline.masking.masked` and `mask_rules.STACK_ATTR in ds.attrs`.
@@ -69,6 +70,9 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 What to do for each: *Upgrading from 0.6.1 to 0.7.0* (`migrating_0_7_0`).
 
+- ADCP `seabed_qc` and `surface_qc`: 4 beyond the boundary and in its side-lobe zone (`D·(1 − cos θ) + cell size`), otherwise 1; no flag 3 and no fixed 20 m margins. Rerun stage 3 (#NNN).
+- The ADCP beam angle defaults to `config.parameters.ADCP_BEAM_ANGLE_DEG` (20°) and the cell size to the bin spacing, each with a warning; the flag records the values used (#NNN).
+- An instrument entry's `depth:` (never read) and a negative `nominal_depth` are errors in `oceanarray validate` and `mooring.check`; use `nominal_depth` (m, positive down) or `hab` (#NNN).
 - Grid files name their levels `pmin_dbar` / `pmax_dbar` (were `p_start_dbar` / `p_end_dbar`, still read); the grid defaults are `config.parameters.GRID_*_DBAR`, not `_run.DEFAULTS` (#162).
 - All package errors derive from the new `OceanarrayError`; `StageError` is no longer a `MooringError` and moves to `oceanarray.exceptions` (#161).
 - `qc_ranges: pitch` / `roll` are no longer applied and `pitch_qc` / `roll_qc` are no longer written or stacked: tilt QC is geometric only (`tilt_qc`); the mooring check warns if they are set.

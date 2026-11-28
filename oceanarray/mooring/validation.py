@@ -102,21 +102,29 @@ _RESERVED_SERIALS = frozenset({"stack", "grid"})
 
 
 def check_depth_key(entry: dict) -> ValidationIssue | None:
-    """Return the issue for an instrument entry's ``depth:`` key, which is not read.
+    """Return the ERROR for an instrument entry's depth: a ``depth:`` key (not read) or a negative ``nominal_depth``.
 
-    A WARNING when the entry also gives ``nominal_depth`` or a HAB, else an ERROR
-    (the instrument then has no depth); None without ``depth:``.
+    Parameters
+    ----------
+    entry : dict
+        One instrument entry of the mooring YAML.
+
+    Returns
+    -------
+    ValidationIssue or None
+        The ERROR, or None when the entry has neither.
     """
-    if "depth" not in entry:
-        return None
-    level = (
-        "WARNING"
-        if entry.get("nominal_depth") is not None or hab_for(entry) is not None
-        else "ERROR"
-    )
-    return ValidationIssue(
-        level, "depth is not read; give nominal_depth (m, positive down) or hab"
-    )
+    if "depth" in entry:
+        return ValidationIssue(
+            "ERROR",
+            "depth is not read; give nominal_depth (m, positive down) or hab",
+        )
+    nominal = entry.get("nominal_depth")
+    if isinstance(nominal, (int, float)) and nominal < 0:
+        return ValidationIssue(
+            "ERROR", f"nominal_depth {nominal} is negative; depth is positive down (m)"
+        )
+    return None
 
 
 def check_serials(entries: list[dict]) -> list[ValidationIssue]:
