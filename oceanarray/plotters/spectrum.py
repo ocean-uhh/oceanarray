@@ -6,7 +6,7 @@ Computations are in :mod:`oceanarray.analysis.spectral`.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
@@ -185,8 +185,8 @@ _OTHER_MARKER_COLOR = "#7f8c8d"
 
 def spectrum_markers(
     latitude: float | None = None,
-    *args: Any,
     extra: Sequence[tuple[str, float]] = (),
+    *,
     lat: float | None = None,
 ) -> list[tuple[str, float, str]]:
     """Return the frequency markers of the spectra: M2, K1, the inertial period, *extra*.
@@ -198,8 +198,6 @@ def spectrum_markers(
     extra : sequence of (str, float), optional
         Further ``(label, period in days)`` markers (the mooring YAML's
         ``spectrum_markers``).
-    *args
-        Deprecated: the options above by position, in their old order; removed in 0.8.0.
     lat : float, optional
         Deprecated name of *latitude*; removed in 0.8.0.
 
@@ -208,10 +206,6 @@ def spectrum_markers(
     list of (str, float, str)
         ``(label, period in days, colour)``.
     """
-    given = _deprecated.read_positional(
-        "oceanarray.plotters.spectrum.spectrum_markers", args, ("extra",), extra=extra
-    )
-    extra = given["extra"]
     latitude = _deprecated.resolve_keyword(
         "oceanarray.plotters.spectrum.spectrum_markers(lat=)", latitude, lat
     )
@@ -370,7 +364,7 @@ def draw_spectrum(  # noqa: C901
     if freq_lf is None or not psds_lf:
         return None
 
-    all_markers = spectrum_markers(lat if lat else None, extra=markers)
+    all_markers = spectrum_markers(lat if lat else None, markers)
     cmap = _level_colormap()
     lo_p, hi_p = min(p_lf), max(p_lf)
     if lo_p == hi_p:
@@ -793,7 +787,7 @@ def draw_grid_rotary_spectrum(  # noqa: C901
                     _rb[_i] = (_ccw_m - _cw_m) / _d
         r_banded_list.append(_rb)
 
-    markers = spectrum_markers(lat if lat else None, extra=markers)
+    markers = spectrum_markers(lat if lat else None, markers)
 
     p_arr = np.array(press_plotted)
     p_min, p_max = p_arr.min(), p_arr.max()

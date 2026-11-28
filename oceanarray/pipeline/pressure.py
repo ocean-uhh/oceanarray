@@ -388,8 +388,8 @@ def _interpolate_pressure(
 def compute_adcp_bin_pressure(
     ds: xr.Dataset,
     latitude: float | None = None,
-    *args: Any,
     log_fn: Any = None,
+    *,
     lat: float | None = None,
 ) -> xr.Dataset:
     """Add ``bin_pressure(time, N_BINS)`` (dbar): transducer pressure plus the bins' tilt-reduced range.
@@ -404,8 +404,6 @@ def compute_adcp_bin_pressure(
         Latitude (decimal degrees north), for ``gsw.p_from_z``.
     log_fn : callable, optional
         Deprecated (removed in 0.7.0): configure logging instead.
-    *args
-        Deprecated: the options above by position, in their old order; removed in 0.8.0.
     lat : float, optional
         Deprecated name of *latitude*; removed in 0.8.0.
 
@@ -434,13 +432,6 @@ def compute_adcp_bin_pressure(
     ``p_from_z`` is measured from the sea surface, not from the head: ~2–3 dbar at 300 m
     range from a 500 m transducer.
     """
-    given = _deprecated.read_positional(
-        "oceanarray.pipeline.pressure.compute_adcp_bin_pressure",
-        args,
-        ("log_fn",),
-        log_fn=log_fn,
-    )
-    log_fn = given["log_fn"]
     latitude = _deprecated.resolve_keyword(
         "oceanarray.pipeline.pressure.compute_adcp_bin_pressure(lat=)",
         latitude,

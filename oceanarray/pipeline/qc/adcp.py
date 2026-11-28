@@ -25,9 +25,9 @@ def apply_adcp_seabed_qc(
     ds: xr.Dataset,
     water_depth_m: float,
     latitude: float | None = None,
-    *args: Any,
     fail_margin_m: float | None = None,
     log_fn: Any = None,
+    *,
     lat: float | None = None,
 ) -> xr.Dataset:
     """Add ``seabed_qc(time, N_BINS)``: 4 below the seabed and in its side-lobe zone, else 1.
@@ -47,8 +47,6 @@ def apply_adcp_seabed_qc(
         geometry.
     log_fn : callable, optional
         Deprecated (removed in 0.7.0): configure logging instead.
-    *args
-        Deprecated: the options above by position, in their old order; removed in 0.8.0.
     lat : float, optional
         Deprecated name of *latitude*; removed in 0.8.0.
 
@@ -58,14 +56,6 @@ def apply_adcp_seabed_qc(
         *ds* with ``seabed_qc`` (not merged into the velocity flags), its rule and
         settings in the attributes; unchanged without ``bin_pressure``.
     """
-    given = _deprecated.read_positional(
-        "oceanarray.pipeline.qc.adcp.apply_adcp_seabed_qc",
-        args,
-        ("fail_margin_m", "log_fn"),
-        fail_margin_m=fail_margin_m,
-        log_fn=log_fn,
-    )
-    fail_margin_m, log_fn = given["fail_margin_m"], given["log_fn"]
     latitude = _deprecated.resolve_keyword(
         "oceanarray.pipeline.qc.adcp.apply_adcp_seabed_qc(lat=)",
         latitude,
@@ -86,9 +76,9 @@ def apply_adcp_seabed_qc(
 def apply_adcp_surface_qc(
     ds: xr.Dataset,
     latitude: float | None = None,
-    *args: Any,
     suspect_margin_m: float | None = None,
     log_fn: Any = None,
+    *,
     lat: float | None = None,
 ) -> xr.Dataset:
     """Add ``surface_qc(time, N_BINS)``: 4 at or above the surface and in its side-lobe zone, else 1.
@@ -106,8 +96,6 @@ def apply_adcp_surface_qc(
         geometry.
     log_fn : callable, optional
         Deprecated (removed in 0.7.0): configure logging instead.
-    *args
-        Deprecated: the options above by position, in their old order; removed in 0.8.0.
     lat : float, optional
         Deprecated name of *latitude*; removed in 0.8.0.
 
@@ -117,14 +105,6 @@ def apply_adcp_surface_qc(
         *ds* with ``surface_qc`` (not merged into the velocity flags), its rule and
         settings in the attributes; unchanged without ``bin_pressure``.
     """
-    given = _deprecated.read_positional(
-        "oceanarray.pipeline.qc.adcp.apply_adcp_surface_qc",
-        args,
-        ("suspect_margin_m", "log_fn"),
-        suspect_margin_m=suspect_margin_m,
-        log_fn=log_fn,
-    )
-    suspect_margin_m, log_fn = given["suspect_margin_m"], given["log_fn"]
     latitude = _deprecated.resolve_keyword(
         "oceanarray.pipeline.qc.adcp.apply_adcp_surface_qc(lat=)",
         latitude,

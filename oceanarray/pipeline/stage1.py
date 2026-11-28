@@ -602,7 +602,7 @@ def _cleaned(
     read: Callable[[], dict[str, str]], label: str
 ) -> tuple[dict[str, str], int]:
     """Return *read*'s people and how many warnings reading them logged."""
-    with logger.count_warnings(attribution.log.name) as warned:
+    with logger.count_warnings(attribution.__name__) as warned:
         people = read()
     if warned:
         log.info("  people (%s): %d warning(s) above", label, len(warned))

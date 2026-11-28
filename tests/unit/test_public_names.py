@@ -136,19 +136,6 @@ def test_validate_strict_warns_and_exits_as_fail_on_warnings(capsys):
     assert "removed in 0.8.0" in capsys.readouterr().err
 
 
-def test_an_option_given_by_position_warns_once_and_gives_the_same_flags():
-    """apply_adcp_seabed_qc with fail_margin_m by position, on dsG2: one positional warning."""
-    ds = xr.load_dataset(DSG2)
-    new = apply_adcp_seabed_qc(ds.copy(), 985.0, 65.56)
-    key = "oceanarray.pipeline.qc.adcp.apply_adcp_seabed_qc(positional arguments)"
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter("always")
-        old = apply_adcp_seabed_qc(ds.copy(), 985.0, 65.56, None)
-    assert [str(x.message) for x in w] == [_deprecated.message(key)]
-    assert w[0].filename == __file__
-    xr.testing.assert_identical(old["seabed_qc"], new["seabed_qc"])
-
-
 def test_from_import_of_an_old_cli_command_warns_once():
     """``from oceanarray.cli import cmd_run`` warns once, at the import line."""
     with warnings.catch_warnings(record=True) as w:

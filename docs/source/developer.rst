@@ -73,7 +73,8 @@ the code (analytic case, invariant, a ``gsw`` cross-check).
 - A function does one job. Its complexity stays at or below 10 (ruff ``C901``);
   above that, split it into named steps, or replace a chain of ``if``/``elif``
   with a table. A function over the limit carries ``# noqa: C901`` until it is
-  split; when you touch one, bring it under and remove the ``noqa``.
+  split; when you change its logic, bring it under and remove the ``noqa``. A
+  mechanical rename (an identifier, keyword or import) is not a change to its logic.
 
 
 2. Layers and what each owns
@@ -897,9 +898,9 @@ The rest:
   A private helper is used inside its own subpackage only (section 2).
 - **Arguments**: the one or two things a function works on are positional; every
   option is keyword-only, after ``*``: ``process(mooring_path, paths, *,
-  stage=None, force=False)``. Applied as functions are touched; a released
-  function keeps its old positional calls, with a warning, until the next removal
-  release.
+  stage=None, force=False)``. Applied when a function's logic or signature is
+  changed on purpose, not for a mechanical rename; a released function keeps its
+  old positional calls, with a warning, until the next removal release.
 - **Plain values over classes.** A function returns plain values, a tuple, a dict
   or an xarray object. A class is only for data that comes with its own methods
   (``Paths``) or for an exception. A function that returns three or more named

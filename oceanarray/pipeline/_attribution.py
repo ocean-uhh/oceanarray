@@ -30,8 +30,7 @@ from oceanarray.mooring.blocks import (
     split_list,
 )
 
-# The logger keeps its 0.6.2 name, so log filters set for it still apply.
-log = logging.getLogger("oceanarray.pipeline.attribution")
+log = logging.getLogger(__name__)
 
 #: The separator each list is written with (OceanSITES 1.4).
 PI_SEPARATOR = ", "

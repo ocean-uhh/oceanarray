@@ -573,28 +573,6 @@ with a ``DeprecationWarning``, until 0.8.0.
    * - ``oceanarray.plotters.timeseries.draw_grid_n2(lat=)``
      - ``latitude=``
 
-The options after a function's data are keyword-only; given by position they still work,
-with a ``DeprecationWarning``, until 0.8.0.
-
-.. list-table::
-   :header-rows: 1
-   :widths: 60 40
-
-   * - Old call
-     - New
-   * - ``oceanarray.pipeline.coordinate.apply_beam_to_enu(positional arguments)``
-     - ``keyword arguments: latlon_source=, log_fn=``
-   * - ``oceanarray.pipeline.coordinate.apply_declination_to_enu(positional arguments)``
-     - ``keyword arguments: latlon_source=, log_fn=``
-   * - ``oceanarray.pipeline.pressure.compute_adcp_bin_pressure(positional arguments)``
-     - ``keyword arguments: log_fn=``
-   * - ``oceanarray.pipeline.qc.adcp.apply_adcp_seabed_qc(positional arguments)``
-     - ``keyword arguments: fail_margin_m=, log_fn=``
-   * - ``oceanarray.pipeline.qc.adcp.apply_adcp_surface_qc(positional arguments)``
-     - ``keyword arguments: suspect_margin_m=, log_fn=``
-   * - ``oceanarray.plotters.spectrum.spectrum_markers(positional arguments)``
-     - ``keyword arguments: extra=``
-
 ``validate --fail-on-warnings``
 -------------------------------
 

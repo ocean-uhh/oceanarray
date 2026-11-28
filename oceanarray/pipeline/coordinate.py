@@ -66,9 +66,9 @@ def apply_beam_to_enu(
     entry: dict[str, Any],
     latitude: float | None = None,
     longitude: float | None = None,
-    *args: Any,
     latlon_source: str = "unknown",
     log_fn: Any = None,
+    *,
     lat: float | None = None,
     lon: float | None = None,
 ) -> xr.Dataset:
@@ -94,8 +94,6 @@ def apply_beam_to_enu(
         Where lat/lon came from (an unknown position is detected and recorded).
     log_fn : callable, optional
         Deprecated (removed in 0.7.0): configure logging instead.
-    *args
-        Deprecated: the options above by position, in their old order; removed in 0.8.0.
     lat : float, optional
         Deprecated name of *latitude*; removed in 0.8.0.
     lon : float, optional
@@ -105,14 +103,6 @@ def apply_beam_to_enu(
     -------
     xarray.Dataset
     """
-    given = _deprecated.read_positional(
-        "oceanarray.pipeline.coordinate.apply_beam_to_enu",
-        args,
-        ("latlon_source", "log_fn"),
-        latlon_source=latlon_source,
-        log_fn=log_fn,
-    )
-    latlon_source, log_fn = given["latlon_source"], given["log_fn"]
     latitude = _deprecated.resolve_keyword(
         "oceanarray.pipeline.coordinate.apply_beam_to_enu(lat=)",
         latitude,
@@ -296,9 +286,9 @@ def apply_declination_to_enu(
     ds: xr.Dataset,
     latitude: float | None = None,
     longitude: float | None = None,
-    *args: Any,
     latlon_source: str = "unknown",
     log_fn: Any = None,
+    *,
     lat: float | None = None,
     lon: float | None = None,
 ) -> xr.Dataset:
@@ -320,8 +310,6 @@ def apply_declination_to_enu(
         Where lat/lon came from (an unknown position is detected and recorded).
     log_fn : callable, optional
         Deprecated (removed in 0.7.0): configure logging instead.
-    *args
-        Deprecated: the options above by position, in their old order; removed in 0.8.0.
     lat : float, optional
         Deprecated name of *latitude*; removed in 0.8.0.
     lon : float, optional
@@ -331,14 +319,6 @@ def apply_declination_to_enu(
     -------
     xarray.Dataset
     """
-    given = _deprecated.read_positional(
-        "oceanarray.pipeline.coordinate.apply_declination_to_enu",
-        args,
-        ("latlon_source", "log_fn"),
-        latlon_source=latlon_source,
-        log_fn=log_fn,
-    )
-    latlon_source, log_fn = given["latlon_source"], given["log_fn"]
     latitude = _deprecated.resolve_keyword(
         "oceanarray.pipeline.coordinate.apply_declination_to_enu(lat=)",
         latitude,

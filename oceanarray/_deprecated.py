@@ -117,24 +117,6 @@ RENAMED_NEXT: dict[str, str] = {
     "oceanarray.pipeline.qc.adcp.apply_adcp_seabed_qc(lat=)": "the latitude= keyword",
     "oceanarray.pipeline.qc.adcp.apply_adcp_surface_qc(lat=)": "the latitude= keyword",
     "oceanarray.plotters.spectrum.spectrum_markers(lat=)": "the latitude= keyword",
-    "oceanarray.pipeline.coordinate.apply_beam_to_enu(positional arguments)": (
-        "keyword arguments: latlon_source=, log_fn="
-    ),
-    "oceanarray.pipeline.coordinate.apply_declination_to_enu(positional arguments)": (
-        "keyword arguments: latlon_source=, log_fn="
-    ),
-    "oceanarray.pipeline.pressure.compute_adcp_bin_pressure(positional arguments)": (
-        "keyword arguments: log_fn="
-    ),
-    "oceanarray.pipeline.qc.adcp.apply_adcp_seabed_qc(positional arguments)": (
-        "keyword arguments: fail_margin_m=, log_fn="
-    ),
-    "oceanarray.pipeline.qc.adcp.apply_adcp_surface_qc(positional arguments)": (
-        "keyword arguments: suspect_margin_m=, log_fn="
-    ),
-    "oceanarray.plotters.spectrum.spectrum_markers(positional arguments)": (
-        "keyword arguments: extra="
-    ),
     "oceanarray.plotters.timeseries.draw_grid_n2(lat=)": "the latitude= keyword",
     "oceanarray.pipeline.attribution": (
         "nothing public: its helpers are internal to oceanarray (bare_doi is "
@@ -509,26 +491,6 @@ def moved_names(
         return getattr(new, name)
 
     return __getattr__
-
-
-def read_positional(
-    old: str, args: tuple[Any, ...], names: tuple[str, ...], **given: Any
-) -> dict[str, Any]:
-    """Return the options *given* (by keyword) with *args* read in the old *names* order; warn once.
-
-    The key is ``<old>(positional arguments)``; more *args* than *names* is a TypeError.
-    """
-    if not args:
-        return given
-    if len(args) > len(names):
-        function = old.rsplit(".", 1)[-1]
-        raise TypeError(
-            f"{function}() got {len(args) - len(names)} extra positional arguments"
-        )
-    given.update(zip(names, args, strict=False))
-    # Points at the caller of the function whose options became keyword-only.
-    warn(f"{old}(positional arguments)", stacklevel=4)
-    return given
 
 
 @contextlib.contextmanager
