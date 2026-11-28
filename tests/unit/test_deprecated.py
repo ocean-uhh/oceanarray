@@ -158,7 +158,7 @@ def test_moved_pressure_names_warn_and_are_the_moved_objects(name, new_home):
         (
             "oceanarray.config.validation",
             "oceanarray.mooring.validation",
-            "check_serials",
+            "check_depth_key",
         ),
     ],
 )

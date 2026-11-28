@@ -401,37 +401,37 @@ def test_recovery_table_and_report_array_write_the_old_forms_pages(tmp_path):
 _EXPORT = [
     (
         "oceanarray.export(out_dir=)",
-        lambda y, t: oa.export(y, out_dir=t, overwrite=True),
+        lambda y, t: oa.export(y, out_dir=t, force=True),
         lambda y, t: oa.Paths(proc_dir=y.parent.parent, export_dir=t),
     ),
     (
         "oceanarray.export(mooring_dir=)",
-        lambda y, _t: oa.export(y, mooring_dir=y.parent, overwrite=True),
+        lambda y, _t: oa.export(y, mooring_dir=y.parent, force=True),
         lambda y, _t: _paths(y),
     ),
     (
         "oceanarray.export(array=)",
-        lambda y, _t: oa.export(y, _paths(y), array=_ARRAY, overwrite=True),
+        lambda y, _t: oa.export(y, _paths(y), array=_ARRAY, force=True),
         lambda y, _t: _paths(y),
     ),
     (
         "a mooring folder in place of a verb's mooring_path",
-        lambda y, _t: oa.export(y.parent, overwrite=True),
+        lambda y, _t: oa.export(y.parent, force=True),
         lambda y, _t: _paths(y),
     ),
     (
         "a mooring dict in place of a mooring_path",
-        lambda y, _t: oa.export(mooring.load(y), mooring_dir=y.parent, overwrite=True),
+        lambda y, _t: oa.export(mooring.load(y), mooring_dir=y.parent, force=True),
         lambda y, _t: _paths(y),
     ),
     (
         "oceanarray.export(mooring=)",
-        lambda y, _t: oa.export(mooring=y, paths=_paths(y), overwrite=True),
+        lambda y, _t: oa.export(mooring=y, paths=_paths(y), force=True),
         lambda y, _t: _paths(y),
     ),
     (
         "a verb called without paths",
-        lambda y, _t: oa.export(y, overwrite=True),
+        lambda y, _t: oa.export(y, force=True),
         lambda y, _t: _paths(y),
     ),
 ]
@@ -445,7 +445,7 @@ def test_export_old_forms_write_the_same_files(tmp_path, key, old, new_paths):
     mooring_path = _old_tree(tmp_path)
     paths = new_paths(mooring_path, tmp_path / "os")
     array = {"array_path": _ARRAY} if key.endswith("(array=)") else {}
-    written = _quiet(lambda: oa.export(mooring_path, paths, overwrite=True, **array))
+    written = _quiet(lambda: oa.export(mooring_path, paths, force=True, **array))
     assert {p.parent for p in written} == {paths.export_dir}
     expected = _outputs(paths.export_dir)
     assert _warned_once(lambda: old(mooring_path, tmp_path / "os"), key) == written

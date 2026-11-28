@@ -91,7 +91,8 @@ threshold.
    oceanarray validate /data/proc/dsG3_1_2026/dsG3_1_2026.mooring.yaml
 
 Prints every ERROR and WARNING.  Exits 1 if any mooring YAML has an ERROR, or with
-``--strict`` a WARNING; 0 otherwise.
+``--fail-on-warnings`` a WARNING; 0 otherwise (``--strict``, its old spelling, works
+until 0.8.0).
 
 ----
 

@@ -895,6 +895,19 @@ The rest:
   Retired prefixes ``_fmt_``, ``_normalize_``, ``_sanitize_``, ``_get_``,
   ``_find_``, ``_load_``, ``_clean_``, ``_plot_`` fail ``test_private_names.py``.
   A private helper is used inside its own subpackage only (section 2).
+- **Arguments**: the one or two things a function works on are positional; every
+  option is keyword-only, after ``*``: ``process(mooring_path, paths, *,
+  stage=None, force=False)``. Applied as functions are touched; a released
+  function keeps its old positional calls, with a warning, until the next removal
+  release.
+- **Plain values over classes.** A function returns plain values, a tuple, a dict
+  or an xarray object. A class is only for data that comes with its own methods
+  (``Paths``) or for an exception. A function that returns three or more named
+  values may use a private ``NamedTuple``, which unpacks like a tuple, so callers
+  never need its name. If a result may gain values later, return a dict (or an
+  xarray object for data), so callers read by key and an added value breaks
+  nothing; a tuple or ``NamedTuple`` is for two or three values that will not
+  grow. No new public dataclass or ``NamedTuple``.
 - **Constants and tables**: ``UPPER_SNAKE``, whole words, no type suffix.
 - **Files**: every stage and product suffix comes from ``paths``
   (``test_filename_literals.py``); YAML files are ``.yaml``.

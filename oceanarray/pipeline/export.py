@@ -39,28 +39,92 @@ def _read_array_dict(given: str | PathLike | Mapping | None) -> Mapping:
     return _mooring.load_array(given)
 
 
-def _put(out: xr.Dataset, target: Path, *, overwrite: bool, dry_run: bool) -> Path:
+def _put(out: xr.Dataset, target: Path, *, force: bool, dry_run: bool) -> Path:
     """Write *out* under its OceanSITES name in *target*, or only name it on a dry run."""
     path = target / oceansites_filename(out)
     if dry_run:
-        if path.exists() and not overwrite:
-            raise FileExistsError(f"{path} exists (use overwrite=True / --force)")
+        if path.exists() and not force:
+            raise FileExistsError(f"{path} exists (use force=True / --force)")
         return path
-    return write(out, path, overwrite=overwrite)
+    return write(out, path, overwrite=force)
 
 
-def export(  # noqa: C901
+def _export_instruments(
+    mooring_dict: Mapping, folder: Path, target: Path, array_dict: Mapping, **put: bool
+) -> tuple[list[Path], list[str]]:
+    """Export each instrument's stage-3 file; return the files written and the ones left out."""
+    name = mooring_dict["name"]
+    written: list[Path] = []
+    left_out: list[str] = []
+    for entry in instrument_entries(mooring_dict):
+        if entry.get("skip"):
+            continue
+        serial = safe_serial(entry.get("serial"))
+        path = stage_file(
+            folder,
+            mooring_name=name,
+            instrument=str(entry.get("instrument")),
+            serial=serial,
+            stage=3,
+        )
+        if not path.exists():
+            left_out.append(f"{serial}: no stage-3 file ({path.name})")
+            continue
+        try:
+            with xr.open_dataset(path) as ds:
+                out = to_oceansites(
+                    ds.load(),
+                    mooring_dict,
+                    array_dict=array_dict,
+                    source_file=path.name,
+                )
+            written.append(_put(out, target, **put))
+        except _SKIPPABLE as e:
+            # One instrument that cannot be exported does not stop the others.
+            left_out.append(f"{serial}: {e}")
+    return written, left_out
+
+
+def _export_grid(
+    mooring_dict: Mapping, folder: Path, target: Path, array_dict: Mapping, **put: bool
+) -> tuple[list[Path], list[str]]:
+    """Export the mooring's grid, when it exists; return the file written or why not."""
+    name = mooring_dict["name"]
+    grid_path = product_file(folder, mooring_name=name, product="grid")
+    if not grid_path.exists():
+        return [], []
+    stack_path = product_file(folder, mooring_name=name, product="stack")
+    stack = xr.open_dataset(stack_path) if stack_path.exists() else None
+    try:
+        with xr.open_dataset(grid_path) as g:
+            out = to_oceansites(
+                g.load(),
+                mooring_dict,
+                array_dict=array_dict,
+                stack=stack,
+                source_file=grid_path.name,
+            )
+        return [_put(out, target, **put)], []
+    except _SKIPPABLE as e:
+        return [], [f"grid: {e}"]
+    finally:
+        if stack is not None:
+            stack.close()
+
+
+def export(
     mooring_path: str | PathLike | None = None,
     paths: Paths | None = None,
     *,
     array_path: str | PathLike | None = None,
     grid: bool = True,
-    overwrite: bool = False,
+    force: bool = False,
     dry_run: bool = False,
     mooring: str | PathLike | Mapping[str, Any] | None = None,
     mooring_dir: PathLike | None = None,
     out_dir: PathLike | None = None,
     array: str | PathLike | Mapping | None = None,
+    overwrite: bool | None = None,
 ) -> list[Path]:
     """Write a mooring's stage-3 files and grid as OceanSITES 1.4 files.
 
@@ -80,7 +144,7 @@ def export(  # noqa: C901
         The ``*.array.yaml``; supplies ``site_code`` and ``project``.
     grid : bool, optional
         Also write the grid, when ``<name>_grid.nc`` exists (default True).
-    overwrite : bool, optional
+    force : bool, optional
         Replace files that exist (default False).
     dry_run : bool, optional
         Convert but write nothing; return the paths that would be written.
@@ -92,6 +156,8 @@ def export(  # noqa: C901
     array : str, os.PathLike or Mapping, optional
         Deprecated name of *array_path* (it also takes the parsed array YAML);
         removed in 0.8.0.
+    overwrite : bool, optional
+        Deprecated name of *force*; removed in 0.8.0.
 
     Returns
     -------
@@ -122,7 +188,13 @@ def export(  # noqa: C901
     renamed = {
         "oceanarray.export(mooring=)": mooring,
         "oceanarray.export(array=)": array,
+        "oceanarray.export(overwrite=)": overwrite,
     }
+    force = bool(
+        _deprecated.resolve_keyword(
+            "oceanarray.export(overwrite=)", force or None, overwrite, quiet=True
+        )
+    )
     mooring_path = _deprecated.resolve_keyword(
         "oceanarray.export(mooring=)",
         mooring_path,
@@ -163,54 +235,16 @@ def export(  # noqa: C901
         )
     target = paths.export_dir
 
-    written: list[Path] = []
-    left_out: list[str] = []
-    for entry in instrument_entries(mooring_dict):
-        if entry.get("skip"):
-            continue
-        serial = safe_serial(entry.get("serial"))
-        path = stage_file(
-            folder,
-            mooring_name=name,
-            instrument=str(entry.get("instrument")),
-            serial=serial,
-            stage=3,
+    put = {"force": force, "dry_run": dry_run}
+    written, left_out = _export_instruments(
+        mooring_dict, folder, target, array_dict, **put
+    )
+    if grid:
+        grid_written, grid_left_out = _export_grid(
+            mooring_dict, folder, target, array_dict, **put
         )
-        if not path.exists():
-            left_out.append(f"{serial}: no stage-3 file ({path.name})")
-            continue
-        try:
-            with xr.open_dataset(path) as ds:
-                out = to_oceansites(
-                    ds.load(),
-                    mooring_dict,
-                    array_dict=array_dict,
-                    source_file=path.name,
-                )
-            written.append(_put(out, target, overwrite=overwrite, dry_run=dry_run))
-        except _SKIPPABLE as e:
-            # One instrument that cannot be exported does not stop the others.
-            left_out.append(f"{serial}: {e}")
-
-    grid_path = product_file(folder, mooring_name=name, product="grid")
-    if grid and grid_path.exists():
-        stack_path = product_file(folder, mooring_name=name, product="stack")
-        stack = xr.open_dataset(stack_path) if stack_path.exists() else None
-        try:
-            with xr.open_dataset(grid_path) as g:
-                out = to_oceansites(
-                    g.load(),
-                    mooring_dict,
-                    array_dict=array_dict,
-                    stack=stack,
-                    source_file=grid_path.name,
-                )
-            written.append(_put(out, target, overwrite=overwrite, dry_run=dry_run))
-        except _SKIPPABLE as e:
-            left_out.append(f"grid: {e}")
-        finally:
-            if stack is not None:
-                stack.close()
+        written += grid_written
+        left_out += grid_left_out
 
     for item in left_out:
         logger.warning("export %s: left out %s", name, item)

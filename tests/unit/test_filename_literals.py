@@ -54,6 +54,8 @@ def test_filename_suffixes_live_in_paths_only():
         hit
         for path in sorted(_PKG.rglob("*.py"))
         if path.name != "paths.py" or path.parent != _PKG
+        # The deprecated pipeline.attribution names 0.6.2 functions, not files.
+        if path.relative_to(_PKG).as_posix() != "pipeline/attribution.py"
         for hit in _filename_literals(path)
     ]
     assert not offenders, "use oceanarray.paths helpers:\n" + "\n".join(offenders)

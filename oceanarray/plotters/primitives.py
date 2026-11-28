@@ -26,6 +26,7 @@ import matplotlib.ticker as mticker
 import numpy as np
 from matplotlib.collections import LineCollection
 
+from oceanarray import _deprecated
 from oceanarray.reports._vendored import design_tokens as report_tokens
 
 from ..config import parameters as params
@@ -806,7 +807,7 @@ _SEC_CBAR_TXT_IN: float = 0.55
 
 
 @dataclass(frozen=True)
-class SectionScale:
+class _SectionScale:
     """The vertical scale of a page's pressure sections.
 
     Attributes
@@ -859,7 +860,7 @@ def section_scale(
     pressure: np.ndarray,
     fields: Sequence[np.ndarray],
     axes_in: float = SECTION_AXES_IN,
-) -> SectionScale | None:
+) -> _SectionScale | None:
     """Return the scale at which *fields* fill a panel *axes_in* inches high.
 
     Parameters
@@ -873,7 +874,7 @@ def section_scale(
 
     Returns
     -------
-    SectionScale or None
+    _SectionScale or None
         None when the fields have no value.
     """
     extent = pressure_extent(pressure, fields)
@@ -884,7 +885,7 @@ def section_scale(
         extent[0], extent[1]
     )
     step = float(ticks[1] - ticks[0]) if len(ticks) > 1 else span
-    return SectionScale(dbar_per_in=span / axes_in, tick_step=step)
+    return _SectionScale(dbar_per_in=span / axes_in, tick_step=step)
 
 
 def section_layout(
@@ -965,7 +966,7 @@ def section_layout(
 
 
 def apply_section_scale(
-    ax: Any, extent: tuple[float, float], scale: SectionScale | None
+    ax: Any, extent: tuple[float, float], scale: _SectionScale | None
 ) -> None:
     """Set *ax*'s pressure limits to *extent* (surface up) and the shared tick step."""
     ax.set_ylim(extent[1], extent[0])
@@ -1005,3 +1006,12 @@ def instrument_marks(ax: Any, pressures: Sequence[float], color: str = "0.15") -
         clip_on=False,
         zorder=6,
     )
+
+
+#: Released names now private: each still imports, warning, until 0.8.0.
+__getattr__ = _deprecated.moved_names(
+    __name__,
+    {
+        "SectionScale": lambda: _SectionScale,
+    },
+)

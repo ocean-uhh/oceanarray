@@ -391,7 +391,7 @@ def test_a_description_without_position_keeps_the_files_own(tmp_path):
     """No position in the YAML: stage 1 keeps the file's own, never writes 0, 0."""
     from oceanarray import mooring as _mooring
     from oceanarray.mooring.instruments import instrument_entries
-    from oceanarray.pipeline.read_mooring import join_raw
+    from oceanarray.pipeline.read_mooring import _join_raw
 
     proc = Path(__file__).resolve().parents[1] / "fixtures" / "proc" / "dune2_1_2026"
     lines = (proc / "dune2_1_2026.mooring.yaml").read_text().splitlines()
@@ -404,13 +404,13 @@ def test_a_description_without_position_keeps_the_files_own(tmp_path):
     ds = xr.load_dataset(proc / "aquadopp" / "dune2_1_2026_9920_stage1.nc")
     own = (ds.attrs["latitude"], ds.attrs["longitude"])
 
-    out = s1._add_global_attributes(join_raw(ds, entry, cfg), cfg)
+    out = s1._add_global_attributes(_join_raw(ds, entry, cfg), cfg)
     assert (out.attrs["latitude"], out.attrs["longitude"]) == own
 
     bare = ds.copy()
     for key in ("latitude", "longitude"):
         del bare.attrs[key]
-    out = s1._add_global_attributes(join_raw(bare, entry, cfg), cfg)
+    out = s1._add_global_attributes(_join_raw(bare, entry, cfg), cfg)
     assert "latitude" not in out.attrs and "longitude" not in out.attrs
 
 

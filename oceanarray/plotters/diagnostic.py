@@ -1300,7 +1300,7 @@ def draw_velocity_iqr_profile(  # noqa: C901
         ``north_velocity`` (m s-1).
     width_in : float, optional
         Figure width (inches), the report slot; default the full content width.
-    scale : SectionScale or None, optional
+    scale : _SectionScale or None, optional
         The page's vertical scale (:func:`oceanarray.plotters.timeseries.hydro_scale`);
         default that of *ds*'s hydrography.
 

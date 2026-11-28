@@ -109,10 +109,10 @@ def test_a_flag_variable_named_flag_is_used_when_it_is_one(tmp_path, caplog):
     """egM2 2018: no PSAL_QC but a PSAL_flag with known words: used, and named."""
     ds = read(OSNAP / EGM2)
     assert ds["salinity_qc_originator"].attrs["originator_flag_variable"] == "PSAL_flag"
-    flags, entries, counts = originator.translate(ds["salinity_qc_originator"])
+    flags, entries, counts = originator._translate(ds["salinity_qc_originator"])
     assert counts == {1: 172, 4: 2, 5: 12, 9: 4}
     assert (flags == 5).sum() == 12 and (flags == 4).sum() == 2
-    out, note = originator.add_mapped(ds.copy(), label="14644")
+    out, note = originator._add_mapped(ds.copy(), label="14644")
     mapped = out["salinity_qc_originator_mapped"]
     assert mapped.attrs["originator_flag_variable"] == "PSAL_flag"
     assert "value_changed" in mapped.attrs["comment"]
@@ -131,7 +131,7 @@ def test_a_flag_variable_named_flag_is_used_when_it_is_one(tmp_path, caplog):
 
 def test_flags_are_translated_by_word_not_number(tmp_path, caplog):
     ds = read(OSNAP / MCTD)
-    flags, entries, counts = originator.translate(ds["salinity_qc_originator"])
+    flags, entries, counts = originator._translate(ds["salinity_qc_originator"])
     assert counts == {1: 478, 2 + 1: 2}
     assert (flags == 3).sum() == 2
     assert (3, "appears_probably_bad", 3) in entries
@@ -146,7 +146,7 @@ def test_flags_are_translated_by_word_not_number(tmp_path, caplog):
         return ds
 
     moved = read(_copy_with(tmp_path, "reordered.nc", reorder))
-    flags, _, _ = originator.translate(moved["salinity_qc_originator"])
+    flags, _, _ = originator._translate(moved["salinity_qc_originator"])
     assert (flags == 4).sum() == 2 and (flags == 3).sum() == 0
 
     # Counts that do not pair: no translation, 0 with a warning.
@@ -155,7 +155,7 @@ def test_flags_are_translated_by_word_not_number(tmp_path, caplog):
         return ds
 
     with caplog.at_level(logging.WARNING, logger="oceanarray"):
-        flags, entries, _ = originator.translate(
+        flags, entries, _ = originator._translate(
             read(_copy_with(tmp_path, "short.nc", short))["salinity_qc_originator"],
             label="22225 salinity",
         )
@@ -577,7 +577,7 @@ def test_the_declination_warning_names_an_instrument_with_no_position():
 
 def test_a_flag_set_the_file_lacks_gets_no_bar(cf7):
     """oceanarray runs no conductivity QC: an originator-flagged C has its bar alone."""
-    from oceanarray.plotters.flags import _rows, flagged_rows
+    from oceanarray.plotters.flags import _flagged_rows, _rows
 
     st = _cf7_stack(cf7).transpose("N_LEVELS", "time")
     assert "conductivity_qc" not in st.data_vars
@@ -585,11 +585,11 @@ def test_a_flag_set_the_file_lacks_gets_no_bar(cf7):
     flags = st["conductivity_qc_originator_mapped"].values.copy()
     flags[k, 10:12] = 3
     st["conductivity_qc_originator_mapped"] = (("N_LEVELS", "time"), flags)
-    entry = next(e for e in flagged_rows(st)[k] if e[0] == "conductivity")
+    entry = next(e for e in _flagged_rows(st)[k] if e[0] == "conductivity")
     assert entry[2] is None
-    labels = [label for label, _row in _rows(flagged_rows(st)[k])]
+    labels = [label for label, _row in _rows(_flagged_rows(st)[k])]
     assert "C originator" in labels and "C oceanarray" not in labels
     assert "S oceanarray" in labels and not any("processing" in s for s in labels)
-    salinity = next(e for e in flagged_rows(st)[k] if e[0] == "salinity")
+    salinity = next(e for e in _flagged_rows(st)[k] if e[0] == "salinity")
     here = np.isfinite(st["salinity"].values[k])
     assert not (salinity[2][here] == 9).any()  # a value is never "missing"

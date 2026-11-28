@@ -6,7 +6,9 @@ import argparse
 from pathlib import Path
 
 from oceanarray import paths
+from oceanarray._deprecated import REMOVED_IN_NEXT
 from oceanarray.cli._common import _add_dir_args, _is_bare_name, _named_mooring_path
+from oceanarray.cli._deprecate import DeprecatedAlias
 
 
 def _description_path(
@@ -29,13 +31,13 @@ def _description_path(
 
 
 def cmd_validate(args: argparse.Namespace) -> int:
-    """Validate each mooring YAML; 1 on any error (or, with --strict, any warning)."""
+    """Validate each mooring YAML; 1 on any error (or, with --fail-on-warnings, any warning)."""
     all_ok = True
     for given in args.mooring:
         found = _description_path(
             given, args.proc_dir, getattr(args, "cli_paths", None)
         )
-        ok = _print_report(str(found), strict=args.strict)
+        ok = _print_report(str(found), strict=args.fail_on_warnings)
         all_ok = all_ok and ok
         print()
     return 0 if all_ok else 1
@@ -50,15 +52,15 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
             "Read and check one or more mooring YAMLs: instrument types, serial\n"
             "numbers, file types, heights above bottom, deployment dates, inline\n"
             "instruments, QC override blocks and the OceanSITES codes. Prints every ERROR\n"
-            "and WARNING. Exits 0 if no mooring YAML has an ERROR (with --strict: no\n"
-            "WARNING either), 1 otherwise."
+            "and WARNING. Exits 0 if no mooring YAML has an ERROR (with --fail-on-warnings:\n"
+            "no WARNING either), 1 otherwise."
         ),
         epilog=(
             "Examples:\n"
             "  # one mooring YAML\n"
             "  oceanarray validate /data/proc/dsG3_1_2026/dsG3_1_2026.mooring.yaml\n"
             "  # every mooring of a cruise, failing on warnings too\n"
-            "  oceanarray validate /data/proc/*/*.mooring.yaml --strict\n"
+            "  oceanarray validate /data/proc/*/*.mooring.yaml --fail-on-warnings\n"
             "  # by name\n"
             "  oceanarray validate dsG3_1_2026 --proc-dir /data/proc"
         ),
@@ -71,7 +73,18 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
     )
     _add_dir_args(p_validate, raw_needed=False)
     p_validate.add_argument(
-        "--strict", action="store_true", help="Exit 1 on warnings as well as errors."
+        "--fail-on-warnings",
+        action="store_true",
+        help="Exit 1 on warnings as well as errors.",
+    )
+    p_validate.add_argument(
+        "--strict",
+        dest="fail_on_warnings",
+        nargs=0,
+        action=DeprecatedAlias,
+        new="--fail-on-warnings",
+        removed_in=REMOVED_IN_NEXT,
+        help=argparse.SUPPRESS,
     )
     p_validate.set_defaults(func=cmd_validate)
 

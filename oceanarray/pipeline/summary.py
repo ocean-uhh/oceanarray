@@ -1,6 +1,6 @@
 """Collect one mooring run's warnings into a summary (console list + JSON file).
 
-A :class:`RunSummary` is a logging handler attached to the ``oceanarray`` logger for
+A :class:`_RunSummary` is a logging handler attached to the ``oceanarray`` logger for
 the length of a run. It counts each distinct WARNING-and-above message so the run can
 end with a deduplicated "check these" list — each warning once, with how many times it
 fired — and write the same as ``processing_logs/<name>_summary.json`` so a multi-mooring
@@ -14,10 +14,12 @@ import logging
 from collections import Counter
 from pathlib import Path
 
+from oceanarray import _deprecated
+
 log = logging.getLogger(__name__)
 
 
-class RunSummary(logging.Handler):
+class _RunSummary(logging.Handler):
     """Buffer the WARNING-and-above records emitted during one mooring's run.
 
     Attach to the ``oceanarray`` logger with :meth:`logging.Logger.addHandler` for
@@ -96,3 +98,12 @@ class RunSummary(logging.Handler):
         path = Path(mooring_dir) / "processing_logs" / f"{name}_summary.json"
         self.write_json(path, name)
         return path
+
+
+#: Released names now private: each still imports, warning, until 0.8.0.
+__getattr__ = _deprecated.moved_names(
+    __name__,
+    {
+        "RunSummary": lambda: _RunSummary,
+    },
+)

@@ -4,25 +4,18 @@ Every name of the moved module still imports from here, with a DeprecationWarnin
 naming its new home.
 """
 
-import warnings
-
 from oceanarray import _deprecated
 from oceanarray.exceptions import ValidationIssue as _ValidationIssue
 from oceanarray.mooring import check_yaml as _mooring
 from oceanarray.mooring import validation as _new
 
+#: Released names now private in the moved module.
+_PRIVATE = {
+    "validate_mooring": lambda: _new._validate_mooring,
+    "check_serials": lambda: _new._check_serials,
+}
 
-def __getattr__(name: str) -> object:
-    """Return *name* from the moved module, warning that this path is deprecated."""
-    if not hasattr(_new, name):
-        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-    warnings.warn(
-        f"{__name__}.{name} is deprecated and is removed in "
-        f"{_deprecated.REMOVED_IN_NEXT}; use {_new.__name__}.{name}.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return getattr(_new, name)
+__getattr__ = _deprecated.moved_names(__name__, _PRIVATE, moved=_new)
 
 
 def validate_mooring_yaml(yaml_path: str) -> list[_ValidationIssue]:

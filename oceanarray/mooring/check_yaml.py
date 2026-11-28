@@ -132,7 +132,7 @@ def check(
 
 def _check_data(data: object, dir_name: str | None) -> list[ValidationIssue]:
     """Return every ERROR and WARNING in a parsed mooring YAML."""
-    issues = list(validation.validate_mooring(data, dir_name=dir_name))
+    issues = list(validation._validate_mooring(data, dir_name=dir_name))
 
     if isinstance(data, Mapping):
         issues += _check_settings(data)
@@ -743,8 +743,8 @@ def serial_collision_errors(
 
     The pre-flight guard the processing path runs before any stage writes: it
     builds the combined instrument list (``clamp`` + ``instruments`` + inline, same
-    rule as :func:`~oceanarray.mooring.validation.validate_mooring`) and returns only the
-    :func:`~oceanarray.mooring.validation.check_serials`
+    rule as ``_validate_mooring``) and returns only the
+    ``_check_serials``
     ERROR messages.  It parses leniently through :func:`_parse`
     — a missing or unparseable file returns ``[]`` (those are reported by the normal
     validator, not this guard) — rather than :func:`load`, which
@@ -780,4 +780,6 @@ def serial_collision_errors(
         and (e.get("filename") or e.get("skip"))
     ]
     combined = list(instrument_list) + inline
-    return [i.message for i in validation.check_serials(combined) if i.level == "ERROR"]
+    return [
+        i.message for i in validation._check_serials(combined) if i.level == "ERROR"
+    ]

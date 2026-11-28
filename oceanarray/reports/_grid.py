@@ -227,9 +227,9 @@ class GridContext:
     ds_stack : xarray.Dataset or None
         The stack beside the grid (its instruments and velocity reference), or
         None when it is not there.
-    instruments : tuple of InstrumentLevel
+    instruments : tuple of _InstrumentLevel
         The stack's instruments with their median pressures, shallowest first.
-    scale : SectionScale or None
+    scale : _SectionScale or None
         The page's vertical scale: the hydrography panels' dbar per inch.
     seabed_dbar : float or None
         Seabed pressure from the water depth.

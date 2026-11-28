@@ -149,7 +149,7 @@ def _dispatch(
                 file_path,
             )
             coord_system = "UNK"
-        return nortek.to_canonical_nortek(ds, coord_system=coord_system)
+        return nortek._to_canonical_nortek(ds, coord_system=coord_system)
 
     # Nortek formats need the companion header for the coordinate system and
     # transformation matrix.
@@ -178,7 +178,7 @@ def _dispatch(
                 file_path,
             )
             coord_system = "UNK"
-        ds = nortek.to_canonical_nortek(ds, coord_system=coord_system)
+        ds = nortek._to_canonical_nortek(ds, coord_system=coord_system)
     if (
         file_type == "sbe-hex"
         and "press" in ds.data_vars

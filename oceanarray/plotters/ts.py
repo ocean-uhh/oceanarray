@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from oceanarray import _deprecated
 from oceanarray.pipeline.masking import masked
 from oceanarray.plotters.primitives import nice_colorbar_ticks
 from oceanarray.reports._vendored import design_tokens as report_tokens
@@ -82,7 +83,7 @@ def _theta(
 
 
 @dataclass(frozen=True)
-class SigmaContours:
+class _SigmaContours:
     """σθ on a salinity × θ grid covering a figure's shared T-S axes, built once.
 
     Attributes
@@ -109,7 +110,7 @@ def sigma0_contours(
     t_lim: tuple[float, float],
     position: tuple[float, float] | None,
     n_grid: int = 200,
-) -> SigmaContours | None:
+) -> _SigmaContours | None:
     """Return the σθ contours for a T-S figure, from its shared axis limits.
 
     The contours are at whole multiples of a round interval (0.05, 0.1, 0.2,
@@ -127,7 +128,7 @@ def sigma0_contours(
 
     Returns
     -------
-    SigmaContours or None
+    _SigmaContours or None
         None without a position, or when the limits or σθ are not finite (logged
         at debug level).
     """
@@ -148,7 +149,7 @@ def sigma0_contours(
     interval, levels = sigma_contour_levels(
         float(np.nanmin(sigma)), float(np.nanmax(sigma))
     )
-    return SigmaContours(Sg, Tg, sigma, interval, levels)
+    return _SigmaContours(Sg, Tg, sigma, interval, levels)
 
 
 #: A σθ label centred closer than this share of the axis range to a frame edge is
@@ -160,14 +161,14 @@ SIGMA_LABELS_PER_CONTOUR: int = 2
 SIGMA_LABEL_SPACING: float = 0.6
 
 
-def draw_sigma0_contours(ax: plt.Axes, contours: SigmaContours | None) -> float | None:
+def draw_sigma0_contours(ax: plt.Axes, contours: _SigmaContours | None) -> float | None:
     """Overlay labelled σθ contours on a θ-S axes.
 
     Parameters
     ----------
     ax : matplotlib.axes.Axes
         The T-S axes (practical salinity on x, potential temperature on y).
-    contours : SigmaContours or None
+    contours : _SigmaContours or None
         The figure's contours (:func:`sigma0_contours`); nothing is drawn when None.
 
     Returns
@@ -268,7 +269,7 @@ def _figure_sigma0_contours(
     position: tuple[float, float] | None,
     s_lim: tuple[float, float],
     t_lim: tuple[float, float],
-) -> SigmaContours | None:
+) -> _SigmaContours | None:
     """Return the figure's σθ contours; without a position, note it on *ax* and warn.
 
     Parameters
@@ -286,7 +287,7 @@ def _figure_sigma0_contours(
 
     Returns
     -------
-    SigmaContours or None
+    _SigmaContours or None
     """
     if position is not None:
         return sigma0_contours(s_lim, t_lim, position)
@@ -348,7 +349,7 @@ def _ts_heatmap_panel(
     s_lim: tuple | None = None,
     t_lim: tuple | None = None,
     cax: plt.Axes | None = None,
-    contours: SigmaContours | None = None,
+    contours: _SigmaContours | None = None,
     t_label: str | None = None,
 ) -> float | None:
     """Render a T-S 2-D count heatmap on *ax*; return the σθ contour interval.
@@ -1476,3 +1477,12 @@ def draw_ts_medians(
     )
     plot_title(ax, "T-S medians (IQR whiskers)")
     return fig
+
+
+#: Released names now private: each still imports, warning, until 0.8.0.
+__getattr__ = _deprecated.moved_names(
+    __name__,
+    {
+        "SigmaContours": lambda: _SigmaContours,
+    },
+)

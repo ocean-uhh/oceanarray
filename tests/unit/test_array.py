@@ -241,7 +241,7 @@ class TestArrayModeOutputDir:
     ):
         import argparse
 
-        from oceanarray import cli
+        from oceanarray.cli import report as cli_report
         from oceanarray.reports import _array
 
         seen = {}
@@ -268,7 +268,7 @@ class TestArrayModeOutputDir:
         )
 
         with caplog.at_level(logging.ERROR, logger="oceanarray"):
-            rc = cli.cmd_report(args)
+            rc = cli_report.cmd_report(args)
 
         assert rc == 0
         assert "-o/--output-dir is ignored in --array mode" in caplog.text

@@ -80,8 +80,7 @@ def test_export_no_grid_and_refuses_to_overwrite(tmp_path: Path) -> None:
     with pytest.raises(oa.MooringError, match="nothing exported"):
         oa.export(mooring_path, _paths(mooring_path), grid=False)
     assert (
-        len(oa.export(mooring_path, _paths(mooring_path), grid=False, overwrite=True))
-        == 2
+        len(oa.export(mooring_path, _paths(mooring_path), grid=False, force=True)) == 2
     )
 
 

@@ -25,7 +25,8 @@ from oceanarray.exceptions import MooringError
 from oceanarray.history import append_history
 from oceanarray.mooring.location import parse_coordinate
 from oceanarray.originator_flags import MAPPED_SUFFIX
-from oceanarray.pipeline import _stage, attribution, sensors
+from oceanarray.pipeline import _attribution as attribution
+from oceanarray.pipeline import _stage, sensors
 from oceanarray.pipeline.dataset import time_axis
 from oceanarray.provenance import sha256
 from oceanarray.writers import write
@@ -133,7 +134,7 @@ def _check_people_cleaned(stacks: Sequence[xr.Dataset], names: Sequence[str]) ->
     ------
     MooringError
         A stack written by an oceanarray older than
-        :data:`~oceanarray.pipeline.attribution.CLEANED_SINCE`, or built from
+        ``CLEANED_SINCE``, or built from
         stage files whose stage 1 did not clean people (``people_not_cleaned``).
     """
     stale = [
@@ -672,7 +673,7 @@ def concat(  # noqa: C901
             for ds in stacks
             for v in ds.variables
             if v not in _LEVEL_COORDS
-            and not sensors.is_record(v)
+            and not sensors._is_record(v)
             and "time" not in ds[v].dims
             and ds[v].dims in ((), ("N_LEVELS",))
         }
@@ -1018,7 +1019,7 @@ def concat(  # noqa: C901
     return attribution.apply_product_citation(out, f"{name} site stack", sources)
 
 
-def is_site_stack(ds: xr.Dataset) -> bool:
+def _is_site_stack(ds: xr.Dataset) -> bool:
     """Return whether *ds* is a site stack (:func:`concat` output) rather than a deployment's."""
     return "N_DEPTHS" in ds.dims and "level_index" in ds and "deployment_index" in ds
 
@@ -1205,7 +1206,7 @@ def select_depths(ds: xr.Dataset, keep: np.ndarray) -> xr.Dataset:
 _CHUNK_SECONDS = 365 * 86400
 
 
-def chunks(ds: xr.Dataset) -> dict[str, int]:
+def _chunks(ds: xr.Dataset) -> dict[str, int]:
     """Return the site stack's chunk lengths: about one year along time, whole along the rest.
 
     A reader asking for one year, or one depth over the whole record, then
@@ -1237,10 +1238,11 @@ def concat_moorings(
     *,
     name: str,
     out_dir: str | Path | None = None,
-    overwrite: bool = False,
+    force: bool = False,
     dry_run: bool = False,
     mask_flags: Iterable[int] | Mapping[str, Iterable[int]] | None = None,
     descriptions: Sequence[str | Path] | None = None,
+    overwrite: bool | None = None,
 ) -> Path:
     """Concatenate the stacks of the moorings named, and write the site stack.
 
@@ -1253,7 +1255,7 @@ def concat_moorings(
         The site's name: the output is ``<out_dir>/<name>_stackcat.nc``.
     out_dir : str or Path, optional
         Where to write; default ``<parent of the first mooring's folder>/<name>``.
-    overwrite : bool, optional
+    force : bool, optional
         Replace an existing site stack.
     dry_run : bool, optional
         Check and report, write nothing.
@@ -1262,6 +1264,8 @@ def concat_moorings(
         :func:`concat`).
     descriptions : sequence of str or Path, optional
         Deprecated name of *mooring_paths*; removed in 0.8.0.
+    overwrite : bool, optional
+        Deprecated name of *force*; removed in 0.8.0.
 
     Returns
     -------
@@ -1271,7 +1275,7 @@ def concat_moorings(
     Raises
     ------
     MooringError
-        A stack is missing, the output exists without *overwrite*, a stack was
+        A stack is missing, the output exists without *force*, a stack was
         written by an oceanarray that did not clean people at stage 1 (rerun
         from stage 1), or :func:`concat` refuses.
     """
@@ -1280,6 +1284,13 @@ def concat_moorings(
         mooring_paths,
         descriptions,
         required="mooring_paths",
+    )
+    force = bool(
+        _deprecated.resolve_keyword(
+            "oceanarray.pipeline.concat.concat_moorings(overwrite=)",
+            force or None,
+            overwrite,
+        )
     )
     first_dir = Path(mooring_paths[0]).parent
     target_dir = Path(out_dir) if out_dir is not None else first_dir.parent / name
@@ -1291,8 +1302,8 @@ def concat_moorings(
             f"{target_dir} holds a mooring YAML; write the site stack to "
             "its own folder (out_dir= / -o)."
         )
-    if out_path.exists() and not overwrite and not dry_run:
-        raise MooringError(f"{out_path} exists; pass overwrite=True (CLI --force).")
+    if out_path.exists() and not force and not dry_run:
+        raise MooringError(f"{out_path} exists; pass force=True (CLI --force).")
     with contextlib.ExitStack() as opened:
         stacks, sources, mooring_dicts = [], [], []
         for mooring_path in map(Path, mooring_paths):
@@ -1332,6 +1343,16 @@ def concat_moorings(
         )
         return out_path
     target_dir.mkdir(parents=True, exist_ok=True)
-    write(ds, out_path, overwrite=overwrite, chunks=chunks(ds))
+    write(ds, out_path, overwrite=force, chunks=_chunks(ds))
     log.info("wrote %s", out_path)
     return out_path
+
+
+#: Released names now private: each still imports, warning, until 0.8.0.
+__getattr__ = _deprecated.moved_names(
+    __name__,
+    {
+        "chunks": lambda: _chunks,
+        "is_site_stack": lambda: _is_site_stack,
+    },
+)

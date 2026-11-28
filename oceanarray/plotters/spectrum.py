@@ -6,12 +6,13 @@ Computations are in :mod:`oceanarray.analysis.spectral`.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 import numpy as np
 
+from oceanarray import _deprecated
 from oceanarray.plotters.primitives import nice_colorbar_bounds, period_axis_ticks
 from oceanarray.reports._vendored import design_tokens as report_tokens
 
@@ -183,24 +184,37 @@ _OTHER_MARKER_COLOR = "#7f8c8d"
 
 
 def spectrum_markers(
-    lat: float | None,
+    latitude: float | None = None,
+    *args: Any,
     extra: Sequence[tuple[str, float]] = (),
+    lat: float | None = None,
 ) -> list[tuple[str, float, str]]:
     """Return the frequency markers of the spectra: M2, K1, the inertial period, *extra*.
 
     Parameters
     ----------
-    lat : float or None
+    latitude : float or None
         Mooring latitude (degrees); no inertial marker when None or 0.
     extra : sequence of (str, float), optional
         Further ``(label, period in days)`` markers (the mooring YAML's
         ``spectrum_markers``).
+    *args
+        Deprecated: the options above by position, in their old order; removed in 0.8.0.
+    lat : float, optional
+        Deprecated name of *latitude*; removed in 0.8.0.
 
     Returns
     -------
     list of (str, float, str)
         ``(label, period in days, colour)``.
     """
+    given = _deprecated.read_positional(
+        "oceanarray.plotters.spectrum.spectrum_markers", args, ("extra",), extra=extra
+    )
+    extra = given["extra"]
+    latitude = _deprecated.resolve_keyword(
+        "oceanarray.plotters.spectrum.spectrum_markers(lat=)", latitude, lat
+    )
     from oceanarray.analysis.spectral import (
         K1_PERIOD_DAYS,
         M2_PERIOD_DAYS,
@@ -211,7 +225,7 @@ def spectrum_markers(
         ("M2", M2_PERIOD_DAYS, _MARKER_COLORS["M2"]),
         ("K1", K1_PERIOD_DAYS, _MARKER_COLORS["K1"]),
     ]
-    f_period = inertial_period_days(lat)
+    f_period = inertial_period_days(latitude)
     if f_period is not None:
         out.append(("f", f_period, _MARKER_COLORS["f"]))
     out += [(str(lbl), float(per), _OTHER_MARKER_COLOR) for lbl, per in extra]
@@ -356,7 +370,7 @@ def draw_spectrum(  # noqa: C901
     if freq_lf is None or not psds_lf:
         return None
 
-    all_markers = spectrum_markers(lat if lat else None, markers)
+    all_markers = spectrum_markers(lat if lat else None, extra=markers)
     cmap = _level_colormap()
     lo_p, hi_p = min(p_lf), max(p_lf)
     if lo_p == hi_p:
@@ -779,7 +793,7 @@ def draw_grid_rotary_spectrum(  # noqa: C901
                     _rb[_i] = (_ccw_m - _cw_m) / _d
         r_banded_list.append(_rb)
 
-    markers = spectrum_markers(lat if lat else None, markers)
+    markers = spectrum_markers(lat if lat else None, extra=markers)
 
     p_arr = np.array(press_plotted)
     p_min, p_max = p_arr.min(), p_arr.max()

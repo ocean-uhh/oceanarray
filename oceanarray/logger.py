@@ -107,7 +107,7 @@ def count_warnings(name: str) -> Iterator[list[logging.LogRecord]]:
     Parameters
     ----------
     name : str
-        Logger name, e.g. ``"oceanarray.pipeline.attribution"``.
+        Logger name, e.g. ``"oceanarray.pipeline.stage1"``.
 
     Yields
     ------

@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import sys
 
-from oceanarray import paths
+from oceanarray import _deprecated, paths
 from oceanarray._version import __version__
 from oceanarray.cli import animate as _animate
 from oceanarray.cli import concat as _concat
@@ -23,33 +23,33 @@ from oceanarray.cli._common import (
     _parse_stage_token,  # noqa: F401  — used by the tests
     _split_paths_file,
 )
-from oceanarray.cli.animate import cmd_animate
-from oceanarray.cli.concat import cmd_concat
-from oceanarray.cli.export import cmd_export
-from oceanarray.cli.init import cmd_init
-from oceanarray.cli.list import cmd_list
-from oceanarray.cli.plot import cmd_plot
-from oceanarray.cli.process import cmd_process
-from oceanarray.cli.report import cmd_report
-from oceanarray.cli.run import cmd_run
-from oceanarray.cli.stamp import cmd_stamp
-from oceanarray.cli.validate import cmd_validate
 
-__all__ = [
-    "build_parser",
-    "cmd_animate",
-    "cmd_concat",
-    "cmd_export",
-    "cmd_init",
-    "cmd_list",
-    "cmd_plot",
-    "cmd_process",
-    "cmd_report",
-    "cmd_run",
-    "cmd_stamp",
-    "cmd_validate",
-    "main",
-]
+__all__ = ["build_parser", "main"]
+
+#: The subcommand modules, by subcommand; each holds its released ``cmd_<name>``.
+_COMMANDS = {
+    "animate": _animate,
+    "concat": _concat,
+    "export": _export,
+    "init": _init,
+    "list": _list,
+    "plot": _plot,
+    "process": _process,
+    "report": _report,
+    "run": _run,
+    "stamp": _stamp,
+    "validate": _validate,
+}
+
+__getattr__ = _deprecated.moved_names(
+    __name__,
+    {
+        f"cmd_{command}": (
+            lambda module=module, command=command: getattr(module, f"cmd_{command}")
+        )
+        for command, module in _COMMANDS.items()
+    },
+)
 
 
 def build_parser() -> argparse.ArgumentParser:

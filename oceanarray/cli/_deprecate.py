@@ -13,12 +13,15 @@ class DeprecatedAlias(argparse.Action):
     """Accept a renamed flag, store its value on the new flag's destination, and warn.
 
     Use with ``new="--new-name"`` and ``help=argparse.SUPPRESS``, so the old spelling
-    still works but is not advertised.
+    still works but is not advertised; ``removed_in`` names the release that drops it.
     """
 
-    def __init__(self, *args: object, new: str, **kwargs: object) -> None:
-        """Remember the new spelling."""
+    def __init__(
+        self, *args: object, new: str, removed_in: str = REMOVED_IN, **kwargs: object
+    ) -> None:
+        """Remember the new spelling and the removal release."""
         self.new = new
+        self.removed_in = removed_in
         super().__init__(*args, **kwargs)
 
     def __call__(
@@ -30,7 +33,7 @@ class DeprecatedAlias(argparse.Action):
     ) -> None:
         """Store the value and warn that *option_string* is now :attr:`new`."""
         msg = (
-            f"{option_string} is deprecated and removed in {REMOVED_IN}; "
+            f"{option_string} is deprecated and removed in {self.removed_in}; "
             f"use {self.new}."
         )
         warnings.warn(msg, DeprecationWarning, stacklevel=2)

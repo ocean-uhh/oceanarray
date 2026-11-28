@@ -8,14 +8,15 @@ from pathlib import Path
 import numpy as np
 import xarray as xr
 
-from oceanarray import logger, mask_rules, paths, provenance
+from oceanarray import _deprecated, logger, mask_rules, paths, provenance
 from oceanarray.config import parameters as params
 from oceanarray.exceptions import MooringError
 from oceanarray.history import append_history
 from oceanarray.originator_flags import MAPPED_SUFFIX
 from oceanarray.physics import speed_direction
-from oceanarray.pipeline import attribution, masking
-from oceanarray.pipeline.concat import chunks, is_site_stack, own_levels
+from oceanarray.pipeline import _attribution as attribution
+from oceanarray.pipeline import masking
+from oceanarray.pipeline.concat import _chunks, _is_site_stack, own_levels
 from oceanarray.pipeline.dataset import canonical_grid_attrs
 from oceanarray.pipeline.units import to_canonical_units
 from oceanarray.writers import dtypes, write
@@ -139,7 +140,7 @@ def grid(  # noqa: C901
     # Canonicalise the stack's units (idempotent on a 0.5.0 stack; rewrites a
     # pre-0.5.0 one) so the grid inherits one spelling per quantity.
     ds = to_canonical_units(ds_stack, stage="grid")
-    site = is_site_stack(ds)
+    site = _is_site_stack(ds)
     level_dim = "N_DEPTHS" if site else "N_LEVELS"
     n_time = ds.sizes["time"]
     n_instr = ds.sizes[level_dim]
@@ -503,7 +504,8 @@ def grid_site(
     dp: float | None = None,
     mask_flags: Iterable[int] | Mapping[str, Iterable[int]] | None = None,
     slope_angle: float | None = None,
-    overwrite: bool = False,
+    force: bool = False,
+    overwrite: bool | None = None,
 ) -> Path:
     """Grid a site stack and write ``<site>_gridcat.nc`` beside it.
 
@@ -521,8 +523,10 @@ def grid_site(
         As for :func:`grid`.
     slope_angle : float, optional
         Deprecated and ignored, as for :func:`grid`.
-    overwrite : bool, optional
+    force : bool, optional
         Replace an existing site grid.
+    overwrite : bool, optional
+        Deprecated name of *force*; removed in 0.8.0.
 
     Returns
     -------
@@ -532,20 +536,25 @@ def grid_site(
     Raises
     ------
     oceanarray.exceptions.MooringError
-        The file is not a site stack, the output exists without *overwrite*, or a
+        The file is not a site stack, the output exists without *force*, or a
         setting is invalid.
     """
+    force = bool(
+        _deprecated.resolve_keyword(
+            "oceanarray.pipeline.grid.grid_site(overwrite=)", force or None, overwrite
+        )
+    )
     stackcat = Path(stackcat)
     with xr.open_dataset(stackcat, engine="netcdf4") as opened:
         ds = opened.load()
-    if not is_site_stack(ds):
+    if not _is_site_stack(ds):
         raise MooringError(
             f"{stackcat} is not a site stack (oceanarray concat output)."
         )
     site = str(ds.attrs.get("site_name") or stackcat.name.removesuffix("_stackcat.nc"))
     out_path = paths.product_file(stackcat.parent, mooring_name=site, product="gridcat")
-    if out_path.exists() and not overwrite:
-        raise MooringError(f"{out_path} exists; pass overwrite=True (CLI --force).")
+    if out_path.exists() and not force:
+        raise MooringError(f"{out_path} exists; pass force=True (CLI --force).")
     step = float(dp) if dp is not None else params.GRID_DP_DBAR
     try:
         if not step > 0:
@@ -576,7 +585,7 @@ def grid_site(
         raise MooringError(f"{site}: cannot grid the site stack: {exc}") from exc
     out.attrs["stackcat_file"] = stackcat.name
     out.attrs["stackcat_sha256"] = provenance.sha256(stackcat)
-    write(out, out_path, overwrite=overwrite, chunks=chunks(out))
+    write(out, out_path, overwrite=force, chunks=_chunks(out))
     log.info(f"wrote {out_path}")
     return out_path
 

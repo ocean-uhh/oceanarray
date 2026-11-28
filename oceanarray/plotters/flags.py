@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
+from oceanarray import _deprecated
 from oceanarray.config import parameters as params
 from oceanarray.mask_rules import FLAGGED_VARIABLES
 from oceanarray.originator_flags import MAPPED_SUFFIX
@@ -113,7 +114,7 @@ def _flagged(theirs: np.ndarray | None, ours: np.ndarray | None) -> bool:
     )
 
 
-def flagged_rows(
+def _flagged_rows(
     ds: xr.Dataset,
 ) -> dict[int, list[tuple[str, np.ndarray | None, np.ndarray | None]]]:
     """Return, per level with anything flagged, the variables' flag rows.
@@ -141,7 +142,7 @@ def flagged_rows(
     return out
 
 
-def adcp_groups(ds: xr.Dataset) -> dict[int, list[int]]:
+def _adcp_groups(ds: xr.Dataset) -> dict[int, list[int]]:
     """Return each ADCP head's level (or depth) and those of its bins.
 
     In a Stack cat, ADCPs of several deployments whose heads share a depth form
@@ -216,9 +217,9 @@ def _panel_bars(ds: xr.Dataset) -> dict[int, list[tuple[str, np.ndarray]]]:  # n
     from .helpers import nominal_depths
 
     sets = _flag_sets(ds)
-    panels = {k: _rows(e) for k, e in flagged_rows(ds).items()}
+    panels = {k: _rows(e) for k, e in _flagged_rows(ds).items()}
     depths = nominal_depths(ds)
-    for head, bins in adcp_groups(ds).items():
+    for head, bins in _adcp_groups(ds).items():
         for b in bins:
             panels.pop(b, None)
         bars = []
@@ -379,3 +380,13 @@ def draw_flag_strip(
         frameon=False,
     )
     return fig
+
+
+#: Released names now private: each still imports, warning, until 0.8.0.
+__getattr__ = _deprecated.moved_names(
+    __name__,
+    {
+        "adcp_groups": lambda: _adcp_groups,
+        "flagged_rows": lambda: _flagged_rows,
+    },
+)

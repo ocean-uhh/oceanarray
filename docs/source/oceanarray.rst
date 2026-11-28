@@ -70,6 +70,9 @@ On datasets
 .. autofunction:: oceanarray.grid
    :no-index:
 
+.. autofunction:: oceanarray.concat
+   :no-index:
+
 .. autofunction:: oceanarray.write
    :no-index:
 
@@ -278,6 +281,95 @@ Path resolution helpers for raw and processed directory trees.
 .. automodule:: oceanarray.paths
    :members:
    :undoc-members:
+
+Shared modules
+--------------
+
+Public modules that several subpackages import.
+
+site stacks
+^^^^^^^^^^^
+One site's deployment stacks joined end to end in time.
+
+.. automodule:: oceanarray.pipeline.concat
+   :members:
+
+masking
+^^^^^^^
+Which flagged values the pages and the grid hide.
+
+.. automodule:: oceanarray.pipeline.masking
+   :members:
+
+mask rules
+^^^^^^^^^^
+``mask_flags`` rules: which flag values are hidden, per variable.
+
+.. automodule:: oceanarray.mask_rules
+   :members:
+
+sensor records
+^^^^^^^^^^^^^^
+One sensor record per instrument (``SENSOR_<type>_<serial>``).
+
+.. automodule:: oceanarray.pipeline.sensors
+   :members:
+
+provenance
+^^^^^^^^^^
+Which oceanarray wrote a file: its version on every file.
+
+.. automodule:: oceanarray.provenance
+   :members:
+
+originator flags
+^^^^^^^^^^^^^^^^
+An originator's flag words and the flags they translate to.
+
+.. automodule:: oceanarray.originator_flags
+   :members:
+
+unit tables
+^^^^^^^^^^^
+oceanarray's view of the family units tables.
+
+.. automodule:: oceanarray.config.unit_tables
+   :members:
+
+site analysis
+^^^^^^^^^^^^^
+A site's gridded record over the years: display averaging, anomalies, medians.
+
+.. automodule:: oceanarray.analysis.site
+   :members:
+
+site figures
+^^^^^^^^^^^^
+Sections over the years, profiles and T-S per deployment.
+
+.. automodule:: oceanarray.plotters.site
+   :members:
+
+flag figures
+^^^^^^^^^^^^
+The quality-flag strip: oceanarray's flags beside the originator's.
+
+.. automodule:: oceanarray.plotters.flags
+   :members:
+
+Nortek reader
+^^^^^^^^^^^^^
+Nortek header parsers and variable normalisers.
+
+.. automodule:: oceanarray.readers.nortek
+   :members:
+
+Sea-Bird reader
+^^^^^^^^^^^^^^^
+Sea-Bird raw-file helpers.
+
+.. automodule:: oceanarray.readers.sbe
+   :members:
 
 Instrument processing
 ----------------------
