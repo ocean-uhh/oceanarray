@@ -270,7 +270,7 @@ YAML (a dict) given in place of the path, and the first argument given as
    * - ``oceanarray.export(out_dir=)``
      - ``oceanarray.Paths(export_dir=...) in oceanarray.export(mooring_path, paths)``
    * - ``oceanarray.export(array=)``
-     - ``array_path=``
+     - ``array_path= (a path); for a parsed mapping, oceanarray.pipeline.oceansites.to_oceansites(array_dict=)``
    * - ``oceanarray.mooring.load(proc_dir=)``
      - ``oceanarray.mooring.load(paths.mooring_path(mooring_name))``
 

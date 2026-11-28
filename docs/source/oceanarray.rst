@@ -20,10 +20,10 @@ folders as an ``oceanarray.Paths`` (:ref:`paths-file`).
    oa.run(mooring_path, paths, report=True)   # stages 1-3, stack, grid, report
 
    # or step by step, on datasets
-   cfg = oa.mooring.load(mooring_path)
+   mooring_dict = oa.mooring.load(mooring_path)
    ds2 = oa.read_mooring(mooring_path, stage=2)
-   ds3 = oa.stage3(ds2, cfg)
-   stacked = oa.stack(ds3, cfg, dt_seconds=600)
+   ds3 = oa.stage3(ds2, mooring_dict)
+   stacked = oa.stack(ds3, mooring_dict, dt_seconds=600)
 
 The verbs
 ^^^^^^^^^

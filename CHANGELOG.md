@@ -16,7 +16,6 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Changed
 
-- The mooring YAML's path is `mooring_path` (was `yaml_path`; `Paths.mooring_path`, `mooring_paths`), the array YAML's `array_path` and its parsed form `array_dict`.
 - `run`, `process`, `report` and `export` take `(mooring_path, paths)`, every folder from the `oa.Paths`, and `mooring.load`/`check` take `mooring_path`, with the CLI unchanged.
 - `check_people_block`, `check_source_block` and their key lists moved from `pipeline.attribution` to `oceanarray.mooring.blocks`; every name moved without an old path is on the 0.7.0 migration page.
 - Deprecations removed in 0.8.0 have their own table and constant (`_deprecated.RENAMED_NEXT`, `REMOVED_IN_NEXT`); no warning writes a release number out.
@@ -45,7 +44,7 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 - The verbs' folder keywords (`raw_dir=`, `mooring_dir=`, `out_dir=`, ...), a folder or dict for the YAML, `mooring=` and calls without `paths` warn until 0.8.0; same files as before.
 - `paths.mooring_proc_dir`, `raw_mooring_dir`, `resolve_report_dir`, `resolve_pdf_path`, `require_current_layout`'s `proc_root=`/`mooring=` and the file-name functions' old arguments warn until 0.8.0.
 - `plotters.helpers.masked` and `ruled`, removed without a warning, are back as aliases that warn until 0.8.0: use `pipeline.masking.masked` and `mask_rules.STACK_ATTR in ds.attrs`.
-- Thirty keywords renamed to say what they carry (`mooring_dict=`, `mooring_dicts=`, `mooring_path=`, `mooring_paths=`, `array_dict=`, `mooring=`); the old ones warn until 0.8.0. See the 0.7.0 migration page.
+- Thirty keywords renamed to say what they carry: the mooring YAML's path is `mooring_path=` (`mooring_paths=`), the array YAML's `array_path=` and its parsed form `array_dict=`, a loaded mooring YAML `mooring_dict=` (`mooring_dicts=`), anything `load` accepts `mooring=`; the old ones warn until 0.8.0. See the 0.7.0 migration page (#174).
 
 ### Fixed
 

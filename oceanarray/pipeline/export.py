@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 _SKIPPABLE = (OceanSitesError, FileExistsError, OSError, KeyError, ValueError)
 
 
-def _array_dict(given: str | PathLike | Mapping | None) -> Mapping:
+def _read_array_dict(given: str | PathLike | Mapping | None) -> Mapping:
     """Return the parsed ``*.array.yaml`` at *given* ({} for None; a mapping, which the deprecated ``array=`` takes, as it is)."""
     if given is None:
         return {}
@@ -155,7 +155,7 @@ def export(
     # Fail before any file is opened if the mooring YAML cannot name the files.
     platform_code(mooring_dict)
     deployment_code(mooring_dict)
-    array_dict = _array_dict(array_given)
+    array_dict = _read_array_dict(array_given)
     name = mooring_dict["name"]
     folder = paths.mooring_dir(name)
     if not folder.is_dir():

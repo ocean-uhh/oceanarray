@@ -104,7 +104,7 @@ def report(
     >>> import oceanarray as oa
     >>> paths = oa.Paths.from_file("paths.yaml")  # doctest: +SKIP
     >>> oa.report(paths.mooring_path("M2_2016"), paths, pdf=True)  # doctest: +SKIP
-    >>> oa.report(paths=paths, kind="array", array_path="OSNAPeast_2016.array.yaml")  # doctest: +SKIP
+    >>> oa.report("OSNAPeast_2016.array.yaml", paths, kind="array")  # doctest: +SKIP
     """
     from oceanarray.pipeline import resolve_verb_call
 

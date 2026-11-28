@@ -95,10 +95,10 @@ as written. The keys are exactly those above; any other key is an error. In Pyth
    import oceanarray as oa
 
    paths = oa.Paths.from_file("paths.yaml")
-   paths.mooring_path("M2_2016")        # config/moorings/M2_2016.mooring.yaml
+   paths.mooring_path("M2_2016")     # config/moorings/M2_2016.mooring.yaml
    paths.raw_mooring_dir("M2_2016")  # the mooring's raw folder
    paths.mooring_dir("M2_2016")      # its processed folder
-   paths.mooring_paths()                # every mooring YAML, sorted
+   paths.mooring_paths()             # every mooring YAML, sorted
 
    # the standard structure under one folder: yamls/, raw/, proc/, reports/, exports/
    paths = oa.Paths.standard("/data/OSNAP")
@@ -116,9 +116,9 @@ path and a ``Paths``, and take every folder from it:
 .. code-block:: python
 
    mooring_path = paths.mooring_path("M2_2016")
-   oa.run(mooring_path, paths)                    # stage files, stack and grid in paths.mooring_dir
-   oa.report(mooring_path, paths, pdf=True)       # pages and PDF in paths.report_mooring_dir
-   oa.export(mooring_path, paths)                 # OceanSITES files in paths.export_dir
+   oa.run(mooring_path, paths)               # stage files, stack and grid in paths.mooring_dir
+   oa.report(mooring_path, paths, pdf=True)  # pages and PDF in paths.report_mooring_dir
+   oa.export(mooring_path, paths)            # OceanSITES files in paths.export_dir
 
 Coming next: the command line takes a paths file (``--paths``); until then it
 builds a ``Paths`` from ``--raw-dir``, ``--proc-dir``, ``--report-dir`` and ``-o``.

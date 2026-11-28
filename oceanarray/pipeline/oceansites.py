@@ -463,7 +463,7 @@ def _globals(
     else:
         # site_code is required by the GDAC and approved by the OceanSITES Project
         # Office; it is never invented here.
-        logger.warning("%s: no site_code in the array description; left out", file_id)
+        logger.warning("%s: no site_code in the array YAML; left out", file_id)
     if array_dict.get("project"):
         attrs["project"] = str(array_dict["project"])
     for when in ("deployment", "recovery"):

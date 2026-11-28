@@ -671,8 +671,8 @@ The rest:
        ``mooring_config`` or ``description``.
      - ``mooring_dict``
    * - array_path
-     - The path of one ``*.array.yaml``; ``report(kind="array")`` takes it as
-       ``array_path=`` or as its first argument. Not ``array_yaml`` or ``array=``.
+     - The path of one ``*.array.yaml``; ``report(array_path, paths, kind="array")``
+       takes it first (or as ``array_path=``). Not ``array_yaml`` or ``array=``.
      - ``array_path``
    * - array_dict
      - The parsed contents of an array YAML, a dict or Mapping. Not

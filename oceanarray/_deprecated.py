@@ -183,7 +183,10 @@ RENAMED_NEXT: dict[str, str] = {
     "oceanarray.export(out_dir=)": (
         "oceanarray.Paths(export_dir=...) in oceanarray.export(mooring_path, paths)"
     ),
-    "oceanarray.export(array=)": "the array_path= keyword",
+    "oceanarray.export(array=)": (
+        "array_path= (a path); for a parsed mapping, "
+        "oceanarray.pipeline.oceansites.to_oceansites(array_dict=)"
+    ),
     "oceanarray.mooring.load(mooring=)": "the mooring_path= keyword",
     "oceanarray.mooring.load(proc_dir=)": (
         "oceanarray.mooring.load(paths.mooring_path(mooring_name))"
