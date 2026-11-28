@@ -16,7 +16,7 @@ import numpy as np
 
 from oceanarray import _deprecated, mask_rules
 from oceanarray.config.unit_tables import unit_label
-from oceanarray.pipeline import masking
+from oceanarray.pipeline import _stage, masking
 from oceanarray.pipeline._stage import normalize_identity_names
 
 if TYPE_CHECKING:
@@ -815,18 +815,7 @@ def nominal_depths(ds: xr.Dataset) -> np.ndarray | None:
     numpy.ndarray or None
         One value per level or depth (NaN where unknown); None without a source.
     """
-    if "N_DEPTHS" in ds.dims:
-        return ds["nominal_depth"].values.astype(float)
-    ds = normalize_identity_names(ds)
-    if "instrument_depth" in ds.variables and ds["instrument_depth"].ndim == 1:
-        return np.asarray(ds["instrument_depth"].values, dtype=float)
-    waterdepth = ds.attrs.get("waterdepth")
-    if "hab" in ds.variables and waterdepth not in (None, ""):
-        try:
-            return float(waterdepth) - np.asarray(ds["hab"].values, dtype=float)
-        except (TypeError, ValueError):
-            return None
-    return None
+    return _stage.nominal_depths(ds)
 
 
 def rose_max_percent(east: np.ndarray, north: np.ndarray, n_dir: int = 16) -> float:

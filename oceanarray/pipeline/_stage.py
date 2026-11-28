@@ -13,13 +13,14 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import xarray as xr
 
 from oceanarray import provenance
 from oceanarray.exceptions import StageError
 from oceanarray.history import append_history
-from oceanarray.mooring.instruments import nominal_depth
+from oceanarray.mooring.instruments import resolve_nominal_depth
 
 log = logging.getLogger(__name__)
 
@@ -31,7 +32,9 @@ IDENTITY_ATTRS: dict[str, dict[str, str]] = {
     "instrument_depth": {
         "units": "m",
         "long_name": "nominal instrument depth",
-        "comment": "design depth below the surface, from the mooring description",
+        "positive": "down",
+        "comment": "typical depth as deployed: water depth (bathymetry) less the "
+        "instrument's height above the seabed, from the mooring YAML",
     },
     "instrument_serial": {
         "long_name": "the instrument's serial number; shared by all bins of one ADCP"
@@ -76,6 +79,42 @@ def normalize_identity_names(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
+def nominal_depths(ds: xr.Dataset) -> np.ndarray | None:
+    """Return a product's nominal depths (m): ``instrument_depth``, else water depth minus hab.
+
+    A Stack cat's depths are its own (``nominal_depth`` on ``N_DEPTHS``). A stack gives
+    one value per level; a stage file a 0-d array.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        A stage file, a stack on ``N_LEVELS``, or a Stack cat.
+
+    Returns
+    -------
+    numpy.ndarray or None
+        The depths (NaN where unknown); None without a source.
+    """
+    if "N_DEPTHS" in ds.dims:
+        return ds["nominal_depth"].values.astype(float)
+    ds = normalize_identity_names(ds)
+    depth = ds["instrument_depth"] if "instrument_depth" in ds.variables else None
+    if depth is not None and ("N_LEVELS" not in ds.dims or depth.ndim == 1):
+        return np.asarray(depth.values, dtype=float)
+    habs = ds["hab"].values if "hab" in ds.variables else ds.attrs.get("hab")
+    if habs is None:
+        return None
+    waterdepth = ds.attrs.get("waterdepth")
+    found = [
+        resolve_nominal_depth({"hab": hab}, waterdepth).depth
+        for hab in np.atleast_1d(np.asarray(habs, dtype=object))
+    ]
+    if all(d is None for d in found):
+        return None
+    values = np.array([np.nan if d is None else d for d in found], dtype=float)
+    return values if np.ndim(habs) else values.reshape(())
+
+
 def identity_variables(
     entry: Mapping, waterdepth: float | None
 ) -> dict[str, xr.Variable]:
@@ -92,18 +131,19 @@ def identity_variables(
     -------
     dict of str to xarray.Variable
         ``instrument_serial`` (text) when the entry has a serial, and
-        ``instrument_depth`` (m) when :func:`oceanarray.mooring.instruments.nominal_depth`
-        gives one.
+        ``instrument_depth`` (m) when
+        :func:`oceanarray.mooring.instruments.resolve_nominal_depth` gives one, with its
+        source in ``depth_source``.
     """
     out = {}
     if entry.get("serial") is not None:
         out["instrument_serial"] = xr.Variable(
             (), str(entry["serial"]), IDENTITY_ATTRS["instrument_serial"]
         )
-    depth = nominal_depth(dict(entry), waterdepth)
+    depth, source = resolve_nominal_depth(dict(entry), waterdepth)
     if depth is not None:
         out["instrument_depth"] = xr.Variable(
-            (), depth, IDENTITY_ATTRS["instrument_depth"]
+            (), depth, {**IDENTITY_ATTRS["instrument_depth"], "depth_source": source}
         )
     return out
 

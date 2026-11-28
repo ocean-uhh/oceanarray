@@ -21,7 +21,7 @@ import yaml
 
 from oceanarray import logger, paths
 from oceanarray.exceptions import MooringError
-from oceanarray.mooring.instruments import instrument_entries
+from oceanarray.mooring.instruments import instrument_entries, resolve_nominal_depth
 
 from ..paths import safe_serial
 from . import _masthead
@@ -147,11 +147,8 @@ def _build_rows(
         except (TypeError, ValueError):
             hab = None
 
-        depth = (
-            round(float(waterdepth) - hab)
-            if (waterdepth is not None and hab is not None)
-            else None
-        )
+        resolved = resolve_nominal_depth(entry, waterdepth).depth
+        depth = round(resolved) if resolved is not None else None
 
         # Non-logging entries (beacons, releases, etc.)
         if instr_type.lower() in _NON_LOGGING:

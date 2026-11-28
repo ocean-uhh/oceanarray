@@ -67,6 +67,10 @@ DICT_GIVEN = "a mooring dict in place of a mooring_path"
 #: renamed keyword is written ``<function>(<old keyword>=)``; a file location or
 #: a call form is described in words.
 RENAMED_NEXT: dict[str, str] = {
+    "oceanarray.instruments.nominal_depth": (
+        "oceanarray.mooring.instruments.resolve_nominal_depth (which puts the hab "
+        "before nominal_depth)"
+    ),
     "oceanarray.pipeline.qc.adcp.apply_adcp_seabed_qc(fail_margin_m=)": (
         "nothing: the side-lobe zone follows from the beam angle and cell size, "
         "and the keyword is ignored"

@@ -17,7 +17,7 @@ _FIELD_COMMENTS: dict[str, str] = {
     "platform_code": "OceanSITES station code, no '_' (e.g. DUNE2); used by the export",
     "deployment_code": "YYYYMM of deployment_time (e.g. 202607); used by the export",
     "year": "deployment year, e.g. 2026",
-    "waterdepth": "water depth at anchor in metres",
+    "waterdepth": "bathymetric water depth at the site in metres",
     "deployment_cruise": "cruise ID, e.g. MSM142",
     "deployment_ship": "ship name, e.g. MS Merian",
     "recovery_cruise": "cruise ID at recovery (omit if same cruise)",

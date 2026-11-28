@@ -680,9 +680,8 @@ def _stage1_instrument(  # noqa: C901
 ) -> xr.Dataset:
     """Apply stage 1's transforms to one instrument's raw dataset, in the order they run."""
     file_type = dataset.attrs.get("file_type") or entry.get("file_type", "")
-    depth_issue = check_depth_key(entry)
-    if depth_issue is not None:
-        log.warning(f"  [serial {entry.get('serial')}] {depth_issue.message}")
+    for issue in check_depth_key(entry, mooring.get("waterdepth")):
+        log.warning(f"  [serial {entry.get('serial')}] {issue.message}")
 
     if file_type == "rdi-raw":
         dataset = _to_canonical_rdi(dataset, entry)

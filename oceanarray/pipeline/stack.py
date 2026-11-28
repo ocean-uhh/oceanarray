@@ -15,7 +15,10 @@ from oceanarray.config.unit_tables import UnitsError
 from oceanarray.exceptions import MooringError
 from oceanarray.history import append_history
 from oceanarray.mooring import catalog
-from oceanarray.mooring.instruments import instrument_entries, nominal_depth
+from oceanarray.mooring.instruments import (
+    instrument_entries,
+    resolve_nominal_depth,
+)
 from oceanarray.mooring.location import (
     is_unknown_latlon_source,
     parse_latlon,
@@ -459,11 +462,15 @@ def stack(  # noqa: C901
         looking_down = str(orientation).lower() == "down"
         # A bin's depth is its own (water depth less its hab), not the head's.
         parent = _stage.normalize_identity_names(ds_adcp)
-        head_depth = (
-            float(parent["instrument_depth"].values)
-            if "instrument_depth" in parent.variables
-            else nominal_depth({"hab": info["hab"]}, mooring_dict.get("waterdepth"))
-        )
+        if "instrument_depth" in parent.variables:
+            head_depth = float(parent["instrument_depth"].values)
+            head_source = parent["instrument_depth"].attrs.get(
+                "depth_source", "unknown"
+            )
+        else:
+            head_depth, head_source = resolve_nominal_depth(
+                {"hab": info["hab"]}, mooring_dict.get("waterdepth")
+            )
         # Rows keep the originator's bin numbers when bins are missing (RODB sets).
         bin_numbers = (
             ds_adcp["bin_number"].values
@@ -493,6 +500,7 @@ def stack(  # noqa: C901
                 "serial": f"{info['serial']}_hd",
                 "hab": float(info["hab"]),
                 "depth": head_depth,
+                "depth_source": head_source,
                 "_adcp_head": True,
                 "_adcp_nc_key": nc_key,
             }
@@ -501,11 +509,13 @@ def stack(  # noqa: C901
         for i in valid_bins:
             r = float(range_vals[i])
             bin_hab = float(info["hab"]) - r if looking_down else float(info["hab"]) + r
-            bin_depth = (
-                head_depth - (bin_hab - float(info["hab"]))
-                if head_depth is not None and np.isfinite(head_depth)
-                else nominal_depth({"hab": bin_hab}, mooring_dict.get("waterdepth"))
-            )
+            if head_depth is not None and np.isfinite(head_depth):
+                bin_depth = head_depth - (bin_hab - float(info["hab"]))
+                bin_source = f"{head_source}, less the bin's range from the head"
+            else:
+                bin_depth, bin_source = resolve_nominal_depth(
+                    {"hab": bin_hab}, mooring_dict.get("waterdepth")
+                )
             if bin_depth is None and head_depth is not None:
                 bin_depth = head_depth - (bin_hab - float(info["hab"]))
             if bin_depth is not None and bin_depth <= 0:
@@ -517,6 +527,7 @@ def stack(  # noqa: C901
                     "serial": f"{info['serial']}_b{int(bin_numbers[i]):02d}",
                     "hab": bin_hab,
                     "depth": bin_depth,
+                    "depth_source": bin_source,
                     "_adcp_bin_idx": i,
                     "_adcp_nc_key": nc_key,
                 }
@@ -591,7 +602,12 @@ def stack(  # noqa: C901
             if info.get("depth") is not None:
                 ds = ds.assign(
                     instrument_depth=xr.Variable(
-                        (), info["depth"], _stage.IDENTITY_ATTRS["instrument_depth"]
+                        (),
+                        info["depth"],
+                        {
+                            **_stage.IDENTITY_ATTRS["instrument_depth"],
+                            "depth_source": info["depth_source"],
+                        },
                     )
                 )
             # A low-passed file (e.g. RODB .lowedt) would be sampled onto the

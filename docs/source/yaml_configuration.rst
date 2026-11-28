@@ -86,7 +86,8 @@ mooring as a whole.
    * - ``waterdepth``
      - number
      - Required
-     - Water depth at the anchor position in metres.
+     - Bathymetric water depth at the site in metres; an instrument's depth is
+       ``waterdepth - hab``.
    * - ``<field>_source``
      - string
      - Optional

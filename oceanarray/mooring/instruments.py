@@ -236,27 +236,65 @@ def hab_for(entry: dict[str, Any]) -> Any:
     return entry.get("hab_bottom")
 
 
-def nominal_depth(entry: dict[str, Any], waterdepth: Any) -> float | None:
-    """Return an instrument's design depth below the surface (m).
+class NominalDepth(NamedTuple):
+    """An instrument's nominal depth (m, positive down) and where it came from."""
+
+    depth: float | None
+    source: str
+
+
+#: ``NominalDepth.source`` values.
+FROM_HAB = "waterdepth - hab"
+FROM_ENTRY = "nominal_depth"
+NO_DEPTH = "none"
+
+
+def resolve_nominal_depth(entry: dict[str, Any], waterdepth: Any) -> NominalDepth:
+    """Return an instrument's nominal depth: its typical depth as deployed, below the surface.
+
+    With a numeric hab and water depth it is ``waterdepth - hab`` (the hab is set by how the
+    mooring is built, the water depth from the bathymetry), whatever ``nominal_depth``
+    says; otherwise the entry's ``nominal_depth``. A ``nominal_depth`` that disagrees
+    with the hab is reported by the mooring check.
 
     Parameters
     ----------
     entry : dict
         The instrument entry of a mooring YAML.
     waterdepth : float or None
-        The mooring's water depth (m).
+        The mooring's water depth (m, from the bathymetry).
 
     Returns
     -------
-    float or None
-        The entry's ``nominal_depth``, else ``waterdepth - hab``; None without either.
+    NominalDepth
+        The depth (None without either) and its source: :data:`FROM_HAB`,
+        :data:`FROM_ENTRY` or :data:`NO_DEPTH`.
+
+    Examples
+    --------
+    >>> resolve_nominal_depth({"hab": 29.5, "nominal_depth": 670.5}, 685)
+    NominalDepth(depth=655.5, source='waterdepth - hab')
+    >>> resolve_nominal_depth({"nominal_depth": 800}, None)
+    NominalDepth(depth=800.0, source='nominal_depth')
     """
-    if entry.get("nominal_depth") is not None:
-        return float(entry["nominal_depth"])
-    hab = hab_for(entry)
-    if hab is None or waterdepth is None:
+    hab, depth = _as_metres(hab_for(entry)), _as_metres(waterdepth)
+    if hab is not None and depth is not None:
+        return NominalDepth(depth - hab, FROM_HAB)
+    given = _as_metres(entry.get("nominal_depth"))
+    if given is not None:
+        return NominalDepth(given, FROM_ENTRY)
+    return NominalDepth(None, NO_DEPTH)
+
+
+def _as_metres(value: Any) -> float | None:
+    """Return *value* as a float, or None when it is not a finite number ("unknown", "")."""
+    if isinstance(value, bool) or value is None:
         return None
-    return float(waterdepth) - float(hab)
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if math.isfinite(number) else None
 
 
 def extract_inline_instruments(

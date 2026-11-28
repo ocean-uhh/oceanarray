@@ -479,6 +479,10 @@ SITE_GRID_PERCENTILES: tuple[float, float] = (5.0, 95.0)
 CONCAT_DEPTH_MATCH: str = "depth"
 CONCAT_DEPTH_TOLERANCE_M: float = 50.0
 
+#: How far (m) an instrument's ``nominal_depth`` or enrich-style ``depth:`` may differ from
+#: ``waterdepth - hab`` before the mooring check calls it stale. The hab wins either way.
+NOMINAL_DEPTH_TOLERANCE_M: float = 1.0
+
 # File types that seasenselib accepts but are deprecated, experimental, or
 # not tied to a primary ``instrument:`` value above.  These remain valid in a
 # mooring YAML but are not the recommended key for any current instrument class.

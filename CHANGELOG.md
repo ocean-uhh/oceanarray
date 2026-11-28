@@ -43,6 +43,7 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Deprecated
 
+- `oceanarray.instruments.nominal_depth` is `mooring.instruments.resolve_nominal_depth` (hab first); the old name keeps `nominal_depth` first and warns until 0.8.0 (#178).
 - `apply_adcp_seabed_qc(fail_margin_m=)` and `apply_adcp_surface_qc(suspect_margin_m=)` warn until 0.8.0 and are ignored: the side-lobe zone follows from the beam angle and cell size (#177).
 - The verbs' folder keywords (`raw_dir=`, `mooring_dir=`, `out_dir=`, ...), a folder or dict for the YAML, `mooring=` and calls without `paths` warn until 0.8.0; same files as before.
 - `paths.mooring_proc_dir`, `raw_mooring_dir`, `resolve_report_dir`, `resolve_pdf_path`, `require_current_layout`'s `proc_root=`/`mooring=` and the file-name functions' old arguments warn until 0.8.0.
@@ -72,7 +73,9 @@ What to do for each: *Upgrading from 0.6.1 to 0.7.0* (`migrating_0_7_0`).
 
 - ADCP `seabed_qc` and `surface_qc`: 4 beyond the boundary and in its side-lobe zone (`D·(1 − cos θ) + cell size`), otherwise 1; no flag 3 and no fixed 20 m margins. Rerun stage 3 (#177).
 - The ADCP beam angle comes from the file or an entry's `beam_angle_deg:`, never a default: without one, no side-lobe zone; the cell size falls back to the bin spacing (#178).
-- An instrument entry's `depth:` (never read) and a negative `nominal_depth` are errors in `oceanarray validate` and `mooring.check`; use `nominal_depth` (m, positive down) or `hab` (#177).
+- An instrument's `depth:` (moordiag `enrich` output) is not read, and a warning when it no longer matches `-(waterdepth - hab)`; a negative `nominal_depth` is an error (#177, #178).
+- With a hab, an instrument's depth is `waterdepth - hab` even when `nominal_depth` is given (it used to win); the mooring report's table no longer reads `depth:` (#178).
+- Stage files written before this change keep their `instrument_depth` until stage 1 is rerun (#178).
 - Grid files name their levels `pmin_dbar` / `pmax_dbar` (were `p_start_dbar` / `p_end_dbar`, still read); the grid defaults are `config.parameters.GRID_*_DBAR`, not `_run.DEFAULTS` (#162).
 - All package errors derive from the new `OceanarrayError`; `StageError` is no longer a `MooringError` and moves to `oceanarray.exceptions` (#161).
 - `qc_ranges: pitch` / `roll` are no longer applied and `pitch_qc` / `roll_qc` are no longer written or stacked: tilt QC is geometric only (`tilt_qc`); the mooring check warns if they are set.

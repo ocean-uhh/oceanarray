@@ -373,16 +373,32 @@ files. The default levels (200 to 1000 dbar every 20 dbar) moved from
 ``oceanarray.config.parameters``: ``GRID_PMIN_DBAR``, ``GRID_PMAX_DBAR`` and
 ``GRID_DP_DBAR`` (and ``STACK_DT_SECONDS`` for the stack's time step).
 
-An instrument's ``depth:`` is an error
---------------------------------------
+An instrument's depth: one resolver, the hab first
+--------------------------------------------------
 
-An instrument entry's depth comes from its ``hab`` (m above the seabed, set by how
-the mooring is built) or from ``nominal_depth`` (m, positive down). ``depth:`` was
-never read, and ``oceanarray validate`` and ``mooring.check`` now report it as an
-ERROR, with or without a ``hab`` beside it, as they do a negative
-``nominal_depth``. Hardware entries keep ``depth:``. Where the entry has a ``hab``,
-remove the ``depth:`` line; otherwise change ``depth: -670.5`` to
-``nominal_depth: 670.5`` (when both are given, ``nominal_depth`` wins).
+An instrument's nominal depth, its typical depth as deployed, is ``waterdepth - hab``
+(the hab is set by how the mooring is built, ``waterdepth`` comes from the
+bathymetry); an entry without a hab uses its ``nominal_depth`` (m, positive down).
+One function gives it everywhere: the stage files, the stack and the report pages
+(the mooring report's table read ``depth:`` first, so it could show another depth
+than the data). When both are given the hab wins, where ``nominal_depth`` used to.
+
+An instrument's ``depth:``, as moordiag's ``enrich`` writes it
+(``-(waterdepth - hab)``), is never read. ``oceanarray validate`` and
+``mooring.check`` warn when it no longer matches the hab and ``waterdepth`` (it is
+stale: rerun ``enrich``, or remove the line), or when the entry has no hab; a
+``nominal_depth`` that differs from ``waterdepth - hab`` is a warning too. A negative
+``nominal_depth`` is an error.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 45 55
+
+   * - Old name
+     - Use instead
+   * - ``oceanarray.instruments.nominal_depth``
+     - ``oceanarray.mooring.instruments.resolve_nominal_depth``, which puts the hab
+       first; the old name keeps 0.6.2's order (``nominal_depth`` first) until 0.8.0
 
 ADCP seabed and surface flags
 -----------------------------
