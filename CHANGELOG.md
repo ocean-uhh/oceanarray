@@ -9,10 +9,11 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Added
 
+- `oa.report_array(array_path, paths)` builds the array index and `oa.recovery_table(mooring_path, paths)` the cruise-report recovery table; `oa.report` builds a mooring's pages only (#NNN).
 - `oa.Paths` and the paths file (`paths.yaml`): where a project's mooring YAMLs, raw, processed, report and export folders are, with exact folders per mooring.
 - A test imports every module with `DeprecationWarning` as an error, so package code never imports a moved module through its old path.
 - Developer guide (`developer`): principles, layers, one idiom per job, vocabulary, naming, branches and pull requests, known deviations; replaces the style guide (#154).
-- `ruff` checks function complexity (`C901`, at most 10); the functions over the limit carry `# noqa: C901` until they are split (developer guide, section 1).
+- `ruff` checks function complexity (`C901`, at most 10); the functions over the limit carry `# noqa: C901` until they are split (developer guide, section 1) (#175).
 - Configuration files page (`configuration_files`): the YAML files, which value wins, finding a mooring by name or by path; a sensor catalog page (`sensor_catalog`) with an example (#154).
 
 ### Changed
@@ -45,6 +46,7 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 - The verbs' folder keywords (`raw_dir=`, `mooring_dir=`, `out_dir=`, ...), a folder or dict for the YAML, `mooring=` and calls without `paths` warn until 0.8.0; same files as before.
 - `paths.mooring_proc_dir`, `raw_mooring_dir`, `resolve_report_dir`, `resolve_pdf_path`, `require_current_layout`'s `proc_root=`/`mooring=` and the file-name functions' old arguments warn until 0.8.0.
 - `plotters.helpers.masked` and `ruled`, removed without a warning, are back as aliases that warn until 0.8.0: use `pipeline.masking.masked` and `mask_rules.STACK_ATTR in ds.attrs`.
+- `report(kind=)` warns until 0.8.0: `kind="array"` is `report_array`, `kind="recovery"` is `recovery_table`, and a mooring's pages need no `kind=` (#NNN).
 - Thirty keywords renamed to say what they carry: the mooring YAML's path is `mooring_path=` (`mooring_paths=`), the array YAML's `array_path=` and its parsed form `array_dict=`, a loaded mooring YAML `mooring_dict=` (`mooring_dicts=`), anything `load` accepts `mooring=`; the old ones warn until 0.8.0. See the 0.7.0 migration page (#174).
 
 ### Fixed
