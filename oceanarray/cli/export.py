@@ -9,7 +9,7 @@ from oceanarray.cli._common import (
     _add_dir_args,
     _folder,
     _mooring_location,
-    _mooring_path_and_paths,
+    _verb_inputs,
 )
 from oceanarray.cli._deprecate import DeprecatedAlias
 
@@ -21,7 +21,8 @@ def cmd_export(args: argparse.Namespace) -> int:
 
     location = _mooring_location(args)
     try:
-        mooring_path, paths = _mooring_path_and_paths(
+        mooring_path, paths = _verb_inputs(
+            args,
             location,
             "export",
             export_dir=args.output_dir or _folder(location) / "oceansites",

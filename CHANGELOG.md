@@ -9,6 +9,9 @@ All notable changes to oceanarray are documented here, one line per change. Upgr
 
 ### Added
 
+- The CLI takes a `*.paths.yaml` right after the command (`process`, `run`, `report`, `export`, `validate`): moorings by name, folders from the file, a folder flag beating the file (#179).
+- `oceanarray run PATHS --array X.array.yaml` and `--all` run each mooring of the array, or every mooring YAML in `yaml_dir` (#179).
+- `oceanarray.mooring.load_array` reads an array YAML; `report_array` finds a mooring YAML in the paths' `yaml_dir` when it is not beside the array YAML (#179).
 - `oa.report_array(array_path, paths)` builds the array index and `oa.recovery_table(mooring_path, paths)` the cruise-report recovery table; `oa.report` builds a mooring's pages only (#176).
 - `oa.Paths` and the paths file (`paths.yaml`): where a project's mooring YAMLs, raw, processed, report and export folders are, with exact folders per mooring.
 - A test imports every module with `DeprecationWarning` as an error, so package code never imports a moved module through its old path.

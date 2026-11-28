@@ -14,16 +14,18 @@ from oceanarray.cli._common import (
     _add_stack_grid_args,
     _folder,
     _mooring_location,
-    _mooring_path_and_paths,
     _parse_stage_token,
+    _paths_mooring_dir,
     _raw_dir,
+    _require_raw_dir,
     _usage_error,
+    _verb_inputs,
 )
 from oceanarray.cli._deprecate import DeprecatedAlias
 from oceanarray.pipeline import STAGES
 
 
-def cmd_process(args: argparse.Namespace) -> int:  # noqa: C901
+def cmd_process(args: argparse.Namespace) -> int:
     """Run stages 1-3 for one mooring through :func:`oceanarray.process`.
 
     By default runs stages 1 (raw → CF-NetCDF), 2 (trim to deployment window +
@@ -42,8 +44,6 @@ def cmd_process(args: argparse.Namespace) -> int:  # noqa: C901
     - ``--plot``: save a PNG overview plot for each instrument alongside the
       stage2 NetCDF file in the proc directory.
     """
-    from ..exceptions import OceanarrayError
-
     location = _mooring_location(args)
     raw_dir = _raw_dir(args)
     # --report alone (no --stage) only prints the summary.
@@ -56,27 +56,45 @@ def cmd_process(args: argparse.Namespace) -> int:  # noqa: C901
 
         ints = sorted({int(s) for s in stages})
         return 0 if _print_stage_plan(args, location, ints, "Process") else 1
-    if 1 in stages and raw_dir is None:
-        _usage_error("--raw-dir is required for stage 1.")
-
+    if 1 in stages:
+        _require_raw_dir(args, location, "--raw-dir is required for stage 1.")
     if products and not args.keep_going:
         _usage_error(
             "--strict does not apply to --stage stack/grid; use "
             "'oceanarray run MOORING --strict' to build the stack and grid."
         )
-    ok = True
+    ok = _process_run(args, location, stages, products, raw_dir)
+    if ok is None:
+        return 1
+    if args.report and not _print_summary(args, location):
+        return 1
+    if args.plot:
+        _save_stage2_plots(_paths_mooring_dir(args, location) or _folder(location))
+    return 0 if ok else 1
+
+
+def _process_run(
+    args: argparse.Namespace,
+    location: Path,
+    stages: list,
+    products: list,
+    raw_dir: Path | None,
+) -> bool | None:
+    """Run the stages asked for; whether all succeeded, or None after an error."""
+    from ..exceptions import OceanarrayError
+
     if products:
         try:
-            ok = _process_with_classes(args, stages, raw_dir)
+            return _process_with_classes(args, stages, raw_dir)
         except OceanarrayError as e:
             logger.status("error", str(e))
-            return 1
-    elif stages:
+            return None
+    if stages:
         from ..pipeline import process
 
         try:
-            mooring_path, paths_ = _mooring_path_and_paths(
-                location, "process", raw_dir=raw_dir
+            mooring_path, paths_ = _verb_inputs(
+                args, location, "process", raw_dir=raw_dir
             )
             process(
                 mooring_path,
@@ -88,21 +106,22 @@ def cmd_process(args: argparse.Namespace) -> int:  # noqa: C901
             )
         except OceanarrayError as e:
             logger.status("error", str(e))
-            return 1
+            return None
+    return True
 
-    if args.report:
-        from ..reports import summary
 
-        logger.status("section", f"Record Summary: {args.mooring}")
-        try:
-            print(summary(location))
-        except OceanarrayError as e:
-            logger.status("error", str(e))
-            return 1
+def _print_summary(args: argparse.Namespace, location: Path) -> bool:
+    """Print the per-instrument record summary; False after an error."""
+    from ..exceptions import OceanarrayError
+    from ..reports import summary
 
-    if args.plot:
-        _save_stage2_plots(_folder(location))
-    return 0 if ok else 1
+    logger.status("section", f"Record Summary: {args.mooring}")
+    try:
+        print(summary(location, mooring_dir=_paths_mooring_dir(args, location)))
+    except OceanarrayError as e:
+        logger.status("error", str(e))
+        return False
+    return True
 
 
 def _process_with_classes(
