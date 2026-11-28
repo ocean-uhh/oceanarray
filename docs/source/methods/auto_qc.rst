@@ -334,6 +334,29 @@ exceeds the threshold:
      - —
      - > 0.3 m s⁻¹
 
+**ADCP seabed and surface QC** — ``seabed_qc(time, N_BINS)`` and
+``surface_qc(time, N_BINS)``, kept apart from the velocity flags (an OceanSITES export
+merges ``seabed_qc`` into each velocity's ``_QC``). One rule for both boundaries:
+
+- 4 beyond the boundary: a bin below the seabed (``waterdepth``) or at or above the
+  surface;
+- 4 in the water within ``D·(1 − cos θ) + cell size`` of the boundary, when the ADCP
+  looks toward it (down for the seabed, up for the surface): the side-lobe zone, where
+  the beams' side lobes reach the boundary before the main lobe. ``D`` is the
+  transducer-to-boundary distance (from the head's pressure, per ensemble), ``θ`` the
+  beam angle;
+- otherwise 1.
+
+The beam angle and cell size come from the instrument (``beam_angle_deg``,
+``cell_size_m``); without them stage 3 uses ``config.parameters.ADCP_BEAM_ANGLE_DEG``
+(20°) and the bin spacing, logs a warning, and the flag's attributes record the values
+and where they came from (``beam_angle_source``, ``cell_size_source``).
+
+Without a side-lobe zone only the bins beyond the boundary get 4, and the flag's
+``side_lobe_zone`` attribute says why: the ADCP looks away from the boundary, its
+orientation is unknown, or it has no head pressure. Profiles without a head pressure get
+no zone either, with a warning; ``profiles_without_head_pressure`` counts them.
+
 Configuration
 -------------
 

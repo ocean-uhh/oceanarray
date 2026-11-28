@@ -583,9 +583,21 @@ def _dune2_with_depth_key(tmp_path, *, drop_hab=False):
     return path
 
 
-@pytest.mark.parametrize(("drop_hab", "level"), [(False, "WARNING"), (True, "ERROR")])
-def test_depth_key_is_not_read(tmp_path, drop_hab, level):
-    """depth: warns; with neither nominal_depth nor hab it is an error."""
+@pytest.mark.parametrize("drop_hab", [False, True])
+def test_depth_key_is_an_error(tmp_path, drop_hab):
+    """An instrument's depth: is an error, with or without a hab beside it."""
     issues = mooring.check(_dune2_with_depth_key(tmp_path, drop_hab=drop_hab))
     found = [i for i in issues if "depth is not read" in i.message]
-    assert [(i.level, "2941" in i.message) for i in found] == [(level, True)]
+    assert [(i.level, "2941" in i.message) for i in found] == [("ERROR", True)]
+
+
+def test_negative_nominal_depth_is_an_error(tmp_path):
+    """nominal_depth is positive down: -670.5 (the old depth: spelling) is an error."""
+    text = _DUNE2_YAML.read_text().replace(
+        "- serial: 2941\n", "- serial: 2941\n  nominal_depth: -670.5\n", 1
+    )
+    d = tmp_path / "dune2_1_2026"
+    d.mkdir()
+    (d / _DUNE2_YAML.name).write_text(text)
+    found = [i for i in mooring.check(d / _DUNE2_YAML.name) if "negative" in i.message]
+    assert [(i.level, "2941" in i.message) for i in found] == [("ERROR", True)]
