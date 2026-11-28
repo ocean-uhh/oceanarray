@@ -109,7 +109,7 @@ def test_site_code_only_from_the_array_description(description: dict) -> None:
     ds = xr.open_dataset(_MICROCAT)
     assert "site_code" not in to_oceansites(ds, description).attrs
     out = to_oceansites(
-        ds, description, array={"site_code": "MIXSED", "project": "MIXSED"}
+        ds, description, array_dict={"site_code": "MIXSED", "project": "MIXSED"}
     )
     assert out.attrs["site_code"] == "MIXSED"
 
