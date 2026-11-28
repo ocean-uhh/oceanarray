@@ -1,4 +1,4 @@
-"""Load one mooring YAML (``*.mooring.yaml``) and refuse it if it has an ERROR.
+"""Load one mooring YAML (``*.mooring.yaml``) and refuse it if it has an ERROR; read an array YAML.
 
 The one seam for reading a mooring YAML: every stage and report receives the loaded
 dict. Imported in the package as ``from oceanarray import mooring as _mooring`` so a
@@ -113,3 +113,27 @@ def load(
         summary = "; ".join(i.message for i in errors)
         raise MooringError(f"Invalid mooring config: {summary}", issues)
     return data
+
+
+def load_array(array_path: str | PathLike) -> dict:
+    """Read an array YAML (``*.array.yaml``).
+
+    Parameters
+    ----------
+    array_path : str or os.PathLike
+        The ``*.array.yaml`` file.
+
+    Returns
+    -------
+    dict
+
+    Raises
+    ------
+    MooringError
+        The file is not a YAML mapping.
+    """
+    with Path(array_path).open(encoding="utf-8") as f:
+        data = yaml.safe_load(f)
+    if not isinstance(data, Mapping):
+        raise MooringError(f"{array_path}: not an array YAML (a YAML mapping)")
+    return dict(data)

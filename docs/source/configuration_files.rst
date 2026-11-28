@@ -122,8 +122,17 @@ path and a ``Paths``, and take every folder from it:
    oa.recovery_table(mooring_path, paths)    # recovery table in paths.report_mooring_dir
    oa.report_array("MIXSED2026.array.yaml", paths)  # array index in paths.report_dir
 
-Coming next: the command line takes a paths file (``--paths``); until then it
-builds a ``Paths`` from ``--raw-dir``, ``--proc-dir``, ``--report-dir`` and ``-o``.
+On the command line, a ``*.paths.yaml`` given right after the command (recognised
+by its suffix) does the same, and the mooring can then be given by name. A folder
+flag (``--raw-dir``, ``--proc-dir``, ``--report-dir``, ``-o``) replaces that one
+folder of the file, also a mooring's own folder under ``moorings:``; without a paths file, the flags give the folders as before
+(:ref:`cli_reference`).
+
+.. code-block:: bash
+
+   oceanarray run osnap.paths.yaml M2_2016
+   oceanarray run osnap.paths.yaml --array OSNAPeast_2016.array.yaml   # each mooring it lists
+   oceanarray run osnap.paths.yaml --all                               # every mooring YAML in yaml_dir
 
 Each mooring YAML stands alone
 ------------------------------

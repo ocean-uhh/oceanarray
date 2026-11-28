@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
 from oceanarray.cli._common import (
@@ -15,13 +16,60 @@ from oceanarray.cli._common import (
     _folder,
     _mask_flags,
     _mooring_location,
-    _mooring_path_and_paths,
+    _named_mooring_path,
     _raw_dir,
+    _require_raw_dir,
     _usage_error,
+    _verb_inputs,
 )
 
 
 def cmd_run(args: argparse.Namespace) -> int:
+    """Run one mooring, or each of ``--array`` / ``--all``; 1 if any failed."""
+    if not (args.array or args.all_moorings):
+        if args.mooring is None:
+            _usage_error("give a MOORING, or --array / --all after a paths file.")
+        return _run_one(args, _mooring_location(args))
+    cli_paths = getattr(args, "cli_paths", None)
+    if cli_paths is None:
+        _usage_error("--array and --all need a <project>.paths.yaml first.")
+    if args.mooring is not None:
+        _usage_error("give a MOORING or --array / --all, not both.")
+    if args.array:
+        mooring_paths = [
+            _named_mooring_path(cli_paths, name) for name in _array_moorings(args.array)
+        ]
+    else:
+        mooring_paths = cli_paths.mooring_paths()
+    failed = [p for p in mooring_paths if _run_one(args, p) != 0]
+    for path in failed:
+        print(f"ERROR: {path.name} failed", file=sys.stderr)
+    return 1 if failed else 0
+
+
+def _array_moorings(array_path: Path) -> list[str]:
+    """Return the mooring names an array YAML lists, in its order, or exit."""
+    import yaml
+
+    from oceanarray import mooring as _mooring
+    from oceanarray.exceptions import OceanarrayError
+
+    try:
+        array_dict = _mooring.load_array(array_path)
+    except (OSError, yaml.YAMLError, OceanarrayError) as e:
+        raise SystemExit(f"ERROR: cannot read {array_path}: {e}") from None
+    entries = array_dict.get("moorings") or []
+    names = [
+        str(e["mooring"]) for e in entries if isinstance(e, dict) and e.get("mooring")
+    ]
+    if not names:
+        raise SystemExit(
+            f"ERROR: {array_path} lists no moorings (moorings: - mooring: NAME)."
+        )
+    return names
+
+
+def _run_one(args: argparse.Namespace, location: Path) -> int:
     """Run stages 1-3, the stack, the grid and all reports for one mooring.
 
     Calls :func:`oceanarray.run`, then builds the reports (summary,
@@ -40,7 +88,6 @@ def cmd_run(args: argparse.Namespace) -> int:
     from ..pipeline import run as _run
     from ..pipeline._run import _resolve_stages
 
-    location = _mooring_location(args)
     raw_dir = _raw_dir(args)
     try:
         wanted = _resolve_stages(
@@ -51,15 +98,18 @@ def cmd_run(args: argparse.Namespace) -> int:
         return 1
     if args.dry_run:
         return _run_dry_run(args, location, wanted)
-    if wanted and wanted[0] == 1 and raw_dir is None:
-        _usage_error(
+    if wanted and wanted[0] == 1:
+        _require_raw_dir(
+            args,
+            location,
             "--raw-dir is required for stage 1 (or pass --from 2 to start "
-            "from the stage-1 files)."
+            "from the stage-1 files).",
         )
 
     serials = args.serials
     try:
-        mooring_path, paths = _mooring_path_and_paths(
+        mooring_path, paths = _verb_inputs(
+            args,
             location,
             "run",
             raw_dir=raw_dir,
@@ -104,7 +154,8 @@ def cmd_run(args: argparse.Namespace) -> int:
 
 def _run_dry_run(args: argparse.Namespace, location: Path, wanted: list[int]) -> int:
     """Print the files a run would write, from the mooring YAML; write nothing."""
-    from oceanarray import paths
+    from oceanarray import logger, paths
+    from oceanarray.exceptions import OceanarrayError
     from oceanarray.reports import report_paths
 
     from ._common import _print_stage_plan
@@ -118,7 +169,15 @@ def _run_dry_run(args: argparse.Namespace, location: Path, wanted: list[int]) ->
         print(
             f"{product.capitalize()}:  {f}  (rebuilt from the stage-{args.stack_stage} files)"
         )
-    where = report_paths(location, out_dir=args.outdir, report_dir=args.report_dir)
+    cli_paths = getattr(args, "cli_paths", None)
+    try:
+        out_dir = args.outdir or (
+            cli_paths.report_mooring_dir(name) if cli_paths is not None else None
+        )
+    except OceanarrayError as e:
+        logger.status("error", str(e))
+        return 1
+    where = report_paths(location, out_dir=out_dir, report_dir=args.report_dir)
     print(f"Report:  {where['summary']}  (and the stack, grid and instrument pages)")
     return 0
 
@@ -147,8 +206,23 @@ def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p_run.add_argument("mooring", help=_MOORING_HELP)
+    p_run.add_argument("mooring", nargs="?", default=None, help=_MOORING_HELP)
     _add_dir_args(p_run, raw_needed=True)
+    p_run.add_argument(
+        "--array",
+        type=Path,
+        default=None,
+        metavar="YAML",
+        help="Run every mooring the <array>.array.yaml lists, by name through the "
+        "paths file (needs a <project>.paths.yaml first).",
+    )
+    p_run.add_argument(
+        "--all",
+        action="store_true",
+        dest="all_moorings",
+        help="Run every mooring YAML in the paths file's yaml_dir (needs a "
+        "<project>.paths.yaml first).",
+    )
     p_run.add_argument(
         "--force", action="store_true", help="Overwrite existing files at every stage"
     )

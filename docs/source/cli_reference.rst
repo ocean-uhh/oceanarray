@@ -12,17 +12,28 @@ whole pipeline (stages 1–3, stack, grid, report) in one command, and
 as well as ``oceanarray``.
 
 ``validate``, ``process``, ``run``, ``report``, ``export``, ``plot`` and
-``animate`` take the mooring as the first positional argument, in either of two
+``animate`` take the mooring as the first positional argument, in one of three
 forms:
 
 - the path to its ``*.mooring.yaml``, or to the folder holding it — the folder can
   have any name, and every file is named from the mooring YAML's ``name:``;
+- after a paths file (``validate``, ``process``, ``run``, ``report``, ``export``),
+  the mooring's name: its YAML is ``{yaml_dir}/{name}.mooring.yaml`` and every
+  folder comes from the file (:ref:`paths-file`);
 - with ``--proc-dir``, the mooring's name: the folder is ``{proc_dir}/{name}``.
 
 .. code-block:: bash
 
    oceanarray run /data/proc/dsG3_1_2026/dsG3_1_2026.mooring.yaml --raw-dir /data/raw
    oceanarray run dsG3_1_2026 --proc-dir /data/proc --raw-dir /data/raw   # the same
+   oceanarray run osnap.paths.yaml dsG3_1_2026                             # folders from the file
+
+The paths file goes right after the command and is recognised by its suffix,
+``.paths.yaml``; it is never looked for in the current folder. A folder flag given
+with it (``--raw-dir``, ``--proc-dir``, ``--report-dir``, ``-o``) replaces that one
+folder of the file, also where the file gives a mooring its own folder. With a paths file, ``run --array X.array.yaml`` runs each
+mooring the array YAML lists, and ``run --all`` every mooring YAML in ``yaml_dir``;
+the run goes on to the next mooring when one fails, and exits 1 if any failed.
 
 ``--only SERIAL ...`` restricts a command to those instruments (``--serial`` is the
 old spelling, accepted until 0.7.0).  Progress goes to stderr through standard

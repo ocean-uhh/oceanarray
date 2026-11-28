@@ -9,9 +9,9 @@ from pathlib import Path
 from typing import Any
 
 import xarray as xr
-import yaml
 
 from oceanarray import _deprecated
+from oceanarray import mooring as _mooring
 from oceanarray.exceptions import MooringError
 from oceanarray.mooring.instruments import instrument_entries
 from oceanarray.paths import Paths, product_file, safe_serial, stage_file
@@ -36,11 +36,7 @@ def _read_array_dict(given: str | PathLike | Mapping | None) -> Mapping:
         return {}
     if isinstance(given, Mapping):
         return given
-    with Path(given).open() as f:
-        data = yaml.safe_load(f)
-    if not isinstance(data, Mapping):
-        raise MooringError(f"{given}: not an array YAML (a YAML mapping)")
-    return data
+    return _mooring.load_array(given)
 
 
 def _put(out: xr.Dataset, target: Path, *, overwrite: bool, dry_run: bool) -> Path:

@@ -28,7 +28,7 @@ from oceanarray.mooring import location
 from oceanarray.mooring.instruments import instrument_entries
 
 from ..config.unit_tables import unit_label
-from ..paths import safe_serial
+from ..paths import Paths, safe_serial
 from ..plotters.helpers import grid_despine
 from . import _masthead
 from ._breadcrumb import page_crumbs
@@ -572,23 +572,34 @@ def _mooring_yaml(mooring_path: Path) -> dict[str, Any]:
             return yaml.safe_load(fh) or {}
 
 
+def _mooring_yaml_path(
+    entry: dict[str, Any], array_dir: Path, proc_dir: Path, paths: Paths | None
+) -> Path:
+    """Return the mooring YAML an array entry names, wherever it is."""
+    mooring_id = entry.get("mooring", "")
+    mooring_path = Path(entry.get("config", f"{mooring_id}.mooring.yaml"))
+    if mooring_path.is_absolute():
+        return mooring_path
+    beside = array_dir / mooring_path
+    if beside.exists():
+        return beside
+    if paths is not None and (
+        paths.yaml_dir is not None or "yaml_dir" in paths.moorings.get(mooring_id, {})
+    ):
+        return paths.mooring_path(mooring_id)
+    return proc_dir / mooring_id / mooring_path
+
+
 def _mooring_row(
     entry: dict[str, Any],
     array_dir: Path,
     proc_dir: Path,
     report_dir: Path | None,
+    paths: Paths | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """Return one mooring's table row and its instruments' status records."""
     mooring_id = entry.get("mooring", "")
-    # A config path is relative to the array YAML (or absolute); the per-mooring
-    # proc-dir convention is the fallback.
-    mooring_path = Path(entry.get("config", f"{mooring_id}.mooring.yaml"))
-    if not mooring_path.is_absolute():
-        beside = array_dir / mooring_path
-        mooring_path = (
-            beside if beside.exists() else proc_dir / mooring_id / mooring_path
-        )
-    mooring_dict = _mooring_yaml(mooring_path)
+    mooring_dict = _mooring_yaml(_mooring_yaml_path(entry, array_dir, proc_dir, paths))
     lat, lon = _resolve_lat_lon(mooring_dict)
     deploy_dt = _parse_dt(mooring_dict.get("deployment_time"))
     recover_dt = _parse_dt(mooring_dict.get("recovery_time"))
@@ -638,7 +649,22 @@ def _mooring_row(
     return row, instrs
 
 
-def generate_array_report(  # noqa: C901
+def _warn_ignored_keys(
+    array_path: Path, array_dict: dict[str, Any], entries: list[dict[str, Any]]
+) -> None:
+    """Warn about array YAML keys the year page does not use."""
+    ignored = [k for k in IGNORED_KEYS if k in array_dict] + (
+        ["moorings: line (now subarray)"] if any("line" in e for e in entries) else []
+    )
+    if ignored:
+        _log.warning(
+            "%s: keys not used by the year page: %s",
+            array_path.name,
+            ", ".join(ignored),
+        )
+
+
+def generate_array_report(
     array_path: Path,
     proc_dir: Path,
     out_path: Path | None = None,
@@ -646,6 +672,7 @@ def generate_array_report(  # noqa: C901
     report_dir: Path | None = None,
     breadcrumb: list[tuple[str, str | None]] | None = None,
     bathymetry: Path | None = None,
+    paths: Paths | None = None,
 ) -> Path | None:
     """Generate the year page from an array YAML file.
 
@@ -671,6 +698,8 @@ def generate_array_report(  # noqa: C901
     bathymetry : Path, optional
         A bathymetry file (GEBCO or ETOPO) for the map's depth contours; without
         it the map has none.
+    paths : oceanarray.Paths, optional
+        Its ``yaml_dir`` holds the mooring YAMLs not beside the array YAML.
 
     Returns
     -------
@@ -682,8 +711,7 @@ def generate_array_report(  # noqa: C901
     if not array_path.exists():
         _log.warning("array YAML not found: %s", array_path)
         return None
-    with array_path.open() as fh:
-        array_dict = yaml.safe_load(fh)
+    array_dict = _mooring.load_array(array_path)
     array_name = array_dict.get("name", array_path.stem)
     if out_path is None:
         out_path = (report_dir or proc_dir) / f"{array_name}_array_report.html"
@@ -693,18 +721,12 @@ def generate_array_report(  # noqa: C901
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     entries = array_dict.get("moorings", [])
-    ignored = [k for k in IGNORED_KEYS if k in array_dict] + (
-        ["moorings: line (now subarray)"] if any("line" in e for e in entries) else []
-    )
-    if ignored:
-        _log.warning(
-            "%s: keys not used by the year page: %s",
-            array_path.name,
-            ", ".join(ignored),
-        )
+    _warn_ignored_keys(array_path, array_dict, entries)
     rows, instruments = [], []
     for entry in entries:
-        row, instrs = _mooring_row(entry, array_path.parent, proc_dir, report_dir)
+        row, instrs = _mooring_row(
+            entry, array_path.parent, proc_dir, report_dir, paths
+        )
         rows.append(row)
         instruments.extend(instrs)
     # One colour per subarray, "other" last; without subarrays, one per mooring.

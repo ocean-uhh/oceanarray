@@ -13,14 +13,14 @@ from oceanarray.cli._common import (
     _add_shared_report_args,
     _folder,
     _mooring_location,
-    _mooring_path_and_paths,
     _resolve_dirs,
+    _verb_inputs,
 )
 from oceanarray.cli._deprecate import DeprecatedAlias
 from oceanarray.paths import Paths
 
 
-def cmd_report(args: argparse.Namespace) -> int:  # noqa: C901
+def cmd_report(args: argparse.Namespace) -> int:
     """Build a mooring's report pages, an array index or a recovery table, through :func:`oceanarray.report`, :func:`~oceanarray.report_array` or :func:`~oceanarray.recovery_table`.
 
     Without ``--array``: the mooring summary page, plus ``--instruments``,
@@ -31,40 +31,12 @@ def cmd_report(args: argparse.Namespace) -> int:  # noqa: C901
     array index linking each mooring's report is built; the other report flags
     are ignored.
     """
-    from ..exceptions import OceanarrayError
-    from ..reports import recovery_table, report, report_array
-
     raw_dir, proc_root = _resolve_dirs(args, proc_required=False)
     report_dir = getattr(args, "report_dir", None)
     outdir = getattr(args, "outdir", None)
 
     if getattr(args, "array", False):
-        if getattr(args, "pdf", False) or getattr(args, "all_reports", False):
-            logger.status(
-                "error",
-                "--pdf is not supported in --array mode; the array index is "
-                "HTML-only. Run 'report MOORING --pdf' per mooring instead.",
-            )
-        if outdir:
-            logger.status(
-                "error",
-                "-o/--output-dir is ignored in --array mode; the array index "
-                "goes to the tree root. Use --report-dir to set it.",
-            )
-        try:
-            report_array(
-                args.mooring,
-                Paths(
-                    proc_dir=proc_root or Path(args.mooring).parent,
-                    report_dir=report_dir,
-                ),
-                force=args.force,
-                bathymetry=getattr(args, "bathymetry", None),
-            )
-        except OceanarrayError as e:
-            logger.status("error", str(e))
-            return 1
-        return 0
+        return _report_array(args, proc_root, report_dir, outdir)
 
     # Array mode treats the positional as a YAML path, not a mooring name, so the
     # per-mooring layout check applies only here.
@@ -87,10 +59,71 @@ def cmd_report(args: argparse.Namespace) -> int:  # noqa: C901
             do_grid,
             want_pdf,
         )
+    page = _report_pages(
+        args, moor_dir, raw_dir, report_dir, outdir, (do_instruments, do_stack, do_grid)
+    )
+    if page is None:
+        return 1
+    if want_pdf:
+        return _report_pdf(args, moor_dir, page)
+    return 0
 
+
+def _report_array(
+    args: argparse.Namespace,
+    proc_root: Path | None,
+    report_dir: str | None,
+    outdir: str | None,
+) -> int:
+    """Build the array index of ``--array``; 1 after an error."""
+    from ..exceptions import OceanarrayError
+    from ..reports import report_array
+
+    if getattr(args, "pdf", False) or getattr(args, "all_reports", False):
+        logger.status(
+            "error",
+            "--pdf is not supported in --array mode; the array index is "
+            "HTML-only. Run 'report MOORING --pdf' per mooring instead.",
+        )
+    if outdir:
+        logger.status(
+            "error",
+            "-o/--output-dir is ignored in --array mode; the array index "
+            "goes to the tree root. Use --report-dir to set it.",
+        )
+    array_paths = getattr(args, "cli_paths", None) or Paths(
+        proc_dir=proc_root or Path(args.mooring).parent, report_dir=report_dir
+    )
+    try:
+        report_array(
+            args.mooring,
+            array_paths,
+            force=args.force,
+            bathymetry=getattr(args, "bathymetry", None),
+        )
+    except OceanarrayError as e:
+        logger.status("error", str(e))
+        return 1
+    return 0
+
+
+def _report_pages(
+    args: argparse.Namespace,
+    moor_dir: Path,
+    raw_dir: Path | None,
+    report_dir: str | None,
+    outdir: str | None,
+    pages: tuple[bool, bool, bool],
+) -> Path | None:
+    """Build the mooring's pages; the summary page, or None after an error."""
+    from ..exceptions import OceanarrayError
+    from ..reports import recovery_table, report
+
+    do_instruments, do_stack, do_grid = pages
     folder = _folder(moor_dir)
     try:
-        mooring_path, paths_ = _mooring_path_and_paths(
+        mooring_path, paths_ = _verb_inputs(
+            args,
             moor_dir,
             "report",
             raw_dir=raw_dir,
@@ -103,14 +136,15 @@ def cmd_report(args: argparse.Namespace) -> int:  # noqa: C901
             instruments=do_instruments,
             stack=do_stack,
             grid=do_grid,
-            serials=serials,
+            serials=args.serials,
             sig_level=getattr(args, "sig_level", None),
             force=args.force,
             skip_existing=getattr(args, "skip_existing", False),
         )
         if getattr(args, "cruise_table", False):
             # The recovery table's default folder is the mooring's own.
-            _, table_paths = _mooring_path_and_paths(
+            _, table_paths = _verb_inputs(
+                args,
                 moor_dir,
                 "report",
                 report_dir=report_dir,
@@ -119,25 +153,30 @@ def cmd_report(args: argparse.Namespace) -> int:  # noqa: C901
             recovery_table(mooring_path, table_paths, force=args.force)
     except OceanarrayError as e:
         logger.status("error", str(e))
-        return 1
-    if want_pdf:
-        from ..reports._verb import _combine_pdf, _resolve_name_and_dir, report_paths
+        return None
+    return page
 
-        name, _ = _resolve_name_and_dir(moor_dir, None)
-        pdf_dir = getattr(args, "pdf_dir", None)
-        where = report_paths(moor_dir, out_dir=page.parent, pdf_dir=pdf_dir)
-        try:
-            _combine_pdf(name, page.parent, where["pdf"])
-        except OceanarrayError as e:
-            # An explicit --pdf that cannot be honoured is a failure; a PDF only
-            # implied by --all is best-effort, so the HTML result stands.
-            logger.status("error", str(e))
-            if getattr(args, "pdf", False):
-                return 1
+
+def _report_pdf(args: argparse.Namespace, moor_dir: Path, page: Path) -> int:
+    """Combine the pages beside *page* into the PDF; 1 if an explicit ``--pdf`` fails."""
+    from ..exceptions import OceanarrayError
+    from ..reports._verb import _combine_pdf, _resolve_name_and_dir, report_paths
+
+    name, _ = _resolve_name_and_dir(moor_dir, None)
+    pdf_dir = getattr(args, "pdf_dir", None)
+    where = report_paths(moor_dir, out_dir=page.parent, pdf_dir=pdf_dir)
+    try:
+        _combine_pdf(name, page.parent, where["pdf"])
+    except OceanarrayError as e:
+        # An explicit --pdf that cannot be honoured is a failure; a PDF only
+        # implied by --all is best-effort, so the HTML result stands.
+        logger.status("error", str(e))
+        if getattr(args, "pdf", False):
+            return 1
     return 0
 
 
-def _report_dry_run(  # noqa: C901
+def _report_dry_run(
     args: argparse.Namespace,
     moor_dir: Path,
     outdir: str | None,
@@ -149,20 +188,17 @@ def _report_dry_run(  # noqa: C901
 ) -> int:
     """Print the pages a report run would write, at the paths it would write them to."""
     from oceanarray import logger
-    from oceanarray.mooring import check_yaml as _mooring
-    from oceanarray.mooring.instruments import instrument_entries
     from oceanarray.reports import report_paths
-    from oceanarray.reports._verb import (
-        _recovery_path,
-        _resolve_description_file,
-        _resolve_name_and_dir,
-    )
+    from oceanarray.reports._verb import _recovery_path, _resolve_name_and_dir
 
     from ..exceptions import OceanarrayError
 
     logger.status("section", f"Report (dry run): {args.mooring}")
+    cli_paths = getattr(args, "cli_paths", None)
     try:
         name, _ = _resolve_name_and_dir(moor_dir, None)
+        if outdir is None and cli_paths is not None:
+            outdir = cli_paths.report_mooring_dir(name)
     except OceanarrayError as e:
         logger.status("error", str(e))
         return 1
@@ -172,45 +208,56 @@ def _report_dry_run(  # noqa: C901
         report_dir=report_dir,
         pdf_dir=getattr(args, "pdf_dir", None),
     )
-
-    def _state(p: Path) -> str:
-        """Return whether *p* already exists, for the listing."""
-        return "exists" if p.exists() else "new"
-
     print(f"Summary:  {where['summary']}  ({_state(where['summary'])})")
     if do_stack:
         print(f"Stack:    {where['stack']}  ({_state(where['stack'])})")
     if do_grid:
         print(f"Grid:     {where['grid']}  ({_state(where['grid'])})")
-    mooring_path = _resolve_description_file(moor_dir, _folder(moor_dir), name)
-    if do_instruments and mooring_path.exists():
-        # A dry run is a preview — never raise on a half-filled config. Show the
-        # validation issues (as `validate` would), then list whatever the file
-        # parses to; only a file that is not YAML at all stops the listing.
-        mooring_dict = _mooring._parse(mooring_path)
-        if mooring_dict is None:
-            print(f"  (cannot preview instruments: {mooring_path} is not valid YAML)")
-        else:
-            for issue in _mooring.check(mooring_path):
-                print(f"  {issue.level.lower()}: {issue.message}")
-            only = {paths.safe_serial(s) for s in args.serials or []}
-            for entry in instrument_entries(mooring_dict):
-                if not isinstance(entry, dict):
-                    continue
-                serial = paths.safe_serial(entry.get("serial", ""))
-                if only and serial not in only:
-                    continue
-                instr_type = entry.get("instrument", "unknown")
-                p = where["instrument_dir"] / f"{name}_{serial}_report.html"
-                print(
-                    f"  Instrument {instr_type:12s} s/n {serial:8s}  {p}  ({_state(p)})"
-                )
+    if do_instruments:
+        _print_instrument_pages(args, moor_dir, name, where["instrument_dir"])
     if getattr(args, "cruise_table", False):
         table = _recovery_path(name, _folder(moor_dir), outdir, report_dir)
         print(f"Recovery: {table}  ({_state(table)})")
     if want_pdf:
         print(f"PDF:      {where['pdf']}  (combined from the HTML pages above)")
     return 0
+
+
+def _state(p: Path) -> str:
+    """Return whether *p* already exists, for the listing."""
+    return "exists" if p.exists() else "new"
+
+
+def _print_instrument_pages(
+    args: argparse.Namespace, moor_dir: Path, name: str, instrument_dir: Path
+) -> None:
+    """Print each instrument page a report run would write."""
+    from oceanarray.mooring import check_yaml as _mooring
+    from oceanarray.mooring.instruments import instrument_entries
+    from oceanarray.reports._verb import _resolve_description_file
+
+    mooring_path = _resolve_description_file(moor_dir, _folder(moor_dir), name)
+    if not mooring_path.exists():
+        return
+    # A dry run is a preview — never raise on a half-filled config. Show the
+    # validation issues (as `validate` would), then list whatever the file
+    # parses to; only a file that is not YAML at all stops the listing.
+    mooring_dict = _mooring._parse(mooring_path)
+    if mooring_dict is None:
+        print(f"  (cannot preview instruments: {mooring_path} is not valid YAML)")
+        return
+    for issue in _mooring.check(mooring_path):
+        print(f"  {issue.level.lower()}: {issue.message}")
+    only = {paths.safe_serial(s) for s in args.serials or []}
+    for entry in instrument_entries(mooring_dict):
+        if not isinstance(entry, dict):
+            continue
+        serial = paths.safe_serial(entry.get("serial", ""))
+        if only and serial not in only:
+            continue
+        instr_type = entry.get("instrument", "unknown")
+        p = instrument_dir / f"{name}_{serial}_report.html"
+        print(f"  Instrument {instr_type:12s} s/n {serial:8s}  {p}  ({_state(p)})")
 
 
 def build_parser(sub: argparse._SubParsersAction) -> None:  # type: ignore[type-arg]

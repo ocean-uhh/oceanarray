@@ -3,14 +3,17 @@
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import logging
 import sys
+from collections.abc import Collection
 from pathlib import Path
 from typing import NoReturn
 
 from oceanarray import paths
 from oceanarray.cli._deprecate import DeprecatedAlias
 from oceanarray.config import parameters as params
+from oceanarray.exceptions import OceanarrayError
 from oceanarray.paths import Paths
 from oceanarray.pipeline import resolve_stage
 
@@ -48,8 +51,119 @@ def _resolve_dirs(
     return Path(raw_dir) if raw_dir else None, Path(proc_dir)
 
 
+#: A paths file is recognised by this suffix when it is a command's first argument.
+PATHS_FILE_SUFFIX = ".paths.yaml"
+
+#: The folder flags that override one field of a paths file.
+_PATHS_FLAGS = ("raw_dir", "proc_dir", "report_dir")
+
+
+def _split_paths_file(
+    argv: list[str], commands: Collection[str]
+) -> tuple[list[str], str | None]:
+    """Return *argv* without the paths file after the command, and that file."""
+    for i, token in enumerate(argv):
+        if token.startswith("-"):
+            continue
+        if (
+            token in commands
+            and argv[i + 1 : i + 2]
+            and argv[i + 1].endswith(PATHS_FILE_SUFFIX)
+        ):
+            return argv[: i + 1] + argv[i + 2 :], argv[i + 1]
+        break
+    return argv, None
+
+
+def _cli_paths(paths_file: str | None, args: argparse.Namespace) -> Paths | None:
+    """Return the paths file's Paths with the folder flags on top, or None."""
+    if paths_file is None:
+        return None
+    try:
+        found = Paths.from_file(paths_file)
+    except OceanarrayError as e:
+        raise SystemExit(f"ERROR: {e}") from None
+    given = {
+        field: Path(value).expanduser()
+        for field in _PATHS_FLAGS
+        if (value := getattr(args, field, None))
+    }
+    if not given:
+        return found
+    # A flag comes last and wins, over a mooring's exact folder too.
+    moorings = {
+        name: {k: v for k, v in fields.items() if k not in given}
+        for name, fields in found.moorings.items()
+    }
+    sources = {**found.sources, **dict.fromkeys(given, "given")}
+    return dataclasses.replace(found, **given, moorings=moorings, sources=sources)
+
+
+def _is_bare_name(given: str) -> bool:
+    """Return whether *given* is a mooring name rather than a path."""
+    return Path(given).name == given and not given.endswith(".yaml")
+
+
+def _named_mooring_path(cli_paths: Paths, given: str) -> Path:
+    """Return the mooring YAML for *given* (a path, or a name in the paths file), or exit."""
+    if not _is_bare_name(given):
+        if not Path(given).exists():
+            raise SystemExit(f"ERROR: {given} not found.")
+        return Path(given)
+    try:
+        found = cli_paths.mooring_path(given)
+    except OceanarrayError as e:
+        raise SystemExit(f"ERROR: {e}") from None
+    if not found.is_file():
+        raise SystemExit(
+            f"ERROR: no {found}: {given} is not a mooring YAML in the paths file's "
+            "yaml_dir."
+        )
+    return found
+
+
+def _paths_mooring_dir(args: argparse.Namespace, location: Path) -> Path | None:
+    """Return the mooring's processed-data folder from the paths file, or None without one."""
+    cli_paths = getattr(args, "cli_paths", None)
+    if cli_paths is None:
+        return None
+    return cli_paths.mooring_dir(_location_name(location, "process"))
+
+
+def _location_mooring_path(location: Path, command: str) -> Path:
+    """Return the mooring YAML at *location*: the file, or the one in the folder."""
+    from oceanarray import mooring as _mooring
+
+    if location.is_dir():
+        return _mooring.folder_mooring_path(location, command)
+    return location
+
+
+def _location_name(location: Path, command: str) -> str:
+    """Return the ``name:`` of the mooring YAML at *location*."""
+    from oceanarray import mooring as _mooring
+
+    return _mooring.load(_location_mooring_path(location, command))["name"]
+
+
+def _require_raw_dir(args: argparse.Namespace, location: Path, message: str) -> None:
+    """Exit with a usage error unless stage 1 has a raw-data folder for the mooring."""
+    cli_paths = getattr(args, "cli_paths", None)
+    if cli_paths is None:
+        if _raw_dir(args) is None:
+            _usage_error(message)
+        return
+    try:
+        cli_paths.raw_mooring_dir(_location_name(location, "run"))
+    except OceanarrayError:
+        _usage_error(message)
+
+
 def _mooring_location(args: argparse.Namespace) -> Path:
     """Return the mooring's folder or mooring YAML from the positional argument."""
+    cli_paths = getattr(args, "cli_paths", None)
+    if cli_paths is not None:
+        return _named_mooring_path(cli_paths, args.mooring)
     _resolve_dirs(args, proc_required=False)
     if getattr(args, "proc_dir", None):
         proc_dir = Path(args.proc_dir).expanduser()
@@ -67,7 +181,8 @@ def _mooring_location(args: argparse.Namespace) -> Path:
     if not given.exists():
         raise SystemExit(
             f"ERROR: {args.mooring} is not a *.mooring.yaml or a mooring folder. Give "
-            "its path, or a mooring name with --proc-dir."
+            "its path, a mooring name with --proc-dir, or a mooring name after a "
+            "<project>.paths.yaml."
         )
     return given
 
@@ -89,10 +204,31 @@ def _mooring_path_and_paths(
     return mooring_path, Paths.from_mooring_dir(name, mooring_path.parent, **dirs)
 
 
+def _verb_inputs(
+    args: argparse.Namespace, location: Path, command: str, **dirs: Path | str | None
+) -> tuple[Path, Paths]:
+    """Return the mooring YAML and the Paths a verb runs with."""
+    cli_paths = getattr(args, "cli_paths", None)
+    if cli_paths is None:
+        return _mooring_path_and_paths(location, command, **dirs)
+    from oceanarray import mooring as _mooring
+
+    mooring_path = _location_mooring_path(location, command)
+    name = _mooring.load(mooring_path)["name"]
+    if getattr(args, "outdir", None):
+        cli_paths = cli_paths.with_mooring(name, report_dir=Path(args.outdir))
+    if command == "export" and getattr(args, "output_dir", None):
+        cli_paths = dataclasses.replace(cli_paths, export_dir=Path(args.output_dir))
+    return mooring_path, cli_paths
+
+
 def _raw_dir(args: argparse.Namespace) -> Path | None:
-    """Return ``--raw-dir`` as a path, or None."""
+    """Return ``--raw-dir`` as a path (or the paths file's raw_dir), or None."""
     raw = getattr(args, "raw_dir", None)
-    return Path(raw) if raw else None
+    if raw:
+        return Path(raw)
+    cli_paths = getattr(args, "cli_paths", None)
+    return cli_paths.raw_dir if cli_paths is not None else None
 
 
 def _folder(location: Path) -> Path:
@@ -309,8 +445,9 @@ def _add_shared_report_args(p: argparse.ArgumentParser) -> None:
 
 
 _MOORING_HELP = (
-    "The mooring: its <name>.mooring.yaml file or its folder (any name), or, with "
-    "--proc-dir, its name, e.g. dsG3_1_2026 (the folder <proc-dir>/<name>)"
+    "The mooring: its <name>.mooring.yaml file or its folder (any name), or its name, "
+    "e.g. dsG3_1_2026, after a <project>.paths.yaml or with --proc-dir (the folder "
+    "<proc-dir>/<name>)"
 )
 
 
@@ -319,7 +456,6 @@ def _print_stage_plan(
 ) -> tuple[str, Path] | None:
     """Print each stage file *wanted* stages would write; write nothing."""
     from oceanarray import logger
-    from oceanarray.exceptions import OceanarrayError
     from oceanarray.mooring import check_yaml as _mooring
     from oceanarray.mooring.instruments import instrument_entries
     from oceanarray.reports._verb import (
@@ -328,7 +464,9 @@ def _print_stage_plan(
     )
 
     try:
-        name, moor_dir = _resolve_name_and_dir(location, None)
+        name, moor_dir = _resolve_name_and_dir(
+            location, _paths_mooring_dir(args, location)
+        )
     except OceanarrayError as e:
         logger.status("error", str(e))
         return None

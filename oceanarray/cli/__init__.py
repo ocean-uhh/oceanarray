@@ -18,7 +18,11 @@ from oceanarray.cli import report as _report
 from oceanarray.cli import run as _run
 from oceanarray.cli import stamp as _stamp
 from oceanarray.cli import validate as _validate
-from oceanarray.cli._common import _parse_stage_token  # noqa: F401  — used by the tests
+from oceanarray.cli._common import (
+    _cli_paths,
+    _parse_stage_token,  # noqa: F401  — used by the tests
+    _split_paths_file,
+)
 from oceanarray.cli.animate import cmd_animate
 from oceanarray.cli.concat import cmd_concat
 from oceanarray.cli.export import cmd_export
@@ -60,6 +64,7 @@ def build_parser() -> argparse.ArgumentParser:
         "  oceanarray run      MOORING --stage 3 --dp 10                 re-run stage 3, regrid finer\n"
         "  oceanarray export   MOORING --array /data/proc/X.array.yaml   OceanSITES 1.4 files\n"
         "  oceanarray concat   egM2_2016 egM2_2018 --name egM2           one site across deployments\n"
+        "  oceanarray run      osnap.paths.yaml dsG3_1_2026              folders from a paths file\n"
         "\n"
         "Run 'oceanarray <command> --help' for command-specific options.\n"
     )
@@ -109,40 +114,54 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main() -> None:  # noqa: C901
+#: The commands that take a ``*.paths.yaml`` as their first argument.
+PATHS_FILE_COMMANDS = ("process", "run", "report", "export", "validate")
+
+
+def _check_unknown(
+    parser: argparse.ArgumentParser, args: argparse.Namespace, unknown: list[str]
+) -> None:
+    """Accept ``-v``/``-q`` after the command, warn about an unused ``--raw-dir``, refuse the rest."""
+    raw_dir_unknowns = []
+    other_unknowns = []
+    skip_next = False
+    for i, tok in enumerate(unknown):
+        if skip_next:
+            skip_next = False
+            continue
+        if tok == "--raw-dir":
+            raw_dir_unknowns.append(tok)
+            if i + 1 < len(unknown) and not unknown[i + 1].startswith("--"):
+                raw_dir_unknowns.append(unknown[i + 1])
+                skip_next = True
+        elif tok.startswith("--raw-dir="):
+            raw_dir_unknowns.append(tok)
+        elif tok in ("-v", "--verbose"):
+            # -v / -q are accepted after the command name as well as before it.
+            args.verbose = True
+        elif tok in ("-q", "--quiet"):
+            args.quiet = True
+        else:
+            other_unknowns.append(tok)
+    if raw_dir_unknowns:
+        print(
+            f"oceanarray: WARNING: --raw-dir is not used by this subcommand "
+            f"and will be ignored ({' '.join(raw_dir_unknowns)})",
+            file=sys.stderr,
+        )
+    if other_unknowns:
+        parser.error(f"unrecognized arguments: {' '.join(other_unknowns)}")
+
+
+def main() -> None:
     """Entry point for the ``oceanarray`` command-line tool."""
     parser = build_parser()
-    args, _unknown = parser.parse_known_args()
-    if _unknown:
-        _raw_dir_unknowns = []
-        _other_unknowns = []
-        _skip_next = False
-        for _i, _tok in enumerate(_unknown):
-            if _skip_next:
-                _skip_next = False
-                continue
-            if _tok == "--raw-dir":
-                _raw_dir_unknowns.append(_tok)
-                if _i + 1 < len(_unknown) and not _unknown[_i + 1].startswith("--"):
-                    _raw_dir_unknowns.append(_unknown[_i + 1])
-                    _skip_next = True
-            elif _tok.startswith("--raw-dir="):
-                _raw_dir_unknowns.append(_tok)
-            elif _tok in ("-v", "--verbose"):
-                # -v / -q are accepted after the command name as well as before it.
-                args.verbose = True
-            elif _tok in ("-q", "--quiet"):
-                args.quiet = True
-            else:
-                _other_unknowns.append(_tok)
-        if _raw_dir_unknowns:
-            print(
-                f"oceanarray: WARNING: --raw-dir is not used by this subcommand "
-                f"and will be ignored ({' '.join(_raw_dir_unknowns)})",
-                file=sys.stderr,
-            )
-        if _other_unknowns:
-            parser.error(f"unrecognized arguments: {' '.join(_other_unknowns)}")
+    argv, paths_file = _split_paths_file(sys.argv[1:], PATHS_FILE_COMMANDS)
+    args, unknown = parser.parse_known_args(argv)
+    if unknown:
+        _check_unknown(parser, args, unknown)
+    args.paths_file = paths_file
+    args.cli_paths = _cli_paths(paths_file, args)
     import logging
 
     from oceanarray import logger

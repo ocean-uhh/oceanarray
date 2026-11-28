@@ -41,6 +41,8 @@ oceanarray run     /data/proc/dsG3_1_2026 --raw-dir /data/raw     # stages 1-3, 
 oceanarray export  /data/proc/dsG3_1_2026                          # OceanSITES 1.4 files (needs platform_code)
 ```
 
+With a project's folders in a paths file (`osnap.paths.yaml`), a mooring is given by name: `oceanarray run osnap.paths.yaml dsG3_1_2026`, or `oceanarray run osnap.paths.yaml --all` for every mooring.
+
 See the [documentation](https://ocean-uhh.github.io/oceanarray/) for the recommended first-processing workflow, YAML reference, and CLI reference.
 
 ## Python API

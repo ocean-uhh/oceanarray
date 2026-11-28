@@ -230,6 +230,7 @@ def report_array(
         report_dir=paths.report_dir,
         breadcrumb=list(breadcrumb) if breadcrumb is not None else None,
         bathymetry=Path(bathymetry) if bathymetry is not None else None,
+        paths=paths,
     )
     if not page:
         raise MooringError(f"{array_path.name}: the array report could not be built.")

@@ -1,6 +1,6 @@
 """The mooring YAML (``*.mooring.yaml``) and what it describes.
 
-:mod:`~oceanarray.mooring.load_yaml` loads the file, :mod:`~oceanarray.mooring.check_yaml`
+:mod:`~oceanarray.mooring.load_yaml` loads the file (and reads an array YAML), :mod:`~oceanarray.mooring.check_yaml`
 checks it, :mod:`~oceanarray.mooring.write_yaml` templates and saves it;
 :mod:`~oceanarray.mooring.yaml_keys` lists its keys and
 :mod:`~oceanarray.mooring.settings` reads its settings.
@@ -13,7 +13,7 @@ used as ``oceanarray.mooring.<name>``.
 """
 
 from oceanarray.mooring.check_yaml import check, serial_collision_errors
-from oceanarray.mooring.load_yaml import folder_mooring_path, load
+from oceanarray.mooring.load_yaml import folder_mooring_path, load, load_array
 from oceanarray.mooring.settings import (
     OPTIONAL_REPORT_SECTIONS,
     SETTINGS_BLOCKS,
@@ -38,6 +38,7 @@ __all__ = [
     "check",
     "folder_mooring_path",
     "load",
+    "load_array",
     "resolve_report_sections",
     "resolve_spectrum_markers",
     "save",

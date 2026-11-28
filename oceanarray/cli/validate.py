@@ -6,12 +6,16 @@ import argparse
 from pathlib import Path
 
 from oceanarray import paths
-from oceanarray.cli._common import _add_dir_args
+from oceanarray.cli._common import _add_dir_args, _is_bare_name, _named_mooring_path
 
 
-def _description_path(given: str, proc_dir: str | None) -> Path:
-    """Return the ``*.mooring.yaml`` for a path, a mooring folder, or a name with ``--proc-dir``."""
+def _description_path(
+    given: str, proc_dir: str | None, cli_paths: paths.Paths | None = None
+) -> Path:
+    """Return the ``*.mooring.yaml`` for a path, a mooring folder, or a name (through a paths file, or with ``--proc-dir``)."""
     path = Path(given)
+    if cli_paths is not None and _is_bare_name(given):
+        return _named_mooring_path(cli_paths, given)
     if path.is_dir():
         found = sorted(path.glob("*.mooring.yaml"))
         if len(found) == 1:
@@ -28,9 +32,10 @@ def cmd_validate(args: argparse.Namespace) -> int:
     """Validate each mooring YAML; 1 on any error (or, with --strict, any warning)."""
     all_ok = True
     for given in args.mooring:
-        ok = _print_report(
-            str(_description_path(given, args.proc_dir)), strict=args.strict
+        found = _description_path(
+            given, args.proc_dir, getattr(args, "cli_paths", None)
         )
+        ok = _print_report(str(found), strict=args.strict)
         all_ok = all_ok and ok
         print()
     return 0 if all_ok else 1
