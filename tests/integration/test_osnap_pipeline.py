@@ -269,6 +269,39 @@ def test_oceansites_adcp_orientation_is_required_and_checked(orientation, match)
         stage1({"CM173": ds}, {"name": "cf1", **CF1, "clamp": [entry]})
 
 
+@pytest.mark.parametrize(
+    "angle, expected",
+    [(None, None), (20, (20.0, "yaml"))],
+)
+def test_oceansites_adcp_beam_angle_comes_from_the_yaml_entry(angle, expected):
+    """CF1's file gives no beam angle: stage 1 takes the entry's beam_angle_deg, or leaves it unset (never assumed)."""
+    from oceanarray import readers
+    from oceanarray.pipeline.stage1 import stage1
+
+    entry = {**_CF1_ADCP, "orientation": "up"}
+    if angle is not None:
+        entry["beam_angle_deg"] = angle
+    ds = readers.read(OSNAP / entry["filename"])
+    ds.attrs["file_type"] = "oceansites"
+    (out,) = stage1({"CM173": ds}, {"name": "cf1", **CF1, "clamp": [entry]}).values()
+    got = out.attrs.get("beam_angle_deg"), out.attrs.get("beam_angle_source")
+    assert got == (expected or (None, None))
+
+
+def test_adcp_file_beam_angle_wins_over_the_yaml(caplog):
+    """dsG2's file gives 20°: a different beam_angle_deg in the entry is warned and the file's is kept."""
+    from oceanarray.pipeline.stage1 import _set_adcp_beam_angle
+
+    ds = xr.load_dataset(OSNAP.parents[1] / "adcp" / "dsG2_adcp_stage3_knockdown.nc")
+    with caplog.at_level(logging.WARNING):
+        out = _set_adcp_beam_angle(ds, {"serial": "24553", "beam_angle_deg": 25})
+    assert "the file's is used" in caplog.text
+    assert (out.attrs["beam_angle_deg"], out.attrs["beam_angle_source"]) == (
+        20,
+        "instrument",
+    )
+
+
 def test_oceansites_adcp_to_stage3_and_stack(tmp_path):
     """The originator's bin pressures pass stage 3 unchanged and place the stack rows."""
 

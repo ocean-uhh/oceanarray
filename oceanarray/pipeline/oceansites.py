@@ -126,13 +126,13 @@ def type_code(ds: xr.Dataset) -> str:
 
 def _nominal_depth(ds: xr.Dataset) -> float:
     """Return the instrument's nominal depth (m): ``instrument_depth``, else water depth − HAB."""
-    ds = _stage.normalize_identity_names(ds)
-    if "instrument_depth" in ds.variables:
-        return float(ds["instrument_depth"].values)
-    try:
-        return float(ds.attrs["waterdepth"]) - float(ds.attrs["hab"])
-    except KeyError as e:
-        raise OceanSitesError(f"no nominal depth: stage-3 file lacks {e}") from None
+    depth = _stage.nominal_depths(ds)
+    if depth is None or not np.isfinite(depth).all():
+        raise OceanSitesError(
+            "no nominal depth: the stage-3 file has no instrument_depth, "
+            "and no numeric waterdepth and hab"
+        )
+    return float(depth)
 
 
 def _bin_depths(ds: xr.Dataset, head: float) -> np.ndarray:

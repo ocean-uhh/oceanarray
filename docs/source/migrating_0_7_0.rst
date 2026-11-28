@@ -373,15 +373,32 @@ files. The default levels (200 to 1000 dbar every 20 dbar) moved from
 ``oceanarray.config.parameters``: ``GRID_PMIN_DBAR``, ``GRID_PMAX_DBAR`` and
 ``GRID_DP_DBAR`` (and ``STACK_DT_SECONDS`` for the stack's time step).
 
-An instrument's ``depth:`` is an error
---------------------------------------
+An instrument's depth: one resolver, the hab first
+--------------------------------------------------
 
-An instrument entry's depth is ``nominal_depth`` (m, positive down) or its ``hab``;
-``depth:`` was never read, and ``oceanarray validate`` and ``mooring.check`` now
-report it as an ERROR, with or without a ``hab`` beside it, as they do a negative
-``nominal_depth``. Hardware entries keep ``depth:``. Change ``depth: -670.5`` to
-``nominal_depth: 670.5``, or remove the line when the ``hab`` gives the depth (when
-both are given, ``nominal_depth`` wins).
+An instrument's nominal depth, its typical depth as deployed, is ``waterdepth - hab``
+(the hab is set by how the mooring is built, ``waterdepth`` comes from the
+bathymetry); an entry without a hab uses its ``nominal_depth`` (m, positive down).
+One function gives it everywhere: the stage files, the stack and the report pages
+(the mooring report's table read ``depth:`` first, so it could show another depth
+than the data). When both are given the hab wins, where ``nominal_depth`` used to.
+
+An instrument's ``depth:``, as moordiag's ``enrich`` writes it
+(``-(waterdepth - hab)``), is never read. ``oceanarray validate`` and
+``mooring.check`` warn when it no longer matches the hab and ``waterdepth`` (it is
+stale: rerun ``enrich``, or remove the line), or when the entry has no hab; a
+``nominal_depth`` that differs from ``waterdepth - hab`` is a warning too. A negative
+``nominal_depth`` is an error.
+
+.. list-table::
+   :header-rows: 1
+   :widths: 45 55
+
+   * - Old name
+     - Use instead
+   * - ``oceanarray.instruments.nominal_depth``
+     - ``oceanarray.mooring.instruments.resolve_nominal_depth``, which puts the hab
+       first; the old name keeps 0.6.2's order (``nominal_depth`` first) until 0.8.0
 
 ADCP seabed and surface flags
 -----------------------------
@@ -391,10 +408,12 @@ water within ``D·(1 − cos θ) + cell size`` of it when the ADCP looks toward 
 side-lobe zone; ``D`` is the transducer-to-boundary distance, ``θ`` the beam angle),
 otherwise 1. There is no flag 3 and no fixed 20 m margin: below-seabed bins that were
 3 are 4, and the bins in the side-lobe zone, which were 1 or 3, are 4. The beam angle
-and cell size come from the file (``beam_angle_deg``, ``cell_size_m``); without them,
-``config.parameters.ADCP_BEAM_ANGLE_DEG`` (20°) and the bin spacing are used, with a
-warning, and the flag's attributes record which. Rerun stage 3 to update existing
-files. The margin keywords still work, with a ``DeprecationWarning``, until 0.8.0,
+comes from the file (``beam_angle_deg``) or an optional ``beam_angle_deg:`` on the
+instrument entry, and is never assumed: an ADCP with neither (e.g. an imported
+OceanSITES file) gets no side-lobe zone, only the bins beyond the boundary are 4, and
+the flag says so; add ``beam_angle_deg:`` to its entry and rerun from stage 1. The
+cell size falls back to the bin spacing, with a warning. Rerun stage 3 to update
+existing files. The margin keywords still work, with a ``DeprecationWarning``, until 0.8.0,
 and are ignored.
 
 .. list-table::

@@ -54,23 +54,39 @@ def test_surface_down_looking_has_no_side_lobe_zone():
     assert "(the ADCP looks away from the surface)" in attrs["comment"]
 
 
-def test_surface_up_looking_default_beam_angle_is_warned_and_recorded(caplog):
-    """CF1 gives no beam angle or cell size: the 20° default and the bin spacing are used and recorded."""
+def test_surface_up_looking_without_beam_angle_flags_only_above(caplog):
+    """CF1 gives no beam angle: no side-lobe zone is assumed, only bins at or above the surface get 4, and the flag says why."""
     ds = read_oceansites(CF1)
     ds.attrs["orientation_yaml"] = "up"
     with caplog.at_level(logging.WARNING):
         out = apply_adcp_surface_qc(ds, lat=CF1_LAT)
-    assert "using the default 20 deg" in caplog.text
+    assert "no side-lobe zone (no beam angle)" in caplog.text
+    z_bin = _depth(ds["bin_pressure"].values, CF1_LAT)
+    np.testing.assert_array_equal(out["surface_qc"].values, np.where(z_bin <= 0, 4, 1))
+    attrs = out["surface_qc"].attrs
+    assert attrs["side_lobe_zone"] == "no beam angle"
+    assert "(no beam angle)" in attrs["comment"]
+    assert "beam_angle_deg" not in attrs
+
+
+def test_surface_up_looking_yaml_beam_angle_and_bin_spacing_are_recorded(caplog):
+    """CF1 with a beam angle from the mooring YAML (20°): the zone uses it, the cell size falls back to the bin spacing, both recorded."""
+    ds = read_oceansites(CF1)
+    ds.attrs.update(
+        orientation_yaml="up", beam_angle_deg=20.0, beam_angle_source="yaml"
+    )
+    with caplog.at_level(logging.WARNING):
+        out = apply_adcp_surface_qc(ds, lat=CF1_LAT)
     assert "no cell_size_m; using the bin spacing" in caplog.text
     attrs = out["surface_qc"].attrs
-    assert (attrs["beam_angle_deg"], attrs["beam_angle_source"]) == (20.0, "default")
+    assert (attrs["beam_angle_deg"], attrs["beam_angle_source"]) == (20.0, "yaml")
     assert attrs["cell_size_source"] == "bin spacing"
     z_bin = _depth(ds["bin_pressure"].values, CF1_LAT)
     z_head = _depth(ds["pressure"].values, CF1_LAT)
     zone = z_head * (1 - 0.9396926) + attrs["cell_size_m"]
     expected = np.where((z_bin <= 0) | (z_bin < zone[:, None]), 4, 1)
     np.testing.assert_array_equal(out["surface_qc"].values, expected)
-    assert (out["surface_qc"].values == 4).any()
+    assert (out["surface_qc"].values == 4).sum() == 1005
 
 
 @pytest.mark.parametrize(

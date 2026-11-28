@@ -726,7 +726,8 @@ The rest:
        ``*`` marker, or ``serial, beacon_id``).
      - ``serial_text``
    * - nominal depth
-     - The design depth from the mooring YAML (m, positive down).
+     - The typical depth as deployed, waterdepth (bathymetry) − hab, or the YAML's
+       ``nominal_depth`` without a hab (m, positive down).
      - ``instrument_depth``, YAML ``nominal_depth``
    * - depth
      - **Two meanings:** depth computed from pressure (``depth`` variable,

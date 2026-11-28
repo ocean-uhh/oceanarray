@@ -17,6 +17,7 @@ correction far from those of the other instruments on the mooring is a warning t
 """
 
 import re
+from typing import Any
 
 import numpy as np
 
@@ -24,11 +25,14 @@ from oceanarray import paths
 from oceanarray.config import parameters as params
 from oceanarray.exceptions import ValidationIssue
 from oceanarray.mooring.instruments import (
+    FROM_HAB,
+    _as_metres,
     clock_seconds,
     hab_for,
     is_missing_clock_reading,
     parse_clock_reading,
     resolve_clock_correction,
+    resolve_nominal_depth,
 )
 
 # ``is_missing_clock_reading`` is re-exported here (imported above): the clock
@@ -101,30 +105,79 @@ RECOMMENDED_MOORING_KEYS = ["deployment_time", "recovery_time"]
 _RESERVED_SERIALS = frozenset({"stack", "grid"})
 
 
-def check_depth_key(entry: dict) -> ValidationIssue | None:
-    """Return the ERROR for an instrument entry's depth: a ``depth:`` key (not read) or a negative ``nominal_depth``.
+def check_depth_key(entry: dict, waterdepth: Any = None) -> list[ValidationIssue]:
+    """Return the issues with an instrument entry's depth keys.
+
+    A negative ``nominal_depth`` is an ERROR (depth is positive down). ``depth:``, as
+    moordiag's enrich writes it (``-(waterdepth - hab)``), is never read: a WARNING when
+    it no longer matches the entry's hab and *waterdepth* (stale), or when there is no
+    hab to check it against. A ``nominal_depth`` that differs from ``waterdepth - hab`` is
+    a WARNING too: the hab wins (:func:`~oceanarray.mooring.instruments.resolve_nominal_depth`).
+    Differences up to ``config.parameters.NOMINAL_DEPTH_TOLERANCE_M`` are ignored.
 
     Parameters
     ----------
     entry : dict
         One instrument entry of the mooring YAML.
+    waterdepth : float or None, optional
+        The mooring's water depth (m, from the bathymetry).
 
     Returns
     -------
-    ValidationIssue or None
-        The ERROR, or None when the entry has neither.
+    list of ValidationIssue
+        The ERRORs and WARNINGs; empty when the depth keys agree with the hab.
     """
-    if "depth" in entry:
-        return ValidationIssue(
-            "ERROR",
-            "depth is not read; give nominal_depth (m, positive down) or hab",
+    nominal = _as_metres(entry.get("nominal_depth"))
+    if nominal is not None and nominal < 0:
+        return [
+            ValidationIssue(
+                "ERROR",
+                f"nominal_depth {nominal:g} is negative; depth is positive down (m)",
+            )
+        ]
+    depth, source = resolve_nominal_depth(entry, waterdepth)
+    issues = (
+        [] if "depth" not in entry else _check_enrich_depth(entry, waterdepth, depth)
+    )
+    if (
+        source == FROM_HAB
+        and nominal is not None
+        and abs(nominal - depth) > params.NOMINAL_DEPTH_TOLERANCE_M
+    ):
+        issues.append(
+            ValidationIssue(
+                "WARNING",
+                f"nominal_depth {nominal:g} differs from waterdepth - hab = {depth:g}; "
+                "the hab is used",
+            )
         )
-    nominal = entry.get("nominal_depth")
-    if isinstance(nominal, (int, float)) and nominal < 0:
-        return ValidationIssue(
-            "ERROR", f"nominal_depth {nominal} is negative; depth is positive down (m)"
+    return issues
+
+
+def _check_enrich_depth(
+    entry: dict, waterdepth: Any, depth: float | None
+) -> list[ValidationIssue]:
+    """Return the WARNING for an entry's ``depth:`` that is not ``-(waterdepth - hab)``."""
+    has_hab = _as_metres(hab_for(entry)) is not None
+    if depth is not None and has_hab:
+        given = _as_metres(entry["depth"])
+        if given is not None and abs(given + depth) <= params.NOMINAL_DEPTH_TOLERANCE_M:
+            return []
+        message = (
+            f"depth {entry['depth']} is stale: -(waterdepth - hab) is {-depth:g}; "
+            "depth is not read (rerun enrich, or remove the line)"
         )
-    return None
+    elif has_hab:
+        message = (
+            f"depth is not read, and cannot be checked: waterdepth {waterdepth!r} "
+            "is not a number"
+        )
+    else:
+        message = (
+            "depth is not read; give hab (m above the seabed) or nominal_depth "
+            "(m, positive down)"
+        )
+    return [ValidationIssue("WARNING", message)]
 
 
 def check_serials(entries: list[dict]) -> list[ValidationIssue]:
@@ -465,6 +518,20 @@ def validate_mooring(  # noqa: C901
                 )
             )
 
+        angle = entry.get("beam_angle_deg")
+        if angle is not None and not (
+            isinstance(angle, int | float)
+            and not isinstance(angle, bool)
+            and 0 < angle < 90
+        ):
+            issues.append(
+                ValidationIssue(
+                    "ERROR",
+                    f"{prefix} beam_angle_deg {angle!r}: expected degrees from the "
+                    "instrument axis, between 0 and 90",
+                )
+            )
+
         # A stacked entry needs a height above bottom to be placed as a level. hab is
         # filled from hab_bottom (down) / hab_top (up) by orientation; if that resolves
         # to nothing the stack omits the instrument. An entry with no filename is already
@@ -494,11 +561,10 @@ def validate_mooring(  # noqa: C901
                     )
                 )
 
-        depth_issue = check_depth_key(entry)
-        if depth_issue is not None:
-            issues.append(
-                depth_issue._replace(message=f"{prefix} {depth_issue.message}")
-            )
+        issues.extend(
+            issue._replace(message=f"{prefix} {issue.message}")
+            for issue in check_depth_key(entry, data.get("waterdepth"))
+        )
 
         # Clock correction field checks
         has_comp = "computer_clock_at_recovery" in entry

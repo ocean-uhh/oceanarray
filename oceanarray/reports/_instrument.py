@@ -504,7 +504,7 @@ def generate_instrument_pages(  # noqa: C901
         t_end = nc_info.get("t_end", "—")
         dt_s = nc_info.get("dt_s")
         median_dt = _format_seconds(dt_s)
-        nominal_depth = instr.get("nominal_depth", instr.get("depth"))
+        nominal_depth = instr.get("nominal_depth")
         type_label = instr.get("type_label") or _type_label(instr_type)
         title = _title(type_label, serial, nominal_depth)
 

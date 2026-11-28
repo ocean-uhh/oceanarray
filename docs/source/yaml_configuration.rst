@@ -86,7 +86,8 @@ mooring as a whole.
    * - ``waterdepth``
      - number
      - Required
-     - Water depth at the anchor position in metres.
+     - Bathymetric water depth at the site in metres; an instrument's depth is
+       ``waterdepth - hab``.
    * - ``<field>_source``
      - string
      - Optional
@@ -871,6 +872,26 @@ key.  If no ``hab`` can be resolved at all:
   (``keep_going=False``) stops before the grid.  ``oceanarray validate``
   warns about such an entry; set ``hab``, or ``stack: false`` to keep it
   out of the stack on purpose.
+
+----
+
+ADCP beam angle
+---------------
+
+``beam_angle_deg`` (optional, degrees from the instrument axis, between 0 and 90) on
+an ADCP's entry gives the beam angle when the file does not, as for an imported
+OceanSITES or RODB file. Stage 3 uses it for the side-lobe zone of ``seabed_qc`` and
+``surface_qc`` (:doc:`methods/auto_qc`). A raw RDI or Nortek file gives its own; if
+the entry disagrees, the file's is used with a warning. With neither, no side-lobe
+zone is flagged and the flag says why.
+
+.. code-block:: yaml
+
+   - instrument: ADCP
+     serial: CM173
+     file_type: oceansites
+     orientation: up
+     beam_angle_deg: 20
 
 ----
 

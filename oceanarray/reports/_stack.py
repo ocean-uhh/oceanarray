@@ -631,7 +631,6 @@ def generate_stack_page(
         n_time = ds.sizes["time"]
         n_instr = ds.sizes["N_LEVELS"]
         dt_seconds = ds.attrs.get("dt_seconds", "?")
-        waterdepth = float(ds.attrs.get("waterdepth", 0) or 0)
         step = max(1, n_time // 5000)
 
         serials = ds["serial"].values
@@ -644,7 +643,7 @@ def generate_stack_page(
             depth = (
                 float(nominal[i])
                 if nominal is not None and np.isfinite(nominal[i])
-                else (waterdepth - float(habs[i]) if waterdepth else None)
+                else None
             )
             _ser = str(serials[i])
             instr_rows.append(

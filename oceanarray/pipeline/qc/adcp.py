@@ -34,8 +34,8 @@ def apply_adcp_seabed_qc(
     ----------
     ds : xarray.Dataset
         Stage-3 ADCP dataset with ``bin_pressure(time, N_BINS)`` (dbar), the head's
-        ``pressure(time)`` and the orientation in ``orientation_yaml`` or
-        ``orientation_instrument``.
+        ``pressure(time)``, the orientation in ``orientation_yaml`` or
+        ``orientation_instrument`` and the beam angle in ``beam_angle_deg``.
     water_depth_m : float
         Water depth (m, the YAML ``waterdepth``); no-op if ≤ 0.
     lat : float
@@ -75,8 +75,8 @@ def apply_adcp_surface_qc(
     ----------
     ds : xarray.Dataset
         Stage-3 ADCP dataset with ``bin_pressure(time, N_BINS)`` (dbar), the head's
-        ``pressure(time)`` and the orientation in ``orientation_yaml`` or
-        ``orientation_instrument``.
+        ``pressure(time)``, the orientation in ``orientation_yaml`` or
+        ``orientation_instrument`` and the beam angle in ``beam_angle_deg``.
     lat : float
         Latitude (decimal degrees), for the pressure-to-depth conversion.
     suspect_margin_m : float, optional
@@ -166,6 +166,9 @@ def _side_lobe_zone(
     if missing == head_m.size:
         log.warning(f"  {boundary} QC: no side-lobe zone (no head pressure)")
         return None, {"side_lobe_zone": "no head pressure"}
+    if ds.attrs.get("beam_angle_deg") is None:
+        log.warning(f"  {boundary} QC: no side-lobe zone (no beam angle)")
+        return None, {"side_lobe_zone": "no beam angle"}
     settings = _zone_settings(ds, lat, boundary)
     if missing:
         log.warning(
@@ -179,16 +182,9 @@ def _side_lobe_zone(
 
 
 def _zone_settings(ds: xr.Dataset, lat: float, boundary: str) -> dict:
-    """Return the beam angle and cell size of the zone and where each came from (a default or fallback is warned)."""
-    from oceanarray.config import parameters as params
-
-    angle, angle_source = ds.attrs.get("beam_angle_deg"), "instrument"
-    if angle is None:
-        angle, angle_source = params.ADCP_BEAM_ANGLE_DEG, "default"
-        log.warning(
-            f"  {boundary} QC: no beam_angle_deg; using the default "
-            f"{angle:g} deg (config.parameters.ADCP_BEAM_ANGLE_DEG)"
-        )
+    """Return the beam angle and cell size of the zone and where each came from (the bin-spacing fallback is warned)."""
+    angle = ds.attrs["beam_angle_deg"]
+    angle_source = ds.attrs.get("beam_angle_source", "instrument")
     cell, cell_source = ds.attrs.get("cell_size_m"), "instrument"
     if cell is None:
         cell, cell_source = _bin_spacing_m(ds, lat), "bin spacing"

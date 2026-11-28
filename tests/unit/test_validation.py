@@ -7,7 +7,13 @@ import yaml
 
 from oceanarray import mooring
 from oceanarray.exceptions import MooringError
+from oceanarray.mooring.instruments import (
+    FROM_HAB,
+    instrument_entries,
+    resolve_nominal_depth,
+)
 
+_FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
 _DUNE2_YAML = (
     Path(__file__).resolve().parents[1]
     / "fixtures"
@@ -544,6 +550,24 @@ def test_adcp_orientation_is_required(extra, n_errors, mooring_yaml):
 
 
 @pytest.mark.parametrize(
+    "angle, n_errors",
+    [(20, 0), (25.0, 0), (0, 1), (90, 1), (-20, 1), ("20", 1), (True, 1)],
+)
+def test_adcp_beam_angle_is_degrees_between_0_and_90(angle, n_errors, mooring_yaml):
+    """An optional beam_angle_deg on an instrument entry is a number of degrees in (0, 90)."""
+    cfg = mooring.load(_DUNE2_YAML)
+    entry = next(e for e in cfg["clamp"] if str(e["serial"]) == "2941")
+    entry.update({"instrument": "ADCP", "file_type": "oceansites", "orientation": "up"})
+    entry["beam_angle_deg"] = angle
+    errs = [
+        e
+        for e in _errors(mooring.check(mooring_yaml(cfg)))
+        if "beam_angle_deg" in e.message
+    ]
+    assert len(errs) == n_errors
+
+
+@pytest.mark.parametrize(
     "instrument, file_type, filename, n_errors",
     [
         ("ADCP", "rodb", "nocm3_03_2016_20961_bin*.edt", 0),
@@ -569,10 +593,10 @@ def test_wildcard_filename_only_for_rodb_adcp_bins(
     assert len(errs) == n_errors
 
 
-def _dune2_with_depth_key(tmp_path, *, drop_hab=False):
-    """The dune2 fixture YAML with ``depth:`` added to 2941 (and its hab dropped)."""
+def _dune2_with(tmp_path, line, *, drop_hab=False):
+    """The dune2 fixture YAML (waterdepth 745) with *line* added to 2941 (hab 425)."""
     text = _DUNE2_YAML.read_text().replace(
-        "- serial: 2941\n", "- serial: 2941\n  depth: 320\n", 1
+        "- serial: 2941\n", f"- serial: 2941\n  {line}\n", 1
     )
     if drop_hab:
         text = text.replace("  hab: 425\n", "", 1)
@@ -583,12 +607,53 @@ def _dune2_with_depth_key(tmp_path, *, drop_hab=False):
     return path
 
 
-@pytest.mark.parametrize("drop_hab", [False, True])
-def test_depth_key_is_an_error(tmp_path, drop_hab):
-    """An instrument's depth: is an error, with or without a hab beside it."""
-    issues = mooring.check(_dune2_with_depth_key(tmp_path, drop_hab=drop_hab))
-    found = [i for i in issues if "depth is not read" in i.message]
-    assert [(i.level, "2941" in i.message) for i in found] == [("ERROR", True)]
+def _depth_issues(path):
+    """Return (level, message) of the depth-key issues for serial 2941."""
+    keys = ("depth is not read", "is stale", "differs from waterdepth - hab")
+    return [
+        (i.level, i.message)
+        for i in mooring.check(path)
+        if "2941" in i.message and any(k in i.message for k in keys)
+    ]
+
+
+def test_enrich_depth_matching_the_hab_passes(tmp_path):
+    """depth: -(waterdepth - hab), as moordiag's enrich writes it, is no issue."""
+    assert _depth_issues(_dune2_with(tmp_path, "depth: -320")) == []
+
+
+@pytest.mark.parametrize("line", ["depth: -335", "depth: 320"])
+def test_stale_enrich_depth_is_a_warning(tmp_path, line):
+    """A depth: that no longer matches -(waterdepth - hab) is a WARNING, never read."""
+    (issue,) = _depth_issues(_dune2_with(tmp_path, line))
+    assert issue[0] == "WARNING" and "is stale" in issue[1] and "-320" in issue[1]
+
+
+def test_depth_without_a_hab_is_a_warning(tmp_path):
+    """With no hab to check it against, depth: is a WARNING saying it is not read."""
+    (issue,) = _depth_issues(_dune2_with(tmp_path, "depth: -320", drop_hab=True))
+    assert issue[0] == "WARNING" and "depth is not read" in issue[1]
+
+
+def test_nominal_depth_disagreeing_with_the_hab_is_a_warning(tmp_path):
+    """A nominal_depth that differs from waterdepth - hab is a WARNING; the hab wins."""
+    path = _dune2_with(tmp_path, "nominal_depth: 335")
+    (issue,) = _depth_issues(path)
+    assert issue[0] == "WARNING" and "the hab is used" in issue[1]
+    entry = next(
+        e
+        for e in instrument_entries(yaml.safe_load(path.read_text(encoding="utf-8")))
+        if str(e.get("serial")) == "2941"
+    )
+    assert resolve_nominal_depth(entry, 745) == (320.0, FROM_HAB)
+
+
+@pytest.mark.parametrize("name", ["egM2_2016", "egM2_2018"])
+def test_egm2_nominal_depths_agree_with_their_habs(name):
+    """egM2 gives both nominal_depth and hab, and they agree: no depth issue."""
+    path = _FIXTURES / "proc" / "egM2_concat" / name / f"{name}.mooring.yaml"
+    keys = ("depth is not read", "is stale", "differs from waterdepth - hab")
+    assert not [i for i in mooring.check(path) if any(k in i.message for k in keys)]
 
 
 def test_negative_nominal_depth_is_an_error(tmp_path):
@@ -601,3 +666,21 @@ def test_negative_nominal_depth_is_an_error(tmp_path):
     (d / _DUNE2_YAML.name).write_text(text)
     found = [i for i in mooring.check(d / _DUNE2_YAML.name) if "negative" in i.message]
     assert [(i.level, "2941" in i.message) for i in found] == [("ERROR", True)]
+
+
+def test_stale_depth_and_disagreeing_nominal_depth_are_both_reported(tmp_path):
+    """Both depth keys wrong: each gets its own WARNING."""
+    path = _dune2_with(tmp_path, "depth: -335\n  nominal_depth: 300")
+    messages = [m for _, m in _depth_issues(path)]
+    assert any("is stale" in m for m in messages)
+    assert any("the hab is used" in m for m in messages)
+
+
+def test_depth_with_a_non_numeric_waterdepth_names_the_waterdepth(tmp_path):
+    """With a hab but waterdepth: unknown, the warning says the water depth is not a number."""
+    path = _dune2_with(tmp_path, "depth: -320")
+    path.write_text(
+        path.read_text().replace("waterdepth: 745", "waterdepth: unknown", 1)
+    )
+    (issue,) = _depth_issues(path)
+    assert issue[0] == "WARNING" and "is not a number" in issue[1]

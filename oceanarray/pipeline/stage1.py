@@ -467,6 +467,27 @@ def _set_adcp_orientation(
     return dataset
 
 
+def _set_adcp_beam_angle(dataset: xr.Dataset, entry: dict[str, Any]) -> xr.Dataset:
+    """Set ``beam_angle_deg`` from the entry when the file gives none; the file's value wins.
+
+    ``beam_angle_source`` records where it came from (``"instrument"`` or ``"yaml"``).
+    """
+    yaml_angle = entry.get("beam_angle_deg")
+    file_angle = dataset.attrs.get("beam_angle_deg")
+    if file_angle is not None:
+        dataset.attrs["beam_angle_source"] = "instrument"
+        if yaml_angle is not None and float(yaml_angle) != float(file_angle):
+            log.warning(
+                f"  ADCP s/n {entry.get('serial', '?')}: the file says beam angle "
+                f"{float(file_angle):g} deg, the YAML says {float(yaml_angle):g}; "
+                "the file's is used"
+            )
+    elif yaml_angle is not None:
+        dataset.attrs["beam_angle_deg"] = float(yaml_angle)
+        dataset.attrs["beam_angle_source"] = "yaml"
+    return dataset
+
+
 def _apply_nortek_xyz(dataset: xr.Dataset) -> xr.Dataset:
     """Rotate Nortek BEAM velocities to instrument XYZ with the header's T matrix."""
     keys = [f"nortek_T_M{r}{c}" for r in range(1, 4) for c in range(1, 4)]
@@ -659,9 +680,8 @@ def _stage1_instrument(  # noqa: C901
 ) -> xr.Dataset:
     """Apply stage 1's transforms to one instrument's raw dataset, in the order they run."""
     file_type = dataset.attrs.get("file_type") or entry.get("file_type", "")
-    depth_issue = check_depth_key(entry)
-    if depth_issue is not None:
-        log.warning(f"  [serial {entry.get('serial')}] {depth_issue.message}")
+    for issue in check_depth_key(entry, mooring.get("waterdepth")):
+        log.warning(f"  [serial {entry.get('serial')}] {issue.message}")
 
     if file_type == "rdi-raw":
         dataset = _to_canonical_rdi(dataset, entry)
@@ -669,6 +689,7 @@ def _stage1_instrument(  # noqa: C901
         dataset = _apply_nortek_xyz(dataset)
     if str(entry.get("instrument", "")).lower() == "adcp":
         dataset = _set_adcp_orientation(dataset, entry, file_type)
+        dataset = _set_adcp_beam_angle(dataset, entry)
 
     dataset = _rename_conductivity(dataset)
     dataset = _rename_slash_vars(dataset)

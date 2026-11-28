@@ -263,13 +263,22 @@ class TestStage2Processor:
         assert result["instrument_depth"].values == 745 - 425  # waterdepth - hab
         assert result["instrument_depth"].attrs["units"] == "m"
 
-    def test_add_missing_metadata_prefers_nominal_depth(
-        self, dune2_stage1, dune2_entry
-    ):
-        """A nominal_depth in the entry wins over waterdepth - hab; YAML depth is not read."""
+    def test_add_missing_metadata_prefers_the_hab(self, dune2_stage1, dune2_entry):
+        """waterdepth - hab wins over the entry's nominal_depth; YAML depth is not read."""
         ds = dune2_stage1.drop_vars(["instrument_depth"])
         entry = {**dune2_entry, "nominal_depth": 318, "depth": 999}
-        assert _add_missing_metadata(ds, entry)["instrument_depth"].values == 318
+        depth = _add_missing_metadata(ds, entry)["instrument_depth"]
+        assert depth.values == 320 and depth.attrs["depth_source"] == "waterdepth - hab"
+
+    def test_add_missing_metadata_uses_nominal_depth_without_a_hab(
+        self, dune2_stage1, dune2_entry
+    ):
+        """Without a hab the entry's nominal_depth is the depth."""
+        ds = dune2_stage1.drop_vars(["instrument_depth"])
+        entry = {k: v for k, v in dune2_entry.items() if k != "hab"}
+        entry["nominal_depth"] = 318
+        depth = _add_missing_metadata(ds, entry)["instrument_depth"]
+        assert depth.values == 318 and depth.attrs["depth_source"] == "nominal_depth"
 
     def test_add_missing_metadata_no_overwrite(self, dune2_stage1, dune2_entry):
         """Existing identity scalars are not overwritten."""

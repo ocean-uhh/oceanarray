@@ -153,7 +153,7 @@ def test_moved_pressure_names_warn_and_are_the_moved_objects(name, new_home):
 @pytest.mark.parametrize(
     ("old", "new", "name"),
     [
-        ("oceanarray.instruments", "oceanarray.mooring.instruments", "nominal_depth"),
+        ("oceanarray.instruments", "oceanarray.mooring.instruments", "hab_for"),
         ("oceanarray.location", "oceanarray.mooring.location", "parse_latlon"),
         (
             "oceanarray.config.validation",
